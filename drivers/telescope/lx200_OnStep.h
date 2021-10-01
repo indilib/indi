@@ -24,10 +24,17 @@
     ===========================================
     
     Version not yet updated:
-    Version 1.11: 
+    Version 1.12: 
     - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 250 ms (250000 us)
+    - Cleanup and completely control TrackState. (Should eliminate various issues.)
+    - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
+    - Don't report capability for PierSide and PEC unless supported (This will cause a call to updateProperties so a bunch of messages will be repeated.)
+    - From the last, move where the SlewRate values are defined to updateProperties, vs initProperties so that the extra calls to updateProperties don't mangle it. 
 
-    Past Versions: 
+
+    Past Versions:
+    Version 1.11: (INDI 1.9.2)
+    - Fixed one issue with tracking (Jamie) 
     Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
@@ -104,6 +111,7 @@
 #include <stdlib.h>
 
 #define RB_MAX_LEN 64
+#define CMD_MAX_LEN 32
 
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)
@@ -168,6 +176,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool sendScopeTime() override;
         virtual bool sendScopeLocation() override;
         
+        // Goto
+        virtual bool Goto(double ra, double dec) override;
+        
         //FocuserInterface
 
         IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
@@ -201,11 +212,20 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IPState WritePECBuffer (int axis);
         bool ISPECRecorded (int axis);
         bool OSPECEnabled = false;
+        bool OSPECviaGU = false; //Older versions use :QZ# for PEC status, new can use the standard :GU#/:Gu#
         //End PECInterface
 
 
         //NewGeometricAlignment
         IPState AlignStartGeometric(int stars);
+
+        /**
+         * @brief AlignStartGeometric starts the OnStep Multistar align process.
+         * @brief Max of 9 stars,
+         * @param stars Number of stars to be included. If stars is more than the controller supports, it will be reduced.
+         * @return IPS_BUSY if no issues, IPS_ALERT if commands don't get the expected response.
+         */
+        
         IPState AlignAddStar();
         IPState AlignDone();
         IPState AlignWrite();
@@ -402,8 +422,27 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
             return IPS_OK;
         }
 
-
-
+        
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked) override;
+        
+        /**
+         * @brief SetParked Change the mount parking status. The data park file (stored in
+         * ~/.indi/ParkData.xml) is updated in the process.
+         * @param isparked set to true if parked, false otherwise.
+         */
+        virtual void SetParked(bool isparked) override;
+        
+        /**
+         * @brief PrintTrackState will print to the debug log the status of TrackState if 
+         * DEBUG_TRACKSTATE is defined otherwise it will simply return.
+         */
+// #define DEBUG_TRACKSTATE
+        void PrintTrackState();
+        
     private:
         int currentCatalog;
         int currentSubCatalog;
