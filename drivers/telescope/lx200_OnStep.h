@@ -25,6 +25,7 @@
     
     Version not yet updated:
     Version 1.11: 
+    - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 250 ms (250000 us)
 
     Past Versions: 
     Version 1.10: (finalized: INDI 1.9.1)

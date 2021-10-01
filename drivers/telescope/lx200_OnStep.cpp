@@ -38,6 +38,8 @@
 #define ROTATOR_TAB "Rotator"
 
 #define ONSTEP_TIMEOUT  1
+#define ONSTEP_TIMEOUT_SECONDS 0
+#define ONSTEP_TIMEOUT_MICROSECONDS 250000
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
@@ -419,7 +421,7 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
-    int i;
+//     int i;
     char cmd[32];
     LX200Generic::updateProperties();
     FI::updateProperties();
@@ -488,6 +490,7 @@ bool LX200_OnStep::updateProperties()
         } else { //For OnStepX, up to 9 focusers
             LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
             OSFocuser2 = false;
+            int i;
             for (i = 0; i < 9; i++) {
                 char read_buffer[RB_MAX_LEN] = {0};
                 snprintf(cmd, 7, ":F%dA#", i + 1);
@@ -2538,7 +2541,7 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read(PortFD, response, 1, ONSTEP_TIMEOUT, &nbytes_read);
+    error_type = tty_read_expanded(PortFD, response, 1, ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
 
     tcflush(PortFD, TCIFLUSH);
     DEBUGF(DBG_SCOPE, "RES <%c>", response[0]);
@@ -2557,7 +2560,6 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     char *term;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-    int timeout = 1;
     
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
     
@@ -2567,7 +2569,8 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
     
-    error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
+//     error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
+    error_type = tty_read_expanded(fd, data, 1, ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     
     if (error_type != TTY_OK)
@@ -2589,7 +2592,7 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     char *term;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-    int timeout = 1;
+
     
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
     
@@ -2599,7 +2602,8 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
     
-    error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+//     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    error_type = tty_read_section_expanded(fd, data, '#', ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     
 
