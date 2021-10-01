@@ -2512,14 +2512,19 @@ bool LX200_OnStep::ReadScopeStatus()
     IDSetNumber(&BacklashNP, nullptr);
 
     double pulseguiderate;
-    getCommandString(PortFD, GuideValue, ":GX90#");
-    //     LOGF_DEBUG("Guide Rate String: %s", GuideValue);
-    pulseguiderate = atof(GuideValue);
-    LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
-    GuideRateNP.np[0].value = pulseguiderate;
-    GuideRateNP.np[1].value = pulseguiderate;
-    IDSetNumber(&GuideRateNP, nullptr);
-
+    if (getCommandSingleCharErrorOrLongResponse(PortFD, GuideValue, ":GX90#") > 1) {
+        LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+        pulseguiderate = atof(GuideValue);
+        LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+        GuideRateNP.np[0].value = pulseguiderate;
+        GuideRateNP.np[1].value = pulseguiderate;
+        IDSetNumber(&GuideRateNP, nullptr);
+    }
+    else {
+        LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+        LOG_DEBUG("Guide rate error response, Not seting guide rate from :GX90# response, may be in :GU#");
+    }
+        
 
 #ifndef OnStep_Alpha
     if (OSMountType == MOUNTTYPE_GEM)
@@ -2808,7 +2813,7 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
         *term = '\0';
     if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
     {
-        data[nbytes_read] = '\0';
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
     } else { 
         LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
         data[RB_MAX_LEN - 1] = '\0';
