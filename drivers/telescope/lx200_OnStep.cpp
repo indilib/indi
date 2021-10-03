@@ -41,7 +41,7 @@
 
 #define ONSTEP_TIMEOUT  1
 #define ONSTEP_TIMEOUT_SECONDS 0
-#define ONSTEP_TIMEOUT_MICROSECONDS 250000
+#define ONSTEP_TIMEOUT_MICROSECONDS 500000
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
@@ -752,7 +752,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, BacklashNP.name))
         {
-            char cmd[CMD_MAX_LEN] = {0};
+            //char cmd[CMD_MAX_LEN] = {0};
             int i, nset;
             double bklshdec = 0, bklshra = 0;
 
@@ -774,6 +774,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
             if (nset == 2)
             {
+                char cmd[CMD_MAX_LEN] = {0};
                 snprintf(cmd, 9, ":$BD%d#", (int)bklshdec);
                 if (sendOnStepCommand(cmd))
                 {
@@ -854,7 +855,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, minutesPastMeridianNP.name))
     {
-        char cmd[CMD_MAX_LEN] ={0};
+        //char cmd[CMD_MAX_LEN] ={0};
         int i, nset;
         double minPMEast = 0, minPMWest = 0;
 
@@ -876,6 +877,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         if (nset == 2)
         {
+            char cmd[CMD_MAX_LEN] ={0};
             snprintf(cmd, 20, ":SXE9,%d#", (int) minPMEast);
             if (sendOnStepCommand(cmd))
             {
@@ -964,10 +966,11 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, OSSetTemperatureNP.name))
     {
-        char cmd[CMD_MAX_LEN] = {0};
+//         char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= -100) && (values[0] <= 100))
         {
+            char cmd[CMD_MAX_LEN] = {0};
             snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetTemperatureNP.s           = IPS_OK;
@@ -1735,23 +1738,23 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
-        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2'  )&&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2') && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
             LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
             OSHighPrecision = false;
         }
-        if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V3 OnStep detected, setting some defaults");
             OSHighPrecision = false;
         } 
-        else if (VersionT[2].text[0]=='4' &&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        else if (VersionT[2].text[0]=='4' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V4 OnStep detected, setting some defaults");
             OSHighPrecision = true;
         }
-        else if (VersionT[2].text[0]=='5' &&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        else if (VersionT[2].text[0]=='5' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V5 OnStep detected, setting some defaults");
             OSHighPrecision = true;
@@ -1808,7 +1811,7 @@ bool LX200_OnStep::UnPark()
     if (!isSimulation())
     {
         int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#");
-        if (failure_or_error < 0 || response[0] != '1')
+        if ((response[0] != '1') ||(failure_or_error < 0))
         {
             return false;
         }
@@ -2568,6 +2571,14 @@ bool LX200_OnStep::ReadScopeStatus()
             PreferredPierSideSP.s = IPS_OK;
             IDSetSwitch(&PreferredPierSideSP, nullptr);
         }
+        else if (strstr(TempValue, "%"))
+        {
+            //NOTE: This bug is only present in very early OnStepX, and should be fixed shortly after 10.03k
+            LOG_DEBUG(":GX96 returned \% indicating early OnStepX bug");
+            IUResetSwitch(&PreferredPierSideSP);
+            PreferredPierSideSP.s = IPS_ALERT;
+            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        }
         else
         {
             IUResetSwitch(&PreferredPierSideSP);
@@ -3010,16 +3021,16 @@ bool LX200_OnStep::AbortFocuser ()
 void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN] = {0};
-    double current = 0;
-    int temp_value;
-    int i;
+//    double current = 0;
+//     int temp_value;
+//     int i;
     if (OSFocuser1)
     {
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
         getCommandString(PortFD, value, ":FG#");
         FocusAbsPosN[0].value =  atoi(value);
-        current = FocusAbsPosN[0].value;
+        double current = FocusAbsPosN[0].value;
         IDSetNumber(&FocusAbsPosNP, nullptr);
         LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
@@ -3088,9 +3099,9 @@ void LX200_OnStep::OSUpdateFocuser()
     if(OSNumFocusers > 1) 
     {
         getCommandSingleCharResponse(PortFD, value, ":Fa#");
-        temp_value = atoi(value);
+        int temp_value = atoi(value);
         LOGF_DEBUG(":Fa# return: %d", temp_value);
-        for (i = 0; i < 9; i++) {
+        for (int i = 0; i < 9; i++) {
             OSFocusSelectS[i].s = ISS_OFF;
         }
         if (temp_value == 0) {
@@ -3920,7 +3931,7 @@ bool LX200_OnStep::Sync(double ra, double dec)
 {
 
     char read_buffer[RB_MAX_LEN] = {0};
-    int error_code;
+//     int error_code;
 
     if (!isSimulation())
     {
@@ -3935,7 +3946,7 @@ bool LX200_OnStep::Sync(double ra, double dec)
         LOGF_DEBUG("RES <%s>", read_buffer);
         if (strcmp(read_buffer, "N/A"))
         {
-            error_code = read_buffer[1] - '0';
+            int error_code = read_buffer[1] - '0';
             LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
             slewError(error_code);
             EqNP.s = IPS_ALERT;
@@ -3980,7 +3991,6 @@ void LX200_OnStep::Init_Outputs()
     IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
     for(int i = 1; i < PORTS_COUNT; i++)
     {
-        k=0;
         if(configured[i-1]=='1') // is Feature is configured
         {
             snprintf(getoutp, sizeof(getoutp), ":GXY%d#", i);
