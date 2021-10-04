@@ -1738,31 +1738,41 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
-        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2') && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2') &&  (VersionT[2].text[1]=='.' || VersionT[2].text[1]=='.')&& (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
             LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
             OSHighPrecision = false;
-        }
-        if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+            OnStepMountVersion = OSV_OnStepV1or2;
+        } 
+        else if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V3 OnStep detected, setting some defaults");
             OSHighPrecision = false;
+            OnStepMountVersion = OSV_OnStepV3;
         } 
         else if (VersionT[2].text[0]=='4' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V4 OnStep detected, setting some defaults");
             OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepV4;
         }
         else if (VersionT[2].text[0]=='5' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("V5 OnStep detected, setting some defaults");
             OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepV5;
         }
-        else if (/*VersionT[2].text[0]=='5' &&*/ strcmp(VersionT[3].text, "OnStepX"))
+        else if (VersionT[2].text[0]=='1' && VersionT[2].text[0]=='0' && VersionT[2].text[0]=='.' && (strcmp(VersionT[3].text, "OnStepX") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("OnStepX detected, setting some defaults");
             OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepX;
+        }
+        else {
+            LOG_INFO("OnStep/OnStepX version could not be detected");
+            OSHighPrecision = false;
+            OnStepMountVersion = OSV_UNKNOWN;
         }
         
         if (InitPark())
@@ -1908,6 +1918,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 PrintTrackState();
                 LOG_DEBUG("^ Prior");
             #endif
+            //TelescopeStatus PriorTrackState = TrackState;
             // not [p]arked, parking [I]n-progress, [P]arked, Park [F]ailed
             // "P" (Parked moved to Telescope Status, since it would override any other TrackState
             // Other than parked, none of these affect TrackState
@@ -1931,7 +1942,7 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Telescope Status
             
             if (strstr(OSStat, "P"))
-            {                
+            {
                 TrackState = SCOPE_PARKED;
                 IUSaveText(&OnstepStat[3], "Parked");
                 IUSaveText(&OnstepStat[1], "Parked");
@@ -1971,36 +1982,69 @@ bool LX200_OnStep::ReadScopeStatus()
                 }
                 PrintTrackState();
             }
-            // Set TrackStateSP based on above:
+            // Set TrackStateSP based on above, but only change if needed.
             // NOTE: Technically during a slew it can have tracking on, but elsewhere there is the assumption:
-            // Slewing = Not tracking
+            //      Slewing = Not tracking
+            // Fewer updates might help with KStars handling.
+            bool trackStateUpdateNeded = false;
             if (TrackState == SCOPE_TRACKING){
-                TrackStateSP.s = IPS_BUSY;
-                TrackStateS[TRACK_ON].s = ISS_ON;
-                TrackStateS[TRACK_OFF].s = ISS_OFF;
+                if (TrackStateSP.s != IPS_BUSY) {
+                    TrackStateSP.s = IPS_BUSY;
+                    trackStateUpdateNeded = true;
+                }
+                if (TrackStateS[TRACK_ON].s != ISS_ON || TrackStateS[TRACK_OFF].s != ISS_OFF) {
+                    TrackStateS[TRACK_ON].s = ISS_ON;
+                    TrackStateS[TRACK_OFF].s = ISS_OFF;
+                    trackStateUpdateNeded = true;
+                }
             } else {
-                TrackStateSP.s = IPS_IDLE;
-                TrackStateS[TRACK_ON].s =  ISS_OFF;
-                TrackStateS[TRACK_OFF].s = ISS_ON;
+                if (TrackStateSP.s != IPS_IDLE) {
+                    TrackStateSP.s = IPS_IDLE;
+                    trackStateUpdateNeded = true;
+                }
+                if (TrackStateS[TRACK_ON].s != ISS_OFF || TrackStateS[TRACK_OFF].s != ISS_ON) {
+                    TrackStateS[TRACK_ON].s = ISS_OFF;
+                    TrackStateS[TRACK_OFF].s = ISS_ON;
+                    trackStateUpdateNeded = true;
+                }
             }
-            IDSetSwitch(&TrackStateSP, nullptr);
+            if (trackStateUpdateNeded) {
+                IDSetSwitch(&TrackStateSP, nullptr);
+            }
+            //TrackState should be set correctly, only update EqNP if actually needed.
+            bool update_needed = false;
             switch (TrackState)
             {
                 case SCOPE_PARKED:
                 case SCOPE_IDLE:
-                    EqNP.s = IPS_IDLE;
+                    if (EqNP.s != IPS_IDLE) {
+                        EqNP.s = IPS_IDLE;
+                        update_needed = true;
+                        LOG_DEBUG("EqNP set to IPS_IDLE");
+                    }
                     break;
                     
                 case SCOPE_SLEWING:
                 case SCOPE_PARKING:
-                    EqNP.s = IPS_BUSY;
+                    if (EqNP.s != IPS_BUSY) {
+                        EqNP.s = IPS_BUSY;
+                        update_needed = true;
+                        LOG_DEBUG("EqNP set to IPS_BUSY");
+                    }
                     break;
                     
                 case SCOPE_TRACKING:
-                    EqNP.s = IPS_OK;
+                    if (EqNP.s != IPS_OK) {
+                        EqNP.s = IPS_OK;
+                        update_needed = true;
+                        LOG_DEBUG("EqNP set to IPS_OK");
+                    }
                     break;
             }
-            IDSetNumber(&EqNP, nullptr);
+            if (update_needed) {
+                IDSetNumber(&EqNP, nullptr);
+                LOG_DEBUG("EqNP changed state");
+            }
             PrintTrackState();
                              
             // ============= End Telescope Status
@@ -2150,23 +2194,23 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Mount Types
             if (strstr(OSStat, "E"))
             {
-                IUSaveText(&OnstepStat[6], "German Mount");
-                OSMountType = 0;
+                IUSaveText(&OnstepStat[6], "German Equatorial Mount");
+                OSMountType = MOUNTTYPE_GEM;
             }
             if (strstr(OSStat, "K"))
             {
                 IUSaveText(&OnstepStat[6], "Fork Mount");
-                OSMountType = 1;
+                OSMountType = MOUNTTYPE_FORK;
             }
             if (strstr(OSStat, "k"))
             { //NOTE: This seems to have been removed from OnStep, so the chances of encountering it are small, I can't even find, but I think it was Alt-Az mounting of a FORK, now folded into ALTAZ
                 IUSaveText(&OnstepStat[6], "Fork Alt Mount");
-                OSMountType = 2;
+                OSMountType = MOUNTTYPE_FORK_ALT;
             }
             if (strstr(OSStat, "A"))
             {
                 IUSaveText(&OnstepStat[6], "AltAZ Mount");
-                OSMountType = 3;
+                OSMountType = MOUNTTYPE_ALTAZ;
             }
             
 

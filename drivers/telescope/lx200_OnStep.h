@@ -133,6 +133,8 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
+enum OnStepVersion {OSV_UNKNOWN, OSV_OnStepV1or2, OSV_OnStepV3, OSV_OnStepV4, OSV_OnStepV5, OSV_OnStepX};
+
 class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public INDI::RotatorInterface
 {
     public:
@@ -166,7 +168,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual void Init_Outputs();
 
         //Mount information
-        int OSMountType = 0;
+        MountType OSMountType = 0;
         /*  0 = EQ mount  (Presumed default for most things.)
         *  1 = Fork
         *  2 = Fork Alt
@@ -274,6 +276,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
+        
+        OnStepVersion OnStepMountVersion = OSV_UNKNOWN;
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
