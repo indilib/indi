@@ -168,7 +168,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual void Init_Outputs();
 
         //Mount information
-        MountType OSMountType = 0;
+        MountType OSMountType = MOUNTTYPE_GEM; //default to GEM
         /*  0 = EQ mount  (Presumed default for most things.)
         *  1 = Fork
         *  2 = Fork Alt

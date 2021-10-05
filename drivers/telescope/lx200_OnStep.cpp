@@ -2252,7 +2252,6 @@ bool LX200_OnStep::ReadScopeStatus()
             //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
             //     print('\tbreak;')
 
-
             Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
         }
 
@@ -2558,7 +2557,7 @@ bool LX200_OnStep::ReadScopeStatus()
     BacklashNP.np[1].value = atof(OSbacklashRA);
     IDSetNumber(&BacklashNP, nullptr);
 
-    double pulseguiderate;
+    double pulseguiderate = 0.0;
     if (getCommandSingleCharErrorOrLongResponse(PortFD, GuideValue, ":GX90#") > 1) {
         LOGF_DEBUG("Guide Rate String: %s", GuideValue);
         pulseguiderate = atof(GuideValue);
@@ -2569,9 +2568,28 @@ bool LX200_OnStep::ReadScopeStatus()
     }
     else {
         LOGF_DEBUG("Guide Rate String: %s", GuideValue);
-        LOG_DEBUG("Guide rate error response, Not seting guide rate from :GX90# response, may be in :GU#");
+        LOG_DEBUG("Guide rate error response, Not setting guide rate from :GX90# response, falling back to :GU#, which may not be accurate, if custom settings are used");
+        int pulseguiderateint = (Errors)(OSStat[strlen(OSStat) - 3] - '0');
+        switch(pulseguiderateint) {
+            case 0:
+                pulseguiderate = (double)0.25;
+                break;
+            case 1:
+                pulseguiderate = (double)0.5;
+                break;
+            case 2:
+                pulseguiderate = (double)1.0;
+                break;
+            default:
+                LOG_DEBUG("Could not get guide rate from :GU# response, not setting");
+        }
+        if (pulseguiderate != 0.0) {
+            LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+            GuideRateNP.np[0].value = pulseguiderate;
+            GuideRateNP.np[1].value = pulseguiderate;
+            IDSetNumber(&GuideRateNP, nullptr);
+        }
     }
-        
 
 #ifndef OnStep_Alpha
     if (OSMountType == MOUNTTYPE_GEM)
@@ -3074,7 +3092,7 @@ void LX200_OnStep::OSUpdateFocuser()
         //if (!sendOnStepCommand(":FA#")) {
         getCommandString(PortFD, value, ":FG#");
         FocusAbsPosN[0].value =  atoi(value);
-        double current = FocusAbsPosN[0].value;
+//         double current = FocusAbsPosN[0].value;
         IDSetNumber(&FocusAbsPosNP, nullptr);
         LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
