@@ -1914,7 +1914,7 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Parkstatus
             
             #ifdef DEBUG_TRACKSTATE
-                LOG_DEBUG("Prior TrackState:")
+                LOG_DEBUG("Prior TrackState:");
                 PrintTrackState();
                 LOG_DEBUG("^ Prior");
             #endif
@@ -2009,7 +2009,14 @@ bool LX200_OnStep::ReadScopeStatus()
                 }
             }
             if (trackStateUpdateNeded) {
+                #ifdef DEBUG_TRACKSTATE
+                    LOG_DEBUG("TRACKSTATE CHANGED");
+                #endif
                 IDSetSwitch(&TrackStateSP, nullptr);
+            } else {
+                #ifdef DEBUG_TRACKSTATE
+                    LOG_DEBUG("TRACKSTATE UNCHANGED");
+                #endif
             }
             //TrackState should be set correctly, only update EqNP if actually needed.
             bool update_needed = false;
@@ -2041,9 +2048,20 @@ bool LX200_OnStep::ReadScopeStatus()
                     }
                     break;
             }
+            if (EqN[AXIS_RA].value != currentRA || EqN[AXIS_DE].value != currentDEC)
+            {
+                EqN[AXIS_RA].value = currentRA;
+                EqN[AXIS_DE].value = currentDEC;
+                LOG_DEBUG("EqNP coordinates updated");
+                update_needed = true;
+            }
             if (update_needed) {
                 IDSetNumber(&EqNP, nullptr);
                 LOG_DEBUG("EqNP changed state");
+            } else {
+                #ifdef DEBUG_TRACKSTATE
+                    LOG_DEBUG("EqNP UNCHANGED");
+                #endif
             }
             PrintTrackState();
                              
@@ -2740,7 +2758,7 @@ bool LX200_OnStep::ReadScopeStatus()
 #endif
 
 
-    NewRaDec(currentRA, currentDEC);
+//     NewRaDec(currentRA, currentDEC); Replaced by the above settings for EqNP.
     return true;
 }
 
