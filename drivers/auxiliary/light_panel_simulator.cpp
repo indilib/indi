@@ -13,6 +13,14 @@ LightPanelSimulator::LightPanelSimulator() : LightBoxInterface(this, true)
 {
 }
 
+void LightPanelSimulator::ISGetProperties(const char *dev)
+{
+    INDI::DefaultDevice::ISGetProperties(dev);
+
+    // Get Light box properties
+    isGetLightBoxProperties(dev);
+}
+
 bool LightPanelSimulator::initProperties()
 {
     INDI::DefaultDevice::initProperties();
