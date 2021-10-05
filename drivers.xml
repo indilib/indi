@@ -249,7 +249,7 @@
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
             <version>1.3</version>
         </device>
-        <device label="AZ-GTi Alt-Az" manufacturer="SkyWatcher">
+        <device label="AZ-GTi Alt-Az WiFi" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
             <version>1.3</version>
         </device>
