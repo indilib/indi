@@ -1812,32 +1812,32 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
-        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2') &&  (VersionT[2].text[1]=='.' || VersionT[2].text[1]=='.')&& (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2') && (VersionT[2].text[1]=='.' ) && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
             LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
             OSHighPrecision = false;
             OnStepMountVersion = OSV_OnStepV1or2;
         } 
-        else if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+        else if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V3 OnStep detected, setting some defaults");
             OSHighPrecision = false;
             OnStepMountVersion = OSV_OnStepV3;
-        } 
-        else if (VersionT[2].text[0]=='4' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+        }
+        else if (VersionT[2].text[0]=='4' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V4 OnStep detected, setting some defaults");
             OSHighPrecision = true;
             OnStepMountVersion = OSV_OnStepV4;
         }
-        else if (VersionT[2].text[0]=='5' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")) && !strcmp(VersionT[3].text, "OnStepX"))
+        else if (VersionT[2].text[0]=='5' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V5 OnStep detected, setting some defaults");
             OSHighPrecision = true;
             OnStepMountVersion = OSV_OnStepV5;
         }
-        else if (VersionT[2].text[0]=='1' && VersionT[2].text[0]=='0' && VersionT[2].text[0]=='.' && (strcmp(VersionT[3].text, "OnStepX") || strcmp(VersionT[3].text, "On-Step")))
+        else if (VersionT[2].text[0]=='1' && VersionT[2].text[1]=='0' && VersionT[2].text[2]=='.' && (strcmp(VersionT[3].text, "OnStepX") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("OnStepX detected, setting some defaults");
             OSHighPrecision = true;
@@ -1952,7 +1952,7 @@ bool LX200_OnStep::ReadScopeStatus()
     char GuideValue[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
-    int i;
+//    int i;
     bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
 
@@ -2821,36 +2821,72 @@ bool LX200_OnStep::ReadScopeStatus()
     IDSetNumber(&ParametersNP, nullptr);
 
     if (TMCDrivers) {
-        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU1#"); // Axis1
-        if (i == -4  && TempValue[0] == '0' ) {
-            IUSaveText(&OnstepStat[9], "TMC Reporting not detected, Axis 1");
-            TMCDrivers = false;
-        } else {
-            if (i > 0 ) { 
-                if (TempValue[0] == 0) 
-                { 
-                    IUSaveText(&OnstepStat[9], "No Condition");
-                } else {
-                    IUSaveText(&OnstepStat[9], TempValue);
-                }
+        for (int driver_number = 1; driver_number < 3; driver_number++) {
+            char TMCDriverTempValue[RB_MAX_LEN] = {0};
+            char TMCDriverCMD[CMD_MAX_LEN] = {0};
+            snprintf(TMCDriverCMD, sizeof(TMCDriverCMD), ":GXU%i#", driver_number);
+            int i = getCommandSingleCharErrorOrLongResponse(PortFD, TMCDriverTempValue, TMCDriverCMD); 
+            if (i == -4  && TMCDriverTempValue[0] == '0' ) {
+                char ResponseText[RB_MAX_LEN] = {0};
+                snprintf(ResponseText, sizeof(ResponseText),  "TMC Reporting not detected, Axis %i", driver_number);
+                IUSaveText(&OnstepStat[8+driver_number],ResponseText);
+                LOG_DEBUG("TMC Drivers responding as if not there, disabling further checks");
+                TMCDrivers = false;
             } else {
-                IUSaveText(&OnstepStat[9], "Unknown read error");
-            }
-        }
-        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU2#"); // Axis1
-        if (i == -4  && TempValue[0] == '0'  ) {
-            IUSaveText(&OnstepStat[10], "TMC Reporting not detected, Axis 2");
-            TMCDrivers = false;
-        } else {
-            if (i > 0 ) { 
-                if (TempValue[0] == 0) 
-                { 
-                    IUSaveText(&OnstepStat[10], "No Condition");
+                if (i > 0 ) { 
+                    if (TMCDriverTempValue[0] == 0)
+                    {
+                        IUSaveText(&OnstepStat[8+driver_number], "No Condition");
+                        TMCDrivers = false;
+                    } else {
+                        //IUSaveText(&OnstepStat[8+driver_number], TMCDriverTempValue);
+                        char StepperState[1024] = {0};
+                        bool unknown_value = false;
+                        int current_position = 0;
+                        while (TMCDriverTempValue[current_position] != 0 && unknown_value == false) {
+                            if (TMCDriverTempValue[current_position] == ',') {
+                                current_position++;
+                            } else {
+                                if (TMCDriverTempValue[current_position] == 'S' && TMCDriverTempValue[current_position+1] == 'T') {
+                                    strcat(StepperState, "Standstill,");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position+1] == 'A') {
+                                    strcat(StepperState, "Open Load A Pair,");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position+1] == 'B') {
+                                    strcat(StepperState, "Open Load B Pair,");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position+1] == 'A') {
+                                    strcat(StepperState, "Short to Ground A Pair,");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position+1] == 'B') {
+                                    strcat(StepperState, "Short to Ground B Pair,");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position+1] == 'T') {
+                                    strcat(StepperState, "Over Temp (>150C),");
+                                } else 
+                                if (TMCDriverTempValue[current_position] == 'P' && TMCDriverTempValue[current_position+1] == 'W') {
+                                    strcat(StepperState, "Pre-Warning: Over Temp (>120C),");
+                                } else
+                                if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position+1] == 'F') {
+                                    strcat(StepperState, "General Fault,");
+                                } else 
+                                {
+                                    unknown_value = true;
+                                    break;
+                                }
+                                current_position = current_position + 3;
+                            }
+                        }
+                        if (unknown_value) {
+                            IUSaveText(&OnstepStat[8+driver_number], TMCDriverTempValue);
+                        } else {
+                            IUSaveText(&OnstepStat[8+driver_number], StepperState);
+                        }
+                    }
                 } else {
-                    IUSaveText(&OnstepStat[10], TempValue);
+                    IUSaveText(&OnstepStat[8+driver_number], "Unknown read error");
                 }
-            } else {
-                IUSaveText(&OnstepStat[9], "Unknown read error");
             }
         }
     }
@@ -2907,7 +2943,7 @@ bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     years = years % 100;
     char cmd[CMD_MAX_LEN] = {0};
 
-    snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
+    snprintf(cmd, CMD_MAX_LEN, ":SC%02d/%02d/%02d#", months, days, years);
 
     if (!sendOnStepCommand(cmd)) return true;
     return false;
