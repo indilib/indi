@@ -4,8 +4,9 @@
     Contributors:
     James Lancaster https://github.com/james-lan
     Ray Wells https://github.com/blueshawk
+    Jamie Flinn https://github.com/jamiecflinn
 
-    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)-2021 (Contributors, above)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,16 +26,18 @@
     
     Version not yet updated:
     Version 1.12: 
-    - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 250 ms (250000 us)
+    - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 100 ms (100000 us which works well even with an Arduino Mega (Ramps) setup)
     - Cleanup and completely control TrackState. (Should eliminate various issues.)
     - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
     - Don't report capability for PierSide and PEC unless supported (This will cause a call to updateProperties so a bunch of messages will be repeated.)
     - From the last, move where the SlewRate values are defined to updateProperties, vs initProperties so that the extra calls to updateProperties don't mangle it. 
+    - TMC driver reports are now human readable.
+    - Detects OnStep or OnStepX version (doesn't do much with it.) 
 
 
     Past Versions:
     Version 1.11: (INDI 1.9.2)
-    - Fixed one issue with tracking (Jamie) 
+    - Fixed one issue with tracking (Jamie Flinn/jamiecflinn) 
     Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
