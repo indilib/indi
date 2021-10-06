@@ -144,7 +144,7 @@ int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long 
     \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
     \param timeout number of seconds to wait for terminal before a timeout error is issued.
     \param nbytes_read the number of bytes read.
- *  \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
  */
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
 
@@ -160,7 +160,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
 
     (Total Timeout  is timeout_seconds + timeout_microseconds)
     \param nbytes_read the number of bytes read.
- *  \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
  */
 int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
 
