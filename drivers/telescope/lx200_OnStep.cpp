@@ -695,6 +695,80 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             return FI::processNumber(dev, name, values, names, n);
         if (strstr(name, "ROTATOR_"))
             return RI::processNumber(dev, name, values, names, n);
+        
+        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0) 
+        //Replace this from inditelescope so it doesn't change state
+        //Most of this needs to be handled by our updates, or it breaks things
+        {
+            //  this is for us, and it is a goto
+            bool rc    = false;
+            double ra  = -1;
+            double dec = -100;
+            
+            for (int x = 0; x < n; x++)
+            {
+                INumber *eqp = IUFindNumber(&EqNP, names[x]);
+                if (eqp == &EqN[AXIS_RA])
+                {
+                    ra = values[x];
+                }
+                else if (eqp == &EqN[AXIS_DE])
+                {
+                    dec = values[x];
+                }
+            }
+            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
+            {
+                // Check if it is already parked.
+                if (CanPark())
+                {
+                    if (isParked())
+                    {
+                        LOG_DEBUG("Please unpark the mount before issuing any motion/sync commands.");
+//                         EqNP.s = lastEqState = IPS_IDLE;
+//                         IDSetNumber(&EqNP, nullptr);
+                        return false;
+                    }
+                }
+                
+                // Check if it can sync
+                if (Telescope::CanSync())
+                {
+                    ISwitch *sw;
+                    sw = IUFindSwitch(&CoordSP, "SYNC");
+                    if ((sw != nullptr) && (sw->s == ISS_ON))
+                    {
+                        rc = Sync(ra, dec);
+//                         if (rc)
+//                             EqNP.s = lastEqState = IPS_OK;
+//                         else
+//                             EqNP.s = lastEqState = IPS_ALERT;
+//                         IDSetNumber(&EqNP, nullptr);
+                        return rc;
+                    }
+                }
+                
+                // Remember Track State
+//                 RememberTrackState = TrackState;
+                // Issue GOTO
+                rc = Goto(ra, dec);
+                if (rc)
+                {
+             //       EqNP.s = lastEqState = IPS_BUSY;
+                    //  Now fill in target co-ords, so domes can start turning
+                    TargetN[AXIS_RA].value = ra;
+                    TargetN[AXIS_DE].value = dec;
+                    IDSetNumber(&TargetNP, nullptr);
+                }
+                else
+                {
+            //        EqNP.s = lastEqState = IPS_ALERT;
+                }
+            //    IDSetNumber(&EqNP, nullptr);
+            }
+            return rc;
+        }
+        
         if (!strcmp(name, ObjectNoNP.name))
         {
             char object_name[256];
@@ -1985,6 +2059,22 @@ bool LX200_OnStep::ReadScopeStatus()
             // Set TrackStateSP based on above, but only change if needed.
             // NOTE: Technically during a slew it can have tracking on, but elsewhere there is the assumption:
             //      Slewing = Not tracking
+            #ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("BEFORE UPDATE");
+                if (EqNP.s == IPS_BUSY) {
+                    LOG_DEBUG("EqNP is IPS_BUSY (Goto/slew or Parking)");
+                }
+                if (EqNP.s == IPS_OK) {
+                    LOG_DEBUG("EqNP is IPS_OK (Tracking)");
+                }
+                if (EqNP.s == IPS_IDLE) {
+                    LOG_DEBUG("EqNP is IPS_IDLE (Not Tracking or Parked)");
+                }
+                if (EqNP.s == IPS_ALERT) {
+                    LOG_DEBUG("EqNP is IPS_ALERT (Something wrong)");
+                }
+                LOG_DEBUG("/BEFORE UPDATE");
+            #endif
             // Fewer updates might help with KStars handling.
             bool trackStateUpdateNeded = false;
             if (TrackState == SCOPE_TRACKING){
@@ -2027,7 +2117,9 @@ bool LX200_OnStep::ReadScopeStatus()
                     if (EqNP.s != IPS_IDLE) {
                         EqNP.s = IPS_IDLE;
                         update_needed = true;
-                        LOG_DEBUG("EqNP set to IPS_IDLE");
+                        #ifdef DEBUG_TRACKSTATE
+                            LOG_DEBUG("EqNP set to IPS_IDLE");
+                        #endif
                     }
                     break;
                     
@@ -2036,7 +2128,9 @@ bool LX200_OnStep::ReadScopeStatus()
                     if (EqNP.s != IPS_BUSY) {
                         EqNP.s = IPS_BUSY;
                         update_needed = true;
-                        LOG_DEBUG("EqNP set to IPS_BUSY");
+                        #ifdef DEBUG_TRACKSTATE
+                            LOG_DEBUG("EqNP set to IPS_BUSY");
+                        #endif
                     }
                     break;
                     
@@ -2044,20 +2138,40 @@ bool LX200_OnStep::ReadScopeStatus()
                     if (EqNP.s != IPS_OK) {
                         EqNP.s = IPS_OK;
                         update_needed = true;
-                        LOG_DEBUG("EqNP set to IPS_OK");
+                        #ifdef DEBUG_TRACKSTATE
+                            LOG_DEBUG("EqNP set to IPS_OK");
+                        #endif
                     }
                     break;
             }
             if (EqN[AXIS_RA].value != currentRA || EqN[AXIS_DE].value != currentDEC)
             {
-                EqN[AXIS_RA].value = currentRA;
-                EqN[AXIS_DE].value = currentDEC;
-                LOG_DEBUG("EqNP coordinates updated");
+                #ifdef DEBUG_TRACKSTATE
+                    LOG_DEBUG("EqNP coordinates updated");
+                #endif
                 update_needed = true;
             }
             if (update_needed) {
+                #ifdef DEBUG_TRACKSTATE
+                    LOG_DEBUG("EqNP changed state");
+                #endif
+                EqN[AXIS_RA].value = currentRA;
+                EqN[AXIS_DE].value = currentDEC;
                 IDSetNumber(&EqNP, nullptr);
-                LOG_DEBUG("EqNP changed state");
+                #ifdef DEBUG_TRACKSTATE
+                    if (EqNP.s == IPS_BUSY) {
+                        LOG_DEBUG("EqNP is IPS_BUSY (Goto/slew or Parking)");
+                    }
+                    if (EqNP.s == IPS_OK) {
+                        LOG_DEBUG("EqNP is IPS_OK (Tracking)");
+                    }
+                    if (EqNP.s == IPS_IDLE) {
+                        LOG_DEBUG("EqNP is IPS_IDLE (Not Tracking or Parked)");
+                    }
+                    if (EqNP.s == IPS_ALERT) {
+                        LOG_DEBUG("EqNP is IPS_ALERT (Something wrong)");
+                    }
+                #endif
             } else {
                 #ifdef DEBUG_TRACKSTATE
                     LOG_DEBUG("EqNP UNCHANGED");
@@ -4040,9 +4154,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
 
     LOG_INFO("OnStep: Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+  //  EqNP.s     = IPS_OK;
 
-    NewRaDec(currentRA, currentDEC);
+ //   NewRaDec(currentRA, currentDEC);
 
     return true;
 }
