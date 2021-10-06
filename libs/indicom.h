@@ -161,7 +161,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     (Total Timeout  is timeout_seconds + timeout_microseconds)
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
- */
+  */
 int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
