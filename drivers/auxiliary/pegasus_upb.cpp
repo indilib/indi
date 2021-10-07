@@ -1447,7 +1447,7 @@ bool PegasusUPB::getSensorData()
 
         index = (version == UPB_V1) ? 11 : 12;
 
-        const double ampDivision = (version == UPB_V1) ? 400.0 : 300.0;
+        const double ampDivision = (version == UPB_V1) ? 400.0 : 480.0;
 
         // Current draw
         PowerCurrentN[0].value = std::stod(result[index]) / ampDivision;
@@ -1466,7 +1466,7 @@ bool PegasusUPB::getSensorData()
         DewCurrentDrawN[DEW_PWM_A].value = std::stod(result[index]) / ampDivision;
         DewCurrentDrawN[DEW_PWM_B].value = std::stod(result[index + 1]) / ampDivision;
         if (version == UPB_V2)
-            DewCurrentDrawN[DEW_PWM_C].value = std::stod(result[index + 2]) / (ampDivision * 2);
+            DewCurrentDrawN[DEW_PWM_C].value = std::stod(result[index + 2]) / 700;
         //        if (lastSensorData[index] != result[index] ||
         //                lastSensorData[index + 1] != result[index + 1] ||
         //                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
