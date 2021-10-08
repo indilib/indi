@@ -4,8 +4,9 @@
     Contributors:
     James Lancaster https://github.com/james-lan
     Ray Wells https://github.com/blueshawk
+    Jamie Flinn https://github.com/jamiecflinn
 
-    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)-2021 (Contributors, above)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,14 +25,26 @@
     ===========================================
     
     Version not yet updated:
-    - Manage OnStep Auxiliary Feature Names in Output Tab
-    
-    Version 1.10: 
+    Version 1.12: 
+    - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 100 ms (100000 us which works well even with an Arduino Mega (Ramps) setup)
+    - Cleanup and completely control TrackState. (Should eliminate various issues.)
+    - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
+    - Don't report capability for PierSide and PEC unless supported (This will cause a call to updateProperties so a bunch of messages will be repeated.)
+    - From the last, move where the SlewRate values are defined to updateProperties, vs initProperties so that the extra calls to updateProperties don't mangle it. 
+    - TMC driver reports are now human readable.
+    - Detects OnStep or OnStepX version (doesn't do much with it.) 
+
+
+    Past Versions:
+    Version 1.11: (INDI 1.9.2)
+    - Fixed one issue with tracking (Jamie Flinn/jamiecflinn) 
+    Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
     - High precision on location, and not overridding GPS even when marked for Mount > KStars.
     - Added Rotator & De-Rotator Support
-    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning) 
+    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning)
+    - Manage OnStep Auxiliary Feature Names in Output Tab
 
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
@@ -101,6 +114,7 @@
 #include <stdlib.h>
 
 #define RB_MAX_LEN 64
+#define CMD_MAX_LEN 32
 
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)
@@ -121,6 +135,8 @@ enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, E
 enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
+
+enum OnStepVersion {OSV_UNKNOWN, OSV_OnStepV1or2, OSV_OnStepV3, OSV_OnStepV4, OSV_OnStepV5, OSV_OnStepX};
 
 class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public INDI::RotatorInterface
 {
@@ -155,7 +171,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual void Init_Outputs();
 
         //Mount information
-        int OSMountType = 0;
+        MountType OSMountType = MOUNTTYPE_GEM; //default to GEM
         /*  0 = EQ mount  (Presumed default for most things.)
         *  1 = Fork
         *  2 = Fork Alt
@@ -164,6 +180,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         
         virtual bool sendScopeTime() override;
         virtual bool sendScopeLocation() override;
+        
+        // Goto
+        virtual bool Goto(double ra, double dec) override;
         
         //FocuserInterface
 
@@ -198,11 +217,20 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IPState WritePECBuffer (int axis);
         bool ISPECRecorded (int axis);
         bool OSPECEnabled = false;
+        bool OSPECviaGU = false; //Older versions use :QZ# for PEC status, new can use the standard :GU#/:Gu#
         //End PECInterface
 
 
         //NewGeometricAlignment
         IPState AlignStartGeometric(int stars);
+
+        /**
+         * @brief AlignStartGeometric starts the OnStep Multistar align process.
+         * @brief Max of 9 stars,
+         * @param stars Number of stars to be included. If stars is more than the controller supports, it will be reduced.
+         * @return IPS_BUSY if no issues, IPS_ALERT if commands don't get the expected response.
+         */
+        
         IPState AlignAddStar();
         IPState AlignDone();
         IPState AlignWrite();
@@ -251,6 +279,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
+        
+        OnStepVersion OnStepMountVersion = OSV_UNKNOWN;
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
@@ -399,8 +429,27 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
             return IPS_OK;
         }
 
-
-
+        
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked) override;
+        
+        /**
+         * @brief SetParked Change the mount parking status. The data park file (stored in
+         * ~/.indi/ParkData.xml) is updated in the process.
+         * @param isparked set to true if parked, false otherwise.
+         */
+        virtual void SetParked(bool isparked) override;
+        
+        /**
+         * @brief PrintTrackState will print to the debug log the status of TrackState if 
+         * DEBUG_TRACKSTATE is defined otherwise it will simply return.
+         */
+// #define DEBUG_TRACKSTATE
+        void PrintTrackState();
+        
     private:
         int currentCatalog;
         int currentSubCatalog;
