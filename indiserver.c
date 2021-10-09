@@ -75,10 +75,10 @@
 #define INDIPORT      7624    /* default TCP/IP port to listen */
 #define REMOTEDVR     (-1234) /* invalid PID to flag remote drivers */
 #define MAXSBUF       512
-#define MAXRBUF       49152 /* max read buffering here */
-#define MAXWSIZ       49152 /* max bytes/write */
+#define MAXRBUF       268435456 /* max read buffering here */
+#define MAXWSIZ       268435456 /* max bytes/write */
 #define SHORTMSGSIZ   2048  /* buf size for most messages */
-#define DEFMAXQSIZ    128   /* default max q behind, MB */
+#define DEFMAXQSIZ    256   /* default max q behind, MB */
 #define DEFMAXSSIZ    5     /* default max stream behind, MB */
 #define DEFMAXRESTART 10    /* default max restarts */
 
