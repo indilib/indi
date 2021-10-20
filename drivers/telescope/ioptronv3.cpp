@@ -140,7 +140,7 @@ bool IOptronV3::initProperties()
     IUFillSwitch(&PECTrainingS[0], "PEC_Recording", "Record", ISS_OFF);
     IUFillSwitch(&PECTrainingS[1], "PEC_Status", "Status", ISS_OFF);
     IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "Training", MOTION_TAB, IP_RW,
-                       ISR_1OFMANY, 0,
+                       ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     // Create PEC Training Information */
