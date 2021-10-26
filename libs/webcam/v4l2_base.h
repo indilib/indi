@@ -36,7 +36,9 @@
 
 #include <stdio.h>
 #include <cstdlib>
+#include <map>
 
+#include <dirent.h>
 #include <linux/videodev2.h>
 
 #define VIDEO_COMPRESSION_LEVEL 4
@@ -55,165 +57,175 @@ namespace INDI
 
 class V4L2_Base
 {
-  public:
-    V4L2_Base();
-    virtual ~V4L2_Base();
+    public:
+        V4L2_Base();
+        virtual ~V4L2_Base();
 
-    typedef enum { IO_METHOD_READ, IO_METHOD_MMAP, IO_METHOD_USERPTR } io_method;
+        typedef enum { IO_METHOD_READ, IO_METHOD_MMAP, IO_METHOD_USERPTR } io_method;
 
-    struct buffer
-    {
-        void *start;
-        size_t length;
-    };
+        struct buffer
+        {
+            void *start;
+            size_t length;
+        };
 
-    /* Connection */
-    virtual int connectCam(const char *devpath, char *errmsg, int pixelFormat = -1, int width = -1, int height = -1);
-    virtual void disconnectCam(bool stopcapture);
-    char *getDeviceName();
-    void setDeviceName(const char *name);
-    bool isLXmodCapable();
+        /* Connection */
+        virtual int connectCam(const char *devpath, char *errmsg, int pixelFormat = -1, int width = -1, int height = -1);
+        virtual void disconnectCam(bool stopcapture);
+        char *getDeviceName();
+        void setDeviceName(const char *name);
+        bool isLXmodCapable();
 
-    /* Updates */
-    void callFrame(void *p);
+        /* Updates */
+        void callFrame(void *p);
 
-    /* Image Format/Size */
-    int getFormat();
-    int getWidth();
-    int getHeight();
-    int getBpp();
-    virtual int setSize(int x, int y);
-    virtual void getMaxMinSize(int &x_max, int &y_max, int &x_min, int &y_min);
+        // Enumerate all available V42L devices and return a map with common device name
+        static std::map<std::string, std::string> enumerate();
+        static int video_dev_file_select(const dirent *entry);
 
-    /* Frame rate */
-    int (V4L2_Base::*setframerate)(struct v4l2_fract frate, char *errmsg);
-    struct v4l2_fract (V4L2_Base::*getframerate)();
+        /* Image Format/Size */
+        int getFormat();
+        int getWidth();
+        int getHeight();
+        int getBpp();
+        virtual int setSize(int x, int y);
+        virtual void getMaxMinSize(int &x_max, int &y_max, int &x_min, int &y_min);
 
-    unsigned char *getY();
-    unsigned char *getU();
-    unsigned char *getV();
-    // 2017-01-24 JM: Deprecated RGBA (32bit) buffer. Should use RGB24 buffer to save space
-    //unsigned char * getColorBuffer();
-    unsigned char *getRGBBuffer();
-    float *getLinearY();
+        /* Frame rate */
+        int (V4L2_Base::*setframerate)(struct v4l2_fract frate, char *errmsg);
+        struct v4l2_fract (V4L2_Base::*getframerate)();
 
-    void registerCallback(WPF *fp, void *ud);
+        unsigned char *getY();
+        unsigned char *getU();
+        unsigned char *getV();
+        // 2017-01-24 JM: Deprecated RGBA (32bit) buffer. Should use RGB24 buffer to save space
+        //unsigned char * getColorBuffer();
+        unsigned char *getRGBBuffer();
+        float *getLinearY();
 
-    int start_capturing(char *errmsg);
-    int stop_capturing(char *errmsg);
-    static void newFrame(int fd, void *p);
+        void registerCallback(WPF *fp, void *ud);
 
-    //void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
-    void enumerate_ctrl();
-    void enumerate_menu();
-    bool enumerate_ext_ctrl();
-    int queryINTControls(INumberVectorProperty *nvp);
-    bool queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
-                          unsigned int *noptions, const char *dev, const char *group);
-    void queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
-                       unsigned int *noptions, const char *dev, const char *group);
+        int start_capturing(char *errmsg);
+        int stop_capturing(char *errmsg);
+        static void newFrame(int fd, void *p);
 
-    int getControl(unsigned int ctrl_id, double *value, char *errmsg);
-    int setINTControl(unsigned int ctrl_id, double new_value, char *errmsg);
-    int setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg);
+        //void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
+        void enumerate_ctrl();
+        void enumerate_menu();
+        bool enumerate_ext_ctrl();
+        int queryINTControls(INumberVectorProperty *nvp);
+        bool queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
+                              unsigned int *noptions, const char *dev, const char *group);
+        void queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
+                           unsigned int *noptions, const char *dev, const char *group);
 
-    int query_ctrl(unsigned int ctrl_id, double &ctrl_min, double &ctrl_max, double &ctrl_step, double &ctrl_value,
-                   char *errmsg);
-    void getinputs(ISwitchVectorProperty *inputssp);
-    int setinput(unsigned int inputindex, char *errmsg);
-    void getcaptureformats(ISwitchVectorProperty *captureformatssp);
-    int setcaptureformat(unsigned int captureformatindex, char *errmsg);
-    void getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp);
-    int setcapturesize(unsigned int w, unsigned int h, char *errmsg);
-    void getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp);
-    int setcroprect(int x, int y, int w, int h, char *errmsg);
-    struct v4l2_rect getcroprect();
+        int getControl(unsigned int ctrl_id, double *value, char *errmsg);
+        int setINTControl(unsigned int ctrl_id, double new_value, char *errmsg);
+        int setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg);
 
-    void setColorProcessing(bool quantization, bool colorconvert, bool linearization);
+        int query_ctrl(unsigned int ctrl_id, double &ctrl_min, double &ctrl_max, double &ctrl_step, double &ctrl_value,
+                       char *errmsg);
+        void getinputs(ISwitchVectorProperty *inputssp);
+        int setinput(unsigned int inputindex, char *errmsg);
+        void getcaptureformats(ISwitchVectorProperty *captureformatssp);
+        int setcaptureformat(unsigned int captureformatindex, char *errmsg);
+        void getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp);
+        int setcapturesize(unsigned int w, unsigned int h, char *errmsg);
+        void getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp);
+        int setcroprect(int x, int y, int w, int h, char *errmsg);
+        struct v4l2_rect getcroprect();
 
-    void setlxstate(short s)
-    {
-        IDLog("setlexstate to %d\n", s);
-        lxstate = s;
-    }
-    short getlxstate() { return lxstate; }
-    bool isstreamactive() { return streamactive; }
+        void setColorProcessing(bool quantization, bool colorconvert, bool linearization);
 
-    void doDecode(bool);    
+        void setlxstate(short s)
+        {
+            IDLog("setlexstate to %d\n", s);
+            lxstate = s;
+        }
+        short getlxstate()
+        {
+            return lxstate;
+        }
+        bool isstreamactive()
+        {
+            return streamactive;
+        }
 
-  protected:
-    int xioctl(int fd, int request, void *arg, char const *const request_str);
-    int ioctl_set_format(struct v4l2_format new_fmt, char *errmsg);
+        void doDecode(bool);
 
-    int read_frame(char *errsg);
-    int uninit_device(char *errmsg);
-    int open_device(const char *devpath, char *errmsg);
-    int check_device(char *errmsg);
-    int init_device(char *errmsg);
-    int init_mmap(char *errmsg);
-    int errno_exit(const char *s, char *errmsg);
+    protected:
+        int xioctl(int fd, int request, void *arg, char const *const request_str);
+        int ioctl_set_format(struct v4l2_format new_fmt, char *errmsg);
 
-    void close_device();
-    void init_userp(unsigned int buffer_size);
-    void init_read(unsigned int buffer_size);
+        int read_frame(char *errsg);
+        int uninit_device(char *errmsg);
+        int open_device(const char *devpath, char *errmsg);
+        int check_device(char *errmsg);
+        int init_device(char *errmsg);
+        int init_mmap(char *errmsg);
+        int errno_exit(const char *s, char *errmsg);
 
-    void findMinMax();
+        void close_device();
+        void init_userp(unsigned int buffer_size);
+        void init_read(unsigned int buffer_size);
 
-    int enumeratedInputs;
-    int enumeratedCaptureFormats;
+        void findMinMax();
 
-    /* Frame rate */
-    int stdsetframerate(struct v4l2_fract frate, char *errmsg);
-    int pwcsetframerate(struct v4l2_fract frate, char *errmsg);
-    struct v4l2_fract stdgetframerate();
+        int enumeratedInputs;
+        int enumeratedCaptureFormats;
 
-    struct v4l2_capability cap;
-    struct v4l2_cropcap cropcap;
-    struct v4l2_crop crop;
-    struct v4l2_format fmt;
-    struct v4l2_input input;
-    struct v4l2_buffer buf;
+        /* Frame rate */
+        int stdsetframerate(struct v4l2_fract frate, char *errmsg);
+        int pwcsetframerate(struct v4l2_fract frate, char *errmsg);
+        struct v4l2_fract stdgetframerate();
 
-    bool cancrop;
-    bool cropset;
-    bool cansetrate;
-    bool streamedonce;
-    bool streamactive;
+        struct v4l2_capability cap;
+        struct v4l2_cropcap cropcap;
+        struct v4l2_crop crop;
+        struct v4l2_format fmt;
+        struct v4l2_input input;
+        struct v4l2_buffer buf;
 
-    short lxstate;
+        bool cancrop;
+        bool cropset;
+        bool cansetrate;
+        bool streamedonce;
+        bool streamactive;
 
-    struct v4l2_queryctrl queryctrl;
-    struct v4l2_querymenu querymenu;
-    bool has_ext_pix_format;
+        short lxstate;
 
-    bool is_compressed() const;
+        struct v4l2_queryctrl queryctrl;
+        struct v4l2_querymenu querymenu;
+        bool has_ext_pix_format;
 
-    WPF *callback;
-    void *uptr;
-    char dev_name[64];
-    const char *path;
-    io_method io;
-    int fd;
-    struct buffer *buffers;
-    unsigned int n_buffers;
-    bool reallocate_buffers;
-    //int		dropFrame;
-    //bool      dropFrameEnabled;
-    //unsigned int      dropFrameCount;
+        bool is_compressed() const;
 
-    struct v4l2_fract frameRate;
-    int xmax, xmin, ymax, ymin;
-    int selectCallBackID;
-    //unsigned char * YBuf,*UBuf,*VBuf, *yuvBuffer, *colorBuffer, *rgb24_buffer, *cropbuf;
+        WPF *callback;
+        void *uptr;
+        char dev_name[64];
+        const char *path;
+        io_method io;
+        int fd;
+        struct buffer *buffers;
+        unsigned int n_buffers;
+        bool reallocate_buffers;
+        //int		dropFrame;
+        //bool      dropFrameEnabled;
+        //unsigned int      dropFrameCount;
 
-    V4L2_Decode *v4l2_decode;
-    V4L2_Decoder *decoder;
-    bool dodecode;
+        struct v4l2_fract frameRate;
+        int xmax, xmin, ymax, ymin;
+        int selectCallBackID;
+        //unsigned char * YBuf,*UBuf,*VBuf, *yuvBuffer, *colorBuffer, *rgb24_buffer, *cropbuf;
 
-    int bpp;
+        V4L2_Decode *v4l2_decode;
+        V4L2_Decoder *decoder;
+        bool dodecode;
 
-    friend class ::V4L2_Driver;
+        int bpp;
 
-    char deviceName[MAXINDIDEVICE];
+        friend class ::V4L2_Driver;
+
+        char deviceName[MAXINDIDEVICE];
 };
 }
