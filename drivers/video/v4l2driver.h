@@ -49,7 +49,7 @@ class V4L2_Driver : public INDI::CCD
 {
 public:
     V4L2_Driver();
-        explicit V4L2_Driver(std::string path, std::string label);
+        explicit V4L2_Driver(std::string label, std::string path);
         virtual ~V4L2_Driver() override;
 
         /* INDI Functions that must be called from indidrivermain */

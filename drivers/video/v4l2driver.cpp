@@ -63,7 +63,7 @@ static const PixelSizeInfo CameraDatabase[] =
     { nullptr, nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 
-V4L2_Driver::V4L2_Driver(std::string path, std::string label)
+V4L2_Driver::V4L2_Driver(std::string label, std::string path)
 {
     setDeviceName(label.c_str());
     strncpy(defaultVideoPort, path.c_str(), 256);

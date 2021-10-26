@@ -66,21 +66,9 @@ static class Loader
                 auto isDefaultCamera = envDevice == nullptr || !strcmp(envDevice, "V4L2 CCD");
 
                 auto targetDriver = std::make_pair(std::string("V4L2 CCD"), std::string("/dev/video0"));
-                // If we are using default camera, find if any of enumerated devices matches any device in our known
+                // If we are not using default camera, find if any of enumerated devices matches any device in our known
                 // driver map
-                if (isDefaultCamera)
-                {
-                    for (const auto &oneDevice : devices)
-                    {
-                        auto match = driverMap.find(oneDevice.first);
-                        if (match != driverMap.end())
-                        {
-                            targetDriver = std::make_pair((*match).second, oneDevice.second);
-                            break;
-                        }
-                    }
-                }
-                else
+                if (!isDefaultCamera)
                 {
                     // Check if the driver is supported.
                     for (const auto &oneDriver : driverMap)
