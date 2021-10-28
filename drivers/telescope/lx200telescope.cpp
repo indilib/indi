@@ -681,8 +681,7 @@ bool LX200Telescope::ISNewText(const char *dev, const char *name, char *texts[],
             }
 
             SiteNameTP.s = IPS_OK;
-            IText *tp    = IUFindText(&SiteNameTP, names[0]);
-            IUSaveText(tp, texts[0]);
+            strncpy(SiteNameTP.tp[0].text,texts[0],64);
             IDSetText(&SiteNameTP, "Site name updated");
             return true;
         }
