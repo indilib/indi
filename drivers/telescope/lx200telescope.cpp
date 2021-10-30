@@ -834,7 +834,9 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
             char siteName[64] = {0};
             if (isSimulation()){
                 IUSaveText(&SiteNameTP.tp[0], "Sample Site");
-            }else {
+            }
+            else
+            {
                 getSiteName(PortFD, siteName, currentSiteNum);
                 IUSaveText(&SiteNameT[0], siteName);
             }
