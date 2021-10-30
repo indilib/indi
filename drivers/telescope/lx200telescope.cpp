@@ -119,15 +119,11 @@ bool LX200Telescope::initProperties()
     IUFillSwitch(&SiteS[3], "Site 4", "Site 4", selectedSite == 3 ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&SiteSP, SiteS, 4, getDeviceName(), "Sites", "", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-<<<<<<< HEAD
-    IUFillText(&SiteNameT[0], "SiteName", "", "Unnamed");
-    IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "", SITE_TAB, IP_RW, 0, IPS_IDLE);
-=======
     char siteName[64] = {"NA"};
     IUGetConfigText(getDeviceName(), "Site Name", "Name", siteName, 64);
-    IUFillText(&SiteNameT[0], "Name", "Name", siteName);
+    IUFillText(&SiteNameT[0], "SiteName", "SiteName", siteName);
     IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "Site Name", SITE_TAB, IP_RW, 0, IPS_IDLE);
->>>>>>> 4018919a2298cc683092588e3a9acf68fbd082d0
+
 
     if (genericCapability & LX200_HAS_FOCUS)
     {
@@ -1189,18 +1185,11 @@ void LX200Telescope::getBasicData()
         if (genericCapability & LX200_HAS_SITES)
         {
             char siteName[64] = {0};
-<<<<<<< HEAD
             if (getSiteName(PortFD, siteName, currentSiteNum) < 0) {
                 LOG_ERROR("Failed to get site name from device");
             }
-            else {
-=======
-
-            if (getSiteName(PortFD, siteName, currentSiteNum) < 0)
-                LOG_ERROR("Failed to get site name from device");
             else
             {
->>>>>>> 4018919a2298cc683092588e3a9acf68fbd082d0
                 IUSaveText(&SiteNameT[0], siteName);
                 IDSetText(&SiteNameTP, nullptr);
             }
