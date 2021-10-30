@@ -105,19 +105,23 @@ bool LX200Telescope::initProperties()
     IUFillNumberVector(&TrackFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
-    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
+    IUFillSwitch(&UsePulseCmdS[0], "Off", "Off", ISS_OFF);
+    IUFillSwitch(&UsePulseCmdS[1], "On", "On", ISS_ON);
     IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&SiteS[0], "Site 1", "", ISS_ON);
-    IUFillSwitch(&SiteS[1], "Site 2", "", ISS_OFF);
-    IUFillSwitch(&SiteS[2], "Site 3", "", ISS_OFF);
-    IUFillSwitch(&SiteS[3], "Site 4", "", ISS_OFF);
+    int selectedSite = 0;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "Sites", &selectedSite);
+    IUFillSwitch(&SiteS[0], "Site 1", "Site 1", selectedSite == 0 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SiteS[1], "Site 2", "Site 2", selectedSite == 1 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SiteS[2], "Site 3", "Site 3", selectedSite == 2 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SiteS[3], "Site 4", "Site 4", selectedSite == 3 ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&SiteSP, SiteS, 4, getDeviceName(), "Sites", "", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&SiteNameT[0], "Name", "", "");
-    IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "", SITE_TAB, IP_RW, 0, IPS_IDLE);
+    char siteName[64] = {"NA"};
+    IUGetConfigText(getDeviceName(), "Site Name", "Name", siteName, 64);
+    IUFillText(&SiteNameT[0], "Name", "Name", siteName);
+    IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "Site Name", SITE_TAB, IP_RW, 0, IPS_IDLE);
 
     if (genericCapability & LX200_HAS_FOCUS)
     {
@@ -1177,12 +1181,15 @@ void LX200Telescope::getBasicData()
 
         if (genericCapability & LX200_HAS_SITES)
         {
-            SiteNameT[0].text = new char[64];
+            char siteName[64] = {0};
 
-            if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
+            if (getSiteName(PortFD, siteName, currentSiteNum) < 0)
                 LOG_ERROR("Failed to get site name from device");
             else
+            {
+                IUSaveText(&SiteNameT[0], siteName);
                 IDSetText(&SiteNameTP, nullptr);
+            }
         }
 
 
