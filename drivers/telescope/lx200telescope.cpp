@@ -2,6 +2,7 @@
  * Standard LX200 implementation.
 
    Copyright (C) 2003 - 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
+   Minor changes Copyright (C) 2021 James Lancaster
 
    This library is free software;
    you can redistribute it and / or
@@ -122,6 +123,7 @@ bool LX200Telescope::initProperties()
     IUGetConfigText(getDeviceName(), "Site Name", "Name", siteName, 64);
     IUFillText(&SiteNameT[0], "Name", "Name", siteName);
     IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "Site Name", SITE_TAB, IP_RW, 0, IPS_IDLE);
+
 
     if (genericCapability & LX200_HAS_FOCUS)
     {
@@ -829,12 +831,15 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 IDSetSwitch(&SiteSP, "Error selecting sites.");
                 return false;
             }
-
-            if (isSimulation())
+            char siteName[64] = {0};
+            if (isSimulation()){
                 IUSaveText(&SiteNameTP.tp[0], "Sample Site");
+            }
             else
-                getSiteName(PortFD, SiteNameTP.tp[0].text, currentSiteNum);
-
+            {
+                getSiteName(PortFD, siteName, currentSiteNum);
+                IUSaveText(&SiteNameT[0], siteName);
+            }
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 sendScopeLocation();
 
@@ -1182,9 +1187,9 @@ void LX200Telescope::getBasicData()
         if (genericCapability & LX200_HAS_SITES)
         {
             char siteName[64] = {0};
-
-            if (getSiteName(PortFD, siteName, currentSiteNum) < 0)
+            if (getSiteName(PortFD, siteName, currentSiteNum) < 0) {
                 LOG_ERROR("Failed to get site name from device");
+            }
             else
             {
                 IUSaveText(&SiteNameT[0], siteName);
@@ -1668,3 +1673,4 @@ bool LX200Telescope::SetFocuserSpeed(int speed)
 {
     return (setFocuserSpeedMode(PortFD, speed) == 0);
 }
+

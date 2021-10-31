@@ -2,6 +2,7 @@
     Pulsar2 INDI driver
 
     Copyright (C) 2016, 2017 Jasem Mutlaq and Camiel Severijns
+    Minor Changes (C) 2021 James Lancaster
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2097,11 +2098,16 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 return false;
             }
 
-            if (isSimulation())
-                IUSaveText(&SiteNameTP.tp[0], "Sample Site");
-            else
-                getSiteName(PortFD, SiteNameTP.tp[0].text, currentSiteNum);
+            char siteName[64] = {0};
 
+            if (isSimulation()) {
+                IUSaveText(&SiteNameTP.tp[0], "Sample Site");
+            }
+            else
+            {
+                getSiteName(PortFD, siteName, currentSiteNum);
+                IUSaveText(&SiteNameT[0], siteName);
+            }
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 storeScopeLocation();
 
@@ -3428,3 +3434,4 @@ bool LX200Pulsar2::isSlewing()
         just_started_slewing = false;
     return result;
 }
+
