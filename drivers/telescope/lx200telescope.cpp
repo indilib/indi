@@ -121,7 +121,7 @@ bool LX200Telescope::initProperties()
 
     char siteName[64] = {"NA"};
     IUGetConfigText(getDeviceName(), "Site Name", "Name", siteName, 64);
-    IUFillText(&SiteNameT[0], "SiteName", "SiteName", siteName);
+    IUFillText(&SiteNameT[0], "Name", "Name", siteName);
     IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "Site Name", SITE_TAB, IP_RW, 0, IPS_IDLE);
 
 
