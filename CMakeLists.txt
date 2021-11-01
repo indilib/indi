@@ -1810,10 +1810,6 @@ add_executable(indi_vantage_weather ${vantage_SRC})
 target_link_libraries(indi_vantage_weather indidriver)
 install(TARGETS indi_vantage_weather RUNTIME DESTINATION bin)
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
-
 ########### OpenWeatherMap Driver ###############
 
 SET(OpenWeatherMap_SRC
