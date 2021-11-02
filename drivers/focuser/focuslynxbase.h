@@ -45,7 +45,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              44
+#define SUBVERSION              45
 
 class FocusLynxBase : public INDI::Focuser
 {

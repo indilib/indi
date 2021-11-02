@@ -1029,7 +1029,7 @@ bool FocusLynxBase::getFocusConfig()
         return false;
     }
     // If END, then ignore
-    else if (strcmp(response, "END"))
+    else if (strncmp(response, "END", 3))
     {
         int homeOnStart;
         rc = sscanf(response, "%16[^=]=%d", key, &homeOnStart);
@@ -1040,7 +1040,7 @@ bool FocusLynxBase::getFocusConfig()
     }
 
     // If last response was END, then ignore
-    if (strcmp(response, "END"))
+    if (strncmp(response, "END", 3))
     {
         // END is reached
         memset(response, 0, sizeof(response));
