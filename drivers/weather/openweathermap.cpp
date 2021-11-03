@@ -309,7 +309,7 @@ IPState OpenWeatherMap::updateWeather()
         {
             for (observationIterator = begin(it->value); observationIterator != end(it->value); ++observationIterator)
             {
-                if (!strcmp(observationIterator->key, "3h"))
+                if (strstr(observationIterator->key, "h"))
                 {
                     if (observationIterator->value.isDouble())
                         setParameterValue("WEATHER_RAIN_HOUR", observationIterator->value.toNumber());
