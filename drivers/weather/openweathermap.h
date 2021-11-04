@@ -1,11 +1,11 @@
 /*******************************************************************************
- 
+
   Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
 
   INDI Weather Underground (TM) Weather Driver
 
   Modified for OpenWeatherMap API by Jarno Paananen
-  
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -28,31 +28,31 @@
 #pragma once
 
 #include "indiweather.h"
+#include "indipropertytext.h"
 
 class OpenWeatherMap : public INDI::Weather
 {
-  public:
-    OpenWeatherMap();
-    virtual ~OpenWeatherMap();
+    public:
+        OpenWeatherMap();
+        virtual ~OpenWeatherMap();
 
-    //  Generic indi device entries
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
+        //  Generic indi device entries
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-  protected:
-    virtual IPState updateWeather() override;
+    protected:
+        virtual IPState updateWeather() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-  private:
-    IText owmAPIKeyT[1]{};
-    ITextVectorProperty owmAPIKeyTP;
+    private:
+        INDI::PropertyText owmAPIKeyTP{1};
 
-    double owmLat, owmLong;
+        double owmLat, owmLong;
 };
