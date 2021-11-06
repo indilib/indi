@@ -524,10 +524,10 @@ class DefaultDevice : public BaseDevice
         friend class Connection::Serial;
         friend class Connection::TCP;
         friend class FilterInterface;
+        friend class FocuserInterface;
 
     protected:
         DefaultDevice(DefaultDevicePrivate &dd);
-
 };
 
 }
