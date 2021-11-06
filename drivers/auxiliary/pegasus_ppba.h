@@ -26,6 +26,7 @@
 
 #include "defaultdevice.h"
 #include "indiweatherinterface.h"
+#include "indifocuserinterface.h"
 
 #include <vector>
 #include <stdint.h>
@@ -35,7 +36,7 @@ namespace Connection
 class Serial;
 }
 
-class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
+class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface
 {
     public:
         PegasusPPBA();
@@ -53,6 +54,16 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         // Event loop
         virtual void TimerHit() override;
 
+        // Focuser Overrides
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
+
         // Weather Overrides
         virtual IPState updateWeather() override
         {
@@ -68,6 +79,8 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         bool getSensorData();
         bool getConsumptionData();
         bool getMetricsData();
+        bool findExternalMotorController();
+        bool getXMCStartupData();
         std::vector<std::string> split(const std::string &input, const std::string &regex);
         enum
         {
@@ -116,6 +129,11 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         // Dew
         bool setAutoDewEnabled(bool enabled);
         bool setDewPWM(uint8_t id, uint8_t value);
+
+        // Focuser
+        void queryXMC();
+        bool setFocuserMaxSpeed(uint16_t maxSpeed);
+        bool setFocuserMicrosteps(int value);
 
         /**
          * @brief sendCommand Send command to unit.
@@ -204,6 +222,31 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         };
 
         ////////////////////////////////////////////////////////////////////////////////////
+        /// Focuser
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        // Focuser speed
+        INumber FocuserSettingsN[1];
+        INumberVectorProperty FocuserSettingsNP;
+        enum
+        {
+            SETTING_MAX_SPEED,
+        };
+
+        // Microstepping
+        ISwitchVectorProperty FocuserDriveSP;
+        ISwitch FocuserDriveS[4];
+        enum
+        {
+            STEP_FULL,
+            STEP_HALF,
+            STEP_FORTH,
+            STEP_EIGHTH
+        };
+
+
+
+        ////////////////////////////////////////////////////////////////////////////////////
         /// Firmware
         ////////////////////////////////////////////////////////////////////////////////////
 
@@ -219,6 +262,7 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         std::vector<std::string> lastConsumptionData;
         std::vector<std::string> lastMetricsData;
         char stopChar { 0xD };
+        bool m_HasExternalMotor { false };
 
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};

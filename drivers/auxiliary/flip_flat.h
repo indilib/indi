@@ -61,18 +61,18 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
         } DeviceType;
 
     protected:
-        const char *getDefaultName();
+        const char *getDefaultName() override;
 
-        virtual bool saveConfigItems(FILE *fp);
-        void TimerHit();
+        virtual bool saveConfigItems(FILE *fp) override;
+        void TimerHit() override;
 
         // From Dust Cap
-        virtual IPState ParkCap();
-        virtual IPState UnParkCap();
+        virtual IPState ParkCap() override;
+        virtual IPState UnParkCap() override;
 
         // From Light Box
-        virtual bool SetLightBoxBrightness(uint16_t value);
-        virtual bool EnableLightBox(bool enable);
+        virtual bool SetLightBoxBrightness(uint16_t value) override;
+        virtual bool EnableLightBox(bool enable) override;
 
     private:
         bool sendCommand(const char *command, char *response);

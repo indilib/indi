@@ -323,6 +323,7 @@ template <typename T>
 void PropertyBasic<T>::push(WidgetView<T> &&item)
 {
     D_PTR(PropertyBasic);
+    item.setParent(&d->property);
     d->widgets.push_back(std::move(item));
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
 }
@@ -331,6 +332,13 @@ template <typename T>
 void PropertyBasic<T>::push(const WidgetView<T> &item)
 {
     push(std::move(WidgetView<T>(item)));
+}
+
+template <typename T>
+const WidgetView<T> *PropertyBasic<T>::at(size_t index) const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.at(index);
 }
 
 template <typename T>

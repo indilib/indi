@@ -156,8 +156,11 @@ bool PropertyView<IBLOB>::update(
     ) == 0;
 }
 
+template <> template<>
+void PropertyView<INumber>::updateMinMax()
+{ IUUpdateMinMax(this); }
 
-void INDI::WidgetView<IText>::fill(const char *name, const char *label, const char *initialText)
+void WidgetView<IText>::fill(const char *name, const char *label, const char *initialText)
 { IUFillText(this, name, label, initialText); }
 
 

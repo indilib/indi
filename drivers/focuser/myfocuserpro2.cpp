@@ -34,44 +34,6 @@
 
 static std::unique_ptr<MyFocuserPro2> myFocuserPro2(new MyFocuserPro2());
 
-void ISGetProperties(const char * dev)
-{
-    myFocuserPro2->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    myFocuserPro2->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    myFocuserPro2->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    myFocuserPro2->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    myFocuserPro2->ISSnoopDevice(root);
-}
-
 MyFocuserPro2::MyFocuserPro2()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
@@ -81,7 +43,7 @@ MyFocuserPro2::MyFocuserPro2()
 
     setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
-    setVersion(0, 7);
+    setVersion(CDRIVER_VERSION_MAJOR, CDRIVER_VERSION_MINOR);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -156,16 +118,18 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Step Mode
-    IUFillSwitch(&StepModeS[FOCUS_THIRTYSECOND_STEP], "FOCUS_THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_SIXTEENTH_STEP], "FOCUS_SIXTEENTH_STEP", "1/16 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_EIGHTH_STEP], "FOCUS_EIGHTH_STEP", "1/8 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_QUARTER_STEP], "FOCUS_QUARTER_STEP", "1/4 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "1/2 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 6, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    // Add step modes 1/64 to 1/256 for TMC type drivers R Brown June 2021
+    IUFillSwitch(&StepModeS[TWOHUNDREDFIFTYSIX_STEP], "TWOHUNDREDFIFTYSIX_STEP", "1/256 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[ONEHUNDREDTWENTYEIGHT_STEP], "ONEHUNDREDTWENTYEIGHT_STEP", "1/128 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[SIXTYFOUR_STEP], "SIXTYFOUR_STEP", "1/64 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[THIRTYSECOND_STEP], "THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[SIXTEENTH_STEP], "SIXTEENTH_STEP", "1/16 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[EIGHTH_STEP], "EIGHTH_STEP", "1/8 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[QUARTER_STEP], "QUARTER_STEP", "1/4 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[HALF_STEP], "HALF_STEP", "1/2 Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[FULL_STEP], "FULL_STEP", "Full Step", ISS_OFF);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-
 
     IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON", "On", ISS_OFF);
     IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF", "Off", ISS_OFF);
@@ -277,16 +241,25 @@ bool MyFocuserPro2::Ack()
         if(!transmissionSuccess)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Handshake Attempt %i, tty transmission error: %s.", numChecks, errstr);
+            LOGF_ERROR("Handshake Attempt %i, Connection transmission error: %s.", numChecks, errstr);
         }
 
-        bool responseSuccess = (rc = tty_read(PortFD, resp, 5, ML_TIMEOUT, &nbytes_read)) == TTY_OK;
+        bool responseSuccess;
+        if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
+        {
+            responseSuccess = (rc = tty_read(PortFD, resp, 5, MYFOCUSERPRO2_SERIAL_TIMEOUT, &nbytes_read)) == TTY_OK;
+        }
+        else
+        {
+            // assume TCPIP Connection
+            responseSuccess = (rc = tty_read(PortFD, resp, 5, MYFOCUSERPRO2_TCPIP_TIMEOUT, &nbytes_read)) == TTY_OK;
+        }
+
         if(!responseSuccess)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             LOGF_ERROR("Handshake Attempt %i, updatePosition response error: %s.", numChecks, errstr);
         }
-
         success = transmissionSuccess && responseSuccess;
     }
 
@@ -302,26 +275,10 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        // Minimum check only applicable to serial version
-        if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
-        {
-            if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
-            {
-                LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
-                return true;
-
-            }
-            else
-            {
-                LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
-                           MINIMUM_FIRMWARE_VERSION );
-            }
-        }
-        else
-        {
-            LOG_INFO("Connection to network focuser is successful.");
-            return true;
-        }
+        // remove check for firmare => 291, assume user is not using older firmware
+        LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
+        LOG_INFO("Connection to focuser is successful.");
+        return true;
     }
     else
     {
@@ -335,30 +292,35 @@ bool MyFocuserPro2::readCoilPowerState()
     char res[ML_RES] = {0};
 
     if (sendCommand(":11#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
 
     int rc = sscanf(res, "O%u#", &temp);
 
     if (rc > 0)
-
+    {
         if(temp == 0)
+        {
             CoilPowerS[COIL_POWER_OFF].s = ISS_ON;
+        }
         else if (temp == 1)
+        {
             CoilPowerS[COIL_POWER_ON].s = ISS_ON;
+        }
         else
         {
             LOGF_ERROR("Invalid Response: focuser Coil Power value (%s)", res);
             return false;
         }
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser Coil Power value (%s)", res);
         return false;
     }
-
-
     return true;
 }
 
@@ -374,7 +336,7 @@ bool MyFocuserPro2::readReverseDirection()
     int rc = sscanf(res, "R%u#", &temp);
 
     if (rc > 0)
-
+    {
         if(temp == 0)
         {
             FocusReverseS[INDI_DISABLED].s = ISS_ON;
@@ -388,12 +350,12 @@ bool MyFocuserPro2::readReverseDirection()
             LOGF_ERROR("Invalid Response: focuser Reverse direction value (%s)", res);
             return false;
         }
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser Reverse direction value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -402,26 +364,56 @@ bool MyFocuserPro2::readStepMode()
     char res[ML_RES] = {0};
 
     if (sendCommand(":29#", res) == false)
-        return false;
-
-    if (strcmp(res, "S1#") == 0)
-        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
-    else if (strcmp(res, "S2#") == 0)
-        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
-    else if (strcmp(res, "S4#") == 0)
-        StepModeS[FOCUS_QUARTER_STEP].s = ISS_ON;
-    else if (strcmp(res, "S8#") == 0)
-        StepModeS[FOCUS_EIGHTH_STEP].s = ISS_ON;
-    else if (strcmp(res, "S16#") == 0)
-        StepModeS[FOCUS_SIXTEENTH_STEP].s = ISS_ON;
-    else if (strcmp(res, "S32#") == 0)
-        StepModeS[FOCUS_THIRTYSECOND_STEP].s = ISS_ON;
-    else
     {
-        LOGF_ERROR("Unknown error: focuser Step Mode value (%s)", res);
         return false;
     }
 
+    uint32_t stepmode = 0;
+
+    int rc = sscanf(res, "S%u#", &stepmode);
+
+    if( rc > 0 )
+    {
+        switch( stepmode )
+        {
+            case STEPMODE_FULL:
+                StepModeS[FULL_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_HALF:
+                StepModeS[HALF_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_QUARTER:
+                StepModeS[QUARTER_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_EIGHTH:
+                StepModeS[EIGHTH_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_SIXTEENTH:
+                StepModeS[SIXTEENTH_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_THIRTYSECOND:
+                StepModeS[THIRTYSECOND_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_SIXTYFOUR:
+                StepModeS[SIXTYFOUR_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_ONEHUNDREDTWENTYEIGHT:
+                StepModeS[ONEHUNDREDTWENTYEIGHT_STEP].s = ISS_ON;
+                break;
+            case STEPMODE_TWOHUNDREDFIFTYSIX:
+                StepModeS[TWOHUNDREDFIFTYSIX_STEP].s = ISS_ON;
+                break;
+            default:
+                LOGF_ERROR("Unknown error: Step mode value (%d)", stepmode);
+                return false;
+                break;
+        }
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: Step mode value (%s)", res);
+        return false;
+    }
     return true;
 }
 
@@ -435,14 +427,14 @@ bool MyFocuserPro2::readTemperature()
     double temp = 0;
     int rc = sscanf(res, "Z%lf#", &temp);
     if (rc > 0)
-        // Signed hex
+    {
         TemperatureN[0].value = temp;
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -451,29 +443,35 @@ bool MyFocuserPro2::readTempCompensateEnable()
     char res[ML_RES] = {0};
 
     if (sendCommand(":24#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
 
     int rc = sscanf(res, "1%u#", &temp);
 
     if (rc > 0)
-
+    {
         if(temp == 0)
+        {
             TemperatureCompensateS[TEMP_COMPENSATE_DISABLE].s = ISS_ON;
+        }
         else if (temp == 1)
+        {
             TemperatureCompensateS[TEMP_COMPENSATE_ENABLE].s = ISS_ON;
+        }
         else
         {
             LOGF_ERROR("Invalid Response: focuser T.Compensate value (%s)", res);
             return false;
         }
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser T.Compensate value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -483,40 +481,46 @@ bool MyFocuserPro2::readPosition()
     char res[ML_RES] = {0};
 
     if (sendCommand(":00#", res) == false)
+    {
         return false;
+    }
 
     int32_t pos;
     int rc = sscanf(res, "%*c%d#", &pos);
 
     if (rc > 0)
+    {
         FocusAbsPosN[0].value = pos;
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
         return false;
     }
-
     return true;
 }
 
-bool MyFocuserPro2::readTempeartureCoefficient()
+bool MyFocuserPro2::readTemperatureCoefficient()
 {
     char res[ML_RES] = {0};
 
     if (sendCommand(":26#", res) == false)
+    {
         return false;
+    }
 
     int32_t val;
     int rc = sscanf(res, "B%d#", &val);
 
     if (rc > 0)
+    {
         TemperatureSettingN[0].value = val;
+    }
     else
     {
         LOGF_ERROR("Unknown error: Temperature Coefficient value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -525,7 +529,9 @@ bool MyFocuserPro2::readSpeed()
     char res[ML_RES] = {0};
 
     if (sendCommand(":43#", res) == false)
+    {
         return false;
+    }
 
     int speed = 0;
     int rc = sscanf(res, "C%d#", &speed);
@@ -539,7 +545,6 @@ bool MyFocuserPro2::readSpeed()
         LOGF_ERROR("Unknown error: focuser speed value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -548,7 +553,9 @@ bool MyFocuserPro2::readMaxPos()
     char res[ML_RES] = {0};
 
     if (sendCommand(":08#", res) == false)
+    {
         return false;
+    }
 
     uint32_t maxPos = 0;
     int rc = sscanf(res, "M%u#", &maxPos);
@@ -563,7 +570,6 @@ bool MyFocuserPro2::readMaxPos()
         LOGF_ERROR("Unknown error: focuser max position value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -572,7 +578,9 @@ bool MyFocuserPro2::readBacklashInSteps()
     char res[ML_RES] = {0};
 
     if (sendCommand(":78#", res) == false)
+    {
         return false;
+    }
 
     uint32_t backlash = 0;
     int rc = sscanf(res, "6%u#", &backlash);
@@ -587,7 +595,6 @@ bool MyFocuserPro2::readBacklashInSteps()
         LOGF_ERROR("Unknown error: focuser Backlash IN value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -596,7 +603,9 @@ bool MyFocuserPro2::readBacklashInEnabled()
     char res[ML_RES] = {0};
 
     if (sendCommand(":74#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
     int rc = sscanf(res, "4%u#", &temp);
@@ -604,11 +613,17 @@ bool MyFocuserPro2::readBacklashInEnabled()
     if (rc > 0)
     {
         if(temp == 0)
+        {
             BacklashInS[INDI_DISABLED].s = ISS_ON;
+        }
         else if (temp == 1)
+        {
             BacklashInS[INDI_ENABLED].s = ISS_ON;
+        }
         else
+        {
             LOGF_ERROR("Unknown Repsonse: focuser Backlash IN enabled (%s)", res);
+        }
         return false;
     }
     else
@@ -616,6 +631,7 @@ bool MyFocuserPro2::readBacklashInEnabled()
         LOGF_ERROR("Unknown error: focuser Backlash IN enabled (%s)", res);
         return false;
     }
+    return true;                // fix missing return statement R Brown June 2020
 }
 
 bool MyFocuserPro2::readBacklashOutSteps()
@@ -623,7 +639,9 @@ bool MyFocuserPro2::readBacklashOutSteps()
     char res[ML_RES] = {0};
 
     if (sendCommand(":80#", res) == false)
+    {
         return false;
+    }
 
     uint32_t backlash = 0;
     int rc = sscanf(res, "7%u#", &backlash);
@@ -637,7 +655,6 @@ bool MyFocuserPro2::readBacklashOutSteps()
         LOGF_ERROR("Unknown error: focuser Backlash OUT value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -646,7 +663,9 @@ bool MyFocuserPro2::readBacklashOutEnabled()
     char res[ML_RES] = {0};
 
     if (sendCommand(":76#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
     int rc = sscanf(res, "5%u#", &temp);
@@ -654,11 +673,17 @@ bool MyFocuserPro2::readBacklashOutEnabled()
     if (rc > 0)
     {
         if(temp == 0)
+        {
             BacklashOutS[INDI_DISABLED].s = ISS_ON;
+        }
         else if (temp == 1)
+        {
             BacklashOutS[INDI_ENABLED].s = ISS_ON;
+        }
         else
+        {
             LOGF_ERROR("Unknown response: focuser Backlash OUT enabled (%s)", res);
+        }
         return false;
     }
     else
@@ -666,7 +691,7 @@ bool MyFocuserPro2::readBacklashOutEnabled()
         LOGF_ERROR("Unknown error: focuser Backlash OUT enabled (%s)", res);
         return false;
     }
-
+    return true;                // fix missing return statement R Brown June 2020
 }
 
 bool MyFocuserPro2::readDisplayVisible()
@@ -674,7 +699,9 @@ bool MyFocuserPro2::readDisplayVisible()
     char res[ML_RES] = {0};
 
     if (sendCommand(":37#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
 
@@ -683,9 +710,13 @@ bool MyFocuserPro2::readDisplayVisible()
     if (rc > 0)
     {
         if(temp == 0)
+        {
             DisplayS[DISPLAY_OFF].s = ISS_ON;
+        }
         else if (temp == 1)
+        {
             DisplayS[DISPLAY_ON].s = ISS_ON;
+        }
         else
         {
             LOGF_ERROR("Invalid Response: focuser Display value (%s)", res);
@@ -697,7 +728,6 @@ bool MyFocuserPro2::readDisplayVisible()
         LOGF_ERROR("Unknown error: focuser Display value (%s)", res);
         return false;
     }
-
     return true;
 }
 
@@ -706,7 +736,9 @@ bool MyFocuserPro2::isMoving()
     char res[ML_RES] = {0};
 
     if (sendCommand(":01#", res) == false)
+    {
         return false;
+    }
 
     uint32_t temp = 0;
 
@@ -715,9 +747,13 @@ bool MyFocuserPro2::isMoving()
     if (rc > 0)
     {
         if(temp == 0)
+        {
             return false;
+        }
         else if (temp == 1)
+        {
             return true;
+        }
         else
         {
             LOGF_ERROR("Invalid Response: focuser isMoving value (%s)", res);
@@ -731,11 +767,10 @@ bool MyFocuserPro2::isMoving()
     }
 }
 
-
 bool MyFocuserPro2::setTemperatureCelsius()
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":161#");
+    snprintf(cmd, ML_RES, ":16#");          // fix R Brown July 2021
     return sendCommand(cmd);
 }
 
@@ -796,18 +831,17 @@ bool MyFocuserPro2::setBacklashOutEnabled(bool enabled)
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":12%01d#", static_cast<int>(enable));
+    //snprintf(cmd, ML_RES, ":12%d#", static_cast<int>(enable));
+    snprintf(cmd, ML_RES, ":12%d#", enable);
     return sendCommand(cmd);
 }
-
 
 bool MyFocuserPro2::ReverseFocuser(bool enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":14%c#", enable ? '1' : '0');
+    snprintf(cmd, ML_RES, ":14%d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
-
 
 bool MyFocuserPro2::setDisplayVisible(DisplayMode enable)
 {
@@ -827,11 +861,47 @@ bool MyFocuserPro2::setGotoHome()
     return sendCommand(cmd);
 }
 
-bool MyFocuserPro2::setStepMode(FocusStepMode mode)
+bool MyFocuserPro2::setStepMode(FocusStepMode smode)
 {
     char cmd[ML_RES] = {0};
-    int setMode = 1 << static_cast<int>(mode);
-    snprintf(cmd, ML_RES, ":30%02d#", setMode);
+    //int setMode = 1 << static_cast<int>(mode);
+    //snprintf(cmd, ML_RES, ":30%d#", setMode);           // fix for step modes 64-256 R Brown July 2021
+    int stepmode = 1;
+    switch( smode )
+    {
+        case FULL_STEP:
+            stepmode = 1;
+            break;
+        case HALF_STEP:
+            stepmode = 2;
+            break;
+        case QUARTER_STEP:
+            stepmode = 4;
+            break;
+        case EIGHTH_STEP:
+            stepmode = 8;
+            break;
+        case SIXTEENTH_STEP:
+            stepmode = 16;
+            break;
+        case THIRTYSECOND_STEP:
+            stepmode = 32;
+            break;
+        case SIXTYFOUR_STEP:
+            stepmode = 64;
+            break;
+        case ONEHUNDREDTWENTYEIGHT_STEP:
+            stepmode = 128;
+            break;
+        case TWOHUNDREDFIFTYSIX_STEP:
+            stepmode = 256;
+            break;
+        default:
+            LOGF_ERROR("Invalid step mode: (%d)", smode);
+            return false;
+            break;
+    }
+    snprintf(cmd, ML_RES, ":30%d#", stepmode);
     return sendCommand(cmd);
 }
 
@@ -929,7 +999,6 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
             IDSetSwitch(&CoilPowerSP, nullptr);
             return true;
         }
-
 
         // Display Control
         if (strcmp(DisplaySP.name, name) == 0)
@@ -1109,7 +1178,7 @@ void MyFocuserPro2::getStartupValues()
     readMaxPos();
     readPosition();
     readTemperature();
-    readTempeartureCoefficient();
+    readTemperatureCoefficient();
     readSpeed();
     readTempCompensateEnable();
     readStepMode();
@@ -1137,7 +1206,6 @@ bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
     if(sendCommand(cmd))
     {
         Focuser::SyncPresets(maxPos);
-
         return true;
     }
     return false;
@@ -1148,15 +1216,21 @@ IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (speed != static_cast<int>(FocusSpeedN[0].value))
     {
         if (!setSpeed(speed))
+        {
             return IPS_ALERT;
+        }
     }
 
     // either go all the way in or all the way out
     // then use timer to stop
     if (dir == FOCUS_INWARD)
+    {
         MoveFocuser(0);
+    }
     else
+    {
         MoveFocuser(FocusMaxPosN[0].value);
+    }
 
     IEAddTimer(duration, &MyFocuserPro2::timedMoveHelper, this);
     return IPS_BUSY;
@@ -1184,8 +1258,9 @@ IPState MyFocuserPro2::MoveAbsFocuser(uint32_t targetTicks)
     targetPos = targetTicks;
 
     if (!MoveFocuser(targetPos))
+    {
         return IPS_ALERT;
-
+    }
     return IPS_BUSY;
 }
 
@@ -1194,14 +1269,20 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
+    {
         newPosition = FocusAbsPosN[0].value - ticks;
+    }
     else
+    {
         newPosition = FocusAbsPosN[0].value + ticks;
+    }
 
     // Clamp
     newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
     if (!MoveFocuser(newPosition))
+    {
         return IPS_ALERT;
+    }
 
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s       = IPS_BUSY;
@@ -1209,6 +1290,7 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return IPS_BUSY;
 }
 
+// this is occuring every 500ms
 void MyFocuserPro2::TimerHit()
 {
     if (!isConnected())
@@ -1217,23 +1299,31 @@ void MyFocuserPro2::TimerHit()
         return;
     }
 
-    bool rc = readPosition();
-    if (rc)
+    // update position every 1s
+    if (Position_Counter++ == GET_POSITION_FREQ)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        //LOG_INFO("Focuser refresh position.");
+        Position_Counter = 0;
+        bool rc = readPosition();
+        if (rc)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+            {
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                lastPos = FocusAbsPosN[0].value;
+            }
         }
-    }
-
-    rc = readTemperature();
-    if (rc)
-    {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            if (!isMoving())
+            {
+                FocusAbsPosNP.s = IPS_OK;
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                lastPos = FocusAbsPosN[0].value;
+                LOG_INFO("Focuser reached requested position.");
+            }
         }
     }
 
@@ -1250,6 +1340,21 @@ void MyFocuserPro2::TimerHit()
         }
     }
 
+    // update temperature every 5s
+    if (Temperature_Counter++ == GET_TEMPERATURE_FREQ)
+    {
+        //LOG_INFO("Focuser refresh Temperature.");
+        Temperature_Counter = 0;
+        bool rc = readTemperature();
+        if (rc)
+        {
+            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+            {
+                IDSetNumber(&TemperatureNP, nullptr);
+                lastTemperature = TemperatureN[0].value;
+            }
+        }
+    }
     SetTimer(getCurrentPollingPeriod());
 }
 
@@ -1267,6 +1372,60 @@ bool MyFocuserPro2::saveConfigItems(FILE * fp)
     return true;
 }
 
+// sleep for a number of milliseconds
+int MyFocuserPro2::msleep( long duration)
+{
+    struct timespec ts;
+    int res;
+
+    if (duration < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ts.tv_sec = duration / 1000;
+    ts.tv_nsec = (duration % 1000) * 1000000;
+
+    do
+    {
+        res = nanosleep(&ts, &ts);
+    }
+    while (res && errno == EINTR);
+
+    return res;
+}
+
+void MyFocuserPro2::clearbufferonerror()
+{
+    bool rc;
+    char res[ML_RES] = {0};
+    int nbytes_read = 0;
+
+    // if the driver and controller get out of sync, this is an attempt to recover from that situation
+    // attempt to clear the receive buffer if the controller response arrived after a serial timeout
+    pthread_mutex_lock(&cmdlock);
+    msleep(MYFOCUSERPRO2_RECOVER_DELAY);
+    if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
+    {
+        rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, MYFOCUSERPRO2_SERIAL_TIMEOUT, &nbytes_read);
+    }
+    else
+    {
+        // assume TCP/IP Connection
+        rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, MYFOCUSERPRO2_TCPIP_TIMEOUT, &nbytes_read);
+    }
+    pthread_mutex_unlock(&cmdlock);
+    if( rc != TTY_OK)
+    {
+        //LOGF_ERROR("No data read from controller");
+    }
+    else
+    {
+        LOGF_ERROR("Data read from controller: %s.", res);
+    }
+}
+
 bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
@@ -1275,28 +1434,51 @@ bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
+    pthread_mutex_lock(&cmdlock);
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
+        LOGF_ERROR("Connection write error: %s.", errstr);
+        pthread_mutex_unlock(&cmdlock);
         return false;
     }
 
     if (res == nullptr)
+    {
+        tcdrain(PortFD);
+        pthread_mutex_unlock(&cmdlock);
         return true;
+    }
+    //pthread_mutex_unlock(&cmdlock);
 
-    if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
+    // sleep for 20ms to give time for controller to process command before attempting to read reply
+    msleep(MYFOCUSERPRO2_SMALL_DELAY);
+
+    //pthread_mutex_lock(&cmdlock);
+    // replace ML_TIMEOUT, needs to be dependant on connection type
+    if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
+    {
+        rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, MYFOCUSERPRO2_SERIAL_TIMEOUT, &nbytes_read);
+    }
+    else
+    {
+        // assume TCP/IP Connection
+        rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, MYFOCUSERPRO2_TCPIP_TIMEOUT, &nbytes_read);
+    }
+
+    if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("Connection read error: %s.", errstr);
+        pthread_mutex_unlock(&cmdlock);
         return false;
     }
 
     LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
-
+    pthread_mutex_unlock(&cmdlock);
     return true;
 }

@@ -1,0 +1,33 @@
+name: MacOS
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Get INDI Sources
+        uses: actions/checkout@v2
+        with:
+          path: 'indi'
+
+      - name: Install Pre-requisites
+        run:  indi/scripts/requisites-install.sh
+
+      - name: Build INDI Core
+        run: |
+          indi/scripts/indi-core-build.sh
+          indi/scripts/indi-core-package-build.sh
+
+      - name: Install INDI Core
+        run: indi/scripts/indi-core-install.sh
+
+      - name: Run INDI Core Test
+        run: indi/scripts/indi-core-test.sh
+
+      - name: Archive INDI Core Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: indi-core-package-macos
+          path: packages/indi-core-package.tar

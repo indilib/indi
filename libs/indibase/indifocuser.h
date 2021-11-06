@@ -84,7 +84,7 @@ class Focuser : public DefaultDevice, public FocuserInterface
          * @param fp pointer to configuration file
          * @return true if successful, false otherwise.
          */
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();
@@ -94,7 +94,7 @@ class Focuser : public DefaultDevice, public FocuserInterface
      * @param ticks maximum ticks
      * @return True
      */
-    virtual bool SetFocuserMaxPosition(uint32_t ticks);
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
     /**
      * @brief syncPresets Updates the min/max/step range of the preset as per the maximum name of Absolute Focus Travel

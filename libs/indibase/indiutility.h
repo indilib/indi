@@ -33,9 +33,11 @@ namespace INDI
 
 /**
  * @brief Create a path directory - this function uses 'mkdir'
+ * @note Not available on Windows. Need to use C++17 cross-platform std::filesystem later.
  */
+#ifndef _WINDOWS
 int mkpath(std::string path, mode_t mode);
-
+#endif
 /**
  * @brief Converts the date and time to string - this function uses 'strftime'
  */
@@ -44,6 +46,6 @@ std::string format_time(const std::tm &tm, const char *format);
 /**
  * @brief Replaces every occurrence of the string 'search' with the string 'replace'
  */
-void replace_all(std::string &subject, const std::string& search, const std::string& replace);
+void replace_all(std::string &subject, const std::string &search, const std::string &replace);
 
 }

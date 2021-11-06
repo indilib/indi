@@ -43,20 +43,20 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
     protected:
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         //  Generic indi device entries
-        bool Connect();
+        bool Connect() override;
         bool Connect(char *);
-        bool Disconnect();
-        const char *getDefaultName();
+        bool Disconnect() override;
+        const char *getDefaultName() override;
 
-        void TimerHit();
+        void TimerHit() override;
 
-        virtual IPState GuideNorth(uint32_t ms);
-        virtual IPState GuideSouth(uint32_t ms);
-        virtual IPState GuideEast(uint32_t ms);
-        virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
     private:
         float CalcWEPulseTimeLeft();

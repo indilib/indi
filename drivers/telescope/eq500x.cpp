@@ -115,7 +115,8 @@ EQ500X::EQ500X(): LX200Generic()
     setLX200Capability(0);
 
     // Sync, goto, abort, location and 4 slew rates, no guiding rates and no park position
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_PIER_SIDE, 4);
 
     LOG_DEBUG("Initializing from EQ500X device...");
 }
@@ -125,12 +126,12 @@ EQ500X::EQ500X(): LX200Generic()
 ***************************************************************************************/
 const char *EQ500X::getDefautName()
 {
-    return (const char*)"EQ500X";
+    return "EQ500X";
 }
 
 double EQ500X::getLST()
 {
-    return get_local_sidereal_time(lnobserver.lng);
+    return get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
 }
 
 void EQ500X::resetSimulation()
@@ -225,21 +226,21 @@ bool EQ500X::checkConnection()
 
 bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
 {
-    // Picked from ScopeSim
     INDI_UNUSED(elevation);
-    lnobserver.lng = longitude;
-
-    if (lnobserver.lng > 180)
-        lnobserver.lng -= 360;
-    lnobserver.lat = latitude;
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", longitude, latitude);
 
     // Only update LST if the mount is connected and "parked" looking at the pole
     if (isConnected() && !getCurrentMechanicalPosition(currentMechPosition) && currentMechPosition.atParkingPosition())
     {
+        // HACK: Longitude used by getLST is updated after this function returns, so hack a new longitude first
+        double const prevLongitude = LocationN[LOCATION_LONGITUDE].value;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+
         double const LST = getLST();
         Sync(LST - 6, currentMechPosition.DECsky());
-        LOGF_INFO("Location updated: mount considered parked, synced to LST %gh", LST);
+        LOGF_INFO("Location updated: mount considered parked, synced to LST %gh.", LST);
+
+        LocationN[LOCATION_LONGITUDE].value = prevLongitude;
     }
 
     return true;
@@ -279,8 +280,10 @@ bool EQ500X::ReadScopeStatus()
         if (nullptr != adjustment)
         {
             // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
-            if (RAmDecrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA - rates[adjustment - adjustments] * delta / 15.0 + 24.0, 24.0);
-            if (RAmIncrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA + rates[adjustment - adjustments] * delta / 15.0 + 24.0, 24.0);
+            if (RAmDecrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA - rates[adjustment - adjustments] * delta / 15.0
+                        + 24.0, 24.0);
+            if (RAmIncrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA + rates[adjustment - adjustments] * delta / 15.0
+                        + 24.0, 24.0);
             if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment - adjustments] * delta;
             if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment - adjustments] * delta;
 
@@ -289,7 +292,11 @@ bool EQ500X::ReadScopeStatus()
             p.toStringRA(simEQ500X.MechanicalRAStr, sizeof(simEQ500X.MechanicalRAStr));
             p.toStringDEC_Sim(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
 
-            LOGF_DEBUG("New mechanical RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment - adjustments]*delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment - adjustments]*delta : 0, p.RAm(), p.DECm(), simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr);
+            LOGF_DEBUG("New mechanical RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s",
+                       simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease
+                               || RAmIncrease) ? rates[adjustment - adjustments]*delta : 0, (DECmDecrease
+                                       || DECmIncrease) ? rates[adjustment - adjustments]*delta : 0, p.RAm(), p.DECm(), simEQ500X.MechanicalRAStr,
+                       simEQ500X.MechanicalDECStr);
         }
     }
 
@@ -310,9 +317,8 @@ bool EQ500X::ReadScopeStatus()
     {
         currentRA = currentMechPosition.RAsky();
 
-        // Update the side of pier
-        double const LST = getLST();
-        double HA = LST - currentRA;
+        // Update the side of pier - rangeHA is NOT suitable here
+        double HA = rangeHA(getLST() - currentRA);
         while (+12 <= HA) HA -= 24;
         while (HA <= -12) HA += 24;
         switch (currentMechPosition.getPointingState())
@@ -324,7 +330,9 @@ bool EQ500X::ReadScopeStatus()
                 LX200Telescope::setPierSide(6 < HA ? PIER_EAST : PIER_WEST);
                 break;
         }
-        LOGF_DEBUG("Mount HA=%lfh pointing %s on %s side", HA, currentMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole", getPierSide() == PIER_EAST ? "east" : "west");
+        LOGF_DEBUG("Mount HA=%lfh pointing %s on %s side", HA,
+                   currentMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole",
+                   getPierSide() == PIER_EAST ? "east" : "west");
     }
 
     // If we are using the goto feature, check state
@@ -360,14 +368,18 @@ bool EQ500X::ReadScopeStatus()
                 if (abs_ra_delta <= adjustments[i].distance)
                     ra_adjust = &adjustments[i];
             assert(nullptr != ra_adjust);
-            LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetMechPosition.RAm() * 15.0, currentMechPosition.RAm() * 15.0, ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0 / 3600.0));
+            LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°",
+                       targetMechPosition.RAm() * 15.0, currentMechPosition.RAm() * 15.0, ra_delta, ra_adjust->distance, ra_adjust->slew_rate,
+                       std::max(ra_adjust->epsilon, 15.0 / 3600.0));
 
             // Choose slew rate for DEC based on distance to target
             for(size_t i = 0; i < sizeof(adjustments) / sizeof(adjustments[0]) && nullptr == dec_adjust; i++)
                 if (abs_dec_delta <= adjustments[i].distance)
                     dec_adjust = &adjustments[i];
             assert(nullptr != dec_adjust);
-            LOGF_DEBUG("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetMechPosition.DECm(), currentMechPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
+            LOGF_DEBUG("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°",
+                       targetMechPosition.DECm(), currentMechPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate,
+                       dec_adjust->epsilon);
 
             // This will hold the command string to send to the mount, with move commands
             char CmdString[32] = {0};
@@ -504,7 +516,10 @@ bool EQ500X::ReadScopeStatus()
             assert(!(RAmIncrease && RAmDecrease) && !(DECmDecrease && DECmIncrease));
 
             // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetMechPosition.RAm() * 15.0, targetMechPosition.DECm(), ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? 'N' : '.', DECmIncrease ? 'S' : '.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
+            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)",
+                       targetMechPosition.RAm() * 15.0, targetMechPosition.DECm(), ra_delta, dec_delta, RAmDecrease ? 'W' : '.',
+                       RAmIncrease ? 'E' : '.', DECmDecrease ? 'N' : '.', DECmIncrease ? 'S' : '.', adjustment->slew_rate,
+                       std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
 
             // If we have a command to run, issue it
             if (CmdString[0] != '\0')
@@ -526,7 +541,8 @@ bool EQ500X::ReadScopeStatus()
             // If all movement flags are cleared, we are done adjusting
             if (!RAmIncrease && !RAmDecrease && !DECmDecrease && !DECmIncrease)
             {
-                LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%d loops)", ra_delta, dec_delta, MAX_CONVERGENCE_LOOPS - countdown);
+                LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%d loops)", ra_delta, dec_delta,
+                          MAX_CONVERGENCE_LOOPS - countdown);
                 adjustment = nullptr;
             }
             // Else, if it has been too long since we started, maybe we have a convergence problem.
@@ -534,7 +550,8 @@ bool EQ500X::ReadScopeStatus()
             // The behavior is improved by changing the slew rate while converging, but is still tricky to tune.
             else if (--countdown <= 0)
             {
-                LOGF_ERROR("Failed centering to (%lf,%lf) under loop limit, aborting...", targetMechPosition.RAm(), targetMechPosition.DECm());
+                LOGF_ERROR("Failed centering to (%lf,%lf) under loop limit, aborting...", targetMechPosition.RAm(),
+                           targetMechPosition.DECm());
                 goto slew_failure;
             }
             // Else adjust poll timeout to adjustment speed and continue
@@ -585,14 +602,14 @@ slew_failure:
 
 bool EQ500X::Goto(double ra, double dec)
 {
-    // Check whether a meridian flip is required
-    double const LST = getLST();
-    double HA = LST - ra;
+    // Check whether a meridian flip is required - rangeHA is NOT suitable here
+    double HA = getLST() - ra;
     while (+12 <= HA) HA -= 24;
     while (HA <= -12) HA += 24;
 
     // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
-    targetMechPosition.setPointingState((0 <= HA && HA < 12) ? MechanicalPoint::POINTING_NORMAL : MechanicalPoint::POINTING_BEYOND_POLE);
+    targetMechPosition.setPointingState((0 <= HA
+                                         && HA < 12) ? MechanicalPoint::POINTING_NORMAL : MechanicalPoint::POINTING_BEYOND_POLE);
     targetMechPosition.RAsky(ra);
     targetMechPosition.DECsky(dec);
 
@@ -645,7 +662,8 @@ bool EQ500X::Goto(double ra, double dec)
         targetMechPosition.RAsky(targetRA = ra);
         targetMechPosition.DECsky(targetDEC = dec);
 
-        LOGF_INFO("Goto target (%lfh,%lf°) HA %lf, LST %lf, quadrant %s", ra, dec, HA, LST, targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole");
+        LOGF_INFO("Goto target (%lfh,%lf°) HA %lf, quadrant %s", ra, dec, HA,
+                  targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole");
     }
 
     // Limit the number of loops
@@ -855,8 +873,10 @@ bool EQ500X::setTargetMechanicalPosition(MechanicalPoint const &p)
         char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_FormatW)];
 
         // Write RA/DEC in placeholders
-        snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
-        LOGF_DEBUG("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
+        snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC,
+                 sizeof(bufDEC)));
+        LOGF_DEBUG("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()),
+                   CmdString);
 
         char buf[64/*RB_MAX_LEN*/] = {0};
 
@@ -1078,7 +1098,8 @@ char const * EQ500X::MechanicalPoint::toStringDEC_Sim(char *buf, size_t buf_leng
 
     char const low_digit = '0' + (std::abs(degrees) % 10);
 
-    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0 <= degrees) ? '+' : '-', high_digit, low_digit, minutes, seconds);
+    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0 <= degrees) ? '+' : '-', high_digit, low_digit,
+                                 minutes, seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
@@ -1239,7 +1260,8 @@ double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint const &b) con
 
 bool EQ500X::MechanicalPoint::operator !=(EQ500X::MechanicalPoint const &b) const
 {
-    return (_pointingState != b._pointingState) || (RA_GRANULARITY <= std::abs(RA_degrees_to(b))) || (DEC_GRANULARITY <= std::abs(DEC_degrees_to(b)));
+    return (_pointingState != b._pointingState) || (RA_GRANULARITY <= std::abs(RA_degrees_to(b)))
+           || (DEC_GRANULARITY <= std::abs(DEC_degrees_to(b)));
 }
 
 bool EQ500X::MechanicalPoint::operator ==(EQ500X::MechanicalPoint const &b) const
@@ -1247,7 +1269,8 @@ bool EQ500X::MechanicalPoint::operator ==(EQ500X::MechanicalPoint const &b) cons
     return !this->operator !=(b);
 }
 
-enum EQ500X::MechanicalPoint::PointingState EQ500X::MechanicalPoint::setPointingState(enum EQ500X::MechanicalPoint::PointingState pointingState)
+enum EQ500X::MechanicalPoint::PointingState EQ500X::MechanicalPoint::setPointingState(enum
+        EQ500X::MechanicalPoint::PointingState pointingState)
 {
     return _pointingState = pointingState;
 }

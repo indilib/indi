@@ -54,8 +54,8 @@ class LPM : public INDI::DefaultDevice
     };
 
   protected:
-    const char *getDefaultName();
-    void TimerHit();
+    const char *getDefaultName() override;
+    void TimerHit() override;
 
   private:
     bool getReadings();

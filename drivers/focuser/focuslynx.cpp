@@ -32,58 +32,6 @@
 static std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
 static std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
 
-void ISGetProperties(const char *dev)
-{
-    lynxDriveF1->ISGetProperties(dev);
-    lynxDriveF2->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    // Only call the corrected Focuser to execute evaluate the newSwitch
-    if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewSwitch(dev, name, states, names, n);
-    else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    // Only call the corrected Focuser to execute evaluate the new Text
-    if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewText(dev, name, texts, names, n);
-    else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    // Only call the corrected Focuser to execute evaluate the newNumber
-    if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewNumber(dev, name, values, names, n);
-    else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    lynxDriveF1->ISSnoopDevice(root);
-    lynxDriveF2->ISSnoopDevice(root);
-}
-
 /************************************************************************************
 *
 *               First Focuser (F1)

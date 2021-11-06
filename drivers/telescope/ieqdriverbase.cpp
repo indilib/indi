@@ -665,7 +665,8 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
         double ha = rangeHA(get_local_hour_angle(lst, Ra));
 
         const char* reason;
-        double decPA = info.latitude >= 0 ? 90 - Dec : 90 + Dec;     // the distance from the pole determined using the declination, ok for both hemispheres
+        double decPA = info.latitude >= 0 ? 90 - Dec : 90 +
+                       Dec;     // the distance from the pole determined using the declination, ok for both hemispheres
 
         if ((ha > 2 && ha < 10) || (ha < -2 && ha > -10))
         {
@@ -685,11 +686,12 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
             else
             {
                 *pierSide = IEQ_PIER_UNCERTAIN;
-                reason= "uncertain";
+                reason = "uncertain";
             }
         }
 
-        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, axisHa %f, ha %f, decPa %f, %s pierSide %s", decAxis, haAxis, axisHa , ha, decPA, reason,
+        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, axisHa %f, ha %f, decPa %f, %s pierSide %s", decAxis, haAxis, axisHa, ha,
+                   decPA, reason,
                    pierSideStr(*pierSide));
 
         return true;

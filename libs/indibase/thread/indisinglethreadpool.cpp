@@ -26,15 +26,21 @@ SingleThreadPoolPrivate::SingleThreadPoolPrivate()
 {
     thread = std::thread([this]{
         std::unique_lock<std::mutex> lock(runLock);
-        while (!isThreadAboutToQuit)
+        for(;;)
         {
-            wakeUp.wait(lock);
+            acquire.wait(lock, [&](){ return pendingFunction != nullptr || isThreadAboutToQuit; });
             if (isThreadAboutToQuit)
                 break;
-            
-            if (functionToRun != nullptr)
-                functionToRun(isFunctionAboutToQuit);
-            functionToRun = nullptr;
+
+            isFunctionAboutToQuit = false;
+            std::swap(runningFunction, pendingFunction);
+            relased.notify_all();
+
+            lock.unlock();
+            runningFunction(isFunctionAboutToQuit);
+            lock.lock();
+
+            runningFunction = nullptr;
         }
     });
 }
@@ -45,7 +51,7 @@ SingleThreadPoolPrivate::~SingleThreadPoolPrivate()
         isFunctionAboutToQuit = true;
         isThreadAboutToQuit = true;
         std::unique_lock<std::mutex> lock(runLock);
-        wakeUp.notify_one();
+        acquire.notify_one();
     }
     if (thread.joinable())
         thread.join();
@@ -61,24 +67,31 @@ SingleThreadPool::~SingleThreadPool()
 void SingleThreadPool::start(const std::function<void(const std::atomic_bool &isAboutToClose)> &functionToRun)
 {
     D_PTR(SingleThreadPool);
+    std::unique_lock<std::mutex> lock(d->runLock);
+    d->pendingFunction = functionToRun;
     d->isFunctionAboutToQuit = true;
-    std::lock_guard<std::mutex> lock(d->runLock);
-    d->functionToRun = functionToRun;
-    d->isFunctionAboutToQuit = false;
-    d->wakeUp.notify_one();
+    d->acquire.notify_one();
+
+    // wait for run
+    if (std::this_thread::get_id() != d->thread.get_id())
+        d->relased.wait(lock, [&d]{ return d->pendingFunction == nullptr; });
 }
 
 bool SingleThreadPool::tryStart(const std::function<void(const std::atomic_bool &)> &functionToRun)
 {
     D_PTR(SingleThreadPool);
-    std::unique_lock<std::mutex> lock(d->runLock, std::defer_lock);
-
-    if (!lock.try_lock())
+    std::unique_lock<std::mutex> lock(d->runLock);
+    if (d->runningFunction != nullptr)
         return false;
 
-    d->functionToRun = functionToRun;
-    d->isFunctionAboutToQuit = false;
-    d->wakeUp.notify_one();
+    d->isFunctionAboutToQuit = true;
+    d->pendingFunction = functionToRun;
+    d->acquire.notify_one();
+
+    // wait for run
+    if (std::this_thread::get_id() != d->thread.get_id())
+        d->relased.wait(lock, [&d]{ return d->pendingFunction == nullptr; });
+
     return true;
 }
 

@@ -82,7 +82,7 @@ class Rotator : public DefaultDevice, public RotatorInterface
              * @param fp pointer to configuration file
              * @return true if successful, false otherwise.
              */
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();

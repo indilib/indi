@@ -60,8 +60,14 @@
 #include <mach/mach.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif
+
 #if defined(BSD) && !defined(__GNU__)
+#ifdef __APPLE__
 #include <IOKit/serial/ioss.h>
+#endif
 #include <sys/ioctl.h>
 #endif
 
@@ -78,6 +84,9 @@
 #define PARITY_EVEN 1
 #define PARITY_ODD  2
 #endif
+
+#include "userio.h"
+#include "indiuserio.h"
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -362,29 +371,34 @@ void tty_clr_trailing_read_lf(int enabled)
 
 int tty_timeout(int fd, int timeout)
 {
-#if defined(_WIN32) || defined(ANDROID)
+    return tty_timeout_microseconds(fd, timeout, 0);
+}
+
+int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds)
+{
+    #if defined(_WIN32) || defined(ANDROID)
     INDI_UNUSED(fd);
     INDI_UNUSED(timeout);
     return TTY_ERRNO;
-#else
-
+    #else
+    
     if (fd == -1)
         return TTY_ERRNO;
-
+    
     struct timeval tv;
     fd_set readout;
     int retval;
-
+    
     FD_ZERO(&readout);
     FD_SET(fd, &readout);
-
-    /* wait for 'timeout' seconds */
-    tv.tv_sec  = timeout;
-    tv.tv_usec = 0;
-
+    
+    /* wait for 'timeout' seconds + microseconds */
+    tv.tv_sec  = timeout_seconds;
+    tv.tv_usec = timeout_microseconds;
+    
     /* Wait till we have a change in the fd status */
     retval = select(fd + 1, &readout, NULL, NULL, &tv);
-
+    
     /* Return 0 on successful fd change */
     if (retval > 0)
         return TTY_OK;
@@ -394,8 +408,8 @@ int tty_timeout(int fd, int timeout)
     /* Return -2 if time expires before anything interesting happens */
     else
         return TTY_TIME_OUT;
-
-#endif
+    
+    #endif
 }
 
 int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
@@ -456,7 +470,12 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
     return tty_write(fd, buf, nbytes, nbytes_written);
 }
 
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) 
+{
+    return tty_read_expanded(fd, buf, nbytes, timeout, 0, nbytes_read);
+}
+
+int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -474,7 +493,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         return TTY_PARAM_ERROR;
 
     if (tty_debug)
-        IDLog("%s: Request to read %d bytes with %d timeout for fd %d\n", __FUNCTION__, nbytes, timeout, fd);
+        IDLog("%s: Request to read %d bytes with %ld s, %ld us timeout for fd %d\n", __FUNCTION__, nbytes, timeout_seconds, timeout_microseconds, fd);
 
     char geminiBuffer[257]={0};
     char* buffer = buf;
@@ -487,7 +506,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 
     while (numBytesToRead > 0)
     {
-        if ((err = tty_timeout(fd, timeout)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
             return err;
 
         bytesRead = read(fd, buffer + (*nbytes_read), ((uint32_t)numBytesToRead));
@@ -523,7 +542,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
-            return tty_read(fd, buf, nbytes, timeout, nbytes_read);
+            return tty_read_expanded(fd, buf, nbytes, timeout_seconds, timeout_microseconds, nbytes_read);
         }
 
         *nbytes_read -= 8;
@@ -536,6 +555,11 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 }
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    return tty_read_section_expanded(fd, buf, stop_char, (long) timeout, (long) 0, nbytes_read);
+}
+
+int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -553,7 +577,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %ld s %ld us timeout for fd %d\n", __FUNCTION__, stop_char, timeout_seconds, timeout_microseconds, fd);
 
     if (tty_gemini_udp_format)
     {
@@ -566,7 +590,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
         if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
-            return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+            return tty_read_section_expanded(fd, buf, stop_char, timeout_seconds, timeout_microseconds, nbytes_read);
         }
 
         for (int index = 8; index < bytesRead; index++)
@@ -600,7 +624,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     {
         for (;;)
         {
-            if ((err = tty_timeout(fd, timeout)))
+            if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
                 return err;
 
             read_char = (uint8_t*)(buf + *nbytes_read);
@@ -760,7 +784,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 57600:  bps = B57600;  break;
     case 115200: bps = B115200; break;
     case 230400: bps = B230400; break;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
     case 460800: bps = B460800; break;
     case 576000: bps = B576000; break;
     case 921600: bps = B921600; break;
@@ -921,14 +945,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     char msg[128]={0};
     int bps;
     struct termios tty_setting;
-    // Check for bluetooth
-    int bt = strstr(device, "rfcomm") || strstr(device, "Bluetooth");
+    // Check for bluetooth & virtualcom which can be shared
+    int ignore_exclusive_close = strstr(device, "rfcomm") || strstr(device, "Bluetooth") || strstr(device, "virtualcom");
+
 
     // Open as Read/Write, no fnctl, and close on exclusive
     for (i = 0 ; i < 3 ; i++)
     {
-        // Do not use O_CLOEXEC on bluetooth
-        t_fd = open(device, O_RDWR | O_NOCTTY | (bt ? 0 : O_CLOEXEC));
+        // Do not use O_CLOEXEC when ignored
+        t_fd = open(device, O_RDWR | O_NOCTTY | (ignore_exclusive_close ? 0 : O_CLOEXEC));
         if (t_fd > 0)
             break;
         else
@@ -948,8 +973,8 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         return TTY_PORT_BUSY;
 
     // Set port in exclusive mode to prevent other non-root processes from opening it.
-    // JM 2019-08-12: Do not set it for bluetooth
-    if (bt == 0 && ioctl(t_fd, TIOCEXCL) == -1)
+    // JM 2019-08-12: Do not set it when ignored
+    if (ignore_exclusive_close == 0 && ioctl(t_fd, TIOCEXCL) == -1)
     {
         perror("tty_connect: Error setting TIOCEXC.");
         close(t_fd);
@@ -1303,8 +1328,9 @@ const char *permStr(IPerm p)
 /* print the boilerplate comment introducing xml */
 void xmlv1()
 {
-    printf("<?xml version='1.0'?>\n");
+    userio_xmlv1(userio_file(), stdout);
 }
+
 
 /* pull out device and name attributes from root.
  * return 0 if ok else -1 with reason in msg[].
@@ -1428,89 +1454,22 @@ void IUSaveText(IText *tp, const char *newtext)
 
 void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
 {
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    fprintf(fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
-
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        INumber *np = &nvp->np[i];
-        fprintf(fp, "  <oneNumber name='%s'>\n", np->name);
-        fprintf(fp, "      %.20g\n", np->value);
-        fprintf(fp, "  </oneNumber>\n");
-    }
-
-    fprintf(fp, "</newNumberVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    IUUserIONewNumber(userio_file(), fp, nvp);
 }
 
 void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
 {
-    fprintf(fp, "<newTextVector device='%s' name='%s'>\n", tvp->device, tvp->name);
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        IText *tp = &tvp->tp[i];
-        fprintf(fp, "  <oneText name='%s'>\n", tp->name);
-        fprintf(fp, "      %s\n", tp->text ? tp->text : "");
-        fprintf(fp, "  </oneText>\n");
-    }
-
-    fprintf(fp, "</newTextVector>\n");
+    IUUserIONewText(userio_file(), fp, tvp);
 }
 
 void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
 {
-    fprintf(fp, "<newSwitchVector device='%s' name='%s'>\n", svp->device, svp->name);
-
-    for (int i = 0; i < svp->nsp; i++)
-    {
-        ISwitch *sp = &svp->sp[i];
-        fprintf(fp, "  <oneSwitch name='%s'>\n", sp->name);
-        fprintf(fp, "      %s\n", sstateStr(sp->s));
-        fprintf(fp, "  </oneSwitch>\n");
-    }
-
-    fprintf(fp, "</newSwitchVector>\n");
+    IUUserIONewSwitchFull(userio_file(), fp, svp);
 }
 
 void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 {
-    fprintf(fp, "<newBLOBVector device='%s' name='%s'>\n", bvp->device, bvp->name);
-
-    for (int i = 0; i < bvp->nbp; i++)
-    {
-        IBLOB *bp = &bvp->bp[i];
-        unsigned char *encblob = NULL;
-        int l = 0;
-
-        fprintf(fp, "  <oneBLOB\n");
-        fprintf(fp, "    name='%s'\n", bp->name);
-        fprintf(fp, "    size='%d'\n", bp->size);
-        fprintf(fp, "    format='%s'>\n", bp->format);
-
-        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
-        l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
-        if (l == 0) {
-            fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
-            exit(1);
-        }
-        size_t written = 0;
-
-        while ((int)written < l)
-        {
-            size_t towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr      = fwrite(encblob + written, 1, towrite, fp);
-
-            fputc('\n', fp);
-            if (wr > 0)
-                written += wr;
-        }
-        free(encblob);
-
-        fprintf(fp, "  </oneBLOB>\n");
-    }
-
-    fprintf(fp, "</newBLOBVector>\n");
+    IUUserIONewBLOB(userio_file(), fp, bvp);
 }
 
 double rangeHA(double r)
@@ -1557,9 +1516,7 @@ double rangeDec(double decdegrees)
 #if defined(HAVE_LIBNOVA)
 double get_local_sidereal_time(double longitude)
 {
-    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
-
-    return range24(SD);
+    return range24(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) + longitude / 15.0);
 }
 
 void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position)
@@ -1663,14 +1620,34 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
     return delta_mag;
 }
 
+double calc_star_mass(double delta_mag, double ref_size)
+{
+    return delta_mag * ref_size;
+}
+
+double estimate_orbit_radius(double obs_lambda, double ref_lambda, double period)
+{
+    return M_PI*2*DOPPLER(REDSHIFT(obs_lambda, ref_lambda), LIGHTSPEED)/period;
+}
+
+double estimate_secondary_mass(double star_mass, double star_drift, double orbit_radius)
+{
+    return orbit_radius*pow(star_drift*orbit_radius, 3)*3*star_mass;
+}
+
+double estimate_secondary_size(double star_size, double dropoff_ratio)
+{
+    return pow(dropoff_ratio*pow(star_size, 2), 0.5);
+}
+
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth);
+    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*steradian*filter_bandwidth);
 }
 
 double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth))/-0.4;
+    return pow(10, 1.0/(photon_flux/(LUMEN(wavelength)*steradian*filter_bandwidth)))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)

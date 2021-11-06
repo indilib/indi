@@ -19,7 +19,7 @@
 #pragma once
 
 #include "defaultdevice.h"
-
+#include "libastro.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -309,7 +309,7 @@ class Telescope : public DefaultDevice
         virtual bool Handshake();
 
         /** \brief Called when setTimer() time is up */
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and
@@ -340,7 +340,7 @@ class Telescope : public DefaultDevice
          * ~/.indi/ParkData.xml) is updated in the process.
          * @param isparked set to true if parked, false otherwise.
          */
-        void SetParked(bool isparked);
+        virtual void SetParked(bool isparked);
 
         /**
          * @return Get current RA/AZ parking position.
@@ -428,7 +428,7 @@ class Telescope : public DefaultDevice
         }
 
     protected:
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         /** \brief The child class calls this function when it has updates */
         void NewRaDec(double ra, double dec);
@@ -606,6 +606,13 @@ class Telescope : public DefaultDevice
          */
         virtual bool SetDefaultPark();
 
+
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked);
+
         /**
          * @brief SetSlewRate Set desired slew rate index.
          * @param index Index of slew rate where 0 is slowest rate and capability.nSlewRate-1 is maximum rate.
@@ -637,10 +644,8 @@ class Telescope : public DefaultDevice
          */
         TelescopePierSide expectedPierSide(double ra);
 
-        // helper functions
-        double getAzimuth(double r, double d);
-
-        ln_lnlat_posn lnobserver { 0, 0 };
+        // Geographic Location
+        IGeographicCoordinates m_Location { 0, 0, 0 };
 
         /**
          * @brief Load scope settings from XML files.
@@ -828,7 +833,7 @@ class Telescope : public DefaultDevice
          */
         ISwitchVectorProperty TrackSatSP;
         ISwitch TrackSatS[SAT_TRACK_COUNT];
-        
+
         // PEC State
         ISwitch PECStateS[2];
         ISwitchVectorProperty PECStateSP;
@@ -890,15 +895,13 @@ class Telescope : public DefaultDevice
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
+        bool IsParked {false};
+        TelescopeParkData parkDataType {PARK_NONE};
+
     private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);
-        /**
-         * @brief SyncParkStatus Update the state and switches for parking
-         * @param isparked True if parked, false otherwise.
-         */
-        void SyncParkStatus(bool isparked);
 
         /**
          * @brief LoadParkXML Read and process park XML data.
@@ -906,9 +909,7 @@ class Telescope : public DefaultDevice
          */
         const char *LoadParkXML();
 
-        TelescopeParkData parkDataType {PARK_NONE};
         bool IsLocked {true};
-        bool IsParked {false};
         const char *ParkDeviceName {nullptr};
         const std::string ParkDataFileName;
         XMLEle *ParkdataXmlRoot {nullptr}, *ParkdeviceXml {nullptr}, *ParkstatusXml {nullptr}, *ParkpositionXml {nullptr},

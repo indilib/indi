@@ -28,16 +28,16 @@ public:
     OnFocus();
     ~OnFocus();
 
-    virtual bool Handshake();
-    const char * getDefaultName();
+    virtual bool Handshake() override;
+    const char * getDefaultName() override;
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
 
 private:
 

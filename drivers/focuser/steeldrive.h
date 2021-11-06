@@ -46,23 +46,23 @@ class SteelDrive : public INDI::Focuser
         FOCUS_T_SAMPLES
     };
 
-    virtual bool Handshake();
-    const char *getDefaultName();
+    virtual bool Handshake() override;
+    const char *getDefaultName() override;
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks) override;
+    virtual bool SetFocuserSpeed(int speed) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
 
-    void debugTriggered(bool enable);
+    void debugTriggered(bool enable) override;
 
   private:
     // Get functions

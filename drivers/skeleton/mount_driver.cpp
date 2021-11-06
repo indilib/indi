@@ -31,44 +31,6 @@
 // Single unique pointer to the driver.
 static std::unique_ptr<MountDriver> telescope_sim(new MountDriver());
 
-// Standard INDI API functions
-void ISGetProperties(const char *dev)
-{
-    telescope_sim->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    telescope_sim->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    telescope_sim->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    telescope_sim->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    telescope_sim->ISSnoopDevice(root);
-}
-
 MountDriver::MountDriver()
 {
     // Let's specify the driver version

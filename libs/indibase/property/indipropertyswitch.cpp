@@ -70,4 +70,22 @@ void PropertySwitch::fill(
     d->property.fill(device, name, label, group, permission, rule, timeout, state);
 }
 
+void PropertySwitch::setRule(ISRule rule)
+{
+    D_PTR(PropertySwitch);
+    d->property.setRule(rule);
+}
+
+ISRule PropertySwitch::getRule() const
+{
+    D_PTR(const PropertySwitch);
+    return d->property.getRule();
+}
+
+const char * PropertySwitch::getRuleAsString() const
+{
+    D_PTR(const PropertySwitch);
+    return d->property.getRuleAsString();
+}
+
 }

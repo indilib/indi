@@ -20,13 +20,13 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                  "ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE", "Observation Julian date", "%g", 0, 60000, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_RA], "ALIGNMENT_POINT_ENTRY_RA", "Right Ascension (hh:mm:ss)", "%010.6m",
                  0, 24, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC], " ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC], "ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m",
                  -90, 90, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_X], "ALIGNMENT_POINT_ENTRY_VECTOR_X",
                  "Telescope direction vector x", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y], " ALIGNMENT_POINT_ENTRY_VECTOR_Y",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y], "ALIGNMENT_POINT_ENTRY_VECTOR_Y",
                  "Telescope direction vector y", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z], " ALIGNMENT_POINT_ENTRY_VECTOR_Z",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z], "ALIGNMENT_POINT_ENTRY_VECTOR_Z",
                  "Telescope direction vector z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     IUFillNumberVector(&AlignmentPointSetEntryV, AlignmentPointSetEntry, 6, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW,
@@ -73,8 +73,8 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
 }
 
 void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope *pTelescope, const char *name, int sizes[],
-                                                            int blobsizes[], char *blobs[], char *formats[],
-                                                            char *names[], int n)
+        int blobsizes[], char *blobs[], char *formats[],
+        char *names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessBlobProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetPrivateBinaryDataV.name) == 0)
@@ -99,7 +99,7 @@ void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope *pTelescop
 }
 
 void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope *, const char *name, double values[],
-                                                              char *names[], int n)
+        char *names[], int n)
 {
     //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessNumberProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetEntryV.name) == 0)
@@ -119,7 +119,7 @@ void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope *, const
 }
 
 void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states,
-                                                              char *names[], int n)
+        char *names[], int n)
 {
     //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
     AlignmentDatabaseType &AlignmentDatabase = GetAlignmentDatabase();
@@ -222,7 +222,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
                 IDSetNumber(&AlignmentPointSetEntryV, nullptr);
 
                 if ((0 != AlignmentDatabase[Offset].PrivateDataSize) &&
-                    (nullptr != AlignmentDatabase[Offset].PrivateData.get()))
+                        (nullptr != AlignmentDatabase[Offset].PrivateData.get()))
                 {
                     // Hope that INDI has freed the old pointer !!!!!!!!!!!
                     AlignmentPointSetPrivateBinaryData.blob = malloc(AlignmentDatabase[Offset].PrivateDataSize);
@@ -256,12 +256,12 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
 void MapPropertiesToInMemoryDatabase::UpdateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-    ln_lnlat_posn Position { 0, 0 };
+    IGeographicCoordinates Position { 0, 0, 0 };
 
     if (GetDatabaseReferencePosition(Position))
     {
         // Position is already valid
-        if ((latitude != Position.lat) || (longitude != Position.lng))
+        if ((latitude != Position.latitude) || (longitude != Position.longitude))
         {
             // Warn the user somehow
         }

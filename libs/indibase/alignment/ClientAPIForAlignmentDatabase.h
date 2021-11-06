@@ -12,6 +12,7 @@
 #include "baseclient.h"
 
 #include "Common.h"
+#include <pthread.h>
 
 namespace INDI
 {

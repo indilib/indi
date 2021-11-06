@@ -45,7 +45,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              44
+#define SUBVERSION              45
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -233,6 +233,8 @@ class FocusLynxBase : public INDI::Focuser
         bool isAbsolute;
         bool isSynced;
         bool isHoming;
+        // TODO add property for this.
+        bool m_HomeOnStart {false};
 
         static const uint8_t LYNX_MAX { 64 };
 };

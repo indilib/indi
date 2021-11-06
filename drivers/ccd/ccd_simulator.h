@@ -132,7 +132,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         double flux(double magnitude) const;
 
-        float TemperatureRequest { 0 };
+        double TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
         struct timeval ExpStart
@@ -191,6 +191,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
+
+        double m_LastTemperature {0};
 
         int streamPredicate {0};
         pthread_t primary_thread;

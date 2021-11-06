@@ -100,10 +100,16 @@ CCD::CCD()
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
     Longitude       = std::numeric_limits<double>::quiet_NaN();
+    Azimuth         = std::numeric_limits<double>::quiet_NaN();
+    Altitude        = std::numeric_limits<double>::quiet_NaN();
     primaryAperture = std::numeric_limits<double>::quiet_NaN();
     primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
     guiderAperture = std::numeric_limits<double>::quiet_NaN();
     guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
+
+    // Check temperature every 5 seconds.
+    m_TemperatureCheckTimer.setInterval(5000);
+    m_TemperatureCheckTimer.callOnTimeout(std::bind(&CCD::checkTemperatureTarget, this));
 }
 
 CCD::~CCD()
@@ -132,6 +138,11 @@ bool CCD::initProperties()
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Camera temperature ramp
+    TemperatureRampNP[RAMP_SLOPE].fill("RAMP_SLOPE", "Max. dT (C/min)", "%.f", 0, 30, 1, 0);
+    TemperatureRampNP[RAMP_THRESHOLD].fill("RAMP_THRESHOLD", "Threshold (C)", "%.1f", 0.1, 2, 0.1, 0.2);
+    TemperatureRampNP.fill(getDeviceName(), "CCD_TEMP_RAMP", "Temp. Ramp", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
     /**************** Primary Chip ****************/
@@ -484,7 +495,10 @@ bool CCD::updateProperties()
         }
 
         if (HasCooler())
+        {
             defineProperty(&TemperatureNP);
+            defineProperty(&TemperatureRampNP);
+        }
 
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
@@ -601,7 +615,10 @@ bool CCD::updateProperties()
 #endif
         }
         if (HasCooler())
+        {
             deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureRampNP.getName());
+        }
         if (HasST4Port())
         {
             deleteProperty(GuideNSNP.name);
@@ -823,6 +840,8 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 Latitude = std::numeric_limits<double>::quiet_NaN();
                 Longitude = std::numeric_limits<double>::quiet_NaN();
                 Airmass = std::numeric_limits<double>::quiet_NaN();
+                Azimuth = std::numeric_limits<double>::quiet_NaN();
+                Altitude = std::numeric_limits<double>::quiet_NaN();
             }
 
             if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
@@ -934,27 +953,28 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             {
                 if (PrimaryCCD.getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
                 {
-                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-                    epochPos.ra  = RA * 15.0;
-                    epochPos.dec = Dec;
+                    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    epochPos.rightascension  = RA;
+                    epochPos.declination = Dec;
 
                     // Convert from JNow to J2000
-                    //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-                    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+                    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-                    J2000RA = J2000Pos.ra / 15.0;
-                    J2000DE = J2000Pos.dec;
+                    J2000RA = J2000Pos.rightascension;
+                    J2000DE = J2000Pos.declination;
 
                     if (!std::isnan(Latitude) && !std::isnan(Longitude))
                     {
                         // Horizontal Coords
-                        ln_hrz_posn horizontalPos;
-                        ln_lnlat_posn observer;
-                        observer.lat = Latitude;
-                        observer.lng = Longitude;
+                        INDI::IHorizontalCoordinates horizontalPos;
+                        IGeographicCoordinates observer;
+                        observer.latitude = Latitude;
+                        observer.longitude = Longitude;
 
-                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-                        Airmass = ln_get_airmass(horizontalPos.alt, 750);
+                        EquatorialToHorizontal(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        Azimuth = horizontalPos.azimuth;
+                        Altitude = horizontalPos.altitude;
+                        Airmass = ln_get_airmass(Altitude, 750);
                     }
                 }
 
@@ -1157,7 +1177,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 #endif
 
-        // CCD TEMPERATURE:
+        // CCD TEMPERATURE
         if (!strcmp(name, TemperatureNP.name))
         {
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
@@ -1169,16 +1189,59 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 return false;
             }
 
-            int rc = SetTemperature(values[0]);
+            double nextTemperature = values[0];
+            // If temperature ramp is enabled, find
+            if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+            {
+                if (values[0] < TemperatureN[0].value)
+                {
+                    nextTemperature = std::max(values[0], TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
+                }
+                // Going up
+                else
+                {
+                    nextTemperature = std::min(values[0], TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
+                }
+            }
+
+            int rc = SetTemperature(nextTemperature);
 
             if (rc == 0)
+            {
+                if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+                    m_TemperatureElapsedTimer.start();
+
+                m_TargetTemperature = values[0];
+                m_TemperatureCheckTimer.start();
                 TemperatureNP.s = IPS_BUSY;
+            }
             else if (rc == 1)
                 TemperatureNP.s = IPS_OK;
             else
                 TemperatureNP.s = IPS_ALERT;
 
             IDSetNumber(&TemperatureNP, nullptr);
+            return true;
+        }
+
+        // Camera Temperature Ramp
+        if (!strcmp(name, TemperatureRampNP.getName()))
+        {
+            double previousSlope     = TemperatureRampNP[RAMP_SLOPE].getValue();
+            double previousThreshold = TemperatureRampNP[RAMP_THRESHOLD].getValue();
+            TemperatureRampNP.update(values, names, n);
+            TemperatureRampNP.setState(IPS_OK);
+            TemperatureRampNP.apply();
+            if (TemperatureRampNP[0].getValue() == 0)
+                LOG_INFO("Temperature ramp is disabled.");
+            else
+                LOGF_INFO("Temperature ramp is enabled. Gradual cooling and warming is regulated at %.f Celsius per minute.",
+                          TemperatureRampNP[0].getValue());
+
+            // Save config if there is a change
+            if (std::abs(previousSlope - TemperatureRampNP[RAMP_SLOPE].getValue()) > 0 ||
+                    std::abs(previousThreshold - TemperatureRampNP[RAMP_THRESHOLD].getValue()) > 0.01)
+                saveConfig(true, TemperatureRampNP.getName());
             return true;
         }
 
@@ -1760,7 +1823,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
     // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
     if (HasCooler() || TemperatureNP.p == IP_RO)
-        fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 2, "CCD Temperature (Celsius)", &status);
+        fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 3, "CCD Temperature (Celsius)", &status);
 
     fits_update_key_dbl(fptr, "PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)", &status);
     fits_update_key_dbl(fptr, "PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)", &status);
@@ -1816,10 +1879,10 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     if (!std::isnan(effectiveFocalLength))
-        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 2, "Focal Length (mm)", &status);
+        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 3, "Focal Length (mm)", &status);
 
     if (!std::isnan(effectiveAperture))
-        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 2, "Telescope diameter (mm)", &status);
+        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 3, "Telescope diameter (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
@@ -1877,9 +1940,12 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
             fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
         }
         if (!std::isnan(Airmass))
+        {
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
             fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
-
+            fits_update_key_dbl(fptr, "OBJCTAZ", Azimuth, 6, "Azimuth of center of image in Degrees", &status);
+            fits_update_key_dbl(fptr, "OBJCTALT", Altitude, 6, "Altitude of center of image in Degrees", &status);
+        }
         fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA in Hours", &status);
         fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC in Degrees", &status);
 
@@ -2632,7 +2698,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 // Record information required later in creation of FITS header
                 if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
                 {
-                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
                     epochPos.ra  = RA * 15.0;
                     epochPos.dec = Dec;
 
@@ -2645,8 +2711,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                     if (!std::isnan(Latitude) && !std::isnan(Longitude))
                     {
                         // Horizontal Coords
-                        ln_hrz_posn horizontalPos;
-                        ln_lnlat_posn observer;
+                        INDI::IHorizontalCoordinates horizontalPos;
+                        IGeographicCoordinates observer;
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 
@@ -2933,6 +2999,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
+    if (HasCooler())
+        IUSaveConfigNumber(fp, &TemperatureRampNP);
+
     if (HasGuideHead())
     {
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
@@ -3150,4 +3219,37 @@ void CCD::wsThreadEntry()
 }
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::checkTemperatureTarget()
+{
+    if (TemperatureNP.s == IPS_BUSY)
+    {
+        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].value)
+        {
+            TemperatureNP.s = IPS_OK;
+            m_TemperatureCheckTimer.stop();
+            IDSetNumber(&TemperatureNP, nullptr);
+        }
+        // If we are beyond a minute, check for next step
+        else if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+        {
+            double nextTemperature = 0;
+            // Going down
+            if (m_TargetTemperature < TemperatureN[0].value)
+            {
+                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].value);
+            }
+            // Going up
+            else
+            {
+                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].value);
+            }
+
+            m_TemperatureElapsedTimer.restart();
+            SetTemperature(nextTemperature);
+        }
+    }
+}
 }

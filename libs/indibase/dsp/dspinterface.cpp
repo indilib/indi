@@ -279,17 +279,16 @@ void Interface::addFITSKeywords(fitsfile *fptr)
         double RA = nv->np[0].value;
         double Dec = nv->np[1].value;
 
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
+        INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.rightascension  = RA;
+        epochPos.declination = Dec;
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+        INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
+        double raJ2000  = J2000Pos.rightascension;
+        double decJ2000 = J2000Pos.declination;
         char ra_str[32], de_str[32];
 
         fs_sexa(ra_str, raJ2000, 2, 360000);
@@ -347,7 +346,8 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
     char filename[MAXINDIMESSAGE];
     sprintf(filename, "/tmp/%s_%s_%08X.fits", m_Label, getDeviceName(), rand());
     int fd = creat(filename, 0600);
-    if(fd >= 0) {
+    if(fd >= 0)
+    {
         int written = write(fd, buffer, len);
         if(written != len)
             return nullptr;
@@ -362,7 +362,8 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
     fits_read_key_lng(fptr, "NAXIS", &ndims, comment, &status);
     if(status != 0)
         goto load_err;
-    for (int d = 1; d <= ndims; d++) {
+    for (int d = 1; d <= ndims; d++)
+    {
         char query[MAXINDINAME];
         long value;
         sprintf(query, "NAXIS%d", d);
@@ -395,7 +396,7 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
             dsp_buffer_copy((static_cast<double *>(buf)), loaded_stream->buf, loaded_stream->len);
             goto dsp_err;
         default:
-        break;
+            break;
     }
 load_err:
     fits_report_error(stderr, status); /* print out any error messages */

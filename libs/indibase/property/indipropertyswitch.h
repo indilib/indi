@@ -43,6 +43,13 @@ public:
     void reset();
     int findOnSwitchIndex() const;
     INDI::WidgetView<ISwitch> *findOnSwitch() const;
+
+public:
+    void setRule(ISRule rule);
+
+public:
+    ISRule getRule() const;
+    const char * getRuleAsString() const;
 };
 
 }

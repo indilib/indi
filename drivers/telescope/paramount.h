@@ -24,6 +24,7 @@
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+#include "inditimer.h"
 
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -45,7 +46,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
         virtual bool Abort() override;
 
-        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
         virtual bool SetParkPosition(double Axis1Value, double Axis2Value) override;
@@ -68,6 +68,9 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+        // these all call these two functions
+        IPState GuideNS(int32_t ms);
+        IPState GuideWE(int32_t ms);
 
     private:
         void mountSim();
@@ -90,8 +93,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         double targetRA { 0 };
         double targetDEC { 0 };
 
-        ln_lnlat_posn lnobserver { 0, 0 };
-        //ln_hrz_posn lnaltaz { 0, 0 };
         unsigned int DBG_SCOPE { 0 };
 
         // Jog Rate
@@ -110,6 +111,9 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
+        // Timers
+        INDI::Timer m_NSTimer;
+        INDI::Timer m_WETimer;
         // Tracking Rate
         //    INumber TrackRateN[2];
         //    INumberVectorProperty TrackRateNP;
