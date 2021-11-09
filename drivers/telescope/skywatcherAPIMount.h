@@ -66,6 +66,7 @@ class SkywatcherAPIMount :
         virtual bool Goto(double ra, double dec) override;
         virtual bool Sync(double ra, double dec) override;
         virtual bool Abort() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Misc.
