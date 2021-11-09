@@ -341,8 +341,9 @@ void MathPluginManagement::SetApproximateMountAlignmentFromMountType(MountType_t
             else
                 SetApproximateMountAlignment(SOUTH_CELESTIAL_POLE);
         }
-        //else
-        // TODO some kind of error!!!
+        // If no position found, assume northern hemisphere.
+        else
+            SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
     }
     else
         SetApproximateMountAlignment(ZENITH);
