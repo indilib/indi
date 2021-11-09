@@ -38,9 +38,8 @@ double round(double value, int decimal_places)
 TEST(ALIGNMENT_TEST, Test_TDVRoundTripEquatorial)
 {
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
-
+    ASSERT_TRUE(s.updateLocation(29.05, 48.15, 0));
     s.Handshake();
-    s.SetAlignmentSubsystemActive(true);
 
     // Vega
     double ra = 18.6156, dec = 38.78361;
@@ -60,9 +59,8 @@ TEST(ALIGNMENT_TEST, Test_TDVRoundTripEquatorial)
 TEST(ALIGNMENT_TEST, Test_TDVRoundTripAltAz)
 {
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ);
-
+    ASSERT_TRUE(s.updateLocation(29.05, 48.15, 0));
     s.Handshake();
-    s.SetAlignmentSubsystemActive(true);
 
     double alt = 35.7, az = 80.0;
     INDI::IHorizontalCoordinates AltAz;
@@ -82,10 +80,8 @@ TEST(ALIGNMENT_TEST, Test_TDVRoundTripAltAz)
 TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsEquatorial)
 {
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
-
+    ASSERT_TRUE(s.updateLocation(29.05, 48.15, 0));
     s.Handshake();
-    ASSERT_TRUE(s.updateLocation(34.70, 279.46, 161));
-    s.SetAlignmentSubsystemActive(true);
 
     double VegaJ2000RA = 18.6156972;
     double VegaJ2000Dec = 38.7856944;
@@ -106,21 +102,19 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsEquatorial)
 
     // I would expect these to be closer than 1 decimal apart, but it seems to work
     ASSERT_DOUBLE_EQ(round(VegaJ2000RA, 1), round(VegaSkyRA, 1));
-    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 6), round(VegaSkyDec, 6));
+    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 3), round(VegaSkyDec, 3));
 
     double VegaMountRA, VegaMountDec;
     s.SkyToTelescopeEquatorial(VegaSkyRA, VegaSkyDec, VegaMountRA, VegaMountDec);
     ASSERT_DOUBLE_EQ(round(VegaJ2000RA, 1), round(VegaMountRA, 1));
-    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 6), round(VegaMountDec, 6));
+    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 3), round(VegaMountDec, 3));
 }
 
 TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsAltAz)
 {
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ);
-
+    ASSERT_TRUE(s.updateLocation(29.05, 48.15, 0));
     s.Handshake();
-    ASSERT_TRUE(s.updateLocation(34.70, 279.46, 161));
-    s.SetAlignmentSubsystemActive(true);
 
     double VegaJ2000RA = 18.6156972;
     double VegaJ2000Dec = 38.7856944;

@@ -79,6 +79,8 @@ class Scope : public INDI::Telescope, public INDI::AlignmentSubsystem::Alignment
 
             Initialise(this);
 
+            SetAlignmentSubsystemActive(true);
+
             return INDI::Telescope::Handshake();
         }
 
