@@ -44,7 +44,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
     // Set up the logging pointer in SkyWatcherAPI
     pChildTelescope  = this;
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK,
                            SLEWMODES);
 
     setVersion(1, 4);
@@ -677,6 +677,22 @@ bool SkywatcherAPIMount::Park()
 bool SkywatcherAPIMount::UnPark()
 {
     SetParked(false);
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        TrackState = SCOPE_TRACKING;
+        ResetTrackingSeconds = true;
+    }
+    else
+        TrackState = SCOPE_IDLE;
+
     return true;
 }
 
