@@ -114,6 +114,9 @@ CCD::CCD()
 
 CCD::~CCD()
 {
+    // Only update if index is different.
+    if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&ExposureLoopSP))
+        saveConfig(true, ExposureLoopSP.name);
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -373,14 +376,15 @@ bool CCD::initProperties()
     /****************** Exposure Looping **********/
     /***************** Primary CCD Only ***********/
 #ifdef WITH_EXPOSURE_LOOPING
-    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", ISS_OFF);
-    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", ISS_ON);
-    IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Rapid Looping", OPTIONS_TAB,
+    IUGetConfigOnSwitchIndex(getDeviceName(), ExposureLoopSP.name, &m_ConfigFastExposureIndex);
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", m_ConfigFastExposureIndex == EXPOSURE_LOOP_ON ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", m_ConfigFastExposureIndex == EXPOSURE_LOOP_OFF ? ISS_ON : ISS_OFF);
+    IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Fast Exposure", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Should loop until the number of frames specified in this property is completed
     IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count",
+    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Fast Count",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 #endif
 
@@ -1360,6 +1364,11 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         if (!strcmp(name, ExposureLoopSP.name))
         {
             IUUpdateSwitch(&ExposureLoopSP, states, names, n);
+
+            // Only display warning for the first time this is enabled.
+            if (ExposureLoopSP.s == IPS_IDLE && ExposureLoopS[INDI_ENABLED].s == ISS_ON)
+                LOG_WARN("Experimental Feature: After a frame is downloaded, the next frame capture immediately starts to avoid any delays.");
+
             ExposureLoopSP.s = IPS_OK;
             IDSetSwitch(&ExposureLoopSP, nullptr);
             return true;
