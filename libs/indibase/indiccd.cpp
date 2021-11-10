@@ -115,8 +115,8 @@ CCD::CCD()
 CCD::~CCD()
 {
     // Only update if index is different.
-    if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&ExposureLoopSP))
-        saveConfig(true, ExposureLoopSP.name);
+    if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&FastExposureToggleSP))
+        saveConfig(true, FastExposureToggleSP.name);
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -375,18 +375,18 @@ bool CCD::initProperties()
     /**********************************************/
     /****************** Exposure Looping **********/
     /***************** Primary CCD Only ***********/
-#ifdef WITH_EXPOSURE_LOOPING
-    IUGetConfigOnSwitchIndex(getDeviceName(), ExposureLoopSP.name, &m_ConfigFastExposureIndex);
-    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", m_ConfigFastExposureIndex == EXPOSURE_LOOP_ON ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", m_ConfigFastExposureIndex == EXPOSURE_LOOP_OFF ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Fast Exposure", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUGetConfigOnSwitchIndex(getDeviceName(), FastExposureToggleSP.name, &m_ConfigFastExposureIndex);
+    IUFillSwitch(&FastExposureToggleS[INDI_ENABLED], "INDI_ENABLED", "Enabled",
+                 m_ConfigFastExposureIndex == INDI_ENABLED ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&FastExposureToggleS[INDI_DISABLED], "LOOP_OFF", "Disabled",
+                 m_ConfigFastExposureIndex == INDI_DISABLED ? ISS_ON : ISS_OFF);
+    IUFillSwitchVector(&FastExposureToggleSP, FastExposureToggleS, 2, getDeviceName(), "CCD_FAST_EXPOSURE", "Fast Exposure",
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Should loop until the number of frames specified in this property is completed
-    IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Fast Count",
+    IUFillNumber(&FastExposureCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
+    IUFillNumberVector(&FastExposureCountNP, FastExposureCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Fast Count",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-#endif
 
     /**********************************************/
     /**************** Web Socket ******************/
@@ -565,10 +565,8 @@ bool CCD::updateProperties()
             defineProperty(&WebSocketSP);
 #endif
 
-#ifdef WITH_EXPOSURE_LOOPING
-        defineProperty(&ExposureLoopSP);
-        defineProperty(&ExposureLoopCountNP);
-#endif
+        defineProperty(&FastExposureToggleSP);
+        defineProperty(&FastExposureCountNP);
     }
     else
     {
@@ -650,10 +648,8 @@ bool CCD::updateProperties()
             deleteProperty(WebSocketSettingsNP.name);
         }
 #endif
-#ifdef WITH_EXPOSURE_LOOPING
-        deleteProperty(ExposureLoopSP.name);
-        deleteProperty(ExposureLoopCountNP.name);
-#endif
+        deleteProperty(FastExposureToggleSP.name);
+        deleteProperty(FastExposureCountNP.name);
     }
 
     // Streamer
@@ -946,7 +942,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
             // Only abort when busy if we are not already in an exposure loops
-            //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && ExposureLoopS[EXPOSURE_LOOP_OFF].s == ISS_ON)
+            //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
             if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
             {
                 if (CanAbort() && AbortExposure() == false)
@@ -1171,15 +1167,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             return true;
         }
 
-#ifdef WITH_EXPOSURE_LOOPING
-        if (!strcmp(name, ExposureLoopCountNP.name))
+        if (!strcmp(name, FastExposureCountNP.name))
         {
-            IUUpdateNumber(&ExposureLoopCountNP, values, names, n);
-            ExposureLoopCountNP.s = IPS_OK;
-            IDSetNumber(&ExposureLoopCountNP, nullptr);
+            IUUpdateNumber(&FastExposureCountNP, values, names, n);
+            FastExposureCountNP.s = IPS_OK;
+            IDSetNumber(&FastExposureCountNP, nullptr);
             return true;
         }
-#endif
 
         // CCD TEMPERATURE
         if (!strcmp(name, TemperatureNP.name))
@@ -1359,21 +1353,20 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             return true;
         }
 
-#ifdef WITH_EXPOSURE_LOOPING
         // Exposure Looping
-        if (!strcmp(name, ExposureLoopSP.name))
+        if (!strcmp(name, FastExposureToggleSP.name))
         {
-            IUUpdateSwitch(&ExposureLoopSP, states, names, n);
+            IUUpdateSwitch(&FastExposureToggleSP, states, names, n);
 
             // Only display warning for the first time this is enabled.
-            if (ExposureLoopSP.s == IPS_IDLE && ExposureLoopS[INDI_ENABLED].s == ISS_ON)
+            if (FastExposureToggleSP.s == IPS_IDLE && FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
                 LOG_WARN("Experimental Feature: After a frame is downloaded, the next frame capture immediately starts to avoid any delays.");
 
-            ExposureLoopSP.s = IPS_OK;
-            IDSetSwitch(&ExposureLoopSP, nullptr);
+            FastExposureToggleSP.s = IPS_OK;
+            IDSetSwitch(&FastExposureToggleSP, nullptr);
             return true;
         }
-#endif
+
 
 #ifdef HAVE_WEBSOCKET
         // Websocket Enable/Disable
@@ -1455,15 +1448,14 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             setCurrentPollingPeriod(getPollingPeriod());
 
-#ifdef WITH_EXPOSURE_LOOPING
-            if (ExposureLoopCountNP.s == IPS_BUSY)
+            if (FastExposureCountNP.s == IPS_BUSY)
             {
-                uploadTime = 0;
-                ExposureLoopCountNP.s = IPS_IDLE;
-                ExposureLoopCountN[0].value = 1;
-                IDSetNumber(&ExposureLoopCountNP, nullptr);
+                m_UploadTime = 0;
+                FastExposureCountNP.s = IPS_IDLE;
+                FastExposureCountN[0].value = 1;
+                IDSetNumber(&FastExposureCountNP, nullptr);
             }
-#endif
+
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
@@ -2061,33 +2053,34 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                          targetChip->getBPP());
         free(buf);
     }
-#ifdef WITH_EXPOSURE_LOOPING
+
     // If looping is on, let's immediately take another capture
-    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
+    if (FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
     {
         double duration = targetChip->getExposureDuration();
 
-        if (ExposureLoopCountN[0].value > 1)
+        if (FastExposureCountN[0].value > 1)
         {
-            if (ExposureLoopCountNP.s != IPS_BUSY)
+            if (FastExposureCountNP.s != IPS_BUSY)
             {
-                exposureLoopStartup = std::chrono::system_clock::now();
+                FastExposureToggleStartup = std::chrono::system_clock::now();
             }
             else
             {
                 auto end = std::chrono::system_clock::now();
 
-                uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
-                LOGF_DEBUG("Image download and upload/save took %.3f seconds.", uploadTime);
+                m_UploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - FastExposureToggleStartup)).count() / 1000.0 -
+                               duration;
+                LOGF_DEBUG("Image download and upload/save took %.3f seconds.", m_UploadTime);
 
-                exposureLoopStartup = end;
+                FastExposureToggleStartup = end;
             }
 
-            ExposureLoopCountNP.s = IPS_BUSY;
-            ExposureLoopCountN[0].value--;
-            IDSetNumber(&ExposureLoopCountNP, nullptr);
+            FastExposureCountNP.s = IPS_BUSY;
+            FastExposureCountN[0].value--;
+            IDSetNumber(&FastExposureCountNP, nullptr);
 
-            if (uploadTime < duration)
+            if (m_UploadTime < duration)
             {
                 StartExposure(duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
@@ -2097,25 +2090,25 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             }
             else
             {
-                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime,
+                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.",
+                           m_UploadTime,
                            duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                ExposureLoopCountN[0].value = 1;
-                ExposureLoopCountNP.s = IPS_IDLE;
-                IDSetNumber(&ExposureLoopCountNP, nullptr);
-                uploadTime = 0;
+                FastExposureCountN[0].value = 1;
+                FastExposureCountNP.s = IPS_IDLE;
+                IDSetNumber(&FastExposureCountNP, nullptr);
+                m_UploadTime = 0;
                 return false;
             }
         }
         else
         {
-            uploadTime = 0;
-            ExposureLoopCountNP.s = IPS_IDLE;
-            IDSetNumber(&ExposureLoopCountNP, nullptr);
+            m_UploadTime = 0;
+            FastExposureCountNP.s = IPS_IDLE;
+            IDSetNumber(&FastExposureCountNP, nullptr);
         }
     }
-#endif
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -3002,9 +2995,7 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
-#ifdef WITH_EXPOSURE_LOOPING
-    IUSaveConfigSwitch(fp, &ExposureLoopSP);
-#endif
+    IUSaveConfigSwitch(fp, &FastExposureToggleSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
