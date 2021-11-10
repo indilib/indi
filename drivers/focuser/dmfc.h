@@ -30,6 +30,7 @@ class DMFC : public INDI::Focuser
 
         virtual bool Handshake() override;
         const char *getDefaultName() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -49,7 +50,8 @@ class DMFC : public INDI::Focuser
 
     private:
         bool updateFocusParams();
-        bool move(uint32_t newPosition);
+        bool moveAbsolute(uint32_t newPosition);
+        bool moveRelative(int relativePosition);
         bool setMaxSpeed(uint16_t speed);
         bool setLedEnabled(bool enable);
         bool setEncodersEnabled(bool enable);
