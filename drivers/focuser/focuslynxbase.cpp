@@ -128,7 +128,9 @@ bool FocusLynxBase::initProperties()
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser Step Size
-    IUFillNumber(&StepSizeN[0], "10000*microns/step", "", "%.f", 0, 65535, 0., 0);
+    // An early command doc listed this as 10000 instead of the correct 1000. Because this is informational only (not used within the controller)
+    // fixing it should have no consequences.
+    IUFillNumber(&StepSizeN[0], "1000*microns/step", "", "%.f", 0, 65535, 0., 0);
     IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
