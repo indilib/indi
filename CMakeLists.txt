@@ -89,6 +89,7 @@ OPTION (INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+OPTION (INDI_FAST_EXPOSURE "Build INDI with EXPERIMENTAL fast exposure. Next frame is captured immediately after data is downloaded from camera." On)
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
 ###################################################################################################
@@ -98,6 +99,13 @@ IF (INDI_FAST_BLOB)
 # Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
 add_definitions(-DWITH_ENCLEN)
 ENDIF(INDI_FAST_BLOB)
+
+###################################################################################################
+#########################################  Exposure Looping  ######################################
+###################################################################################################
+IF (INDI_FAST_EXPOSURE)
+add_definitions(-DWITH_EXPOSURE_LOOPING)
+ENDIF(INDI_FAST_EXPOSURE)
 
 ###################################################################################################
 ######################################  Calculate Min/Max #########################################

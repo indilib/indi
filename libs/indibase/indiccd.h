@@ -722,6 +722,7 @@ class CCD : public DefaultDevice, GuiderInterface
         uint32_t capability;
 
         bool m_ValidCCDRotation;
+        int m_ConfigFastExposureIndex {EXPOSURE_LOOP_OFF};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
