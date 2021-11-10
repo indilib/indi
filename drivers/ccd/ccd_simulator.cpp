@@ -1100,6 +1100,7 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             //  Reset our parameters now
             setupParameters();
             IDSetNumber(&SimulatorSettingsNP, nullptr);
+            saveConfig(true, SimulatorSettingsNP.name);
             return true;
         }
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
