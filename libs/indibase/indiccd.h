@@ -48,9 +48,6 @@
 #include <mutex>
 #include <thread>
 
-//JM 2019-01-17: Disabled until further notice
-//#define WITH_EXPOSURE_LOOPING
-
 extern const char * IMAGE_SETTINGS_TAB;
 extern const char * IMAGE_INFO_TAB;
 extern const char * GUIDE_HEAD_TAB;
@@ -692,22 +689,15 @@ class CCD : public DefaultDevice, GuiderInterface
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
 
-#ifdef WITH_EXPOSURE_LOOPING
-        // Exposure Looping
-        ISwitch ExposureLoopS[2];
-        ISwitchVectorProperty ExposureLoopSP;
-        enum
-        {
-            EXPOSURE_LOOP_ON,
-            EXPOSURE_LOOP_OFF
-        };
+        // Fast Exposure Toggle
+        ISwitch FastExposureToggleS[2];
+        ISwitchVectorProperty FastExposureToggleSP;
 
-        // Exposure Looping Count
-        INumber ExposureLoopCountN[1];
-        INumberVectorProperty ExposureLoopCountNP;
-        double uploadTime = { 0 };
-        std::chrono::system_clock::time_point exposureLoopStartup;
-#endif
+        // Fast Exposure Frame Count
+        INumber FastExposureCountN[1];
+        INumberVectorProperty FastExposureCountNP;
+        double m_UploadTime = { 0 };
+        std::chrono::system_clock::time_point FastExposureToggleStartup;
 
         // FITS Header
         IText FITSHeaderT[2] {};
@@ -722,7 +712,7 @@ class CCD : public DefaultDevice, GuiderInterface
         uint32_t capability;
 
         bool m_ValidCCDRotation;
-        int m_ConfigFastExposureIndex {EXPOSURE_LOOP_OFF};
+        int m_ConfigFastExposureIndex {INDI_DISABLED};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
