@@ -378,14 +378,14 @@ bool CCD::initProperties()
     IUGetConfigOnSwitchIndex(getDeviceName(), FastExposureToggleSP.name, &m_ConfigFastExposureIndex);
     IUFillSwitch(&FastExposureToggleS[INDI_ENABLED], "INDI_ENABLED", "Enabled",
                  m_ConfigFastExposureIndex == INDI_ENABLED ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&FastExposureToggleS[INDI_DISABLED], "LOOP_OFF", "Disabled",
+    IUFillSwitch(&FastExposureToggleS[INDI_DISABLED], "INDI_DISABLED", "Disabled",
                  m_ConfigFastExposureIndex == INDI_DISABLED ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&FastExposureToggleSP, FastExposureToggleS, 2, getDeviceName(), "CCD_FAST_EXPOSURE", "Fast Exposure",
+    IUFillSwitchVector(&FastExposureToggleSP, FastExposureToggleS, 2, getDeviceName(), "CCD_FAST_TOGGLE", "Fast Exposure",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Should loop until the number of frames specified in this property is completed
     IUFillNumber(&FastExposureCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&FastExposureCountNP, FastExposureCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Fast Count",
+    IUFillNumberVector(&FastExposureCountNP, FastExposureCountN, 1, getDeviceName(), "CCD_FAST_COUNT", "Fast Count",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /**********************************************/
@@ -1167,6 +1167,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             return true;
         }
 
+        // Fast Exposure Count
         if (!strcmp(name, FastExposureCountNP.name))
         {
             IUUpdateNumber(&FastExposureCountNP, values, names, n);
@@ -1353,7 +1354,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             return true;
         }
 
-        // Exposure Looping
+        // Fast Exposure Toggle
         if (!strcmp(name, FastExposureToggleSP.name))
         {
             IUUpdateSwitch(&FastExposureToggleSP, states, names, n);
@@ -1448,6 +1449,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             setCurrentPollingPeriod(getPollingPeriod());
 
+            // Fast Exposure Count
             if (FastExposureCountNP.s == IPS_BUSY)
             {
                 m_UploadTime = 0;
@@ -2054,11 +2056,12 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         free(buf);
     }
 
-    // If looping is on, let's immediately take another capture
+    // If fast exposure is on, let's immediately take another capture
     if (FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
     {
         double duration = targetChip->getExposureDuration();
 
+        // Check fast exposure count
         if (FastExposureCountN[0].value > 1)
         {
             if (FastExposureCountNP.s != IPS_BUSY)
