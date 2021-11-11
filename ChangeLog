@@ -1,3 +1,52 @@
++ From 1.9.2 to 1.9.3
+
+    1293b062 2021-11-10 Jasem Mutlaq         Skyris is from Celestron
+    36d8e98b 2021-11-10 Jasem Mutlaq         Standarize the names to be consistent
+    beb2fd86 2021-11-10 Jasem Mutlaq         Enable fast exposure without a cmake option since this would require the same option for all 3rd party drivers which is cumbersome. Feature still ex..
+    ae352a39 2021-11-10 Jasem Mutlaq         Enable Fast Exposure support by default. It needs to be explicitly toggled in the camera driver and is marked experimental
+    f4ee1081 2021-11-10 Jasem Mutlaq         Save simulator settings when changed to config
+    63e0f2f6 2021-11-10 Jasem Mutlaq         Add preliminary support for DC focusers to DMFC. Needs testing.
+    010d5cfe 2021-11-10 Jasem Mutlaq         Do not modify index if not found
+    c6b45eb4 2021-11-09 Jasem Mutlaq         Do not use local hour angle in any alignment function. Fix alignment test
+    f37e8702 2021-11-09 Jasem Mutlaq         If no alignment config is specified, use Nearest by default
+    14bc562d 2021-11-09 Jasem Mutlaq         Add tracking toggle. By default the driver tracks automatically, but it is possible to toggle it off to IDLE
+    c81cfaf8 2021-11-08 Daniel Van Noord     Improve lynx sync and homing behavior (#1558)
+    a4eae0d3 2021-11-06 Kevin Ross           sestosenso: Increase max allowed focuser position (Fixes #1555) (#1557)
+    ed6cb9f0 2021-11-06 Jasem Mutlaq         Save focuser interface properties in config on change
+    815cd93c 2021-11-04 Jarno Paananen       Updates and cleanup for the OpenWeatherMap driver (#1552)
+    a3e03f4c 2021-11-03 Jasem Mutlaq         Accept any parameter containing hour (h)
+    1c91de09 2021-11-02 Daniel Van Noord     Fix FocusLynx GetConfig for focusers without HomeOnStart (#1551)
+    e39af1e3 2021-11-01 Jasem Mutlaq         Remove vantage rules file as as apparently the VID:PID is applicable to more than just vantage. Add prolific vendor ID to the aux rules file
+    42bef119 2021-10-31 james-lan            LX200 SiteName Fix V2 (#1550)
+    4018919a 2021-10-30 Jasem Mutlaq         Read selected site index and name from config file on startup. Do not malloc text property directly since this is done by the INDI framework
+    a9d7726e 2021-10-26 Jasem Mutlaq         V42L driver supports detecting camera and renaming the driver (#1548)
+    0722216a 2021-10-24 Jasem Mutlaq         Fix buffer overflow. Make style compatible with INDI style
+    6bdb76b8 2021-10-20 Jasem Mutlaq         Set max possible position to 1317500. Hopefully fixes #1545
+    8b0174c3 2021-10-20 Jasem Mutlaq         Fix switch rule
+    b218950c 2021-10-15 Jim                  usbfs_memory_mb_fix: exit with TRUE even if the memory is already set (#1546)
+    7ec08c40 2021-10-14 Jasem Mutlaq         Increase maximum possible postion to 1500000. Fixes #1545
+    2ea67102 2021-10-08 james-lan            OnStep: Update to 1.12 (#1543)
+    a4c0a0c5 2021-10-07 nouspiro             Force using hour angle when mount is slewing (#1539)
+    463dc8a4 2021-10-07 Michael              Correction the amplification values to spec. (#1541)
+    74e6fb80 2021-10-05 Jasem Mutlaq         Save stack mode
+    6f826950 2021-10-05 Jasem Mutlaq         Improve manufacturers further
+    b61ea15e 2021-10-05 Jasem Mutlaq         Clarify this driver is for WiFi
+    a18b69df 2021-10-05 Jasem Mutlaq         Add missing ISGetProperties
+    ad419897 2021-10-04 Jasem Mutlaq         Make AZ GTi use network connection by default
+    8c651c89 2021-10-02 jmocenigo            fixes to PlaneWave EFA driver (#1540)
+    bcbfe283 2021-09-30 Jasem Mutlaq         Add manufacturer field to all drivers
+    f4c29fb6 2021-09-30 Jasem Mutlaq         Add simple light panel simulator for testing
+    5b1fcfb8 2021-09-29 Jasem Mutlaq         Do not spam the log unless it is important
+    4a6f80f1 2021-09-26 Jasem Mutlaq         Fix case for 0 to -1 range in DE
+    2e89a0c7 2021-09-26 Jarno Paananen       Pipes should be closed with pclose(), not fclose() (#1538)
+    cab4e7c6 2021-09-24 Jasem Mutlaq         Fix max number of filters
+    fd25142f 2021-09-23 Pedram Ashofteh Ardakani Script: Developer build update (#1537)
+    619e9363 2021-09-19 Jim                  spec-1.9.3: update the libindi.spec file for 1.9.3 beta (#1536)
+    9bea7ce5 2021-09-19 Jasem Mutlaq         Config port and baud rate should always take presedence over default driver ports
+    676b20a0 2021-09-18 Jasem Mutlaq         Make backlash limit to 10000
+    c6ec0147 2021-09-15 nouspiro             Add setting of home position for Rigel/Pulsar dome (#1534)
+    b818879e 2021-09-15 Jasem Mutlaq         Start INDI v1.9.3 development cycle
+
 + From 1.9.1 to 1.9.2
 
     043d4ef4 2021-09-12 Jasem Mutlaq         Adjust for hemisphere when reading velocity
