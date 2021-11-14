@@ -35,6 +35,15 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         typedef enum { Equatorial, Horizontal } GotoType;
         typedef enum { North, South, West, East } Direction;
 
+        enum Rainbow_Alignment_State
+        {
+            ALIGN_IDLE,
+            ALIGN_START,
+            ALIGN_END,
+            ALIGN_DELETE_CURRENT,
+            ALIGN_COUNT
+        };
+
     protected:
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -136,6 +145,13 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         void hexDump(char * buf, const char * data, int size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// StarAlign
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual bool StarAlign(double ra, double dec);
+
+
     private:
 
         // Horizontal Coordinates functions.
@@ -159,6 +175,10 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 
         const std::string getSlewErrorString(uint8_t code);
         uint8_t m_SlewErrorCode {0};
+
+        ISwitchVectorProperty SaveAlignAfterSlewSP;
+        ISwitch SaveAlignAfterSlewS[1];
+
 
         GotoType m_GotoType { Equatorial };
         double m_CurrentAZ {0}, m_CurrentAL {0};
