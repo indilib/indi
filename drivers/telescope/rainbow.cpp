@@ -70,6 +70,12 @@ bool Rainbow::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
+    // Star Alignment on Sync
+    IUFillSwitch(&StarAlignmentS[STAR_ALIGNMENT_ENABLED], "STAR_ALIGNMENT_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&StarAlignmentS[STAR_ALIGNMENT_DISABLED], "STAR_ALIGNMENT_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&StarAlignmentSP, StarAlignmentS, 2, getDeviceName(),
+                           "STAR_ALIGNMENT", "Alignment on Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Horizontal Coords
     IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
@@ -111,6 +117,7 @@ bool Rainbow::updateProperties()
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
+        defineProperty(&StarAlignmentSP);
 
     }
     else
@@ -121,6 +128,7 @@ bool Rainbow::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
+        deleteProperty(StarAlignmentSP.name);
     }
 
     return true;
@@ -228,6 +236,30 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 LOG_ERROR("Mount failed to move to home position.");
 
             IDSetSwitch(&HomeSP, nullptr);
+            return true;
+        }
+        // StarAlignment
+        if (!strcmp(name, StarAlignmentSP.name))
+        {
+            // Find out which state is requested by the client
+            const char *actionName = IUFindOnSwitchName(states, names, n);
+            // If StarAlignmentState is the same state as actionName, then we do nothing. i.e. if actionName is STAR_ALIGNMENT_OFF and our StarAlignment is already off, we return
+            StarAlignmentState = IUFindOnSwitchIndex(&StarAlignmentSP);
+            if (!strcmp(actionName, StarAlignmentS[StarAlignmentState].name))
+            {
+                LOGF_INFO("StarAlignment is already %s", StarAlignmentS[StarAlignmentState].label);
+                StarAlignmentSP.s = IPS_IDLE;
+                IDSetSwitch(&StarAlignmentSP, NULL);
+                return true;
+            }
+            
+            // Otherwise, let us update the switch state
+            IUUpdateSwitch(&StarAlignmentSP, states, names, n);
+            StarAlignmentState = IUFindOnSwitchIndex(&StarAlignmentSP);
+            LOGF_INFO("StarAlignment is now %s", StarAlignmentS[StarAlignmentState].label);
+            StarAlignmentSP.s = IPS_OK;
+            IDSetSwitch(&StarAlignmentSP, NULL);
+            LOGF_INFO("StarAlignmentState =  %d",StarAlignmentState);
             return true;
         }
 
@@ -923,15 +955,14 @@ bool Rainbow::Abort()
 bool Rainbow::Sync(double ra, double dec)
 {
     char cmd[DRIVER_LEN] = {0};
-
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+    snprintf(cmd, DRIVER_LEN, ":C%c%07.3f%c%06.3f#",StarAlignmentState ? 'N' : 'k', ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
 
     if (sendCommand(cmd))
     {
         char RAStr[64] = {0}, DecStr[64] = {0};
         fs_sexa(RAStr, ra, 2, 36000);
         fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Synced to RA %s DE %s", RAStr, DecStr);
+        LOGF_INFO("Synced %s to RA %s DE %s",StarAlignmentState ? "star alignment point" : "mount", RAStr, DecStr);
         return true;
     }
 
