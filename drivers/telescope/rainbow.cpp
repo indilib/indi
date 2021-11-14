@@ -88,9 +88,9 @@ bool Rainbow::initProperties()
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    // Test Function to send the StarAlign Command to the mount
-    IUFillSwitch(&SaveAlignAfterSlewS[0], "SEND_ALIGN_SLEW_COMPLETED", "Send Align After Slew Completed", ISS_OFF);
-    IUFillSwitchVector(&SaveAlignAfterSlewSP, SaveAlignAfterSlewS, 1, getDeviceName(), "SEND_ALIGN_SLEW_COMPLETED", "Send Align Command After Slew Completed",
+    // Align Star Before Sync
+    IUFillSwitch(&SaveAlignBeforeSyncS[0], "SEND_ALIGN_BEFORE_SYNC", "Save Star Alignment to mount before sync", ISS_OFF);
+    IUFillSwitchVector(&SaveAlignBeforeSyncSP, SaveAlignBeforeSyncS, 1, getDeviceName(), "SEND_ALIGN_BEFORE_SYNC", "Save Star Alignment to mount before sync",
                        ALIGNMENT_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
@@ -120,7 +120,7 @@ bool Rainbow::updateProperties()
         defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
 
-        defineProperty(&SaveAlignAfterSlewSP);
+        defineProperty(&SaveAlignBeforeSyncSP);
 
     }
     else
@@ -131,7 +131,7 @@ bool Rainbow::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
-        deleteProperty(SaveAlignAfterSlewSP.name);
+        deleteProperty(SaveAlignBeforeSyncSP.name);
     }
 
     return true;
@@ -241,17 +241,15 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
-        else if (!strcmp(SaveAlignAfterSlewSP.name, name)) {
-            LOG_DEBUG("SaveAlignAfterSlewSP() - setting switch to null and return true");
-            if (SaveAlignAfterSlewS[0].s == ISS_ON)
+        else if (!strcmp(SaveAlignBeforeSyncSP.name, name)) {
+            if (SaveAlignBeforeSyncS[0].s == ISS_ON)
             {
-                SaveAlignAfterSlewS[0].s = ISS_OFF;
+                SaveAlignBeforeSyncS[0].s = ISS_OFF;
             }
             else
             {
-                SaveAlignAfterSlewS[0].s = ISS_ON;
+                SaveAlignBeforeSyncS[0].s = ISS_ON;
             }
-            //IDSetSwitch(&SaveAlignAfterSlewSP, nullptr);
             return true;
         }
 
@@ -555,26 +553,6 @@ bool Rainbow::ReadScopeStatus()
                     SetTrackEnabled(true);
                 LOG_INFO("Slew is complete. Tracking...");
 
-                if (SaveAlignAfterSlewS[0].s == ISS_ON)
-                {
-
-                   if (getRA() && getDE())
-                   {
-                       // just a test to introduce a little error for testing
-                       double align_ra = m_CurrentRA + 0.001;
-                       double align_de = m_CurrentDE + 0.001;
-                        LOGF_DEBUG("StarAlign() - RA = %.4f, DEC = %.4f",align_ra, align_de);
-                       StarAlign(align_ra, align_de);
-                   }
-                   else
-                   {
-                       LOG_DEBUG("Error getting the RA and DEC to prepare the star align.");
-                   }
-                }
-                else
-                {
-                    LOG_DEBUG("SaveAlignAfterSlewS is OFF. Not doing anything.");
-                }
             }
         }
         else if (m_SlewErrorCode > 0)
@@ -969,8 +947,17 @@ bool Rainbow::Abort()
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::Sync(double ra, double dec)
 {
-    char cmd[DRIVER_LEN] = {0};
 
+    if (SaveAlignBeforeSyncS[0].s == ISS_ON)
+    {
+           StarAlign(ra, dec);
+    }
+    else
+    {
+        LOG_DEBUG("SaveAlignBeforeSyncS is OFF. Not doing anything.");
+    }
+
+    char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
 
     if (sendCommand(cmd))
@@ -999,7 +986,7 @@ bool Rainbow::StarAlign(double ra, double dec)
         char RAStr[64] = {0}, DecStr[64] = {0};
         fs_sexa(RAStr, ra, 2, 36000);
         fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Star-Aligned to RA %s DE %s", RAStr, DecStr);
+        LOGF_INFO("Star aligned to RA %s DE %s", RAStr, DecStr);
         return true;
     }
 
