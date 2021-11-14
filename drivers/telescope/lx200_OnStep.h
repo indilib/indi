@@ -281,6 +281,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IText VersionT[5] {};
         
         OnStepVersion OnStepMountVersion = OSV_UNKNOWN;
+        
+        long int OSTimeoutSeconds = 0;
+        long int OSTimeoutMicroSeconds = 100000;
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
