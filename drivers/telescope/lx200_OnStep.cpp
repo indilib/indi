@@ -39,9 +39,6 @@
 #define ENVIRONMENT_TAB "Weather"
 #define ROTATOR_TAB "Rotator"
 
-#define ONSTEP_TIMEOUT  1
-#define ONSTEP_TIMEOUT_SECONDS 0
-#define ONSTEP_TIMEOUT_MICROSECONDS 100000
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
@@ -434,6 +431,16 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
+        if (getTelescopeConnection() == CONNECTION_TCP) {
+            LOG_INFO("Network based connection, detection timeouts set to 2 seconds");
+            OSTimeoutMicroSeconds = 0;
+            OSTimeoutSeconds = 2;
+        } else {
+            LOG_INFO("Non-Network based connection, detection timeouts set to 0.1 seconds");
+            OSTimeoutMicroSeconds = 100000;
+            OSTimeoutSeconds = 0;
+        }
+
         // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
@@ -3069,15 +3076,18 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
 
     tcflush(PortFD, TCIFLUSH);
 
-    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
-        return error_type;
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
+        LOGF_ERROR("CHECK CONNECTION: Error sending command %s", cmd);
+        return 0; //Fail if we can't write
+        //return error_type;
+    }
 
     return 1;
 }
 
 bool LX200_OnStep::sendOnStepCommand(const char *cmd)
 {
-    char response[1];
+    char response[1] = {0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -3088,18 +3098,18 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_expanded(PortFD, response, 1, ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
+    error_type = tty_read_expanded(PortFD, response, 1, OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
 
     tcflush(PortFD, TCIFLUSH);
     DEBUGF(DBG_SCOPE, "RES <%c>", response[0]);
 
     if (nbytes_read < 1)
     {
-        LOG_ERROR("Unable to parse response.");
-        return error_type;
+        LOG_ERROR("Timeout/Error on response. Check connection.");
+        return false;
     }
 
-    return (response[0] == '0');
+    return (response[0] == '0'); //OnStep uses 0 for success and non zero for failure, in *most* cases;
 }
 
 int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *cmd)
@@ -3117,7 +3127,7 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
         return error_type;
 
     //     error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
-    error_type = tty_read_expanded(fd, data, 1, ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
+    error_type = tty_read_expanded(fd, data, 1, OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
     if (error_type != TTY_OK)
@@ -3157,7 +3167,7 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
         return error_type;
 
     //     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
-    error_type = tty_read_section_expanded(fd, data, '#', ONSTEP_TIMEOUT_SECONDS, ONSTEP_TIMEOUT_MICROSECONDS, &nbytes_read);
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
 
