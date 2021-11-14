@@ -89,9 +89,10 @@ bool Rainbow::initProperties()
                        IPS_IDLE);
 
     // Align Star Before Sync
-    IUFillSwitch(&SaveAlignBeforeSyncS[0], "SEND_ALIGN_BEFORE_SYNC", "Save Star Alignment to mount before sync", ISS_OFF);
-    IUFillSwitchVector(&SaveAlignBeforeSyncSP, SaveAlignBeforeSyncS, 1, getDeviceName(), "SEND_ALIGN_BEFORE_SYNC", "Save Star Alignment to mount before sync",
-                       ALIGNMENT_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&SaveAlignBeforeSyncS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&SaveAlignBeforeSyncS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&SaveAlignBeforeSyncSP, SaveAlignBeforeSyncS, 2, getDeviceName(), "SEND_ALIGN_BEFORE_SYNC", "Save Star Alignment to mount before sync",
+                       ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -242,14 +243,11 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return true;
         }
         else if (!strcmp(SaveAlignBeforeSyncSP.name, name)) {
-            if (SaveAlignBeforeSyncS[0].s == ISS_ON)
-            {
-                SaveAlignBeforeSyncS[0].s = ISS_OFF;
-            }
-            else
-            {
-                SaveAlignBeforeSyncS[0].s = ISS_ON;
-            }
+
+            IUUpdateSwitch(&SaveAlignBeforeSyncSP, states, names, n);
+            SaveAlignBeforeSyncSP.s = IPS_OK;
+            saveConfig(true, SaveAlignBeforeSyncSP.name);
+            IDSetSwitch(&SaveAlignBeforeSyncSP, nullptr);
             return true;
         }
 
@@ -854,25 +852,25 @@ bool Rainbow::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     switch (command)
     {
-        case MOTION_START:
-            if (!sendCommand(dir == DIRECTION_NORTH ? ":Mn#" : ":Ms#"))
-            {
-                LOG_ERROR("Error setting N/S motion direction.");
-                return false;
-            }
-            else
-                LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
-            break;
+    case MOTION_START:
+        if (!sendCommand(dir == DIRECTION_NORTH ? ":Mn#" : ":Ms#"))
+        {
+            LOG_ERROR("Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+        break;
 
-        case MOTION_STOP:
-            if (!sendCommand(":Q#"))
-            {
-                LOG_ERROR("Error stopping N/S motion.");
-                return false;
-            }
-            else
-                LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_NORTH) ? "North" : "South");
-            break;
+    case MOTION_STOP:
+        if (!sendCommand(":Q#"))
+        {
+            LOG_ERROR("Error stopping N/S motion.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_NORTH) ? "North" : "South");
+        break;
     }
 
     return true;
@@ -885,25 +883,25 @@ bool Rainbow::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     switch (command)
     {
-        case MOTION_START:
-            if (!sendCommand(dir == DIRECTION_WEST ? ":Mw#" : ":Me#"))
-            {
-                LOG_ERROR("Error setting W/E motion direction.");
-                return false;
-            }
-            else
-                LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
-            break;
+    case MOTION_START:
+        if (!sendCommand(dir == DIRECTION_WEST ? ":Mw#" : ":Me#"))
+        {
+            LOG_ERROR("Error setting W/E motion direction.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+        break;
 
-        case MOTION_STOP:
-            if (!sendCommand(":Q#"))
-            {
-                LOG_ERROR("Error stopping W/E motion.");
-                return false;
-            }
-            else
-                LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_WEST) ? "West" : "East");
-            break;
+    case MOTION_STOP:
+        if (!sendCommand(":Q#"))
+        {
+            LOG_ERROR("Error stopping W/E motion.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_WEST) ? "West" : "East");
+        break;
     }
 
     return true;
@@ -948,50 +946,27 @@ bool Rainbow::Abort()
 bool Rainbow::Sync(double ra, double dec)
 {
 
-    if (SaveAlignBeforeSyncS[0].s == ISS_ON)
-    {
-           StarAlign(ra, dec);
-    }
-    else
-    {
-        LOG_DEBUG("SaveAlignBeforeSyncS is OFF. Not doing anything.");
-    }
+        char cmd[DRIVER_LEN] = {0};
+        if (SaveAlignBeforeSyncS[0].s == ISS_ON)
+        {
+            snprintf(cmd, DRIVER_LEN, ":CN%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+        }
+        else
+        {
+            snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+        }
 
-    char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
-
-    if (sendCommand(cmd))
-    {
-        char RAStr[64] = {0}, DecStr[64] = {0};
-        fs_sexa(RAStr, ra, 2, 36000);
-        fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Synced to RA %s DE %s", RAStr, DecStr);
-        return true;
-    }
-
+        if (sendCommand(cmd))
+        {
+            char RAStr[64] = {0}, DecStr[64] = {0};
+            fs_sexa(RAStr, ra, 2, 36000);
+            fs_sexa(DecStr, dec, 2, 36000);
+            LOGF_INFO("Synced to RA %s DE %s%s",RAStr, DecStr, SaveAlignBeforeSyncS[0].s == ISS_ON?", and saved as alignment point.":"");
+            return true;
+        }
     return false;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/// StarAlign
-/////////////////////////////////////////////////////////////////////////////
-bool Rainbow::StarAlign(double ra, double dec)
-{
-    char cmd[DRIVER_LEN] = {0};
-
-    snprintf(cmd, DRIVER_LEN, ":CN%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
-
-    if (sendCommand(cmd))
-    {
-        char RAStr[64] = {0}, DecStr[64] = {0};
-        fs_sexa(RAStr, ra, 2, 36000);
-        fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Star aligned to RA %s DE %s", RAStr, DecStr);
-        return true;
-    }
-
-    return false;
-}
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1001,14 +976,14 @@ bool Rainbow::SetTrackMode(uint8_t mode)
 {
     switch (mode)
     {
-        case TRACK_SIDEREAL:
-            return sendCommand(":CtR#");
-        case TRACK_SOLAR:
-            return sendCommand(":CtS#");
-        case TRACK_LUNAR:
-            return sendCommand(":CtL#");
-        case TRACK_CUSTOM:
-            return sendCommand(":CtU#");
+    case TRACK_SIDEREAL:
+        return sendCommand(":CtR#");
+    case TRACK_SOLAR:
+        return sendCommand(":CtS#");
+    case TRACK_LUNAR:
+        return sendCommand(":CtL#");
+    case TRACK_CUSTOM:
+        return sendCommand(":CtU#");
 
     }
 
@@ -1022,14 +997,14 @@ bool Rainbow::SetSlewRate(int index)
 {
     switch(index)
     {
-        case SLEW_MAX:
-            return sendCommand(":RS#");
-        case SLEW_FIND:
-            return sendCommand(":RM#");
-        case SLEW_CENTERING:
-            return sendCommand(":RC#");
-        case SLEW_GUIDE:
-            return sendCommand(":RG#");
+    case SLEW_MAX:
+        return sendCommand(":RS#");
+    case SLEW_FIND:
+        return sendCommand(":RM#");
+    case SLEW_CENTERING:
+        return sendCommand(":RC#");
+    case SLEW_GUIDE:
+        return sendCommand(":RG#");
     }
 
     return false;
@@ -1041,16 +1016,16 @@ const std::string Rainbow::getSlewErrorString(uint8_t code)
 {
     switch (code)
     {
-        case 1:
-            return "The altitude of the target is lower than lower limit.";
-        case 2:
-            return "The altitude of the target is higher than upper limit.";
-        case 3:
-            return "Slewing was canceled by user";
-        case 4:
-            return "RA Axis homing failed.";
-        case 5:
-            return "DE Axis homing failed.";
+    case 1:
+        return "The altitude of the target is lower than lower limit.";
+    case 2:
+        return "The altitude of the target is higher than upper limit.";
+    case 3:
+        return "Slewing was canceled by user";
+    case 4:
+        return "RA Axis homing failed.";
+    case 5:
+        return "DE Axis homing failed.";
     }
 
     return "Unknown error";
@@ -1103,30 +1078,30 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     // set up pointers to the various things needed
     switch (direction)
     {
-        case North:
-            dc = 'N';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[0];
-            guideTID = &m_GuideNSTID;
-            break;
-        case South:
-            dc = 'S';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[1];
-            guideTID = &m_GuideNSTID;
-            break;
-        case East:
-            dc = 'E';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[1];
-            guideTID = &m_GuideWETID;
-            break;
-        case West:
-            dc = 'W';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[0];
-            guideTID = &m_GuideWETID;
-            break;
+    case North:
+        dc = 'N';
+        moveSP = &MovementNSSP;
+        moveS = MovementNSS[0];
+        guideTID = &m_GuideNSTID;
+        break;
+    case South:
+        dc = 'S';
+        moveSP = &MovementNSSP;
+        moveS = MovementNSS[1];
+        guideTID = &m_GuideNSTID;
+        break;
+    case East:
+        dc = 'E';
+        moveSP = &MovementWESP;
+        moveS = MovementWES[1];
+        guideTID = &m_GuideWETID;
+        break;
+    case West:
+        dc = 'W';
+        moveSP = &MovementWESP;
+        moveS = MovementWES[0];
+        guideTID = &m_GuideWETID;
+        break;
     }
 
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
@@ -1224,28 +1199,28 @@ void Rainbow::guideTimeout(Direction direction)
     char cmd[DRIVER_LEN] = {0};
     switch(direction)
     {
-        case North:
-        case South:
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            GuideNSNP.np[0].value = 0;
-            GuideNSNP.np[1].value = 0;
-            GuideNSNP.s           = IPS_IDLE;
-            m_GuideNSTID            = 0;
-            IDSetNumber(&GuideNSNP, nullptr);
-            snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == North ? 'n' : 's');
-            break;
-        case East:
-        case West:
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
-            GuideWENP.np[0].value = 0;
-            GuideWENP.np[1].value = 0;
-            GuideWENP.s           = IPS_IDLE;
-            m_GuideWETID            = 0;
-            IDSetNumber(&GuideWENP, nullptr);
-            snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == East ? 'e' : 'w');
-            break;
+    case North:
+    case South:
+        IUResetSwitch(&MovementNSSP);
+        IDSetSwitch(&MovementNSSP, nullptr);
+        GuideNSNP.np[0].value = 0;
+        GuideNSNP.np[1].value = 0;
+        GuideNSNP.s           = IPS_IDLE;
+        m_GuideNSTID            = 0;
+        IDSetNumber(&GuideNSNP, nullptr);
+        snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == North ? 'n' : 's');
+        break;
+    case East:
+    case West:
+        IUResetSwitch(&MovementWESP);
+        IDSetSwitch(&MovementWESP, nullptr);
+        GuideWENP.np[0].value = 0;
+        GuideWENP.np[1].value = 0;
+        GuideWENP.s           = IPS_IDLE;
+        m_GuideWETID            = 0;
+        IDSetNumber(&GuideWENP, nullptr);
+        snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == East ? 'e' : 'w');
+        break;
     }
     sendCommand(cmd);
     LOGF_DEBUG("Guide %c finished", "NSWE"[direction]);
@@ -1258,18 +1233,18 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
 {
     switch(direction)
     {
-        case North:
-            m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
-            break;
-        case South:
-            m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperS, this);
-            break;
-        case East:
-            m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperE, this);
-            break;
-        case West:
-            m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperW, this);
-            break;
+    case North:
+        m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
+        break;
+    case South:
+        m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperS, this);
+        break;
+    case East:
+        m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperE, this);
+        break;
+    case West:
+        m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperW, this);
+        break;
     }
 }
 
@@ -1593,7 +1568,7 @@ std::vector<std::string> Rainbow::split(const std::string &input, const std::str
     // passing -1 as the submatch index parameter performs splitting
     std::regex re(regex);
     std::sregex_token_iterator
-    first{input.begin(), input.end(), re, -1},
-          last;
+            first{input.begin(), input.end(), re, -1},
+    last;
     return {first, last};
 }
