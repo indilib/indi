@@ -425,9 +425,8 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
-
     LX200Generic::updateProperties();
-    FI::updateProperties();
+    //TODO: Properly setup Weather
     WI::updateProperties();
 
     if (isConnected())
@@ -540,6 +539,11 @@ bool LX200_OnStep::updateProperties()
         if (OSNumFocusers == 0)
         {
             LOG_INFO("No Focusers found");
+        }
+        else
+        {
+            LOG_INFO("At least one focuser found, showing interface");
+            FI::updateProperties();
         }
 
         LOG_DEBUG("Focusers checked Variables:");
