@@ -431,14 +431,16 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
-        if (getTelescopeConnection() == CONNECTION_TCP) {
+        if (getTelescopeConnection() || CONNECTION_TCP != 0) {
             LOG_INFO("Network based connection, detection timeouts set to 2 seconds");
             OSTimeoutMicroSeconds = 0;
             OSTimeoutSeconds = 2;
+            LOGF_DEBUG("Connection: type %i", getTelescopeConnection());
         } else {
             LOG_INFO("Non-Network based connection, detection timeouts set to 0.1 seconds");
             OSTimeoutMicroSeconds = 100000;
             OSTimeoutSeconds = 0;
+            LOGF_DEBUG("Connection: type %i", getTelescopeConnection());
         }
 
         // Firstinitialize some variables
@@ -523,7 +525,7 @@ bool LX200_OnStep::updateProperties()
                     if(fail_or_error < 0)
                     {
                         //Non detection = 0, Read errors < 0, stop
-                        LOGF_INFO("Function call failed, stopping Focuser probe, return: %i", fail_or_error);
+                        LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i", fail_or_error);
                         break;
                     }
                 }
@@ -550,14 +552,31 @@ bool LX200_OnStep::updateProperties()
         LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
 
         //Rotation Information
-        if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
-        {
-            LOG_INFO("Rotator found.");
-            OSRotator1 = true;
-            RI::updateProperties();
-            defineProperty(&OSRotatorDerotateSP);
+        if (OnStepMountVersion == OSV_OnStepX ) {
+            char response[RB_MAX_LEN];
+            int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":rA#");
+            if (error_or_fail < 0) {
+                LOG_ERROR(":rA# command failed on OnStepX, CHECK CONNECTION");
+            }
+            else
+            {
+                if (response[0] == '1') {
+                    LOG_INFO("Rotator found.");
+                    OSRotator1 = true;
+                    RI::updateProperties();
+                    defineProperty(&OSRotatorDerotateSP);
+                }
+            }
+        } else {
+            if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
+            {
+                LOG_INFO("Rotator found.");
+                OSRotator1 = true;
+                RI::updateProperties();
+                defineProperty(&OSRotatorDerotateSP);
+            }
         }
-        else
+        if (OSRotator1 == false) 
         {
             LOG_INFO("No Rotator found.");
             OSRotator1 = false;
