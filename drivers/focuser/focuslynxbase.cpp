@@ -36,31 +36,53 @@ FocusLynxBase::FocusLynxBase()
 
     lynxModels["Optec TCF-Lynx 2"] = "OA";
     lynxModels["Optec TCF-Lynx 3"] = "OB";
-    lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
+
+    // "OC" is now reserved, it is hard coded into focusers that use it
+    // Allthough it can be selected it should not be
+    // lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
-    lynxModels["Optec TCF-S Classic converted"] = "OE";
-    lynxModels["Optec TCF-S3 Classic converted"] = "OF";
-    //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
+
+    // "OE" and "OF" are reserved, no models that are not "OA" or "OB" have been deployed
+    // lynxModels["Optec TCF-S Classic converted"] = "OE";
+    // lynxModels["Optec TCF-S3 Classic converted"] = "OF";
+
+    // "OG" Gemini is reserved. It is used to identify the Optec Gemini
+    // lynxModels["Optec Gemini (reserved for future use)"] = "OG";
+
     lynxModels["Optec Leo"] = "OI";
     lynxModels["Optec Leo High-Torque"] = "OJ";
     lynxModels["Optec Sagitta"] = "OK";
-    lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
-    lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
+    lynxModels["Optec Sagitta 2"] = "OL";
 
-    //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
-    lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
-    lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
-    lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
+    // These are generic for all Optec QuickSync and FeatherTouch HSM models
+    lynxModels["QuickSync / HSM Hi-Torque"] = "FA";
+    lynxModels["QuickSync / HSM Hi-Speed"] = "FB";
+
+    // "FC" is reserved, it has not been deployed and is covered by "FA" and "FB"
+    // lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
+
+    // These are generic for all Optec DirectSync and FeatherTouch PDMS models
+    lynxModels["DirectSync / PDMS Hi-Torque"] = "FD";
+    lynxModels["DirectSync / PDMS Hi-Speed"] = "FF";
 
     // JM 2019-09-27: This was added after the discussion here
     // https://www.indilib.org/forum/focusers-filter-wheels/5739-starlight-instruments-focuser-boss-ii-hsm20.html
-    lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
-    lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
-    lynxModels["FeatherTouch Motor PDMS"] = "FE";
-    lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
-    lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
+    // DVN 2021-11-15: Covered by the generic Device Type FA and FB.
+    // Continued: duplicating device types can result in the wrong type being displayed in the selection box
+    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA"; 
+    // lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
+    
+    // FE is deprecated, future firmwares will automatically switch to generic device type FD
+    lynxModels["FeatherTouch Motor PDMS"] = "FE"; 
+
+    lynxModels["FeatherTouch Microtouch MSM Hi-Speed"] = "SO";
+    lynxModels["FeatherTouch Microtouch MSM Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
-    lynxModels["Televue Focuser"] = "TA";
+    
+    //TA is deprecated, future firmwares will automatically switch to generic device type FA
+    lynxModels["Televue Focuser"] = "TA"; 
+    
+    lynxModels["Unipolar motor (Robo-Focus)"] = "RA";
 
     ModelS = nullptr;
 
