@@ -176,8 +176,8 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         const std::string getSlewErrorString(uint8_t code);
         uint8_t m_SlewErrorCode {0};
 
-        ISwitchVectorProperty SaveAlignBeforeSyncSP;
-        ISwitch SaveAlignBeforeSyncS[1];
+        ISwitchVectorProperty SaveAlignAfterSlewSP;
+        ISwitch SaveAlignAfterSlewS[1];
 
 
         GotoType m_GotoType { Equatorial };
