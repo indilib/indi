@@ -145,6 +145,13 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         void hexDump(char * buf, const char * data, int size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// StarAlign
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual bool StarAlign(double ra, double dec);
+
+
     private:
 
         // Horizontal Coordinates functions.
@@ -170,7 +177,7 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         uint8_t m_SlewErrorCode {0};
 
         ISwitchVectorProperty SaveAlignBeforeSyncSP;
-        ISwitch SaveAlignBeforeSyncS[2];
+        ISwitch SaveAlignBeforeSyncS[1];
 
 
         GotoType m_GotoType { Equatorial };
