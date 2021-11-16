@@ -703,6 +703,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
+        FI::updateProperties();
         RI::updateProperties();
     }
     LOG_INFO("Initialization Complete");
