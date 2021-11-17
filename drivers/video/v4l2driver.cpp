@@ -69,6 +69,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
 {
     setDeviceName(label.c_str());
     strncpy(defaultVideoPort, path.c_str(), 256);
+    strncpy(configPort, path.c_str(), 256);
 
     setVersion(1, 0);
 
@@ -154,7 +155,9 @@ bool V4L2_Driver::initProperties()
     addDebugControl();
 
     /* Port */
-    if (IUGetConfigText(getDeviceName(), PortTP.name, PortT[0].name, configPort, 256) == 0)
+    // Only load config port if it was empty. If it was already initialized, then we have an explicitly defined device
+    // with defaultVideoPort and we shouldn't mess this up.
+    if (configPort[0] == 0 && IUGetConfigText(getDeviceName(), PortTP.name, PortT[0].name, configPort, 256) == 0)
         IUFillText(&PortT[0], "PORT", "Port", configPort);
     else
         IUFillText(&PortT[0], "PORT", "Port", defaultVideoPort);
