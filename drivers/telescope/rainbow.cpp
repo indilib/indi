@@ -70,6 +70,12 @@ bool Rainbow::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
+    // Star Alignment on Sync
+    IUFillSwitch(&SaveAlignBeforeSyncS[STAR_ALIGNMENT_ENABLED], "STAR_ALIGNMENT_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&SaveAlignBeforeSyncS[STAR_ALIGNMENT_DISABLED], "STAR_ALIGNMENT_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&SaveAlignBeforeSyncSP, SaveAlignBeforeSyncS, 2, getDeviceName(),
+                           "STAR_ALIGNMENT", "Star Alignment", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Horizontal Coords
     IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
@@ -111,7 +117,8 @@ bool Rainbow::updateProperties()
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
-
+        
+        defineProperty(&SaveAlignBeforeSyncSP);
     }
     else
     {
@@ -121,6 +128,8 @@ bool Rainbow::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
+
+        deleteProperty(SaveAlignBeforeSyncSP.name);
     }
 
     return true;
@@ -932,7 +941,7 @@ bool Rainbow::Sync(double ra, double dec)
 {
 
     char cmd[DRIVER_LEN] = {0};
-    if (SaveAlignBeforeSyncS[0].s == ISS_ON)
+    if (SaveAlignBeforeSyncS[STAR_ALIGNMENT_ENABLED].s == ISS_ON)
     {
         snprintf(cmd, DRIVER_LEN, ":CN%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
     }
@@ -946,7 +955,7 @@ bool Rainbow::Sync(double ra, double dec)
         char RAStr[64] = {0}, DecStr[64] = {0};
         fs_sexa(RAStr, ra, 2, 36000);
         fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Synced to RA %s DE %s%s",RAStr, DecStr, SaveAlignBeforeSyncS[0].s == ISS_ON?", and saved as alignment point.":"");
+        LOGF_INFO("Synced to RA %s DE %s%s",RAStr, DecStr, SaveAlignBeforeSyncS[STAR_ALIGNMENT_ENABLED].s == ISS_ON?", and saved as alignment point.":"");
         return true;
     }
     return false;

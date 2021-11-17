@@ -23,6 +23,9 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 
+#define ALIGNMENT_TAB "Alignment"
+
+
 class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -153,6 +156,7 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 
         ISwitchVectorProperty SaveAlignBeforeSyncSP;
         ISwitch SaveAlignBeforeSyncS[2];
+        enum { STAR_ALIGNMENT_DISABLED, STAR_ALIGNMENT_ENABLED};
 
         INumberVectorProperty HorizontalCoordsNP;
         INumber HorizontalCoordsN[2];
