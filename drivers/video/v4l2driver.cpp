@@ -55,6 +55,7 @@ static const PixelSizeInfo CameraDatabase[] =
     { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
     { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider 1", nullptr, 3.75f, -1, true },
     { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "Logitech HD C270", "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
