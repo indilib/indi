@@ -1954,7 +1954,7 @@ bool LX200_OnStep::UnPark()
 
     if (!isSimulation())
     {
-        int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#");
+        int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#"); //0 = failure, 1 = success, no # on reply
         if ((response[0] != '1') || (failure_or_error < 0))
         {
             return false;
@@ -2010,8 +2010,6 @@ bool LX200_OnStep::ReadScopeStatus()
     char OSbacklashDEC[RB_MAX_LEN] = {0};
     char OSbacklashRA[RB_MAX_LEN] = {0};
     char GuideValue[RB_MAX_LEN] = {0};
-    char TempValue[RB_MAX_LEN]= {0} ;
-    char TempValue2[RB_MAX_LEN]= {0};
     //    int i;
     bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
@@ -2835,18 +2833,26 @@ bool LX200_OnStep::ReadScopeStatus()
     if (OSMountType == MOUNTTYPE_GEM)
     {
         //AutoFlip
-        getCommandString(PortFD, TempValue, ":GX95#");
-        if (atoi(TempValue))
+//         getCommandString(PortFD, TempValue, ":GX95#");
+        char merdidianflipauto_response[RB_MAX_LEN] = {0};
+        int gx95_error  = getCommandSingleCharErrorOrLongResponse(PortFD, merdidianflipauto_response, ":GX95#");
+        if (gx95_error > 1)
         {
-            AutoFlipS[1].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            if (atoi(merdidianflipauto_response))
+            {
+                AutoFlipS[1].s = ISS_ON;
+                AutoFlipSP.s = IPS_OK;
+                IDSetSwitch(&AutoFlipSP, nullptr);
+            }
+            else
+            {
+                AutoFlipS[0].s = ISS_ON;
+                AutoFlipSP.s = IPS_OK;
+                IDSetSwitch(&AutoFlipSP, nullptr);
+            }
         }
-        else
-        {
-            AutoFlipS[0].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+        else {
+            LOG_ERROR("Command :GX95# failed to get an appropriate response, check connection");
         }
     }
 #endif
@@ -2854,71 +2860,135 @@ bool LX200_OnStep::ReadScopeStatus()
     if (OSMountType == MOUNTTYPE_GEM)   //Doesn't apply to non-GEMs
     {
         //PreferredPierSide
-        getCommandString(PortFD, TempValue, ":GX96#");
-        if (strstr(TempValue, "W"))
+//         getCommandString(PortFD, TempValue, ":GX96#");
+        char preferredpierside_response[RB_MAX_LEN] = {0};
+        int gx96_error  = getCommandSingleCharErrorOrLongResponse(PortFD, preferredpierside_response, ":GX96#");
+        if (gx96_error > 1)
         {
-            PreferredPierSideS[0].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        }
-        else if (strstr(TempValue, "E"))
-        {
-            PreferredPierSideS[1].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        }
-        else if (strstr(TempValue, "B"))
-        {
-            PreferredPierSideS[2].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        }
-        else if (strstr(TempValue, "%"))
-        {
-            //NOTE: This bug is only present in very early OnStepX, and should be fixed shortly after 10.03k
-            LOG_DEBUG(":GX96 returned \% indicating early OnStepX bug");
-            IUResetSwitch(&PreferredPierSideSP);
-            PreferredPierSideSP.s = IPS_ALERT;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            if (strstr(preferredpierside_response, "W"))
+            {
+                PreferredPierSideS[0].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "E"))
+            {
+                PreferredPierSideS[1].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "B"))
+            {
+                PreferredPierSideS[2].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "%"))
+            {
+                //NOTE: This bug is only present in very early OnStepX, and should be fixed shortly after 10.03k
+                LOG_DEBUG(":GX96 returned \% indicating early OnStepX bug");
+                IUResetSwitch(&PreferredPierSideSP);
+                PreferredPierSideSP.s = IPS_ALERT;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else
+            {
+                IUResetSwitch(&PreferredPierSideSP);
+                PreferredPierSideSP.s = IPS_BUSY;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
         }
         else
         {
-            IUResetSwitch(&PreferredPierSideSP);
-            PreferredPierSideSP.s = IPS_BUSY;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            LOG_ERROR("Command :GX96# failed to get an appropriate response, check connection");
         }
+      
 
-        getCommandString(PortFD, TempValue, ":GXE9#"); // E
-        getCommandString(PortFD, TempValue2, ":GXEA#"); // W
-        minutesPastMeridianNP.np[0].value = atof(TempValue); // E
-        minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
-        IDSetNumber(&minutesPastMeridianNP, nullptr);
-
+        char limit1_response[RB_MAX_LEN] = {0};
+        int gxe9_error  = getCommandSingleCharErrorOrLongResponse(PortFD, limit1_response, ":GXE9#");
+        if (gxe9_error > 1) //NOTE: Possible failure not checked.
+        {
+            char limit2_response[RB_MAX_LEN] = {0};
+            int gxea_error  = getCommandSingleCharErrorOrLongResponse(PortFD, limit2_response, ":GXEA#");
+            if (gxea_error > 1) { //NOTE: Possible failure not checked.
+                minutesPastMeridianNP.np[0].value = atof(limit1_response); // E
+                minutesPastMeridianNP.np[1].value = atof(limit2_response); //W
+                IDSetNumber(&minutesPastMeridianNP, nullptr);
+            } else {
+                LOG_ERROR("Command :GXEA# failed to get an appropriate response, check connection");
+            }
+        }
+        else
+        {
+            LOG_ERROR("Command :GXE9# failed to get an appropriate response, check connection");
+        }
     }
 
     //TODO: Improve Rotator support
     OSUpdateRotator();
 
     //Weather update
-    getCommandString(PortFD, TempValue, ":GX9A#");
-    setParameterValue("WEATHER_TEMPERATURE", std::stod(TempValue));
-    getCommandString(PortFD, TempValue, ":GX9C#");
-    setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
-    getCommandString(PortFD, TempValue, ":GX9B#");
-    setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
-    getCommandString(PortFD, TempValue, ":GX9E#");
-    setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
+//     getCommandString(PortFD, TempValue, ":GX9A#");
+    char temperature_response[RB_MAX_LEN] = {0};
+    int gx9a_error  = getCommandSingleCharErrorOrLongResponse(PortFD, temperature_response, ":GX9A#");
+    if (gx9a_error > 1)
+    {
+        setParameterValue("WEATHER_TEMPERATURE", std::stod(temperature_response));
+    }
+    else
+    {
+        LOG_ERROR("Command :GX9A# failed to get an appropriate response, check connection");
+    }
+
+    //getCommandString(PortFD, TempValue, ":GX9C#");
+    char humidity_response[RB_MAX_LEN] = {0};
+    int gx9c_error  = getCommandSingleCharErrorOrLongResponse(PortFD, humidity_response, ":GX9C#");
+    if (gx9c_error > 1)
+    {
+        setParameterValue("WEATHER_HUMIDITY", std::stod(humidity_response));
+    }
+    else
+    {
+        LOG_ERROR("Command :GX9C# failed to get an appropriate response, check connection");
+    }
+
+
+//     getCommandString(PortFD, TempValue, ":GX9B#");
+    char barometer_response[RB_MAX_LEN] = {0};
+    int gx9b_error  = getCommandSingleCharErrorOrLongResponse(PortFD, barometer_response, ":GX9B#");
+    if (gx9b_error > 1)
+    {
+        setParameterValue("WEATHER_BAROMETER", std::stod(barometer_response));
+    }
+    else
+    {
+        LOG_ERROR("Command :GX9B# failed to get an appropriate response, check connection");
+    }
+
+//     getCommandString(PortFD, TempValue, ":GX9E#");
+    char dewpoint_reponse[RB_MAX_LEN] = {0};
+    int gx9e_error  = getCommandSingleCharErrorOrLongResponse(PortFD, dewpoint_reponse, ":GX9E#");
+    if (gx9e_error > 1)
+    {
+        setParameterValue("WEATHER_DEWPOINT", std::stod(dewpoint_reponse));
+    }
+    else
+    {
+        LOG_ERROR("Command :GX9E# failed to get an appropriate response, check connection");
+    }
+
     if (OSCpuTemp_good)
     {
-        int error_return = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GX9F#");
-        if ( error_return >= 0 && !strcmp(TempValue, "0") )
+        char cputemp_reponse[RB_MAX_LEN] = {0};
+        int error_return = getCommandSingleCharErrorOrLongResponse(PortFD, cputemp_reponse, ":GX9F#");
+        if ( error_return >= 0 && !strcmp(cputemp_reponse, "0") )
         {
-            setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
+            setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(cputemp_reponse));
         }
         else
         {
-            LOGF_DEBUG("CPU Temp not responded to, disabling further checks, return values: error_return: %i, TempValue: %s",
-                       error_return, TempValue);
+            LOGF_DEBUG("CPU Temp not responded to, disabling further checks, return values: error_return: %i, cputemp_reponse: %s",
+                       error_return, cputemp_reponse);
             OSCpuTemp_good = false;
         }
     }
@@ -3216,7 +3286,6 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     }
     return nbytes_read;
 
-    //return 0;
 }
 
 
