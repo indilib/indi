@@ -54,6 +54,7 @@ static const PixelSizeInfo CameraDatabase[] =
     { "Skyris 236C", "Skyris 236C", nullptr, 2.8f, -1, false },
     { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
+    { "iOptron iPolar", "iOptron iPolar", nullptr, 3.75f, -1, true },
     { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
     { "iOptron iGuider", "iOptron iGuider 1", nullptr, 3.75f, -1, true },
     { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },

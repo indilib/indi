@@ -44,6 +44,7 @@ static class Loader
             {"Skyris 236C", "Skyris 236C"},
             {"Skyris 236M", "Skyris 236M"},
             {"iOptron iPolar: iOptron iPolar", "iOptron iPolar"},
+            {"iOptron iPolar", "iOptron iPolar"},
             {"iOptron iGuider: iOptron iGuide", "iOptron iGuider"},
             {"iOptron iGuider 1", "iOptron iGuider"},
             {"mmal service 16.1", "Raspberry Pi High Quality Camera"},
