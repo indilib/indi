@@ -167,11 +167,6 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         int m_GuideNSTID {0};
         int m_GuideWETID {0};
 
-        ISwitch StarAlignmentS[2];
-        ISwitchVectorProperty StarAlignmentSP;
-        enum { STAR_ALIGNMENT_DISABLED, STAR_ALIGNMENT_ENABLED};
-        int StarAlignmentState = 0;
-
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
