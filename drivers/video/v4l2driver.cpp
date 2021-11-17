@@ -328,9 +328,11 @@ bool V4L2_Driver::updateProperties()
         {
             std::string infoDeviceName = std::string(info->deviceName);
             std::transform(infoDeviceName.begin(), infoDeviceName.end(), infoDeviceName.begin(), ::tolower);
+            std::string infoDeviceLabel = std::string(info->deviceLabel);
+            std::transform(infoDeviceLabel.begin(), infoDeviceLabel.end(), infoDeviceLabel.begin(), ::tolower);
 
             // Case insensitive comparision
-            if (infoDeviceName == deviceName)
+            if (infoDeviceName == deviceName || infoDeviceLabel == deviceName)
                 break;
             ++info;
         }
