@@ -480,7 +480,7 @@ bool LX200_OnStep::updateProperties()
         OSNumFocusers = 0; //Reset before detection
         //if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         char response[RB_MAX_LEN] = {0};
-        int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":FA#");
+        int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":FA#"); //0 = failure, 1 = success, no # on reply
         if (error_or_fail > 0 && response[0] == '1')
         {
             LOG_INFO("Focuser 1 found");
@@ -511,26 +511,30 @@ bool LX200_OnStep::updateProperties()
         }
         else     //For OnStepX, up to 9 focusers
         {
-            LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
+            LOG_INFO("Focuser 2 NOT found");
             OSFocuser2 = false;
-            for (int i = 0; i < 9; i++)
+            if (OnStepMountVersion == OSV_UNKNOWN || OnStepMountVersion == OSV_OnStepX)
             {
-                char cmd[CMD_MAX_LEN] = {0};
-                char read_buffer[RB_MAX_LEN] = {0};
-                snprintf(cmd, sizeof(cmd), ":F%dA#", i + 1);
-                int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer, cmd);
-                if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
+                LOG_INFO("Version unknown or OnStepX (Checking for OnStepX Focusers)");
+                for (int i = 0; i < 9; i++)
                 {
-                    LOGF_INFO("Focuser %i Found", i);
-                    OSNumFocusers = i + 1;
-                }
-                else
-                {
-                    if(fail_or_error < 0)
+                    char cmd[CMD_MAX_LEN] = {0};
+                    char read_buffer[RB_MAX_LEN] = {0};
+                    snprintf(cmd, sizeof(cmd), ":F%dA#", i + 1);
+                    int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer, cmd); //0 = failure, 1 = success, 0 on all prior to OnStepX no # on reply
+                    if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
                     {
-                        //Non detection = 0, Read errors < 0, stop
-                        LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i", fail_or_error);
-                        break;
+                        LOGF_INFO("Focuser %i Found", i);
+                        OSNumFocusers = i + 1;
+                    }
+                    else
+                    {
+                        if(fail_or_error < 0)
+                        {
+                            //Non detection = 0, Read errors < 0, stop
+                            LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i", fail_or_error);
+                            break;
+                        }
                     }
                 }
             }
@@ -3056,8 +3060,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
 
     if (enabled)
     {
-        int res = getCommandSingleCharResponse(PortFD, response, ":Te#");
-        if(res != 0 || response[0] == '0')
+        int res = getCommandSingleCharResponse(PortFD, response, ":Te#"); //0 = failure, 1 = success, no # on reply
+        if(res < 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track On %s", response);
             return false;
@@ -3065,8 +3069,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     }
     else
     {
-        int res = getCommandSingleCharResponse(PortFD, response, ":Td#");
-        if(res != 0 || response[0] == '0')
+        int res = getCommandSingleCharResponse(PortFD, response, ":Td#"); //0 = failure, 1 = success, no # on reply
+        if(res < 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track Off %s", response);
             return false;
@@ -3513,7 +3517,7 @@ void LX200_OnStep::OSUpdateFocuser()
     if(OSNumFocusers > 1)
     {
         char value[RB_MAX_LEN] = {0};
-        int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#");
+        int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#"); //0 = failure, 1 = success, no # on reply
         //         int temp_value = atoi(value);
         if (error_or_fail > 0 ) {
             int temp_value = uint(value[0]) - '0';
