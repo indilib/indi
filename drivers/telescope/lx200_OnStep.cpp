@@ -478,7 +478,10 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser 1
         OSNumFocusers = 0; //Reset before detection
-        if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+        //if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+        char response[RB_MAX_LEN] = {0};
+        int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":FA#");
+        if (error_or_fail > 0 && response[0] == '1')
         {
             LOG_INFO("Focuser 1 found");
             OSFocuser1 = true;
@@ -489,6 +492,7 @@ bool LX200_OnStep::updateProperties()
         {
             OSFocuser1 = false;
             LOG_INFO("Focuser 1 NOT found");
+            LOGF_DEBUG("error_or_fail = %u, response = %c", error_or_fail, response[0]);
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
@@ -552,30 +556,18 @@ bool LX200_OnStep::updateProperties()
         LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
 
         //Rotation Information
-        if (OnStepMountVersion == OSV_OnStepX ) {
-            char response[RB_MAX_LEN];
-            int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":rA#");
-            if (error_or_fail < 0) {
-                LOG_ERROR(":rA# command failed on OnStepX, CHECK CONNECTION");
-            }
-            else
-            {
-                if (response[0] == '1') {
-                    LOG_INFO("Rotator found.");
-                    OSRotator1 = true;
-                    RI::updateProperties();
-                    defineProperty(&OSRotatorDerotateSP);
-                }
-            }
-        } else {
-            if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
-            {
+        char rotator_response[RB_MAX_LEN] = {0};
+        error_or_fail = getCommandSingleCharResponse(PortFD, rotator_response, ":GX98#");
+        if (error_or_fail > 0)
+        {
+            if (rotator_response[0] == 'D' || rotator_response[0] == 'R') {
                 LOG_INFO("Rotator found.");
                 OSRotator1 = true;
                 RI::updateProperties();
                 defineProperty(&OSRotatorDerotateSP);
             }
         }
+
         if (OSRotator1 == false) 
         {
             LOG_INFO("No Rotator found.");
@@ -3400,14 +3392,16 @@ bool LX200_OnStep::AbortFocuser ()
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-    char value[RB_MAX_LEN] = {0};
+
     //    double current = 0;
     //     int temp_value;
     //     int i;
     if (OSFocuser1)
     {
+
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
+        char value[RB_MAX_LEN] = {0};
         getCommandString(PortFD, value, ":FG#");
         FocusAbsPosN[0].value =  atoi(value);
         //         double current = FocusAbsPosN[0].value;
@@ -3415,23 +3409,34 @@ void LX200_OnStep::OSUpdateFocuser()
         LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
-        getCommandString(PortFD, value, ":FT#");
-        if (value[0] == 'S')
-        {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        }
-        else if (value[0] == 'M')
-        {
-            FocusRelPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        }
-        else
-        {
+        //getCommandString(PortFD, value, ":FT#");
+        char valueStatus[RB_MAX_LEN] = {0};
+        int error_or_fail = getCommandSingleCharResponse(PortFD, valueStatus, ":FT#");
+        //         int temp_value = atoi(value);
+        if (error_or_fail > 0 ) {
+            if (valueStatus[0] == 'S')
+            {
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+            else if (valueStatus[0] == 'M')
+            {
+                FocusRelPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+            else
+            {
+                //INVALID REPLY
+                FocusRelPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+        } else {
             //INVALID REPLY
             FocusRelPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusRelPosNP, nullptr);
@@ -3457,6 +3462,7 @@ void LX200_OnStep::OSUpdateFocuser()
 
     if(OSFocuser2)
     {
+        char value[RB_MAX_LEN] = {0};
         int error_return;
         error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#");
         if (error_return >= 0)
@@ -3484,31 +3490,35 @@ void LX200_OnStep::OSUpdateFocuser()
 
     if(OSNumFocusers > 1)
     {
-        getCommandSingleCharResponse(PortFD, value, ":Fa#");
-        int temp_value = atoi(value);
-        LOGF_DEBUG(":Fa# return: %d", temp_value);
-        for (int i = 0; i < 9; i++)
-        {
-            OSFocusSelectS[i].s = ISS_OFF;
-        }
-        if (temp_value == 0)
-        {
-            OSFocusSelectS[1].s = ISS_ON;
-        }
-        else if (temp_value > 9 || temp_value < 0)
-        {
-            //To solve issue mentioned https://www.indilib.org/forum/development/1406-driver-onstep-lx200-like-for-indi.html?start=624#71572
-            OSFocusSelectSP.s = IPS_ALERT;
-            LOGF_WARN("Active focuser returned out of range: %s, should be 0-9", temp_value);
+        char value[RB_MAX_LEN] = {0};
+        int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#");
+        //         int temp_value = atoi(value);
+        if (error_or_fail > 0 ) {
+            int temp_value = uint(value[0]) - '0';
+            LOGF_DEBUG(":Fa# return: %d", temp_value);
+            for (int i = 0; i < 9; i++)
+            {
+                OSFocusSelectS[i].s = ISS_OFF;
+            }
+            if (temp_value == 0)
+            {
+                OSFocusSelectS[1].s = ISS_ON;
+            }
+            else if (temp_value > 9 || temp_value < 0)
+            {
+                //To solve issue mentioned https://www.indilib.org/forum/development/1406-driver-onstep-lx200-like-for-indi.html?start=624#71572
+                OSFocusSelectSP.s = IPS_ALERT;
+                LOGF_WARN("Active focuser returned out of range: %s, should be 0-9", temp_value);
+                IDSetSwitch(&OSFocusSelectSP, nullptr);
+                return;
+            }
+            else
+            {
+                OSFocusSelectS[temp_value - 1].s = ISS_ON;
+            }
+            OSFocusSelectSP.s = IPS_OK;
             IDSetSwitch(&OSFocusSelectSP, nullptr);
-            return;
         }
-        else
-        {
-            OSFocusSelectS[temp_value - 1].s = ISS_ON;
-        }
-        OSFocusSelectSP.s = IPS_OK;
-        IDSetSwitch(&OSFocusSelectSP, nullptr);
     }
 }
 
