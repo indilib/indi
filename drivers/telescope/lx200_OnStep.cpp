@@ -3588,7 +3588,7 @@ void LX200_OnStep::OSUpdateFocuser()
         int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#"); //0 = failure, 1 = success, no # on reply
         //         int temp_value = atoi(value);
         if (error_or_fail > 0 ) {
-            int temp_value = uint(value[0]) - '0';
+            int temp_value = (unsigned int)(value[0]) - '0';
             LOGF_DEBUG(":Fa# return: %d", temp_value);
             for (int i = 0; i < 9; i++)
             {
