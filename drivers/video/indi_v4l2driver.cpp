@@ -44,7 +44,9 @@ static class Loader
             {"Skyris 236C", "Skyris 236C"},
             {"Skyris 236M", "Skyris 236M"},
             {"iOptron iPolar: iOptron iPolar", "iOptron iPolar"},
+            {"iOptron iPolar", "iOptron iPolar"},
             {"iOptron iGuider: iOptron iGuide", "iOptron iGuider"},
+            {"iOptron iGuider 1", "iOptron iGuider"},
             {"mmal service 16.1", "Raspberry Pi High Quality Camera"},
             {"UVC Camera (046d:0825)", "Logitech HD C270"},
             {"USB 2.0 Camera: USB Camera", "IMX290 Camera"},
@@ -73,12 +75,15 @@ static class Loader
                     // Check if the driver is supported.
                     for (const auto &oneDriver : driverMap)
                     {
-                        // If we get a match, check if it exists in enumerated devices.
+                        // Does our desired INDIDEV driver label match this driver label?
                         if (envDevice == oneDriver.second)
                         {
-                            auto match = devices.find(oneDriver.second);
+                            // Found the right driver, now lets see if any of the enumerated devices
+                            // match the same driver common name.
+                            auto match = devices.find(oneDriver.first);
                             if (match != devices.end())
                             {
+                                // Driver Label / Device Path
                                 targetDriver = std::make_pair(oneDriver.second, (*match).second);
                                 break;
                             }
