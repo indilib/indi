@@ -151,6 +151,9 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
+        ISwitchVectorProperty SaveAlignBeforeSyncSP;
+        ISwitch SaveAlignBeforeSyncS[2];
+
         INumberVectorProperty HorizontalCoordsNP;
         INumber HorizontalCoordsN[2];
 
