@@ -230,6 +230,14 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
+        else if (!strcmp(SaveAlignBeforeSyncSP.name, name)) {
+
+            IUUpdateSwitch(&SaveAlignBeforeSyncSP, states, names, n);
+            SaveAlignBeforeSyncSP.s = IPS_OK;
+            saveConfig(true, SaveAlignBeforeSyncSP.name);
+            IDSetSwitch(&SaveAlignBeforeSyncSP, nullptr);
+            return true;
+        }
 
     }
 
@@ -922,19 +930,25 @@ bool Rainbow::Abort()
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::Sync(double ra, double dec)
 {
-    char cmd[DRIVER_LEN] = {0};
 
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+    char cmd[DRIVER_LEN] = {0};
+    if (SaveAlignBeforeSyncS[0].s == ISS_ON)
+    {
+        snprintf(cmd, DRIVER_LEN, ":CN%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+    }
+    else
+    {
+        snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
+    }
 
     if (sendCommand(cmd))
     {
         char RAStr[64] = {0}, DecStr[64] = {0};
         fs_sexa(RAStr, ra, 2, 36000);
         fs_sexa(DecStr, dec, 2, 36000);
-        LOGF_INFO("Synced to RA %s DE %s", RAStr, DecStr);
+        LOGF_INFO("Synced to RA %s DE %s%s",RAStr, DecStr, SaveAlignBeforeSyncS[0].s == ISS_ON?", and saved as alignment point.":"");
         return true;
     }
-
     return false;
 }
 
