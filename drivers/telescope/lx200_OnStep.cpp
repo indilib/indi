@@ -557,7 +557,7 @@ bool LX200_OnStep::updateProperties()
 
         //Rotation Information
         char rotator_response[RB_MAX_LEN] = {0};
-        error_or_fail = getCommandSingleCharResponse(PortFD, rotator_response, ":GX98#");
+        error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, rotator_response, ":GX98#");
         if (error_or_fail > 0)
         {
             if (rotator_response[0] == 'D' || rotator_response[0] == 'R') {
