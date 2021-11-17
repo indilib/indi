@@ -3417,10 +3417,8 @@ void LX200_OnStep::OSUpdateFocuser()
         LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
-        //getCommandString(PortFD, value, ":FT#");
         char valueStatus[RB_MAX_LEN] = {0};
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, valueStatus, ":FT#");
-        //         int temp_value = atoi(value);
         if (error_or_fail > 0 ) {
             if (valueStatus[0] == 'S')
             {
@@ -3438,7 +3436,7 @@ void LX200_OnStep::OSUpdateFocuser()
             }
             else
             {
-                LOG_ERROR(":FT# error");
+                LOG_ERROR("Communication :FT# error, check connection.");
                 //INVALID REPLY
                 FocusRelPosNP.s = IPS_ALERT;
                 IDSetNumber(&FocusRelPosNP, nullptr);
@@ -3447,7 +3445,7 @@ void LX200_OnStep::OSUpdateFocuser()
             }
         } else {
             //INVALID REPLY
-            LOG_ERROR(":FT# error");
+            LOG_ERROR("Communication :FT# error, check connection.");
             FocusRelPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusRelPosNP, nullptr);
             FocusAbsPosNP.s = IPS_ALERT;
@@ -3455,9 +3453,7 @@ void LX200_OnStep::OSUpdateFocuser()
         }
         //  :FM#  Get max position (in microns)
         //         Returns: n#
-//         getCommandString(PortFD, value, ":FM#");
         char focus_max[RB_MAX_LEN]={0};
-        
         int fm_error = getCommandSingleCharErrorOrLongResponse(PortFD, focus_max, ":FM#");
         if (fm_error > 0) {
             FocusAbsPosN[0].max   = atoi(focus_max);
@@ -3465,7 +3461,7 @@ void LX200_OnStep::OSUpdateFocuser()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_max: %s, fm_error: %i", focus_max, fm_error);
         } else {
-            LOG_ERROR(":FM# error");
+            LOG_ERROR("Communication :FM# error, check connection.");
             LOGF_ERROR("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
         }
         //  :FI#  Get full in position (in microns)
@@ -3473,13 +3469,12 @@ void LX200_OnStep::OSUpdateFocuser()
         char focus_min[RB_MAX_LEN]={0};
         int fi_error = getCommandSingleCharErrorOrLongResponse(PortFD, focus_min, ":FI#");
         if (fi_error > 0) {
-//             getCommandString(PortFD, value, ":FI#");
             FocusAbsPosN[0].min =  atoi(focus_min);
             IUUpdateMinMax(&FocusAbsPosNP);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_min: %s, fi_error: %i", focus_min, fi_error);
         } else {
-            LOG_ERROR(":FI# error");
+            LOG_ERROR("Communication :FI# error, check connection.");
         }
 
         FI::updateProperties();
