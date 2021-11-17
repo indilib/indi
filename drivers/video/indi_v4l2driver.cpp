@@ -74,12 +74,15 @@ static class Loader
                     // Check if the driver is supported.
                     for (const auto &oneDriver : driverMap)
                     {
-                        // If we get a match, check if it exists in enumerated devices.
+                        // Does our desired INDIDEV driver label match this driver label?
                         if (envDevice == oneDriver.second)
                         {
-                            auto match = devices.find(oneDriver.second);
+                            // Found the right driver, now lets see if any of the enumerated devices
+                            // match the same driver common name.
+                            auto match = devices.find(oneDriver.first);
                             if (match != devices.end())
                             {
+                                // Driver Label / Device Path
                                 targetDriver = std::make_pair(oneDriver.second, (*match).second);
                                 break;
                             }
