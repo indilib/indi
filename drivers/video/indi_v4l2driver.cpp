@@ -76,7 +76,7 @@ static class Loader
                         // If we get a match, check if it exists in enumerated devices.
                         if (envDevice == oneDriver.second)
                         {
-                            auto match = devices.find(oneDriver.first);
+                            auto match = devices.find(oneDriver.second);
                             if (match != devices.end())
                             {
                                 targetDriver = std::make_pair(oneDriver.second, (*match).second);
