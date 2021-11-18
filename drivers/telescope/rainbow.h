@@ -23,6 +23,10 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 
+#define ALIGNMENT_TAB "Alignment"
+#define GENERAL_INFO_TAB "General Info"
+
+
 class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -145,6 +149,10 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         bool setAL(double altitude);
         bool slewToHorizontalCoords(double azimuth, double altitude);
 
+        // Set and get slew speeds
+        bool setSlewSpeedVal(int speedtype, double rate);
+        bool getSlewSpeedVal(int speedtype);
+
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
@@ -153,12 +161,33 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 
         ISwitchVectorProperty SaveAlignBeforeSyncSP;
         ISwitch SaveAlignBeforeSyncS[2];
+        enum { STAR_ALIGNMENT_DISABLED, STAR_ALIGNMENT_ENABLED};
+
+        IText RSTVersionsT[2];
+        ITextVectorProperty RSTVersionsTP;
+        enum { FIRMWARE, SERIALNUMBER };
+
+        ISwitchVectorProperty PullVoltTempSP;
+        ISwitch PullVoltTempS[2];
+        enum { PULL_VOLTTEMP_DISABLED, PULL_VOLTTEMP_ENABLED};
+
+        INumber RSTVoltTempN[4];
+        INumberVectorProperty RSTVoltTempNP;
+        enum { VOLTAGE, BOARD_TEMPERATURE, RA_M_TEMPERATURE, DE_M_TEMPERATURE };
+
+        INumber RSTMotorPowN[2];
+        INumberVectorProperty RSTMotorPowNP;
+        enum { RA_M_POWER, DE_M_POWER };
 
         INumberVectorProperty HorizontalCoordsNP;
         INumber HorizontalCoordsN[2];
 
         INumber GuideRateN[1];
         INumberVectorProperty GuideRateNP;
+
+        INumberVectorProperty SlewSpeedsNP;
+        INumber SlewSpeedsN[3];
+        enum { SLEW_SPEED_MAX, SLEW_SPEED_FIND, SLEW_SPEED_CENTERING };
 
         const std::string getSlewErrorString(uint8_t code);
         uint8_t m_SlewErrorCode {0};
