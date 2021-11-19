@@ -175,17 +175,7 @@ bool SkywatcherAPIMount::ISNewText(const char *dev, const char *name, char *text
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
     // Pass it up the chain
-    bool Ret =  INDI::Telescope::ISNewText(dev, name, texts, names, n);
-
-    // The scope config switch must be updated after the config is saved to disk
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (name && std::string(name) == "SCOPE_CONFIG_NAME")
-        {
-            UpdateScopeConfigSwitch();
-        }
-    }
-    return Ret;
+    return  INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -255,10 +245,10 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     GetEncoder(AXIS1);
     GetEncoder(AXIS2);
 
-    long AltitudeOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS2, AltAz.altitude) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
-    long AzimuthOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS1, AltAz.azimuth) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+    long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2,
+                                    AltAz.altitude) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+    long AzimuthOffsetMicrosteps  = DegreesToMicrosteps(AXIS1,
+                                    AltAz.azimuth) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
     // Do I need to take out any complete revolutions before I do this test?
     if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
@@ -272,6 +262,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         // Going the long way round - send it the other way
         AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
     }
+
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Initial Axis2 %ld microsteps Axis1 %ld microsteps",
            ZeroPositionEncoders[AXIS2], ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Current Axis2 %ld microsteps Axis1 %ld microsteps",
@@ -287,6 +278,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     {
         SilentSlewMode = false;
     }
+
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
     SlewTo(AXIS2, AltitudeOffsetMicrosteps);
 
@@ -327,7 +319,7 @@ bool SkywatcherAPIMount::initProperties()
     IUFillText(&BasicMountInfoT[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
     IUFillText(&BasicMountInfoT[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
     IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 4, getDeviceName(), "BASIC_MOUNT_INFO",
-                     "Basic mount information", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                     "Basic mount information", MountInfoTab, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
                  "%.0f", 0, 0xFFFFFF, 1, 0);
@@ -338,7 +330,7 @@ bool SkywatcherAPIMount::initProperties()
                  "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
 
     IUFillNumberVector(&AxisOneInfoNP, AxisOneInfoN, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
-                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       MountInfoTab, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&AxisOneStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
     IUFillSwitch(&AxisOneStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
@@ -347,7 +339,7 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitch(&AxisOneStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
     IUFillSwitch(&AxisOneStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
     IUFillSwitchVector(&AxisOneStateSP, AxisOneStateS, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state",
-                       DetailedMountInfoPage, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
+                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
                  "%.0f", 0, 0xFFFFFF, 1, 0);
@@ -358,7 +350,7 @@ bool SkywatcherAPIMount::initProperties()
                  "Mictosteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
 
     IUFillNumberVector(&AxisTwoInfoNP, AxisTwoInfoN, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
-                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       MountInfoTab, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&AxisTwoStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
     IUFillSwitch(&AxisTwoStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
@@ -367,7 +359,7 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitch(&AxisTwoStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
     IUFillSwitch(&AxisTwoStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
     IUFillSwitchVector(&AxisTwoStateSP, AxisTwoStateS, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state",
-                       DetailedMountInfoPage, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
+                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&AxisOneEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
     IUFillNumber(&AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
@@ -378,7 +370,7 @@ bool SkywatcherAPIMount::initProperties()
                  -1000.0, 1000.0, 1, 0);
 
     IUFillNumberVector(&AxisOneEncoderValuesNP, AxisOneEncoderValuesN, 4, getDeviceName(), "AXIS1_ENCODER_VALUES",
-                       "Axis 1 Encoder values", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       "Axis 1 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&AxisTwoEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
     IUFillNumber(&AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
@@ -389,7 +381,7 @@ bool SkywatcherAPIMount::initProperties()
                  -1000.0, 1000.0, 1, 0);
 
     IUFillNumberVector(&AxisTwoEncoderValuesNP, AxisTwoEncoderValuesN, 4, getDeviceName(), "AXIS2_ENCODER_VALUES",
-                       "Axis 2 Encoder values", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       "Axis 2 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
     // Register any visible before connection properties
 
     // Slew modes
@@ -466,112 +458,6 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-void SkywatcherAPIMount::UpdateScopeConfigSwitch()
-{
-    if (!CheckFile(ScopeConfigFileName, false))
-    {
-        LOGF_INFO("Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
-        return;
-    }
-    LilXML *XmlHandle      = newLilXML();
-    FILE *FilePtr          = fopen(ScopeConfigFileName.c_str(), "r");
-    XMLEle *RootXmlNode    = nullptr;
-    XMLEle *CurrentXmlNode = nullptr;
-    XMLAtt *Ap             = nullptr;
-    bool DeviceFound       = false;
-    char ErrMsg[512];
-
-    RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
-    delLilXML(XmlHandle);
-    XmlHandle = nullptr;
-    if (!RootXmlNode)
-    {
-        LOGF_INFO("Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
-        return;
-    }
-    if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
-    {
-        LOGF_INFO("Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
-        delXMLEle(RootXmlNode);
-        return;
-    }
-    CurrentXmlNode = nextXMLEle(RootXmlNode, 1);
-    // Find the current telescope in the config file
-    while (CurrentXmlNode)
-    {
-        if (std::string(tagXMLEle(CurrentXmlNode)) != ScopeConfigDeviceXmlNode)
-        {
-            CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
-            continue;
-        }
-        Ap = findXMLAtt(CurrentXmlNode, ScopeConfigNameXmlNode.c_str());
-        if (Ap && !strcmp(valuXMLAtt(Ap), getDeviceName()))
-        {
-            DeviceFound = true;
-            break;
-        }
-        CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
-    }
-    if (!DeviceFound)
-    {
-        LOGF_INFO("No a scope config found for %s in the XML file (%s)", getDeviceName(),
-                  ScopeConfigFileName.c_str());
-        delXMLEle(RootXmlNode);
-        return;
-    }
-    // Read the values
-    XMLEle *XmlNode       = nullptr;
-    XMLEle *DeviceXmlNode = CurrentXmlNode;
-    std::string ConfigName;
-
-    for (int i = 1; i < 7; ++i)
-    {
-        bool Found = true;
-
-        CurrentXmlNode = findXMLEle(DeviceXmlNode, ("config" + std::to_string(i)).c_str());
-        if (CurrentXmlNode)
-        {
-            XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigLabelApXmlNode.c_str());
-            if (XmlNode)
-            {
-                ConfigName = pcdataXMLEle(XmlNode);
-            }
-        }
-        else
-        {
-            Found = false;
-        }
-        // Change the switch label
-        ISwitch *configSwitch = IUFindSwitch(&ScopeConfigsSP, ("SCOPE_CONFIG" + std::to_string(i)).c_str());
-
-        if (configSwitch != nullptr)
-        {
-            // The config is not used yet
-            if (!Found)
-            {
-                strncpy(configSwitch->label, ("Config #" + std::to_string(i) + " - Not used").c_str(), MAXINDILABEL);
-                continue;
-            }
-            // Empty switch label
-            if (ConfigName.empty())
-            {
-                strncpy(configSwitch->label, ("Config #" + std::to_string(i) + " - Untitled").c_str(), MAXINDILABEL);
-                continue;
-            }
-            strncpy(configSwitch->label, ("Config #" + std::to_string(i) + " - " + ConfigName).c_str(), MAXINDILABEL);
-        }
-    }
-    delXMLEle(RootXmlNode);
-    // Delete the joystick control to get the telescope config switch to the bottom of the page
-    deleteProperty("USEJOYSTICK");
-    // Recreate the switch control
-    deleteProperty(ScopeConfigsSP.name);
-    defineProperty(&ScopeConfigsSP);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -688,7 +574,7 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
     if (enabled)
     {
         TrackState = SCOPE_TRACKING;
-        ResetTrackingSeconds = true;
+        resetTracking();
     }
     else
         TrackState = SCOPE_IDLE;
@@ -723,6 +609,7 @@ bool SkywatcherAPIMount::ReadScopeStatus()
 
     UpdateDetailedMountInformation(true);
 
+    bool resetTrackingTimers = false;
     if (TrackState == SCOPE_SLEWING)
     {
         if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
@@ -731,9 +618,8 @@ bool SkywatcherAPIMount::ReadScopeStatus()
             {
                 // Goto has finished start tracking
                 TrackState = SCOPE_TRACKING;
-
+                resetTrackingTimers = true;
                 LOG_INFO("Tracking started.");
-                ResetTrackingSeconds = true;
             }
             else
             {
@@ -765,6 +651,10 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     getCurrentRADE(AltAz, rade);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", rade.rightascension,
            rade.declination);
+
+    if (resetTrackingTimers)
+        resetTracking();
+
     NewRaDec(rade.rightascension, rade.declination);
     return true;
 }
@@ -870,8 +760,6 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
         }
     }
 
-    // The tracking seconds should be reset to restart the drift compensation
-    ResetTrackingSeconds = true;
     // Might as well do this
     UpdateDetailedMountInformation(true);
 
@@ -904,6 +792,12 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
 
         // Tell the math plugin to reinitialise
         Initialise(this);
+
+        // Force read before restarting
+        ReadScopeStatus();
+
+        // The tracking seconds should be reset to restart the drift compensation
+        resetTracking();
 
         return true;
     }
@@ -960,7 +854,7 @@ void SkywatcherAPIMount::TimerHit()
             if (m_ManualMotionActive && !IsInMotion(AXIS1) && !IsInMotion(AXIS2))
             {
                 m_ManualMotionActive = false;
-                ResetTrackingSeconds = true;
+                resetTracking();
             }
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
@@ -969,18 +863,6 @@ void SkywatcherAPIMount::TimerHit()
             }
             else
             {
-                // Restart the drift compensation after syncing or after stopping manual motion
-                if (ResetTrackingSeconds)
-                {
-                    m_TrackingElapsedTimer.restart();
-                    ResetTrackingSeconds = false;
-                    GuideDeltaAlt = 0;
-                    GuideDeltaAz = 0;
-                    ResetGuidePulses();
-                    TrackedAltAz  = CurrentAltAz;
-                    CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
-                    CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
-                }
 
                 double trackingDeltaAlt = std::abs(CurrentAltAz.altitude - TrackedAltAz.altitude);
                 double trackingDeltaAz = std::abs(CurrentAltAz.azimuth - TrackedAltAz.azimuth);
@@ -1608,4 +1490,18 @@ bool SkywatcherAPIMount::SetDefaultPark()
     SetAxis1Park(ZeroPositionEncoders[AXIS1]);
     SetAxis2Park(ZeroPositionEncoders[AXIS2]);
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Restart the drift compensation after syncing or after stopping manual motion
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void SkywatcherAPIMount::resetTracking()
+{
+    m_TrackingElapsedTimer.restart();
+    GuideDeltaAlt = 0;
+    GuideDeltaAz = 0;
+    ResetGuidePulses();
+    TrackedAltAz  = CurrentAltAz;
+    CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
+    CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
 }
