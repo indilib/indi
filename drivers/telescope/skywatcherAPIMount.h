@@ -115,15 +115,16 @@ class SkywatcherAPIMount :
         /////////////////////////////////////////////////////////////////////////////////////
         /// Misc
         /////////////////////////////////////////////////////////////////////////////////////
-        void UpdateScopeConfigSwitch();
         void UpdateDetailedMountInformation(bool InformClient);
         bool getCurrentAltAz(INDI::IHorizontalCoordinates &altaz);
         bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
+        // Reset tracking timer to account for drift compensation
+        void resetTracking();
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Properties
         /////////////////////////////////////////////////////////////////////////////////////
-        static constexpr const char *DetailedMountInfoPage { "Detailed Mount Information" };
+        static constexpr const char *MountInfoTab { "Mount Info" };
         IText BasicMountInfoT[4] {};
         ITextVectorProperty BasicMountInfoTP;
         enum
@@ -209,7 +210,6 @@ class SkywatcherAPIMount :
         INDI::IHorizontalCoordinates TrackedAltAz {0, 0};
 
         long OldTrackingTarget[2] { 0, 0 };
-        bool ResetTrackingSeconds { false };
         INDI::ElapsedTimer m_TrackingElapsedTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };

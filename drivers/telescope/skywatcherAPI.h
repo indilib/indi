@@ -313,6 +313,10 @@ class SkywatcherAPI
 
     private:
         int MyPortFD { 0 };
+        // In seconds.
+        static constexpr uint8_t SKYWATCHER_MAX_RETRTY {3};
+        static constexpr uint8_t SKYWATCHER_TIMEOUT {5};
+        static constexpr uint8_t SKYWATCHER_MAX_CMD {16};
 
 #ifdef INDI_DEBUG_LOGGING
     public:

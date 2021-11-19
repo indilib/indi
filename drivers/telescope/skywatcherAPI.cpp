@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <memory>
 #include <thread>
+#include <termio.h>
 
 void AXISSTATUS::SetFullStop()
 {
@@ -199,11 +200,6 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
 
     long tmpMicrostepsPerRevolution = BCDstr2long(Response);
 
-    // There is a bug in the earlier version firmware(Before 2.00) of motor controller MC001.
-    // Overwrite the MicrostepsPerRevolution reported by the MC for 80GT mount and 114GT mount.
-    // kecsap: The Merlin mounts use the same mount code and it brakes the operation.
-    //    if (MountCode == GT)
-    //        tmpMicrostepsPerRevolution = 0x162B97; // for 80GT mount
     if (MountCode == _114GT)
         tmpMicrostepsPerRevolution = 0x205318; // for 114GT mount
 
@@ -655,8 +651,9 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
     {
         MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
     }
+
+    // Nothing to do
     if (0 == OffsetInMicrosteps)
-        // Nothing to do
         return;
 
     // Debugging
@@ -734,7 +731,6 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
 bool SkywatcherAPI::SlowStop(AXISID Axis)
 {
     // Request a slow stop
-    //    MYDEBUG(DBG_SCOPE, "SlowStop");
     std::string Parameters, Response;
 
     return TalkWithAxis(Axis, 'K', Parameters, Response);
@@ -742,7 +738,6 @@ bool SkywatcherAPI::SlowStop(AXISID Axis)
 
 bool SkywatcherAPI::StartMotion(AXISID Axis)
 {
-    //    MYDEBUG(DBG_SCOPE, "StartMotion");
     std::string Parameters, Response;
 
     return TalkWithAxis(Axis, 'J', Parameters, Response);
@@ -750,59 +745,65 @@ bool SkywatcherAPI::StartMotion(AXISID Axis)
 
 bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdDataStr, std::string &responseStr)
 {
-    //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis Axis %s Command %c Data (%s)", Axis == AXIS1 ? "AXIS1" : "AXIS2", Command,
-    //             cmdDataStr.c_str());
+    int bytesWritten = 0;
+    int bytesRead = 0;
+    int errorCode = 0;
+    char command[SKYWATCHER_MAX_CMD] = {0};
+    char response[SKYWATCHER_MAX_CMD] = {0};
 
-    std::string SendBuffer;
-    int bytesWritten;
-    int bytesRead;
-    bool StartReading   = false;
-    bool EndReading     = false;
-    bool mount_response = false;
-    char response[257];
+    snprintf(command, SKYWATCHER_MAX_CMD, ":%c%d%s", Command, Axis == AXIS1 ? '1' : '2', cmdDataStr.c_str());
 
-    SendBuffer.push_back(':');
-    SendBuffer.push_back(Command);
-    SendBuffer.push_back(Axis == AXIS1 ? '1' : '2');
-    SendBuffer.append(cmdDataStr);
-    SendBuffer.push_back('\r');
-    tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
+    MYDEBUGF(DBG_SCOPE, "CMD <%s>", command);
 
+    // Now add the trailing 0xD
+    command[strlen(command)] = 0xD;
 
-    while (!EndReading)
+    for (int retries = 0; retries < SKYWATCHER_MAX_RETRTY; retries++)
     {
-        char c;
-        int rc;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-        response[0] = '\0';
-        rc = tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
-        if (rc != TTY_OK)
-            return false;
-        for (int i = 0; i < bytesRead && !EndReading; i++)
+        tcflush(MyPortFD, TCIOFLUSH);
+        if ( (errorCode = tty_write_string(MyPortFD, command, &bytesWritten)) != TTY_OK)
         {
-            c = response[i];
-
-            if ((c == '=') || (c == '!'))
+            if (retries == SKYWATCHER_MAX_RETRTY - 1)
             {
-                mount_response = (c == '=');
-                StartReading = true;
+                char errorMessage[MAXRBUF] = {0};
+                tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
+                return false;
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
-
-            if ((c == '\r') && StartReading)
-            {
-                EndReading = true;
-                continue;
-            }
-
-            if (StartReading)
-                responseStr.push_back(c);
         }
+
+        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK)
+        {
+            if (retries == SKYWATCHER_MAX_RETRTY - 1)
+            {
+                char errorMessage[MAXRBUF] = {0};
+                tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
+                return false;
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+        }
+        else
+            break;
     }
-    //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis - %s Response (%s)", mount_response ? "Good" : "Bad", responseStr.c_str());
-    return true;
+
+    // Remove CR (0x0D)
+    response[bytesRead - 1] = 0;
+    MYDEBUGF(DBG_SCOPE, "RES <%s>", response);
+    // Skip first = or !
+    responseStr = response + 1;
+
+    // Response starting to ! is abnormal response, while = is OK.
+    return response[0] == '=';
 }
 
 bool SkywatcherAPI::IsInMotion(AXISID Axis)
