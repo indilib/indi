@@ -49,6 +49,16 @@ void AXISSTATUS::SetSlewingTo(bool forward, bool highspeed)
     HighSpeed      = highspeed;
 }
 
+const std::map<int, std::string> SkywatcherAPI::errorCodes
+{
+    {0, "Unknown command"},
+    {1, "Command length error"},
+    {2, "Motor not stopped"},
+    {3, "Invalid character"},
+    {4, "Not initialized"},
+    {5, "Driver sleeping"}
+};
+
 SkywatcherAPI::SkywatcherAPI()
 {
     // I add an additional debug level so I can log verbose scope status
@@ -751,9 +761,9 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     char command[SKYWATCHER_MAX_CMD] = {0};
     char response[SKYWATCHER_MAX_CMD] = {0};
 
-    snprintf(command, SKYWATCHER_MAX_CMD, ":%c%d%s", Command, Axis == AXIS1 ? '1' : '2', cmdDataStr.c_str());
+    snprintf(command, SKYWATCHER_MAX_CMD, ":%c%c%s", Command, Axis == AXIS1 ? '1' : '2', cmdDataStr.c_str());
 
-    MYDEBUGF(DBG_SCOPE, "CMD <%s>", command);
+    MYDEBUGF(DBG_SCOPE, "CMD <%s>", command + 1);
 
     // Now add the trailing 0xD
     command[strlen(command)] = 0xD;
@@ -798,12 +808,18 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
 
     // Remove CR (0x0D)
     response[bytesRead - 1] = 0;
-    MYDEBUGF(DBG_SCOPE, "RES <%s>", response);
+    MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);
     // Skip first = or !
     responseStr = response + 1;
 
+    if (response[0] == '!')
+    {
+        MYDEBUGF(INDI::Logger::DBG_ERROR, "Mount error: %s", errorCodes.at(response[1]).c_str());
+        return false;
+    }
+
     // Response starting to ! is abnormal response, while = is OK.
-    return response[0] == '=';
+    return true;
 }
 
 bool SkywatcherAPI::IsInMotion(AXISID Axis)
