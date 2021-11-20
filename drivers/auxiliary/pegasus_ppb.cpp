@@ -61,10 +61,10 @@ bool PegasusPPB::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // DSLR on/off
-    IUFillSwitch(&DSLRPowerS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&DSLRPowerS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
+    IUFillSwitch(&DSLRPowerS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&DSLRPowerS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_ON);
     IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 60, IPS_IDLE);
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Reboot
     IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
@@ -247,16 +247,9 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         if (!strcmp(name, DSLRPowerSP.name))
         {
             IUUpdateSwitch(&DSLRPowerSP, states, names, n);
-
-            DSLRPowerSP.s = IPS_ALERT;
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P2:%d", IUFindOnSwitchIndex(&DSLRPowerSP));
-            if (sendCommand(cmd, res))
-            {
-                DSLRPowerSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
-            }
-
-            IUResetSwitch(&DSLRPowerSP);
+            snprintf(cmd, PEGASUS_LEN, "P2:%d", (DSLRPowerS[INDI_ENABLED].s == ISS_ON) ? 1 : 0);
+            DSLRPowerSP.s = sendCommand(cmd, res) ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&DSLRPowerSP, nullptr);
             return true;
         }
@@ -489,8 +482,8 @@ bool PegasusPPB::getSensorData()
             IDSetSwitch(&PowerCycleAllSP, nullptr);
 
         // DSLR Power Status
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF;
+        DSLRPowerS[INDI_ENABLED].s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF;
+        DSLRPowerS[INDI_DISABLED].s = (std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF;
         DSLRPowerSP.s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
         if (lastSensorData[PA_DSLR_STATUS] != result[PA_DSLR_STATUS])
             IDSetSwitch(&DSLRPowerSP, nullptr);
