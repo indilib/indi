@@ -589,12 +589,6 @@ bool SkywatcherAPIMount::ReadScopeStatus()
 {
     DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::ReadScopeStatus");
 
-    // leave the following stuff in for the time being it is mostly harmless
-
-    // Quick check of the mount
-    if (!GetMotorBoardVersion(AXIS1))
-        return false;
-
     if (!GetStatus(AXIS1))
         return false;
 
@@ -864,12 +858,14 @@ void SkywatcherAPIMount::TimerHit()
             else
             {
 
+                // Get diff between current and tracking Alt/Az in degrees
                 double trackingDeltaAlt = std::abs(CurrentAltAz.altitude - TrackedAltAz.altitude);
                 double trackingDeltaAz = std::abs(CurrentAltAz.azimuth - TrackedAltAz.azimuth);
 
-                if (trackingDeltaAlt + trackingDeltaAz > 50.0)
+                if (std::hypotf(trackingDeltaAlt, trackingDeltaAz) > MAX_TRACKING_DELTA)
                 {
-                    LOGF_WARN("Abort tracking after too much margin (%1.4f > 10)", trackingDeltaAlt + trackingDeltaAz);
+                    LOGF_WARN("Abort tracking after drifting from tracking target by %.2 degrees", std::hypotf(trackingDeltaAlt,
+                              trackingDeltaAz));
                     Abort();
                 }
 
@@ -882,7 +878,7 @@ void SkywatcherAPIMount::TimerHit()
                 // Continue or start tracking
                 // Calculate where the mount needs to be in POLLMS time
                 // TODO may need to make this longer to get a meaningful result
-                double JulianOffset = 1.0 / (24.0 * 60 * 60);
+                double JulianOffset = (getCurrentPollingPeriod() / 1000) / (24.0 * 60 * 60);
                 TelescopeDirectionVector TDV;
                 INDI::IHorizontalCoordinates AltAz { 0, 0 };
 

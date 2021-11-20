@@ -208,6 +208,8 @@ class SkywatcherAPIMount :
         INDI::IEquatorialCoordinates CurrentTrackingTarget { 0, 0 };
         INDI::IHorizontalCoordinates CurrentAltAz {0, 0};
         INDI::IHorizontalCoordinates TrackedAltAz {0, 0};
+        // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
+        static constexpr double MAX_TRACKING_DELTA {5};
 
         long OldTrackingTarget[2] { 0, 0 };
         INDI::ElapsedTimer m_TrackingElapsedTimer;
