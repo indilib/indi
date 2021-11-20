@@ -2,11 +2,16 @@
  * \file skywatcherAPI.cpp
  *
  * \author Roger James
+ * \author Jasem Mutlaq
  * \author Gerry Rozema
  * \author Jean-Luc Geehalel
  * \date 13th November 2013
  *
  * Updated on 2020-12-01 by Jasem Mutlaq
+ * Updated on 2021-11-20 by Jasem Mutlaq:
+ *  + Fixed tracking.
+ *  + Added iterative GOTO.
+ *  + Simplified driver and logging.
  *
  * This file contains an implementation in C++ of the Skywatcher API.
  * It is based on work from four sources.
@@ -565,7 +570,7 @@ bool SkywatcherAPI::SetMotionMode(AXISID Axis, char Func, char Direction)
 
 bool SkywatcherAPI::SetClockTicksPerMicrostep(AXISID Axis, long ClockTicksPerMicrostep)
 {
-    MYDEBUG(DBG_SCOPE, "SetClockTicksPerMicrostep");
+    //MYDEBUG(DBG_SCOPE, "SetClockTicksPerMicrostep");
     std::string Parameters, Response;
 
     Long2BCDstr(ClockTicksPerMicrostep, Parameters);
@@ -657,11 +662,6 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool Ignor
 
 void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
 {
-    if (verbose)
-    {
-        MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
-    }
-
     // Nothing to do
     if (0 == OffsetInMicrosteps)
         return;
@@ -670,29 +670,21 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
     LastSlewToTarget[Axis] = CurrentEncoders[Axis] + OffsetInMicrosteps;
     if (verbose)
     {
-        MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
+        MYDEBUGF(INDI::Logger::DBG_DEBUG, "SlewTo Axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
                  OffsetInMicrosteps, CurrentEncoders[Axis], LastSlewToTarget[Axis]);
     }
 
-    char Direction;
-    bool Forward;
+    char Direction = '0';
+    bool Forward = true;
 
-    if (OffsetInMicrosteps > 0)
-    {
-        Forward   = true;
-        Direction = '0';
-    }
-    else
+    if (OffsetInMicrosteps < 0)
     {
         Forward            = false;
         Direction          = '1';
         OffsetInMicrosteps = -OffsetInMicrosteps;
     }
 
-    bool HighSpeed = false;
-
-    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode)
-        HighSpeed = true;
+    bool HighSpeed = (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode);
 
     if (!GetStatus(Axis))
         return;
@@ -808,7 +800,9 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
 
     // Remove CR (0x0D)
     response[bytesRead - 1] = 0;
-    MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);
+    // If it is not empty, log it.
+    if (response[1] != 0)
+        MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);
     // Skip first = or !
     responseStr = response + 1;
 

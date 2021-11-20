@@ -205,9 +205,9 @@ class SkywatcherAPIMount :
         /// Private Variables
         /////////////////////////////////////////////////////////////////////////////////////
         // Tracking
-        INDI::IEquatorialCoordinates CurrentTrackingTarget { 0, 0 };
-        INDI::IHorizontalCoordinates CurrentAltAz {0, 0};
-        INDI::IHorizontalCoordinates TrackedAltAz {0, 0};
+        INDI::IEquatorialCoordinates m_SkyTrackingTarget { 0, 0 };
+        INDI::IEquatorialCoordinates m_SkyCurrentRADE {0, 0};
+        INDI::IHorizontalCoordinates m_MountAltAz {0, 0};
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
         static constexpr double MAX_TRACKING_DELTA {5};
 
@@ -216,11 +216,12 @@ class SkywatcherAPIMount :
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
         double m_AzimuthRateScale {1.0};
-        double m_AltitudeRateScale {2.0};
+        double m_AltitudeRateScale {1.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;
         std::vector<GuidingPulse> GuidingPulses;
 
         bool m_ManualMotionActive { false };
+        bool m_IterativeGOTOPending {false};
 };
