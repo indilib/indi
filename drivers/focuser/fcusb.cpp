@@ -27,7 +27,7 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 
 static std::unique_ptr<FCUSB> fcusb(new FCUSB());
-static const std::map<uint32_t, uint32_t> USBIDs =
+static const std::multimap<uint16_t, uint16_t> USBIDs =
 {
     {0x134A, 0x9023},
     {0x134A, 0x9024},
@@ -36,7 +36,7 @@ static const std::map<uint32_t, uint32_t> USBIDs =
 
 FCUSB::FCUSB()
 {
-    setVersion(0, 2);
+    setVersion(0, 3);
 
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
     setSupportedConnections(CONNECTION_NONE);

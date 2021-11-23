@@ -289,7 +289,7 @@
         </device>
         <device label="Shoestring Astronomy FCUSB" manufacturer="Shoestring">
             <driver name="FCUSB">indi_fcusb_focus</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
         <device label="Celestron SCT" manufacturer="Celestron">
             <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
