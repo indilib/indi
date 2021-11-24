@@ -732,6 +732,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
+        FI::updateProperties();
         RI::updateProperties();
         OSHasOutputs = true; //Set once per connection, either at startup or on disconnection for next connection;
     }
