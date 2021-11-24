@@ -137,7 +137,7 @@
 #define PORTS_COUNT 10
 #define STARTING_PORT 0
 
-
+enum ResponseErrors {RES_ERR_FORMAT = -1001};
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
 enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
@@ -257,6 +257,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         bool sendOnStepCommandBlind(const char *cmd);
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
+        int getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
         void OSUpdateRotator();
@@ -401,6 +402,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         INumber OutputPorts[PORTS_COUNT];
         INumberVectorProperty OutputPorts_NP;
+        bool OSHasOutputs = true;
 
         INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;

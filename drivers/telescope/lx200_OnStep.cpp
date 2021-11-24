@@ -609,6 +609,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSOutput1SP);
         defineProperty(&OSOutput2SP);
 #endif
+       // OSHasOutputs = true; //Set to true on new connection, Init_Outputs will set to false if appropriate
         Init_Outputs();
 
         //Weather
@@ -732,6 +733,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
         RI::updateProperties();
+        OSHasOutputs = true; //Set once per connection, either at startup or on disconnection for next connection;
     }
     LOG_INFO("Initialization Complete");
     return true;
@@ -2014,14 +2016,14 @@ bool LX200_OnStep::ReadScopeStatus()
     bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
     
-    tcflush(PortFD, TCIFLUSH);
+
     if (isSimulation()) //if Simulation is selected
     {
         mountSim();
         return true;
     }
 
-    
+    tcflush(PortFD, TCIOFLUSH);
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
     {
         EqNP.s = IPS_ALERT;
@@ -2792,7 +2794,7 @@ bool LX200_OnStep::ReadScopeStatus()
     IDSetNumber(&BacklashNP, nullptr);
 
     double pulseguiderate = 0.0;
-    if (getCommandSingleCharErrorOrLongResponse(PortFD, GuideValue, ":GX90#") > 1)
+    if (getCommandDoubleResponse(PortFD, &pulseguiderate, GuideValue, ":GX90#") > 1)
     {
         LOGF_DEBUG("Guide Rate String: %s", GuideValue);
         pulseguiderate = atof(GuideValue);
@@ -2818,6 +2820,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 pulseguiderate = (double)1.0;
                 break;
             default:
+                pulseguiderate = 0.0;
                 LOG_DEBUG("Could not get guide rate from :GU# response, not setting");
         }
         if (pulseguiderate != 0.0)
@@ -2838,7 +2841,7 @@ bool LX200_OnStep::ReadScopeStatus()
         int gx95_error  = getCommandSingleCharErrorOrLongResponse(PortFD, merdidianflipauto_response, ":GX95#");
         if (gx95_error > 1)
         {
-            if (atoi(merdidianflipauto_response))
+            if (merdidianflipauto_response[0] == '1' && merdidianflipauto_response[1] == 0) //Only set on 1#
             {
                 AutoFlipS[1].s = ISS_ON;
                 AutoFlipSP.s = IPS_OK;
@@ -2930,10 +2933,11 @@ bool LX200_OnStep::ReadScopeStatus()
     //Weather update
 //     getCommandString(PortFD, TempValue, ":GX9A#");
     char temperature_response[RB_MAX_LEN] = {0};
-    int gx9a_error  = getCommandSingleCharErrorOrLongResponse(PortFD, temperature_response, ":GX9A#");
-    if (gx9a_error > 1)
+    double temperature_value;
+    int gx9a_error  = getCommandDoubleResponse(PortFD, &temperature_value, temperature_response, ":GX9A#");
+    if (gx9a_error > 1) //> 1 as an OnStep error would be 1 char in response
     {
-        setParameterValue("WEATHER_TEMPERATURE", std::stod(temperature_response));
+        setParameterValue("WEATHER_TEMPERATURE", temperature_value);
     }
     else
     {
@@ -2942,10 +2946,11 @@ bool LX200_OnStep::ReadScopeStatus()
 
     //getCommandString(PortFD, TempValue, ":GX9C#");
     char humidity_response[RB_MAX_LEN] = {0};
-    int gx9c_error  = getCommandSingleCharErrorOrLongResponse(PortFD, humidity_response, ":GX9C#");
+    double humidity_value;
+    int gx9c_error  = getCommandDoubleResponse(PortFD, &humidity_value, humidity_response, ":GX9C#");
     if (gx9c_error > 1)
     {
-        setParameterValue("WEATHER_HUMIDITY", std::stod(humidity_response));
+        setParameterValue("WEATHER_HUMIDITY", humidity_value);
     }
     else
     {
@@ -2955,10 +2960,11 @@ bool LX200_OnStep::ReadScopeStatus()
 
 //     getCommandString(PortFD, TempValue, ":GX9B#");
     char barometer_response[RB_MAX_LEN] = {0};
-    int gx9b_error  = getCommandSingleCharErrorOrLongResponse(PortFD, barometer_response, ":GX9B#");
+    double barometer_value;
+    int gx9b_error  = getCommandDoubleResponse(PortFD, &barometer_value, barometer_response, ":GX9B#");
     if (gx9b_error > 1)
     {
-        setParameterValue("WEATHER_BAROMETER", std::stod(barometer_response));
+        setParameterValue("WEATHER_BAROMETER", barometer_value);
     }
     else
     {
@@ -2967,10 +2973,11 @@ bool LX200_OnStep::ReadScopeStatus()
 
 //     getCommandString(PortFD, TempValue, ":GX9E#");
     char dewpoint_reponse[RB_MAX_LEN] = {0};
-    int gx9e_error  = getCommandSingleCharErrorOrLongResponse(PortFD, dewpoint_reponse, ":GX9E#");
+    double dewpoint_value;
+    int gx9e_error  = getCommandDoubleResponse(PortFD, &dewpoint_value, dewpoint_reponse, ":GX9E#");
     if (gx9e_error > 1)
     {
-        setParameterValue("WEATHER_DEWPOINT", std::stod(dewpoint_reponse));
+        setParameterValue("WEATHER_DEWPOINT", dewpoint_value);
     }
     else
     {
@@ -2980,10 +2987,11 @@ bool LX200_OnStep::ReadScopeStatus()
     if (OSCpuTemp_good)
     {
         char cputemp_reponse[RB_MAX_LEN] = {0};
-        int error_return = getCommandSingleCharErrorOrLongResponse(PortFD, cputemp_reponse, ":GX9F#");
+        double cputemp_value;
+        int error_return = getCommandDoubleResponse(PortFD, &cputemp_value, cputemp_reponse, ":GX9F#");
         if ( error_return >= 0 && !strcmp(cputemp_reponse, "0") )
         {
-            setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(cputemp_reponse));
+            setParameterValue("WEATHER_CPU_TEMPERATURE", cputemp_value);
         }
         else
         {
@@ -3242,6 +3250,76 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
 
     return nbytes_read;
 }
+
+
+int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIOFLUSH);
+    
+    do {
+        char discard_data[RB_MAX_LEN] = {0};
+        error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
+        if (error_type > 0) {
+            LOGF_DEBUG("Information in buffer: %s", discard_data);
+        }
+    } while (error_type > 0);
+    
+    tcflush(fd, TCIFLUSH);
+    
+
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    
+    //     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    
+    
+    
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+    
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+    
+    if (error_type != TTY_OK)
+    {
+        LOGF_DEBUG("Error %d", error_type);
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return error_type;
+    }
+
+    if (sscanf(data, "%lf", value) != 1){
+        LOG_ERROR("Invalid response, check connection");
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
+    }
+
+    return nbytes_read;
+    
+}
+
 
 int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd)
 {
@@ -4479,37 +4557,43 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
 
 void LX200_OnStep::Init_Outputs()
 {
-    // Features names and type are accessed via :GXYn (where n 1 to 8)
-    // we take these names to display in Output tab
-    // return value is ssssss,n where ssssss is the name and n is the type
-    char port_name[MAXINDINAME] = {0}, getoutp[MAXINDINAME] = {0}, configured[MAXINDINAME] = {0}, p_name[MAXINDINAME] = {0};
-    size_t  k {0};
+    if (OSHasOutputs) {
+        // Features names and type are accessed via :GXYn (where n 1 to 8)
+        // we take these names to display in Output tab
+        // return value is ssssss,n where ssssss is the name and n is the type
+        char port_name[MAXINDINAME] = {0}, getoutp[MAXINDINAME] = {0}, configured[MAXINDINAME] = {0}, p_name[MAXINDINAME] = {0};
+        size_t  k {0};
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, configured,
+                                                ":GXY0#"); // returns a string with 1 where Feature is configured
+        // ex: 10010010 means Feature 1,4 and 7 are configured
 
-    getCommandSingleCharErrorOrLongResponse(PortFD, configured,
-                                            ":GXY0#"); // returns a string with 1 where Feature is configured
-    // ex: 10010010 means Feature 1,4 and 7 are configured
+        if (error_or_fail == -4 && configured[0] == '0') {
+            OSHasOutputs = false;
+            LOG_INFO("Outputs not detected, disabling further checks");
+        }
 
-    IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
-    for(int i = 1; i < PORTS_COUNT; i++)
-    {
-        if(configured[i - 1] == '1') // is Feature is configured
+        IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+        for(int i = 1; i < PORTS_COUNT; i++)
         {
-            snprintf(getoutp, sizeof(getoutp), ":GXY%d#", i);
-            getCommandString(PortFD, port_name, getoutp);
-            for(k = 0; k < strlen(port_name); k++) // remove feature type
+            if(configured[i - 1] == '1') // is Feature is configured
             {
-                if(port_name[k] == ',') port_name[k] = '_';
-                p_name[k] = port_name[k];
-                p_name[k + 1] = 0;
+                snprintf(getoutp, sizeof(getoutp), ":GXY%d#", i);
+                getCommandString(PortFD, port_name, getoutp);
+                for(k = 0; k < strlen(port_name); k++) // remove feature type
+                {
+                    if(port_name[k] == ',') port_name[k] = '_';
+                    p_name[k] = port_name[k];
+                    p_name[k + 1] = 0;
+                }
+                IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
             }
-            IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
+            else
+            {
+                IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+            }
         }
-        else
-        {
-            IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
-        }
+        defineProperty(&OutputPorts_NP);
     }
-    defineProperty(&OutputPorts_NP);
 }
 
 
