@@ -2026,13 +2026,7 @@ bool LX200_OnStep::ReadScopeStatus()
 
     tcflush(PortFD, TCIOFLUSH);
     flushIO(PortFD);
-    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
-        LOG_INFO("RA/DEC could not be read, possible solution if using (wireless)ethernet: Use port 9998");
-        //    return false;
-    }
+
 
 #ifdef OnStep_Alpha
     OSSupports_bitfield_Gu = try_bitfield_Gu();
@@ -2044,8 +2038,25 @@ bool LX200_OnStep::ReadScopeStatus()
 
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
         if (error_or_fail > 1) // check if successful read (strcmp(OSStat, OldOSStat) != 0) //if status changed
-        {
-
+        { //If this fails, simply return;
+            char check_GU_valid1[RB_MAX_LEN] ={0};
+            char check_GU_valid2[RB_MAX_LEN] ={0};
+            char check_GU_valid3[RB_MAX_LEN] ={0};
+            //:GU should always have one of pIPF and 3 numbers
+            if (sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]) != 1)
+            {
+                LOG_ERROR(":GU# returned something that can not be right, this update aborted, will try again...");
+                LOGF_ERROR("Parameters matched: %u from %s",sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]), OSStat);
+                flushIO(PortFD);
+                return false;
+            }
+            if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
+            {
+                EqNP.s = IPS_ALERT;
+                IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                LOG_INFO("RA/DEC could not be read, possible solution if using (wireless)ethernet: Use port 9998");
+                //    return false;
+            }
             strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
 
             IUSaveText(&OnstepStat[0], OSStat);
@@ -2489,6 +2500,8 @@ bool LX200_OnStep::ReadScopeStatus()
             //     print('\tbreak;')
 
             Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+        } else {
+            return false;
         }
 
 #ifdef OnStep_Alpha // For the moment, for :Gu
@@ -2765,36 +2778,48 @@ bool LX200_OnStep::ReadScopeStatus()
         }
         else
         {
-            getCommandString(PortFD, OSPier, ":Gm#");
-            if (strcmp(OSPier, OldOSPier) != 0) // any change ?
-            {
-                strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
-                switch(OSPier[0])
+            int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSPier, ":Gm#");
+//             getCommandString(PortFD, OSPier, ":Gm#");
+            if (error_or_fail > 1) {
+                if (strcmp(OSPier, OldOSPier) != 0) // any change ?
                 {
-                    case 'E':
-                        setPierSide(PIER_EAST);
-                        break;
-                    case 'W':
-                        setPierSide(PIER_WEST);
-                        break;
-                    case 'N':
-                        setPierSide(PIER_UNKNOWN);
-                        break;
-                    case '?':
-                        setPierSide(PIER_UNKNOWN);
-                        break;
+                    strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
+                    switch(OSPier[0])
+                    {
+                        case 'E':
+                            setPierSide(PIER_EAST);
+                            break;
+                        case 'W':
+                            setPierSide(PIER_WEST);
+                            break;
+                        case 'N':
+                            setPierSide(PIER_UNKNOWN);
+                            break;
+                        case '?':
+                            setPierSide(PIER_UNKNOWN);
+                            break;
+                    }
                 }
+            } else {
+                LOG_ERROR("Communication error on Pier Side (:Gm#), this update aborted, will try again...");
+                return false;
             }
         }
     }
 #endif
 
     //========== Get actual Backlash values
-    getCommandString(PortFD, OSbacklashDEC, ":%BD#");
-    getCommandString(PortFD, OSbacklashRA, ":%BR#");
-    BacklashNP.np[0].value = atof(OSbacklashDEC);
-    BacklashNP.np[1].value = atof(OSbacklashRA);
-    IDSetNumber(&BacklashNP, nullptr);
+    double backlash_DEC, backlash_RA;
+    int BD_error = getCommandDoubleResponse(PortFD, &backlash_DEC, OSbacklashDEC, ":%BD#");
+    int BR_error = getCommandDoubleResponse(PortFD, &backlash_RA, OSbacklashRA, ":%BR#");
+    if (BD_error > 1 && BR_error > 1) {
+        BacklashNP.np[0].value = backlash_DEC;
+        BacklashNP.np[1].value = backlash_RA;
+        IDSetNumber(&BacklashNP, nullptr);
+    } else {
+        LOG_ERROR("Communication error on backlash (:%BD#/:%BR#), this update aborted, will try again...");
+        return false;
+    }
 
     double pulseguiderate = 0.0;
     if (getCommandDoubleResponse(PortFD, &pulseguiderate, GuideValue, ":GX90#") > 1)
@@ -2825,6 +2850,9 @@ bool LX200_OnStep::ReadScopeStatus()
             default:
                 pulseguiderate = 0.0;
                 LOG_DEBUG("Could not get guide rate from :GU# response, not setting");
+                LOG_ERROR("Communication error on Guide Rate (:GX90#/:GU#), this update aborted, will try again...");
+                return false;
+                
         }
         if (pulseguiderate != 0.0)
         {
@@ -2839,7 +2867,6 @@ bool LX200_OnStep::ReadScopeStatus()
     if (OSMountType == MOUNTTYPE_GEM)
     {
         //AutoFlip
-//         getCommandString(PortFD, TempValue, ":GX95#");
         char merdidianflipauto_response[RB_MAX_LEN] = {0};
         int gx95_error  = getCommandSingleCharErrorOrLongResponse(PortFD, merdidianflipauto_response, ":GX95#");
         if (gx95_error > 1)
@@ -2858,7 +2885,8 @@ bool LX200_OnStep::ReadScopeStatus()
             }
         }
         else {
-            LOG_ERROR("Command :GX95# failed to get an appropriate response, check connection");
+            LOG_ERROR("Communication error on meridianAutoFlip (:GX95#), this update aborted, will try again...");
+            return false;
         }
     }
 #endif
@@ -2866,7 +2894,6 @@ bool LX200_OnStep::ReadScopeStatus()
     if (OSMountType == MOUNTTYPE_GEM)   //Doesn't apply to non-GEMs
     {
         //PreferredPierSide
-//         getCommandString(PortFD, TempValue, ":GX96#");
         char preferredpierside_response[RB_MAX_LEN] = {0};
         int gx96_error  = getCommandSingleCharErrorOrLongResponse(PortFD, preferredpierside_response, ":GX96#");
         if (gx96_error > 1)
@@ -2906,32 +2933,41 @@ bool LX200_OnStep::ReadScopeStatus()
         }
         else
         {
-            LOG_ERROR("Command :GX96# failed to get an appropriate response, check connection");
+            LOG_ERROR("Communication error on Preferred Pier Side (:GX96#), this update aborted, will try again...");
+            return false;
         }
-      
 
-        char limit1_response[RB_MAX_LEN] = {0};
-        int gxe9_error  = getCommandSingleCharErrorOrLongResponse(PortFD, limit1_response, ":GXE9#");
-        if (gxe9_error > 1) //NOTE: Possible failure not checked.
-        {
-            char limit2_response[RB_MAX_LEN] = {0};
-            int gxea_error  = getCommandSingleCharErrorOrLongResponse(PortFD, limit2_response, ":GXEA#");
-            if (gxea_error > 1) { //NOTE: Possible failure not checked.
-                minutesPastMeridianNP.np[0].value = atof(limit1_response); // E
-                minutesPastMeridianNP.np[1].value = atof(limit2_response); //W
-                IDSetNumber(&minutesPastMeridianNP, nullptr);
-            } else {
-                LOG_ERROR("Command :GXEA# failed to get an appropriate response, check connection");
+        if (OSMountType == MOUNTTYPE_GEM) {
+            char limit1_response[RB_MAX_LEN] = {0};
+            int gxea_error, gxe9_error;
+            double degrees_past_Meridian_East, degrees_past_Meridian_West;
+            gxe9_error  = getCommandDoubleResponse(PortFD, &degrees_past_Meridian_East, limit1_response, ":GXE9#");
+            if (gxe9_error > 1) //NOTE: Possible failure not checked.
+            {
+                char limit2_response[RB_MAX_LEN] = {0};
+                gxea_error  = getCommandDoubleResponse(PortFD, &degrees_past_Meridian_West, limit2_response, ":GXEA#");
+                if (gxea_error > 1) { //NOTE: Possible failure not checked.
+                    minutesPastMeridianNP.np[0].value = degrees_past_Meridian_East; // E
+                    minutesPastMeridianNP.np[1].value = degrees_past_Meridian_West; //W
+                    IDSetNumber(&minutesPastMeridianNP, nullptr);
+                } else {
+                    LOG_ERROR("Communication error on Degrees past Meridian West (:GXEA#), this update aborted, will try again...");
+                    return false;
+                }
             }
-        }
-        else
-        {
-            LOG_ERROR("Command :GXE9# failed to get an appropriate response, check connection");
+            else
+            {
+                LOG_ERROR("Communication error on Degrees past Meridian East (:GXE9#), this update aborted, will try again...");
+                return false;
+            }
         }
     }
 
     //TODO: Improve Rotator support
-    OSUpdateRotator();
+    if (OSUpdateRotator() != 0) {
+        LOG_ERROR("Communication error on Rotator Update, this update aborted, will try again...");
+        return false;
+    }
 
     //Weather update
 //     getCommandString(PortFD, TempValue, ":GX9A#");
@@ -2944,20 +2980,22 @@ bool LX200_OnStep::ReadScopeStatus()
     }
     else
     {
-        LOG_ERROR("Command :GX9A# failed to get an appropriate response, check connection");
+        LOG_ERROR("Communication error on Temperature (:GX9A#), this update aborted, will try again...");
+        return false;
     }
 
     //getCommandString(PortFD, TempValue, ":GX9C#");
     char humidity_response[RB_MAX_LEN] = {0};
     double humidity_value;
     int gx9c_error  = getCommandDoubleResponse(PortFD, &humidity_value, humidity_response, ":GX9C#");
-    if (gx9c_error > 1)
+    if (gx9c_error > 1) //> 1 as an OnStep error would be 1 char in response
     {
         setParameterValue("WEATHER_HUMIDITY", humidity_value);
     }
     else
     {
-        LOG_ERROR("Command :GX9C# failed to get an appropriate response, check connection");
+        LOG_ERROR("Communication error on Humidity (:GX9C#), this update aborted, will try again...");
+        return false;
     }
 
 
@@ -2971,7 +3009,8 @@ bool LX200_OnStep::ReadScopeStatus()
     }
     else
     {
-        LOG_ERROR("Command :GX9B# failed to get an appropriate response, check connection");
+        LOG_ERROR("Communication error on Barometer (:GX9B#), this update aborted, will try again...");
+        return false;
     }
 
 //     getCommandString(PortFD, TempValue, ":GX9E#");
@@ -2984,7 +3023,8 @@ bool LX200_OnStep::ReadScopeStatus()
     }
     else
     {
-        LOG_ERROR("Command :GX9E# failed to get an appropriate response, check connection");
+        LOG_ERROR("Communication error on Dewpoint (:GX9E#), this update aborted, will try again...");
+        return false;
     }
 
     if (OSCpuTemp_good)
@@ -3119,7 +3159,12 @@ bool LX200_OnStep::ReadScopeStatus()
     UpdateAlignErr();
 
 
-    OSUpdateFocuser();  // Update Focuser Position
+    if (OSUpdateFocuser() != 0)  // Update Focuser Position
+    {
+        LOG_ERROR("Communication error on Focuser Update, this update aborted, will try again...");
+        return false;
+    }
+
 #ifndef OnStep_Alpha
     if (!OSPECviaGU)
     {
@@ -3129,7 +3174,6 @@ bool LX200_OnStep::ReadScopeStatus()
 #endif
 
 
-    //     NewRaDec(currentRA, currentDEC); Replaced by the above settings for EqNP.
     return true;
 }
 
@@ -3271,7 +3315,7 @@ int LX200_OnStep::flushIO(int fd)
         char discard_data[RB_MAX_LEN] = {0};
         error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
         if (error_type > 0) {
-            LOGF_DEBUG("Information in buffer: %s", discard_data);
+            LOGF_DEBUG("flushIO: Information in buffer: %s", discard_data);
         }
     } while (error_type > 0);
     return 0;
@@ -3394,6 +3438,8 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
 
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIFLUSH);
+    flushIO(fd);
 
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
@@ -3610,7 +3656,7 @@ bool LX200_OnStep::AbortFocuser ()
     return sendOnStepCommandBlind(cmd);
 }
 
-void LX200_OnStep::OSUpdateFocuser()
+int LX200_OnStep::OSUpdateFocuser()
 {
 
     //    double current = 0;
@@ -3618,7 +3664,6 @@ void LX200_OnStep::OSUpdateFocuser()
     //     int i;
     if (OSFocuser1)
     {
-
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
         char value[RB_MAX_LEN] = {0};
@@ -3679,6 +3724,7 @@ void LX200_OnStep::OSUpdateFocuser()
         } else {
             LOG_ERROR("Communication :FM# error, check connection.");
             LOGF_ERROR("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
@@ -3692,6 +3738,7 @@ void LX200_OnStep::OSUpdateFocuser()
             LOGF_DEBUG("focus_min: %s, %i fi_error: %i", focus_min, focus_min_int, fi_error);
         } else {
             LOG_ERROR("Communication :FI# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
 
         FI::updateProperties();
@@ -3732,8 +3779,7 @@ void LX200_OnStep::OSUpdateFocuser()
     {
         char value[RB_MAX_LEN] = {0};
         int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#"); //0 = failure, 1 = success, no # on reply
-        //         int temp_value = atoi(value);
-        if (error_or_fail > 0 ) {
+        if (error_or_fail > 0 && value[0] > '0' && value[0] < '9') {
             int temp_value = (unsigned int)(value[0]) - '0';
             LOGF_DEBUG(":Fa# return: %d", temp_value);
             for (int i = 0; i < 9; i++)
@@ -3744,13 +3790,13 @@ void LX200_OnStep::OSUpdateFocuser()
             {
                 OSFocusSelectS[1].s = ISS_ON;
             }
-            else if (temp_value > 9 || temp_value < 0)
+            else if (temp_value > 9 || temp_value < 0) //TODO: Check if completely redundant
             {
                 //To solve issue mentioned https://www.indilib.org/forum/development/1406-driver-onstep-lx200-like-for-indi.html?start=624#71572
                 OSFocusSelectSP.s = IPS_ALERT;
                 LOGF_WARN("Active focuser returned out of range: %s, should be 0-9", temp_value);
                 IDSetSwitch(&OSFocusSelectSP, nullptr);
-                return;
+                return 1;
             }
             else
             {
@@ -3758,8 +3804,11 @@ void LX200_OnStep::OSUpdateFocuser()
             }
             OSFocusSelectSP.s = IPS_OK;
             IDSetSwitch(&OSFocusSelectSP, nullptr);
+        } else {
+            LOGF_DEBUG(":Fa# returned outside values: %c, %u", value[0], value[0]);
         }
     }
+    return 0;
 }
 
 
@@ -3817,7 +3866,7 @@ void LX200_OnStep::OSUpdateFocuser()
 //            Returns: 0 on failure
 //                     1 on success
 
-void LX200_OnStep::OSUpdateRotator()
+int LX200_OnStep::OSUpdateRotator()
 {
     char value[RB_MAX_LEN];
     double double_value;
@@ -3828,18 +3877,18 @@ void LX200_OnStep::OSUpdateRotator()
         {
             LOG_INFO("Detected Response that Rotator is not present, disabling further checks");
             OSRotator1 = false;
-            return;
+            return 0; //Return 0, as this is not a communication error
         }
-        if (error_or_fail < 1) {
+        if (error_or_fail < 1) { //This does not neccessarily mean 
             LOG_ERROR("Error talking to rotator, might be timeout (especially on network)");
-            return;
+            return -1;
         }
         if (f_scansexa(value, &double_value))
         {
             // 0 = good, thus this is the bad
             GotoRotatorNP.s = IPS_ALERT;
             IDSetNumber(&GotoRotatorNP, nullptr);
-            return;
+            return -1;
         }
         GotoRotatorN[0].value =  double_value;
         double min_rotator, max_rotator;
@@ -3897,6 +3946,7 @@ void LX200_OnStep::OSUpdateRotator()
             }
         }
     }
+    return 0;
 }
 
 IPState LX200_OnStep::MoveRotator(double angle)

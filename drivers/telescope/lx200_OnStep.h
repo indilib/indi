@@ -261,8 +261,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         int getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
         int getCommandIntResponse(int fd, int *value, char *data, const char *cmd);
         int  setMaxElevationLimit(int fd, int max);
-        void OSUpdateFocuser();
-        void OSUpdateRotator();
+        int OSUpdateFocuser(); //Return = 0 good, -1 = Communication error
+        int OSUpdateRotator(); //Return = 0 good, -1 = Communication error
         
         ITextVectorProperty ObjectInfoTP;
         IText ObjectInfoT[1] {};
