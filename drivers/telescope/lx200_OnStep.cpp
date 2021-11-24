@@ -2025,6 +2025,7 @@ bool LX200_OnStep::ReadScopeStatus()
     }
 
     tcflush(PortFD, TCIOFLUSH);
+    flushIO(PortFD);
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
     {
         EqNP.s = IPS_ALERT;
@@ -2040,8 +2041,9 @@ bool LX200_OnStep::ReadScopeStatus()
     {
         //Fall back to :GU parsing
 #endif
-        getCommandString(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
-        if (1) //(strcmp(OSStat, OldOSStat) != 0) //if status changed
+
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
+        if (error_or_fail > 1) // check if successful read (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
 
             strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
@@ -3174,8 +3176,12 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
     int nbytes_write = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
-
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(PortFD, TCIFLUSH);
+    flushIO(PortFD);
+    
+    
 
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
         LOGF_ERROR("CHECK CONNECTION: Error sending command %s", cmd);
@@ -3193,8 +3199,12 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
-
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(PortFD, TCIFLUSH);
+    flushIO(PortFD);
+    
 
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
@@ -3223,6 +3233,7 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
 
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
+    flushIO(fd);
 
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
@@ -3253,19 +3264,11 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
 }
 
 
-int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd)
+int LX200_OnStep::flushIO(int fd)
 {
-    char *term;
-    int error_type;
-    int nbytes_write = 0, nbytes_read = 0;
-    
-    
-    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
-    
-    /* Add mutex */
-    std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(fd, TCIOFLUSH);
-    
+    int error_type = 0;
+    int nbytes_read;
     do {
         char discard_data[RB_MAX_LEN] = {0};
         error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
@@ -3273,20 +3276,29 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
             LOGF_DEBUG("Information in buffer: %s", discard_data);
         }
     } while (error_type > 0);
-    
-    tcflush(fd, TCIFLUSH);
-    
+    return 0;
+}
+int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
 
-    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+    flushIO(fd);
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-    
+
     //     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
     error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
     tcflush(fd, TCIFLUSH);
-    
-    
-    
+
     term = strchr(data, '#');
     if (term)
         *term = '\0';
@@ -3299,9 +3311,9 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
         LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
         data[RB_MAX_LEN - 1] = '\0';
     }
-    
+
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
-    
+
     if (error_type != TTY_OK)
     {
         LOGF_DEBUG("Error %d", error_type);
@@ -3319,6 +3331,58 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
 
     return nbytes_read;
     
+}
+
+
+int LX200_OnStep::getCommandIntResponse(int fd, int *value, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+    flushIO(fd);
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    //     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+    if (error_type != TTY_OK)
+    {
+        LOGF_DEBUG("Error %d", error_type);
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return error_type;
+    }
+    if (sscanf(data, "%i", value) != 1){
+        LOG_ERROR("Invalid response, check connection");
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
+    }
+    return nbytes_read;
 }
 
 
@@ -3561,15 +3625,18 @@ void LX200_OnStep::OSUpdateFocuser()
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
         char value[RB_MAX_LEN] = {0};
-        getCommandString(PortFD, value, ":FG#");
-        FocusAbsPosN[0].value =  atoi(value);
+        int value_int;
+        int error_or_fail = getCommandIntResponse(PortFD, &value_int, value, ":FG#");
+        if (error_or_fail > 1) {
+            FocusAbsPosN[0].value =  value_int;
         //         double current = FocusAbsPosN[0].value;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosN[0].value);
+        }
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
         char valueStatus[RB_MAX_LEN] = {0};
-        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, valueStatus, ":FT#");
+        error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, valueStatus, ":FT#");
         if (error_or_fail > 0 ) {
             if (valueStatus[0] == 'S')
             {
@@ -3605,12 +3672,13 @@ void LX200_OnStep::OSUpdateFocuser()
         //  :FM#  Get max position (in microns)
         //         Returns: n#
         char focus_max[RB_MAX_LEN]={0};
-        int fm_error = getCommandSingleCharErrorOrLongResponse(PortFD, focus_max, ":FM#");
+        int focus_max_int;
+        int fm_error = getCommandIntResponse(PortFD, &focus_max_int, focus_max, ":FM#");
         if (fm_error > 0) {
-            FocusAbsPosN[0].max   = atoi(focus_max);
+            FocusAbsPosN[0].max   = focus_max_int;
             IUUpdateMinMax(&FocusAbsPosNP);
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_DEBUG("focus_max: %s, fm_error: %i", focus_max, fm_error);
+            LOGF_DEBUG("focus_max: %s, %i, fm_error: %i", focus_max, focus_max_int, fm_error);
         } else {
             LOG_ERROR("Communication :FM# error, check connection.");
             LOGF_ERROR("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
@@ -3618,12 +3686,13 @@ void LX200_OnStep::OSUpdateFocuser()
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
         char focus_min[RB_MAX_LEN]={0};
-        int fi_error = getCommandSingleCharErrorOrLongResponse(PortFD, focus_min, ":FI#");
+        int focus_min_int ;
+        int fi_error = getCommandIntResponse(PortFD, &focus_min_int, focus_min, ":FI#");
         if (fi_error > 0) {
-            FocusAbsPosN[0].min =  atoi(focus_min);
+            FocusAbsPosN[0].min =  focus_min_int;
             IUUpdateMinMax(&FocusAbsPosNP);
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_DEBUG("focus_min: %s, fi_error: %i", focus_min, fi_error);
+            LOGF_DEBUG("focus_min: %s, %i fi_error: %i", focus_min, focus_min_int, fi_error);
         } else {
             LOG_ERROR("Communication :FI# error, check connection.");
         }
@@ -3637,7 +3706,8 @@ void LX200_OnStep::OSUpdateFocuser()
     {
         char value[RB_MAX_LEN] = {0};
         int error_return;
-        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#");
+        //TODO: Check to see if getCommandIntResponse would be better
+        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#"); 
         if (error_return >= 0)
         {
             //         getCommandString(PortFD, value, ":fG#");
@@ -3756,7 +3826,17 @@ void LX200_OnStep::OSUpdateRotator()
     double double_value;
     if(OSRotator1)
     {
-        getCommandString(PortFD, value, ":rG#");
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":rG#");
+        if (error_or_fail == 1 && value[0] == '0') //1 char return, response 0 = no Rotator
+        {
+            LOG_INFO("Detected Response that Rotator is not present, disabling further checks");
+            OSRotator1 = false;
+            return;
+        }
+        if (error_or_fail < 1) {
+            LOG_ERROR("Error talking to rotator, might be timeout (especially on network)");
+            return;
+        }
         if (f_scansexa(value, &double_value))
         {
             // 0 = good, thus this is the bad
@@ -3765,41 +3845,61 @@ void LX200_OnStep::OSUpdateRotator()
             return;
         }
         GotoRotatorN[0].value =  double_value;
+        double min_rotator, max_rotator;
+        //NOTE: The following commands are only on V4, V5 & OnStepX, not V3
+        //TODO: Psudo-state for V3 Rotator?
+        bool changed_minmax = false;
+        if (OnStepMountVersion != OSV_OnStepV1or2 && OnStepMountVersion != OSV_OnStepV3) {
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandDoubleResponse(PortFD, &min_rotator, value, ":rI#");
+            if (error_or_fail > 1)
+            {
+                changed_minmax = true;
+                GotoRotatorN[0].min =  min_rotator;
+            }
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandDoubleResponse(PortFD, &max_rotator, value, ":rM#");
+            if (error_or_fail > 1)
+            {
+                changed_minmax = true;
+                GotoRotatorN[0].max =  max_rotator;
+            }
+            if (changed_minmax) {
+                IUUpdateMinMax(&GotoRotatorNP);
+                IDSetNumber(&GotoRotatorNP, nullptr);
+            }
+            //GotoRotatorN
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":rT#");
+            if (error_or_fail > 1) {
+                if (value[0] == 'S') /*Stopped normal on EQ mounts */
+                {
+                    GotoRotatorNP.s = IPS_OK;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
 
-        getCommandString(PortFD, value, ":rI#");
-        GotoRotatorN[0].min =  atof(value);
-        getCommandString(PortFD, value, ":rM#");
-        GotoRotatorN[0].max =  atof(value);
-        IUUpdateMinMax(&GotoRotatorNP);
-        IDSetNumber(&GotoRotatorNP, nullptr);
-        //GotoRotatorN
-        getCommandString(PortFD, value, ":rT#");
-        if (value[0] == 'S') /*Stopped normal on EQ mounts */
-        {
-            GotoRotatorNP.s = IPS_OK;
-            IDSetNumber(&GotoRotatorNP, nullptr);
-
+                }
+                else if (value[0] == 'M') /* Moving, including de-rotation */
+                {
+                    GotoRotatorNP.s = IPS_BUSY;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
+                }
+                else
+                {
+                    //INVALID REPLY
+                    GotoRotatorNP.s = IPS_ALERT;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
+                }
+            }
+            memset(value, 0, RB_MAX_LEN);
+            int backlash_value;
+            error_or_fail = getCommandIntResponse(PortFD, &backlash_value, value, ":rb#");
+            if (error_or_fail > 1) {
+                RotatorBacklashN[0].value =  backlash_value;
+                RotatorBacklashNP.s = IPS_OK;
+                IDSetNumber(&RotatorBacklashNP, nullptr);
+            }
         }
-        else if (value[0] == 'M') /* Moving, including de-rotation */
-        {
-            GotoRotatorNP.s = IPS_BUSY;
-            IDSetNumber(&GotoRotatorNP, nullptr);
-        }
-        else
-        {
-            //INVALID REPLY
-            GotoRotatorNP.s = IPS_ALERT;
-            IDSetNumber(&GotoRotatorNP, nullptr);
-        }
-        getCommandString(PortFD, value, ":rb#");
-        RotatorBacklashN[0].value =  atoi(value);
-        RotatorBacklashNP.s = IPS_OK;
-        IDSetNumber(&RotatorBacklashNP, nullptr);
     }
-
-
-
-
 }
 
 IPState LX200_OnStep::MoveRotator(double angle)
@@ -4022,76 +4122,77 @@ IPState LX200_OnStep::PECStatus (int axis)
         // IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
         char value[RB_MAX_LEN] = {0};
         OSPECStatusSP.s = IPS_BUSY;
-        getCommandString(PortFD, value, ":$QZ?#");
-        // LOGF_INFO("Response %s", value);
-        // LOGF_INFO("Response %d", value[0]);
-        // LOGF_INFO("Response %d", value[1]);
-        OSPECStatusS[0].s = ISS_OFF ;
-        OSPECStatusS[1].s = ISS_OFF ;
-        OSPECStatusS[2].s = ISS_OFF ;
-        OSPECStatusS[3].s = ISS_OFF ;
-        OSPECStatusS[4].s = ISS_OFF ;
-        if (value[0] == 'I') //Ignore
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[0].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-            // 		OSPECEnabled = false;
-            LOG_INFO("Controller reports PEC Ignored and not supported");
-            LOG_INFO("No Further PEC Commands will be processed, unless status changed");
-        }
-        else if (value[0] == 'R') //Active Recording
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[2].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        }
-        else if (value[0] == 'r')  //Waiting for index before recording
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[4].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        }
-        else if (value[0] == 'P') //Active Playing
-        {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[1].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        }
-        else if (value[0] == 'p') //Waiting for index before playing
-        {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[3].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        }
-        else //INVALID REPLY
-        {
-            OSPECStatusSP.s = IPS_ALERT;
-            OSPECRecordSP.s = IPS_ALERT;
-        }
-        if (value[1] == '.')
-        {
-            OSPECIndexSP.s = IPS_OK;
-            OSPECIndexS[0].s = ISS_OFF;
-            OSPECIndexS[1].s = ISS_ON;
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":$QZ?#");
+        if (error_or_fail > 1) {
+            OSPECStatusS[0].s = ISS_OFF ;
+            OSPECStatusS[1].s = ISS_OFF ;
+            OSPECStatusS[2].s = ISS_OFF ;
+            OSPECStatusS[3].s = ISS_OFF ;
+            OSPECStatusS[4].s = ISS_OFF ;
+            if (value[0] == 'I') //Ignore
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[0].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+                // 		OSPECEnabled = false;
+                LOG_INFO("Controller reports PEC Ignored and not supported");
+                LOG_INFO("No Further PEC Commands will be processed, unless status changed");
+            }
+            else if (value[0] == 'R') //Active Recording
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[2].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            else if (value[0] == 'r')  //Waiting for index before recording
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[4].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            else if (value[0] == 'P') //Active Playing
+            {
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[1].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            else if (value[0] == 'p') //Waiting for index before playing
+            {
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[3].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            else //INVALID REPLY
+            {
+                OSPECStatusSP.s = IPS_ALERT;
+                OSPECRecordSP.s = IPS_ALERT;
+            }
+            if (value[1] == '.')
+            {
+                OSPECIndexSP.s = IPS_OK;
+                OSPECIndexS[0].s = ISS_OFF;
+                OSPECIndexS[1].s = ISS_ON;
+            }
+            else
+            {
+                OSPECIndexS[1].s = ISS_OFF;
+                OSPECIndexS[0].s = ISS_ON;
+            }
+            IDSetSwitch(&OSPECStatusSP, nullptr);
+            IDSetSwitch(&OSPECRecordSP, nullptr);
+            IDSetSwitch(&OSPECIndexSP, nullptr);
+            return IPS_OK;
         }
         else
         {
-            OSPECIndexS[1].s = ISS_OFF;
-            OSPECIndexS[0].s = ISS_ON;
+            LOG_DEBUG("Timeout or other error on :$QZ?#");
         }
-        IDSetSwitch(&OSPECStatusSP, nullptr);
-        IDSetSwitch(&OSPECRecordSP, nullptr);
-        IDSetSwitch(&OSPECIndexSP, nullptr);
-        return IPS_OK;
     }
     else
     {
         // LOG_DEBUG("PEC status called when Controller does not support PEC");
     }
     return IPS_ALERT;
-    // 	}
-    //     return IPS_OK;
 }
 
 
@@ -4141,12 +4242,14 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
     IDSetText(&OSNAlignTP, "==>Align Started");
     // Check for max number of stars and gracefully fall back to max, if more are requested.
     char read_buffer[RB_MAX_LEN] = {0};
-    if(getCommandString(PortFD, read_buffer, ":A?#"))
+    int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
-        LOGF_INFO("Getting Max Star: response Error, response = %s>", read_buffer);
+        LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return IPS_ALERT;
     }
     //Check max_stars
+
     int max_stars = read_buffer[0] - '0';
     if (stars > max_stars)
     {
@@ -4155,7 +4258,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
         stars = max_stars;
     }
     snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
-    LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
+    LOGF_INFO("Started Align with %s, max possible stars: %d", cmd, max_stars);
     if(sendOnStepCommand(cmd))
     {
         LOG_INFO("Starting Align failed");
@@ -4188,17 +4291,20 @@ bool LX200_OnStep::UpdateAlignStatus ()
     //               n is the current alignment star (0 otherwise)
     //               o is the last required alignment star when an alignment is in progress (0 otherwise)
 
-    char read_buffer[RB_MAX_LEN] = {0};
     char msg[40] = {0};
     char stars[5] = {0};
 
     int max_stars, current_star, align_stars;
     // LOG_INFO("Getting Align Status");
-    if(getCommandString(PortFD, read_buffer, ":A?#"))
+
+    char read_buffer[RB_MAX_LEN] = {0};
+    int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
-        LOGF_INFO("Align Status response Error, response = %s>", read_buffer);
+        LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return false;
     }
+    
     //  LOGF_INFO("Getting Align Status: %s", read_buffer);
     max_stars = read_buffer[0] - '0';
     current_star = read_buffer[1] - '0';
@@ -4265,27 +4371,33 @@ bool LX200_OnStep::UpdateAlignErr()
     //  IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 
     // LOG_INFO("Getting Align Error Status");
-    if(getCommandString(PortFD, read_buffer, ":GX02#"))
+    int error_or_fail;
+    double altCor, azmCor;
+    error_or_fail = getCommandDoubleResponse(PortFD, &altCor, read_buffer, ":GX02#");
+//     if(getCommandString(PortFD, read_buffer, ":GX02#"))
+    if (error_or_fail < 2)
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
         return false;
     }
     //  LOGF_INFO("Getting Align Error Status: %s", read_buffer);
 
-    long altCor = strtold(read_buffer, nullptr);
-    if(getCommandString(PortFD, read_buffer, ":GX03#"))
+//     long altCor = strtold(read_buffer, nullptr);
+error_or_fail = getCommandDoubleResponse(PortFD, &azmCor, read_buffer, ":GX02#");
+//     if(getCommandString(PortFD, read_buffer, ":GX03#"))
+    if (error_or_fail < 2)
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
         return false;
     }
     //  LOGF_INFO("Getting Align Error Status: %s", read_buffer);
 
-    long azmCor = strtold(read_buffer, nullptr);
+//     long azmCor = strtold(read_buffer, nullptr);
     fs_sexa(sexabuf, (double)azmCor / 3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", azmCor, sexabuf);
+    snprintf(polar_error, sizeof(polar_error), "%f'' /%s", azmCor, sexabuf);
     IUSaveText(&OSNAlignErrT[1], polar_error);
     fs_sexa(sexabuf, (double)altCor / 3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", altCor, sexabuf);
+    snprintf(polar_error, sizeof(polar_error), "%f'' /%s", altCor, sexabuf);
     IUSaveText(&OSNAlignErrT[0], polar_error);
     IDSetText(&OSNAlignErrTP, nullptr);
 

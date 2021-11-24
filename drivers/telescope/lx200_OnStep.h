@@ -255,9 +255,11 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
+        int flushIO(int fd);
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
+        int getCommandIntResponse(int fd, int *value, char *data, const char *cmd);
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
         void OSUpdateRotator();
