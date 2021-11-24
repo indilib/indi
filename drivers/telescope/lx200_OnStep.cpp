@@ -3180,8 +3180,6 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
     std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(PortFD, TCIFLUSH);
     flushIO(PortFD);
-    
-    
 
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
         LOGF_ERROR("CHECK CONNECTION: Error sending command %s", cmd);
@@ -3278,6 +3276,7 @@ int LX200_OnStep::flushIO(int fd)
     } while (error_type > 0);
     return 0;
 }
+
 int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd)
 {
     char *term;
@@ -3295,7 +3294,6 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    //     error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
     error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
@@ -3384,7 +3382,6 @@ int LX200_OnStep::getCommandIntResponse(int fd, int *value, char *data, const ch
     }
     return nbytes_read;
 }
-
 
 int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd)
 {

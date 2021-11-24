@@ -91,6 +91,7 @@ CCD::CCD()
     pierSide        = -1;
     J2000RA         = std::numeric_limits<double>::quiet_NaN();
     J2000DE         = std::numeric_limits<double>::quiet_NaN();
+    J2000Valid      = false;
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
@@ -110,6 +111,9 @@ CCD::CCD()
     // Check temperature every 5 seconds.
     m_TemperatureCheckTimer.setInterval(5000);
     m_TemperatureCheckTimer.callOnTimeout(std::bind(&CCD::checkTemperatureTarget, this));
+
+    exposureStartTime[0] = 0;
+    exposureDuration = 0.0;
 }
 
 CCD::~CCD()
@@ -422,10 +426,17 @@ bool CCD::initProperties()
                        IP_RW,
                        60, IPS_IDLE);
 
+    // Snooped J2000 RA/DEC Property
+    IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord", "Main Control", IP_RW,
+                       60, IPS_IDLE);
+
     // Snoop properties of interest
 
     // Snoop mount
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PIER_SIDE");
@@ -680,6 +691,19 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             Dec = newdec;
         }
     }
+    else if (IUSnoopNumber(root, &J2000EqNP) == 0)
+    {
+        float newra, newdec;
+        newra  = J2000EqN[0].value;
+        newdec = J2000EqN[1].value;
+        if ((newra != J2000RA) || (newdec != J2000DE))
+        {
+//    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
+            J2000RA = newra;
+            J2000DE = newdec;
+        }
+        J2000Valid = true;
+    }
     else if (!strcmp("TELESCOPE_PIER_SIDE", propName))
     {
         // set default to say we have no valid information from mount
@@ -825,9 +849,11 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
+            strncpy(J2000EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
             if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
             {
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
             }
@@ -951,33 +977,6 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             if (StartExposure(ExposureTime))
             {
-                if (PrimaryCCD.getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
-                {
-                    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-                    epochPos.rightascension  = RA;
-                    epochPos.declination = Dec;
-
-                    // Convert from JNow to J2000
-                    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-
-                    J2000RA = J2000Pos.rightascension;
-                    J2000DE = J2000Pos.declination;
-
-                    if (!std::isnan(Latitude) && !std::isnan(Longitude))
-                    {
-                        // Horizontal Coords
-                        INDI::IHorizontalCoordinates horizontalPos;
-                        IGeographicCoordinates observer;
-                        observer.latitude = Latitude;
-                        observer.longitude = Longitude;
-
-                        EquatorialToHorizontal(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-                        Azimuth = horizontalPos.azimuth;
-                        Altitude = horizontalPos.altitude;
-                        Airmass = ln_get_airmass(Altitude, 750);
-                    }
-                }
-
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 if (ExposureTime * 1000 < getCurrentPollingPeriod())
                     setCurrentPollingPeriod(ExposureTime * 950);
@@ -1767,7 +1766,6 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 {
     int status = 0;
     char dev_name[MAXINDINAME] = {0};
-    char exp_start[MAXINDINAME] = {0};
     double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
@@ -1817,12 +1815,11 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     uint32_t subBinY = targetChip->getBinY();
 
     strncpy(dev_name, getDeviceName(), MAXINDINAME);
-    strncpy(exp_start, targetChip->getExposureStartTime(), MAXINDINAME);
 
-    fits_update_key_dbl(fptr, "EXPTIME", targetChip->getExposureDuration(), 6, "Total Exposure Time (s)", &status);
+    fits_update_key_dbl(fptr, "EXPTIME", exposureDuration, 6, "Total Exposure Time (s)", &status);
 
     if (targetChip->getFrameType() == CCDChip::DARK_FRAME)
-        fits_update_key_dbl(fptr, "DARKTIME", targetChip->getExposureDuration(), 6, "Total Dark Exposure Time (s)", &status);
+        fits_update_key_dbl(fptr, "DARKTIME", exposureDuration, 6, "Total Dark Exposure Time (s)", &status);
 
     // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
     if (HasCooler() || TemperatureNP.p == IP_RO)
@@ -1916,8 +1913,44 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
 
-    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
+    if ( targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec) && (std::isnan(J2000RA) || std::isnan(J2000DE) || !J2000Valid) )
     {
+        INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.rightascension  = RA;
+        epochPos.declination = Dec;
+
+        // Convert from JNow to J2000
+        INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+
+        J2000RA = J2000Pos.rightascension;
+        J2000DE = J2000Pos.declination;
+    }
+    J2000Valid = false;  // enforce usage of EOD position if we receive no new epoch position
+
+    if ( targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE) )
+    {
+        if (!std::isnan(Latitude) && !std::isnan(Longitude))
+        {
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+
+	    J2000Pos.rightascension = J2000RA;
+	    J2000Pos.declination = J2000DE;
+
+            // Convert from JNow to J2000
+            INDI::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
+
+            // Horizontal Coords
+            INDI::IHorizontalCoordinates horizontalPos;
+            IGeographicCoordinates observer;
+            observer.latitude = Latitude;
+            observer.longitude = Longitude;
+
+            EquatorialToHorizontal(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+            Azimuth = horizontalPos.azimuth;
+            Altitude = horizontalPos.altitude;
+            Airmass = ln_get_airmass(Altitude, 750);
+        }
+
         char ra_str[32] = {0}, de_str[32] = {0};
 
         fs_sexa(ra_str, J2000RA, 2, 360000);
@@ -2023,7 +2056,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         }
     }
 
-    fits_update_key_str(fptr, "DATE-OBS", exp_start, "UTC start date of observation", &status);
+    fits_update_key_str(fptr, "DATE-OBS", exposureStartTime, "UTC start date of observation", &status);
     fits_write_comment(fptr, "Generated by INDI", &status);
 }
 
@@ -2047,6 +2080,10 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    // save information used for the fits header
+    exposureDuration = targetChip->getExposureDuration();
+    strncpy(exposureStartTime, targetChip->getExposureStartTime(), MAXINDINAME);
+
     if(HasDSP())
     {
         uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));

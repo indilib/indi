@@ -138,11 +138,6 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
 
         ISwitch DSLRPowerS[2];
         ISwitchVectorProperty DSLRPowerSP;
-        enum
-        {
-            DSLR_OFF,
-            DSLR_ON,
-        };
 
         // Select which power is ON on bootup
         ISwitch PowerOnBootS[4];
