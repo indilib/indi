@@ -92,7 +92,7 @@ static class Loader
             }
             else if (strstr(__progname, "indi_lx200ap"))
             {
-                IDLog("initializing from Astrophysics Experimental device...\n");
+                IDLog("initializing from Astrophysics device...\n");
                 telescope.reset(new LX200AstroPhysics());
             }
             else if (strstr(__progname, "indi_lx200ap_gtocp2"))
