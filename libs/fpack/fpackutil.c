@@ -962,8 +962,9 @@ int fp_pack_data_to_fits (const char *inputBuffer, size_t inputBufferSize, fitsf
     int	stat=0;
     size_t outbufferSize = 2880;
     void *outbuffer = (char *)malloc(outbufferSize);
+    void *inbuffer = (void *)(inputBuffer);
 
-    fits_open_memfile(&infptr, "", READONLY, &inputBuffer, &inputBufferSize, 2880, NULL, &stat);
+    fits_open_memfile(&infptr, "", READONLY, &inbuffer, &inputBufferSize, 2880, NULL, &stat);
     if (stat)
     {
         free(outbuffer);
@@ -1032,15 +1033,17 @@ int fp_pack_data_to_data (const char *inputBuffer, size_t inputBufferSize, unsig
 {
     fitsfile *infptr, *outfptr;
     int	stat=0;
+    void *inbuffer = (void *)(inputBuffer);
 
-    fits_open_memfile(&infptr, "", READONLY, &inputBuffer, &inputBufferSize, 2880, NULL, &stat);
+    fits_open_memfile(&infptr, "", READONLY, &inbuffer, &inputBufferSize, 2880, NULL, &stat);
     if (stat)
     {
         fits_report_error (stderr, stat);
         return -1;
     }
 
-    fits_create_memfile(&outfptr, outputBuffer, outputBufferSize, 2880, realloc, &stat);
+    void *outbuffer = (void *)(outputBuffer);
+    fits_create_memfile(&outfptr, outbuffer, outputBufferSize, 2880, realloc, &stat);
     if (stat)
     {
         fp_abort_output(infptr, outfptr, stat);
@@ -1461,8 +1464,9 @@ int fp_unpack_data_to_fits (const char *inputBuffer, size_t inputBufferSize, fit
     char *loc, *hduloc = 0, hduname[SZ_STR] = { 0 };
     size_t outbufferSize = 2880;
     void *outbuffer = (char *)malloc(outbufferSize);
+    void *inbuffer = (void *)(inputBuffer);
 
-    fits_open_memfile(&infptr, "", READONLY, &inputBuffer, &inputBufferSize, 2880, NULL, &stat);
+    fits_open_memfile(&infptr, "", READONLY, &inbuffer, &inputBufferSize, 2880, NULL, &stat);
     fits_create_memfile(&outfptr, &outbuffer, &outbufferSize, 2880, realloc, &stat);
 
     if (stat) {
