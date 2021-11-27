@@ -28,7 +28,7 @@
 #include <iomanip>
 #include <memory>
 #include <thread>
-#include <termio.h>
+#include <termios.h>
 
 void AXISSTATUS::SetFullStop()
 {
