@@ -3284,7 +3284,6 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    //     error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
     error_type = tty_read_expanded(fd, data, 1, OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
@@ -3319,7 +3318,7 @@ int LX200_OnStep::flushIO(int fd)
     tcflush(fd, TCIOFLUSH);
     do {
         char discard_data[RB_MAX_LEN] = {0};
-        error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 10000, &nbytes_read);
+        error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
         if (error_type >= 0) {
             LOGF_DEBUG("flushIO: Information in buffer: Bytes: %u, string: %s", nbytes_read, discard_data);
         }
@@ -3378,7 +3377,7 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
     }
 
     return nbytes_read;
-    
+
 }
 
 
