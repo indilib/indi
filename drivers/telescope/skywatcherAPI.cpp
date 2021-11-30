@@ -185,9 +185,10 @@ bool SkywatcherAPI::GetEncoder(AXISID Axis)
     if (!TalkWithAxis(Axis, 'j', Parameters, Response))
         return false;
 
-    long Microsteps            = BCDstr2long(Response);
-    CurrentEncoders[(int)Axis] = Microsteps;
-
+    long Microsteps = BCDstr2long(Response);
+    // Only accept valid data
+    if (Microsteps > 0)
+        CurrentEncoders[Axis] = Microsteps;
     return true;
 }
 
