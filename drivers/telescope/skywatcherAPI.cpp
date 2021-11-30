@@ -810,7 +810,8 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
             }
         }
 
-        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK)
+        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
+                || bytesRead < 3)
         {
             if (retries == SKYWATCHER_MAX_RETRTY - 1)
             {
