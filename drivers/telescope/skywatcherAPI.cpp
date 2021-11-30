@@ -809,7 +809,10 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
 
     if (response[0] == '!')
     {
-        MYDEBUGF(INDI::Logger::DBG_ERROR, "Mount error: %s", errorCodes.at(response[1]).c_str());
+        // char to int
+        uint8_t code = response[1] - 0x30;
+        if (errorCodes.count(code) > 0)
+            MYDEBUGF(INDI::Logger::DBG_ERROR, "Mount error: %s", errorCodes.at(code).c_str());
         return false;
     }
 
