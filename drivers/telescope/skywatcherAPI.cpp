@@ -194,14 +194,21 @@ bool SkywatcherAPI::GetEncoder(AXISID Axis)
 
 bool SkywatcherAPI::GetHighSpeedRatio(AXISID Axis)
 {
-    MYDEBUG(DBG_SCOPE, "GetHighSpeedRatio");
+    //MYDEBUG(DBG_SCOPE, "GetHighSpeedRatio");
     std::string Parameters, Response;
 
     if (!TalkWithAxis(Axis, 'g', Parameters, Response))
         return false;
 
     unsigned long highSpeedRatio = Highstr2long(Response);
-    HighSpeedRatio[(int)Axis]    = highSpeedRatio;
+
+    if (highSpeedRatio == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR, "Invalid highspeed ratio value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
+    HighSpeedRatio[Axis]    = highSpeedRatio;
 
     return true;
 }
@@ -215,6 +222,12 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
         return false;
 
     long tmpMicrostepsPerRevolution = BCDstr2long(Response);
+
+    if (tmpMicrostepsPerRevolution == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR, "Invalid microstep value from mount. Cycle power and reconnect again.");
+        return false;
+    }
 
     if (MountCode == _114GT)
         tmpMicrostepsPerRevolution = 0x205318; // for 114GT mount
@@ -243,7 +256,15 @@ bool SkywatcherAPI::GetMicrostepsPerWormRevolution(AXISID Axis)
     if (!TalkWithAxis(Axis, 's', Parameters, Response))
         return false;
 
-    MicrostepsPerWormRevolution[(int)Axis] = BCDstr2long(Response);
+    uint32_t value = BCDstr2long(Response);
+    if (value == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR,
+                "Invalid Microstep per work revolution value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
+    MicrostepsPerWormRevolution[Axis] = value;
 
     return true;
 }
@@ -279,7 +300,16 @@ bool SkywatcherAPI::GetStepperClockFrequency(AXISID Axis)
     if (!TalkWithAxis(Axis, 'b', Parameters, Response))
         return false;
 
-    StepperClockFrequency[(int)Axis] = BCDstr2long(Response);
+    uint32_t value = BCDstr2long(Response);
+
+    if (value == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR,
+                "Invalid Stepper Clock Frequency value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
+    StepperClockFrequency[Axis] = value;
 
     return true;
 }
@@ -360,7 +390,7 @@ bool SkywatcherAPI::InitializeMC()
 
 bool SkywatcherAPI::InitMount()
 {
-    MYDEBUG(DBG_SCOPE, "InitMount");
+    //MYDEBUG(DBG_SCOPE, "InitMount");
 
     if (!CheckIfDCMotor())
         return false;
