@@ -979,7 +979,9 @@ bool V4L2_Driver::setShutter(double duration)
         frameCount    = 0;
         subframeCount = 0;
 
-        LOGF_INFO("Started %.3f-second manual exposure.", duration);
+        // Do not spam log for short exposures.
+        if (duration >= 3)
+            LOGF_INFO("Started %.3f-second manual exposure.", duration);
         return true;
     }
     else
@@ -1670,7 +1672,8 @@ void V4L2_Driver::newFrame()
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
-            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
+            if (PrimaryCCD.getExposureDuration() >= 3)
+                LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
         else
@@ -1682,10 +1685,12 @@ void V4L2_Driver::newFrame()
                 is_capturing = false;
             }
             else
-                IDLog("%s: streamer is busy, continue capturing\n", __FUNCTION__);
+                LOGF_DEBUG("%s: streamer is busy, continue capturing\n", __FUNCTION__);
 
-            LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",
-                      subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
+
+            if (PrimaryCCD.getExposureDuration() >= 3)
+                LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",  subframeCount, current_exposure.tv_sec,
+                          current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
     }
