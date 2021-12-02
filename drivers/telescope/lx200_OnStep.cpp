@@ -574,8 +574,8 @@ bool LX200_OnStep::updateProperties()
                 defineProperty(&OSRotatorDerotateSP);
             }
         } else {
-            LOGF_ERROR("Error: %i", error_or_fail);
-            LOG_ERROR("Error on response to rotator check (:GX98#) CHECK CONNECTION");
+            LOGF_WARN("Error: %i", error_or_fail);
+            LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
         }
 
         if (OSRotator1 == false) 
@@ -3262,7 +3262,7 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
 
     if (nbytes_read < 1)
     {
-        LOG_ERROR("Timeout/Error on response. Check connection.");
+        LOG_WARN("Timeout/Error on response. Check connection.");
         return false;
     }
 
@@ -3370,7 +3370,7 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
     }
 
     if (sscanf(data, "%lf", value) != 1){
-        LOG_ERROR("Invalid response, check connection");
+        LOG_WARN("Invalid response, check connection");
         LOG_DEBUG("Flushing connection");
         tcflush(fd, TCIOFLUSH); 
         return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
@@ -3421,7 +3421,7 @@ int LX200_OnStep::getCommandIntResponse(int fd, int *value, char *data, const ch
         return error_type;
     }
     if (sscanf(data, "%i", value) != 1){
-        LOG_ERROR("Invalid response, check connection");
+        LOG_WARN("Invalid response, check connection");
         LOG_DEBUG("Flushing connection");
         tcflush(fd, TCIOFLUSH); 
         return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
@@ -3692,7 +3692,7 @@ int LX200_OnStep::OSUpdateFocuser()
             }
             else
             {
-                LOG_ERROR("Communication :FT# error, check connection.");
+                LOG_WARN("Communication :FT# error, check connection.");
                 //INVALID REPLY
                 FocusRelPosNP.s = IPS_ALERT;
                 IDSetNumber(&FocusRelPosNP, nullptr);
@@ -3701,7 +3701,7 @@ int LX200_OnStep::OSUpdateFocuser()
             }
         } else {
             //INVALID REPLY
-            LOG_ERROR("Communication :FT# error, check connection.");
+            LOG_WARN("Communication :FT# error, check connection.");
             FocusRelPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusRelPosNP, nullptr);
             FocusAbsPosNP.s = IPS_ALERT;
@@ -3718,8 +3718,8 @@ int LX200_OnStep::OSUpdateFocuser()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_max: %s, %i, fm_error: %i", focus_max, focus_max_int, fm_error);
         } else {
-            LOG_ERROR("Communication :FM# error, check connection.");
-            LOGF_ERROR("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
+            LOG_WARN("Communication :FM# error, check connection.");
+            LOGF_WARN("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
         //  :FI#  Get full in position (in microns)
@@ -3733,7 +3733,7 @@ int LX200_OnStep::OSUpdateFocuser()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_min: %s, %i fi_error: %i", focus_min, focus_min_int, fi_error);
         } else {
-            LOG_ERROR("Communication :FI# error, check connection.");
+            LOG_WARN("Communication :FI# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
 
@@ -3875,7 +3875,7 @@ int LX200_OnStep::OSUpdateRotator()
             return 0; //Return 0, as this is not a communication error
         }
         if (error_or_fail < 1) { //This does not neccessarily mean 
-            LOG_ERROR("Error talking to rotator, might be timeout (especially on network)");
+            LOG_WARN("Error talking to rotator, might be timeout (especially on network)");
             return -1;
         }
         if (f_scansexa(value, &double_value))
@@ -4243,7 +4243,7 @@ IPState LX200_OnStep::ReadPECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        LOG_ERROR("PEC Reading NOT Implemented");
+        LOG_WARN("PEC Reading NOT Implemented");
         return IPS_OK;
     }
     else
@@ -4259,7 +4259,7 @@ IPState LX200_OnStep::WritePECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        LOG_ERROR("PEC Writing NOT Implemented");
+        LOG_WARN("PEC Writing NOT Implemented");
         return IPS_OK;
     }
     else
