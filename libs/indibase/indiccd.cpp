@@ -429,7 +429,8 @@ bool CCD::initProperties()
     // Snooped J2000 RA/DEC Property
     IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord",
+                       "Main Control", IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -698,7 +699,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         newdec = J2000EqN[1].value;
         if ((newra != J2000RA) || (newdec != J2000DE))
         {
-//    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
+            //    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
             J2000RA = newra;
             J2000DE = newdec;
         }
@@ -1913,7 +1914,8 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
 
-    if ( targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec) && (std::isnan(J2000RA) || std::isnan(J2000DE) || !J2000Valid) )
+    if ( targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec) && (std::isnan(J2000RA)
+            || std::isnan(J2000DE) || !J2000Valid) )
     {
         INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
         epochPos.rightascension  = RA;
@@ -1933,8 +1935,8 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         {
             INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-	    J2000Pos.rightascension = J2000RA;
-	    J2000Pos.declination = J2000DE;
+            J2000Pos.rightascension = J2000RA;
+            J2000Pos.declination = J2000DE;
 
             // Convert from JNow to J2000
             INDI::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
@@ -2865,75 +2867,20 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
     {
         if (!strcmp(targetChip->getImageExtension(), "fits"))
         {
-            int  compressedBytes = 0;
-            char filename[MAXRBUF] = {0};
-            strncpy(filename, "/tmp/compressedfits.fits", MAXRBUF);
-
-            FILE * fp = fopen(filename, "w");
-            if (fp == nullptr)
-            {
-                LOGF_ERROR("Unable to save temporary image file: %s", strerror(errno));
-                return false;
-            }
-
-            int n = 0;
-            for (int nr = 0; nr < static_cast<int>(totalBytes); nr += n)
-                n = fwrite(static_cast<const uint8_t *>(fitsData) + nr, 1, totalBytes - nr, fp);
-            fclose(fp);
-
             fpstate	fpvar;
-            std::vector<std::string> arguments = {"fpack", filename};
-            std::vector<char *> arglist;
-            for (const auto &arg : arguments)
-                arglist.push_back(const_cast<char *>(arg.data()));
-            arglist.push_back(nullptr);
-
-            int argc = arglist.size() - 1;
-            char ** argv = arglist.data();
-
-            // TODO: Check for errors
             fp_init (&fpvar);
-            fp_get_param (argc, argv, &fpvar);
-            fp_preflight (argc, argv, FPACK, &fpvar);
-            fp_loop (argc, argv, FPACK, filename, fpvar);
-
-            // Remove temporary file from disk
-            remove(filename);
-
-            // Add .fz
-            strncat(filename, ".fz", 4);
-
-            struct stat st;
-            stat(filename, &st);
-            compressedBytes = st.st_size;
-
-            compressedData = new uint8_t[compressedBytes];
-
-            if (compressedData == nullptr)
+            size_t compressedBytes = 0;
+            int islossless = 0;
+            if (fp_pack_data_to_data(reinterpret_cast<const char *>(fitsData), totalBytes, &compressedData, &compressedBytes, fpvar,
+                                     &islossless) < 0)
             {
-                LOG_ERROR("Ran out of memory compressing image.");
+                free(compressedData);
+                LOG_ERROR("Error: Ran out of memory compressing image");
                 return false;
             }
-
-            fp = fopen(filename, "r");
-            if (fp == nullptr)
-            {
-                LOGF_ERROR("Unable to open temporary image file: %s", strerror(errno));
-                delete [] compressedData;
-                return false;
-            }
-
-            n = 0;
-            for (int nr = 0; nr < compressedBytes; nr += n)
-                n = fread(compressedData + nr, 1, compressedBytes - nr, fp);
-            fclose(fp);
-
-            // Remove compressed temporary file from disk
-            remove(filename);
 
             targetChip->FitsB.blob    = compressedData;
             targetChip->FitsB.bloblen = compressedBytes;
-            totalBytes = compressedBytes;
             snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.fz", targetChip->getImageExtension());
         }
         else

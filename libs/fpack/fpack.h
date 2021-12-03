@@ -1,7 +1,9 @@
 /* used by FPACK and FUNPACK
- * R. Seaman, NOAO
- * W. Pence, NASA/GSFC
- */
+    SPDX-FileCopyrightText: William D. Pence <https://heasarc.gsfc.nasa.gov/fitsio/>
+    SPDX-FileCopyrightText: R. Seaman
+
+    SPDX-License-Identifier: LicenseRef-NASA-FV-License-Agreement
+*/
 
 #pragma once
 
@@ -32,10 +34,10 @@ VERSION	History
       desired compression parameters that should be used when compressing
       that particular HDU, thus overriding the fpack command line parameter
       values.
-    
+
 1.6.0 (June 2012)
     - Fixed behavior of the "rename" function on Windows platforms so that
-      it will clobber/delete an existing file before renaming a file to 
+      it will clobber/delete an existing file before renaming a file to
       that name (the rename command behaves differently on POSIX and non-POSIX
       environments).
 
@@ -49,25 +51,25 @@ VERSION	History
     - Enhanced the tile compression routines so that a tile that contains all
       NaN pixel values will be compressed.
     - When uncompressing an image that was originally in a FITS primary array,
-      funpack will also append any new keywords that were written into the 
+      funpack will also append any new keywords that were written into the
       primary array of the compressed FITS file after the file was compressed.
     - Added support for the GZIP_2 algorithm, which shuffles the bytes in the
-      pixel values prior to compressing them with gzip.      
-1.5.1 (December 2010) Added prototype, mainly hidden, support for compressing 
-      binary tables.  
+      pixel values prior to compressing them with gzip.
+1.5.1 (December 2010) Added prototype, mainly hidden, support for compressing
+      binary tables.
 1.5.0 (August 2010) Added the -i2f option to lossy compress integer images.
-1.4.0 (Jan 2010) Reduced the default value for the q floating point image 
+1.4.0 (Jan 2010) Reduced the default value for the q floating point image
       quantization parameter from 16 to 4.  This results in about 50% better
-      compression (from about 4.6x to 6.4) with no lost of significant information 
+      compression (from about 4.6x to 6.4) with no lost of significant information
       (with the new subtractive dithering enhancement).  Replaced the code for
-      generating temporary filenames to make the code more portable (to Windows). 
+      generating temporary filenames to make the code more portable (to Windows).
       Replaced calls to the unix 'access' and 'stat' functions with more portable
       code.   When unpacking a file, write it first to a temporary file, then
       rename it when finished, so that other tasks cannot try to read the file
       before it is complete.
 1.3.0 (Oct 2009) added randomization to the dithering pattern so that
       the same pattern is not used for every image; also added an option
-      for losslessly compressing floating point images with GZIP for test 
+      for losslessly compressing floating point images with GZIP for test
       purposes (not recommended for general use).  Also added support for
       reading the input FITS file from the stdin file streams.
 1.2.0 (Sept 2009) added subtractive dithering feature (in CFITSIO) when
@@ -84,7 +86,7 @@ VERSION	History
 #define	FUNPACK		1
 
 /* changed from 16 in Jan. 2010 */
-#define	DEF_QLEVEL	4.  
+#define	DEF_QLEVEL	4.
 
 #define	DEF_HCOMP_SCALE	 0.
 #define	DEF_HCOMP_SMOOTH 0
@@ -96,52 +98,52 @@ VERSION	History
 
 typedef struct
 {
-	int	comptype;
-	float	quantize_level;
-	int     no_dither;
-	int     dither_offset;
-	int     dither_method;
-	float	scale;
-	float	rescale_noise;
-	int	smooth;
-	int	int_to_float;
-	float	n3ratio;
-	float	n3min;
-	long	ntile[MAX_COMPRESS_DIM];
+    int	comptype;
+    float	quantize_level;
+    int     no_dither;
+    int     dither_offset;
+    int     dither_method;
+    float	scale;
+    float	rescale_noise;
+    int	smooth;
+    int	int_to_float;
+    float	n3ratio;
+    float	n3min;
+    long	ntile[MAX_COMPRESS_DIM];
 
-	int	to_stdout;
-	int	listonly;
-	int	clobber;
-	int	delete_input;
-	int	do_not_prompt;
-	int	do_checksums;
-	int	do_gzip_file;
-	int     do_images;  
-	int     do_tables;  
-	int	test_all;
-	int	verbose;
+    int	to_stdout;
+    int	listonly;
+    int	clobber;
+    int	delete_input;
+    int	do_not_prompt;
+    int	do_checksums;
+    int	do_gzip_file;
+    int     do_images;
+    int     do_tables;
+    int	test_all;
+    int	verbose;
 
-	char	prefix[SZ_STR];
-	char	extname[SZ_STR];
-	int	delete_suffix;
-	char	outfile[SZ_STR];
-	int	firstfile;
+    char	prefix[SZ_STR];
+    char	extname[SZ_STR];
+    int	delete_suffix;
+    char	outfile[SZ_STR];
+    int	firstfile;
 
-	int	initialized;
-	int	preflight_checked;
+    int	initialized;
+    int	preflight_checked;
 } fpstate;
 
 typedef struct
 {
-	int	n_nulls;
-	double	minval;
-	double 	maxval;
-	double	mean;
-	double	sigma;
-	double	noise1;
-	double	noise2;
-	double	noise3;
-	double	noise5;
+    int	n_nulls;
+    double	minval;
+    double 	maxval;
+    double	mean;
+    double	sigma;
+    double	noise1;
+    double	noise2;
+    double	noise3;
+    double	noise5;
 } imgstats;
 
 #ifdef __cplusplus
@@ -150,41 +152,63 @@ extern "C" {
 
 int fp_get_param (int argc, char *argv[], fpstate *fpptr);
 void abort_fpack(int sig);
-void fp_abort_output (fitsfile *infptr, fitsfile *outfptr, int stat); 
+void fp_abort_output (fitsfile *infptr, fitsfile *outfptr, int stat);
 int fp_usage (void);
 int fp_help (void);
-int fp_hint (void); 
+int fp_hint (void);
 int fp_init (fpstate *fpptr);
 int fp_list (int argc, char *argv[], fpstate fpvar);
 int fp_info (char *infits);
 int fp_info_hdu (fitsfile *infptr);
 int fp_preflight (int argc, char *argv[], int unpack, fpstate *fpptr);
 int fp_loop (int argc, char *argv[], int unpack, char *output_filename, fpstate fpvar);
+
+/* Core pack function */
+/* Unpack input file to outfile file on disk */
 int fp_pack (char *infits, char *outfits, fpstate fpvar, int *islossless);
+/* Unpack input data to output FITS file in memory */
+int fp_pack_data_to_fits (const char *inputBuffer, size_t inputBufferSize, fitsfile **outfits, fpstate fpvar,
+                          int *islossless);
+/* Unpack input data to output data in memory */
+int fp_pack_data_to_data (const char *inputBuffer, size_t inputBufferSize, unsigned char **outputBuffer,
+                          size_t *outputBufferSize,
+                          fpstate fpvar,
+                          int *islossless);
+/* Pack input fits file to in-memory fits file */
+int fp_pack_fits_to_fits (fitsfile *infptr, fitsfile **outfits, fpstate fpvar, int *islossless);
+
+/* Core unpark functions */
+
+/* Unpack on disk file to output on disk file */
 int fp_unpack (char *infits, char *outfits, fpstate fpvar);
+/* Unpack input compressed input file to uncompressed output in-memory fits file */
+int fp_unpack_file_to_fits (char *infits, fitsfile **outfits, fpstate fpvar);
+/* Unpack input compressed data to uncompressed output in-memory fits file */
+int fp_unpack_data_to_fits (const char *inputBuffer, size_t inputBufferSize, fitsfile **outfptr, fpstate fpvar);
+
 int fp_test (char *infits, char *outfits, char *outfits2, fpstate fpvar);
-int fp_pack_hdu (fitsfile *infptr, fitsfile *outfptr, fpstate fpvar, 
-    int *islossless, int *status);
+int fp_pack_hdu (fitsfile *infptr, fitsfile *outfptr, fpstate fpvar,
+                 int *islossless, int *status);
 int fp_unpack_hdu (fitsfile *infptr, fitsfile *outfptr, fpstate fpvar, int *status);
-int fits_read_image_speed (fitsfile *infptr, float *whole_elapse, 
-    float *whole_cpu, float *row_elapse, float *row_cpu, int *status);
-int fp_test_hdu (fitsfile *infptr, fitsfile *outfptr, fitsfile *outfptr2, 
-	fpstate fpvar, int *status);
-int fp_test_table (fitsfile *infptr, fitsfile *outfptr, fitsfile *outfptr2, 
-	fpstate fpvar, int *status);
+int fits_read_image_speed (fitsfile *infptr, float *whole_elapse,
+                           float *whole_cpu, float *row_elapse, float *row_cpu, int *status);
+int fp_test_hdu (fitsfile *infptr, fitsfile *outfptr, fitsfile *outfptr2,
+                 fpstate fpvar, int *status);
+int fp_test_table (fitsfile *infptr, fitsfile *outfptr, fitsfile *outfptr2,
+                   fpstate fpvar, int *status);
 int marktime(int *status);
 int gettime(float *elapse, float *elapscpu, int *status);
-int fits_read_image_speed (fitsfile *infptr, float *whole_elapse, 
-    float *whole_cpu, float *row_elapse, float *row_cpu, int *status);
+int fits_read_image_speed (fitsfile *infptr, float *whole_elapse,
+                           float *whole_cpu, float *row_elapse, float *row_cpu, int *status);
 
 int fp_i2stat(fitsfile *infptr, int naxis, long *naxes, imgstats *imagestats, int *status);
 int fp_i4stat(fitsfile *infptr, int naxis, long *naxes, imgstats *imagestats, int *status);
 int fp_r4stat(fitsfile *infptr, int naxis, long *naxes, imgstats *imagestats, int *status);
 int fp_i2rescale(fitsfile *infptr, int naxis, long *naxes, double rescale,
-    fitsfile *outfptr, int *status);
+                 fitsfile *outfptr, int *status);
 int fp_i4rescale(fitsfile *infptr, int naxis, long *naxes, double rescale,
-    fitsfile *outfptr, int *status);
-    
+                 fitsfile *outfptr, int *status);
+
 #define fp_msg(msg) _fp_msg((const char *)msg)
 int _fp_msg (const char *msg);
 int fp_version (void);
@@ -198,4 +222,3 @@ int fu_help (void);
 #ifdef __cplusplus
 }
 #endif
-

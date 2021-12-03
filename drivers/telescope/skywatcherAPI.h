@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #define INDI_DEBUG_LOGGING
 #ifdef INDI_DEBUG_LOGGING
@@ -313,6 +314,12 @@ class SkywatcherAPI
 
     private:
         int MyPortFD { 0 };
+        // In seconds.
+        static constexpr uint8_t SKYWATCHER_MAX_RETRTY {3};
+        static constexpr uint8_t SKYWATCHER_TIMEOUT {5};
+        static constexpr uint8_t SKYWATCHER_MAX_CMD {16};
+
+        static const std::map<int, std::string> errorCodes;
 
 #ifdef INDI_DEBUG_LOGGING
     public:
