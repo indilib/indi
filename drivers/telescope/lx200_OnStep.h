@@ -24,8 +24,17 @@
 
     ===========================================
     
-    Version not yet updated:
-    Version 1.12: 
+    Version not yet updated/No INDI release:
+
+    Version 1.13
+    - Timeouts and misc errors due to new behavior of SWS (SmartWebServer)
+    - - Timeouts still at 100ms for USB connections, if on a TCP/network connection timeout reverts to 2 sec.
+    - Improvements to Focuser and Rotator polling
+    - Focuser doesn't show up if not detected (Regression fixed)
+
+    Past Versions:
+
+    Version 1.12: (INDI 1.9.3)
     - New timeout functions in INDI which significantly reduce startup times waiting for detection to fail. (Min time before was 1 second, current timeout for those is now set to 100 ms (100000 us which works well even with an Arduino Mega (Ramps) setup)
     - Cleanup and completely control TrackState. (Should eliminate various issues.)
     - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
@@ -35,7 +44,6 @@
     - Detects OnStep or OnStepX version (doesn't do much with it.) 
 
 
-    Past Versions:
     Version 1.11: (INDI 1.9.2)
     - Fixed one issue with tracking (Jamie Flinn/jamiecflinn) 
     Version 1.10: (finalized: INDI 1.9.1)
@@ -107,6 +115,8 @@
 #include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
 #include "indirotatorinterface.h"
+#include "connectionplugins/connectiontcp.h"
+
 
 #include <cstring>
 #include <unistd.h>
@@ -129,7 +139,7 @@
 #define PORTS_COUNT 10
 #define STARTING_PORT 0
 
-
+enum ResponseErrors {RES_ERR_FORMAT = -1001};
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
 enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
@@ -247,11 +257,14 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
+        int flushIO(int fd);
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
+        int getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
+        int getCommandIntResponse(int fd, int *value, char *data, const char *cmd);
         int  setMaxElevationLimit(int fd, int max);
-        void OSUpdateFocuser();
-        void OSUpdateRotator();
+        int OSUpdateFocuser(); //Return = 0 good, -1 = Communication error
+        int OSUpdateRotator(); //Return = 0 good, -1 = Communication error
         
         ITextVectorProperty ObjectInfoTP;
         IText ObjectInfoT[1] {};
@@ -281,6 +294,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IText VersionT[5] {};
         
         OnStepVersion OnStepMountVersion = OSV_UNKNOWN;
+        
+        long int OSTimeoutSeconds = 0;
+        long int OSTimeoutMicroSeconds = 100000;
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
@@ -390,6 +406,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         INumber OutputPorts[PORTS_COUNT];
         INumberVectorProperty OutputPorts_NP;
+        bool OSHasOutputs = true;
 
         INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
