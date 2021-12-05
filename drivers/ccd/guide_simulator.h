@@ -20,6 +20,7 @@
 
 #include "indiccd.h"
 #include "indifilterinterface.h"
+#include "indipropertyswitch.h"
 
 /**
  * @brief The GuideSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
@@ -64,10 +65,8 @@ class GuideSim : public INDI::CCD
         bool Disconnect() override;
 
         bool StartExposure(float duration) override;
-        bool StartGuideExposure(float) override;
 
         bool AbortExposure() override;
-        bool AbortGuideExposure() override;
 
         void TimerHit() override;
 
@@ -107,11 +106,6 @@ class GuideSim : public INDI::CCD
             0, 0
         };
 
-        float GuideExposureRequest { 0 };
-        struct timeval GuideExpStart
-        {
-            0, 0
-        };
 
         int testvalue { 0 };
         bool ShowStarField { true };
@@ -184,4 +178,8 @@ class GuideSim : public INDI::CCD
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        INDI::PropertySwitch ToggleTimeoutSP {2};
+
+        static constexpr const char *SIMULATOR_TAB {"Simulator Settings"};
 };

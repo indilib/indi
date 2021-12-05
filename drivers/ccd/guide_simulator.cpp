@@ -137,13 +137,13 @@ bool GuideSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
+                       "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
     IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
@@ -159,8 +159,13 @@ bool GuideSim::initProperties()
 
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                        IPS_IDLE);
+
+    // Timeout
+    ToggleTimeoutSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    ToggleTimeoutSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    ToggleTimeoutSP.fill(getDeviceName(), "CCD_TIMEOUT", "Timeout", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -223,6 +228,7 @@ void GuideSim::ISGetProperties(const char * dev)
     defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
+    defineProperty(&ToggleTimeoutSP);
 }
 
 bool GuideSim::updateProperties()
@@ -243,7 +249,6 @@ bool GuideSim::updateProperties()
             SetGuiderParams(500, 290, 16, 9.8, 12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
-
     }
     else
     {
@@ -297,17 +302,6 @@ bool GuideSim::StartExposure(float duration)
     return true;
 }
 
-bool GuideSim::StartGuideExposure(float n)
-{
-    GuideExposureRequest = n;
-    AbortGuideFrame      = false;
-    GuideCCD.setExposureDuration(n);
-    DrawCcdFrame(&GuideCCD);
-    gettimeofday(&GuideExpStart, nullptr);
-    InGuideExposure = true;
-    return true;
-}
-
 bool GuideSim::AbortExposure()
 {
     if (!InExposure)
@@ -315,15 +309,6 @@ bool GuideSim::AbortExposure()
 
     AbortPrimaryFrame = true;
 
-    return true;
-}
-
-bool GuideSim::AbortGuideExposure()
-{
-    //IDLog("Enter AbortGuideExposure\n");
-    if (!InGuideExposure)
-        return true; //  no need to abort if we aren't doing one
-    AbortGuideFrame = true;
     return true;
 }
 
@@ -352,7 +337,7 @@ void GuideSim::TimerHit()
     if (!isConnected())
         return;
 
-    if (InExposure)
+    if (InExposure && ToggleTimeoutSP.findOnSwitchIndex() == INDI_DISABLED)
     {
         if (AbortPrimaryFrame)
         {
@@ -383,52 +368,6 @@ void GuideSim::TimerHit()
                     //  set a shorter timer
                     nextTimer = timeleft * 1000;
                 }
-            }
-        }
-    }
-
-    if (InGuideExposure)
-    {
-        float timeleft;
-        timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
-
-        //IDLog("GUIDE Exposure left: %g - Requset: %g\n", timeleft, GuideExposureRequest);
-
-        if (timeleft < 0)
-            timeleft = 0;
-
-        //ImageExposureN[0].value = timeleft;
-        //IDSetNumber(ImageExposureNP, nullptr);
-        GuideCCD.setExposureLeft(timeleft);
-
-        if (timeleft < 1.0)
-        {
-            if (timeleft <= 0.001)
-            {
-                InGuideExposure = false;
-                if (!AbortGuideFrame)
-                {
-                    GuideCCD.binFrame();
-                    ExposureComplete(&GuideCCD);
-                    if (InGuideExposure)
-                    {
-                        //  the call to complete triggered another exposure
-                        timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
-                        if (timeleft < 1.0)
-                        {
-                            nextTimer = timeleft * 1000;
-                        }
-                    }
-                }
-                else
-                {
-                    //IDLog("Not sending guide frame cuz of abort\n");
-                }
-                AbortGuideFrame = false;
-            }
-            else
-            {
-                nextTimer = timeleft * 1000; //  set a shorter timer
             }
         }
     }
@@ -465,9 +404,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
-    if (targetChip->getXRes() == 500)
-        exposure_time = GuideExposureRequest * 4;
-    else if (Streamer->isStreaming())
+    if (Streamer->isStreaming())
         exposure_time = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
         exposure_time = ExposureRequest;
@@ -1186,6 +1123,14 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
 
             IDSetSwitch(&CoolerSP, nullptr);
 
+            return true;
+        }
+
+        if (ToggleTimeoutSP.isNameMatch(name))
+        {
+            ToggleTimeoutSP.update(states, names, n);
+            ToggleTimeoutSP.setState(IPS_OK);
+            ToggleTimeoutSP.apply();
             return true;
         }
     }
