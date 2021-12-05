@@ -131,7 +131,6 @@ class GuideSim : public INDI::CCD
         float k { 0 };
         float z { 0 };
 
-        bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
 
         /// Guide rate is 7 arcseconds per second
