@@ -267,4 +267,6 @@ class MyFocuserPro2 : public INDI::Focuser
 		// Update position every second
 		static constexpr const uint8_t GET_POSITION_FREQ{ 1 };
 		uint16_t Position_Counter { 0 };
+
+        static constexpr const char *SETTINGS_TAB {"Settings"};
 };

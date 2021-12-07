@@ -85,26 +85,22 @@ bool MyFocuserPro2::initProperties()
     // Backlash In
     IUFillSwitch(&BacklashInS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
     IUFillSwitch(&BacklashInS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_ON);
-    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "BACKLASH_IN_TOGGLE", "Backlash In", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "BACKLASH_IN_TOGGLE", "Backlash In", SETTINGS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&BacklashInStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
     IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "BACKLASH_IN_VALUE", "Backlash In",
-                       OPTIONS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+                       SETTINGS_TAB, IP_RW, 0,  IPS_IDLE);
 
     // Backlash Out
     IUFillSwitch(&BacklashOutS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
     IUFillSwitch(&BacklashOutS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_ON);
-    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "BACKLASH_OUT_TOGGLE", "Backlash Out", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "BACKLASH_OUT_TOGGLE", "Backlash Out", SETTINGS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&BacklashOutStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
     IUFillNumberVector(&BacklashOutStepsNP, BacklashOutStepsN, 1, getDeviceName(), "BACKLASH_OUT_VALUE", "Backlash Out",
-                       OPTIONS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+                       SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
@@ -114,15 +110,13 @@ bool MyFocuserPro2::initProperties()
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Coefficient", "", "%6.2f", 0, 50, 1, 0);
     IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 1, getDeviceName(), "FOCUS_TEMPERATURE_SETTINGS",
-                       "T. Settings", OPTIONS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+                       "T. Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_ENABLE], "TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_DISABLE], "TEMP_COMPENSATE_DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "FOCUS_TEMPERATURE_COMPENSATION",
-                       "T. Compensation", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                       "T. Compensation", SETTINGS_TAB,  IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Add step modes 1/64 to 1/256 for TMC type drivers R Brown June 2021
     IUFillSwitch(&StepModeS[TWOHUNDREDFIFTYSIX_STEP], "TWOHUNDREDFIFTYSIX_STEP", "1/256 Step", ISS_OFF);
@@ -134,20 +128,19 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&StepModeS[QUARTER_STEP], "QUARTER_STEP", "1/4 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[HALF_STEP], "HALF_STEP", "1/2 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FULL_STEP], "FULL_STEP", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "FOCUS_STEP_MODE", "Step Mode", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "FOCUS_STEP_MODE", "Step Mode", SETTINGS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON", "On", ISS_OFF);
     IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "FOCUS_COIL_POWER", "Coil Power", OPTIONS_TAB, IP_RW,
+    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "FOCUS_COIL_POWER", "Coil Power", SETTINGS_TAB, IP_RW,
                        ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     IUFillSwitch(&DisplayS[DISPLAY_OFF], "DISPLAY_OFF", "Off", ISS_OFF);
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_ON);
-    IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "FOCUS_DISPLAY", "Display", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "FOCUS_DISPLAY", "Display", SETTINGS_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
 
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
