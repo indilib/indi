@@ -446,12 +446,12 @@ bool Rainbow::getFirmwareVersion()
     {
         sscanf(res + 3, "%6s", fw);
         memset(res, 0, sizeof res);
-        RSTVersionsT[FIRMWARE].text = fw;
+        IUSaveText(&RSTVersionsT[FIRMWARE],fw);
 
         if (sendCommand(":AS#", res) == false)
             return false;
         sscanf(res + 3, "%6s", sn);
-        RSTVersionsT[SERIALNUMBER].text = sn;
+        IUSaveText(&RSTVersionsT[SERIALNUMBER],sn);
 
         RSTVersionsTP.s = IPS_OK;
         IDSetText(&RSTVersionsTP, nullptr);
