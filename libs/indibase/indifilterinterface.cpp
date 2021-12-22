@@ -50,14 +50,14 @@ bool FilterInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         // Define the Filter Slot and name properties
-        m_defaultDevice->defineNumber(&FilterSlotNP);
+        m_defaultDevice->defineProperty(&FilterSlotNP);
         if (FilterNameT == nullptr)
         {
             if (GetFilterNames() == true)
-                m_defaultDevice->defineText(FilterNameTP);
+                m_defaultDevice->defineProperty(FilterNameTP);
         }
         else
-            m_defaultDevice->defineText(FilterNameTP);
+            m_defaultDevice->defineProperty(FilterNameTP);
     }
     else
     {
@@ -140,7 +140,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
             }
 
             IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
-            m_defaultDevice->defineText(FilterNameTP);
+            m_defaultDevice->defineProperty(FilterNameTP);
             return true;
         }
 

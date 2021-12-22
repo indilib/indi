@@ -35,44 +35,6 @@
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
-void ISGetProperties(const char *dev)
-{
-    s2kGuide->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    s2kGuide->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    s2kGuide->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    s2kGuide->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    INDI_UNUSED(root);
-}
-
 const char *STAR2000::getDefaultName()
 {
     return (const char *)"STAR2000";
@@ -88,7 +50,7 @@ bool STAR2000::Connect()
     rc = Connect(PortT[0].text);
 
     if (rc)
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     return rc;
 }
@@ -146,8 +108,8 @@ bool STAR2000::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
     else
     {
@@ -161,7 +123,7 @@ bool STAR2000::updateProperties()
 void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
@@ -342,7 +304,7 @@ IPState STAR2000::GuideNorth(uint32_t ms)
 
     LOG_DEBUG("Starting NORTH guide");
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -370,7 +332,7 @@ IPState STAR2000::GuideSouth(uint32_t ms)
 
     NSDir = SOUTH;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -398,7 +360,7 @@ IPState STAR2000::GuideEast(uint32_t ms)
 
     WEDir = EAST;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -426,7 +388,7 @@ IPState STAR2000::GuideWest(uint32_t ms)
 
     WEDir = WEST;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 

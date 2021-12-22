@@ -54,6 +54,7 @@ typedef enum { IOP_N, IOP_S, IOP_W, IOP_E } IOP_DIRECTION;
 typedef enum { IOP_FIND_HOME, IOP_SET_HOME, IOP_GOTO_HOME } IOP_HOME_OPERATION;
 typedef enum { IOP_PIER_EAST, IOP_PIER_WEST, IOP_PIER_UNKNOWN } IOP_PIER_STATE;
 typedef enum { IOP_CW_UP, IOP_CW_NORMAL} IOP_CW_STATE;
+typedef enum { IOP_MB_STOP, IOP_MB_FLIP} IOP_MB_STATE;
 
 typedef struct
 {
@@ -93,7 +94,8 @@ class Driver
         /**************************************************************************
          Communication
         **************************************************************************/
-        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT, uint8_t debugLog = INDI::Logger::DBG_DEBUG);
+        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT,
+                         uint8_t debugLog = INDI::Logger::DBG_DEBUG);
         bool checkConnection(int fd);
 
         /**************************************************************************
@@ -117,6 +119,11 @@ class Driver
         bool setCustomRATrackRate(double rate);
         bool setTrackMode(IOP_TRACK_RATE rate);
         bool setTrackEnabled(bool enabled);
+        /* v3.0 Add in PEC Control */
+        bool setPECEnabled(bool enabled); // start / stop PEC
+        bool setPETEnabled(bool enabled); // record / cancel PEC
+        bool getPETEnabled(bool enabled); // check data / recording status
+        // End Mod */
         bool abort();
         bool slewNormal();
         bool slewCWUp();
@@ -136,6 +143,8 @@ class Driver
         **************************************************************************/
         bool park();
         bool unpark();
+        bool setParkAz(double az);
+        bool setParkAlt(double alt);
 
         /**************************************************************************
          Guide
@@ -143,6 +152,12 @@ class Driver
         bool setGuideRate(double RARate, double DERate);
         bool getGuideRate(double *RARate, double *DERate);
         bool startGuide(IOP_DIRECTION dir, uint32_t ms);
+
+        /**************************************************************************
+         Meridian Behavior
+        **************************************************************************/
+        bool setMeridianBehavior(IOP_MB_STATE action, uint8_t degrees);
+        bool getMeridianBehavior(IOP_MB_STATE &action, uint8_t &degrees);
 
         /**************************************************************************
          Time & Location
@@ -194,8 +209,10 @@ class Driver
             double JD;
             int utc_offset_minutes;
             bool day_light_saving;
+            uint8_t mb_limit;
             IOP_PIER_STATE pier_state;
             IOP_CW_STATE cw_state;
+            IOP_MB_STATE mb_state;
 
             IOPInfo simInfo;
         } simData;

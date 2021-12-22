@@ -34,44 +34,6 @@
 
 static std::unique_ptr<Microtouch> microTouch(new Microtouch());
 
-void ISGetProperties(const char *dev)
-{
-    microTouch->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    microTouch->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    microTouch->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    microTouch->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    microTouch->ISSnoopDevice(root);
-}
-
 Microtouch::Microtouch()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
@@ -147,13 +109,13 @@ bool Microtouch::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        //defineNumber(&MaxTravelNP);
-        defineSwitch(&MotorSpeedSP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
-//        defineSwitch(&ResetSP);
-//        defineNumber(&ResetToPosNP);
+        defineProperty(&TemperatureNP);
+        //defineProperty(&MaxTravelNP);
+        defineProperty(&MotorSpeedSP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
+//        defineProperty(&ResetSP);
+//        defineProperty(&ResetToPosNP);
 
         GetFocusParams();
 
@@ -580,7 +542,7 @@ IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     else
         MoveFocuser(FocusAbsPosN[0].value + FocusMaxPosN[0].value - 1);
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
         usleep(duration * 1000);
         AbortFocuser();
@@ -682,7 +644,7 @@ void Microtouch::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Microtouch::AbortFocuser()

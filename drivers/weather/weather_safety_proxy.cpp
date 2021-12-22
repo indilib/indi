@@ -39,44 +39,6 @@ static size_t WSP_WriteCallback(void *contents, size_t size, size_t nmemb, void 
     return size * nmemb;
 }
 
-void ISGetProperties(const char *dev)
-{
-    weatherSafetyProxy->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    weatherSafetyProxy->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    weatherSafetyProxy->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    weatherSafetyProxy->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    weatherSafetyProxy->ISSnoopDevice(root);
-}
-
 WeatherSafetyProxy::WeatherSafetyProxy()
 {
     setVersion(1, 0);
@@ -139,7 +101,7 @@ bool WeatherSafetyProxy::updateProperties()
 
     if (isConnected())
     {
-        defineText(&reasonsTP);
+        defineProperty(&reasonsTP);
     }
     else
     {
@@ -166,10 +128,10 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
     if (once)
     {
         once = false;
-        defineText(&ScriptsTP);
-        defineText(&UrlTP);
-        defineSwitch(&ScriptOrCurlSP);
-        defineNumber(&softErrorHysteresisNP);
+        defineProperty(&ScriptsTP);
+        defineProperty(&UrlTP);
+        defineProperty(&ScriptOrCurlSP);
+        defineProperty(&softErrorHysteresisNP);
         loadConfig(false, "WEATHER_SAFETY_SCRIPTS");
         loadConfig(false, "WEATHER_SAFETY_URLS");
         loadConfig(false, "SCRIPT_OR_CURL");
@@ -290,7 +252,7 @@ IPState WeatherSafetyProxy::updateWeather()
 
 IPState WeatherSafetyProxy::executeScript()
 {
-    char *cmd = ScriptsT[WSP_SCRIPT].text;
+    const char *cmd = ScriptsT[WSP_SCRIPT].text;
 
     if (access(cmd, F_OK|X_OK) == -1)
     {
@@ -309,7 +271,7 @@ IPState WeatherSafetyProxy::executeScript()
     }
     char buf[BUFSIZ];
     size_t byte_count = fread(buf, 1, BUFSIZ - 1, handle);
-    fclose(handle);
+    pclose(handle);
     buf[byte_count] = 0;
     if (byte_count == 0)
     {

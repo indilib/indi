@@ -41,44 +41,6 @@
 
 static std::unique_ptr<Gemini> geminiFR(new Gemini());
 
-void ISGetProperties(const char *dev)
-{
-    geminiFR->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    geminiFR->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    geminiFR->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    geminiFR->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    geminiFR->ISSnoopDevice(root);
-}
-
 /************************************************************************************
  *
 * ***********************************************************************************/
@@ -180,7 +142,8 @@ bool Gemini::initProperties()
     // Go to home/center
     IUFillSwitch(&FocuserGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&FocuserGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Focus Status indicators
@@ -219,22 +182,26 @@ bool Gemini::initProperties()
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
+                       0, IPS_IDLE );
 #if 0
 
 
     // Rotator Degree
     IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB,
+                       IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", ROTATOR_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Go to home/center
     IUFillSwitch(&RotatorGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&RotatorGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "ROTATOR_GOTO", "Goto", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "ROTATOR_GOTO", "Goto", ROTATOR_TAB, IP_RW,
+                       ISR_1OFMANY, 0,
                        IPS_IDLE);
 #endif
 
@@ -259,6 +226,8 @@ bool Gemini::initProperties()
 
     addAuxControls();
 
+    setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
@@ -274,34 +243,34 @@ bool Gemini::updateProperties()
     if (isConnected())
     {
         // Focuser Properties
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureCoeffNP);
-        defineSwitch(&TemperatureCompensateModeSP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&TemperatureCompensateOnStartSP);
-        //        defineSwitch(&FocusBacklashSP);
-        //        defineNumber(&FocusBacklashNP);
-        defineSwitch(&FocuserHomeOnStartSP);
-        defineSwitch(&FocuserGotoSP);
-        defineLight(&FocuserStatusLP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureCoeffNP);
+        defineProperty(&TemperatureCompensateModeSP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&TemperatureCompensateOnStartSP);
+        //        defineProperty(&FocusBacklashSP);
+        //        defineProperty(&FocusBacklashNP);
+        defineProperty(&FocuserHomeOnStartSP);
+        defineProperty(&FocuserGotoSP);
+        defineProperty(&FocuserStatusLP);
 
         // Rotator Properties
         INDI::RotatorInterface::updateProperties();
         /*
 
-        defineNumber(&RotatorAbsAngleNP);
-        defineSwitch(&AbortRotatorSP);
-        defineSwitch(&RotatorGotoSP);
-        defineSwitch(&ReverseRotatorSP);
+        defineProperty(&RotatorAbsAngleNP);
+        defineProperty(&AbortRotatorSP);
+        defineProperty(&RotatorGotoSP);
+        defineProperty(&ReverseRotatorSP);
         */
-        defineNumber(&RotatorAbsPosNP);
-        defineSwitch(&RotatorHomeOnStartSP);
-        defineLight(&RotatorStatusLP);
+        defineProperty(&RotatorAbsPosNP);
+        defineProperty(&RotatorHomeOnStartSP);
+        defineProperty(&RotatorStatusLP);
 
         // Hub Properties
-        defineText(&HFocusNameTP);
-        defineSwitch(&ResetSP);
-        defineNumber(&LedNP);
+        defineProperty(&HFocusNameTP);
+        defineProperty(&ResetSP);
+        defineProperty(&LedNP);
 
         if (getFocusConfig() && getRotatorConfig())
             LOG_INFO("Gemini parameters updated, rotating focuser ready for use.");
@@ -642,7 +611,8 @@ bool Gemini::ISNewText(const char *dev, const char *name, char *texts[], char *n
         if (!strcmp(name, HFocusNameTP.name))
         {
             IUUpdateText(&HFocusNameTP, texts, names, n);
-            if (setNickname(DEVICE_FOCUSER, HFocusNameT[DEVICE_FOCUSER].text) && setNickname(DEVICE_ROTATOR, HFocusNameT[DEVICE_ROTATOR].text))
+            if (setNickname(DEVICE_FOCUSER, HFocusNameT[DEVICE_FOCUSER].text)
+                    && setNickname(DEVICE_ROTATOR, HFocusNameT[DEVICE_ROTATOR].text))
                 HFocusNameTP.s = IPS_OK;
             else
                 HFocusNameTP.s = IPS_ALERT;
@@ -1913,7 +1883,8 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        strncpy(response, "CurrTemp = +21.7\n", 16);
+        //strncpy(response, "CurrTemp = +21.7\n", 16); // #PS: incorrect, lost last character
+        strcpy(response, "CurrTemp = +21.7\n");
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1922,7 +1893,10 @@ bool Gemini::getFocusStatus()
         LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
+
+    if (nbytes_read > 0)
+        response[nbytes_read - 1] = '\0';
+
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     float temperature = 0;
@@ -2936,9 +2910,9 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         focusMoveRequest = duration / 1000.0;
     }
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
-        usleep(POLLMS * 1000);
+        usleep(getCurrentPollingPeriod() * 1000);
         AbortFocuser();
         return IPS_OK;
     }
@@ -3014,7 +2988,7 @@ void Gemini::TimerHit()
 
     if (focuserConfigurationComplete == false || rotatorConfigurationComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3030,7 +3004,7 @@ void Gemini::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read focuser status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3103,7 +3077,7 @@ void Gemini::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read rotator status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3165,7 +3139,7 @@ void Gemini::TimerHit()
         IDSetSwitch(&HomeRotatorSP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -3213,7 +3187,9 @@ bool Gemini::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = FocuserGotoSP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
+    FocuserGotoSP.s = IPS_IDLE;
     IUResetSwitch(&FocuserGotoSP);
     IDSetNumber(&FocusAbsPosNP, nullptr);
     IDSetSwitch(&FocuserGotoSP, nullptr);

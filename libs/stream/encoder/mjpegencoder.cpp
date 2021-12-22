@@ -22,7 +22,7 @@
 #include "mjpegencoder.h"
 #include "stream/streammanager.h"
 #include "indiccd.h"
-
+#include <cmath>
 #include <zlib.h>
 #include <jpeglib.h>
 #include <jerror.h>
@@ -141,6 +141,8 @@ int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, ui
     cinfo.image_height = height;
 #if JPEG_LIB_VERSION >= 70
     cinfo.scale_denom = scale;
+#else
+    INDI_UNUSED(scale);
 #endif
     cinfo.input_components = 1;
     cinfo.in_color_space = JCS_GRAYSCALE;
@@ -181,6 +183,8 @@ int MJPEGEncoder::jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uin
     cinfo.image_height = height;
 #if JPEG_LIB_VERSION >= 70
     cinfo.scale_denom = scale;
+#else
+    INDI_UNUSED(scale);
 #endif
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;

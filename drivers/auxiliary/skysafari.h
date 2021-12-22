@@ -38,21 +38,21 @@ class SkySafari : public INDI::DefaultDevice
     public:
         SkySafari();
 
-        virtual void ISGetProperties(const char *dev);
+        virtual void ISGetProperties(const char *dev) override;
 
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
-        virtual bool initProperties();
+        virtual bool initProperties() override;
 
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual const char *getDefaultName();
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual const char *getDefaultName() override;
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         void processCommand(std::string cmd);

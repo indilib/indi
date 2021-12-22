@@ -17,7 +17,7 @@
 
 #include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
-
+#include "indielapsedtimer.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -32,7 +32,8 @@ struct GuidingPulse
 };
 
 
-class SkywatcherAPIMount : public SkywatcherAPI,
+class SkywatcherAPIMount :
+    public SkywatcherAPI,
     public INDI::Telescope,
     public INDI::GuiderInterface,
     public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
@@ -41,57 +42,91 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         SkywatcherAPIMount();
         virtual ~SkywatcherAPIMount() = default;
 
-        //  overrides of base class virtual functions
-        virtual bool Abort() override;
-        virtual bool Handshake() override;
-        virtual const char *getDefaultName() override;
-        virtual bool Goto(double ra, double dec) override;
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                char *formats[], char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        double GetSlewRate();
+
+    protected:
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Communication
+        /////////////////////////////////////////////////////////////////////////////////////
+        virtual bool Handshake() override;
+        virtual bool ReadScopeStatus() override;
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Motion
+        /////////////////////////////////////////////////////////////////////////////////////
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-        double GetParkDeltaAz(ParkDirection_t target_direction, ParkPosition_t target_position);
-        virtual bool Park() override;
-        virtual bool UnPark() override;
-        virtual bool ReadScopeStatus() override;
-        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool Goto(double ra, double dec) override;
         virtual bool Sync(double ra, double dec) override;
+        virtual bool Abort() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Misc.
+        /////////////////////////////////////////////////////////////////////////////////////
+        virtual const char *getDefaultName() override;
         virtual void TimerHit() override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        double GetSlewRate();
+        double GetParkDeltaAz(ParkDirection_t target_direction, ParkPosition_t target_position);
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Guiding
+        /////////////////////////////////////////////////////////////////////////////////////
         virtual IPState GuideNorth(uint32_t ms) override;
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
 
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Parking
+        /////////////////////////////////////////////////////////////////////////////////////
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+
     private:
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Guiding
+        /////////////////////////////////////////////////////////////////////////////////////
         void CalculateGuidePulses();
         void ResetGuidePulses();
         void ConvertGuideCorrection(double delta_ra, double delta_dec, double &delta_alt, double &delta_az);
-        void UpdateScopeConfigSwitch();
-        int recover_tty_reconnect();
-        // Overrides for the pure virtual functions in SkyWatcherAPI
-        virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) override;
-        virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) override;
-        virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) override;
 
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Telescope Vector <---> Microsteps
+        /////////////////////////////////////////////////////////////////////////////////////
         void SkywatcherMicrostepsFromTelescopeDirectionVector(
             const INDI::AlignmentSubsystem::TelescopeDirectionVector TelescopeDirectionVector, long &Axis1Microsteps,
             long &Axis2Microsteps);
         const INDI::AlignmentSubsystem::TelescopeDirectionVector
         TelescopeDirectionVectorFromSkywatcherMicrosteps(long Axis1Microsteps, long Axis2Microsteps);
 
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Misc
+        /////////////////////////////////////////////////////////////////////////////////////
         void UpdateDetailedMountInformation(bool InformClient);
+        bool getCurrentAltAz(INDI::IHorizontalCoordinates &altaz);
+        bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
+        // Reset tracking timer to account for drift compensation
+        void resetTracking();
 
-        // Properties
-
-        static constexpr const char *DetailedMountInfoPage { "Detailed Mount Information" };
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        /////////////////////////////////////////////////////////////////////////////////////
+        static constexpr const char *MountInfoTab { "Mount Info" };
+        IText BasicMountInfoT[4] {};
+        ITextVectorProperty BasicMountInfoTP;
         enum
         {
             MOTOR_CONTROL_FIRMWARE_VERSION,
@@ -99,9 +134,11 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             MOUNT_NAME,
             IS_DC_MOTOR
         };
-        IText BasicMountInfo[4] {};
-        ITextVectorProperty BasicMountInfoV;
 
+        INumber AxisOneInfoN[4];
+        INumberVectorProperty AxisOneInfoNP;
+        INumber AxisTwoInfoN[4];
+        INumberVectorProperty AxisTwoInfoNP;
         enum
         {
             MICROSTEPS_PER_REVOLUTION,
@@ -109,10 +146,12 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             HIGH_SPEED_RATIO,
             MICROSTEPS_PER_WORM_REVOLUTION
         };
-        INumber AxisOneInfo[4];
-        INumberVectorProperty AxisOneInfoV;
-        INumber AxisTwoInfo[4];
-        INumberVectorProperty AxisTwoInfoV;
+
+
+        ISwitch AxisOneStateS[6];
+        ISwitchVectorProperty AxisOneStateSP;
+        ISwitch AxisTwoStateS[6];
+        ISwitchVectorProperty AxisTwoStateSP;
         enum
         {
             FULL_STOP,
@@ -122,10 +161,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             HIGH_SPEED,
             NOT_INITIALISED
         };
-        ISwitch AxisOneState[6];
-        ISwitchVectorProperty AxisOneStateV;
-        ISwitch AxisTwoState[6];
-        ISwitchVectorProperty AxisTwoStateV;
+
         enum
         {
             RAW_MICROSTEPS,
@@ -133,28 +169,28 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             OFFSET_FROM_INITIAL,
             DEGREES_FROM_INITIAL
         };
-        INumber AxisOneEncoderValues[4];
-        INumberVectorProperty AxisOneEncoderValuesV;
-        INumber AxisTwoEncoderValues[4];
-        INumberVectorProperty AxisTwoEncoderValuesV;
+        INumber AxisOneEncoderValuesN[4];
+        INumberVectorProperty AxisOneEncoderValuesNP;
+        INumber AxisTwoEncoderValuesN[4];
+        INumberVectorProperty AxisTwoEncoderValuesNP;
 
+        ISwitch SlewModesS[2];
+        ISwitchVectorProperty SlewModesSP;
         // A switch for silent/highspeed slewing modes
         enum
         {
             SLEW_SILENT,
             SLEW_NORMAL
         };
-        ISwitch SlewModes[2];
-        ISwitchVectorProperty SlewModesSP;
 
+        ISwitch SoftPECModesS[2];
+        ISwitchVectorProperty SoftPECModesSP;
         // A switch for SoftPEC modes
         enum
         {
             SOFTPEC_ENABLED,
             SOFTPEC_DISABLED
         };
-        ISwitch SoftPECModes[2];
-        ISwitchVectorProperty SoftPECModesSP;
 
         // SoftPEC value for tracking mode
         INumber SoftPecN;
@@ -164,46 +200,28 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
-        // A switch for park movement directions (clockwise/counterclockwise)
-        ISwitch ParkMovementDirection[2];
-        ISwitchVectorProperty ParkMovementDirectionSP;
 
-        // A switch for park positions
-        ISwitch ParkPosition[4];
-        ISwitchVectorProperty ParkPositionSP;
-
-        // A switch for unpark positions
-        ISwitch UnparkPosition[4];
-        ISwitchVectorProperty UnparkPositionSP;
-
+        /////////////////////////////////////////////////////////////////////////////////////
+        /// Private Variables
+        /////////////////////////////////////////////////////////////////////////////////////
         // Tracking
-        ln_equ_posn CurrentTrackingTarget { 0, 0 };
+        INDI::IEquatorialCoordinates m_SkyTrackingTarget { 0, 0 };
+        INDI::IEquatorialCoordinates m_SkyCurrentRADE {0, 0};
+        INDI::IHorizontalCoordinates m_MountAltAz {0, 0};
+        // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
+        static constexpr double MAX_TRACKING_DELTA {5};
+
         long OldTrackingTarget[2] { 0, 0 };
-        struct ln_hrz_posn CurrentAltAz
-        {
-            0, 0
-        };
-        struct ln_hrz_posn TrackedAltAz
-        {
-            0, 0
-        };
-        bool ResetTrackingSeconds { false };
-        int TrackingMsecs { 0 };
+        INDI::ElapsedTimer m_TrackingElapsedTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
-
-        /// Save the serial port name
-        std::string SerialPortName;
-        /// Recover after disconnection
-        bool RecoverAfterReconnection { false };
+        double m_AzimuthRateScale {1.0};
+        double m_AltitudeRateScale {1.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;
         std::vector<GuidingPulse> GuidingPulses;
 
-        bool moving { false };
-
-#ifdef USE_INITIAL_JULIAN_DATE
-        double InitialJulianDate { 0 };
-#endif
+        bool m_ManualMotionActive { false };
+        bool m_IterativeGOTOPending {false};
 };

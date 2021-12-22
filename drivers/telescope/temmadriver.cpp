@@ -41,43 +41,6 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to temma.
 static std::unique_ptr<TemmaMount> temma(new TemmaMount());
 
-void ISGetProperties(const char *dev)
-{
-    temma->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    temma->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    temma->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    temma->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    temma->ISSnoopDevice(root);
-}
-
 TemmaMount::TemmaMount()
 {
     SetTelescopeCapability(TELESCOPE_CAN_PARK |
@@ -144,11 +107,11 @@ void TemmaMount::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    //defineNumber(&GuideNSNP);
-    //defineNumber(&GuideWENP);
+    //defineProperty(&GuideNSNP);
+    //defineProperty(&GuideWENP);
 
     // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
-    //defineNumber(&GuideRateNP);
+    //defineProperty(&GuideRateNP);
 }
 #endif
 
@@ -227,8 +190,8 @@ bool TemmaMount::updateProperties()
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Load location so that it could trigger mount initiailization
         loadConfig(true, "GEOGRAPHIC_COORD");
@@ -453,7 +416,7 @@ bool TemmaMount::ReadScopeStatus()
         const char *maligns[3] = {"ZENITH", "NORTH", "SOUTH"};
         double juliandate, lst;
         //double alignedRA, alignedDEC;
-        struct ln_equ_posn RaDec;
+        struct INDI::IEquatorialCoordinates RaDec;
         bool aligned;
         juliandate = ln_get_julian_from_sys();
         lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 / 360.0);
@@ -746,12 +709,12 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         if (dir != DIRECTION_WEST)
         {
             LOG_DEBUG("Start slew East");
-            Slewbits |= 2;
+            Slewbits |= 4;
         }
         else
         {
             LOG_DEBUG("Start Slew West");
-            Slewbits |= 4;
+            Slewbits |= 2;
         }
         SlewActive = true;
     }
@@ -944,10 +907,10 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 }
 
 #if 0
-ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
+INDI::IEquatorialCoordinates TemmaMount::TelescopeToSky(double ra, double dec)
 {
     double RightAscension, Declination;
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -962,8 +925,8 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 
         /* This code does a conversion from ra/dec to alt/az
         // before calling the alignment stuff
-            ln_lnlat_posn here;
-            ln_hrz_posn altaz;
+            IGeographicCoordinates here;
+            INDI::IHorizontalCoordinates altaz;
 
             here.lat=LocationN[LOCATION_LATITUDE].value;
             here.lng=LocationN[LOCATION_LONGITUDE].value;
@@ -1008,9 +971,9 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
     return eq;
 }
 
-ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
+INDI::IEquatorialCoordinates TemmaMount::SkyToTelescope(double ra, double dec)
 {
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
     TelescopeDirectionVector TDV;
     double RightAscension, Declination;
 

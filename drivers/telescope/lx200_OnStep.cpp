@@ -22,8 +22,13 @@
 
 */
 
+//#define DEBUG_TRACKSTATE
+
 
 #include "lx200_OnStep.h"
+
+
+#include <mutex>
 
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
@@ -32,22 +37,27 @@
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
 #define ENVIRONMENT_TAB "Weather"
+#define ROTATOR_TAB "Rotator"
 
-#define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
-LX200_OnStep::LX200_OnStep() : LX200Generic() , WI(this)
+extern std::mutex lx200CommsLock;
+
+
+LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 9);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 13);   // don't forget to update libindi/drivers.xml
 
-    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
-    
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 10 );
-    
+    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
+                       LX200_HAS_PRECISE_TRACKING_FREQ);
+
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK                         |
+                           TELESCOPE_HAS_TRACK_RATE, 10 );
+
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODE Already inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
     //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
@@ -58,8 +68,16 @@ LX200_OnStep::LX200_OnStep() : LX200Generic() , WI(this)
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
-    
-    
+
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
+    //     /*{
+    //         ROTATOR_CAN_ABORT          = 1 << 0, /*!< Can the Rotator abort motion once started? */
+    //         ROTATOR_CAN_HOME           = 1 << 1, /*!< Can the Rotator go to home position? */
+    //         ROTATOR_CAN_SYNC           = 1 << 2, /*!< Can the Rotator sync to specific tick? */ /*Not supported */
+    //         ROTATOR_CAN_REVERSE        = 1 << 3, /*!< Can the Rotator reverse direction? */ //It CAN reverse, but there's no way to query the direction
+    //         ROTATOR_HAS_BACKLASH       = 1 << 4  /*!< Can the Rotatorer compensate for backlash? */
+    //     //}*/
+
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -73,6 +91,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
+    RI::initProperties(ROTATOR_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -90,11 +109,13 @@ bool LX200_OnStep::initProperties()
     // ============== MAIN_CONTROL_TAB
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     IUFillText(&ObjectInfoT[0], "Info", "", "");
     IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -120,60 +141,71 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
     IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
     IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
     IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_ON);
-    IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
-    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
-    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
     IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
-    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
-    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
-    
+    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
+    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
+    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 3600, 1, 15);
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 3600, 1, 15);
+    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.25, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0, IPS_IDLE);
-    
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0,
+                       IPS_IDLE);
+
     IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
     IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
-    IUFillSwitchVector(&AutoFlipSP, AutoFlipS, 2, getDeviceName(), "AutoFlip", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&AutoFlipSP, AutoFlipS, 2, getDeviceName(), "AutoFlip", "Meridian Auto Flip", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&HomePauseS[0], "1", "HomePause: OFF", ISS_OFF);
     IUFillSwitch(&HomePauseS[1], "2", "HomePause: ON", ISS_OFF);
     IUFillSwitch(&HomePauseS[2], "3", "HomePause: Continue", ISS_OFF);
-    IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Pause at Home", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Pause at Home", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FrequencyAdjustS[0], "1", "Frequency -", ISS_OFF);
     IUFillSwitch(&FrequencyAdjustS[1], "2", "Frequency +", ISS_OFF);
     IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
-    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust",
+                       MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&PreferredPierSideS[0], "1", "West", ISS_OFF);
     IUFillSwitch(&PreferredPierSideS[1], "2", "East", ISS_OFF);
     IUFillSwitch(&PreferredPierSideS[2], "3", "Best", ISS_OFF);
-    IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side", "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
+    IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
+                       "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
     IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
-    IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian", "Minutes Past Meridian", MOTION_TAB, IP_RW, 0,IPS_IDLE);
-    
+    IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
+                       "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
 
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
 
     // ============== GUIDE_TAB
 
@@ -183,7 +215,23 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);
     IUFillSwitch(&OSFocus1InitializeS[1], "Focus1_2", "Mid", ISS_OFF);
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
-    IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&OSFocusSelectS[0], "Focuser_Primary_1", "Focuser 1", ISS_ON);
+    IUFillSwitch(&OSFocusSelectS[1], "Focuser_Primary_2", "Focuser 2/Swap", ISS_OFF);
+    // For when OnStepX comes out
+    IUFillSwitch(&OSFocusSelectS[2], "Focuser_Primary_3", "3", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[3], "Focuser_Primary_4", "4", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[4], "Focuser_Primary_5", "5", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[5], "Focuser_Primary_6", "6", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[6], "Focuser_Primary_7", "7", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[7], "Focuser_Primary_8", "8", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[8], "Focuser_Primary_9", "9", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[9], "Focuser_Primary_10", "10", ISS_OFF);
+
+    IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, 1, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
     // Focuser 2
@@ -194,16 +242,27 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSFocus2MotionS[0], "Focus2_In", "In", ISS_OFF);
     IUFillSwitch(&OSFocus2MotionS[1], "Focus2_Out", "Out", ISS_OFF);
     IUFillSwitch(&OSFocus2MotionS[2], "Focus2_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&OSFocus2MotionSP, OSFocus2MotionS, 3, getDeviceName(), "Foc2Mot", "Foc 2 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSFocus2MotionSP, OSFocus2MotionS, 3, getDeviceName(), "Foc2Mot", "Foc 2 Motion", FOCUS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSFocus2RateS[0], "Focus2_1", "min", ISS_OFF);
     IUFillSwitch(&OSFocus2RateS[1], "Focus2_2", "0.01", ISS_OFF);
     IUFillSwitch(&OSFocus2RateS[2], "Focus2_3", "0.1", ISS_OFF);
     IUFillSwitch(&OSFocus2RateS[3], "Focus2_4", "1", ISS_OFF);
-    IUFillSwitchVector(&OSFocus2RateSP, OSFocus2RateS, 4, getDeviceName(), "Foc2Rate", "Foc 2 Rates", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSFocus2RateSP, OSFocus2RateS, 4, getDeviceName(), "Foc2Rate", "Foc 2 Rates", FOCUS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&OSFocus2TargN[0], "FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
-    IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+    // =========== ROTATOR TAB
+
+    IUFillSwitch(&OSRotatorDerotateS[0], "Derotate_OFF", "OFF", ISS_OFF);
+    IUFillSwitch(&OSRotatorDerotateS[1], "Derotate_ON", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSRotatorDerotateSP, OSRotatorDerotateS, 2, getDeviceName(), "Derotate_Status", "DEROTATE", ROTATOR_TAB,
+                       IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     // ============== FIRMWARE_TAB
     IUFillText(&VersionT[0], "Date", "", "");
@@ -218,21 +277,25 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
     IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
     IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
-    IUFillSwitchVector(&OSPECStatusSP, OSPECStatusS, 5, getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSPECStatusSP, OSPECStatusS, 5, getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSPECIndexS[0], "Not Detected", "Not Detected", ISS_ON);
     IUFillSwitch(&OSPECIndexS[1], "Detected", "Detected", ISS_OFF);
-    IUFillSwitchVector(&OSPECIndexSP, OSPECIndexS, 2, getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSPECIndexSP, OSPECIndexS, 2, getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSPECRecordS[0], "Clear", "Clear", ISS_OFF);
     IUFillSwitch(&OSPECRecordS[1], "Record", "Record", ISS_OFF);
     IUFillSwitch(&OSPECRecordS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
-    IUFillSwitchVector(&OSPECRecordSP, OSPECRecordS, 3, getDeviceName(), "PEC Operations", "PEC Recording", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSPECRecordSP, OSPECRecordS, 3, getDeviceName(), "PEC Operations", "PEC Recording", PEC_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSPECReadS[0], "Read", "Read PEC to FILE****", ISS_OFF);
     IUFillSwitch(&OSPECReadS[1], "Write", "Write PEC from FILE***", ISS_OFF);
     //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
-    IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0,
+                       IPS_IDLE);
     // ============== New ALIGN_TAB
     // Only supports Alpha versions currently (July 2018) Now Beta (Dec 2018)
     IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
@@ -244,19 +307,23 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignStarsS[6], "7", "7 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[7], "8", "8 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[8], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only",
+                       ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only",
+                       ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
     IUFillSwitch(&OSNAlignPolarRealignS[0], "0", "Instructions", ISS_OFF);
     IUFillSwitch(&OSNAlignPolarRealignS[1], "1", "Refine Polar Align (manually)", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP", "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP",
+                       "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
@@ -282,21 +349,24 @@ bool LX200_OnStep::initProperties()
     // ===============
     IUFillSwitch(&OSOutput1S[0], "0", "OFF", ISS_ON);
     IUFillSwitch(&OSOutput1S[1], "1", "ON", ISS_OFF);
-    IUFillSwitchVector(&OSOutput1SP, OSOutput1S, 2, getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    IUFillSwitchVector(&OSOutput1SP, OSOutput1S, 2, getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_ALERT);
 
     IUFillSwitch(&OSOutput2S[0], "0", "OFF", ISS_ON);
     IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
-    IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_ALERT);
 #endif
 
     for(int i = 0; i < PORTS_COUNT; i++)
     {
         char port_name[30];
-        sprintf(port_name, "Output %d", i);
+        snprintf(port_name, sizeof(port_name), "Output %d", i);
         IUFillNumber(&OutputPorts[i], port_name, port_name, "%g", 0, 255, 1, 0);
     }
 
-    IUFillNumberVector(&OutputPorts_NP, OutputPorts, PORTS_COUNT, getDeviceName(), "Outputs", "Outputs",  OUTPUT_TAB, IP_WO, 60, IPS_OK);
+    IUFillNumberVector(&OutputPorts_NP, OutputPorts, PORTS_COUNT, getDeviceName(), "Outputs", "Outputs",  OUTPUT_TAB, IP_WO, 60,
+                       IPS_OK);
 
 
     // ============== STATUS_TAB
@@ -309,33 +379,39 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+    IUFillText(&OnstepStat[9], "TMC Axis1", "", "");
+    IUFillText(&OnstepStat[10], "TMC Axis2", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 11, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     // ============== WEATHER TAB
     // Uses OnStep's defaults for this
     IUFillNumber(&OSSetTemperatureN[0], "Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
-    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB,
+                       IP_RW, 0, IPS_IDLE);
     IUFillNumber(&OSSetHumidityN[0], "Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
-    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB,
+                       IP_RW, 0, IPS_IDLE);
     IUFillNumber(&OSSetPressureN[0], "Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
-    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
-    
+    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW,
+                       0, IPS_IDLE);
+
     //Will eventually pull from the elevation in site settings
     //TODO: Pull from elevation in site settings
     IUFillNumber(&OSSetAltitudeN[0], "Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
-    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
-    
-    
-    
+    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -40, 85, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 1500, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15); // From OnStep
+    addParameter("WEATHER_CPU_TEMPERATURE", "OnStep CPU Temperature", -274, 200, -274); // From OnStep, -274 = unread
     setCriticalParameter("WEATHER_TEMPERATURE");
-    
+
     addAuxControls();
-    
-    
+
+
     setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE | WEATHER_INTERFACE);
 
     return true;
@@ -350,92 +426,198 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 bool LX200_OnStep::updateProperties()
 {
     LX200Generic::updateProperties();
-    FI::updateProperties();
+    //TODO: Properly setup Weather
     WI::updateProperties();
+
     if (isConnected())
     {
+        Connection::Interface *activeConnection = getActiveConnection();
+        if (!activeConnection->name().compare("CONNECTION_TCP"))
+        {
+            LOG_INFO("Network based connection, detection timeouts set to 2 seconds");
+            OSTimeoutMicroSeconds = 0;
+            OSTimeoutSeconds = 2;
+        } else {
+            LOG_INFO("Non-Network based connection, detection timeouts set to 0.1 seconds");
+            OSTimeoutMicroSeconds = 100000;
+            OSTimeoutSeconds = 0;
+        }
+
         // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
-        defineSwitch(&ReticSP);
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
+        defineProperty(&ReticSP);
+        defineProperty(&ElevationLimitNP);
+        defineProperty(&ObjectInfoTP);
         // Connection
 
         // Options
 
         // OnStep Status
-        defineText(&OnstepStatTP);
-        
+        defineProperty(&OnstepStatTP);
+
         // Motion Control
-        defineNumber(&MaxSlewRateNP);
-        defineSwitch(&TrackCompSP);
-        defineSwitch(&TrackAxisSP);
-        defineNumber(&BacklashNP);
-        defineNumber(&GuideRateNP);
-        defineSwitch(&AutoFlipSP);
-        defineSwitch(&HomePauseSP);
-        defineSwitch(&FrequencyAdjustSP);
-        defineSwitch(&PreferredPierSideSP);
-        defineNumber(&minutesPastMeridianNP);
+        defineProperty(&MaxSlewRateNP);
+        defineProperty(&TrackCompSP);
+        defineProperty(&TrackAxisSP);
+        defineProperty(&BacklashNP);
+        defineProperty(&GuideRateNP);
+        defineProperty(&AutoFlipSP);
+        defineProperty(&HomePauseSP);
+        defineProperty(&FrequencyAdjustSP);
+        defineProperty(&PreferredPierSideSP);
+        defineProperty(&minutesPastMeridianNP);
 
         // Site Management
-        defineSwitch(&ParkOptionSP);
-        defineSwitch(&SetHomeSP);
+        defineProperty(&ParkOptionSP);
+        defineProperty(&SetHomeSP);
 
         // Guide
 
         // Focuser
 
         // Focuser 1
-
-        if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+        OSNumFocusers = 0; //Reset before detection
+        //if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+        char response[RB_MAX_LEN] = {0};
+        int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":FA#"); //0 = failure, 1 = success, no # on reply
+        if (error_or_fail > 0 && response[0] == '1')
         {
+            LOG_INFO("Focuser 1 found");
             OSFocuser1 = true;
-            defineSwitch(&OSFocus1InitializeSP);
+            defineProperty(&OSFocus1InitializeSP);
+            OSNumFocusers = 1;
+        }
+        else
+        {
+            OSFocuser1 = false;
+            LOG_INFO("Focuser 1 NOT found");
+            LOGF_DEBUG("error_or_fail = %u, response = %c", error_or_fail, response[0]);
         }
         // Focuser 2
-        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
+        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
         {
+            LOG_INFO("Focuser 2 found");
             OSFocuser2 = true;
-            //defineSwitch(&OSFocus2SelSP);
-            defineSwitch(&OSFocus2MotionSP);
-            defineSwitch(&OSFocus2RateSP);
-            defineNumber(&OSFocus2TargNP);
+            OSNumFocusers = 2;
+            //defineProperty(&OSFocus2SelSP);
+            defineProperty(&OSFocus2MotionSP);
+            defineProperty(&OSFocus2RateSP);
+            defineProperty(&OSFocus2TargNP);
+            IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser",
+                               FOCUS_TAB,
+                               IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+            defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
+        }
+        else     //For OnStepX, up to 9 focusers
+        {
+            LOG_INFO("Focuser 2 NOT found");
+            OSFocuser2 = false;
+            if (OnStepMountVersion == OSV_UNKNOWN || OnStepMountVersion == OSV_OnStepX)
+            {
+                LOG_INFO("Version unknown or OnStepX (Checking for OnStepX Focusers)");
+                for (int i = 0; i < 9; i++)
+                {
+                    char cmd[CMD_MAX_LEN] = {0};
+                    char read_buffer[RB_MAX_LEN] = {0};
+                    snprintf(cmd, sizeof(cmd), ":F%dA#", i + 1);
+                    int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer, cmd); //0 = failure, 1 = success, 0 on all prior to OnStepX no # on reply
+                    if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
+                    {
+                        LOGF_INFO("Focuser %i Found", i);
+                        OSNumFocusers = i + 1;
+                    }
+                    else
+                    {
+                        if(fail_or_error < 0)
+                        {
+                            //Non detection = 0, Read errors < 0, stop
+                            LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i", fail_or_error);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (OSNumFocusers > 1)
+            {
+                IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser",
+                                   FOCUS_TAB,
+                                   IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                defineProperty(&OSFocusSelectSP);
+            }
+        }
+        if (OSNumFocusers == 0)
+        {
+            LOG_INFO("No Focusers found");
+        }
+        else
+        {
+            LOG_INFO("At least one focuser found, showing interface");
+            FI::updateProperties();
+        }
+
+        LOG_DEBUG("Focusers checked Variables:");
+        LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
+
+        //Rotation Information
+        char rotator_response[RB_MAX_LEN] = {0};
+        error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, rotator_response, ":GX98#");
+        if (error_or_fail > 0)
+        {
+            if (rotator_response[0] == 'D' || rotator_response[0] == 'R') {
+                LOG_INFO("Rotator found.");
+                OSRotator1 = true;
+                RI::updateProperties();
+            }
+            if (rotator_response[0] == 'D')
+            {
+                defineProperty(&OSRotatorDerotateSP);
+            }
+        } else {
+            LOGF_WARN("Error: %i", error_or_fail);
+            LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
+        }
+
+        if (OSRotator1 == false) 
+        {
+            LOG_INFO("No Rotator found.");
+            OSRotator1 = false;
         }
 
         // Firmware Data
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
 
         //PEC
-        defineSwitch(&OSPECStatusSP);
-        defineSwitch(&OSPECIndexSP);
-        defineSwitch(&OSPECRecordSP);
-        defineSwitch(&OSPECReadSP);
-        defineNumber(&OSPECCurrentIndexNP);
-        defineNumber(&OSPECRWValuesNP);
+        //TODO: Define later when it might be supported
+        defineProperty(&OSPECStatusSP);
+        defineProperty(&OSPECIndexSP);
+        defineProperty(&OSPECRecordSP);
+        defineProperty(&OSPECReadSP);
+        defineProperty(&OSPECCurrentIndexNP);
+        defineProperty(&OSPECRWValuesNP);
 
         //New Align
-        defineSwitch(&OSNAlignStarsSP);
-        defineSwitch(&OSNAlignSP);
-        defineSwitch(&OSNAlignWriteSP);
-        defineText(&OSNAlignTP);
-        defineText(&OSNAlignErrTP);
-        defineSwitch(&OSNAlignPolarRealignSP);
+        defineProperty(&OSNAlignStarsSP);
+        defineProperty(&OSNAlignSP);
+        defineProperty(&OSNAlignWriteSP);
+        defineProperty(&OSNAlignTP);
+        defineProperty(&OSNAlignErrTP);
+        defineProperty(&OSNAlignPolarRealignSP);
 
 #ifdef ONSTEP_NOTDONE
         //Outputs
-        defineSwitch(&OSOutput1SP);
-        defineSwitch(&OSOutput2SP);
+        defineProperty(&OSOutput1SP);
+        defineProperty(&OSOutput2SP);
 #endif
+       // OSHasOutputs = true; //Set to true on new connection, Init_Outputs will set to false if appropriate
+        Init_Outputs();
 
-        defineNumber(&OutputPorts_NP);
-        
         //Weather
-        defineNumber(&OSSetTemperatureNP);
-        defineNumber(&OSSetPressureNP);
-        defineNumber(&OSSetHumidityNP);
-        defineNumber(&OSSetAltitudeNP);
+        defineProperty(&OSSetTemperatureNP);
+        defineProperty(&OSSetPressureNP);
+        defineProperty(&OSSetHumidityNP);
+        defineProperty(&OSSetAltitudeNP);
+
 
 
         if (InitPark())
@@ -458,10 +640,21 @@ bool LX200_OnStep::updateProperties()
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-        if (longitude != -1000 && latitude != -1000)
-        {
-            updateLocation(latitude, longitude, 0);
-        }
+        //         if (longitude != -1000 && latitude != -1000)
+        //         {
+        //             updateLocation(latitude, longitude, 0);
+        //         }
+        //NOTE: if updateProperties is called it clobbers this, so added here
+        IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
+        IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
+        IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
     }
     else
     {
@@ -499,6 +692,10 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSFocus2MotionSP.name);
         deleteProperty(OSFocus2RateSP.name);
         deleteProperty(OSFocus2TargNP.name);
+        deleteProperty(OSFocusSelectSP.name);
+
+        // Rotator
+        deleteProperty(OSRotatorDerotateSP.name);
 
         // Firmware Data
         deleteProperty(VersionTP.name);
@@ -530,15 +727,16 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
-        
-        
         //Weather
         deleteProperty(OSSetTemperatureNP.name);
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
-        
+        FI::updateProperties();
+        RI::updateProperties();
+        OSHasOutputs = true; //Set once per connection, either at startup or on disconnection for next connection;
     }
+    LOG_INFO("Initialization Complete");
     return true;
 }
 
@@ -548,6 +746,82 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
+        if (strstr(name, "ROTATOR_"))
+            return RI::processNumber(dev, name, values, names, n);
+
+        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
+            //Replace this from inditelescope so it doesn't change state
+            //Most of this needs to be handled by our updates, or it breaks things
+        {
+            //  this is for us, and it is a goto
+            bool rc    = false;
+            double ra  = -1;
+            double dec = -100;
+
+            for (int x = 0; x < n; x++)
+            {
+                INumber *eqp = IUFindNumber(&EqNP, names[x]);
+                if (eqp == &EqN[AXIS_RA])
+                {
+                    ra = values[x];
+                }
+                else if (eqp == &EqN[AXIS_DE])
+                {
+                    dec = values[x];
+                }
+            }
+            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
+            {
+                // Check if it is already parked.
+                if (CanPark())
+                {
+                    if (isParked())
+                    {
+                        LOG_DEBUG("Please unpark the mount before issuing any motion/sync commands.");
+                        //                         EqNP.s = lastEqState = IPS_IDLE;
+                        //                         IDSetNumber(&EqNP, nullptr);
+                        return false;
+                    }
+                }
+
+                // Check if it can sync
+                if (Telescope::CanSync())
+                {
+                    ISwitch *sw;
+                    sw = IUFindSwitch(&CoordSP, "SYNC");
+                    if ((sw != nullptr) && (sw->s == ISS_ON))
+                    {
+                        rc = Sync(ra, dec);
+                        //                         if (rc)
+                        //                             EqNP.s = lastEqState = IPS_OK;
+                        //                         else
+                        //                             EqNP.s = lastEqState = IPS_ALERT;
+                        //                         IDSetNumber(&EqNP, nullptr);
+                        return rc;
+                    }
+                }
+
+                // Remember Track State
+                //                 RememberTrackState = TrackState;
+                // Issue GOTO
+                rc = Goto(ra, dec);
+                if (rc)
+                {
+                    //       EqNP.s = lastEqState = IPS_BUSY;
+                    //  Now fill in target co-ords, so domes can start turning
+                    TargetN[AXIS_RA].value = ra;
+                    TargetN[AXIS_DE].value = dec;
+                    IDSetNumber(&TargetNP, nullptr);
+                }
+                else
+                {
+                    //        EqNP.s = lastEqState = IPS_ALERT;
+                }
+                //    IDSetNumber(&EqNP, nullptr);
+            }
+            return rc;
+        }
+
         if (!strcmp(name, ObjectNoNP.name))
         {
             char object_name[256];
@@ -578,8 +852,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            int ret; 
-            char cmd[5];
+            int ret;
+            char cmd[CMD_MAX_LEN] = {0};
             snprintf(cmd, 5, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
@@ -605,7 +879,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, BacklashNP.name))
         {
-            char cmd[9];
+            //char cmd[CMD_MAX_LEN] = {0};
             int i, nset;
             double bklshdec = 0, bklshra = 0;
 
@@ -627,6 +901,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
             if (nset == 2)
             {
+                char cmd[CMD_MAX_LEN] = {0};
                 snprintf(cmd, 9, ":$BD%d#", (int)bklshdec);
                 if (sendOnStepCommand(cmd))
                 {
@@ -707,7 +982,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, minutesPastMeridianNP.name))
     {
-        char cmd[20];
+        //char cmd[CMD_MAX_LEN] ={0};
         int i, nset;
         double minPMEast = 0, minPMWest = 0;
 
@@ -729,6 +1004,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         if (nset == 2)
         {
+            char cmd[CMD_MAX_LEN] = {0};
             snprintf(cmd, 20, ":SXE9,%d#", (int) minPMEast);
             if (sendOnStepCommand(cmd))
             {
@@ -763,7 +1039,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     // Focuser 2 Target
     if (!strcmp(name, OSFocus2TargNP.name))
     {
-        char cmd[32];
+        char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= -25000) && (values[0] <= 25000))
         {
@@ -790,10 +1066,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if(OutputPorts_NP.np[i].value != value)
             {
                 int ret;
-                char cmd[20];
+                char cmd[CMD_MAX_LEN] = {0};
                 int port = STARTING_PORT + i;
 
-                snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
+                //This is for newer version of OnStep:
+                snprintf(cmd, sizeof(cmd), ":SXX%d,V%d#", port, value);
+                //This is for older version of OnStep:
+                //snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
                 ret = sendOnStepCommandBlind(cmd);
 
                 if (ret == -1)
@@ -804,7 +1083,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 }
 
                 OutputPorts_NP.s           = IPS_OK;
-
                 OutputPorts_NP.np[i].value = value;
                 IDSetNumber(&OutputPorts_NP, "Set port %d to value =%d", port, value);
             }
@@ -815,10 +1093,11 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, OSSetTemperatureNP.name))
     {
-        char cmd[32];
-        
+        //         char cmd[CMD_MAX_LEN] = {0};
+
         if ((values[0] >= -100) && (values[0] <= 100))
         {
+            char cmd[CMD_MAX_LEN] = {0};
             snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetTemperatureNP.s           = IPS_OK;
@@ -831,11 +1110,11 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-    
+
     if (!strcmp(name, OSSetHumidityNP.name))
     {
-        char cmd[32];
-        
+        char cmd[CMD_MAX_LEN] = {0};
+
         if ((values[0] >= 0) && (values[0] <= 100))
         {
             snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
@@ -850,11 +1129,11 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-    
+
     if (!strcmp(name, OSSetPressureNP.name))
     {
-        char cmd[32];
-        
+        char cmd[CMD_MAX_LEN] = {0};
+
         if ((values[0] >= 0) && (values[0] <= 100))
         {
             snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
@@ -869,11 +1148,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-    
-    
-    
-    
-    
+
     if (strstr(name, "WEATHER_"))
     {
         return WI::processNumber(dev, name, values, names, n);
@@ -888,6 +1163,47 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        //Intercept Before inditelescope base can set TrackState
+        //Next one modification of inditelescope.cpp function
+        if (!strcmp(name, TrackStateSP.name))
+        {
+            //             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
+            IUUpdateSwitch(&TrackStateSP, states, names, n);
+            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            //             LOG_DEBUG("OnStep driver TrackStateSP override called");
+            //             if (previousState == targetState)
+            //             {
+            //                 IDSetSwitch(&TrackStateSP, nullptr);
+            //                 return true;
+            //             }
+
+            if (TrackState == SCOPE_PARKED)
+            {
+                LOG_WARN("Telescope is Parked, Unpark before tracking.");
+                return false;
+            }
+
+            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
+
+            if (rc)
+            {
+                return true;
+                //TrackStateSP moved to Update
+            }
+            else
+            {
+                //This is the case for an error on sending the command, so change TrackStateSP
+                TrackStateSP.s = IPS_ALERT;
+                IUResetSwitch(&TrackStateSP);
+                return false;
+            }
+
+            LOG_DEBUG("TrackStateSP intercept, OnStep driver, should never get here");
+            return false;
+        }
+
+
+
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
@@ -916,32 +1232,32 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         //Move to more standard controls
         if (!strcmp(name, SlewRateSP.name))
         {
-                IUUpdateSwitch(&SlewRateSP, states, names, n);
-                int ret;
-                char cmd[5];
-                int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
-                snprintf(cmd, 5, ":R%d#", index);
-                ret = sendOnStepCommandBlind(cmd);
-                
-                //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
-                if (ret == -1)
-                {
-                        LOGF_DEBUG("Pas OK Return value =%d", ret);
-                        LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
-                        SlewRateSP.s = IPS_ALERT;
-                        IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
-                        return false;
-                }
-                LOGF_INFO("Setting Max Slew Rate to %u\n", index);
-                LOGF_DEBUG("OK Return value =%d", ret);
-                MaxSlewRateNP.s           = IPS_OK;
-                MaxSlewRateNP.np[0].value = index;
-                IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
-                IUResetSwitch(&SlewRateSP);
-                SlewRateS[index].s = ISS_ON;
-                SlewRateSP.s = IPS_OK;
-                IDSetSwitch(&SlewRateSP, nullptr);
-                return true;
+            IUUpdateSwitch(&SlewRateSP, states, names, n);
+            int ret;
+            char cmd[CMD_MAX_LEN] = {0};
+            int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
+            snprintf(cmd, sizeof(cmd), ":R%d#", index);
+            ret = sendOnStepCommandBlind(cmd);
+
+            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+            if (ret == -1)
+            {
+                LOGF_DEBUG("Pas OK Return value =%d", ret);
+                LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
+                SlewRateSP.s = IPS_ALERT;
+                IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
+                return false;
+            }
+            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateS[index].label);
+            LOGF_DEBUG("OK Return value =%d", ret);
+            MaxSlewRateNP.s           = IPS_OK;
+            MaxSlewRateNP.np[0].value = index;
+            IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[index].s = ISS_ON;
+            SlewRateSP.s = IPS_OK;
+            IDSetSwitch(&SlewRateSP, nullptr);
+            return true;
         }
         // Homing, Cold and Warm Init
         if (!strcmp(name, SetHomeSP.name))
@@ -1015,7 +1331,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             IUUpdateSwitch(&TrackAxisSP, states, names, n);
             TrackAxisSP.s = IPS_BUSY;
-            
+
             if (TrackAxisS[0].s == ISS_ON)
             {
                 if (!sendOnStepCommand(":T1#"))
@@ -1046,7 +1362,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             IUUpdateSwitch(&AutoFlipSP, states, names, n);
             AutoFlipSP.s = IPS_BUSY;
-            
+
             if (AutoFlipS[0].s == ISS_ON)
             {
                 if (sendOnStepCommand(":SX95,0#"))
@@ -1054,7 +1370,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                     AutoFlipSP.s = IPS_OK;
                     IDSetSwitch(&AutoFlipSP, "Auto Meridian Flip OFF");
                     return true;
-                } 
+                }
             }
             if (AutoFlipS[1].s == ISS_ON)
             {
@@ -1070,7 +1386,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&AutoFlipSP, nullptr);
             return true;
         }
-        
+
         if (!strcmp(name, HomePauseSP.name))
         {
             IUUpdateSwitch(&HomePauseSP, states, names, n);
@@ -1190,7 +1506,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Focuser 1 Rates
         if (!strcmp(name, OSFocus1InitializeSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
             if (IUUpdateSwitch(&OSFocus1InitializeSP, states, names, n) < 0)
                 return false;
             index = IUFindOnSwitchIndex(&OSFocus1InitializeSP);
@@ -1212,10 +1528,50 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
         }
 
+
+        //Focuser Swap/Select
+        if (!strcmp(name, OSFocusSelectSP.name))
+        {
+            char cmd[CMD_MAX_LEN] = {0};
+            int i;
+            if (IUUpdateSwitch(&OSFocusSelectSP, states, names, n) < 0)
+                return false;
+            index = IUFindOnSwitchIndex(&OSFocusSelectSP);
+            LOGF_INFO("Primary focuser set: Focuser 1 in INDI/Controllable Focuser = OnStep Focuser %d", index + 1);
+            if (index == 0 && OSNumFocusers <= 2)
+            {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 2");
+            }
+            if (index == 1 && OSNumFocusers <= 2)
+            {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 1");
+            }
+            if (OSNumFocusers > 2)
+            {
+                LOGF_INFO("If using OnStepX, There is no swap, and current max number: %d", OSNumFocusers);
+            }
+            snprintf(cmd, 7, ":FA%d#", index + 1 );
+            for (i = 0; i < 9; i++)
+            {
+                OSFocusSelectS[i].s = ISS_OFF;
+            }
+            OSFocusSelectS[index].s = ISS_ON;
+            if (!sendOnStepCommand(cmd))
+            {
+                OSFocusSelectSP.s = IPS_BUSY;
+            }
+            else
+            {
+                OSFocusSelectSP.s = IPS_ALERT;
+            }
+            IDSetSwitch(&OSFocusSelectSP, nullptr);
+        }
+
+
         // Focuser 2 Rates
         if (!strcmp(name, OSFocus2RateSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
 
             if (IUUpdateSwitch(&OSFocus2RateSP, states, names, n) < 0)
                 return false;
@@ -1230,7 +1586,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Focuser 2 Motion
         if (!strcmp(name, OSFocus2MotionSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
 
             if (IUUpdateSwitch(&OSFocus2MotionSP, states, names, n) < 0)
                 return false;
@@ -1238,15 +1594,15 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             index = IUFindOnSwitchIndex(&OSFocus2MotionSP);
             if (index == 0)
             {
-                strcpy(cmd, ":f+#");
+                strncpy(cmd, ":f+#", sizeof(cmd));
             }
             if (index == 1)
             {
-                strcpy(cmd, ":f-#");
+                strncpy(cmd, ":f-#", sizeof(cmd));
             }
             if (index == 2)
             {
-                strcpy(cmd, ":fQ#");
+                strncpy(cmd, ":fQ#", sizeof(cmd));
             }
             sendOnStepCommandBlind(cmd);
             const struct timespec timeout = {0, 100000000L};
@@ -1260,198 +1616,227 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&OSFocus2MotionSP, nullptr);
         }
 
-    // PEC
-    if (!strcmp(name, OSPECRecordSP.name))
-    {
-        IUUpdateSwitch(&OSPECRecordSP, states, names, n);
-        OSPECRecordSP.s = IPS_OK;
-        
-        if (OSPECRecordS[0].s == ISS_ON)
+        //Rotator De-rotation
+        //         OSRotatorDerotateS
+        if (!strcmp(name, OSRotatorDerotateSP.name))
         {
+            char cmd[CMD_MAX_LEN] = {0};
+
+            if (IUUpdateSwitch(&OSRotatorDerotateSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSRotatorDerotateSP);
+            if (index == 0) //Derotate_OFF
+            {
+                strncpy(cmd, ":r-#", sizeof(cmd));
+            }
+            if (index == 1) //Derotate_ON
+            {
+                strncpy(cmd, ":r+#", sizeof(cmd));
+            }
+            sendOnStepCommandBlind(cmd);
+            OSRotatorDerotateS[index].s = ISS_OFF;
+            OSRotatorDerotateSP.s = IPS_IDLE;
+            IDSetSwitch(&OSRotatorDerotateSP, nullptr);
+        }
+
+        // PEC
+        if (!strcmp(name, OSPECRecordSP.name))
+        {
+            IUUpdateSwitch(&OSPECRecordSP, states, names, n);
+            OSPECRecordSP.s = IPS_OK;
+
+            if (OSPECRecordS[0].s == ISS_ON)
+            {
                 OSPECEnabled = true;
                 ClearPECBuffer(0);
                 OSPECRecordS[0].s = ISS_OFF;
-        }
-        if (OSPECRecordS[1].s == ISS_ON)
-        {
+            }
+            if (OSPECRecordS[1].s == ISS_ON)
+            {
                 OSPECEnabled = true;
                 StartPECRecord(0);
                 OSPECRecordS[1].s = ISS_OFF;
-        }
-        if (OSPECRecordS[2].s == ISS_ON)
-        {
+            }
+            if (OSPECRecordS[2].s == ISS_ON)
+            {
                 OSPECEnabled = true;
                 SavePECBuffer(0);
                 OSPECRecordS[2].s = ISS_OFF;
+            }
+            IDSetSwitch(&OSPECRecordSP, nullptr);
         }
-        IDSetSwitch(&OSPECRecordSP, nullptr);
-    }
-    if (!strcmp(name, OSPECReadSP.name))
-    {
-        if (OSPECReadS[0].s == ISS_ON)
+        if (!strcmp(name, OSPECReadSP.name))
         {
+            if (OSPECReadS[0].s == ISS_ON)
+            {
                 OSPECEnabled = true;
                 ReadPECBuffer(0);
                 OSPECReadS[0].s = ISS_OFF;
-        }
-        if (OSPECReadS[1].s == ISS_ON)
-        {
+            }
+            if (OSPECReadS[1].s == ISS_ON)
+            {
                 OSPECEnabled = true;
                 WritePECBuffer(0);
                 OSPECReadS[1].s = ISS_OFF;
-        }
-        IDSetSwitch(&OSPECReadSP, nullptr);
-    } 
-    if (!strcmp(name, PECStateSP.name))
-    {
-        index = IUFindOnSwitchIndex(&PECStateSP);
-        if (index == 0)
-        {
-            OSPECEnabled = true;
-            StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
-            PECStateS[0].s = ISS_ON;
-            PECStateS[1].s = ISS_OFF;
-            IDSetSwitch(&PECStateSP, nullptr);
-        }
-        else if (index == 1)
-        {
-            OSPECEnabled = true;
-            StartPECPlayback(0);
-            PECStateS[0].s = ISS_OFF;
-            PECStateS[1].s = ISS_ON;
-            IDSetSwitch(&PECStateSP, nullptr);
-        }
-        
-    }
-    
-    // Align Buttons
-    if (!strcmp(name, OSNAlignStarsSP.name))
-    {
-        IUResetSwitch(&OSNAlignStarsSP);
-        IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
-        index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-        
-        return true;
-    }
-    
-    // Alignment
-    if (!strcmp(name, OSNAlignSP.name))
-    {
-        if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
-            return false;
-        
-        index = IUFindOnSwitchIndex(&OSNAlignSP);
-        //NewGeometricAlignment    
-        //End NewGeometricAlignment 
-        OSNAlignSP.s = IPS_BUSY;
-        if (index == 0)
-        {    
-            
-            /* Index is 0-8 and represents index+1*/
-            
-            int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-            if ((index_stars <= 8) && (index_stars >= 0)) {
-                int stars = index_stars+1;
-                OSNAlignS[0].s = ISS_OFF;
-                LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
-                AlignStartGeometric(stars);
             }
+            IDSetSwitch(&OSPECReadSP, nullptr);
         }
-        if (index == 1)
+        if (!strcmp(name, PECStateSP.name))
         {
-            OSNAlignS[1].s = ISS_OFF;
-            OSNAlignSP.s = AlignAddStar();
+            index = IUFindOnSwitchIndex(&PECStateSP);
+            if (index == 0)
+            {
+                OSPECEnabled = true;
+                StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
+                PECStateS[0].s = ISS_ON;
+                PECStateS[1].s = ISS_OFF;
+                IDSetSwitch(&PECStateSP, nullptr);
+            }
+            else if (index == 1)
+            {
+                OSPECEnabled = true;
+                StartPECPlayback(0);
+                PECStateS[0].s = ISS_OFF;
+                PECStateS[1].s = ISS_ON;
+                IDSetSwitch(&PECStateSP, nullptr);
+            }
+
         }
-        //Write to EEPROM moved to new line/variable 
-        IDSetSwitch(&OSNAlignSP, nullptr);
-        UpdateAlignStatus();
-    }
-    
-    if (!strcmp(name, OSNAlignWriteSP.name))
-    {
-        if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
-            return false;
-        
-        index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
-        
-        OSNAlignWriteSP.s = IPS_BUSY;
-        if (index == 0)
+
+        // Align Buttons
+        if (!strcmp(name, OSNAlignStarsSP.name))
         {
-            OSNAlignWriteS[0].s = ISS_OFF;
-            OSNAlignWriteSP.s = AlignWrite();
-        }
-        IDSetSwitch(&OSNAlignWriteSP, nullptr);
-        UpdateAlignStatus();
-    }
-    
-    if (!strcmp(name, OSNAlignPolarRealignSP.name))
-    {
-        char cmd[10];
-        if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
-            return false;
-        
-        
-        OSNAlignPolarRealignSP.s = IPS_BUSY;
-        if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
-        {
-            OSNAlignPolarRealignS[0].s = ISS_OFF;
-            LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
-            LOG_INFO("Step 2: Make sure it is centered.");
-            LOG_INFO("Step 3: Press Refine Polar Alignment.");
-            LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
-            LOG_INFO("Optional: Start a new alignment.");
-            IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
-            UpdateAlignStatus();
+            IUResetSwitch(&OSNAlignStarsSP);
+            IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
+            index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+
             return true;
         }
-        if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+
+        // Alignment
+        if (!strcmp(name, OSNAlignSP.name))
         {
-            OSNAlignPolarRealignS[1].s = ISS_OFF;
-            // int returncode=sendOnStepCommand("
-            snprintf(cmd, 5, ":MP#");
-            sendOnStepCommandBlind(cmd);
-            if (!sendOnStepCommandBlind(":MP#"))
-            {
-                IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
-                UpdateAlignStatus();
-                OSNAlignPolarRealignSP.s = IPS_OK;
-                return true;
-            } else {
-                IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
-                UpdateAlignStatus();
-                OSNAlignPolarRealignSP.s = IPS_ALERT;
+            if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
                 return false;
+
+            index = IUFindOnSwitchIndex(&OSNAlignSP);
+            //NewGeometricAlignment
+            //End NewGeometricAlignment
+            OSNAlignSP.s = IPS_BUSY;
+            if (index == 0)
+            {
+
+                /* Index is 0-8 and represents index+1*/
+
+                int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+                if ((index_stars <= 8) && (index_stars >= 0))
+                {
+                    int stars = index_stars + 1;
+                    OSNAlignS[0].s = ISS_OFF;
+                    LOGF_INFO("Align index: %d, stars: %d", index_stars, stars);
+                    AlignStartGeometric(stars);
+                }
+            }
+            if (index == 1)
+            {
+                OSNAlignS[1].s = ISS_OFF;
+                OSNAlignSP.s = AlignAddStar();
+            }
+            //Write to EEPROM moved to new line/variable
+            IDSetSwitch(&OSNAlignSP, nullptr);
+            UpdateAlignStatus();
+        }
+
+        if (!strcmp(name, OSNAlignWriteSP.name))
+        {
+            if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
+
+            OSNAlignWriteSP.s = IPS_BUSY;
+            if (index == 0)
+            {
+                OSNAlignWriteS[0].s = ISS_OFF;
+                OSNAlignWriteSP.s = AlignWrite();
+            }
+            IDSetSwitch(&OSNAlignWriteSP, nullptr);
+            UpdateAlignStatus();
+        }
+
+        if (!strcmp(name, OSNAlignPolarRealignSP.name))
+        {
+            char cmd[CMD_MAX_LEN] = {0};
+            if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
+                return false;
+
+
+            OSNAlignPolarRealignSP.s = IPS_BUSY;
+            if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
+            {
+                OSNAlignPolarRealignS[0].s = ISS_OFF;
+                LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
+                LOG_INFO("Step 2: Make sure it is centered.");
+                LOG_INFO("Step 3: Press Refine Polar Alignment.");
+                LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
+                LOG_INFO("Optional: Start a new alignment.");
+                IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
+                UpdateAlignStatus();
+                return true;
+            }
+            if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+            {
+                OSNAlignPolarRealignS[1].s = ISS_OFF;
+                // int returncode=sendOnStepCommand("
+                snprintf(cmd, 5, ":MP#");
+                sendOnStepCommandBlind(cmd);
+                if (!sendOnStepCommandBlind(":MP#"))
+                {
+                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+                    UpdateAlignStatus();
+                    OSNAlignPolarRealignSP.s = IPS_OK;
+                    return true;
+                }
+                else
+                {
+                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+                    UpdateAlignStatus();
+                    OSNAlignPolarRealignSP.s = IPS_ALERT;
+                    return false;
+                }
             }
         }
-    }
 
 #ifdef ONSTEP_NOTDONE
-    if (!strcmp(name, OSOutput1SP.name))      // 
-    {
-        if (OSOutput1S[0].s == ISS_ON)
+        if (!strcmp(name, OSOutput1SP.name))      //
         {
-            OSDisableOutput(1);
-            //PECStateS[0].s == ISS_OFF;
-        } else if (OSOutput1S[1].s == ISS_ON)
-        {
-            OSEnableOutput(1);
-            //PECStateS[1].s == ISS_OFF;
+            if (OSOutput1S[0].s == ISS_ON)
+            {
+                OSDisableOutput(1);
+                //PECStateS[0].s == ISS_OFF;
+            }
+            else if (OSOutput1S[1].s == ISS_ON)
+            {
+                OSEnableOutput(1);
+                //PECStateS[1].s == ISS_OFF;
+            }
+            IDSetSwitch(&OSOutput1SP, nullptr);
         }
-        IDSetSwitch(&OSOutput1SP, nullptr);
-    }
-    if (!strcmp(name, OSOutput2SP.name))      // 
-    {
-        if (OSOutput2S[0].s == ISS_ON)
+        if (!strcmp(name, OSOutput2SP.name))      //
         {
-            OSDisableOutput(2);
-            //PECStateS[0].s == ISS_OFF;
-        } else if (OSOutput2S[1].s == ISS_ON)
-        {
-            OSEnableOutput(2);
-            //PECStateS[1].s == ISS_OFF;
+            if (OSOutput2S[0].s == ISS_ON)
+            {
+                OSDisableOutput(2);
+                //PECStateS[0].s == ISS_OFF;
+            }
+            else if (OSOutput2S[1].s == ISS_ON)
+            {
+                OSEnableOutput(2);
+                //PECStateS[1].s == ISS_OFF;
+            }
+            IDSetSwitch(&OSOutput2SP, nullptr);
         }
-        IDSetSwitch(&OSOutput2SP, nullptr);
-    }
 #endif
 
         // Focuser
@@ -1459,7 +1844,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             return FI::processSwitch(dev, name, states, names, n);
         }
-
+        // Focuser
+        if (strstr(name, "ROTATOR"))
+        {
+            return RI::processSwitch(dev, name, states, names, n);
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -1472,7 +1861,7 @@ void LX200_OnStep::getBasicData()
 
     if (!isSimulation())
     {
-        char buffer[128];
+        char buffer[128] = {0};
         getVersionDate(PortFD, buffer);
         IUSaveText(&VersionT[0], buffer);
         getVersionTime(PortFD, buffer);
@@ -1483,6 +1872,45 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
+        if ((VersionT[2].text[0] == '1' || VersionT[2].text[0] == '2') && (VersionT[2].text[1] == '.' )
+                && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        {
+            LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
+            LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
+            OSHighPrecision = false;
+            OnStepMountVersion = OSV_OnStepV1or2;
+        }
+        else if (VersionT[2].text[0] == '3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        {
+            LOG_INFO("V3 OnStep detected, setting some defaults");
+            OSHighPrecision = false;
+            OnStepMountVersion = OSV_OnStepV3;
+        }
+        else if (VersionT[2].text[0] == '4' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        {
+            LOG_INFO("V4 OnStep detected, setting some defaults");
+            OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepV4;
+        }
+        else if (VersionT[2].text[0] == '5' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
+        {
+            LOG_INFO("V5 OnStep detected, setting some defaults");
+            OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepV5;
+        }
+        else if (VersionT[2].text[0] == '1' && VersionT[2].text[1] == '0' && VersionT[2].text[2] == '.'
+                 && (strcmp(VersionT[3].text, "OnStepX") || strcmp(VersionT[3].text, "On-Step")))
+        {
+            LOG_INFO("OnStepX detected, setting some defaults");
+            OSHighPrecision = true;
+            OnStepMountVersion = OSV_OnStepX;
+        }
+        else
+        {
+            LOG_INFO("OnStep/OnStepX version could not be detected");
+            OSHighPrecision = false;
+            OnStepMountVersion = OSV_UNKNOWN;
+        }
 
         if (InitPark())
         {
@@ -1501,8 +1929,9 @@ void LX200_OnStep::getBasicData()
 bool LX200_OnStep::SetCurrentPark()
 {
     char response[RB_MAX_LEN];
-
-    if(!getCommandString(PortFD, response, ":hQ#"))
+    // 0 = failure, 1 = success
+    int error_or_fail = getCommandSingleCharResponse(PortFD, response, ":hQ#");
+    if(error_or_fail != 1 || response[0] != '1')
     {
         LOGF_WARN("===CMD==> Set Park Pos %s", response);
         return false;
@@ -1529,7 +1958,8 @@ bool LX200_OnStep::UnPark()
 
     if (!isSimulation())
     {
-        if(!getCommandString(PortFD, response, ":hR#"))
+        int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#"); //0 = failure, 1 = success, no # on reply
+        if ((response[0] != '1') || (failure_or_error < 0))
         {
             return false;
         }
@@ -1557,8 +1987,9 @@ bool LX200_OnStep::Park()
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
-                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-                EqNP.s                          = IPS_IDLE;
+                MovementNSSP.s = IPS_IDLE;
+                MovementWESP.s = IPS_IDLE;
+                EqNP.s = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -1580,550 +2011,1172 @@ bool LX200_OnStep::Park()
 // Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()
 {
-    char OSbacklashDEC[RB_MAX_LEN];
-    char OSbacklashRA[RB_MAX_LEN];
-    char GuideValue[RB_MAX_LEN];
-    char TempValue[RB_MAX_LEN];
-    char TempValue2[RB_MAX_LEN];
+    char OSbacklashDEC[RB_MAX_LEN] = {0};
+    char OSbacklashRA[RB_MAX_LEN] = {0};
+    char GuideValue[RB_MAX_LEN] = {0};
+    //    int i;
+    bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
     
+
     if (isSimulation()) //if Simulation is selected
     {
         mountSim();
         return true;
     }
-    
-    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
-        return false;
-    }
-    
-    #ifdef OnStep_Alpha    
+
+    tcflush(PortFD, TCIOFLUSH);
+    flushIO(PortFD);
+
+
+#ifdef OnStep_Alpha
     OSSupports_bitfield_Gu = try_bitfield_Gu();
-    
-    if (!OSSupports_bitfield_Gu) {
+
+    if (!OSSupports_bitfield_Gu)
+    {
         //Fall back to :GU parsing
-        #endif    
-        getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
-        if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
-        {
-            // ============= Telescope Status
-            strcpy(OldOSStat ,OSStat);
-            
-            IUSaveText(&OnstepStat[0],OSStat);
-            if (strstr(OSStat,"n") && strstr(OSStat,"N"))
+#endif
+
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
+        if (error_or_fail > 1) // check if successful read (strcmp(OSStat, OldOSStat) != 0) //if status changed
+        { //If this fails, simply return;
+            char check_GU_valid1[RB_MAX_LEN] ={0};
+            char check_GU_valid2[RB_MAX_LEN] ={0};
+            char check_GU_valid3[RB_MAX_LEN] ={0};
+            //:GU should always have one of pIPF and 3 numbers
+            if (sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]) != 1)
             {
-                IUSaveText(&OnstepStat[1], "Idle");
-                TrackState = SCOPE_IDLE;
+                LOG_WARN(":GU# returned something that can not be right, this update aborted, will try again...");
+                LOGF_DEBUG("Parameters matched: %u from %s",sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]), OSStat);
+                flushIO(PortFD);
+                return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
             }
-            if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
+            if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
             {
-                IUSaveText(&OnstepStat[1], "Slewing");
-                TrackState = SCOPE_SLEWING;
+                EqNP.s = IPS_ALERT;
+                IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                LOG_INFO("RA/DEC could not be read, possible solution if using (wireless) ethernet: Use port 9998");
+                LOG_WARN("This update aborted, will try again...");
+                return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
             }
-            if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
-            {
-                IUSaveText(&OnstepStat[1], "Tracking");
-                TrackState = SCOPE_TRACKING;
-            }
-            
-            // ============= Refractoring
-            if ((strstr(OSStat,"r") || strstr(OSStat,"t"))) //On, either refractory only (r) or full (t)
-            {
-                if (strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
-                if (strstr(OSStat,"r")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
-                if (strstr(OSStat,"s")) {
-                    IUSaveText(&OnstepStat[8],"Single Axis"); 
-                } else { 
-                    IUSaveText(&OnstepStat[8],"2-Axis"); 
-                }
-            } else {
-                
-                IUSaveText(&OnstepStat[2],"Refractoring Off");
-                IUSaveText(&OnstepStat[8],"N/A");
-            }
-            
-            
+            strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
+
+            IUSaveText(&OnstepStat[0], OSStat);
+
             // ============= Parkstatus
-            if(FirstRead)   // it is the first time I read the status so I need to update
+
+#ifdef DEBUG_TRACKSTATE
+            LOG_DEBUG("Prior TrackState:");
+            PrintTrackState();
+            LOG_DEBUG("^ Prior");
+#endif
+            //TelescopeStatus PriorTrackState = TrackState;
+            // not [p]arked, parking [I]n-progress, [P]arked, Park [F]ailed
+            // "P" (Parked moved to Telescope Status, since it would override any other TrackState
+            // Other than parked, none of these affect TrackState
+            if (strstr(OSStat, "F"))
             {
-                if (strstr(OSStat,"P"))
+                IUSaveText(&OnstepStat[3], "Parking Failed");
+            }
+            if (strstr(OSStat, "I"))
+            {
+                IUSaveText(&OnstepStat[3], "Park in Progress");
+            }
+            if (strstr(OSStat, "p"))
+            {
+                IUSaveText(&OnstepStat[3], "UnParked");
+            }
+            // ============= End Parkstatus
+
+
+
+
+            // ============= Telescope Status
+
+            if (strstr(OSStat, "P"))
+            {
+                TrackState = SCOPE_PARKED;
+                IUSaveText(&OnstepStat[3], "Parked");
+                IUSaveText(&OnstepStat[1], "Parked");
+                if (!isParked())   //Don't call this every time OSStat changes
                 {
-                    SetParked(true); //defaults to TrackState=SCOPE_PARKED
-                    IUSaveText(&OnstepStat[3],"Parked");
+                    SetParked(true);
                 }
-                if (strstr(OSStat,"F"))
-                {
-                    SetParked(false); // defaults to TrackState=SCOPE_IDLE
-                    IUSaveText(&OnstepStat[3],"Parking Failed");
-                }
-                if (strstr(OSStat,"I"))
-                {
-                    SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                    TrackState=SCOPE_PARKING;
-                    IUSaveText(&OnstepStat[3],"Park in Progress");
-                }
-                if (strstr(OSStat,"p"))
-                {
-                    SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                    if (strstr(OSStat,"nN"))    // azwing need to detect if unparked idle or tracking
-                    {
-                        IUSaveText(&OnstepStat[1],"Idle");
-                        TrackState=SCOPE_IDLE;
-                    }
-                    else TrackState=SCOPE_TRACKING;
-                    IUSaveText(&OnstepStat[3],"UnParked");
-                }
-                FirstRead=false;
+                PrintTrackState();
             }
             else
             {
-                if (!isParked())
+                if (strstr(OSStat, "n") && strstr(OSStat, "N"))
                 {
-                    if(strstr(OSStat,"P"))
+                    IUSaveText(&OnstepStat[1], "Idle");
+                    TrackState = SCOPE_IDLE;
+                }
+                if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
+                {
+                    if (strstr(OSStat, "I"))
                     {
-                        SetParked(true);
-                        IUSaveText(&OnstepStat[3],"Parked");
-                        //LOG_INFO("OnStep Parking Succeeded");
+                        IUSaveText(&OnstepStat[1], "Parking/Slewing");
+                        TrackState = SCOPE_PARKING;
                     }
-                    if (strstr(OSStat,"I"))
+                    else
                     {
-                        SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                        TrackState=SCOPE_PARKING;
-                        IUSaveText(&OnstepStat[3],"Park in Progress");
-                        LOG_INFO("OnStep Parking in Progress...");
+                        IUSaveText(&OnstepStat[1], "Slewing");
+                        TrackState = SCOPE_SLEWING;
                     }
                 }
-                if (isParked())
+                if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
                 {
-                    if (strstr(OSStat,"F"))
-                    {
-                        // keep Status even if error  TrackState=SCOPE_IDLE;
-                        SetParked(false); //defaults to TrackState=SCOPE_IDLE
-                        IUSaveText(&OnstepStat[3],"Parking Failed");
-                        LOG_ERROR("OnStep Parking failed, need to re Init OnStep at home");
-                    }
-                    if (strstr(OSStat,"p"))
-                    {
-                        SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                        if (strstr(OSStat,"nN"))    // azwing need to detect if unparked idle or tracking
-                        {
-                            IUSaveText(&OnstepStat[1],"Idle");
-                            TrackState=SCOPE_IDLE;
-                        }
-                        else TrackState=SCOPE_TRACKING;
-                        IUSaveText(&OnstepStat[3],"UnParked");
-                        //LOG_INFO("OnStep Unparked...");
-                    }
+                    IUSaveText(&OnstepStat[1], "Tracking");
+                    TrackState = SCOPE_TRACKING;
+                }
+                if (!strstr(OSStat, "N") && !strstr(OSStat, "n"))
+                {
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                    TrackState = SCOPE_SLEWING;
+                }
+                PrintTrackState();
+                if (isParked())   //IMPORTANT: SET AFTER setting TrackState!
+                {
+                    SetParked(false);
+                }
+                PrintTrackState();
+            }
+            // Set TrackStateSP based on above, but only change if needed.
+            // NOTE: Technically during a slew it can have tracking on, but elsewhere there is the assumption:
+            //      Slewing = Not tracking
+#ifdef DEBUG_TRACKSTATE
+            LOG_DEBUG("BEFORE UPDATE");
+            if (EqNP.s == IPS_BUSY)
+            {
+                LOG_DEBUG("EqNP is IPS_BUSY (Goto/slew or Parking)");
+            }
+            if (EqNP.s == IPS_OK)
+            {
+                LOG_DEBUG("EqNP is IPS_OK (Tracking)");
+            }
+            if (EqNP.s == IPS_IDLE)
+            {
+                LOG_DEBUG("EqNP is IPS_IDLE (Not Tracking or Parked)");
+            }
+            if (EqNP.s == IPS_ALERT)
+            {
+                LOG_DEBUG("EqNP is IPS_ALERT (Something wrong)");
+            }
+            LOG_DEBUG("/BEFORE UPDATE");
+#endif
+            // Fewer updates might help with KStars handling.
+            bool trackStateUpdateNeded = false;
+            if (TrackState == SCOPE_TRACKING)
+            {
+                if (TrackStateSP.s != IPS_BUSY)
+                {
+                    TrackStateSP.s = IPS_BUSY;
+                    trackStateUpdateNeded = true;
+                }
+                if (TrackStateS[TRACK_ON].s != ISS_ON || TrackStateS[TRACK_OFF].s != ISS_OFF)
+                {
+                    TrackStateS[TRACK_ON].s = ISS_ON;
+                    TrackStateS[TRACK_OFF].s = ISS_OFF;
+                    trackStateUpdateNeded = true;
                 }
             }
-            
-            
+            else
+            {
+                if (TrackStateSP.s != IPS_IDLE)
+                {
+                    TrackStateSP.s = IPS_IDLE;
+                    trackStateUpdateNeded = true;
+                }
+                if (TrackStateS[TRACK_ON].s != ISS_OFF || TrackStateS[TRACK_OFF].s != ISS_ON)
+                {
+                    TrackStateS[TRACK_ON].s = ISS_OFF;
+                    TrackStateS[TRACK_OFF].s = ISS_ON;
+                    trackStateUpdateNeded = true;
+                }
+            }
+            if (trackStateUpdateNeded)
+            {
+#ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("TRACKSTATE CHANGED");
+#endif
+                IDSetSwitch(&TrackStateSP, nullptr);
+            }
+            else
+            {
+#ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("TRACKSTATE UNCHANGED");
+#endif
+            }
+            //TrackState should be set correctly, only update EqNP if actually needed.
+            bool update_needed = false;
+            switch (TrackState)
+            {
+                case SCOPE_PARKED:
+                case SCOPE_IDLE:
+                    if (EqNP.s != IPS_IDLE)
+                    {
+                        EqNP.s = IPS_IDLE;
+                        update_needed = true;
+#ifdef DEBUG_TRACKSTATE
+                        LOG_DEBUG("EqNP set to IPS_IDLE");
+#endif
+                    }
+                    break;
+
+                case SCOPE_SLEWING:
+                case SCOPE_PARKING:
+                    if (EqNP.s != IPS_BUSY)
+                    {
+                        EqNP.s = IPS_BUSY;
+                        update_needed = true;
+#ifdef DEBUG_TRACKSTATE
+                        LOG_DEBUG("EqNP set to IPS_BUSY");
+#endif
+                    }
+                    break;
+
+                case SCOPE_TRACKING:
+                    if (EqNP.s != IPS_OK)
+                    {
+                        EqNP.s = IPS_OK;
+                        update_needed = true;
+#ifdef DEBUG_TRACKSTATE
+                        LOG_DEBUG("EqNP set to IPS_OK");
+#endif
+                    }
+                    break;
+            }
+            if (EqN[AXIS_RA].value != currentRA || EqN[AXIS_DE].value != currentDEC)
+            {
+#ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("EqNP coordinates updated");
+#endif
+                update_needed = true;
+            }
+            if (update_needed)
+            {
+#ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("EqNP changed state");
+#endif
+                EqN[AXIS_RA].value = currentRA;
+                EqN[AXIS_DE].value = currentDEC;
+                IDSetNumber(&EqNP, nullptr);
+#ifdef DEBUG_TRACKSTATE
+                if (EqNP.s == IPS_BUSY)
+                {
+                    LOG_DEBUG("EqNP is IPS_BUSY (Goto/slew or Parking)");
+                }
+                if (EqNP.s == IPS_OK)
+                {
+                    LOG_DEBUG("EqNP is IPS_OK (Tracking)");
+                }
+                if (EqNP.s == IPS_IDLE)
+                {
+                    LOG_DEBUG("EqNP is IPS_IDLE (Not Tracking or Parked)");
+                }
+                if (EqNP.s == IPS_ALERT)
+                {
+                    LOG_DEBUG("EqNP is IPS_ALERT (Something wrong)");
+                }
+#endif
+            }
+            else
+            {
+#ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("EqNP UNCHANGED");
+#endif
+            }
+            PrintTrackState();
+
+            // ============= End Telescope Status
+
+            // ============= Refractoring
+            if ((strstr(OSStat, "r") || strstr(OSStat, "t"))) //On, either refractory only (r) or full (t)
+            {
+                if (strstr(OSStat, "t"))
+                {
+                    IUSaveText(&OnstepStat[2], "Full Comp");
+                }
+                if (strstr(OSStat, "r"))
+                {
+                    IUSaveText(&OnstepStat[2], "Refractory Comp");
+                }
+                if (strstr(OSStat, "s"))
+                {
+                    IUSaveText(&OnstepStat[8], "Single Axis");
+                }
+                else
+                {
+                    IUSaveText(&OnstepStat[8], "2-Axis");
+                }
+            }
+            else
+            {
+                IUSaveText(&OnstepStat[2], "Refractoring Off");
+                IUSaveText(&OnstepStat[8], "N/A");
+            }
+
             //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
-            if (strstr(OSStat,"H") && strstr(OSStat,"P"))
+            if (strstr(OSStat, "H") && strstr(OSStat, "P"))
             {
-                IUSaveText(&OnstepStat[3],"At Home and Parked");
+                IUSaveText(&OnstepStat[3], "At Home and Parked");
             }
-            if (strstr(OSStat,"H") && strstr(OSStat,"p"))
+            if (strstr(OSStat, "H") && strstr(OSStat, "p"))
             {
-                IUSaveText(&OnstepStat[3],"At Home and UnParked");
+                IUSaveText(&OnstepStat[3], "At Home and UnParked");
             }
             //AutoPauseAtHome
-            if (strstr(OSStat, "u")){ //  pa[u]se at home enabled?
+            if (strstr(OSStat, "u"))  //  pa[u]se at home enabled?
+            {
                 HomePauseS[1].s = ISS_ON;
                 HomePauseSP.s = IPS_OK;
                 IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
-            } else {
-                HomePauseS[0].s=ISS_ON;
+            }
+            else
+            {
+                HomePauseS[0].s = ISS_ON;
                 HomePauseSP.s = IPS_OK;
                 IDSetSwitch(&HomePauseSP, nullptr);
-            }    
-            
-            if (strstr(OSStat,"w")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
-            
+            }
+
+            if (strstr(OSStat, "w"))
+            {
+                IUSaveText(&OnstepStat[3], "Waiting at Home");
+            }
+
             // ============= Pec Status
-            if (!strstr(OSStat,"R") && !strstr(OSStat,"W")) { IUSaveText(&OnstepStat[4],"N/A"); }
-            if (strstr(OSStat,"R")) { IUSaveText(&OnstepStat[4],"Recorded"); }
-            if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[4],"Autorecord"); }
-            
+            if ((!strstr(OSStat, "R") && !strstr(OSStat, "W")))
+            {
+                IUSaveText(&OnstepStat[4], "N/A");
+            }
+            if (strstr(OSStat, "R"))
+            {
+                IUSaveText(&OnstepStat[4], "Recorded");
+            }
+            if (strstr(OSStat, "W"))
+            {
+                IUSaveText(&OnstepStat[4], "Autorecord");
+            }
+
+            //Handles pec with :GU, also disables the (old) :$QZ?# command
+            if (strstr(OSStat, "/"))
+            {
+                IUSaveText(&OnstepStat[4], "Ignored");
+                OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[0].s = ISS_ON;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            if (strstr(OSStat, ";"))
+            {
+
+                IUSaveText(&OnstepStat[4], "AutoRecord (waiting on index)");
+                OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[4].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            if (strstr(OSStat, ","))
+            {
+                IUSaveText(&OnstepStat[4], "AutoPlaying  (waiting on index)");
+                OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[3].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            if (strstr(OSStat, "~"))
+            {
+                IUSaveText(&OnstepStat[4], "Playing");
+                OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[1].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            if (strstr(OSStat, "^"))
+            {
+                IUSaveText(&OnstepStat[4], "Recording");
+                OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[2].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            if (OSPECviaGU)
+            {
+                if (OSMountType != MOUNTTYPE_ALTAZ && OSMountType != MOUNTTYPE_FORK_ALT )
+                {
+                    //We have PEC reported via :GU already, enable if any are detected, as they are not reported with ALTAZ/FORK_ALT)
+                    //NOTE: Might want to drop the && !strstr(OSStat, "/") as it will startup that way.
+                    uint32_t capabilities = GetTelescopeCapability();
+                    if ((capabilities | TELESCOPE_HAS_PEC) != capabilities)
+                    {
+                        LOG_INFO("Telescope detected having PEC, setting that capability");
+                        LOGF_DEBUG("capabilites = %x", capabilities);
+                        capabilities |= TELESCOPE_HAS_PEC;
+                        SetTelescopeCapability(capabilities, 10 );
+                        LX200_OnStep::updateProperties();
+                    }
+                }
+                IDSetSwitch(&OSPECStatusSP, nullptr);
+                IDSetSwitch(&OSPECRecordSP, nullptr);
+                IDSetSwitch(&OSPECIndexSP, nullptr);
+            }
+
+
+
             // ============= Time Sync Status
-            if (!strstr(OSStat,"S")) { IUSaveText(&OnstepStat[5],"N/A"); }
-            if (strstr(OSStat,"S")) { IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok"); }
-            
+            if (!strstr(OSStat, "S"))
+            {
+                IUSaveText(&OnstepStat[5], "N/A");
+            }
+            if (strstr(OSStat, "S"))
+            {
+                IUSaveText(&OnstepStat[5], "PPS / GPS Sync Ok");
+            }
+
             // ============= Mount Types
-            if (strstr(OSStat,"E")) { IUSaveText(&OnstepStat[6],"German Mount"); OSMountType = 0;}
-            if (strstr(OSStat,"K")) { IUSaveText(&OnstepStat[6],"Fork Mount"); OSMountType = 1;}
-            if (strstr(OSStat,"k")) { IUSaveText(&OnstepStat[6],"Fork Alt Mount"); OSMountType = 2;}
-            if (strstr(OSStat,"A")) { IUSaveText(&OnstepStat[6],"AltAZ Mount"); OSMountType = 3; }
-            
-            // ============= Error Code 
+            if (strstr(OSStat, "E"))
+            {
+                IUSaveText(&OnstepStat[6], "German Equatorial Mount");
+                OSMountType = MOUNTTYPE_GEM;
+            }
+            if (strstr(OSStat, "K"))
+            {
+                IUSaveText(&OnstepStat[6], "Fork Mount");
+                OSMountType = MOUNTTYPE_FORK;
+            }
+            if (strstr(OSStat, "k"))
+            {
+                //NOTE: This seems to have been removed from OnStep, so the chances of encountering it are small, I can't even find, but I think it was Alt-Az mounting of a FORK, now folded into ALTAZ
+                IUSaveText(&OnstepStat[6], "Fork Alt Mount");
+                OSMountType = MOUNTTYPE_FORK_ALT;
+            }
+            if (strstr(OSStat, "A"))
+            {
+                IUSaveText(&OnstepStat[6], "AltAZ Mount");
+                OSMountType = MOUNTTYPE_ALTAZ;
+            }
+
+
+            //Pier side:
+            // o - nOne
+            // T - easT
+            // W - West
+            if (OSMountType != MOUNTTYPE_ALTAZ && OSMountType != MOUNTTYPE_FORK_ALT)
+            {
+                uint32_t capabilities = GetTelescopeCapability();
+                if ((capabilities | TELESCOPE_HAS_PIER_SIDE) != capabilities)
+                {
+                    LOG_INFO("Telescope detected having Pier Side, adding that capability (many messages duplicated)");
+                    LOGF_DEBUG("capabilites = %x", capabilities);
+                    capabilities |= TELESCOPE_HAS_PIER_SIDE;
+                    SetTelescopeCapability(capabilities, 10 );
+                    LX200_OnStep::updateProperties();
+                }
+                if (strstr(OSStat, "o"))
+                {
+                    setPierSide(
+                        PIER_UNKNOWN); //Closest match to None, For forks may trigger an extra goto, during imaging if it would do a meridian flip
+                    pier_not_set = false;
+                }
+                if (strstr(OSStat, "T"))
+                {
+                    setPierSide(PIER_EAST);
+                    pier_not_set = false;
+                }
+                if (strstr(OSStat, "W"))
+                {
+                    setPierSide(PIER_WEST);
+                    pier_not_set = false;
+                }
+            }
+
+            // ============= Error Code
             //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
-            
+
             //For redoing this, quick python, if needed (will only give the error name):
             //all_errors=' (Insert)
             //split_errors=all_errors.split(', ')
             //for specific in split_errors:
-            //     print('case ' +specific+':')                          
+            //     print('case ' +specific+':')
             //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
-            //     print('\tbreak;')  
-            
-            
-            Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
+            //     print('\tbreak;')
+
+            Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+        } else {
+            return false;
         }
-        
-        #ifdef OnStep_Alpha // For the moment, for :Gu
-    } else {
-        getCommandString(PortFD,OSStat,":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
-        if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
-        { 
-            //Ignored for now.     
+
+#ifdef OnStep_Alpha // For the moment, for :Gu
+    }
+    else
+    {
+        //TODO: Check and recode :Gu# paths
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
+        if (strcmp(OSStat, OldOSStat) != 0) //if status changed
+        {
+            //Ignored for now.
         }
         //Byte 0: Current Status
-        if (OSStat[0] & 0b10000001 == 0b10000001) {
+        if (OSStat[0] & 0b10000001 == 0b10000001)
+        {
             //Not tracking
         }
-        if (OSStat[0] & 0b10000010 == 0b10000010) {
+        if (OSStat[0] & 0b10000010 == 0b10000010)
+        {
             //No goto
         }
-        if (OSStat[0] & 0b10000100 == 0b10000100) {
+        if (OSStat[0] & 0b10000100 == 0b10000100)
+        {
             // PPS sync
-            IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok");
-        } else {
-            IUSaveText(&OnstepStat[5],"N/A");
+            IUSaveText(&OnstepStat[5], "PPS / GPS Sync Ok");
         }
-        if (OSStat[0] & 0b10001000 == 0b10001000) {
+        else
+        {
+            IUSaveText(&OnstepStat[5], "N/A");
+        }
+        if (OSStat[0] & 0b10001000 == 0b10001000)
+        {
             // Guide active
         }
-        //Refraction and Number of axis handled differently for now, might combine to one variable. 
+        //Refraction and Number of axis handled differently for now, might combine to one variable.
         // reply[0]|=0b11010000;                       // Refr enabled Single axis
         // reply[0]|=0b10010000;                       // Refr enabled
         // reply[0]|=0b11100000;                       // OnTrack enabled Single axis
         // reply[0]|=0b10100000;                       // OnTrack enabled
-        if ((OSStat[0] & 0b10010000 == 0b10010000 || OSStat[0] & 0b10100000 == 0b10100000)) //On, either refractory only (r) or full (t)
+        if ((OSStat[0] & 0b10010000 == 0b10010000
+                || OSStat[0] & 0b10100000 == 0b10100000)) //On, either refractory only (r) or full (t)
         {
-            if (OSStat[0] & 0b10100000 == 0b10100000) { IUSaveText(&OnstepStat[2],"Full Comp"); }
-            if (OSStat[0] & 0b10010000 == 0b10010000) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
-            if (OSStat[0] & 0b11000000 == 0b11000000) {
-                IUSaveText(&OnstepStat[8],"Single Axis"); 
-            } else { 
-                IUSaveText(&OnstepStat[8],"2-Axis"); 
+            if (OSStat[0] & 0b10100000 == 0b10100000)
+            {
+                IUSaveText(&OnstepStat[2], "Full Comp");
             }
-        } else {
-            IUSaveText(&OnstepStat[2],"Refractoring Off");
-            IUSaveText(&OnstepStat[8],"N/A");
+            if (OSStat[0] & 0b10010000 == 0b10010000)
+            {
+                IUSaveText(&OnstepStat[2], "Refractory Comp");
+            }
+            if (OSStat[0] & 0b11000000 == 0b11000000)
+            {
+                IUSaveText(&OnstepStat[8], "Single Axis");
+            }
+            else
+            {
+                IUSaveText(&OnstepStat[8], "2-Axis");
+            }
+        }
+        else
+        {
+            IUSaveText(&OnstepStat[2], "Refractoring Off");
+            IUSaveText(&OnstepStat[8], "N/A");
         }
         //Byte 1: Standard tracking rates
-        if (OSStat[1] & 0b10000001 == 0b10000001) {
+        if (OSStat[1] & 0b10000001 == 0b10000001)
+        {
             // Lunar rate selected
         }
-        if (OSStat[1] & 0b10000010 == 0b10000010) {
+        if (OSStat[1] & 0b10000010 == 0b10000010)
+        {
             // Solar rate selected
         }
-        if (OSStat[1] & 0b10000011 == 0b10000011) {
+        if (OSStat[1] & 0b10000011 == 0b10000011)
+        {
             // King rate selected
         }
         //Byte 2: Flags
-        if (OSStat[2] & 0b10000001 == 0b10000001) {
+        if (OSStat[2] & 0b10000001 == 0b10000001)
+        {
             // At home
         }
-        if (OSStat[2] & 0b10000010 == 0b10000010) {
+        if (OSStat[2] & 0b10000010 == 0b10000010)
+        {
             // Waiting at home
-            IUSaveText(&OnstepStat[3],"Waiting at Home");
+            IUSaveText(&OnstepStat[3], "Waiting at Home");
         }
-        if (OSStat[2] & 0b10000100 == 0b10000100) {
+        if (OSStat[2] & 0b10000100 == 0b10000100)
+        {
             // Pause at home enabled?
             //AutoPauseAtHome
             HomePauseS[1].s = ISS_ON;
             HomePauseSP.s = IPS_OK;
             IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
-        } else {
-            HomePauseS[0].s=ISS_ON;
+        }
+        else
+        {
+            HomePauseS[0].s = ISS_ON;
             HomePauseSP.s = IPS_OK;
             IDSetSwitch(&HomePauseSP, nullptr);
         }
-        if (OSStat[2] & 0b10001000 == 0b10001000) {
+        if (OSStat[2] & 0b10001000 == 0b10001000)
+        {
             // Buzzer enabled?
         }
-        if (OSStat[2] & 0b10010000 == 0b10010000) {
+        if (OSStat[2] & 0b10010000 == 0b10010000)
+        {
             // Auto meridian flip
             AutoFlipS[1].s = ISS_ON;
             AutoFlipSP.s = IPS_OK;
             IDSetSwitch(&AutoFlipSP, nullptr);
-        } else {
-            AutoFlipS[0].s=ISS_ON;
+        }
+        else
+        {
+            AutoFlipS[0].s = ISS_ON;
             AutoFlipSP.s = IPS_OK;
             IDSetSwitch(&AutoFlipSP, nullptr);
         }
-        if (OSStat[2] & 0b10100000 == 0b10100000) {
+        if (OSStat[2] & 0b10100000 == 0b10100000)
+        {
             // PEC data has been recorded
         }
-        
-        
-        
-        
+
+
+
+
         //Byte 3: Mount type and info
-        if (OSStat[3] & 0b10000001 == 0b10000001) {
+        if (OSStat[3] & 0b10000001 == 0b10000001)
+        {
             // GEM
-            IUSaveText(&OnstepStat[6],"German Mount"); 
+            IUSaveText(&OnstepStat[6], "German Mount");
             OSMountType = MOUNTTYPE_GEM;
-        } 
-        if (OSStat[3] & 0b10000010 == 0b10000010) {
+        }
+        if (OSStat[3] & 0b10000010 == 0b10000010)
+        {
             // FORK
-            IUSaveText(&OnstepStat[6],"Fork Mount"); 
+            IUSaveText(&OnstepStat[6], "Fork Mount");
             OSMountType = MOUNTTYPE_FORK;
         }
-        if (OSStat[3] & 0b10000100 == 0b10000100) { //Seems depreciated/subsumed into  FORK 
+        if (OSStat[3] & 0b10000100 == 0b10000100)   //Seems depreciated/subsumed into  FORK
+        {
             // Fork Alt
-            IUSaveText(&OnstepStat[6],"Fork Alt Mount"); 
+            IUSaveText(&OnstepStat[6], "Fork Alt Mount");
             OSMountType = MOUNTTYPE_FORK_ALT;
         }
-        if (OSStat[3] & 0b10001000 == 0b10001000) {
+        if (OSStat[3] & 0b10001000 == 0b10001000)
+        {
             // ALTAZM
-            IUSaveText(&OnstepStat[6],"AltAZ Mount"); 
+            IUSaveText(&OnstepStat[6], "AltAZ Mount");
             OSMountType = MOUNTTYPE_ALTAZ;
         }
-        
-        
+
+
         setPierSide(PIER_UNKNOWN);
-        if (OSStat[3] & 0b10010000 == 0b10010000) {
+        if (OSStat[3] & 0b10010000 == 0b10010000)
+        {
             // Pier side none
             setPierSide(PIER_UNKNOWN);
             // INDI doesn't account for 'None'
         }
-        if (OSStat[3] & 0b10100000 == 0b10100000) {
+        if (OSStat[3] & 0b10100000 == 0b10100000)
+        {
             // Pier side east
             setPierSide(PIER_EAST);
         }
-        if (OSStat[3] & 0b11000000 == 0b11000000) {
+        if (OSStat[3] & 0b11000000 == 0b11000000)
+        {
             // Pier side west
             setPierSide(PIER_WEST);
         }
         //     Byte 4: PEC
         PECStatusGU = OSStat[4] & 0b01111111;
-        if (OSStat[4] == 0) {
-            // AltAZM, no PEC possible 
-            PECStatusGU=0;
-        } else {
+        if (OSStat[4] == 0)
+        {
+            // AltAZM, no PEC possible
+            PECStatusGU = 0;
+        }
+        else
+        {
             //    PEC status: 0 ignore, 1 get ready to play, 2 playing, 3 get ready to record, 4 recording
-            
-            
+
+
         }
         ParkStatusGU = OSStat[5] & 0b01111111;
         PulseGuideGU = OSStat[6] & 0b01111111;
         GuideRateGU = OSStat[7] & 0b01111111;
         LastError = OSStat[8] & 0b01111111;
     }
-    #endif
-    
-    
-    switch (Lasterror) {
+#endif
+
+
+    switch (Lasterror)
+    {
         case ERR_NONE:
-            IUSaveText(&OnstepStat[7],"None"); 
+            IUSaveText(&OnstepStat[7], "None");
             break;
         case ERR_MOTOR_FAULT:
-            IUSaveText(&OnstepStat[7],"Motor/Driver Fault"); 
+            IUSaveText(&OnstepStat[7], "Motor/Driver Fault");
             break;
         case ERR_ALT_MIN:
-            IUSaveText(&OnstepStat[7],"Below Horizon Limit"); 
+            IUSaveText(&OnstepStat[7], "Below Horizon Limit");
             break;
         case ERR_LIMIT_SENSE:
-            IUSaveText(&OnstepStat[7],"Limit Sense"); 
+            IUSaveText(&OnstepStat[7], "Limit Sense");
             break;
         case ERR_DEC:
-            IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); 
+            IUSaveText(&OnstepStat[7], "Dec Limit Exceeded");
             break;
         case ERR_AZM:
-            IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); 
+            IUSaveText(&OnstepStat[7], "Azm Limit Exceeded");
             break;
         case ERR_UNDER_POLE:
-            IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); 
+            IUSaveText(&OnstepStat[7], "Under Pole Limit Exceeded");
             break;
         case ERR_MERIDIAN:
-            IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); 
+            IUSaveText(&OnstepStat[7], "Meridian Limit (W) Exceeded");
             break;
         case ERR_SYNC:
-            IUSaveText(&OnstepStat[7],"Sync Safety Limit Exceeded"); 
+            IUSaveText(&OnstepStat[7], "Sync Safety Limit Exceeded");
             break;
         case ERR_PARK:
-            IUSaveText(&OnstepStat[7],"Park Failed"); 
+            IUSaveText(&OnstepStat[7], "Park Failed");
             break;
         case ERR_GOTO_SYNC:
-            IUSaveText(&OnstepStat[7],"Goto Sync Failed"); 
+            IUSaveText(&OnstepStat[7], "Goto Sync Failed");
             break;
         case ERR_UNSPECIFIED:
-            IUSaveText(&OnstepStat[7],"Unspecified Error"); 
+            IUSaveText(&OnstepStat[7], "Unspecified Error");
             break;
         case ERR_ALT_MAX:
-            IUSaveText(&OnstepStat[7],"Above Overhead Limit"); 
+            IUSaveText(&OnstepStat[7], "Above Overhead Limit");
             break;
         case ERR_GOTO_ERR_NONE:
-            IUSaveText(&OnstepStat[7],"Goto No Error"); 
+            IUSaveText(&OnstepStat[7], "Goto No Error");
             break;
         case ERR_GOTO_ERR_BELOW_HORIZON:
-            IUSaveText(&OnstepStat[7],"Goto Below Horizon"); 
+            IUSaveText(&OnstepStat[7], "Goto Below Horizon");
             break;
         case ERR_GOTO_ERR_ABOVE_OVERHEAD:
-            IUSaveText(&OnstepStat[7],"Goto Abv Overhead"); 
+            IUSaveText(&OnstepStat[7], "Goto Abv Overhead");
             break;
         case ERR_GOTO_ERR_STANDBY:
-            IUSaveText(&OnstepStat[7],"Goto Err Standby"); 
+            IUSaveText(&OnstepStat[7], "Goto Err Standby");
             break;
         case ERR_GOTO_ERR_PARK:
-            IUSaveText(&OnstepStat[7],"Goto Err Park"); 
+            IUSaveText(&OnstepStat[7], "Goto Err Park");
             break;
         case ERR_GOTO_ERR_GOTO:
-            IUSaveText(&OnstepStat[7],"Goto Err Goto"); 
+            IUSaveText(&OnstepStat[7], "Goto Err Goto");
             break;
         case ERR_GOTO_ERR_OUTSIDE_LIMITS:
-            IUSaveText(&OnstepStat[7],"Goto Outside Limits"); 
+            IUSaveText(&OnstepStat[7], "Goto Outside Limits");
             break;
         case ERR_GOTO_ERR_HARDWARE_FAULT:
-            IUSaveText(&OnstepStat[7],"Goto H/W Fault"); 
+            IUSaveText(&OnstepStat[7], "Goto H/W Fault");
             break;
         case ERR_GOTO_ERR_IN_MOTION:
-            IUSaveText(&OnstepStat[7],"Goto Err Motion"); 
+            IUSaveText(&OnstepStat[7], "Goto Err Motion");
             break;
         case ERR_GOTO_ERR_UNSPECIFIED:
-            IUSaveText(&OnstepStat[7],"Goto Unspecified Error"); 
+            IUSaveText(&OnstepStat[7], "Goto Unspecified Error");
             break;
         default:
-            IUSaveText(&OnstepStat[7],"Unknown Error"); 
+            IUSaveText(&OnstepStat[7], "Unknown Error");
             break;
     }
-    
-    #ifndef OnStep_Alpha
+
+#ifndef OnStep_Alpha
     // Get actual Pier Side
-    getCommandString(PortFD,OSPier,":Gm#");
-    if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
+    if (pier_not_set)
     {
-        strcpy(OldOSPier, OSPier);
-        switch(OSPier[0])
+        if (OSMountType == MOUNTTYPE_ALTAZ || OSMountType == MOUNTTYPE_FORK_ALT)
         {
-            case 'E':
-                setPierSide(PIER_EAST);
-                break;
-                
-            case 'W':
-                setPierSide(PIER_WEST);
-                break;
-                
-            case 'N':
-                setPierSide(PIER_UNKNOWN);
-                break;
-                
-            case '?':
-                setPierSide(PIER_UNKNOWN);
-                break;
+            setPierSide(PIER_UNKNOWN);
+        }
+        else
+        {
+            int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSPier, ":Gm#");
+            if (error_or_fail > 1) {
+                if (strcmp(OSPier, OldOSPier) != 0) // any change ?
+                {
+                    strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
+                    switch(OSPier[0])
+                    {
+                        case 'E':
+                            setPierSide(PIER_EAST);
+                            break;
+                        case 'W':
+                            setPierSide(PIER_WEST);
+                            break;
+                        case 'N':
+                            setPierSide(PIER_UNKNOWN);
+                            break;
+                        case '?':
+                            setPierSide(PIER_UNKNOWN);
+                            break;
+                    }
+                }
+            } else {
+                LOG_WARN("Communication error on Pier Side (:Gm#), this update aborted, will try again...");
+                return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+            }
         }
     }
-    #endif
-    
+#endif
+
     //========== Get actual Backlash values
-    getCommandString(PortFD,OSbacklashDEC, ":%BD#");
-    getCommandString(PortFD,OSbacklashRA, ":%BR#");
-    BacklashNP.np[0].value = atof(OSbacklashDEC);
-    BacklashNP.np[1].value = atof(OSbacklashRA);
-    IDSetNumber(&BacklashNP, nullptr);
-    
-    double pulseguiderate;
-    getCommandString(PortFD, GuideValue, ":GX90#");
-    //     LOGF_DEBUG("Guide Rate String: %s", GuideValue);
-    pulseguiderate=atof(GuideValue);
-    LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
-    GuideRateNP.np[0].value = pulseguiderate;
-    GuideRateNP.np[1].value = pulseguiderate;
-    IDSetNumber(&GuideRateNP, nullptr);
-    
-    
-    #ifndef OnStep_Alpha
-    if (OSMountType == MOUNTTYPE_GEM) 
+    double backlash_DEC, backlash_RA;
+    int BD_error = getCommandDoubleResponse(PortFD, &backlash_DEC, OSbacklashDEC, ":%BD#");
+    int BR_error = getCommandDoubleResponse(PortFD, &backlash_RA, OSbacklashRA, ":%BR#");
+    if (BD_error > 1 && BR_error > 1) {
+        BacklashNP.np[0].value = backlash_DEC;
+        BacklashNP.np[1].value = backlash_RA;
+        IDSetNumber(&BacklashNP, nullptr);
+    } else {
+        LOG_WARN("Communication error on backlash (:%BD#/:%BR#), this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+    double pulseguiderate = 0.0;
+    if (getCommandDoubleResponse(PortFD, &pulseguiderate, GuideValue, ":GX90#") > 1)
+    {
+        LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+        pulseguiderate = atof(GuideValue);
+        LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+        GuideRateNP.np[0].value = pulseguiderate;
+        GuideRateNP.np[1].value = pulseguiderate;
+        IDSetNumber(&GuideRateNP, nullptr);
+    }
+    else
+    {
+        LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+        LOG_DEBUG("Guide rate error response, Not setting guide rate from :GX90# response, falling back to :GU#, which may not be accurate, if custom settings are used");
+        int pulseguiderateint = (Errors)(OSStat[strlen(OSStat) - 3] - '0');
+        switch(pulseguiderateint)
+        {
+            case 0:
+                pulseguiderate = (double)0.25;
+                break;
+            case 1:
+                pulseguiderate = (double)0.5;
+                break;
+            case 2:
+                pulseguiderate = (double)1.0;
+                break;
+            default:
+                pulseguiderate = 0.0;
+                LOG_DEBUG("Could not get guide rate from :GU# response, not setting");
+                LOG_WARN("Communication error on Guide Rate (:GX90#/:GU#), this update aborted, will try again...");
+                return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+        }
+        if (pulseguiderate != 0.0)
+        {
+            LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+            GuideRateNP.np[0].value = pulseguiderate;
+            GuideRateNP.np[1].value = pulseguiderate;
+            IDSetNumber(&GuideRateNP, nullptr);
+        }
+    }
+
+#ifndef OnStep_Alpha
+    if (OSMountType == MOUNTTYPE_GEM)
     {
         //AutoFlip
-        getCommandString(PortFD,TempValue,":GX95#");
-        if (atoi(TempValue)) {
-            AutoFlipS[1].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
-        } else {
-            AutoFlipS[0].s=ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+        char merdidianflipauto_response[RB_MAX_LEN] = {0};
+        int gx95_error  = getCommandSingleCharErrorOrLongResponse(PortFD, merdidianflipauto_response, ":GX95#");
+        if (gx95_error > 1)
+        {
+            if (merdidianflipauto_response[0] == '1' && merdidianflipauto_response[1] == 0) //Only set on 1#
+            {
+                AutoFlipS[1].s = ISS_ON;
+                AutoFlipSP.s = IPS_OK;
+                IDSetSwitch(&AutoFlipSP, nullptr);
+            }
+            else
+            {
+                AutoFlipS[0].s = ISS_ON;
+                AutoFlipSP.s = IPS_OK;
+                IDSetSwitch(&AutoFlipSP, nullptr);
+            }
+        }
+        else {
+            LOG_WARN("Communication error on meridianAutoFlip (:GX95#), this update aborted, will try again...");
+            return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
         }
     }
-    #endif
-    
-    if (OSMountType == MOUNTTYPE_GEM) { //Doesn't apply to non-GEMs
+#endif
+
+    if (OSMountType == MOUNTTYPE_GEM)   //Doesn't apply to non-GEMs
+    {
         //PreferredPierSide
-        getCommandString(PortFD,TempValue,":GX96#");
-        if (strstr(TempValue,"W")) {
-            PreferredPierSideS[0].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        } else if (strstr(TempValue,"E")) {
-            PreferredPierSideS[1].s=ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        } else if (strstr(TempValue,"B")) {
-            PreferredPierSideS[2].s=ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
-        } else {
-            IUResetSwitch(&PreferredPierSideSP);
-            PreferredPierSideSP.s = IPS_BUSY;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        char preferredpierside_response[RB_MAX_LEN] = {0};
+        int gx96_error  = getCommandSingleCharErrorOrLongResponse(PortFD, preferredpierside_response, ":GX96#");
+        if (gx96_error > 1)
+        {
+            if (strstr(preferredpierside_response, "W"))
+            {
+                PreferredPierSideS[0].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "E"))
+            {
+                PreferredPierSideS[1].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "B"))
+            {
+                PreferredPierSideS[2].s = ISS_ON;
+                PreferredPierSideSP.s = IPS_OK;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else if (strstr(preferredpierside_response, "%"))
+            {
+                //NOTE: This bug is only present in very early OnStepX, and should be fixed shortly after 10.03k
+                LOG_DEBUG(":GX96 returned \% indicating early OnStepX bug");
+                IUResetSwitch(&PreferredPierSideSP);
+                PreferredPierSideSP.s = IPS_ALERT;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+            else
+            {
+                IUResetSwitch(&PreferredPierSideSP);
+                PreferredPierSideSP.s = IPS_BUSY;
+                IDSetSwitch(&PreferredPierSideSP, nullptr);
+            }
+        }
+        else
+        {
+            LOG_WARN("Communication error on Preferred Pier Side (:GX96#), this update aborted, will try again...");
+            return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
         }
 
-        getCommandString(PortFD,TempValue, ":GXE9#"); // E
-        getCommandString(PortFD,TempValue2, ":GXEA#"); // W 
-        minutesPastMeridianNP.np[0].value = atof(TempValue); // E
-        minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
-        IDSetNumber(&minutesPastMeridianNP, nullptr);
-        
+        if (OSMountType == MOUNTTYPE_GEM) {
+            char limit1_response[RB_MAX_LEN] = {0};
+            int gxea_error, gxe9_error;
+            double degrees_past_Meridian_East, degrees_past_Meridian_West;
+            gxe9_error  = getCommandDoubleResponse(PortFD, &degrees_past_Meridian_East, limit1_response, ":GXE9#");
+            if (gxe9_error > 1) //NOTE: Possible failure not checked.
+            {
+                char limit2_response[RB_MAX_LEN] = {0};
+                gxea_error  = getCommandDoubleResponse(PortFD, &degrees_past_Meridian_West, limit2_response, ":GXEA#");
+                if (gxea_error > 1) { //NOTE: Possible failure not checked.
+                    minutesPastMeridianNP.np[0].value = degrees_past_Meridian_East; // E
+                    minutesPastMeridianNP.np[1].value = degrees_past_Meridian_West; //W
+                    IDSetNumber(&minutesPastMeridianNP, nullptr);
+                } else {
+                    LOG_WARN("Communication error on Degrees past Meridian West (:GXEA#), this update aborted, will try again...");
+                    return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+                }
+            }
+            else
+            {
+                LOG_WARN("Communication error on Degrees past Meridian East (:GXE9#), this update aborted, will try again...");
+                return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+            }
+        }
     }
-    
-    //TODO: Rotator support
-    
-    
+
+    //TODO: Improve Rotator support
+    if (OSUpdateRotator() != 0) {
+        LOG_WARN("Communication error on Rotator Update, this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
     //Weather update
-    getCommandString(PortFD,TempValue, ":GX9A#"); 
-    setParameterValue("WEATHER_TEMPERATURE", std::stod(TempValue));
-    getCommandString(PortFD,TempValue, ":GX9C#"); 
-    setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
-    getCommandString(PortFD,TempValue, ":GX9B#"); 
-    setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
-    getCommandString(PortFD,TempValue, ":GX9E#"); 
-    setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
-    
+    char temperature_response[RB_MAX_LEN] = {0};
+    double temperature_value;
+    int gx9a_error  = getCommandDoubleResponse(PortFD, &temperature_value, temperature_response, ":GX9A#");
+    if (gx9a_error > 1) //> 1 as an OnStep error would be 1 char in response
+    {
+        setParameterValue("WEATHER_TEMPERATURE", temperature_value);
+    }
+    else
+    {
+        LOG_WARN("Communication error on Temperature (:GX9A#), this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+    char humidity_response[RB_MAX_LEN] = {0};
+    double humidity_value;
+    int gx9c_error  = getCommandDoubleResponse(PortFD, &humidity_value, humidity_response, ":GX9C#");
+    if (gx9c_error > 1) //> 1 as an OnStep error would be 1 char in response
+    {
+        setParameterValue("WEATHER_HUMIDITY", humidity_value);
+    }
+    else
+    {
+        LOG_WARN("Communication error on Humidity (:GX9C#), this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+
+    char barometer_response[RB_MAX_LEN] = {0};
+    double barometer_value;
+    int gx9b_error  = getCommandDoubleResponse(PortFD, &barometer_value, barometer_response, ":GX9B#");
+    if (gx9b_error > 1)
+    {
+        setParameterValue("WEATHER_BAROMETER", barometer_value);
+    }
+    else
+    {
+        LOG_WARN("Communication error on Barometer (:GX9B#), this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+    char dewpoint_reponse[RB_MAX_LEN] = {0};
+    double dewpoint_value;
+    int gx9e_error  = getCommandDoubleResponse(PortFD, &dewpoint_value, dewpoint_reponse, ":GX9E#");
+    if (gx9e_error > 1)
+    {
+        setParameterValue("WEATHER_DEWPOINT", dewpoint_value);
+    }
+    else
+    {
+        LOG_WARN("Communication error on Dewpoint (:GX9E#), this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+    if (OSCpuTemp_good)
+    {
+        char cputemp_reponse[RB_MAX_LEN] = {0};
+        double cputemp_value;
+        int error_return = getCommandDoubleResponse(PortFD, &cputemp_value, cputemp_reponse, ":GX9F#");
+        if ( error_return >= 0 && !strcmp(cputemp_reponse, "0") )
+        {
+            setParameterValue("WEATHER_CPU_TEMPERATURE", cputemp_value);
+        }
+        else
+        {
+            LOGF_DEBUG("CPU Temp not responded to, disabling further checks, return values: error_return: %i, cputemp_reponse: %s",
+                       error_return, cputemp_reponse);
+            OSCpuTemp_good = false;
+        }
+    }
+    //
     //Disabled, because this is supplied via Kstars or other location, no sensor to read this
-    //getCommandString(PortFD,TempValue, ":GX9D#"); 
-    //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
+    //double altitude_value;
+    //int error_or_fail = getCommandDoubleResponse(PortFD, &altitude_value, TempValue, ":GX9D#");
+    //setParameterValue("WEATHER_ALTITUDE", altitude_value);
     WI::updateProperties();
-    
+
     if (WI::syncCriticalParameters())
         IDSetLight(&critialParametersLP, nullptr);
     ParametersNP.s = IPS_OK;
     IDSetNumber(&ParametersNP, nullptr);
-    
-    
-    
+
+    if (TMCDrivers)
+    {
+        for (int driver_number = 1; driver_number < 3; driver_number++)
+        {
+            char TMCDriverTempValue[RB_MAX_LEN] = {0};
+            char TMCDriverCMD[CMD_MAX_LEN] = {0};
+            snprintf(TMCDriverCMD, sizeof(TMCDriverCMD), ":GXU%i#", driver_number);
+            if (TMCDrivers) { //Prevent check on :GXU2# if :GXU1# failed
+                int i = getCommandSingleCharErrorOrLongResponse(PortFD, TMCDriverTempValue, TMCDriverCMD);
+                if (i == -4  && TMCDriverTempValue[0] == '0' )
+                {
+                    char ResponseText[RB_MAX_LEN] = {0};
+                    snprintf(ResponseText, sizeof(ResponseText),  "TMC Reporting not detected, Axis %i", driver_number);
+                    IUSaveText(&OnstepStat[8 + driver_number], ResponseText);
+                    LOG_DEBUG("TMC Drivers responding as if not there, disabling further checks");
+                    TMCDrivers = false;
+                }
+                else
+                {
+                    if (i > 0 )
+                    {
+                        if (TMCDriverTempValue[0] == 0)
+                        {
+                            IUSaveText(&OnstepStat[8 + driver_number], "No Condition");
+                            TMCDrivers = false;
+                        }
+                        else
+                        {
+                            char StepperState[1024] = {0};
+                            bool unknown_value = false;
+                            int current_position = 0;
+                            while (TMCDriverTempValue[current_position] != 0 && unknown_value == false)
+                            {
+                                if (TMCDriverTempValue[current_position] == ',')
+                                {
+                                    current_position++;
+                                }
+                                else
+                                {
+                                    if (TMCDriverTempValue[current_position] == 'S' && TMCDriverTempValue[current_position + 1] == 'T')
+                                    {
+                                        strcat(StepperState, "Standstill,");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position + 1] == 'A')
+                                    {
+                                        strcat(StepperState, "Open Load A Pair,");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position + 1] == 'B')
+                                    {
+                                        strcat(StepperState, "Open Load B Pair,");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position + 1] == 'A')
+                                    {
+                                        strcat(StepperState, "Short to Ground A Pair,");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position + 1] == 'B')
+                                    {
+                                        strcat(StepperState, "Short to Ground B Pair,");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'O' && TMCDriverTempValue[current_position + 1] == 'T')
+                                    {
+                                        strcat(StepperState, "Over Temp (>150C),");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'P' && TMCDriverTempValue[current_position + 1] == 'W')
+                                    {
+                                        strcat(StepperState, "Pre-Warning: Over Temp (>120C),");
+                                    }
+                                    else if (TMCDriverTempValue[current_position] == 'G' && TMCDriverTempValue[current_position + 1] == 'F')
+                                    {
+                                        strcat(StepperState, "General Fault,");
+                                    }
+                                    else
+                                    {
+                                        unknown_value = true;
+                                        break;
+                                    }
+                                    current_position = current_position + 3;
+                                }
+                            }
+                            if (unknown_value)
+                            {
+                                IUSaveText(&OnstepStat[8 + driver_number], TMCDriverTempValue);
+                            }
+                            else
+                            {
+                                IUSaveText(&OnstepStat[8 + driver_number], StepperState);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        IUSaveText(&OnstepStat[8 + driver_number], "Unknown read error");
+                    }
+                }
+            }
+        }
+    }
+
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
     //Align tab, so it doesn't conflict
-    //May want to reduce frequency of updates 
-    if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
+    //May want to reduce frequency of updates
+    if (!UpdateAlignStatus()) {
+        LOG_WARN("Fail Align Command");
+        LOG_WARN("Communication error on Align Status Update, this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
     UpdateAlignErr();
-    
-    
-    OSUpdateFocuser();  // Update Focuser Position
-    #ifndef OnStep_Alpha
-    PECStatus(0);
+
+
+    if (OSUpdateFocuser() != 0)  // Update Focuser Position
+    {
+        LOG_WARN("Communication error on Focuser Update, this update aborted, will try again...");
+        return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
+    }
+
+#ifndef OnStep_Alpha
+    if (!OSPECviaGU)
+    {
+        PECStatus(0);
+    }
     //#Gu# has this built in
-    #endif
-    
-   
-    NewRaDec(currentRA, currentDEC);
+#endif
+
+
     return true;
 }
 
@@ -2134,7 +3187,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
 
     if (enabled)
     {
-        if(!getCommandString(PortFD, response, ":Te#"))
+        int res = getCommandSingleCharResponse(PortFD, response, ":Te#"); //0 = failure, 1 = success, no # on reply
+        if(res < 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track On %s", response);
             return false;
@@ -2142,7 +3196,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     }
     else
     {
-        if(!getCommandString(PortFD, response, ":Td#"))
+        int res = getCommandSingleCharResponse(PortFD, response, ":Td#"); //0 = failure, 1 = success, no # on reply
+        if(res < 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track Off %s", response);
             return false;
@@ -2154,9 +3209,9 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
 bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     years = years % 100;
-    char cmd[32];
+    char cmd[CMD_MAX_LEN] = {0};
 
-    snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
+    snprintf(cmd, CMD_MAX_LEN, ":SC%02d/%02d/%02d#", months, days, years);
 
     if (!sendOnStepCommand(cmd)) return true;
     return false;
@@ -2169,39 +3224,255 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
 
+    flushIO(PortFD);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(PortFD, TCIFLUSH);
 
-    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
-        return error_type;
+
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
+        LOGF_ERROR("CHECK CONNECTION: Error sending command %s", cmd);
+        return 0; //Fail if we can't write
+        //return error_type;
+    }
 
     return 1;
 }
 
 bool LX200_OnStep::sendOnStepCommand(const char *cmd)
 {
-    char response[1];
+    char response[1] = {0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
 
+    flushIO(PortFD);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(PortFD, TCIFLUSH);
 
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read(PortFD, response, 1, ONSTEP_TIMEOUT, &nbytes_read);
+    error_type = tty_read_expanded(PortFD, response, 1, OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
 
     tcflush(PortFD, TCIFLUSH);
+    DEBUGF(DBG_SCOPE, "RES <%c>", response[0]);
 
     if (nbytes_read < 1)
     {
-        LOG_ERROR("Unable to parse response.");
+        LOG_WARN("Timeout/Error on response. Check connection.");
+        return false;
+    }
+
+    return (response[0] == '0'); //OnStep uses 0 for success and non zero for failure, in *most* cases;
+}
+
+int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    flushIO(fd);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read_expanded(fd, data, 1, OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    if (error_type != TTY_OK)
+        return error_type;
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //given this function that should always be true, as should nbytes_read always be 1
+    {
+        data[nbytes_read] = '\0';
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back (which should never happen), last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+
+    return nbytes_read;
+}
+
+
+int LX200_OnStep::flushIO(int fd)
+{
+    tcflush(fd, TCIOFLUSH);
+    int error_type = 0;
+    int nbytes_read;
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIOFLUSH);
+    do {
+        char discard_data[RB_MAX_LEN] = {0};
+        error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
+        if (error_type >= 0) {
+            LOGF_DEBUG("flushIO: Information in buffer: Bytes: %u, string: %s", nbytes_read, discard_data);
+        }
+        //LOGF_DEBUG("flushIO: error_type = %i", error_type);
+    } while (error_type > 0);
+    return 0;
+}
+
+int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    flushIO(fd);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+
+    if (error_type != TTY_OK)
+    {
+        LOGF_DEBUG("Error %d", error_type);
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
         return error_type;
     }
 
-    return (response[0] == '0');
+    if (sscanf(data, "%lf", value) != 1){
+        LOG_WARN("Invalid response, check connection");
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
+    }
+
+    return nbytes_read;
+
 }
+
+
+int LX200_OnStep::getCommandIntResponse(int fd, int *value, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    flushIO(fd);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+    if (error_type != TTY_OK)
+    {
+        LOGF_DEBUG("Error %d", error_type);
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return error_type;
+    }
+    if (sscanf(data, "%i", value) != 1){
+        LOG_WARN("Invalid response, check connection");
+        LOG_DEBUG("Flushing connection");
+        tcflush(fd, TCIOFLUSH); 
+        return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
+    }
+    return nbytes_read;
+}
+
+int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    flushIO(fd);
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read_section_expanded(fd, data, '#', OSTimeoutSeconds, OSTimeoutMicroSeconds, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
+        data[nbytes_read] = '\0'; //Indexed at 0, so this is the byte passed it
+    }
+    else
+    {
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
+
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+
+    if (error_type != TTY_OK)
+    {
+        LOGF_DEBUG("Error %d", error_type);
+        return error_type;
+    }
+    return nbytes_read;
+
+}
+
+
 
 bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
 {
@@ -2229,8 +3500,8 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     }
 
     char l[32] = {0}, L[32] = {0};
-    fs_sexa(l, latitude, 3, 3600);
-    fs_sexa(L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 360000);
+    fs_sexa(L, longitude, 4, 360000);
 
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
@@ -2250,16 +3521,58 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 
 int LX200_OnStep::setSiteLongitude(int fd, double Long)
 {
-    //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    int d, m, s;
+    int d, m;
+    double s;
     char read_buffer[32];
 
-    getSexComponents(Long, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d#", d, m);
-
+    getSexComponentsIID(Long, &d, &m, &s);
+    if (OSHighPrecision)
+    {
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m, s);
+        int result1 = setStandardProcedure(fd, read_buffer);
+        if (result1 == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
+            return (setStandardProcedure(fd, read_buffer));
+        }
+    }
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
     return (setStandardProcedure(fd, read_buffer));
 }
+
+int LX200_OnStep::setSiteLatitude(int fd, double Long)
+{
+    int d, m;
+    double s;
+    char read_buffer[32];
+
+    getSexComponentsIID(Long, &d, &m, &s);
+
+    if(OSHighPrecision)
+    {
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m, s);
+        int result1 = setStandardProcedure(fd, read_buffer);
+        if (result1 == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+            return (setStandardProcedure(fd, read_buffer));
+        }
+    }
+    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+    return (setStandardProcedure(fd, read_buffer));
+}
+
+
+
+
 /***** FOCUSER INTERFACE ******
 
 NOT USED:
@@ -2299,15 +3612,19 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
     return IPS_BUSY; // Normal case, should be set to normal by update.
 }
 
-IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
+IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks)
+{
     //  :FSsnnn#  Set focuser target position (in microns)
     //            Returns: Nothing
-    if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks)) {
+    if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks))
+    {
         char read_buffer[32];
         snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
         sendOnStepCommandBlind(read_buffer);
         return IPS_BUSY; // Normal case, should be set to normal by update.
-    } else {
+    }
+    else
+    {
         LOG_INFO("Unable to move focuser, out of range");
         return IPS_ALERT;
     }
@@ -2330,43 +3647,61 @@ bool LX200_OnStep::AbortFocuser ()
 {
     //  :FQ#   Stop the focuser
     //         Returns: Nothing
-    char cmd[8];
-    strcpy(cmd, ":FQ#");
+    char cmd[CMD_MAX_LEN] = {0};
+    strncpy(cmd, ":FQ#", sizeof(cmd));
     return sendOnStepCommandBlind(cmd);
 }
 
-void LX200_OnStep::OSUpdateFocuser()
+int LX200_OnStep::OSUpdateFocuser()
 {
-    char value[RB_MAX_LEN];
-    double current = 0;
-    if (OSFocuser1) 
+
+    //    double current = 0;
+    //     int temp_value;
+    //     int i;
+    if (OSFocuser1)
     {
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
-        getCommandString(PortFD, value, ":FG#");
-        FocusAbsPosN[0].value =  atoi(value);
-        current = FocusAbsPosN[0].value;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
+        char value[RB_MAX_LEN] = {0};
+        int value_int;
+        int error_or_fail = getCommandIntResponse(PortFD, &value_int, value, ":FG#");
+        if (error_or_fail > 1) {
+            FocusAbsPosN[0].value =  value_int;
+        //         double current = FocusAbsPosN[0].value;
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosN[0].value);
+        }
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
-        getCommandString(PortFD, value, ":FT#");
-        if (value[0] == 'S') 
-        {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        } 
-        else if (value[0] == 'M') 
-        {
-            FocusRelPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        }
-        else 
-        { //INVALID REPLY
+        char valueStatus[RB_MAX_LEN] = {0};
+        error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, valueStatus, ":FT#");
+        if (error_or_fail > 0 ) {
+            if (valueStatus[0] == 'S')
+            {
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+            else if (valueStatus[0] == 'M')
+            {
+                FocusRelPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+            else
+            {
+                LOG_WARN("Communication :FT# error, check connection.");
+                //INVALID REPLY
+                FocusRelPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+        } else {
+            //INVALID REPLY
+            LOG_WARN("Communication :FT# error, check connection.");
             FocusRelPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusRelPosNP, nullptr);
             FocusAbsPosNP.s = IPS_ALERT;
@@ -2374,44 +3709,338 @@ void LX200_OnStep::OSUpdateFocuser()
         }
         //  :FM#  Get max position (in microns)
         //         Returns: n#
-        getCommandString(PortFD, value, ":FM#");
-        FocusAbsPosN[0].max   = atoi(value);
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        char focus_max[RB_MAX_LEN]={0};
+        int focus_max_int;
+        int fm_error = getCommandIntResponse(PortFD, &focus_max_int, focus_max, ":FM#");
+        if (fm_error > 0) {
+            FocusAbsPosN[0].max   = focus_max_int;
+            IUUpdateMinMax(&FocusAbsPosNP);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            LOGF_DEBUG("focus_max: %s, %i, fm_error: %i", focus_max, focus_max_int, fm_error);
+        } else {
+            LOG_WARN("Communication :FM# error, check connection.");
+            LOGF_WARN("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
-        getCommandString(PortFD, value, ":FI#");
-        FocusAbsPosN[0].min =  atoi(value);
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        char focus_min[RB_MAX_LEN]={0};
+        int focus_min_int ;
+        int fi_error = getCommandIntResponse(PortFD, &focus_min_int, focus_min, ":FI#");
+        if (fi_error > 0) {
+            FocusAbsPosN[0].min =  focus_min_int;
+            IUUpdateMinMax(&FocusAbsPosNP);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            LOGF_DEBUG("focus_min: %s, %i fi_error: %i", focus_min, focus_min_int, fi_error);
+        } else {
+            LOG_WARN("Communication :FI# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+
         FI::updateProperties();
         LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
-    } 
-    
-    
+    }
+
+
     if(OSFocuser2)
     {
-        getCommandString(PortFD, value, ":fG#");
-        OSFocus2TargNP.np[0].value = atoi(value);
-        IDSetNumber(&OSFocus2TargNP, nullptr);
+        char value[RB_MAX_LEN] = {0};
+        int error_return;
+        //TODO: Check to see if getCommandIntResponse would be better
+        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#"); 
+        if (error_return >= 0)
+        {
+            if ( strcmp(value, "0") )
+            {
+                LOG_INFO("Focuser 2 called, but not present, disabling polling");
+                LOGF_DEBUG("OSFocuser2: %d, OSNumFocusers: %i", OSFocuser2, OSNumFocusers);
+                OSFocuser2 = false;
+            }
+            else
+            {
+                OSFocus2TargNP.np[0].value = atoi(value);
+                IDSetNumber(&OSFocus2TargNP, nullptr);
+            }
+        }
+        else
+        {
+            LOGF_INFO("Focuser 2 called, but returned error %i on read, disabling further polling", error_return);
+            LOGF_DEBUG("OSFocuser2: %d, OSNumFocusers: %i", OSFocuser2, OSNumFocusers);
+            OSFocuser2 = false;
+        }
     }
+
+    if(OSNumFocusers > 1)
+    {
+        char value[RB_MAX_LEN] = {0};
+        int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#"); //0 = failure, 1 = success, no # on reply
+        if (error_or_fail > 0 && value[0] > '0' && value[0] < '9') {
+            int temp_value = (unsigned int)(value[0]) - '0';
+            LOGF_DEBUG(":Fa# return: %d", temp_value);
+            for (int i = 0; i < 9; i++)
+            {
+                OSFocusSelectS[i].s = ISS_OFF;
+            }
+            if (temp_value == 0)
+            {
+                OSFocusSelectS[1].s = ISS_ON;
+            }
+            else if (temp_value > 9 || temp_value < 0) //TODO: Check if completely redundant
+            {
+                //To solve issue mentioned https://www.indilib.org/forum/development/1406-driver-onstep-lx200-like-for-indi.html?start=624#71572
+                OSFocusSelectSP.s = IPS_ALERT;
+                LOGF_WARN("Active focuser returned out of range: %s, should be 0-9", temp_value);
+                IDSetSwitch(&OSFocusSelectSP, nullptr);
+                return 1;
+            }
+            else
+            {
+                OSFocusSelectS[temp_value - 1].s = ISS_ON;
+            }
+            OSFocusSelectSP.s = IPS_OK;
+            IDSetSwitch(&OSFocusSelectSP, nullptr);
+        } else {
+            LOGF_DEBUG(":Fa# returned outside values: %c, %u", value[0], value[0]);
+        }
+    }
+    return 0;
 }
+
+
+//Rotator stuff
+// IPState MoveRotator(double angle) override;
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator() override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+//OnStep Rotator Commands (For reference, and from 5 1 v 4)
+// :r+#       Enable derotator
+//            Returns: Nothing
+// :r-#       Disable derotator
+//            Returns: Nothing
+// :rP#       Move rotator to the parallactic angle
+//            Returns: Nothing
+// :rR#       Reverse derotator direction
+//            Returns: Nothing
+// :rT#       Get status
+//            Returns: M# (for moving) or S# (for stopped)
+// :rI#       Get mIn position (in degrees)
+//            Returns: n#
+// :rM#       Get Max position (in degrees)
+//            Returns: n#
+// :rD#       Get rotator degrees per step
+//            Returns: n.n#
+// :rb#       Get rotator backlash amount in steps
+//            Return: n#
+// :rb[n]#
+//            Set rotator backlash amount in steps
+//            Returns: 0 on failure
+//                     1 on success
+// :rF#       Reset rotator at the home position
+//            Returns: Nothing
+// :rC#       Moves rotator to the home position
+//            Returns: Nothing
+// :rG#       Get rotator current position in degrees
+//            Returns: sDDD*MM#
+// :rc#       Set continuous move mode (for next move command)
+//            Returns: Nothing
+// :r>#       Move clockwise as set by :rn# command, default = 1 deg (or 0.1 deg/s in continuous mode)
+//            Returns: Nothing
+// :r<#       Move counter clockwise as set by :rn# command
+//            Returns: Nothing
+// :rQ#       Stops movement (except derotator)
+//            Returns: Nothing
+// :r[n]#     Move increment where n = 1 for 1 degrees, 2 for 2 degrees, 3 for 5 degrees, 4 for 10 degrees
+//            Move rate where n = 1 for .01 deg/s, 2 for 0.1 deg/s, 3 for 1.0 deg/s, 4 for 5.0 deg/s
+//            Returns: Nothing
+// :rS[sDDD*MM'SS]#
+//            Set position in degrees
+//            Returns: 0 on failure
+//                     1 on success
+
+int LX200_OnStep::OSUpdateRotator()
+{
+    char value[RB_MAX_LEN];
+    double double_value;
+    if(OSRotator1)
+    {
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":rG#");
+        if (error_or_fail == 1 && value[0] == '0') //1 char return, response 0 = no Rotator
+        {
+            LOG_INFO("Detected Response that Rotator is not present, disabling further checks");
+            OSRotator1 = false;
+            return 0; //Return 0, as this is not a communication error
+        }
+        if (error_or_fail < 1) { //This does not neccessarily mean 
+            LOG_WARN("Error talking to rotator, might be timeout (especially on network)");
+            return -1;
+        }
+        if (f_scansexa(value, &double_value))
+        {
+            // 0 = good, thus this is the bad
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            return -1;
+        }
+        GotoRotatorN[0].value =  double_value;
+        double min_rotator, max_rotator;
+        //NOTE: The following commands are only on V4, V5 & OnStepX, not V3
+        //TODO: Psudo-state for V3 Rotator?
+        bool changed_minmax = false;
+        if (OnStepMountVersion != OSV_OnStepV1or2 && OnStepMountVersion != OSV_OnStepV3) {
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandDoubleResponse(PortFD, &min_rotator, value, ":rI#");
+            if (error_or_fail > 1)
+            {
+                changed_minmax = true;
+                GotoRotatorN[0].min =  min_rotator;
+            }
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandDoubleResponse(PortFD, &max_rotator, value, ":rM#");
+            if (error_or_fail > 1)
+            {
+                changed_minmax = true;
+                GotoRotatorN[0].max =  max_rotator;
+            }
+            if (changed_minmax) {
+                IUUpdateMinMax(&GotoRotatorNP);
+                IDSetNumber(&GotoRotatorNP, nullptr);
+            }
+            //GotoRotatorN
+            memset(value, 0, RB_MAX_LEN);
+            error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":rT#");
+            if (error_or_fail > 1) {
+                if (value[0] == 'S') /*Stopped normal on EQ mounts */
+                {
+                    GotoRotatorNP.s = IPS_OK;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
+
+                }
+                else if (value[0] == 'M') /* Moving, including de-rotation */
+                {
+                    GotoRotatorNP.s = IPS_BUSY;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
+                }
+                else
+                {
+                    //INVALID REPLY
+                    GotoRotatorNP.s = IPS_ALERT;
+                    IDSetNumber(&GotoRotatorNP, nullptr);
+                }
+            }
+            memset(value, 0, RB_MAX_LEN);
+            int backlash_value;
+            error_or_fail = getCommandIntResponse(PortFD, &backlash_value, value, ":rb#");
+            if (error_or_fail > 1) {
+                RotatorBacklashN[0].value =  backlash_value;
+                RotatorBacklashNP.s = IPS_OK;
+                IDSetNumber(&RotatorBacklashNP, nullptr);
+            }
+        }
+    }
+    return 0;
+}
+
+IPState LX200_OnStep::MoveRotator(double angle)
+{
+    char cmd[CMD_MAX_LEN] = {0};
+    int d, m, s;
+    getSexComponents(angle, &d, &m, &s);
+
+    snprintf(cmd, sizeof(cmd), ":rS%.03d:%02d:%02d#", d, m, s);
+    LOGF_INFO("Move Rotator: %s", cmd);
+
+
+    if(setStandardProcedure(PortFD, cmd))
+    {
+        return IPS_BUSY;
+    }
+    else
+    {
+        return IPS_ALERT;
+    }
+
+
+    return IPS_BUSY;
+}
+/*
+bool LX200_OnStep::SyncRotator(double angle) {
+
+}*/
+IPState LX200_OnStep::HomeRotator()
+{
+    //Not entirely sure if this means attempt to use limit switches and home, or goto home
+    //Assuming MOVE to Home
+    LOG_INFO("Moving Rotator to Home");
+    sendOnStepCommandBlind(":rC#");
+    return IPS_BUSY;
+}
+// bool LX200_OnStep::ReverseRotator(bool enabled) {
+//     sendOnStepCommandBlind(":rR#");
+//     return true;
+// } //No way to check which way it's going as Indi expects
+
+bool LX200_OnStep::AbortRotator()
+{
+    LOG_INFO("Aborting Rotation, de-rotation in same state");
+    sendOnStepCommandBlind(":rQ#"); //Does NOT abort de-rotator
+    return true;
+}
+
+bool LX200_OnStep::SetRotatorBacklash(int32_t steps)
+{
+    char cmd[CMD_MAX_LEN] = {0};
+    //     char response[RB_MAX_LEN];
+    snprintf(cmd, sizeof(cmd), ":rb%d#", steps);
+    if(sendOnStepCommand(cmd))
+    {
+        return true;
+    }
+    return false;
+}
+
+bool LX200_OnStep::SetRotatorBacklashEnabled(bool enabled)
+{
+    //Nothing required here.
+    INDI_UNUSED(enabled);
+    return true;
+    //     As it's always enabled, which would mean setting it like SetRotatorBacklash to 0, and losing any saved values. So for now, leave it as is (always enabled)
+}
+
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator(double angle) override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+// Now, derotation is NOT explicitly handled.
+
+
+
+//End Rotator stuff
+
+
+
 
 //PEC Support
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited.
 
-IPState LX200_OnStep::StartPECPlayback (int axis) 
+IPState LX200_OnStep::StartPECPlayback (int axis)
 {
-    //  :$QZ+  Enable RA PEC compensation 
+    //  :$QZ+  Enable RA PEC compensation
     //         Returns: nothing
     INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSMountType != MOUNTTYPE_ALTAZ ) 
+    if (OSMountType != MOUNTTYPE_ALTAZ )
     {
-        if (OSPECEnabled == true) 
-        { 
-            char cmd[8];
+        if (OSPECEnabled == true)
+        {
+            char cmd[CMD_MAX_LEN] = {0};
             LOG_INFO("Sending Command to Start PEC Playback");
-            strcpy(cmd, ":$QZ+#");
+            strncpy(cmd, ":$QZ+#", sizeof(cmd));
             sendOnStepCommandBlind(cmd);
             return IPS_BUSY;
         }
@@ -2420,14 +4049,14 @@ IPState LX200_OnStep::StartPECPlayback (int axis)
             LOG_DEBUG("Command to Playback PEC called when Controller does not support PEC");
         }
         return IPS_ALERT;
-    } 
-    else 
+    }
+    else
     {
         OSPECEnabled = false;
         LOG_INFO("Command to Start Playback PEC called when Controller does not support PEC due to being Alt-Az, PEC Ignored going forward");
         return IPS_ALERT;
     }
-    
+
 }
 
 IPState LX200_OnStep::StopPECPlayback (int axis)
@@ -2435,11 +4064,11 @@ IPState LX200_OnStep::StopPECPlayback (int axis)
     //  :$QZ-  Disable RA PEC Compensation
     //         Returns: nothing
     INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSPECEnabled == true) 
+    if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Stop PEC Playback");
-        strcpy(cmd, ":$QZ-#");
+        strncpy(cmd, ":$QZ-#", sizeof(cmd));
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -2457,9 +4086,9 @@ IPState LX200_OnStep::StartPECRecord (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Start PEC record");
-        strcpy(cmd, ":$QZ/#");
+        strncpy(cmd, ":$QZ/#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -2477,9 +4106,9 @@ IPState LX200_OnStep::ClearPECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Clear PEC record");
-        strcpy(cmd, ":$QZZ#");
+        strncpy(cmd, ":$QZZ#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -2488,18 +4117,19 @@ IPState LX200_OnStep::ClearPECBuffer (int axis)
         LOG_DEBUG("Command to clear PEC called when Controller does not support PEC");
     }
     return IPS_ALERT;
-    
+
 }
 
-IPState LX200_OnStep::SavePECBuffer (int axis) 
+IPState LX200_OnStep::SavePECBuffer (int axis)
 {
     //  :$QZ!  Write PEC data to EEPROM
     //         Returns: nothing
     INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSPECEnabled == true) {
-        char cmd[8];
+    if (OSPECEnabled == true)
+    {
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Save PEC to EEPROM");
-        strcpy(cmd, ":$QZ!#");
+        strncpy(cmd, ":$QZ!#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -2511,11 +4141,13 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
 }
 
 
-IPState LX200_OnStep::PECStatus (int axis) 
+IPState LX200_OnStep::PECStatus (int axis)
 {
+    //     if (!OSPECviaGU) {
     INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSPECEnabled == true) {
-        if (OSMountType == MOUNTTYPE_ALTAZ) 
+    if (OSPECEnabled == true && OSPECviaGU == false) //All current versions report via #GU
+    {
+        if (OSMountType == MOUNTTYPE_ALTAZ || OSMountType == MOUNTTYPE_FORK_ALT)
         {
             OSPECEnabled = false;
             LOG_INFO("Command to give PEC called when Controller does not support PEC due to being Alt-Az Disabled");
@@ -2524,76 +4156,79 @@ IPState LX200_OnStep::PECStatus (int axis)
         //LOG_INFO("Getting PEC Status");
         //  :$QZ?  Get PEC status
         //         Returns: S#
-        // Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect. 
+        // Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect.
         // IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_ON);
         // IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
         // IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
         // IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
         // IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
-        char value[RB_MAX_LEN] ="  ";
+        char value[RB_MAX_LEN] = {0};
         OSPECStatusSP.s = IPS_BUSY;
-        getCommandString(PortFD, value, ":$QZ?#");
-        // LOGF_INFO("Response %s", value);
-        // LOGF_INFO("Response %d", value[0]);
-        // LOGF_INFO("Response %d", value[1]);
-        OSPECStatusS[0].s = ISS_OFF ;
-        OSPECStatusS[1].s = ISS_OFF ;
-        OSPECStatusS[2].s = ISS_OFF ;
-        OSPECStatusS[3].s = ISS_OFF ;
-        OSPECStatusS[4].s = ISS_OFF ;
-        if (value[0] == 'I') //Ignore
-        {  
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[0].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-            OSPECEnabled = false;
-            LOG_INFO("Controller reports PEC Ignored and not supported");
-            LOG_INFO("No Further PEC Commands will be processed, unless status changed");
-        } 
-        else if (value[0] == 'R') //Active Recording
-        { 
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[2].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        } 
-        else if (value[0] == 'r')  //Waiting for index before recording
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[4].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        } 
-        else if (value[0] == 'P') //Active Playing
-        { 
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[1].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        } 
-        else if (value[0] == 'p') //Waiting for index before playing
-        { 
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[3].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        } 
-        else //INVALID REPLY
-        { 
-            OSPECStatusSP.s = IPS_ALERT;
-            OSPECRecordSP.s = IPS_ALERT;
-        }
-        if (value[1] == '.') 
-        {
-            OSPECIndexSP.s = IPS_OK;
-            OSPECIndexS[0].s = ISS_OFF;
-            OSPECIndexS[1].s = ISS_ON;
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":$QZ?#");
+        if (error_or_fail > 1) {
+            OSPECStatusS[0].s = ISS_OFF ;
+            OSPECStatusS[1].s = ISS_OFF ;
+            OSPECStatusS[2].s = ISS_OFF ;
+            OSPECStatusS[3].s = ISS_OFF ;
+            OSPECStatusS[4].s = ISS_OFF ;
+            if (value[0] == 'I') //Ignore
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[0].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+                // 		OSPECEnabled = false;
+                LOG_INFO("Controller reports PEC Ignored and not supported");
+                LOG_INFO("No Further PEC Commands will be processed, unless status changed");
+            }
+            else if (value[0] == 'R') //Active Recording
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[2].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            else if (value[0] == 'r')  //Waiting for index before recording
+            {
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[4].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            else if (value[0] == 'P') //Active Playing
+            {
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[1].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            else if (value[0] == 'p') //Waiting for index before playing
+            {
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[3].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
+            }
+            else //INVALID REPLY
+            {
+                OSPECStatusSP.s = IPS_ALERT;
+                OSPECRecordSP.s = IPS_ALERT;
+            }
+            if (value[1] == '.')
+            {
+                OSPECIndexSP.s = IPS_OK;
+                OSPECIndexS[0].s = ISS_OFF;
+                OSPECIndexS[1].s = ISS_ON;
+            }
+            else
+            {
+                OSPECIndexS[1].s = ISS_OFF;
+                OSPECIndexS[0].s = ISS_ON;
+            }
+            IDSetSwitch(&OSPECStatusSP, nullptr);
+            IDSetSwitch(&OSPECRecordSP, nullptr);
+            IDSetSwitch(&OSPECIndexSP, nullptr);
+            return IPS_OK;
         }
         else
         {
-            OSPECIndexS[1].s = ISS_OFF;
-            OSPECIndexS[0].s = ISS_ON;
+            LOG_DEBUG("Timeout or other error on :$QZ?#");
         }
-        IDSetSwitch(&OSPECStatusSP, nullptr);
-        IDSetSwitch(&OSPECRecordSP, nullptr);
-        IDSetSwitch(&OSPECIndexSP, nullptr);
-        return IPS_OK;
     }
     else
     {
@@ -2608,7 +4243,7 @@ IPState LX200_OnStep::ReadPECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        LOG_ERROR("PEC Reading NOT Implemented");
+        LOG_WARN("PEC Reading NOT Implemented");
         return IPS_OK;
     }
     else
@@ -2619,12 +4254,12 @@ IPState LX200_OnStep::ReadPECBuffer (int axis)
 }
 
 
-IPState LX200_OnStep::WritePECBuffer (int axis) 
+IPState LX200_OnStep::WritePECBuffer (int axis)
 {
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        LOG_ERROR("PEC Writing NOT Implemented");
+        LOG_WARN("PEC Writing NOT Implemented");
         return IPS_OK;
     }
     else
@@ -2634,12 +4269,13 @@ IPState LX200_OnStep::WritePECBuffer (int axis)
     return IPS_ALERT;
 }
 
-// New, Multistar alignment goes here: 
+// New, Multistar alignment goes here:
 
-IPState LX200_OnStep::AlignStartGeometric (int stars){
+IPState LX200_OnStep::AlignStartGeometric (int stars)
+{
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
-    
+    char cmd[CMD_MAX_LEN] = {0};
+
     LOG_INFO("Sending Command to Start Alignment");
     IUSaveText(&OSNAlignT[0], "Align STARTED");
     IUSaveText(&OSNAlignT[1], "GOTO a star, center it");
@@ -2647,22 +4283,24 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
     IUSaveText(&OSNAlignT[3], "Press 'Issue Align' if not solving");
     IDSetText(&OSNAlignTP, "==>Align Started");
     // Check for max number of stars and gracefully fall back to max, if more are requested.
-    char read_buffer[RB_MAX_LEN];
-    if(getCommandString(PortFD, read_buffer, ":A?#"))
+    char read_buffer[RB_MAX_LEN] = {0};
+    int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
-        LOGF_INFO("Getting Max Star: response Error, response = %s>", read_buffer);
+        LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return IPS_ALERT;
     }
     //Check max_stars
+
     int max_stars = read_buffer[0] - '0';
-    if (stars > max_stars) 
+    if (stars > max_stars)
     {
         LOG_INFO("Tried to start Align with too many stars.");
         LOGF_INFO("Starting Align with %d stars", max_stars);
         stars = max_stars;
     }
     snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
-    LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
+    LOGF_INFO("Started Align with %s, max possible stars: %d", cmd, max_stars);
     if(sendOnStepCommand(cmd))
     {
         LOG_INFO("Starting Align failed");
@@ -2672,12 +4310,14 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 }
 
 
-IPState LX200_OnStep::AlignAddStar (){
+IPState LX200_OnStep::AlignAddStar ()
+{
+    //Used if centering a star manually, most will use plate-solving
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
+    char cmd[CMD_MAX_LEN] = {0};
     LOG_INFO("Sending Command to Record Star");
-    strcpy(cmd, ":A+#");
-    if(sendOnStepCommand(cmd)) 
+    strncpy(cmd, ":A+#", sizeof(cmd));
+    if(sendOnStepCommand(cmd))
     {
         LOG_INFO("Adding Align failed");
         return IPS_BUSY;
@@ -2692,19 +4332,18 @@ bool LX200_OnStep::UpdateAlignStatus ()
     //         where m is the maximum number of alignment stars
     //               n is the current alignment star (0 otherwise)
     //               o is the last required alignment star when an alignment is in progress (0 otherwise)
-    
-    char read_buffer[RB_MAX_LEN];
-    char msg[40];
-    char stars[5];
-    
+
+    char msg[40] = {0};
+    char stars[5] = {0};
     int max_stars, current_star, align_stars;
-    // LOG_INFO("Getting Align Status");
-    if(getCommandString(PortFD, read_buffer, ":A?#"))
+
+    char read_buffer[RB_MAX_LEN] = {0};
+    int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
-        LOGF_INFO("Align Status response Error, response = %s>", read_buffer);
+        LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return false;
     }
-    //  LOGF_INFO("Getting Align Status: %s", read_buffer);
     max_stars = read_buffer[0] - '0';
     current_star = read_buffer[1] - '0';
     align_stars = read_buffer[2] - '0';
@@ -2715,16 +4354,11 @@ bool LX200_OnStep::UpdateAlignStatus ()
     snprintf(stars, sizeof(stars), "%d", align_stars);
     IUSaveText(&OSNAlignT[7], stars);
     LOGF_DEBUG("Align: max_stars: %i current star: %u, align_stars %u", max_stars, current_star, align_stars);
-    
-    /* if (align_stars > max_stars) {
-     * LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
-     * return false;
-}*/
-    
+
     if (current_star <= align_stars)
     {
         snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
-        IUSaveText(&OSNAlignT[4],msg);
+        IUSaveText(&OSNAlignT[4], msg);
     }
     if (current_star > align_stars && max_stars > 1)
     {
@@ -2761,35 +4395,34 @@ bool LX200_OnStep::UpdateAlignErr()
 
 
 
-    char read_buffer[RB_MAX_LEN];
-    char polar_error[40], sexabuf[20];
+    char read_buffer[RB_MAX_LEN] = {0};
+    char polar_error[RB_MAX_LEN] = {0};
+    char sexabuf[RB_MAX_LEN] = {0};
     //  IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
     //  IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
     //  IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
     //  IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 
     // LOG_INFO("Getting Align Error Status");
-    if(getCommandString(PortFD, read_buffer, ":GX02#"))
+    int error_or_fail;
+    double altCor, azmCor;
+    error_or_fail = getCommandDoubleResponse(PortFD, &altCor, read_buffer, ":GX02#");
+    if (error_or_fail < 2)
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
         return false;
     }
-    //  LOGF_INFO("Getting Align Error Status: %s", read_buffer);
-
-    long altCor = strtold(read_buffer, nullptr);
-    if(getCommandString(PortFD, read_buffer, ":GX03#"))
+    error_or_fail = getCommandDoubleResponse(PortFD, &azmCor, read_buffer, ":GX02#");
+    if (error_or_fail < 2)
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
         return false;
     }
-    //  LOGF_INFO("Getting Align Error Status: %s", read_buffer);
-
-    long azmCor = strtold(read_buffer, nullptr);
     fs_sexa(sexabuf, (double)azmCor / 3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", azmCor, sexabuf);
+    snprintf(polar_error, sizeof(polar_error), "%f'' /%s", azmCor, sexabuf);
     IUSaveText(&OSNAlignErrT[1], polar_error);
     fs_sexa(sexabuf, (double)altCor / 3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", altCor, sexabuf);
+    snprintf(polar_error, sizeof(polar_error), "%f'' /%s", altCor, sexabuf);
     IUSaveText(&OSNAlignErrT[0], polar_error);
     IDSetText(&OSNAlignErrTP, nullptr);
 
@@ -2797,10 +4430,12 @@ bool LX200_OnStep::UpdateAlignErr()
     return true;
 }
 
-IPState LX200_OnStep::AlignDone(){
+IPState LX200_OnStep::AlignDone()
+{
     //See here https://groups.io/g/onstep/message/3624
-    if (OSAlignCompleted == false) {
-        OSAlignCompleted =true;
+    if (OSAlignCompleted == false)
+    {
+        OSAlignCompleted = true;
         LOG_INFO("Alignment Done - May still be calculating");
         IUSaveText(&OSNAlignT[0], "Align FINISHED");
         IUSaveText(&OSNAlignT[1], "------");
@@ -2812,11 +4447,12 @@ IPState LX200_OnStep::AlignDone(){
     return IPS_BUSY;
 }
 
-IPState LX200_OnStep::AlignWrite(){
+IPState LX200_OnStep::AlignWrite()
+{
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
+    char cmd[CMD_MAX_LEN] = {0};
     LOG_INFO("Sending Command to Finish Alignment and write");
-    strcpy(cmd, ":AW#");
+    strncpy(cmd, ":AW#", sizeof(cmd));
     IUSaveText(&OSNAlignT[0], "Align FINISHED");
     IUSaveText(&OSNAlignT[1], "------");
     IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
@@ -2826,10 +4462,10 @@ IPState LX200_OnStep::AlignWrite(){
     {
         return IPS_OK;
     }
-    IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
+    IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
     IDSetText(&OSNAlignTP, nullptr);
     return IPS_ALERT;
-    
+
 }
 
 #ifdef ONSTEP_NOTDONE
@@ -2854,7 +4490,7 @@ IPState LX200_OnStep::OSDisableOutput(int output)
 }
 
 /*
-bool LX200_OnStep::OSGetValue(char selection[2]) {
+Reference:
     //  :GXnn#   Get OnStep value
     //         Returns: value
     //         Error = 123456789
@@ -2897,44 +4533,39 @@ bool LX200_OnStep::OSGetValue(char selection[2]) {
     //   En: Get settings
     //   Fn: Debug
     //   G0-GF (HEX!) = Onstep output status
-    char value[64] ="  ";
-    char command[64]=":$GXmm#";
-    int error_type;
-    command[4]=selection[0];
-    command[5]=selection[1];
-    //Should change to LOGF_DEBUG once tested
-    LOGF_INFO("Command: %s", command);
-    LOGF_INFO("Response: %s", command);
-    if(getCommandString(PortFD, value, command) != TTY_OK) {
-        return false;
 
-}
 */
 
-bool LX200_OnStep::OSGetOutputState(int output) {
+bool LX200_OnStep::OSGetOutputState(int output)
+{
     //  :GXnn#   Get OnStep value
     //         Returns: value
     // nn= G0-GF (HEX!) - Output status
     //
-    char value[RB_MAX_LEN] ="  ";
-    char command[64] = ":$GXGm#";
+    char value[RB_MAX_LEN] = {0};
+    char command[CMD_MAX_LEN] = {0};
+    strncpy(command, ":$GXGm#", CMD_MAX_LEN);
     LOGF_INFO("Output: %s", char(output));
     LOGF_INFO("Command: %s", command);
     command[5] = char(output);
     LOGF_INFO("Command: %s", command);
-    getCommandString(PortFD, value, command);
-    if (value[0] == 0) 
-    {
-        OSOutput1S[0].s = ISS_ON;
-        OSOutput1S[1].s = ISS_OFF;
-    } 
-    else 
-    {
-        OSOutput1S[0].s = ISS_OFF;
-        OSOutput1S[1].s = ISS_ON;
+
+    int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, command);
+    if (error_or_fail > 0) {
+        if (value[0] == 0)
+        {
+            OSOutput1S[0].s = ISS_ON;
+            OSOutput1S[1].s = ISS_OFF;
+        }
+        else
+        {
+            OSOutput1S[0].s = ISS_OFF;
+            OSOutput1S[1].s = ISS_ON;
+        }
+        IDSetSwitch(&OSOutput1SP, nullptr);
+        return true;
     }
-    IDSetSwitch(&OSOutput1SP, nullptr);
-    return true;
+    return false;
 }
 
 bool LX200_OnStep::SetTrackRate(double raRate, double deRate)
@@ -2980,7 +4611,7 @@ void LX200_OnStep::slewError(int slewCode)
             LOG_ERROR("OnStep slew/syncError: Above Overhead limit");
             break;
         case 3:
-            LOG_ERROR("OnStep slew/syncError: Controller in standby");
+            LOG_ERROR("OnStep slew/syncError: Controller in standby, Usual issue fix: Turn tracking on");
             break;
         case 4:
             LOG_ERROR("OnStep slew/syncError: Mount is Parked");
@@ -3011,11 +4642,12 @@ void LX200_OnStep::slewError(int slewCode)
 //Override LX200 sync function, to allow for error returns
 bool LX200_OnStep::Sync(double ra, double dec)
 {
-    
-    char read_buffer[RB_MAX_LEN]={0};
-    int error_code;
-    
-    if (!isSimulation()) {
+
+    char read_buffer[RB_MAX_LEN] = {0};
+    //     int error_code;
+
+    if (!isSimulation())
+    {
         if (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0)
         {
             EqNP.s = IPS_ALERT;
@@ -3023,27 +4655,408 @@ bool LX200_OnStep::Sync(double ra, double dec)
             return false;
         }
         LOG_DEBUG("CMD <:CM#>");
-        getCommandString(PortFD, read_buffer, ":CM#");
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":CM#");
         LOGF_DEBUG("RES <%s>", read_buffer);
-        if (strcmp(read_buffer,"N/A"))
-        {
-            error_code = read_buffer[1] - '0';
-            LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
-            slewError(error_code);
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+        if (error_or_fail > 1) {
+            if (strcmp(read_buffer, "N/A"))
+            {
+                if (read_buffer[0] == 'E' && read_buffer[1] >= '0' && read_buffer[1] <= '9') //strcmp will be 0 if they match, so this is the case for failure.
+                {
+                    int error_code = read_buffer[1] - '0';
+                    LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
+                    slewError(error_code);
+                    EqNP.s = IPS_ALERT;
+                    IDSetNumber(&EqNP, "Synchronization failed.");
+                    return false;
+                } else {
+                    LOG_ERROR("Unexpected return on sync call!");
+                    LOG_ERROR("Check system & Align if doing align to see if it went through!");
+                    return false;
+                }
+            }
+        } else {
+            LOG_ERROR("Communication error on sync! Re-issue sync!");
             return false;
         }
     }
-    
+
     currentRA  = ra;
     currentDEC = dec;
-    
+
     LOG_INFO("OnStep: Synchronization successful.");
-    
-    EqNP.s     = IPS_OK;
-    
-    NewRaDec(currentRA, currentDEC);
-    
     return true;
 }
+
+bool LX200_OnStep::saveConfigItems(FILE *fp)
+{
+    LX200Generic::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
+    return true;
+}
+
+void LX200_OnStep::Init_Outputs()
+{
+    if (OSHasOutputs) {
+        // Features names and type are accessed via :GXYn (where n 1 to 8)
+        // we take these names to display in Output tab
+        // return value is ssssss,n where ssssss is the name and n is the type
+        char port_name[MAXINDINAME] = {0}, getoutp[MAXINDINAME] = {0}, configured[MAXINDINAME] = {0}, p_name[MAXINDINAME] = {0};
+        size_t  k {0};
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, configured,
+                                                ":GXY0#"); // returns a string with 1 where Feature is configured
+        // ex: 10010010 means Feature 1,4 and 7 are configured
+
+        if (error_or_fail == -4 && configured[0] == '0') {
+            OSHasOutputs = false;
+            LOG_INFO("Outputs not detected, disabling further checks");
+        }
+
+        IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+        for(int i = 1; i < PORTS_COUNT; i++)
+        {
+            if(configured[i - 1] == '1') // is Feature is configured
+            {
+                snprintf(getoutp, sizeof(getoutp), ":GXY%d#", i);
+                int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, port_name, getoutp);
+                if (error_or_fail > 0)
+                {
+                    for(k = 0; k < strlen(port_name); k++) // remove feature type
+                    {
+                        if(port_name[k] == ',') port_name[k] = '_';
+                        p_name[k] = port_name[k];
+                        p_name[k + 1] = 0;
+                    }
+                    IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
+                } else {
+                    LOGF_ERROR("Communication error on %s, ignoring, disconnect and reconnect to clear", getoutp);
+                    IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+                }
+            }
+            else
+            {
+                IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+            }
+        }
+        defineProperty(&OutputPorts_NP);
+    }
+}
+
+
+bool LX200_OnStep::sendScopeTime()
+{
+    char cdate[MAXINDINAME] = {0};
+    char ctime[MAXINDINAME] = {0};
+    struct tm ltm;
+    struct tm utm;
+    time_t time_epoch;
+
+    double offset = 0;
+    if (getUTFOffset(&offset))
+    {
+        char utcStr[8] = {0};
+        snprintf(utcStr, 8, "%.2f", offset);
+        IUSaveText(&TimeT[1], utcStr);
+    }
+    else
+    {
+        LOG_WARN("Could not obtain UTC offset from mount!");
+        return false;
+    }
+
+    if (getLocalTime(ctime) == false)
+    {
+        LOG_WARN("Could not obtain local time from mount!");
+        return false;
+    }
+
+    if (getLocalDate(cdate) == false)
+    {
+        LOG_WARN("Could not obtain local date from mount!");
+        return false;
+    }
+
+    // To ISO 8601 format in LOCAL TIME!
+    char datetime[MAXINDINAME] = {0};
+    snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
+
+    // Now that date+time are combined, let's get tm representation of it.
+    if (strptime(datetime, "%FT%T", &ltm) == nullptr)
+    {
+        LOGF_WARN("Could not process mount date and time: %s", datetime);
+        return false;
+    }
+
+    // Get local time epoch in UNIX seconds
+    time_epoch = mktime(&ltm);
+
+    // LOCAL to UTC by subtracting offset.
+    time_epoch -= static_cast<int>(offset * 3600.0);
+
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time)
+    localtime_r(&time_epoch, &utm);
+
+    // Format it into the final UTC ISO 8601
+    strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
+    IUSaveText(&TimeT[0], cdate);
+
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+
+    // Let's send everything to the client
+    TimeTP.s = IPS_OK;
+    IDSetText(&TimeTP, nullptr);
+
+    return true;
+}
+
+bool LX200_OnStep::sendScopeLocation()
+{
+    int lat_dd = 0, lat_mm = 0, long_dd = 0, long_mm = 0;
+    double lat_ssf = 0.0, long_ssf = 0.0;
+    char lat_sexagesimal[MAXINDIFORMAT];
+    char lng_sexagesimal[MAXINDIFORMAT];
+
+    if (isSimulation())
+    {
+        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
+        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
+        LocationNP.np[LOCATION_ELEVATION].value = 10;
+        LocationNP.s           = IPS_OK;
+        IDSetNumber(&LocationNP, nullptr);
+        return true;
+    }
+    if (OSHighPrecision)
+    {
+        if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
+        {
+            //NOTE: All OnStep pre-31 Aug 2020 will fail the above:
+            //      So Try the normal command, if it fails
+            if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+            {
+                LOG_WARN("Failed to get site latitude from device.");
+                return false;
+            }
+            else
+            {
+                OSHighPrecision = false; //Don't check using :GtH again
+                snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+                f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            }
+        }
+        else
+        {
+            //Got High precision coordinates
+            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        }
+    }
+    if (!OSHighPrecision) //Bypass check
+    {
+        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+        {
+            LOG_WARN("Failed to get site latitude from device.");
+            return false;
+        }
+        else
+        {
+            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        }
+    }
+
+    if (OSHighPrecision)
+    {
+        if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
+        {
+            //NOTE: All OnStep pre-31 Aug 2020 will fail the above:
+            //      So Try the normal command, if it fails
+            if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+            {
+                LOG_WARN("Failed to get site longitude from device.");
+                return false;
+            }
+            else
+            {
+                OSHighPrecision = false;
+                snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+                f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+            }
+        }
+        else
+        {
+            //Got High precision coordinates
+            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        }
+    }
+    if(!OSHighPrecision) //Not using high precision
+    {
+        if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+        {
+            LOG_WARN("Failed to get site longitude from device.");
+            return false;
+        }
+        else
+        {
+            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        }
+    }
+
+    LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
+              lat_sexagesimal,
+              LocationN[LOCATION_LATITUDE].value,
+              lng_sexagesimal,
+              LocationN[LOCATION_LONGITUDE].value);
+
+    IDSetNumber(&LocationNP, nullptr);
+
+    saveConfig(true, "GEOGRAPHIC_COORD");
+
+    return true;
+}
+
+
+bool LX200_OnStep::Goto(double ra, double dec)
+{
+    const struct timespec timeout = {0, 100000000L};
+
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64] = {0}, DecStr[64] = {0};
+    int fracbase = 0;
+
+    switch (getLX200EquatorialFormat())
+    {
+        case LX200_EQ_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
+    }
+
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+        }
+
+        AbortSP.s = IPS_OK;
+        EqNP.s    = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, nullptr);
+
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
+        }
+
+        // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
+    }
+
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    //OnStep: DON'T set TrackState, this may resolve issues with the autoalign, this is updated by the status updates.
+    //     TrackState = SCOPE_SLEWING;
+    //EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
+    return true;
+}
+
+void LX200_OnStep::SyncParkStatus(bool isparked)
+{
+    //NOTE: THIS SHOULD ONLY BE CALLED _AFTER_ TrackState is set by the update function.
+    //Otherwise it will not be consistent.
+    LOG_DEBUG("OnStep SyncParkStatus called");
+    PrintTrackState();
+    IsParked = isparked;
+    IUResetSwitch(&ParkSP);
+    ParkSP.s = IPS_OK;
+
+    if (TrackState == SCOPE_PARKED)
+    {
+        ParkS[0].s = ISS_ON;
+        LOG_INFO("Mount is parked.");
+    }
+    else
+    {
+        ParkS[1].s = ISS_ON;
+        LOG_INFO("Mount is unparked.");
+    }
+
+    IDSetSwitch(&ParkSP, nullptr);
+}
+
+
+void LX200_OnStep::SetParked(bool isparked)
+{
+    PrintTrackState();
+    SyncParkStatus(isparked);
+    PrintTrackState();
+    if (parkDataType != PARK_NONE)
+        WriteParkData();
+    PrintTrackState();
+}
+
+void LX200_OnStep::PrintTrackState()
+{
+#ifdef DEBUG_TRACKSTATE
+    switch(TrackState)
+    {
+        case(SCOPE_IDLE):
+            LOG_DEBUG("TrackState: SCOPE_IDLE");
+            return;
+        case(SCOPE_SLEWING):
+            LOG_DEBUG("TrackState: SCOPE_SLEWING");
+            return;
+        case(SCOPE_TRACKING):
+            LOG_DEBUG("TrackState: SCOPE_TRACKING");
+            return;
+        case(SCOPE_PARKING):
+            LOG_DEBUG("TrackState: SCOPE_PARKING");
+            return;
+        case(SCOPE_PARKED):
+            LOG_DEBUG("TrackState: SCOPE_PARKED");
+            return;
+    }
+#endif
+    return;
+}
+

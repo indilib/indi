@@ -77,10 +77,10 @@ void LX200_16::ISGetProperties(const char *dev)
     /*
     if (isConnected())
     {
-        defineNumber(&HorizontalCoordsNP);
-        defineSwitch(&FanStatusSP);
-        defineSwitch(&HomeSearchSP);
-        defineSwitch(&FieldDeRotatorSP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&FanStatusSP);
+        defineProperty(&HomeSearchSP);
+        defineProperty(&FieldDeRotatorSP);
     }
     */
 }
@@ -92,10 +92,10 @@ bool LX200_16::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&HorizontalCoordsNP);
-        defineSwitch(&FanStatusSP);
-        defineSwitch(&HomeSearchSP);
-        defineSwitch(&FieldDeRotatorSP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&FanStatusSP);
+        defineProperty(&HomeSearchSP);
+        defineProperty(&FieldDeRotatorSP);
     }
     else
     {

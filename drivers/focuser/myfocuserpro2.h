@@ -1,5 +1,6 @@
 /*
-    MyFocuserPro2 Focuser
+    ORIGINAL 
+	MyFocuserPro2 Focuser
     Copyright (C) 2019 Alan Townshend
 
     Based on Moonlite Focuser
@@ -25,7 +26,24 @@
 
 #include "indifocuser.h"
 
+#include <time.h>           // for nsleep() R Brown June 2021
+#include <errno.h>          // for nsleep() R Brown June 2021
+
 #include <chrono>
+
+#define STEPMODE_FULL                   1
+#define STEPMODE_HALF                   2
+#define STEPMODE_QUARTER                4
+#define STEPMODE_EIGHTH                 8
+#define STEPMODE_SIXTEENTH              16
+#define STEPMODE_THIRTYSECOND           32
+#define STEPMODE_SIXTYFOUR              64
+#define STEPMODE_ONEHUNDREDTWENTYEIGHT  128
+#define STEPMODE_TWOHUNDREDFIFTYSIX     256
+
+#define CDRIVER_VERSION_MAJOR           1
+#define CDRIVER_VERSION_MINOR           0
+
 
 class MyFocuserPro2 : public INDI::Focuser
 {
@@ -33,13 +51,16 @@ class MyFocuserPro2 : public INDI::Focuser
         MyFocuserPro2();
         virtual ~MyFocuserPro2() override = default;
 
-        typedef enum {FOCUS_FULL_STEP,  FOCUS_HALF_STEP, FOCUS_QUARTER_STEP, FOCUS_EIGHTH_STEP, FOCUS_SIXTEENTH_STEP, FOCUS_THIRTYSECOND_STEP } FocusStepMode;
+		// add step modes for TMC driver R Brown June 2021
+		typedef enum { FULL_STEP, HALF_STEP, QUARTER_STEP, EIGHTH_STEP, SIXTEENTH_STEP, 
+            THIRTYSECOND_STEP, SIXTYFOUR_STEP, ONEHUNDREDTWENTYEIGHT_STEP, TWOHUNDREDFIFTYSIX_STEP } FocusStepMode;
 
         typedef enum {COIL_POWER_OFF, COIL_POWER_ON } CoilPower;
 
         typedef enum {DISPLAY_OFF, DISPLAY_ON } DisplayMode;
 
-        typedef enum {TEMP_COMPENSATE_ENABLE, TEMP_COMPENSATE_DISABLE } TemperatureCompensate;
+        //typedef enum {TEMP_COMPENSATE_ENABLE, TEMP_COMPENSATE_DISABLE } TemperatureCompensate;
+        typedef enum {TEMP_COMPENSATE_DISABLE, TEMP_COMPENSATE_ENABLE } TemperatureCompensate;
 
         const char * getDefaultName() override;
         virtual bool initProperties() override;
@@ -116,8 +137,8 @@ class MyFocuserPro2 : public INDI::Focuser
         // Read and Update T.Compensate
         bool readTempCompensateEnable();
 
-        //Read and Update teh Temperature Coefficient
-        bool readTempeartureCoefficient();
+        //Read and Update the Temperature Coefficient
+        bool readTemperatureCoefficient();
 
         // Read and update Position
         bool readPosition();
@@ -133,9 +154,9 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool readCoilPowerState();
 
-        bool readDisplayVisible();
-
         bool readReverseDirection();
+
+        bool readDisplayVisible();
 
         bool readBacklashInEnabled();
         bool readBacklashOutEnabled();
@@ -173,12 +194,16 @@ class MyFocuserPro2 : public INDI::Focuser
 
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
+		int msleep(long milliseconds);
+
+		void clearbufferonerror();
+
         // Read Only Temperature Reporting
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
-        // Full/Half...32th Step modes
-        ISwitch StepModeS[6];
+		// Full/Half...256th Step modes
+		ISwitch StepModeS[9];
         ISwitchVectorProperty StepModeSP;
 
         // Backlash In settings
@@ -209,7 +234,6 @@ class MyFocuserPro2 : public INDI::Focuser
         ISwitch CoilPowerS[2];
         ISwitchVectorProperty CoilPowerSP;
 
-        //Backlash In Enable
         ISwitch BacklashInS[2];
         ISwitchVectorProperty BacklashInSP;
 
@@ -227,9 +251,22 @@ class MyFocuserPro2 : public INDI::Focuser
         // MyFocuserPro2 Delimeter
         static const char ML_DEL { '#' };
 
-        // MyFocuserPro2 Timeout
-        static const uint8_t ML_TIMEOUT { 3 };
+		// mutex controls access to serial port
+		pthread_mutex_t cmdlock;
 
-        // MyFocuserPro2 minimum supported firmware
-        static const int32_t MINIMUM_FIRMWARE_VERSION { 291 };
+		// MyFocuserPro2 Timeouts
+		static const uint8_t MYFOCUSERPRO2_SERIAL_TIMEOUT { 5 };
+		static const uint8_t MYFOCUSERPRO2_TCPIP_TIMEOUT  { 10 };
+		static const long    MYFOCUSERPRO2_SMALL_DELAY    { 50 };   // 50ms delay from send command to read response
+		static const long    MYFOCUSERPRO2_RECOVER_DELAY  { 200 };
+
+		// update the temperature one every 5 seconds.
+		static constexpr const uint8_t GET_TEMPERATURE_FREQ{ 10 };
+		uint16_t Temperature_Counter { 0 };
+
+		// Update position every second
+		static constexpr const uint8_t GET_POSITION_FREQ{ 1 };
+		uint16_t Position_Counter { 0 };
+
+        static constexpr const char *SETTINGS_TAB {"Settings"};
 };

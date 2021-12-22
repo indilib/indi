@@ -83,7 +83,7 @@ bool Group::ISNewNumber(const char *dev, const char *name, double values[], char
 
 void Group::defineProperties()
 {
-    imager->defineNumber(&GroupSettingsNP);
+    imager->defineProperty(&GroupSettingsNP);
 }
 
 void Group::deleteProperties()

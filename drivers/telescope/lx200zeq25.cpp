@@ -71,7 +71,7 @@ bool LX200ZEQ25::initProperties()
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -85,8 +85,8 @@ bool LX200ZEQ25::updateProperties()
     if (isConnected())
     {
 
-        defineSwitch(&HomeSP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HomeSP);
+        defineProperty(&GuideRateNP);
     }
     else
     {
@@ -449,8 +449,9 @@ bool LX200ZEQ25::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -972,24 +973,13 @@ bool LX200ZEQ25::isZEQ25Parked()
 
 bool LX200ZEQ25::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    INDI::IHorizontalCoordinates horizontalPos;
+    INDI::IEquatorialCoordinates equatorialPos;
+    equatorialPos.rightascension  = currentRA;
+    equatorialPos.declination = currentDEC;
+    INDI::EquatorialToHorizontal(&equatorialPos, &m_Location, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.azimuth;
+    double parkAlt = horizontalPos.altitude;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -1044,7 +1034,7 @@ bool LX200ZEQ25::Park()
 
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_hrz_posn horizontalPos;
+    INDI::IHorizontalCoordinates horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     horizontalPos.alt = parkAlt;
@@ -1052,17 +1042,17 @@ bool LX200ZEQ25::Park()
     if (horizontalPos.az > 360)
         horizontalPos.az -= 360;
 
-    ln_lnlat_posn observer;
+    IGeographicCoordinates observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
     if (observer.lng > 180)
         observer.lng -= 360;
 
-    ln_equ_posn equatorialPos;
+    INDI::IEquatorialCoordinates equatorialPos;
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    equatorialPos.ra /= 15.0;
+    equatorialPos.rightascension /= 15.0;
 
-    if (setObjectRA(PortFD, equatorialPos.ra) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
+    if (setObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
         LOG_ERROR("Error setting RA/Dec.");
         return false;
@@ -1106,7 +1096,7 @@ bool LX200ZEQ25::UnPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_hrz_posn horizontalPos;
+    INDI::IHorizontalCoordinates horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     horizontalPos.alt = parkAlt;
@@ -1114,23 +1104,23 @@ bool LX200ZEQ25::UnPark()
     if (horizontalPos.az > 360)
         horizontalPos.az -= 360;
 
-    ln_lnlat_posn observer;
+    IGeographicCoordinates observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
     if (observer.lng > 180)
         observer.lng -= 360;
 
-    ln_equ_posn equatorialPos;
+    INDI::IEquatorialCoordinates equatorialPos;
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    equatorialPos.ra /= 15.0;
+    equatorialPos.rightascension /= 15.0;
 
-    if (setObjectRA(PortFD, equatorialPos.ra) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
+    if (setObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
         LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
-    if (Sync(equatorialPos.ra, equatorialPos.dec) == false)
+    if (Sync(equatorialPos.rightascension, equatorialPos.dec) == false)
     {
         LOG_WARN("Sync failed.");
         return false;

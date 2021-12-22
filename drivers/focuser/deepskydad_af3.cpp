@@ -35,44 +35,6 @@
 
 static std::unique_ptr<DeepSkyDadAF3> deepSkyDadAf3(new DeepSkyDadAF3());
 
-void ISGetProperties(const char * dev)
-{
-    deepSkyDadAf3->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    deepSkyDadAf3->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    deepSkyDadAf3->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    deepSkyDadAf3->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    deepSkyDadAf3->ISSnoopDevice(root);
-}
-
 DeepSkyDadAF3::DeepSkyDadAF3()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT |
@@ -170,13 +132,13 @@ bool DeepSkyDadAF3::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&SpeedModeSP);
-        defineNumber(&SettleBufferNP);
-        defineNumber(&MoveCurrentMultiplierNP);
-        defineNumber(&HoldCurrentMultiplierNP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SpeedModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&MoveCurrentMultiplierNP);
+        defineProperty(&HoldCurrentMultiplierNP);
+        defineProperty(&TemperatureNP);
 
         GetFocusParams();
 
@@ -824,14 +786,14 @@ void DeepSkyDadAF3::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (std::abs(lastPos - FocusAbsPosN[0].value) > 5)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -871,14 +833,15 @@ void DeepSkyDadAF3::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1 ) //more accurate update
+        //more accurate update
+        if (std::abs(lastTemperature - TemperatureN[0].value) >= 0.1)
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF3::AbortFocuser()

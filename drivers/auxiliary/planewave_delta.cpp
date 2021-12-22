@@ -33,44 +33,6 @@
 
 static std::unique_ptr<DeltaT> deltat(new DeltaT());
 
-void ISGetProperties(const char *dev)
-{
-    deltat->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    deltat->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    deltat->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    deltat->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    deltat->ISSnoopDevice(root);
-}
-
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
@@ -127,18 +89,18 @@ bool DeltaT::updateProperties()
     {
         initializeHeaters();
 
-        defineText(&InfoTP);
-        defineNumber(&TemperatureNP);
-        defineSwitch(&ForceSP);
+        defineProperty(&InfoTP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&ForceSP);
 
         for (auto &oneSP : HeaterControlSP)
-            defineSwitch(oneSP.get());
+            defineProperty(oneSP.get());
 
         for (auto &oneNP : HeaterParamNP)
-            defineNumber(oneNP.get());
+            defineProperty(oneNP.get());
 
         for (auto &oneNP : HeaterMonitorNP)
-            defineNumber(oneNP.get());
+            defineProperty(oneNP.get());
 
     }
     else
@@ -399,7 +361,7 @@ void DeltaT::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 
@@ -741,17 +703,17 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
         return false;
     }
 
-    uint8_t chk = calculateCheckSum(res, res_len);
+    char hex_res[DRIVER_LEN * 3] = {0};
+    hexDump(hex_res, res, res_len);
+    LOGF_DEBUG("RES <%s>", hex_res);
+
+    int8_t chk = calculateCheckSum(res, res_len);
 
     if (res_len > 0 && chk != res[res_len - 1])
     {
         LOG_ERROR("Invalid checksum!");
         return false;
     }
-
-    char hex_res[DRIVER_LEN * 3] = {0};
-    hexDump(hex_res, res, res_len);
-    LOGF_DEBUG("RES <%s>", hex_res);
 
     return true;
 }

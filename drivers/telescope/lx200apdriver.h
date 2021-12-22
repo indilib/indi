@@ -61,7 +61,11 @@ int setAPSiteLatitude(int fd, double Lat);
 int setAPRATrackRate(int fd, double rate);
 int setAPDETrackRate(int fd, double rate);
 int APSendPulseCmd(int fd, int direction, int duration_msec);
-//int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
+void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level);
+int selectAPCenterRate(int fd, int centerRate);
+int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
+int APParkMount(int fd);
+int APUnParkMount(int fd);
 
 #ifdef __cplusplus
 }

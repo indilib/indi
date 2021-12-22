@@ -100,16 +100,16 @@ void LX200GPS::ISGetProperties(const char *dev)
     /*
     if (isConnected())
     {
-        defineSwitch(&GPSPowerSP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&GPSUpdateSP);
-        defineSwitch(&AltDecPecSP);
-        defineSwitch(&AzRaPecSP);
-        defineSwitch(&SelenSyncSP);
-        defineSwitch(&AltDecBacklashSP);
-        defineSwitch(&AzRaBacklashSP);
-        defineNumber(&OTATempNP);
-        defineSwitch(&OTAUpdateSP);
+        defineProperty(&GPSPowerSP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&GPSUpdateSP);
+        defineProperty(&AltDecPecSP);
+        defineProperty(&AzRaPecSP);
+        defineProperty(&SelenSyncSP);
+        defineProperty(&AltDecBacklashSP);
+        defineProperty(&AzRaBacklashSP);
+        defineProperty(&OTATempNP);
+        defineProperty(&OTAUpdateSP);
     }
     */
 }
@@ -120,16 +120,16 @@ bool LX200GPS::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&GPSPowerSP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&GPSUpdateSP);
-        defineSwitch(&AltDecPecSP);
-        defineSwitch(&AzRaPecSP);
-        defineSwitch(&SelenSyncSP);
-        defineSwitch(&AltDecBacklashSP);
-        defineSwitch(&AzRaBacklashSP);
-        defineNumber(&OTATempNP);
-        defineSwitch(&OTAUpdateSP);
+        defineProperty(&GPSPowerSP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&GPSUpdateSP);
+        defineProperty(&AltDecPecSP);
+        defineProperty(&AzRaPecSP);
+        defineProperty(&SelenSyncSP);
+        defineProperty(&AltDecBacklashSP);
+        defineProperty(&AzRaBacklashSP);
+        defineProperty(&OTATempNP);
+        defineProperty(&OTAUpdateSP);
     }
     else
     {

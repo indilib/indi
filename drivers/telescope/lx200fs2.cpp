@@ -58,9 +58,9 @@ bool LX200FS2::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SlewRateSP);
-        defineNumber(&SlewAccuracyNP);
-        defineSwitch(&StopAfterParkSP);
+        defineProperty(&SlewRateSP);
+        defineProperty(&SlewAccuracyNP);
+        defineProperty(&StopAfterParkSP);
 
         if (InitPark())
         {
@@ -176,39 +176,24 @@ bool LX200FS2::saveConfigItems(FILE *fp)
 
 bool LX200FS2::Park()
 {
-    double parkAZ  = GetAxis1Park();
+    double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAZ + 180;
-    if (horizontalPos.az >= 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_lnlat_posn observer;
-
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
     char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
-    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    fs_sexa(RAStr, equatorialCoords.rightascension, 2, 3600);
+    fs_sexa(DEStr, equatorialCoords.declination, 2, 3600);
     LOGF_DEBUG("Parking to RA (%s) DEC (%s)...", RAStr, DEStr);
 
-    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (Goto(equatorialCoords.rightascension, equatorialCoords.declination))
     {
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
@@ -325,39 +310,24 @@ bool LX200FS2::ReadScopeStatus()
 
 bool LX200FS2::UnPark()
 {
-    double parkAZ  = GetAxis1Park();
+    double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Unparking from Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAZ + 180;
-    if (horizontalPos.az >= 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_lnlat_posn observer;
-
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
     char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
-    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    fs_sexa(RAStr, equatorialCoords.rightascension, 2, 3600);
+    fs_sexa(DEStr, equatorialCoords.declination, 2, 3600);
     LOGF_DEBUG("Syncing to parked coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
 
-    if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (Sync(equatorialCoords.rightascension, equatorialCoords.declination))
     {
         SetParked(false);
         if (StopAfterParkS[0].s == ISS_ON)
@@ -372,35 +342,17 @@ bool LX200FS2::UnPark()
 
 bool LX200FS2::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
-
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-
-    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-               AltStr);
-
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
-
     return true;
 }
 

@@ -35,44 +35,6 @@
 // We declare an auto pointer to PegasusPPB.
 static std::unique_ptr<PegasusPPB> pocket_power_box(new PegasusPPB());
 
-void ISGetProperties(const char * dev)
-{
-    pocket_power_box->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    pocket_power_box->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    pocket_power_box->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    pocket_power_box->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    pocket_power_box->ISSnoopDevice(root);
-}
-
 PegasusPPB::PegasusPPB() : WI(this)
 {
     setVersion(1, 1);
@@ -99,10 +61,10 @@ bool PegasusPPB::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // DSLR on/off
-    IUFillSwitch(&DSLRPowerS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&DSLRPowerS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
+    IUFillSwitch(&DSLRPowerS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&DSLRPowerS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_ON);
     IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 60, IPS_IDLE);
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Reboot
     IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
@@ -170,15 +132,15 @@ bool PegasusPPB::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineSwitch(&PowerCycleAllSP);
-        defineSwitch(&DSLRPowerSP);
-        defineNumber(&PowerSensorsNP);
-        defineSwitch(&PowerOnBootSP);
-        defineSwitch(&RebootSP);
+        defineProperty(&PowerCycleAllSP);
+        defineProperty(&DSLRPowerSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerOnBootSP);
+        defineProperty(&RebootSP);
 
         // Dew
-        defineSwitch(&AutoDewSP);
-        defineNumber(&DewPWMNP);
+        defineProperty(&AutoDewSP);
+        defineProperty(&DewPWMNP);
 
         WI::updateProperties();
 
@@ -285,16 +247,9 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         if (!strcmp(name, DSLRPowerSP.name))
         {
             IUUpdateSwitch(&DSLRPowerSP, states, names, n);
-
-            DSLRPowerSP.s = IPS_ALERT;
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P2:%d", IUFindOnSwitchIndex(&DSLRPowerSP));
-            if (sendCommand(cmd, res))
-            {
-                DSLRPowerSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
-            }
-
-            IUResetSwitch(&DSLRPowerSP);
+            snprintf(cmd, PEGASUS_LEN, "P2:%d", (DSLRPowerS[INDI_ENABLED].s == ISS_ON) ? 1 : 0);
+            DSLRPowerSP.s = sendCommand(cmd, res) ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&DSLRPowerSP, nullptr);
             return true;
         }
@@ -452,8 +407,8 @@ bool PegasusPPB::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusPPB::saveConfigItems(FILE * fp)
 {
-    // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
 
     return true;
@@ -463,12 +418,12 @@ void PegasusPPB::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     getSensorData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool PegasusPPB::sendFirmware()
@@ -527,8 +482,8 @@ bool PegasusPPB::getSensorData()
             IDSetSwitch(&PowerCycleAllSP, nullptr);
 
         // DSLR Power Status
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF;
+        DSLRPowerS[INDI_ENABLED].s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF;
+        DSLRPowerS[INDI_DISABLED].s = (std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF;
         DSLRPowerSP.s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
         if (lastSensorData[PA_DSLR_STATUS] != result[PA_DSLR_STATUS])
             IDSetSwitch(&DSLRPowerSP, nullptr);

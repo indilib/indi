@@ -31,43 +31,6 @@
 // We declare an auto pointer to joystick.
 std::unique_ptr<JoyStick> joystick(new JoyStick());
 
-void ISGetProperties(const char *dev)
-{
-    joystick->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    joystick->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    joystick->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    joystick->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    joystick->ISSnoopDevice(root);
-}
-
 JoyStick::JoyStick()
 {
     driver.reset(new JoyStickDriver());
@@ -198,16 +161,16 @@ bool JoyStick::updateProperties()
         snprintf(buf, 8, "%d", driver->getNumrOfButtons());
         IUSaveText(&JoystickInfoT[4], buf);
 
-        defineText(&JoystickInfoTP);
+        defineProperty(&JoystickInfoTP);
 
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
-            defineNumber(&JoyStickNP[i]);
+            defineProperty(&JoyStickNP[i]);
 
-        defineNumber(&AxisNP);
-        defineSwitch(&ButtonSP);
+        defineProperty(&AxisNP);
+        defineProperty(&ButtonSP);
 
         // Dead zones
-        defineNumber(&DeadZoneNP);
+        defineProperty(&DeadZoneNP);
 
         // N.B. Only set callbacks AFTER we define our properties above
         // because these calls backs otherwise can be called asynchronously
@@ -241,17 +204,17 @@ void JoyStick::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 
     /*
     if (isConnected())
     {
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
-            defineNumber(&JoyStickNP[i]);
+            defineProperty(&JoyStickNP[i]);
 
-        defineNumber(&AxisNP);
-        defineSwitch(&ButtonSP);
+        defineProperty(&AxisNP);
+        defineProperty(&ButtonSP);
     }
     */
 }

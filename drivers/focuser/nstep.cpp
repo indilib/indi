@@ -30,44 +30,6 @@
 
 static std::unique_ptr<NStep> nstep(new NStep());
 
-void ISGetProperties(const char *dev)
-{
-    nstep->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    nstep->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    nstep->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    nstep->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    nstep->ISSnoopDevice(root);
-}
-
 NStep::NStep()
 {
     setVersion(1, 2);
@@ -167,18 +129,18 @@ bool NStep::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
         bool rc = getStartupValues();
 
         // Settings
-        defineNumber(&MaxSpeedNP);
-        defineSwitch(&CompensationModeSP);
-        defineSwitch(&PrimeManualSP);
-        defineNumber(&CompensationSettingsNP);
-        defineSwitch(&SteppingModeSP);
-        defineNumber(&SteppingPhaseNP);
-        defineSwitch(&CoilStatusSP);
+        defineProperty(&MaxSpeedNP);
+        defineProperty(&CompensationModeSP);
+        defineProperty(&PrimeManualSP);
+        defineProperty(&CompensationSettingsNP);
+        defineProperty(&SteppingModeSP);
+        defineProperty(&SteppingPhaseNP);
+        defineProperty(&CoilStatusSP);
 
         if (rc)
             LOG_INFO("NStep is ready.");
@@ -553,7 +515,7 @@ void NStep::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NStep::isMoving()

@@ -26,21 +26,21 @@ InMemoryDatabase::InMemoryDatabase() : DatabaseReferencePositionIsValid(false),
 }
 
 bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
-                                                  double Tolerance) const
+        double Tolerance) const
 {
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {
         if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
-             (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
-            ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
-             (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
-             (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
+                (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+                ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+                 (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+                 (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
             return true;
     }
     return false;
 }
 
-bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn &Position)
+bool InMemoryDatabase::GetDatabaseReferencePosition(IGeographicCoordinates &Position)
 {
     if (DatabaseReferencePositionIsValid)
     {
@@ -99,13 +99,13 @@ bool InMemoryDatabase::LoadDatabase(const char *DeviceName)
             snprintf(Errmsg, MAXRBUF, "Cannot find latitude attribute");
             return false;
         }
-        sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.lat);
+        sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.latitude);
         if (nullptr == (Attribute = findXMLAtt(Element, "longitude")))
         {
-            snprintf(Errmsg, MAXRBUF, "Cannot find latitude attribute");
+            snprintf(Errmsg, MAXRBUF, "Cannot find longitude attribute");
             return false;
         }
-        sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.lng);
+        sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.longitude);
         DatabaseReferencePositionIsValid = true;
     }
 
@@ -191,8 +191,8 @@ bool InMemoryDatabase::SaveDatabase(const char *DeviceName)
     fprintf(fp, "<INDIAlignmentDatabase>\n");
 
     if (DatabaseReferencePositionIsValid)
-        fprintf(fp, "   <DatabaseReferenceLocation latitude='%lf' longitude='%lf'/>\n", DatabaseReferencePosition.lat,
-                DatabaseReferencePosition.lng);
+        fprintf(fp, "   <DatabaseReferenceLocation latitude='%lf' longitude='%lf'/>\n", DatabaseReferencePosition.latitude,
+                DatabaseReferencePosition.longitude);
 
     fprintf(fp, "   <DatabaseEntries>\n");
     for (AlignmentDatabaseType::const_iterator Itr = MySyncPoints.begin(); Itr != MySyncPoints.end(); Itr++)
@@ -225,8 +225,8 @@ bool InMemoryDatabase::SaveDatabase(const char *DeviceName)
 
 void InMemoryDatabase::SetDatabaseReferencePosition(double Latitude, double Longitude)
 {
-    DatabaseReferencePosition.lat    = Latitude;
-    DatabaseReferencePosition.lng    = Longitude;
+    DatabaseReferencePosition.latitude    = Latitude;
+    DatabaseReferencePosition.longitude    = Longitude;
     DatabaseReferencePositionIsValid = true;
 }
 

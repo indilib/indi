@@ -38,43 +38,6 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to DSC.
 std::unique_ptr<DSC> dsc(new DSC());
 
-void ISGetProperties(const char *dev)
-{
-    dsc->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    dsc->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    dsc->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    dsc->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    dsc->ISSnoopDevice(root);
-}
-
 DSC::DSC()
 {
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION, 0);
@@ -119,7 +82,7 @@ bool DSC::initProperties()
     IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
-// Offsets applied to raw encoder values to adjust them as necessary
+    // Offsets applied to raw encoder values to adjust them as necessary
 #if 0
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 1);
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_OFFSET], "OFFSET_AXIS1_OFFSET", "#1 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
@@ -127,7 +90,8 @@ bool DSC::initProperties()
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_SCALE], "OFFSET_AIXS2_SCALE", "#2 Ticks Scale", "%g", 0, 1e6, 0, 1);
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_OFFSET], "OFFSET_AXIS2_OFFSET", "#2 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
     IUFillNumber(&EncoderOffsetN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30, 0);
-    IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 #endif
 
     // Mount Type
@@ -155,15 +119,15 @@ bool DSC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&EncoderNP);
-        defineNumber(&AxisSettingsNP);
-        defineSwitch(&AxisRangeSP);
-        defineSwitch(&ReverseSP);
-        //defineNumber(&EncoderOffsetNP);
-        defineSwitch(&MountTypeSP);
+        defineProperty(&EncoderNP);
+        defineProperty(&AxisSettingsNP);
+        defineProperty(&AxisRangeSP);
+        defineProperty(&ReverseSP);
+        //defineProperty(&EncoderOffsetNP);
+        defineProperty(&MountTypeSP);
 
         if (isSimulation())
-            defineNumber(&SimEncoderNP);
+            defineProperty(&SimEncoderNP);
 
         SetAlignmentSubsystemActive(true);
     }
@@ -269,7 +233,7 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             else
             {
                 LOGF_INFO("Axis range is from -%.f to %.f",
-                       AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
+                          AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
             }
             IDSetSwitch(&AxisRangeSP, nullptr);
             return true;
@@ -400,31 +364,31 @@ bool DSC::ReadScopeStatus()
     Axis2Degrees = range360(Axis2Degrees);
 
     // Adjust for LST
-    double LST = get_local_sidereal_time(observer.lng);
+    double LST = get_local_sidereal_time(m_Location.longitude);
 
     // Final aligned equatorial position
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
 
     // Now we proceed depending on mount type
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
-        encoderEquatorialCoordinates.ra = Axis1Degrees / 15.0;
+        encoderEquatorialCoordinates.rightascension = Axis1Degrees / 15.0;
 
-        encoderEquatorialCoordinates.ra += LST;
-        encoderEquatorialCoordinates.ra = range24(encoderEquatorialCoordinates.ra);
+        encoderEquatorialCoordinates.rightascension += LST;
+        encoderEquatorialCoordinates.rightascension = range24(encoderEquatorialCoordinates.rightascension);
 
-        encoderEquatorialCoordinates.dec = rangeDec(Axis2Degrees);
+        encoderEquatorialCoordinates.declination = rangeDec(Axis2Degrees);
 
         // Do alignment
         eq = TelescopeEquatorialToSky();
     }
     else
     {
-        encoderHorizontalCoordinates.az = Axis1Degrees;
-        encoderHorizontalCoordinates.az += 180;
-        encoderHorizontalCoordinates.az = range360(encoderHorizontalCoordinates.az);
+        encoderHorizontalCoordinates.azimuth = Axis1Degrees;
+        encoderHorizontalCoordinates.azimuth += 180;
+        encoderHorizontalCoordinates.azimuth = range360(encoderHorizontalCoordinates.azimuth);
 
-        encoderHorizontalCoordinates.alt = Axis2Degrees;
+        encoderHorizontalCoordinates.altitude = Axis2Degrees;
 
         // Do alignment
         eq = TelescopeHorizontalToSky();
@@ -433,40 +397,34 @@ bool DSC::ReadScopeStatus()
         fs_sexa(AzStr, Axis1Degrees, 2, 3600);
         fs_sexa(AltStr, Axis2Degrees, 2, 3600);
         LOGF_DEBUG("Current Az: %s Current Alt: %s", AzStr, AltStr);
-
-        //ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &encoderEquatorialCoordinates);
-        //equatorialPos.ra /= 15.0;
-
-        //encoderEquatorialCoordinates.ra  = range24(encoderEquatorialCoordinates.ra);
-        //encoderEquatorialCoordinates.dec = rangeDec(encoderEquatorialCoordinates.dec);
     }
 
     //  Now feed the rest of the system with corrected data
-    NewRaDec(eq.ra, eq.dec);
+    NewRaDec(eq.rightascension, eq.declination);
     return true;
 }
 
 bool DSC::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    struct ln_equ_posn RaDec { 0, 0 };
-    struct ln_hrz_posn AltAz { 0, 0 };
+    INDI::IEquatorialCoordinates RaDec { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
-        double LST = get_local_sidereal_time(observer.lng);
-        RaDec.ra   = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
-        RaDec.dec  = encoderEquatorialCoordinates.dec;
+        double LST = get_local_sidereal_time(m_Location.longitude);
+        RaDec.rightascension = range24(LST - encoderEquatorialCoordinates.rightascension);
+        RaDec.declination   = encoderEquatorialCoordinates.declination;
     }
     else
     {
-        AltAz.az  = encoderHorizontalCoordinates.az;
-        AltAz.alt = encoderHorizontalCoordinates.alt;
+        AltAz.azimuth  = encoderHorizontalCoordinates.azimuth;
+        AltAz.altitude = encoderHorizontalCoordinates.altitude;
     }
 
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension        = ra;
-    NewEntry.Declination           = dec;
+    NewEntry.RightAscension = ra;
+    NewEntry.Declination   = dec;
 
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
@@ -494,10 +452,10 @@ bool DSC::Sync(double ra, double dec)
     return false;
 }
 
-ln_equ_posn DSC::TelescopeEquatorialToSky()
+INDI::IEquatorialCoordinates DSC::TelescopeEquatorialToSky()
 {
     double RightAscension, Declination;
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -506,41 +464,41 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
         lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-        lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
+        lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.rightascension);
         //  convert lha to degrees
         lha    = lha * 360 / 24;
-        eq.ra  = lha;
-        eq.dec = encoderEquatorialCoordinates.dec;
+        eq.rightascension  = lha;
+        eq.declination = encoderEquatorialCoordinates.declination;
         TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
         if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
         {
-            RightAscension = encoderEquatorialCoordinates.ra;
-            Declination    = encoderEquatorialCoordinates.dec;
+            RightAscension = encoderEquatorialCoordinates.rightascension;
+            Declination    = encoderEquatorialCoordinates.declination;
         }
     }
     else
     {
         //  With less than 2 align points
         // Just return raw data
-        RightAscension = encoderEquatorialCoordinates.ra;
-        Declination    = encoderEquatorialCoordinates.dec;
+        RightAscension = encoderEquatorialCoordinates.rightascension;
+        Declination    = encoderEquatorialCoordinates.declination;
     }
 
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
+    eq.rightascension  = RightAscension;
+    eq.declination = Declination;
     return eq;
 }
 
-ln_equ_posn DSC::TelescopeHorizontalToSky()
+INDI::IEquatorialCoordinates DSC::TelescopeHorizontalToSky()
 {
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(encoderHorizontalCoordinates);
     double RightAscension, Declination;
 
     if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
     {
-        struct ln_equ_posn EquatorialCoordinates { 0, 0 };
+        INDI::IEquatorialCoordinates EquatorialCoordinates {0, 0};
         TelescopeDirectionVector RotatedTDV(TDV);
 
         switch (GetApproximateMountAlignment())
@@ -551,43 +509,31 @@ ln_equ_posn DSC::TelescopeHorizontalToSky()
             case NORTH_CELESTIAL_POLE:
                 // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
                 // the (positive)observatory latitude. The vector itself is rotated clockwise
-                RotatedTDV.RotateAroundY(90.0 - observer.lat);
+                RotatedTDV.RotateAroundY(90.0 - m_Location.latitude);
                 AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
                 break;
 
             case SOUTH_CELESTIAL_POLE:
                 // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
                 // the (negative)observatory latitude. The vector itself is rotated anticlockwise
-                RotatedTDV.RotateAroundY(-90.0 - observer.lat);
+                RotatedTDV.RotateAroundY(-90.0 - m_Location.latitude);
                 AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
                 break;
         }
 
-        ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &EquatorialCoordinates);
-
-        // libnova works in decimal degrees
-        RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
-        Declination    = EquatorialCoordinates.dec;
+        INDI::HorizontalToEquatorial(&encoderHorizontalCoordinates, &m_Location, ln_get_julian_from_sys(), &EquatorialCoordinates);
+        RightAscension = EquatorialCoordinates.rightascension;
+        Declination    = EquatorialCoordinates.declination;
     }
 
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
+    eq.rightascension  = RightAscension;
+    eq.declination = Declination;
     return eq;
 }
 
 bool DSC::updateLocation(double latitude, double longitude, double elevation)
 {
     UpdateLocation(latitude, longitude, elevation);
-
-    INDI_UNUSED(elevation);
-    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    observer.lng = longitude;
-
-    if (observer.lng > 180)
-        observer.lng -= 360;
-    observer.lat = latitude;
-
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
     return true;
 }
 
@@ -598,7 +544,7 @@ void DSC::simulationTriggered(bool enable)
 
     if (enable)
     {
-        defineNumber(&SimEncoderNP);
+        defineProperty(&SimEncoderNP);
     }
     else
     {

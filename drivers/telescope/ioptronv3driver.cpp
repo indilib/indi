@@ -37,7 +37,10 @@ const std::map<std::string, std::string> Driver::models =
     {"0010", "Cube II EQ"},
     {"0011", "SmartEQ Pro+"},
     {"0025", "CEM25"},
-    {"0026", "CEM25-EC"},
+    {"0026", "CEM26"},
+    {"0027", "CEM26-EC"},
+    {"0028", "GEM28"},
+    {"0029", "GEM28-EC"},
     {"0030", "iEQ30 Pro"},
     {"0040", "CEM40"},
     {"0041", "CEM40-EC"},
@@ -156,6 +159,8 @@ void Driver::setSimulation(bool enable)
     simData.JD = ln_get_julian_from_sys();
     simData.utc_offset_minutes = 3 * 60;
     simData.day_light_saving = false;
+    simData.mb_state = IOP_MB_FLIP;
+    simData.mb_limit = 3;
 
     simData.simInfo.gpsStatus = GPS_DATA_OK;
     simData.simInfo.hemisphere = HEMI_NORTH;
@@ -377,6 +382,46 @@ bool Driver::setCurrentHome()
     return sendCommand(":SZP#");
 }
 
+/* v3.0 Added in control for PEC , Train and Data Integrity */
+bool Driver::setPECEnabled(bool enabled)
+{
+    return sendCommand(enabled ? ":SPP1#" : ":SPP0#");
+}
+
+bool Driver::setPETEnabled(bool enabled)
+{
+    return sendCommand(enabled ? ":SPR1#" : ":SPR0#");
+}
+
+bool Driver::getPETEnabled(bool enabled)
+{
+    char res[IOP_BUFFER] = {0};
+    //  If enabled true then check data quality -> :GPE#
+    //  If enabled false then check if training -> :GPR#
+    if(enabled)
+    {
+        if (sendCommand(":GPE#", 1, res))
+        {
+            if (res[0] == '1')
+            {
+                return true;
+            }
+        }
+    }
+    else
+    {
+        if (sendCommand(":GPR#", 1, res))
+        {
+            if (res[0] == '1')
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+// End Mod */
+
 bool Driver::setSlewRate(IOP_SLEW_RATE rate)
 {
     char cmd[IOP_BUFFER] = {0};
@@ -495,6 +540,30 @@ bool Driver::unpark()
     //AA and iEQ30 Pro.
     setSimSytemStatus(ST_STOPPED);
     return sendCommand(":MP0#");
+}
+
+bool Driver::setParkAz(double az)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
+
+    snprintf(cmd, IOP_BUFFER, ":SPA%09d#", ieqValue);
+
+    return sendCommand(cmd);
+}
+
+bool Driver::setParkAlt(double alt)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    alt = std::max(0.0, alt);
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
+    snprintf(cmd, IOP_BUFFER, ":SPH%08d#", ieqValue);
+    return sendCommand(cmd);
 }
 
 bool Driver::abort()
@@ -669,6 +738,37 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     *JD = (iopJD / 8.64e+7) + J2000;
 
     return true;
+}
+
+bool Driver::getMeridianBehavior(IOP_MB_STATE &action, uint8_t &degrees)
+{
+    char res[IOP_BUFFER] = {0};
+    if (m_Simulation)
+    {
+        snprintf(res, IOP_BUFFER, "%d%02d", simData.mb_state, simData.mb_limit);
+    }
+    else if (sendCommand(":GMT#", -1, res) == false)
+        return false;
+
+    action = static_cast<IOP_MB_STATE>(res[0] - '0');
+    degrees = std::stoi(res + 1);
+    return true;
+}
+
+bool Driver::setMeridianBehavior(IOP_MB_STATE action, uint8_t degrees)
+{
+    char cmd[IOP_BUFFER] = {0};
+    if (m_Simulation)
+    {
+        simData.mb_state = action;
+        simData.mb_limit = degrees;
+        return true;
+    }
+    else
+    {
+        snprintf(cmd, IOP_BUFFER, ":SMT%d%02d#", action, degrees);
+        return sendCommand(cmd);
+    }
 }
 
 }

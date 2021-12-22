@@ -103,8 +103,8 @@ bool Telescope::initProperties()
     IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
     IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss.s)", "%012.8m", -90, 90, 0, 0.0);
+    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss.s)", "%012.8m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
                        IP_RW, 60, IPS_IDLE);
@@ -122,8 +122,8 @@ bool Telescope::initProperties()
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PEC State
-    IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_OFF);
-    IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_ON);
+    IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_ON);
+    IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_OFF);
     IUFillSwitchVector(&PECStateSP, PECStateS, 2, getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
@@ -169,6 +169,28 @@ bool Telescope::initProperties()
     if (nSlewRate >= 4)
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    if (CanTrackSatellite())
+    {
+        IUFillText(&TLEtoTrackT[0], "TLE", "TLE", "");
+        IUFillTextVector(&TLEtoTrackTP, TLEtoTrackT, 1, getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB,
+                         IP_RW, 60, IPS_IDLE);
+
+        char curTime[32] = {0};
+        std::time_t t = std::time(nullptr);
+        struct std::tm *utctimeinfo = std::gmtime(&t);
+        strftime(curTime, sizeof(curTime), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
+
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_END], "SAT_PASS_WINDOW_END", "End UTC", curTime);
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_START], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
+        IUFillTextVector(&SatPassWindowTP, SatPassWindowT, SAT_PASS_WINDOW_COUNT, getDeviceName(),
+                         "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+        IUFillSwitch(&TrackSatS[SAT_TRACK], "SAT_TRACK", "Track", ISS_OFF);
+        IUFillSwitch(&TrackSatS[SAT_HALT], "SAT_HALT", "Halt", ISS_ON);
+        IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
+                           "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    }
 
     IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
     IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
@@ -258,6 +280,24 @@ bool Telescope::initProperties()
 
     addPollPeriodControl();
 
+    double longitude = 0, latitude = 0, elevation = 0;
+    // Get value from config file if it exists.
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LONGITUDE].name, &longitude) == 0)
+    {
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+        m_Location.longitude = longitude;
+    }
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LATITUDE].name, &latitude) == 0)
+    {
+        LocationN[LOCATION_LATITUDE].value = latitude;
+        m_Location.latitude = latitude;
+    }
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_ELEVATION].name, &elevation) == 0)
+    {
+        LocationN[LOCATION_ELEVATION].value = elevation;
+        m_Location.elevation = elevation;
+    }
+
     return true;
 }
 
@@ -268,7 +308,7 @@ void Telescope::ISGetProperties(const char *dev)
 
     if (CanGOTO())
     {
-        defineText(&ActiveDeviceTP);
+        defineProperty(&ActiveDeviceTP);
         loadConfig(true, "ACTIVE_DEVICES");
 
         ISState isDomeIgnored = ISS_OFF;
@@ -277,11 +317,11 @@ void Telescope::ISGetProperties(const char *dev)
             DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
             DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
         }
-        defineSwitch(&DomePolicySP);
+        defineProperty(&DomePolicySP);
     }
 
-    defineNumber(&ScopeParametersNP);
-    defineText(&ScopeConfigNameTP);
+    defineProperty(&ScopeParametersNP);
+    defineProperty(&ScopeConfigNameTP);
 
     if (HasDefaultScopeConfig())
     {
@@ -322,58 +362,65 @@ bool Telescope::updateProperties()
 
         //  Now we add our telescope specific stuff
         if (CanGOTO() || CanSync())
-            defineSwitch(&CoordSP);
-        defineNumber(&EqNP);
+            defineProperty(&CoordSP);
+        defineProperty(&EqNP);
         if (CanAbort())
-            defineSwitch(&AbortSP);
+            defineProperty(&AbortSP);
 
         if (HasTrackMode() && TrackModeS != nullptr)
-            defineSwitch(&TrackModeSP);
+            defineProperty(&TrackModeSP);
         if (CanControlTrack())
-            defineSwitch(&TrackStateSP);
+            defineProperty(&TrackStateSP);
         if (HasTrackRate())
-            defineNumber(&TrackRateNP);
+            defineProperty(&TrackRateNP);
 
 
         if (CanGOTO())
         {
-            defineSwitch(&MovementNSSP);
-            defineSwitch(&MovementWESP);
+            defineProperty(&MovementNSSP);
+            defineProperty(&MovementWESP);
             if (nSlewRate >= 4)
-                defineSwitch(&SlewRateSP);
-            defineNumber(&TargetNP);
+                defineProperty(&SlewRateSP);
+            defineProperty(&TargetNP);
         }
 
         if (HasTime())
-            defineText(&TimeTP);
+            defineProperty(&TimeTP);
         if (HasLocation())
-            defineNumber(&LocationNP);
+            defineProperty(&LocationNP);
         if (CanPark())
         {
-            defineSwitch(&ParkSP);
+            defineProperty(&ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineNumber(&ParkPositionNP);
-                defineSwitch(&ParkOptionSP);
+                defineProperty(&ParkPositionNP);
+                defineProperty(&ParkOptionSP);
             }
         }
 
         if (HasPierSide())
-            defineSwitch(&PierSideSP);
+            defineProperty(&PierSideSP);
 
         if (HasPierSideSimulation())
         {
-            defineSwitch(&SimulatePierSideSP);
+            defineProperty(&SimulatePierSideSP);
             ISState value;
             if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
                 setSimulatePierSide(value == ISS_ON);
         }
 
-        if (HasPECState())
-            defineSwitch(&PECStateSP);
+        if (CanTrackSatellite())
+        {
+            defineProperty(&TLEtoTrackTP);
+            defineProperty(&SatPassWindowTP);
+            defineProperty(&TrackSatSP);
+        }
 
-        defineText(&ScopeConfigNameTP);
-        defineSwitch(&ScopeConfigsSP);
+        if (HasPECState())
+            defineProperty(&PECStateSP);
+
+        defineProperty(&ScopeConfigNameTP);
+        defineProperty(&ScopeConfigsSP);
     }
     else
     {
@@ -423,6 +470,13 @@ bool Telescope::updateProperties()
                 deleteProperty(PierSideSP.name);
         }
 
+        if (CanTrackSatellite())
+        {
+            deleteProperty(TLEtoTrackTP.name);
+            deleteProperty(SatPassWindowTP.name);
+            deleteProperty(TrackSatSP.name);
+        }
+
         if (HasPECState())
             deleteProperty(PECStateSP.name);
 
@@ -441,9 +495,9 @@ bool Telescope::updateProperties()
             {
                 if (useJoystick->sp[0].s == ISS_ON)
                 {
-                    defineSwitch(&MotionControlModeTP);
+                    defineProperty(&MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
-                    defineSwitch(&LockAxisSP);
+                    defineProperty(&LockAxisSP);
                     loadConfig(true, "LOCK_AXIS");
                 }
                 else
@@ -1501,8 +1555,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick && useJoystick->sp[0].s == ISS_ON)
         {
-            defineSwitch(&MotionControlModeTP);
-            defineSwitch(&LockAxisSP);
+            defineProperty(&MotionControlModeTP);
+            defineProperty(&LockAxisSP);
         }
         else
         {
@@ -1550,7 +1604,7 @@ void Telescope::TimerHit()
             IDSetNumber(&EqNP, nullptr);
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 }
 
@@ -1661,19 +1715,24 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
 bool Telescope::processLocationInfo(double latitude, double longitude, double elevation)
 {
     // Do not update if not necessary
+    // JM 2021-05-26: This can sometimes be problematic. Let child driver deals with duplicate requests.
+#if 0
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
             elevation == LocationN[LOCATION_ELEVATION].value)
     {
         LocationNP.s = IPS_OK;
         IDSetNumber(&LocationNP, nullptr);
+        return true;
     }
-    else if (latitude == 0 && longitude == 0)
-    {
-        LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
-        LocationNP.s = IPS_IDLE;
-        IDSetNumber(&LocationNP, nullptr);
-        return false;
-    }
+    else
+#endif
+        if (latitude == 0 && longitude == 0)
+        {
+            LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
+            LocationNP.s = IPS_IDLE;
+            IDSetNumber(&LocationNP, nullptr);
+            return false;
+        }
 
     if (updateLocation(latitude, longitude, elevation))
     {
@@ -1718,15 +1777,19 @@ bool Telescope::updateLocation(double latitude, double longitude, double elevati
 
 void Telescope::updateObserverLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(elevation);
-    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    lnobserver.lng = longitude;
+    m_Location.longitude = longitude;
+    m_Location.latitude  = latitude;
+    m_Location.elevation = elevation;
+    char lat_str[MAXINDIFORMAT] = {0}, lng_str[MAXINDIFORMAT] = {0};
 
-    if (lnobserver.lng > 180)
-        lnobserver.lng -= 360;
-    lnobserver.lat = latitude;
-
-    LOGF_INFO("Observer location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    // Make display longitude to be in the standard 0 to +180 East, and 0 to -180 West.
+    // No need to confuse new users with INDI format.
+    double display_longitude = longitude > 180 ? longitude - 360 : longitude;
+    fs_sexa(lat_str, m_Location.latitude, 2, 36000);
+    fs_sexa(lng_str, display_longitude, 2, 36000);
+    // Choose WGS 84, also known as EPSG:4326 for latitude/longitude ordering
+    LOGF_INFO("Observer location updated: Latitude %.12s (%.2f) Longitude %.12s (%.2f)", lat_str, m_Location.latitude, lng_str,
+              display_longitude);
 }
 
 bool Telescope::SetParkPosition(double Axis1Value, double Axis2Value)
@@ -2241,21 +2304,21 @@ void Telescope::processButton(const char *button_n, ISState state)
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };
-            char *names[1]    = { AbortS[0].name };
-            ISNewSwitch(getDeviceName(), AbortSP.name, states, names, 1);
+            const char *names[1]    = { AbortS[0].name };
+            ISNewSwitch(getDeviceName(), AbortSP.name, states, const_cast<char **>(names), 1);
         }
     }
     else if (!strcmp(button_n, "PARKBUTTON"))
     {
         ISState states[2] = { ISS_ON, ISS_OFF };
-        char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
+        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "UNPARKBUTTON"))
     {
         ISState states[2] = { ISS_OFF, ISS_ON };
-        char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
+        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {
@@ -2555,7 +2618,7 @@ Telescope::TelescopePierSide Telescope::expectedPierSide(double ra)
         return INDI::Telescope::PIER_UNKNOWN;
 
     // calculate the hour angle and derive the pier side
-    double lst = get_local_sidereal_time(lnobserver.lng);
+    double lst = get_local_sidereal_time(m_Location.longitude);
     double hourAngle = get_local_hour_angle(lst, ra);
 
     return hourAngle <= 0 ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST;
@@ -3009,7 +3072,7 @@ void Telescope::setSimulatePierSide(bool simulate)
     if (simulate)
     {
         capability |= TELESCOPE_HAS_PIER_SIDE;
-        defineSwitch(&PierSideSP);
+        defineProperty(&PierSideSP);
     }
     else
     {
@@ -3019,20 +3082,5 @@ void Telescope::setSimulatePierSide(bool simulate)
 
     m_simulatePierSide = simulate;
 }
-
-double Telescope::getAzimuth(double r, double d)
-{
-    ln_equ_posn lnradec { 0, 0 };
-    ln_hrz_posn altaz { 0, 0 };
-
-    lnradec.ra  = (r * 360) / 24.0;
-    lnradec.dec = d;
-
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
-
-    /* libnova measures azimuth from south towards west */
-    return (range360(altaz.az + 180));
-}
-
 
 }

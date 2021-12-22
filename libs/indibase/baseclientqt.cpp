@@ -25,6 +25,8 @@
 #include "locale_compat.h"
 #include "indistandardproperty.h"
 
+#include "indiuserio.h"
+
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -41,8 +43,24 @@
 #pragma warning(disable : 4996)
 #endif
 
+static userio io;
+
 INDI::BaseClientQt::BaseClientQt(QObject *parent) : QObject(parent), cServer("localhost"), cPort(7624)
 {
+    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    {
+        BaseClientQt *self = static_cast<BaseClientQt *>(user);
+        return self->client_socket.write(static_cast<const char *>(ptr), count);
+    };
+
+    io.vprintf = [](void *user, const char * format, va_list ap) -> int
+    {
+        BaseClientQt *self = static_cast<BaseClientQt *>(user);
+        char message[MAXRBUF];
+        vsnprintf(message, MAXRBUF, format, ap);
+        return self->client_socket.write(message, strlen(message));
+    };
+
     sConnected = false;
     verbose    = false;
     lillp      = nullptr;
@@ -116,28 +134,22 @@ bool INDI::BaseClientQt::connectServer()
 
     serverConnected();
 
-    AutoCNumeric locale;
-
     QString getProp;
     if (cDeviceNames.empty())
     {
-        getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
-
-        client_socket.write(getProp.toLatin1());
-
+        IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
-            std::cerr << getProp.toLatin1().constData() << std::endl;
+            IUUserIOGetProperties(userio_file(), stderr, nullptr, nullptr);
     }
     else
     {
-        for (auto &str : cDeviceNames)
+        for (const auto &oneDevice : cDeviceNames)
         {
-            getProp =
-                QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg(str.c_str());
-
-            client_socket.write(getProp.toLatin1());
+            IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
             if (verbose)
-                std::cerr << getProp.toLatin1().constData() << std::endl;
+                IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
+
+            // #PS: missing code? see INDI::BaseClient::listenINDI()
         }
     }
 
@@ -502,28 +514,17 @@ int INDI::BaseClientQt::messageCmd(XMLEle *root, char *errmsg)
     return (0);
 }
 
+void INDI::BaseClientQt::newUniversalMessage(std::string message)
+{
+    IDLog("%s\n", message.c_str());
+}
+
 void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
 {
     AutoCNumeric locale;
 
     tvp->s = IPS_BUSY;
-
-    QString prop;
-
-    prop += QString("<newTextVector\n");
-    prop += QString("  device='%1'\n").arg(tvp->device);
-    prop += QString("  name='%1'\n>").arg(tvp->name);
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        prop += QString("  <oneText\n");
-        prop += QString("    name='%1'>\n").arg(tvp->tp[i].name);
-        prop += QString("      %1\n").arg(tvp->tp[i].text);
-        prop += QString("  </oneText>\n");
-    }
-    prop += QString("</newTextVector>\n");
-
-    client_socket.write(prop.toLatin1());
+    IUUserIONewText(&io, this, tvp);
 }
 
 void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -554,23 +555,7 @@ void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
     AutoCNumeric locale;
 
     nvp->s = IPS_BUSY;
-
-    QString prop;
-
-    prop += QString("<newNumberVector\n");
-    prop += QString("  device='%1'\n").arg(nvp->device);
-    prop += QString("  name='%1'\n>").arg(nvp->name);
-
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        prop += QString("  <oneNumber\n");
-        prop += QString("    name='%1'>\n").arg(nvp->np[i].name);
-        prop += QString("      %1\n").arg(QString::number(nvp->np[i].value));
-        prop += QString("  </oneNumber>\n");
-    }
-    prop += QString("</newNumberVector>\n");
-
-    client_socket.write(prop.toLatin1());
+    IUUserIONewNumber(&io, this, nvp);
 }
 
 void INDI::BaseClientQt::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -598,37 +583,8 @@ void INDI::BaseClientQt::sendNewNumber(const char *deviceName, const char *prope
 
 void INDI::BaseClientQt::sendNewSwitch(ISwitchVectorProperty *svp)
 {
-    svp->s            = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);
-
-    QString prop;
-
-    prop += QString("<newSwitchVector\n");
-
-    prop += QString("  device='%1'\n").arg(svp->device);
-    prop += QString("  name='%1'>\n").arg(svp->name);
-
-    if (svp->r == ISR_1OFMANY && onSwitch)
-    {
-        prop += QString("  <oneSwitch\n");
-        prop += QString("    name='%1'>\n").arg(onSwitch->name);
-        prop += QString("      %1\n").arg((onSwitch->s == ISS_ON) ? "On" : "Off");
-        prop += QString("  </oneSwitch>\n");
-    }
-    else
-    {
-        for (int i = 0; i < svp->nsp; i++)
-        {
-            prop += QString("  <oneSwitch\n");
-            prop += QString("    name='%1'>\n").arg(svp->sp[i].name);
-            prop += QString("      %1\n").arg((svp->sp[i].s == ISS_ON) ? "On" : "Off");
-            prop += QString("  </oneSwitch>\n");
-        }
-    }
-
-    prop += QString("</newSwitchVector>\n");
-
-    client_socket.write(prop.toLatin1());
+    svp->s = IPS_BUSY;
+    IUUserIONewSwitch(&io, this, svp);
 }
 
 void INDI::BaseClientQt::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -655,108 +611,29 @@ void INDI::BaseClientQt::sendNewSwitch(const char *deviceName, const char *prope
 
 void INDI::BaseClientQt::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
-    QString prop;
-
-    prop += QString("<newBLOBVector\n");
-    prop += QString("  device='%1'\n").arg(devName);
-    prop += QString("  name='%1'\n").arg(propName);
-    prop += QString("  timestamp='%1'>\n").arg(timestamp);
-
-    client_socket.write(prop.toLatin1());
+    IUUserIONewBLOBStart(&io, this, devName, propName, timestamp);
 }
 
 void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
 {
-    QString prop;
-    unsigned char *encblob;
-    int l;
-
-    size_t sz = 4 * bp->size / 3 + 4; 
-    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz)));
-    l = to64frombits_s(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size, sz);
-    if (l == 0) {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-    prop += QString("  <oneBLOB\n");
-    prop += QString("    name='%1'\n").arg(bp->name);
-    prop += QString("    size='%1'\n").arg(QString::number(bp->size));
-    prop += QString("    enclen='%1'\n").arg(QString::number(l));
-    prop += QString("    format='%1'>\n").arg(bp->format);
-
-    client_socket.write(prop.toLatin1());
-
-    size_t written = 0;
-    size_t towrite = l;
-
-    while ((int)written < l)
-    {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
-        if (wr > 0)
-            written += wr;
-        if ((written % 72) == 0)
-            client_socket.write("\n");
-    }
-
-    if ((written % 72) != 0)
-        client_socket.write("\n");
-
-    free(encblob);
-
-    client_socket.write("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
+    );
 }
 
 void INDI::BaseClientQt::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                      void *blobBuffer)
 {
-    unsigned char *encblob;
-    int l;
-
-    size_t sz = 4 * blobSize / 3 + 4;
-    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz)));
-    l = to64frombits_s(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize, sz);
-    if (l == 0) {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-
-    QString prop;
-
-    prop += QString("  <oneBLOB\n");
-    prop += QString("    name='%1'\n").arg(blobName);
-    prop += QString("    size='%1'\n").arg(QString::number(blobSize));
-    prop += QString("    enclen='%1'\n").arg(QString::number(l));
-    prop += QString("    format='%1'>\n").arg(blobFormat);
-
-    client_socket.write(prop.toLatin1());
-
-    size_t written = 0;
-    size_t towrite = l;
-
-    while ((int)written < l)
-    {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
-        if (wr > 0)
-            written += wr;
-        if ((written % 72) == 0)
-            client_socket.write("\n");
-    }
-
-    if ((written % 72) != 0)
-        client_socket.write("\n");
-
-    free(encblob);
-
-    client_socket.write("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        blobName, blobSize, blobSize, blobBuffer, blobFormat
+    );
 }
 
 void INDI::BaseClientQt::finishBlob()
 {
-    client_socket.write("</newBLOBVector>\n");
+    IUUserIONewBLOBFinish(&io, this);
 }
 
 void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
@@ -782,28 +659,7 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const 
 
         bMode->blobMode = blobH;
     }
-
-    QString blobOpenTag;
-    QString blobEnableTag;
-    if (prop != nullptr)
-        blobOpenTag = QString("<enableBLOB device='%1' name='%2'>").arg(dev).arg(prop);
-    else
-        blobOpenTag = QString("<enableBLOB device='%1'>").arg(dev);
-
-    switch (blobH)
-    {
-        case B_NEVER:
-            blobEnableTag = QString("%1Never</enableBLOB>\n").arg(blobOpenTag);
-            break;
-        case B_ALSO:
-            blobEnableTag = QString("%1Also</enableBLOB>\n").arg(blobOpenTag);
-            break;
-        case B_ONLY:
-            blobEnableTag = QString("%1Only</enableBLOB>\n").arg(blobOpenTag);
-            break;
-    }
-
-    client_socket.write(blobEnableTag.toLatin1());
+    IUUserIOEnableBLOB(&io, this, dev, prop, blobH);
 }
 
 BLOBHandling INDI::BaseClientQt::getBLOBMode(const char *dev, const char *prop)

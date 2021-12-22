@@ -51,44 +51,6 @@
 
 static std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
 
-void ISGetProperties(const char *dev)
-{
-    roboFocus->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    roboFocus->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    roboFocus->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    roboFocus->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    roboFocus->ISSnoopDevice(root);
-}
-
 RoboFocus::RoboFocus()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_HAS_BACKLASH);
@@ -173,15 +135,15 @@ bool RoboFocus::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&PowerSwitchesSP);
-        defineNumber(&SettingsNP);
-        defineNumber(&MinMaxPositionNP);
-        defineNumber(&MaxTravelNP);
-        //        defineNumber(&SetRegisterPositionNP);
-        //defineNumber(&FocusBacklashNP);
-        //        defineNumber(&FocusRelPosNP);
-        //        defineNumber(&FocusAbsPosNP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&PowerSwitchesSP);
+        defineProperty(&SettingsNP);
+        defineProperty(&MinMaxPositionNP);
+        defineProperty(&MaxTravelNP);
+        //        defineProperty(&SetRegisterPositionNP);
+        //defineProperty(&FocusBacklashNP);
+        //        defineProperty(&FocusRelPosNP);
+        //        defineProperty(&FocusAbsPosNP);
 
         GetFocusParams();
 
@@ -209,7 +171,7 @@ bool RoboFocus::Handshake()
 
     if (isSimulation())
     {
-        timerID = SetTimer(POLLMS);
+        timerID = SetTimer(getCurrentPollingPeriod());
         LOG_INFO("Simulated Robofocus is online. Getting focus parameters...");
         FocusAbsPosN[0].value = simulatedPosition;
         updateRFFirmware(firmeware);
@@ -1504,7 +1466,7 @@ void RoboFocus::TimerHit()
                    "Bogus position: (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X) - Bytes read: %d",
                    rf_cmd[0], rf_cmd[1], rf_cmd[2], rf_cmd[3], rf_cmd[4], rf_cmd[5], rf_cmd[6], rf_cmd[7], rf_cmd[8],
                    nbytes_read);
-            timerID = SetTimer(POLLMS);
+            timerID = SetTimer(getCurrentPollingPeriod());
             return;
         }
         else if (nbytes_read < 0)
@@ -1536,7 +1498,7 @@ void RoboFocus::TimerHit()
         }
     }
 
-    timerID = SetTimer(POLLMS);
+    timerID = SetTimer(getCurrentPollingPeriod());
 }
 
 bool RoboFocus::AbortFocuser()

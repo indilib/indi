@@ -30,22 +30,22 @@ class Pyxis : public INDI::Rotator
     Pyxis();
     virtual ~Pyxis() = default;
 
-    virtual bool Handshake();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool Handshake() override;
+    const char * getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
     // Rotator Overrides
-    virtual IPState HomeRotator();
-    virtual IPState MoveRotator(double angle);
-    virtual bool ReverseRotator(bool enabled);
+    virtual IPState HomeRotator() override;
+    virtual IPState MoveRotator(double angle) override;
+    virtual bool ReverseRotator(bool enabled) override;
 
     // Misc.
-    virtual void TimerHit();
+    virtual void TimerHit() override;
 
   private:    
     // Check if connection is OK

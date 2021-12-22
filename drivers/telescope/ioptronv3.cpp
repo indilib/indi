@@ -16,6 +16,8 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+    Updated for PEC V3
 */
 
 #include "ioptronv3.h"
@@ -34,65 +36,34 @@
 using namespace IOPv3;
 
 #define MOUNTINFO_TAB "Mount Info"
-#define PEC_TAB "PEC"
+// #define PEC_TAB "PEC"  //Not Needed
 
 // We declare an auto pointer to IOptronV3.
 static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 
-void ISGetProperties(const char *dev)
-{
-    scope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    scope->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    scope->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    scope->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    scope->ISSnoopDevice(root);
-}
-
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 2);
+    setVersion(1, 5);
 
     driver.reset(new Driver(getDeviceName()));
 
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
-    scopeInfo.slewRate     = SR_1;
+    /* v3.0 use default PEC Settings */
+    scopeInfo.systemStatus = ST_TRACKING_PEC_OFF;
+    // End Mod */
+    scopeInfo.slewRate     = SR_MAX;
     scopeInfo.timeSource   = TS_RS232;
     scopeInfo.hemisphere   = HEMI_NORTH;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                           /* v3.0 use default PEC Settings */
+                           TELESCOPE_HAS_PEC  |
+                           // End Mod */
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_PIER_SIDE,
                            9);
@@ -118,8 +89,8 @@ bool IOptronV3::initProperties()
     strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
     strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
     IUResetSwitch(&SlewRateSP);
-    // 64x is the default
-    SlewRateS[4].s = ISS_ON;
+    // Max is the default
+    SlewRateS[8].s = ISS_ON;
 
     /* Firmware */
     IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
@@ -132,8 +103,8 @@ bool IOptronV3::initProperties()
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
-    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
@@ -164,6 +135,20 @@ bool IOptronV3::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
+    /* v3.0 Create PEC Training switches */
+    // PEC Training
+    IUFillSwitch(&PECTrainingS[0], "PEC_Recording", "Record", ISS_OFF);
+    IUFillSwitch(&PECTrainingS[1], "PEC_Status", "Status", ISS_OFF);
+    IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "Training", MOTION_TAB, IP_RW,
+                       ISR_ATMOST1, 0,
+                       IPS_IDLE);
+
+    // Create PEC Training Information */
+    IUFillText(&PECInfoT[0], "PEC_INFO", "Status", "");
+    IUFillTextVector(&PECInfoTP, PECInfoT, 1, getDeviceName(), "PEC_INFOS", "Data", MOTION_TAB,
+                     IP_RO, 60, IPS_IDLE);
+    // End Mod */
+
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "RA_GUIDE_RATE", "x Sidereal", "%g", 0.01, 0.9, 0.1, 0.5);
     IUFillNumber(&GuideRateN[1], "DE_GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.99, 0.1, 0.5);
@@ -188,15 +173,26 @@ bool IOptronV3::initProperties()
     IUFillSwitch(&CWStateS[IOP_CW_NORMAL], "Normal", "Normal", ISS_ON);
     IUFillSwitch(&CWStateS[IOP_CW_UP], "Up", "Up", ISS_OFF);
     IUFillSwitchVector(&CWStateSP, CWStateS, 2, getDeviceName(), "CWState", "Counter weights", MOTION_TAB, IP_RO, ISR_1OFMANY,
-                       0,
+                       0, IPS_IDLE);
+
+    /* Meridian Behavior */
+    IUFillSwitch(&MeridianActionS[IOP_MB_STOP], "IOP_MB_STOP", "Stop", ISS_ON);
+    IUFillSwitch(&MeridianActionS[IOP_MB_FLIP], "IOP_MB_FLIP", "Flip", ISS_OFF);
+    IUFillSwitchVector(&MeridianActionSP, MeridianActionS, 2, getDeviceName(), "MERIDIAN_ACTION", "Action", MB_TAB, IP_RW,
+                       ISR_1OFMANY,
+                       0, IPS_IDLE);
+
+    /* Meridian Limit */
+    IUFillNumber(&MeridianLimitN[0], "VALUE", "Degrees", "%.f", 0, 10, 1, 0);
+    IUFillNumberVector(&MeridianLimitNP, MeridianLimitN, 1, getDeviceName(), "MERIDIAN_LIMIT", "Limit", MB_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // Baud rates.
     // 230400 for 120
-    // 115000 for 70
+    // 115000 for everything else
     if (strstr(getDeviceName(), "120"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_230400);
-    else if (strstr(getDeviceName(), "70"))
+    else
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     // Default WiFi connection parametes
@@ -213,13 +209,10 @@ bool IOptronV3::initProperties()
 
     addAuxControls();
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-    driver->setSimLongLat(longitude > 180 ? longitude - 360 : longitude, latitude);
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    driver->setSimLongLat(LocationN[LOCATION_LONGITUDE].value > 180 ? LocationN[LOCATION_LONGITUDE].value - 360 :
+                          LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -230,25 +223,38 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        /* v3.0 Create PEC switches */
+        defineProperty(&PECTrainingSP);
+        defineProperty(&PECInfoTP);
+        // End Mod */
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
-        defineSwitch(&SlewModeSP);
-        defineSwitch(&DaylightSP);
-        defineSwitch(&CWStateSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
+
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
+        defineProperty(&SlewModeSP);
+        defineProperty(&DaylightSP);
+        defineProperty(&CWStateSP);
+
+        defineProperty(&MeridianActionSP);
+        defineProperty(&MeridianLimitNP);
 
         getStartupData();
     }
     else
     {
         deleteProperty(HomeSP.name);
+
+        /* v3.0 Delete PEC switches */
+        deleteProperty(PECTrainingSP.name);
+        deleteProperty(PECInfoTP.name);
+        // End Mod*/
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -261,6 +267,9 @@ bool IOptronV3::updateProperties()
         deleteProperty(SlewModeSP.name);
         deleteProperty(DaylightSP.name);
         deleteProperty(CWStateSP.name);
+
+        deleteProperty(MeridianActionSP.name);
+        deleteProperty(MeridianLimitNP.name);
     }
 
     return true;
@@ -308,8 +317,12 @@ void IOptronV3::getStartupData()
 
         // UTC Offset
         char offset[8] = {0};
+        // 2021-05-12 JM: Account for daylight savings
+        if (dayLightSavings)
+            utcOffsetMinutes += 60;
+
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[0], ts);
+        IUSaveText(&TimeT[1], offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
         TimeTP.s = IPS_OK;
@@ -351,19 +364,61 @@ void IOptronV3::getStartupData()
         IDSetNumber(&LocationNP, nullptr);
     }
 
+    IOP_MB_STATE action;
+    uint8_t degrees = 0;
+    if (driver->getMeridianBehavior(action, degrees))
+    {
+        IUResetSwitch(&MeridianActionSP);
+        MeridianActionS[action].s = ISS_ON;
+        MeridianActionSP.s = IPS_OK;
+
+        MeridianLimitN[0].value = degrees;
+    }
+
+    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
+    double parkAL = LocationN[LOCATION_LATITUDE].value;
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(parkAZ);
+        SetAxis2Park(parkAL);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
+
+        driver->setParkAz(parkAZ);
+        driver->setParkAlt(parkAL);
+    }
+
+    /* v3.0 Read PEC State at startup */
+    IOPInfo newInfo;
+    if (driver->getStatus(&newInfo))
+    {
+        switch (newInfo.systemStatus)
+        {
+            case ST_STOPPED:
+            case ST_PARKED:
+            case ST_HOME:
+            case ST_SLEWING:
+            case ST_MERIDIAN_FLIPPING:
+            case ST_GUIDING:
+
+            case ST_TRACKING_PEC_OFF:
+                setPECState(PEC_OFF);
+                GetPECDataStatus(true);
+                break;
+
+            case ST_TRACKING_PEC_ON:
+                setPECState(PEC_ON);
+                GetPECDataStatus(true);
+                break;
+        }
+        scopeInfo = newInfo;
     }
 
     if (isSimulation())
@@ -391,6 +446,23 @@ bool IOptronV3::ISNewNumber(const char *dev, const char *name, double values[], 
 
             IDSetNumber(&GuideRateNP, nullptr);
 
+            return true;
+        }
+
+        /****************************************
+         Meridian Flip Limit
+        *****************************************/
+        if (!strcmp(name, MeridianLimitNP.name))
+        {
+            IUUpdateNumber(&MeridianLimitNP, values, names, n);
+            MeridianLimitNP.s = driver->setMeridianBehavior(static_cast<IOP_MB_STATE>(IUFindOnSwitchIndex(&MeridianActionSP)),
+                                MeridianLimitN[0].value) ? IPS_OK : IPS_ALERT;
+            if (MeridianLimitNP.s == IPS_OK)
+            {
+                LOGF_INFO("Mount Meridian Behavior: When mount reaches %.f degrees past meridian, it will %s.",
+                          MeridianLimitN[0].value, MeridianActionS[IOP_MB_STOP].s == ISS_ON ? "stop" : "flip");
+            }
+            IDSetNumber(&MeridianLimitNP, nullptr);
             return true;
         }
 
@@ -422,7 +494,8 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             switch (operation)
             {
                 case IOP_FIND_HOME:
-                    if (firmwareInfo.Model.find("CEM") == std::string::npos)
+                    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+                            firmwareInfo.Model.find("GEM45") == std::string::npos)
                     {
                         HomeSP.s = IPS_IDLE;
                         IDSetSwitch(&HomeSP, nullptr);
@@ -498,6 +571,109 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&DaylightSP, nullptr);
             return true;
         }
+
+        /*******************************************************
+         * Meridian Action Operations
+        *******************************************************/
+        if (!strcmp(name, MeridianActionSP.name))
+        {
+            IUUpdateSwitch(&MeridianActionSP, states, names, n);
+            MeridianActionSP.s = (driver->setMeridianBehavior(static_cast<IOP_MB_STATE>(IUFindOnSwitchIndex(&MeridianActionSP)),
+                                  MeridianLimitN[0].value)) ? IPS_OK : IPS_ALERT;
+            if (MeridianActionSP.s == IPS_OK)
+            {
+                LOGF_INFO("Mount Meridian Behavior: When mount reaches %.f degrees past meridian, it will %s.",
+                          MeridianLimitN[0].value, MeridianActionS[IOP_MB_STOP].s == ISS_ON ? "stop" : "flip");
+            }
+            IDSetSwitch(&MeridianActionSP, nullptr);
+            return true;
+        }
+
+        /* v3.0 PEC add controls and calls to the driver */
+        if (!strcmp(name, PECStateSP.name))
+        {
+            IUUpdateSwitch(&PECStateSP, states, names, n);
+
+            if(PECStateS[PEC_OFF].s == ISS_ON)
+            {
+                // PEC OFF
+                if(isTraining)
+                {
+                    // Training check
+                    LOGF_WARN("Mount PEC busy recording, %d s", PECTime);
+                }
+                else
+                {
+                    driver->setPECEnabled(false);
+                    PECStateSP.s = IPS_OK;
+                    LOG_INFO("Disabling PEC Chip");
+                }
+            }
+            else
+            {
+                // PEC ON
+                if (GetPECDataStatus(true))
+                {
+                    // Data Check
+                    driver->setPECEnabled(true);
+                    PECStateSP.s = IPS_BUSY;
+                    LOG_INFO("Enabling PEC Chip");
+                }
+            }
+            IDSetSwitch(&PECStateSP, nullptr);
+            return true;
+        }
+
+        /* v3.0 PEC add Training Controls to the Driver */
+        if (!strcmp(name, PECTrainingSP.name))
+        {
+            IUUpdateSwitch(&PECTrainingSP, states, names, n);
+            if(isTraining)
+            {
+                // Check if already training
+                if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+                {
+                    // Train Check Status
+                    LOGF_WARN("Mount PEC busy recording, %d s", PECTime);
+                }
+
+                if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+                {
+                    // Train Cancel
+                    driver->setPETEnabled(false);
+                    isTraining = false;
+                    PECTrainingSP.s = IPS_ALERT;
+                    LOG_WARN("PEC Training cancelled by user, chip disabled");
+                }
+            }
+            else
+            {
+                if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+                {
+                    if(TrackState == SCOPE_TRACKING)
+                    {
+                        // Train if tracking /guiding
+                        driver->setPETEnabled(true);
+                        isTraining = true;
+                        PECTime = 0;
+                        PECTrainingSP.s = IPS_BUSY;
+                        LOG_INFO("PEC recording started...");
+                    }
+                    else
+                    {
+                        LOG_WARN("PEC Training only possible while guiding");
+                        PECTrainingSP.s = IPS_IDLE;
+                    }
+                }
+                if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+                {
+                    // Train Status
+                    GetPECDataStatus(true);
+                }
+            }
+            IDSetSwitch(&PECTrainingSP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -544,28 +720,6 @@ bool IOptronV3::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
         }
 
-        /*
-        TelescopeTrackMode trackMode = TRACK_SIDEREAL;
-
-        switch (newInfo.trackRate)
-        {
-            case TR_SIDEREAL:
-                trackMode = TRACK_SIDEREAL;
-                break;
-            case TR_SOLAR:
-                trackMode = TRACK_SOLAR;
-                break;
-            case TR_LUNAR:
-                trackMode = TRACK_LUNAR;
-                break;
-            case TR_KING:
-                trackMode = TRACK_SIDEREAL;
-                break;
-            case TR_CUSTOM:
-                trackMode = TRACK_CUSTOM;
-                break;
-        }*/
-
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
@@ -590,18 +744,14 @@ bool IOptronV3::ReadScopeStatus()
             case ST_TRACKING_PEC_OFF:
             case ST_TRACKING_PEC_ON:
             case ST_GUIDING:
-                // If slew to parking position is complete, issue park command now.
-                if (TrackState == SCOPE_PARKING)
-                    driver->park();
-                else
-                {
-                    TrackModeSP.s = IPS_BUSY;
-                    TrackState    = SCOPE_TRACKING;
-                    if (scopeInfo.systemStatus == ST_SLEWING)
-                        LOG_INFO("Slew complete, tracking...");
-                    else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                        LOG_INFO("Meridian flip complete, tracking...");
-                }
+                if (newInfo.systemStatus == ST_TRACKING_PEC_OFF || newInfo.systemStatus == ST_TRACKING_PEC_ON)
+                    setPECState(newInfo.systemStatus == ST_TRACKING_PEC_ON ? PEC_ON : PEC_OFF);
+                TrackModeSP.s = IPS_BUSY;
+                TrackState    = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    LOG_INFO("Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    LOG_INFO("Meridian flip complete, tracking...");
                 break;
         }
 
@@ -615,12 +765,61 @@ bool IOptronV3::ReadScopeStatus()
         scopeInfo = newInfo;
     }
 
+    /* v3.0 Monitor PEC Training */
+    if (isTraining)
+    {
+        if (TrackState == SCOPE_TRACKING)
+        {
+            if(GetPECDataStatus(false))
+            {
+                LOGF_INFO("%d second worm cycle recorded", PECTime);
+                PECTrainingSP.s = IPS_OK;
+                isTraining = false;
+            }
+            else
+            {
+                PECTime = PECTime + 1 * getCurrentPollingPeriod() / 1000;
+                char PECText[MAXINDILABEL] = {0};
+                snprintf(PECText, MAXINDILABEL, "Recording: %d s", PECTime);
+                IUSaveText(&PECInfoT[0], PECText);
+            }
+        }
+        else
+        {
+            driver->setPETEnabled(false);
+            PECTrainingSP.s = IPS_ALERT;
+            LOGF_ERROR("Tracking error, recording cancelled %d s", PECTime);
+            IUSaveText(&PECInfoT[0], "Cancelled");
+        }
+        IDSetText(&PECInfoTP, nullptr);
+        IDSetSwitch(&PECTrainingSP, nullptr);
+    }
+    // End Mod */
+
     IOP_PIER_STATE pierState = IOP_PIER_UNKNOWN;
     IOP_CW_STATE cwState = IOP_CW_NORMAL;
 
+    double previousRA = currentRA, previousDE = currentDEC;
     rc = driver->getCoords(&currentRA, &currentDEC, &pierState, &cwState);
     if (rc)
     {
+        // 2021.11.30 JM: This is a hack to circumvent a bug in iOptorn firmware
+        // the "system status" bit is set to SLEWING even when parking is done (2), it never
+        // changes to (6) which indicates it has parked. So we use a counter to check if there
+        // is no longer any motion.
+        if (TrackState == SCOPE_PARKING)
+        {
+            if (std::abs(previousRA - currentRA) < 0.01 && std::abs(previousDE - currentDEC) < 0.01)
+            {
+                m_ParkingCounter++;
+                if (m_ParkingCounter >= MAX_PARK_COUNTER)
+                {
+                    m_ParkingCounter = 0;
+                    SetTrackEnabled(false);
+                    SetParked(true);
+                }
+            }
+        }
         if (pierState == IOP_PIER_UNKNOWN)
             setPierSide(PIER_UNKNOWN);
         else
@@ -702,83 +901,18 @@ bool IOptronV3::Abort()
 
 bool IOptronV3::Park()
 {
-#if 0
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Parking is not supported in this mount model.");
-        return false;
-    }
+    //    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ35") == std::string::npos)
+    //    {
+    //        LOG_ERROR("Parking is not supported in this mount model.");
+    //        return false;
+    //    }
 
-    targetRA  = GetAxis1Park();
-    targetDEC = GetAxis2Park();
-
-    if (driver->setRA(targetRA) == false || driver->setDE(targetDEC) == false)
-    {
-        LOG_ERROR("Error setting RA/DEC.");
-        return false;
-    }
-
-    bool rc = false;
-    if (IUFindOnSwitchIndex(&SlewModeSP) == IOP_CW_NORMAL)
-        rc = driver->slewNormal();
-    else
-        rc = driver->slewCWUp();
-
-    if (rc == false)
-    {
-        LOG_ERROR("Failed to slew tp parking position.");
-        return false;
-    }
-
-    char RAStr[64] = {0}, DecStr[64] = {0};
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
-
-    TrackState = SCOPE_PARKING;
-    LOGF_INFO("Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
-
-    return true;
-#endif
-
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Parking is not supported in this mount model.");
-        return false;
-    }
-
-    double parkAz  = GetAxis1Park();
-    double parkAlt = GetAxis2Park();
-
-    char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAz, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
-    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = parkAz + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (driver->park())
     {
         TrackState = SCOPE_PARKING;
+        m_ParkingCounter = 0;
         LOG_INFO("Parking is in progress...");
 
         return true;
@@ -789,13 +923,13 @@ bool IOptronV3::Park()
 
 bool IOptronV3::UnPark()
 {
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Unparking is not supported in this mount model.");
-        return false;
-    }
+    //    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ35") == std::string::npos)
+    //    {
+    //        LOG_ERROR("Unparking is not supported in this mount model.");
+    //        return false;
+    //    }
 
     if (driver->unpark())
     {
@@ -958,7 +1092,7 @@ IPState IOptronV3::GuideWest(uint32_t ms)
 
 bool IOptronV3::SetSlewRate(int index)
 {
-    IOP_SLEW_RATE rate = (IOP_SLEW_RATE) (index + 1);
+    IOP_SLEW_RATE rate = static_cast<IOP_SLEW_RATE>(index);
     return driver->setSlewRate(rate);
 }
 
@@ -968,6 +1102,9 @@ bool IOptronV3::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &SlewModeSP);
     IUSaveConfigSwitch(fp, &DaylightSP);
+
+    IUSaveConfigSwitch(fp, &MeridianActionSP);
+    IUSaveConfigNumber(fp, &MeridianLimitNP);
 
     return true;
 }
@@ -1063,35 +1200,19 @@ void IOptronV3::mountSim()
 
 bool IOptronV3::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
-
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-
-    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-               AltStr);
-
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
-
+    driver->setParkAz(parkAZ);
+    driver->setParkAlt(parkAlt);
     return true;
 }
 
@@ -1099,10 +1220,10 @@ bool IOptronV3::SetDefaultPark()
 {
     // By defualt azimuth 0
     SetAxis1Park(0);
-
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-
+    driver->setParkAz(0);
+    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
     return true;
 }
 
@@ -1148,4 +1269,29 @@ bool IOptronV3::SetTrackEnabled(bool enabled)
     }
 
     return driver->setTrackEnabled(enabled);
+}
+
+/* v3.0 PEC add data status to the Driver */
+bool IOptronV3::GetPECDataStatus(bool enabled)
+{
+    if(driver->getPETEnabled(true))
+    {
+        if (enabled)
+        {
+            IUSaveText(&PECInfoT[0], "Recorded");
+            IDSetText(&PECInfoTP, nullptr);
+            LOG_INFO("Mount PEC Chip Ready and Trained");
+        }
+        return true;
+    }
+    else
+    {
+        if (enabled)
+        {
+            IUSaveText(&PECInfoT[0], "None");
+            IDSetText(&PECInfoTP, nullptr);
+            LOG_INFO("Mount PEC Chip Needs Training");
+        }
+    }
+    return false;
 }

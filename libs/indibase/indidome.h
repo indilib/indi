@@ -23,8 +23,8 @@
 #pragma once
 
 #include "defaultdevice.h"
-
-#include <libnova/ln_types.h>
+#include "libastro.h"
+#include "inditimer.h"
 
 #include <string>
 
@@ -176,16 +176,15 @@ class Dome : public DefaultDevice
         Dome();
         virtual ~Dome();
 
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
-        static void updateMountCoordsHelper(void *context);
 
         /**
              * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before Dome registers
@@ -506,7 +505,7 @@ class Dome : public DefaultDevice
              * @param fp pointer to configuration file
              * @return true if successful, false otherwise.
              */
-        virtual bool saveConfigItems(FILE * fp);
+        virtual bool saveConfigItems(FILE * fp) override;
 
         /**
              * @brief updateCoords updates the horizontal coordinates (Az & Alt) of the mount from the snooped RA, DEC and observer's location.
@@ -586,8 +585,21 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty PresetGotoSP;
         INumber DomeMeasurementsN[6];
         INumberVectorProperty DomeMeasurementsNP;
+
         ISwitchVectorProperty OTASideSP;
-        ISwitch OTASideS[2];
+        ISwitch OTASideS[5];
+        // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle
+        // 4 ignore pier side and perform as in a fork mount
+        enum
+        {
+            DM_OTA_SIDE_EAST,
+            DM_OTA_SIDE_WEST,
+            DM_OTA_SIDE_MOUNT,
+            DM_OTA_SIDE_HA,
+            DM_OTA_SIDE_IGNORE
+        };
+
+        int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 
@@ -613,13 +625,13 @@ class Dome : public DefaultDevice
         IPState m_MountState;
 
         // Observer geographic coords. Snooped from mount driver.
-        struct ln_lnlat_posn observer;
+        IGeographicCoordinates observer;
         // Do we have valid geographic coords from mount driver?
         bool HaveLatLong = false;
 
         // Mount horizontal and equatorial coords. Snoops from mount driver.
-        struct ln_hrz_posn mountHoriztonalCoords;
-        struct ln_equ_posn mountEquatorialCoords;
+        INDI::IHorizontalCoordinates mountHoriztonalCoords;
+        INDI::IEquatorialCoordinates mountEquatorialCoords;
         // Do we have valid coords from mount driver?
         bool HaveRaDec = false;
 
@@ -650,10 +662,12 @@ class Dome : public DefaultDevice
         bool IsMountParked = false;
         bool IsLocked = true;
         bool AutoSyncWarning = false;
+        bool UseHourAngle = false;
 
         const char * ParkDeviceName;
         const std::string ParkDataFileName;
-        int m_HorizontalUpdateTimerID { -1 };
+        INDI::Timer m_MountUpdateTimer;
+        //int m_HorizontalUpdateTimerID { -1 };
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
         double Axis1ParkPosition;

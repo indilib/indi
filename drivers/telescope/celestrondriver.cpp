@@ -268,6 +268,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     char version[8], model[16], RAVersion[8], DEVersion[8];
     bool isGem;
     bool canPec;
+    bool hasHomeIndex;
 
     LOG_DEBUG("Getting controller version...");
     if (!get_version(version, 8))
@@ -290,17 +291,19 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
             (info->controllerVersion >= 2.2))
     {
         LOG_DEBUG("Getting controller model...");
-        if (!get_model(model, 16, &isGem, &canPec))
+        if (!get_model(model, 16, &isGem, &canPec, &hasHomeIndex))
             return false;
         info->Model = model;
         info->isGem = isGem;
         info->canPec = canPec;
+        info->hasHomeIndex = hasHomeIndex;
     }
     else
     {
         info->Model = "Unknown";
         info->isGem = false;
         info->canPec = false;
+        info->hasHomeIndex = false;
     }
 
     //LOG_DEBUG("Getting GPS firmware version...");
@@ -378,7 +381,7 @@ int CelestronDriver::model()
     return static_cast<uint8_t>(response[0]);
 }
 
-bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *canPec)
+bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *canPec, bool *hasHomeIndex)
 {
     // extended list of mounts
     std::map<int, std::string> models =
@@ -431,40 +434,44 @@ bool CelestronDriver::get_model(char *model, size_t size, bool *isGem, bool *can
     // Only Gem mounts can report the pier side pointing state
     switch(m)
     {
-    // fork mounts with PEC index
-    case 1:     // GPS
-    case 9:     // CPC
-    case 17:    // CPC Deluxe
-    case 22:    // Evolution
-        *isGem = false;
-        *canPec = true;
-        break;
+        // fork mounts with PEC index
+        case 1:     // GPS
+        case 9:     // CPC
+        case 17:    // CPC Deluxe
+        case 22:    // Evolution
+            *isGem = false;
+            *canPec = true;
+            break;
 
-    // GEM with no PEC index
-    case 6:     // AS-GT
-        *isGem = true;
-        *canPec = false;
-        break;
+        // GEM with no PEC index
+        case 6:     // AS-GT
+            *isGem = true;
+            *canPec = false;
+            break;
 
-    // GEM with PEC
-    case 5:     // CGE
-    case 13:    // CGE 2
-    case 14:    // EQ6
-    case 20:    // AVX
-    case 23:    // CGX
-    case 24:    // CGXL
-        *isGem = true;
-        *canPec = true;
-        break;
+        // GEM with PEC
+        case 5:     // CGE
+        case 13:    // CGE 2
+        case 14:    // EQ6
+        case 20:    // AVX
+        case 23:    // CGX
+        case 24:    // CGXL
+            *isGem = true;
+            *canPec = true;
+            break;
 
-    // the rest are fork mounte with no PEC
-    default:
-        *isGem = false;
-        *canPec = false;
-        break;
+        // the rest are fork mounte with no PEC
+        default:
+            *isGem = false;
+            *canPec = false;
+            break;
     }
 
-    LOGF_DEBUG("get_model %s, %s mount, %s", model, *isGem ? "GEM" : "Fork", *canPec ? "has PEC" : "no PEC");
+    // CGX and CGX-L mounts have home indexes
+    *hasHomeIndex = (m == 23 || m == 24);
+
+    LOGF_DEBUG("get_model %s, %s mount, %s, %s", model, *isGem ? "GEM" : "Fork", *canPec ? "has PEC" : "no PEC",
+               *hasHomeIndex ? "has home indexes" : "no home indexes");
 
     return true;
 }
@@ -508,22 +515,22 @@ size_t CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, unsigned char rate, 
     int dev = CELESTRON_DEV_RA;
     switch (dir)
     {
-    case CELESTRON_N:
-        dev = CELESTRON_DEV_DEC;
-        payload[0] = rate;
-        break;
-    case CELESTRON_S:
-        dev = CELESTRON_DEV_DEC;
-        payload[0] = -rate;
-        break;
-    case CELESTRON_W:
-        dev = CELESTRON_DEV_RA;
-        payload[0] = rate;
-        break;
-    case CELESTRON_E:
-        dev = CELESTRON_DEV_RA;
-        payload[0] = -rate;
-        break;
+        case CELESTRON_N:
+            dev = CELESTRON_DEV_DEC;
+            payload[0] = rate;
+            break;
+        case CELESTRON_S:
+            dev = CELESTRON_DEV_DEC;
+            payload[0] = -rate;
+            break;
+        case CELESTRON_W:
+            dev = CELESTRON_DEV_RA;
+            payload[0] = rate;
+            break;
+        case CELESTRON_E:
+            dev = CELESTRON_DEV_RA;
+            payload[0] = -rate;
+            break;
     }
     payload[1] = duration_csec;
 
@@ -543,14 +550,14 @@ bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
     //char payload[2] = {0, 0};
     switch (dir)
     {
-    case CELESTRON_N:
-    case CELESTRON_S:
-        dev = CELESTRON_DEV_DEC;
-        break;
-    case CELESTRON_W:
-    case CELESTRON_E:
-        dev = CELESTRON_DEV_RA;
-        break;
+        case CELESTRON_N:
+        case CELESTRON_S:
+            dev = CELESTRON_DEV_DEC;
+            break;
+        case CELESTRON_W:
+        case CELESTRON_E:
+            dev = CELESTRON_DEV_RA;
+            break;
     }
     set_sim_response("%c#", 0);
 
@@ -567,14 +574,22 @@ bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
 ******************************************************************/
 bool CelestronDriver::get_guide_rate(CELESTRON_AXIS axis, uint8_t * rate)
 {
-    int dev = (axis == CELESTRON_AXIS::DEC_AXIS) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
-    //char payload[2] = {0, 0};
-    set_sim_response("%c#", (axis == CELESTRON_AXIS::DEC_AXIS) ? sim_dec_guide_rate : sim_ra_guide_rate);
-
+    int dev = CELESTRON_DEV_DEC;
+    switch (axis)
+    {
+        case CELESTRON_AXIS::RA_AXIS:
+            dev = CELESTRON_DEV_RA;
+            set_sim_response("%c#", sim_ra_guide_rate);
+            break;
+        case CELESTRON_AXIS::DEC_AXIS:
+            dev = CELESTRON_DEV_DEC;
+            set_sim_response("%c#", sim_dec_guide_rate);
+            break;
+    }
     if (!send_passthrough(dev, MC_GET_AUTOGUIDE_RATE, nullptr, 0, response, 1))
         return false;
-
-    *rate = response[0];
+    *rate = static_cast<uint8_t>(response[0]);
+    LOGF_DEBUG("get_guide_rate raw response (0-255) %i", *rate);
     return true;
 }
 
@@ -588,14 +603,14 @@ bool CelestronDriver::set_guide_rate(CELESTRON_AXIS axis, uint8_t rate)
     int dev = CELESTRON_DEV_DEC;
     switch (axis)
     {
-    case CELESTRON_AXIS::RA_AXIS:
-        dev = CELESTRON_DEV_RA;
-        sim_ra_guide_rate = rate;
-        break;
-    case CELESTRON_AXIS::DEC_AXIS:
-        dev = CELESTRON_DEV_DEC;
-        sim_dec_guide_rate = rate;
-        break;
+        case CELESTRON_AXIS::RA_AXIS:
+            dev = CELESTRON_DEV_RA;
+            sim_ra_guide_rate = rate;
+            break;
+        case CELESTRON_AXIS::DEC_AXIS:
+            dev = CELESTRON_DEV_DEC;
+            sim_dec_guide_rate = rate;
+            break;
     }
     char payload[1];
     payload[0] = rate;
@@ -790,10 +805,11 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[2] = static_cast<char>(lat_m);
     cmd[3] = static_cast<char>(lat_s);
     cmd[4] = lat_d > 0 ? 0 : 1;
-    cmd[5] = static_cast<char>(abs(long_d));       // not sure how the conversion from int to char will work for longtitudes > 127
+    cmd[5] = static_cast<char>(abs(
+                                   long_d));       // not sure how the conversion from int to char will work for longtitudes > 127
     cmd[6] = static_cast<char>(long_m);
     cmd[7] = static_cast<char>(long_s);
-    cmd[8] = long_d > 0 ? 0 : 1;
+    cmd[8] = longitude > 0 ? 0 : 1;	 //Error fixed here (was cmd[8] = long_d >= 0 ? 0 : 1;) which was wrong for < 1 degree East.
 
     set_sim_response("#");
     return send_command(cmd, 9, response, 1, false, true);
@@ -918,9 +934,9 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
         localTime.gmtoff += 3600;
     }
 
-//    LOGF_DEBUG("LT %d-%d-%dT%d:%d:%f, gmtoff %d, dst %s",
-//               localTime.years, localTime.months, localTime.days, localTime.hours, localTime.minutes, localTime.seconds,
-//               localTime.gmtoff, *dst ? "On" : "Off");
+    //    LOGF_DEBUG("LT %d-%d-%dT%d:%d:%f, gmtoff %d, dst %s",
+    //               localTime.years, localTime.months, localTime.days, localTime.hours, localTime.minutes, localTime.seconds,
+    //               localTime.gmtoff, *dst ? "On" : "Off");
 
     // convert to UTC
     ln_zonedate_to_date(&localTime, &utcTime);
@@ -932,7 +948,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *minute = utcTime.minutes;
     *ss     = static_cast<int>(utcTime.seconds);
 
-//    LOGF_DEBUG("UTC %d-%d-%dT%d:%d:%d utc_hours %f", *yy, *mm, *dd, *hh, *minute, *ss, *utc_hours);
+    //    LOGF_DEBUG("UTC %d-%d-%dT%d:%d:%d utc_hours %f", *yy, *mm, *dd, *hh, *minute, *ss, *utc_hours);
 
     return true;
 }
@@ -1070,7 +1086,8 @@ bool CelestronDriver::foc_exists()
             snprintf(focVersion, 15, "%d.%02d.%d",
                      static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
                      static_cast<int>((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
-            vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
+            vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>
+                     (response[2]) << 8) + static_cast<uint8_t>(response[3]);
             break;
         default:
             LOGF_DEBUG("No focuser found, %i", echo());
@@ -1093,12 +1110,14 @@ int CelestronDriver::foc_position()
         else
             move_sim_foc(offset);
     }
-    set_sim_response("%c%c%c#", sim_data.foc_position >> 16 & 0xff, sim_data.foc_position >> 8 & 0XFF, sim_data.foc_position & 0XFF);
+    set_sim_response("%c%c%c#", sim_data.foc_position >> 16 & 0xff, sim_data.foc_position >> 8 & 0XFF,
+                     sim_data.foc_position & 0XFF);
 
     size_t rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
     if (rlen >= 3)
     {
-        int pos = (static_cast<uint8_t>(response[0]) << 16) + (static_cast<uint8_t>(response[1]) << 8) + static_cast<uint8_t>(response[2]);
+        int pos = (static_cast<uint8_t>(response[0]) << 16) + (static_cast<uint8_t>(response[1]) << 8) + static_cast<uint8_t>
+                  (response[2]);
         LOGF_DEBUG("get focus position %d", pos);
         return pos;
     }
@@ -1133,8 +1152,10 @@ bool CelestronDriver::foc_limits(int * low, int * high)
     if (rlen < 8)
         return false;
 
-    *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
-    *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>(response[6]) << 8) + static_cast<uint8_t>(response[7]);
+    *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>
+            (response[2]) << 8) + static_cast<uint8_t>(response[3]);
+    *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>
+            (response[6]) << 8) + static_cast<uint8_t>(response[7]);
 
     // check on integrity of values, they must be sensible and the range must be more than 2 turns
     if (*high - *low < 2000 || *high < 0 || *high > 60000 || *low < 0 || *low > 50000)
@@ -1174,7 +1195,7 @@ bool CelestronDriver::PecSeekIndex()
 
     set_sim_response("#");
 
-    size_t rlen = send_passthrough(CELESTRON_DEV_RA, MC_SEEK_INDEX, nullptr, 0,response, 0);
+    size_t rlen = send_passthrough(CELESTRON_DEV_RA, MC_SEEK_INDEX, nullptr, 0, response, 0);
     if (rlen < 1)
     {
         LOG_WARN("Start PEC seek index failed");
@@ -1257,7 +1278,8 @@ bool CelestronDriver::PecPlayback(bool start)
 {
     if (!(pecState == PEC_STATE::PEC_INDEXED || pecState == PEC_STATE::PEC_PLAYBACK))
         return false;
-    char data[1]; data[0] = start ? 0x01 : 0x00;
+    char data[1];
+    data[0] = start ? 0x01 : 0x00;
 
     set_sim_response("#");
 
@@ -1350,14 +1372,14 @@ PEC_STATE CelestronDriver::updatePecState()
 {
     switch (pecState)
     {
-    case PEC_STATE::PEC_SEEKING:
-        isPecAtIndex();
-        break;
-    case PEC_STATE::PEC_RECORDING:
-        isPecRecordDone();
-        break;
-    default:
-        break;
+        case PEC_STATE::PEC_SEEKING:
+            isPecAtIndex();
+            break;
+        case PEC_STATE::PEC_RECORDING:
+            isPecRecordDone();
+            break;
+        default:
+            break;
     }
     return pecState;
 }
@@ -1368,23 +1390,23 @@ const char * CelestronDriver::PecStateStr()
 }
 
 const char * CelestronDriver::PecStateStr(PEC_STATE state)
-{    
+{
     switch (state)
     {
-    default:
-        return "None";
-    case PEC_STATE::PEC_NOT_AVAILABLE:
-        return "Not Available";
-    case PEC_STATE::PEC_AVAILABLE:
-        return "Available";
-    case PEC_STATE::PEC_PLAYBACK:
-        return "PEC Playback";
-    case PEC_STATE::PEC_SEEKING:
-        return "seeking index";
-    case PEC_STATE::PEC_INDEXED:
-        return "Index Found";
-    case PEC_STATE::PEC_RECORDING:
-        return "PEC Recording";
+        default:
+            return "None";
+        case PEC_STATE::PEC_NOT_AVAILABLE:
+            return "Not Available";
+        case PEC_STATE::PEC_AVAILABLE:
+            return "Available";
+        case PEC_STATE::PEC_PLAYBACK:
+            return "PEC Playback";
+        case PEC_STATE::PEC_SEEKING:
+            return "seeking index";
+        case PEC_STATE::PEC_INDEXED:
+            return "Index Found";
+        case PEC_STATE::PEC_RECORDING:
+            return "PEC Recording";
     }
 }
 
@@ -1437,7 +1459,7 @@ bool PecData::Load(CelestronDriver *driver)
         posError += binRate * binTime;
         data[i + 1] = posError;
 
-        LOGF_DEBUG("i %d, rawPec %d, binRate %f, binTime %f, data[%d] %f", i, rawPec, binRate, binTime, i+1, data[i+1]);
+        LOGF_DEBUG("i %d, rawPec %d, binRate %f, binTime %f, data[%d] %f", i, rawPec, binRate, binTime, i + 1, data[i + 1]);
     }
     return true;
 }

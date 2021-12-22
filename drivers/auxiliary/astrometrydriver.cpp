@@ -34,37 +34,6 @@
 // We declare an auto pointer to AstrometryDriver.
 std::unique_ptr<AstrometryDriver> astrometry(new AstrometryDriver());
 
-void ISGetProperties(const char *dev)
-{
-    astrometry->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    astrometry->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    astrometry->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    astrometry->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    astrometry->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    astrometry->ISSnoopDevice(root);
-}
-
 AstrometryDriver::AstrometryDriver()
 {
     setVersion(1, 0);
@@ -136,7 +105,7 @@ void AstrometryDriver::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 }
 
@@ -146,9 +115,9 @@ bool AstrometryDriver::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SolverSP);
-        defineText(&SolverSettingsTP);
-        defineBLOB(&SolverDataBP);
+        defineProperty(&SolverSP);
+        defineProperty(&SolverSettingsTP);
+        defineProperty(&SolverDataBP);
     }
     else
     {
@@ -201,7 +170,7 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
                 SolverS[SOLVER_DISABLE].s = ISS_OFF;
                 SolverSP.s   = IPS_BUSY;
                 LOG_INFO("Astrometry solver is enabled.");
-                defineNumber(&SolverResultNP);
+                defineProperty(&SolverResultNP);
             }
 
             processBLOB(reinterpret_cast<uint8_t *>(blobs[0]), static_cast<uint32_t>(sizes[0]),
@@ -262,7 +231,7 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
             if (SolverS[SOLVER_ENABLE].s == ISS_ON)
             {
                 LOG_INFO("Astrometry solver is enabled.");
-                defineNumber(&SolverResultNP);
+                defineProperty(&SolverResultNP);
             }
             else
             {
@@ -435,7 +404,7 @@ void AstrometryDriver::runSolver()
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
 
-            fclose(handle);
+            pclose(handle);
             LOG_INFO("Solver complete.");
             return;
         }
@@ -446,14 +415,14 @@ void AstrometryDriver::runSolver()
             SolverSP.s = IPS_IDLE;
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
-            fclose(handle);
+            pclose(handle);
             LOG_INFO("Solver canceled.");
             return;
         }
         pthread_mutex_unlock(&lock);
     }
 
-    fclose(handle);
+    pclose(handle);
 
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_ALERT;

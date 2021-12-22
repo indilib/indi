@@ -24,90 +24,93 @@
 
 class Integra : public INDI::Focuser, public INDI::RotatorInterface
 {
-  public:
+    public:
 
-    typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR } MotorType;
+        typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR } MotorType;
 
-    typedef enum { VERSION_25012017, VERSION_20122017 } FirmwareVersion;
+        typedef enum { VERSION_20170125, VERSION_20171220 } FirmwareVersion;
 
-    enum INTEGRA_HOMING_STATE
-    {
-        HOMING_IDLE,
-        HOMING_START,
-        HOMING_ABORT,
-        HOMING_COUNT
-    };
+        // these are used for sanity checks only
+        const int wellKnownIntegra85FocusMax = 188600;
+        const int wellKnownIntegra85RotateMax = 61802;
 
-    Integra();
-    virtual ~Integra() = default;
+        enum INTEGRA_HOMING_STATE
+        {
+            HOMING_IDLE,
+            HOMING_START,
+            HOMING_ABORT,
+            HOMING_COUNT
+        };
 
-    virtual bool Handshake();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-    virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        Integra();
+        virtual ~Integra() = default;
 
-  protected:
-    // Focuser
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
+        virtual bool Handshake() override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
-    // Rotator
-    virtual IPState MoveRotator(double angle);
-    virtual bool AbortRotator();
-    virtual bool SyncRotator(double angle);
-    virtual bool ReverseRotator(bool enabled);
+    protected:
+        // Focuser
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
 
-    // Misc.
-    virtual bool saveConfigItems(FILE *fp);
-    virtual void TimerHit();
+        // Rotator
+        virtual IPState MoveRotator(double angle) override;
+        virtual bool AbortRotator() override;
+        virtual bool SyncRotator(double angle) override;
+        virtual bool ReverseRotator(bool enabled) override;
 
-  private:
-    bool genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString);
-    bool integraGetCommand(const char *name, int command, char *returnValueString );
-    bool integraMotorGetCommand(const char *name, int command, MotorType motor, char *returnValueString);
-    bool integraMotorSetCommand(const char *name, int command, MotorType motor, int value, char *returnValueString);
-    bool getFirmware();
-    bool getFocuserType();
-    bool Ack();
-    bool gotoMotor(MotorType type, int32_t position);
-    bool relativeGotoMotor(MotorType type, int32_t relativePosition);
-    bool getPosition(MotorType type);
-    bool stopMotor(MotorType type);
-    bool isMotorMoving(MotorType type);
-    bool getTemperature();
-    bool findHome();
-    bool abortHome();
-    bool isHomingComplete();
-    void cleanPrint(const char *cmd, char *cleancmd);
-    bool saveToEEPROM();
-    bool getMaxPosition(MotorType type);
-    uint32_t rotatorDegreesToTicks(double angle);
-    double rotatorTicksToDegrees(uint32_t ticks);
+        // Misc.
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void TimerHit() override;
 
-    INumber MaxPositionN[2];
-    INumberVectorProperty MaxPositionNP;
+    private:
+        bool genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString);
+        bool integraGetCommand(const char *name, int command, char *returnValueString );
+        bool integraMotorGetCommand(const char *name, int command, MotorType motor, char *returnValueString);
+        bool integraMotorSetCommand(const char *name, int command, MotorType motor, int value, char *returnValueString);
+        bool getFirmware();
+        bool getFocuserType();
+        bool gotoMotor(MotorType type, int32_t position);
+        bool relativeGotoMotor(MotorType type, int32_t relativePosition);
+        bool getPosition(MotorType type);
+        bool stopMotor(MotorType type);
+        bool isMotorMoving(MotorType type);
+        bool getTemperature();
+        bool findHome();
+        bool abortHome();
+        bool isHomingComplete();
+        void cleanPrint(const char *cmd, char *cleancmd);
+        bool saveToEEPROM();
+        bool getMaxPosition(MotorType type);
+        uint32_t rotatorDegreesToTicks(double angle);
+        double rotatorTicksToDegrees(uint32_t ticks);
 
-    INumber SensorN[2];
-    INumberVectorProperty SensorNP;
-    enum { SENSOR_TEMPERATURE };
+        INumber MaxPositionN[2];
+        INumberVectorProperty MaxPositionNP;
 
-    ISwitch FindHomeS[HOMING_COUNT];
-    ISwitchVectorProperty FindHomeSP;
+        INumber SensorN[2];
+        INumberVectorProperty SensorNP;
+        enum { SENSOR_TEMPERATURE };
 
-    INumber RotatorAbsPosN[1];
-    INumberVectorProperty RotatorAbsPosNP;
+        ISwitch FindHomeS[HOMING_COUNT];
+        ISwitchVectorProperty FindHomeSP;
 
-    double lastTemperature { 0 };
-    int timeToReadTemperature = 0;
-    double rotatorTicksPerDegree { 0 };
-    double rotatorDegreesPerTick = 0.0;
-    uint32_t lastFocuserPosition { 0 };
-    bool haveReadFocusPositionAtLeastOnce = false;
-    uint32_t lastRotatorPosition { 0 };
-    bool haveReadRotatorPositionAtLeastOnce = false;
-    uint32_t targetPosition { 0 };
-    FirmwareVersion firmwareVersion { VERSION_25012017 };
+        INumber RotatorAbsPosN[1];
+        INumberVectorProperty RotatorAbsPosNP;
+
+        double lastTemperature { 0 };
+        int timeToReadTemperature = 0;
+        double rotatorTicksPerDegree { 0 };
+        double rotatorDegreesPerTick = 0.0;
+        uint32_t lastFocuserPosition { 0 };
+        bool haveReadFocusPositionAtLeastOnce = false;
+        uint32_t lastRotatorPosition { 0 };
+        bool haveReadRotatorPositionAtLeastOnce = false;
+        uint32_t targetPosition { 0 };
+        FirmwareVersion firmwareVersion { VERSION_20170125 };
 };

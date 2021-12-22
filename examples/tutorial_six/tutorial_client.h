@@ -38,27 +38,27 @@
 
 class MyClient : public INDI::BaseClient
 {
-  public:
+public:
     MyClient();
     ~MyClient() = default;
 
     void setTemperature();
     void takeExposure();
 
-  protected:
-    virtual void newDevice(INDI::BaseDevice *dp);
-    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
-    virtual void newProperty(INDI::Property *property);
-    virtual void removeProperty(INDI::Property */*property*/) {}
-    virtual void newBLOB(IBLOB *bp);
-    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
-    virtual void newNumber(INumberVectorProperty *nvp);
-    virtual void newMessage(INDI::BaseDevice *dp, int messageID);
-    virtual void newText(ITextVectorProperty */*tvp*/) {}
-    virtual void newLight(ILightVectorProperty */*lvp*/) {}
-    virtual void serverConnected() {}
-    virtual void serverDisconnected(int /*exit_code*/) {}
+protected:
+    void newDevice(INDI::BaseDevice *dp) override;
+    void removeDevice(INDI::BaseDevice */*dp*/) override {}
+    void newProperty(INDI::Property *property) override;
+    void removeProperty(INDI::Property */*property*/) override {}
+    void newBLOB(IBLOB *bp) override;
+    void newSwitch(ISwitchVectorProperty */*svp*/) override {}
+    void newNumber(INumberVectorProperty *nvp) override;
+    void newMessage(INDI::BaseDevice *dp, int messageID) override;
+    void newText(ITextVectorProperty */*tvp*/) override {}
+    void newLight(ILightVectorProperty */*lvp*/) override {}
+    void serverConnected() override {}
+    void serverDisconnected(int /*exit_code*/) override {}
 
-  private:
+private:
     INDI::BaseDevice *ccd_simulator;
 };

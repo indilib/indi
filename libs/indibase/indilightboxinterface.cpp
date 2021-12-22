@@ -69,7 +69,7 @@ void LightBoxInterface::isGetLightBoxProperties(const char *deviceName)
 {
     INDI_UNUSED(deviceName);
 
-    device->defineText(&ActiveDeviceTP);
+    device->defineProperty(&ActiveDeviceTP);
     char errmsg[MAXRBUF];
     IUReadConfig(nullptr, device->getDeviceName(), "ACTIVE_DEVICES", 1, errmsg);
 }
@@ -91,7 +91,7 @@ bool LightBoxInterface::updateLightBoxProperties()
 }
 
 bool LightBoxInterface::processLightBoxSwitch(const char *dev, const char *name, ISState *states, char *names[],
-                                                    int n)
+        int n)
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
@@ -120,7 +120,7 @@ bool LightBoxInterface::processLightBoxSwitch(const char *dev, const char *name,
 }
 
 bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name, double values[], char *names[],
-                                                    int n)
+        int n)
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
@@ -151,7 +151,7 @@ bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name,
                 for (int i = 0; i < n; i++)
                     addFilterDuration(names[i], values[i]);
 
-                device->defineNumber(&FilterIntensityNP);
+                device->defineProperty(&FilterIntensityNP);
 
                 return true;
             }
@@ -167,7 +167,7 @@ bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name,
 }
 
 bool LightBoxInterface::processLightBoxText(const char *dev, const char *name, char *texts[], char *names[],
-                                                  int n)
+        int n)
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
@@ -178,8 +178,19 @@ bool LightBoxInterface::processLightBoxText(const char *dev, const char *name, c
             //  Update client display
             IDSetText(&ActiveDeviceTP, nullptr);
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_NAME");
+            if (strlen(ActiveDeviceT[0].text) > 0)
+            {
+                IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_NAME");
+            }
+            // If filter removed, remove presets
+            else
+            {
+                device->deleteProperty(FilterIntensityNP.name);
+                FilterIntensityNP.nnp = 0;
+                free(FilterIntensityN);
+                FilterIntensityN = nullptr;
+            }
             return true;
         }
     }
@@ -217,8 +228,8 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
     {
         if (FilterIntensityN != nullptr)
         {
-            int snoopCounter=0;
-            bool isDifferent=false;
+            int snoopCounter = 0;
+            bool isDifferent = false;
             for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             {
                 if (snoopCounter >= FilterIntensityNP.nnp || (strcmp(FilterIntensityN[snoopCounter].label, pcdataXMLEle(ep))))
@@ -238,7 +249,7 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
             if (isDifferent)
             {
                 device->deleteProperty(FilterIntensityNP.name);
-                FilterIntensityNP.nnp=0;
+                FilterIntensityNP.nnp = 0;
                 free(FilterIntensityN);
                 FilterIntensityN = nullptr;
             }
@@ -249,7 +260,7 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             addFilterDuration(pcdataXMLEle(ep), 0);
 
-        device->defineNumber(&FilterIntensityNP);
+        device->defineProperty(&FilterIntensityNP);
         char errmsg[MAXRBUF];
         IUReadConfig(nullptr, device->getDeviceName(), "FLAT_LIGHT_FILTER_INTENSITY", 1, errmsg);
 

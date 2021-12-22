@@ -22,47 +22,10 @@
 #include "indicom.h"
 
 #include <memory>
+#include <cmath>
 #include <math.h>
 
 std::unique_ptr<RotatorSimulator> rotatorSimulator(new RotatorSimulator());
-
-void ISGetProperties(const char *dev)
-{
-    rotatorSimulator->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    rotatorSimulator->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    rotatorSimulator->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    rotatorSimulator->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                char *formats[], char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice (XMLEle *root)
-{
-    rotatorSimulator->ISSnoopDevice(root);
-}
 
 RotatorSimulator::RotatorSimulator()
 {
@@ -77,7 +40,7 @@ const char * RotatorSimulator::getDefaultName()
 
 bool RotatorSimulator::Connect()
 {
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -107,7 +70,7 @@ void RotatorSimulator::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -131,5 +94,5 @@ void RotatorSimulator::TimerHit()
 
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

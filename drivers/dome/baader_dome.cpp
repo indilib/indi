@@ -41,46 +41,6 @@ std::unique_ptr<BaaderDome> baaderDome(new BaaderDome());
 #define SIM_DOME_HI_SPEED 5.0 /* Simulated dome speed 5.0 degrees per second, constant */
 #define SIM_DOME_LO_SPEED 0.5 /* Simulated dome speed 0.5 degrees per second, constant */
 
-void ISPoll(void *p);
-
-void ISGetProperties(const char *dev)
-{
-    baaderDome->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    baaderDome->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    baaderDome->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    baaderDome->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    baaderDome->ISSnoopDevice(root);
-}
-
 BaaderDome::BaaderDome()
 {
     targetAz         = 0;
@@ -174,8 +134,8 @@ bool BaaderDome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&DomeFlapSP);
-        defineSwitch(&CalibrateSP);
+        defineProperty(&DomeFlapSP);
+        defineProperty(&CalibrateSP);
 
         SetupParms();
     }
@@ -366,11 +326,11 @@ bool BaaderDome::UpdateShutterStatus()
     if (sim)
     {
         if (simShutterStatus == SHUTTER_CLOSED)
-            strncpy(resp, "d#shutclo", DOME_CMD);
+            strncpy(resp, "d#shutclo", DOME_CMD + 1);
         else if (simShutterStatus == SHUTTER_OPENED)
-            strncpy(resp, "d#shutope", DOME_CMD);
+            strncpy(resp, "d#shutope", DOME_CMD + 1);
         else if (simShutterStatus == SHUTTER_MOVING)
-            strncpy(resp, "d#shutrun", DOME_CMD);
+            strncpy(resp, "d#shutrun", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -506,7 +466,7 @@ unsigned short BaaderDome::MountAzToDomeAz(double mountAz)
 {
     int domeAz = 0;
 
-    domeAz = (mountAz)*10.0 - 1800;
+    domeAz = (mountAz) * 10.0 - 1800;
 
     if (mountAz >= 0 && mountAz <= 179.9)
         domeAz += 3600;
@@ -658,7 +618,7 @@ void BaaderDome::TimerHit()
     else
         IDSetSwitch(&DomeFlapSP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -694,7 +654,7 @@ IPState BaaderDome::MoveAbs(double az)
 
     if (sim)
     {
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -763,12 +723,12 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     if (operation == SHUTTER_OPEN)
     {
         targetShutter = operation;
-        strncpy(cmd, "d#opeshut", DOME_CMD);
+        strncpy(cmd, "d#opeshut", DOME_CMD + 1);
     }
     else
     {
         targetShutter = operation;
-        strncpy(cmd, "d#closhut", DOME_CMD);
+        strncpy(cmd, "d#closhut", DOME_CMD + 1);
     }
 
     tcflush(PortFD, TCIOFLUSH);
@@ -785,7 +745,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     if (sim)
     {
         simShutterTimer = SIM_SHUTTER_TIMER;
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -855,12 +815,12 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     if (operation == FLAP_OPEN)
     {
         targetFlap = operation;
-        strncpy(cmd, "d#opeflap", DOME_CMD);
+        strncpy(cmd, "d#opeflap", DOME_CMD + 1);
     }
     else
     {
         targetFlap = operation;
-        strncpy(cmd, "d#cloflap", DOME_CMD);
+        strncpy(cmd, "d#cloflap", DOME_CMD + 1);
     }
 
     tcflush(PortFD, TCIOFLUSH);
@@ -877,7 +837,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     if (sim)
     {
         simFlapTimer = SIM_FLAP_TIMER;
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -923,11 +883,11 @@ bool BaaderDome::UpdateFlapStatus()
     if (sim)
     {
         if (simFlapStatus == FLAP_CLOSED)
-            strncpy(resp, "d#flapclo", DOME_CMD);
+            strncpy(resp, "d#flapclo", DOME_CMD + 1);
         else if (simFlapStatus == FLAP_OPENED)
-            strncpy(resp, "d#flapope", DOME_CMD);
+            strncpy(resp, "d#flapope", DOME_CMD + 1);
         else if (simFlapStatus == FLAP_MOVING)
-            strncpy(resp, "d#flaprun", DOME_CMD);
+            strncpy(resp, "d#flaprun", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -990,7 +950,7 @@ bool BaaderDome::SaveEncoderPosition()
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
 
-    strncpy(cmd, "d#encsave", DOME_CMD);
+    strncpy(cmd, "d#encsave", DOME_CMD + 1);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1005,7 +965,7 @@ bool BaaderDome::SaveEncoderPosition()
 
     if (sim)
     {
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)

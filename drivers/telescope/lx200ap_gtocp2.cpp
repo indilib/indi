@@ -37,7 +37,8 @@
 LX200AstroPhysicsGTOCP2::LX200AstroPhysicsGTOCP2() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK
+                           | TELESCOPE_HAS_TRACK_RATE, 4);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -77,7 +78,8 @@ bool LX200AstroPhysicsGTOCP2::initProperties()
     IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
     IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
     IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slew speed when performing regular GOTO
     IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -104,7 +106,7 @@ bool LX200AstroPhysicsGTOCP2::initProperties()
                        0, IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -117,13 +119,13 @@ void LX200AstroPhysicsGTOCP2::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionTP);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
     }
 }
 
@@ -133,13 +135,13 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionTP);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
 
         if (InitPark())
         {
@@ -166,7 +168,7 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
     }
     else
     {
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -252,9 +254,9 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     else
         getAPVersionNumber(PortFD, versionString);
 
-    VersionInfo.s = IPS_OK;
+    VersionTP.s = IPS_OK;
     IUSaveText(&VersionT[0], versionString);
-    IDSetText(&VersionInfo, nullptr);
+    IDSetText(&VersionTP, nullptr);
 
     if (strlen(versionString) != 1)
     {
@@ -491,8 +493,9 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -571,7 +574,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
     }
 
     // Detect and set fomat. It should be LONG.
-    return (checkLX200Format(PortFD) == 0);
+    return (checkLX200EquatorialFormat(PortFD) == 0);
 }
 
 bool LX200AstroPhysicsGTOCP2::Disconnect()
@@ -749,25 +752,10 @@ bool LX200AstroPhysicsGTOCP2::Park()
 
     if (isSimulation())
     {
-        ln_lnlat_posn observer;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (observer.lng > 180)
-            observer.lng -= 360;
-
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
-        horizontalPos.alt = parkAlt;
-
-        ln_equ_posn equatorialPos;
-
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+        INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+        INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
+        Goto(equatorialCoords.rightascension, equatorialCoords.declination);
     }
     else
     {
@@ -813,24 +801,12 @@ bool LX200AstroPhysicsGTOCP2::UnPark()
 
 bool LX200AstroPhysicsGTOCP2::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
+    INDI::IHorizontalCoordinates horizontalPos;
+    INDI::IEquatorialCoordinates equatorialPos {currentRA, currentDEC};
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    INDI::EquatorialToHorizontal(&equatorialPos, &m_Location, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.azimuth;
+    double parkAlt = horizontalPos.altitude;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);

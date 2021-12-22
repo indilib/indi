@@ -65,7 +65,7 @@ class Lx
     int serialfd;
     struct termios oldterminfo;
     void closeserial(int fd);
-    int openserial(char *devicename);
+    int openserial(const char *devicename);
     int setRTS(int fd, int level);
     int setDTR(int fd, int level);
     bool startLxSerial();

@@ -1,5 +1,7 @@
 # INDI Core Library
-[![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
+[![Linux](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![MacOS](https://github.com/indilib/indi/actions/workflows/macos.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![PyIndi](https://github.com/indilib/indi/actions/workflows/pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
@@ -20,7 +22,7 @@ INDI core library is composed of the following components:
 + Auxiliary Devices (switches, watchdog, relays, light sources, measurement devices..etc).
 3. Client Library: Cross-platform POSIX and Qt5-based client libraries. The client libraries can be embedded in 3rd party applications to communicate with INDI server and devices.
 
-INDI core device drivers are shipped with INDI library by default. 
+INDI core device drivers are shipped with INDI library by default.
 
 INDI 3rd party drivers are available in a [dedicated 3rdparty repository](https://github.com/indilib/indi-3rdparty) and maintained by their respective owners.
 
@@ -36,45 +38,117 @@ Learn more about INDI:
 
 On Debian/Ubuntu:
 
-```
-sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
+```bash
+sudo apt-get install -y \
+  git \
+  cdbs \
+  dkms \
+  cmake \
+  fxload \
+  libgps-dev \
+  libgsl-dev \
+  libraw-dev \
+  libusb-dev \
+  zlib1g-dev \
+  libftdi-dev \
+  libgsl0-dev \
+  libjpeg-dev \
+  libkrb5-dev \
+  libnova-dev \
+  libtiff-dev \
+  libfftw3-dev \
+  librtlsdr-dev \
+  libcfitsio-dev \
+  libgphoto2-dev \
+  build-essential \
+  libusb-1.0-0-dev \
+  libdc1394-22-dev \
+  libboost-regex-dev \
+  libcurl4-gnutls-dev
 ```
 
 ## Create Project Directory
-```
+```bash
 mkdir -p ~/Projects
 cd ~/Projects
 ```
 
 ## Get the code
 To build INDI in order to run drivers, then it is recommended to perform a quick shallow clone that will save lots of bandwidth and space:
-```
+```bash
 git clone --depth 1 https://github.com/indilib/indi.git
 ```
 
 On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
-```
+```bash
 git clone https://github.com/indilib/indi.git
 ```
-It is worth making your own fork of indi in your own personal repository and cloning from that rather than cloning directly from the root indi 
+It is worth making your own fork of indi in your own personal repository and cloning from that rather than cloning directly from the root indi.
 
-## Build indi-core
+## Build indi-core (cmake)
 
-```
+```bash
 mkdir -p ~/Projects/build/indi-core
 cd ~/Projects/build/indi-core
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ~/Projects/indi
 make -j4
 sudo make install
 ```
+
+## Build indi-core (script)
+
+**Alternatively**, you can use the `developer-build.bash` script for faster build and less stress on your SSD or HDD.
+
+```bash
+cd ~/Projects/indi
+./developer-build.bash
+```
+
+By default, this script builds the `indi-core` inside machine's `RAM`, i.e. `/dev/shm`.
+However, you can change the target build directory using the `-o` option, for instance:
+
+```bash
+./developer-build.bash -o /path/to/new/build/dir
+```
+
+Also, this script checks if the target build directory has at least `512MB` of memory available and aborts if this is not the case.
+You can force skip this test with the `-f` option:
+
+```bash
+./developer-build.bash -f
+```
+
+Furthermore, this script executes `make` in *parallel* by default.
+If you are having problems or need to use fewer CPU cores, please adjust using the `-j` option.
+For example, to disable parallel execution:
+
+```bash
+./developer-build.bash -j1
+```
+
+This script creates a soft symbolic link file named `build` to the target build directory.
+This helps easier access by simply following the symbolic link:
+
+```bash
+cd ~/Projects/indi/build
+```
+
+Lastly, you could give all the options and arguments at once.
+For instance, if you want to build in `~/indi-build` directory, skip the memory check, and run make using `8` cores, call the script with the following options:
+
+```bash
+cd ~/Projects/indi
+./developer-build.bash -o ~/indi-build -f -j8
+```
+
+## Build indi-core (Qt Creator)
+
 If your are planning to develop using Qt Creator then still follow this process and do a manual build first.  Then in QT Creator:
 + Open the project using File - Open File or Project.
 + Navigate to Projects/indi and selec the CMakeLists.txt file.
 + Qt Creator will open your project but will probably configure it incorrectly, select the Projects tab and change to the Projects/build/indi-core directory that you used to do the initial build.  The project display may be blank but click on the build button (the geological hammer) anyway.  The project should build.
 
 It is very easy to get this process wrong and all sorts of subtle things can happen, such as everything appearing to build but your new functionality not being present.
-
-
 
 # Architecture
 
@@ -111,7 +185,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 # Development
 
 + [INDI API](http://www.indilib.org/api/index.html)
-+ [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
++ [INDI Developer Manual](https://docs.indilib.org/)
 + [Tutorials](http://indilib.org/develop/tutorials.html)
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)

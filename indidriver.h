@@ -35,24 +35,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 extern "C" {
 #endif
 
-/* insure RO properties are never modified. RO Sanity Check */
-typedef struct
-{
-char propName[MAXINDINAME];
-    char devName[MAXINDIDEVICE];
-    IPerm perm;
-    const void *ptr;
-    int type;
-} ROSC;
-
-extern ROSC *propCache;
-extern int nPropCache; /* # of elements in roCheck */
 extern int verbose;    /* chatty */
 extern char *me;       /* a.out name */
-extern LilXML *clixml; /* XML parser context */
+//extern LilXML *clixml; /* XML parser context */
 
 extern int dispatch(XMLEle *root, char msg[]);
-extern void clientMsgCB(int fd, void *arg);
+//extern void clientMsgCB(int fd, void *arg);
 
 /**
  * \defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuraion options.
@@ -198,6 +186,17 @@ extern int IUGetConfigSwitch(const char *dev, const char *property, const char *
  * @return 0 on success, -1 if not found.
  */
 extern int IUGetConfigOnSwitchIndex(const char *dev, const char *property, int *index);
+
+
+/**
+ * @brief IUGetConfigOnSwitchLabel Opens configuration file and reads single switch property to find ON switch index, if any.
+ * @param dev name of device
+ * @param property name of vector property
+ * @param label of the ON switch index if any.
+ * @param size size of label in bytes.
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigOnSwitchLabel(const char *dev, const char *property, char *label, size_t size);
 
 /**
  * @brief IUGetConfigOnSwitch Opens configuration file and reads a single switch vector property to find the index

@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2019 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -31,73 +31,36 @@
 *******************************************************************************/
 
 #include "scopedome_dome.h"
+#include "scopedome_arduino.h"
+#include "scopedome_sim.h"
+#include "scopedome_usb21.h"
 
 #include "connectionplugins/connectionserial.h"
 #include "indicom.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <termios.h>
-#include <wordexp.h>
 #include <unistd.h>
+#include <wordexp.h>
 
 // We declare an auto pointer to ScopeDome.
 std::unique_ptr<ScopeDome> scopeDome(new ScopeDome());
 
-void ISPoll(void *p);
-
-void ISGetProperties(const char *dev)
-{
-    scopeDome->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    scopeDome->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    scopeDome->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    scopeDome->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    scopeDome->ISSnoopDevice(root);
-}
-
 ScopeDome::ScopeDome()
 {
-    setVersion(1, 2);
-    targetAz         = 0;
-    m_ShutterState     = SHUTTER_UNKNOWN;
+    setVersion(2, 0);
+    targetAz = 0;
+    setShutterState(SHUTTER_UNKNOWN);
     simShutterStatus = SHUTTER_CLOSED;
-
-    status        = DOME_UNKNOWN;
+    status = DOME_UNKNOWN;
     targetShutter = SHUTTER_CLOSE;
 
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
 
-    stepsPerTurn = -1;
+    stepsPerRevolution = ~0;
 
     // Load dome inertia table if present
     wordexp_t wexp;
@@ -114,13 +77,18 @@ ScopeDome::ScopeDome()
             while (fgets(line, sizeof(line), inertia))
             {
                 int step, result;
-                if (sscanf(line, "%d ;%d", &step, &result) != 2)
+                // File format is "steps ; actual steps ;" but with varying number of spaces
+                char* splitter = strchr(line, ';');
+                if(splitter)
                 {
-                    sscanf(line, "%d;%d", &step, &result);
-                }
-                if (step == lineNum)
-                {
-                    inertiaTable.push_back(result);
+                    *splitter++ = 0;
+
+                    step = atoi(line);
+                    result = atoi(splitter);
+                    if (step == lineNum)
+                    {
+                        inertiaTable.push_back(result);
+                    }
                 }
                 lineNum++;
             }
@@ -129,7 +97,8 @@ ScopeDome::ScopeDome()
         }
         else
         {
-            LOG_INFO("Could not read inertia file, please generate one with Windows driver setup and copy to "
+            LOG_WARN("Could not read inertia file, please generate one with Windows "
+                     "driver setup and copy to "
                      "~/.indi/ScopeDome_DomeInertia_Table.txt");
         }
     }
@@ -140,103 +109,73 @@ bool ScopeDome::initProperties()
 {
     INDI::Dome::initProperties();
 
-    IUFillNumber(&DomeHomePositionN[0], "DH_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
-    IUFillNumberVector(&DomeHomePositionNP, DomeHomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION",
-                       "Home sensor position", SITE_TAB, IP_RW, 60, IPS_OK);
+    DomeHomePositionNP[0].fill("DH_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
+    DomeHomePositionNP.fill(getDeviceName(), "DOME_HOME_POSITION",
+                            "Home sensor position", SITE_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&ParkShutterS[0], "ON", "On", ISS_ON);
-    IUFillSwitch(&ParkShutterS[1], "OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&ParkShutterSP, ParkShutterS, 2, getDeviceName(), "PARK_SHUTTER", "Park controls shutter",
-                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    HomeSensorPolaritySP[ScopeDomeCard::ACTIVE_HIGH].fill("ACTIVE_HIGH", "Active high", ISS_ON);
+    HomeSensorPolaritySP[ScopeDomeCard::ACTIVE_LOW].fill("ACTIVE_LOW", "Active low", ISS_OFF);
+    HomeSensorPolaritySP.fill(getDeviceName(), "HOME_SENSOR_POLARITY",
+                              "Home sensor polarity", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
-    IUFillSwitch(&FindHomeS[0], "START", "Start", ISS_OFF);
-    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Find home", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_OK);
+    FindHomeSP[0].fill("START", "Start", ISS_OFF);
+    FindHomeSP.fill(getDeviceName(), "FIND_HOME", "Find home", MAIN_CONTROL_TAB, IP_RW,
+                    ISR_ATMOST1, 0, IPS_OK);
 
-    IUFillSwitch(&DerotateS[0], "START", "Start", ISS_OFF);
-    IUFillSwitchVector(&DerotateSP, DerotateS, 1, getDeviceName(), "DEROTATE", "Derotate", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_OK);
+    DerotateSP[0].fill("START", "Start", ISS_OFF);
+    DerotateSP.fill(getDeviceName(), "DEROTATE", "Derotate", MAIN_CONTROL_TAB, IP_RW,
+                    ISR_ATMOST1, 0, IPS_OK);
 
-    IUFillSwitch(&PowerRelaysS[0], "CCD", "CCD", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[1], "SCOPE", "Telescope", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[2], "LIGHT", "Light", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[3], "FAN", "Fan", ISS_OFF);
-    IUFillSwitchVector(&PowerRelaysSP, PowerRelaysS, 4, getDeviceName(), "POWER_RELAYS", "Power relays",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    FirmwareVersionsNP[0].fill("MAIN", "Main part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
+    FirmwareVersionsNP[1].fill("ROTARY", "Rotary part", "%2.1f", 0.0, 99.0, 1.0, 0.0);
+    FirmwareVersionsNP.fill(getDeviceName(), "FIRMWARE_VERSION",
+                            "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&RelaysS[0], "RELAY_1", "Relay 1 (reset)", ISS_OFF);
-    IUFillSwitch(&RelaysS[1], "RELAY_2", "Relay 2 (heater)", ISS_OFF);
-    IUFillSwitch(&RelaysS[2], "RELAY_3", "Relay 3", ISS_OFF);
-    IUFillSwitch(&RelaysS[3], "RELAY_4", "Relay 4", ISS_OFF);
-    IUFillSwitchVector(&RelaysSP, RelaysS, 4, getDeviceName(), "RELAYS", "Relays", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY,
-                       0, IPS_IDLE);
+    StepsPerRevolutionNP[0].fill("STEPS", "Steps per revolution", "%5.0f", 0.0, 99999.0, 1.0, 0.0);
+    StepsPerRevolutionNP.fill(getDeviceName(), "CALIBRATION_VALUES",
+                              "Calibration values", SITE_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&AutoCloseS[0], "CLOUD", "Cloud sensor", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[1], "RAIN", "Rain sensor", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[2], "FREE", "Free input", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[3], "NO_POWER", "No power", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[4], "DOME_LOW", "Low dome battery", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[5], "SHUTTER_LOW", "Low shutter battery", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[6], "WEATHER", "Bad weather", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[7], "LOST_CONNECTION", "Lost connection", ISS_OFF);
-    IUFillSwitchVector(&AutoCloseSP, AutoCloseS, 8, getDeviceName(), "AUTO_CLOSE", "Close shutter automatically",
-                       SITE_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    CalibrationNeededSP[0].fill("CALIBRATION_NEEDED", "Calibration needed", ISS_OFF);
+    CalibrationNeededSP.fill(getDeviceName(), "CALIBRATION_STATUS",
+                             "Calibration status", SITE_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&EnvironmentSensorsN[0], "LINK_STRENGTH", "Shutter link strength", "%3.0f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[1], "SHUTTER_POWER", "Shutter internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[2], "SHUTTER_BATTERY", "Shutter battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[3], "CARD_POWER", "Card internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[4], "CARD_BATTERY", "Card battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[5], "TEMP_DOME_IN", "Temperature in dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[6], "TEMP_DOME_OUT", "Temperature outside dome", "%2.2f", -100.0, 100.0, 1.0,
-                 0.0);
-    IUFillNumber(&EnvironmentSensorsN[7], "TEMP_DOME_HUMIDITY", "Temperature humidity sensor", "%2.2f", -100.0, 100.0,
-                 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[8], "HUMIDITY", "Humidity", "%3.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[9], "PRESSURE", "Pressure", "%4.1f", 0.0, 2000.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[10], "DEW_POINT", "Dew point", "%2.2f", -100.0, 100.0, 1.0, 0.0);
-    IUFillNumberVector(&EnvironmentSensorsNP, EnvironmentSensorsN, 11, getDeviceName(), "SCOPEDOME_SENSORS",
-                       "Environment sensors", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    StartCalibrationSP[0].fill("START", "Start", ISS_OFF);
+    StartCalibrationSP.fill(getDeviceName(), "RUN_CALIBRATION", "Run calibration",
+                            SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_OK);
 
-    IUFillSwitch(&SensorsS[0], "AZ_COUNTER", "Az counter", ISS_OFF);
-    IUFillSwitch(&SensorsS[1], "ROTATE_CCW", "Rotate CCW", ISS_OFF);
-    IUFillSwitch(&SensorsS[2], "HOME", "Dome at home", ISS_OFF);
-    IUFillSwitch(&SensorsS[3], "OPEN_1", "Shutter 1 open", ISS_OFF);
-    IUFillSwitch(&SensorsS[4], "CLOSE_1", "Shutter 1 closed", ISS_OFF);
-    IUFillSwitch(&SensorsS[5], "OPEN_2", "Shutter 2 open", ISS_OFF);
-    IUFillSwitch(&SensorsS[6], "CLOSE_2", "Shutter 2 closed", ISS_OFF);
-    IUFillSwitch(&SensorsS[7], "SCOPE_HOME", "Scope at home", ISS_OFF);
-    IUFillSwitch(&SensorsS[8], "RAIN", "Rain sensor", ISS_OFF);
-    IUFillSwitch(&SensorsS[9], "CLOUD", "Cloud sensor", ISS_OFF);
-    IUFillSwitch(&SensorsS[10], "SAFE", "Observatory safe", ISS_OFF);
-    IUFillSwitch(&SensorsS[11], "LINK", "Rotary link", ISS_OFF);
-    IUFillSwitch(&SensorsS[12], "FREE", "Free input", ISS_OFF);
-    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "INPUTS", "Input sensors", INFO_TAB, IP_RO,
-                       ISR_NOFMANY, 0, IPS_IDLE);
+    char defaultUsername[MAXINDINAME] = "scopedome";
+    char defaultPassword[MAXINDINAME] = "default";
+    IUGetConfigText(getDeviceName(), "CREDENTIALS", "USERNAME", defaultUsername, MAXINDINAME);
+    IUGetConfigText(getDeviceName(), "CREDENTIALS", "PASSWORD", defaultPassword, MAXINDINAME);
+    CredentialsTP[0].fill("USERNAME", "User name", defaultUsername);
+    CredentialsTP[1].fill("PASSWORD", "Password", defaultPassword);
+    CredentialsTP.fill(getDeviceName(), "CREDENTIALS", "Credentials", CONNECTION_TAB, IP_RW, 0, IPS_OK);
 
-    IUFillNumber(&FirmwareVersionsN[0], "MAIN", "Main part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumber(&FirmwareVersionsN[1], "ROTARY", "Rotary part", "%2.1f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION",
-                       "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    ISState usbcard21 = ISS_ON;
+    ISState arduino = ISS_OFF;
+    IUGetConfigSwitch(getDeviceName(), "CARD_TYPE", "USB_CARD_21", &usbcard21);
+    IUGetConfigSwitch(getDeviceName(), "CARD_TYPE", "ARDUINO", &arduino);
+    CardTypeSP[SCOPEDOME_USB21].fill("USB_CARD_21", "USB Card 2.1", usbcard21);
+    CardTypeSP[SCOPEDOME_ARDUINO].fill("ARDUINO", "Arduino Card", arduino);
+    CardTypeSP.fill(getDeviceName(), "CARD_TYPE", "Card type",
+                    CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
-    IUFillNumber(&StepsPerRevolutionN[0], "STEPS", "Steps per revolution", "%5.0f", 0.0, 99999.0, 1.0, 0.0);
-    IUFillNumberVector(&StepsPerRevolutionNP, StepsPerRevolutionN, 1, getDeviceName(), "CALIBRATION_VALUES",
-                       "Calibration values", SITE_TAB, IP_RO, 60, IPS_IDLE);
-
-    IUFillSwitch(&CalibrationNeededS[0], "CALIBRATION_NEEDED", "Calibration needed", ISS_OFF);
-    IUFillSwitchVector(&CalibrationNeededSP, CalibrationNeededS, 1, getDeviceName(), "CALIBRATION_STATUS",
-                       "Calibration status", SITE_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
-
-    IUFillSwitch(&StartCalibrationS[0], "START", "Start", ISS_OFF);
-    IUFillSwitchVector(&StartCalibrationSP, StartCalibrationS, 1, getDeviceName(), "RUN_CALIBRATION", "Run calibration",
-                       SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_OK);
+    switch(CardTypeSP.findOnSwitchIndex())
+    {
+        case SCOPEDOME_USB21:
+        default:
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+            break;
+        case SCOPEDOME_ARDUINO:
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+            break;
+    }
 
     SetParkDataType(PARK_AZ);
-
     addAuxControls();
 
-    // Set serial parameters
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    defineProperty(&CardTypeSP);
+    defineProperty(CredentialsTP);
 
     setPollingPeriodRange(1000, 3000); // Device doesn't like too long interval
     setDefaultPollingPeriod(1000);
@@ -245,19 +184,16 @@ bool ScopeDome::initProperties()
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::SetupParms()
 {
     targetAz = 0;
 
-    readU32(GetImpPerTurn, stepsPerTurn);
-    LOGF_INFO("Steps per turn read as %d", stepsPerTurn);
-    StepsPerRevolutionN[0].value = stepsPerTurn;
-    StepsPerRevolutionNP.s       = IPS_OK;
-    IDSetNumber(&StepsPerRevolutionNP, nullptr);
-
-    readS32(GetHomeSensorPosition, homePosition);
-    LOGF_INFO("Home position read as %d", homePosition);
+    stepsPerRevolution = interface->getStepsPerRevolution();
+    LOGF_INFO("Steps per revolution read as %d", stepsPerRevolution);
+    StepsPerRevolutionNP[0].setValue(stepsPerRevolution);
+    StepsPerRevolutionNP.setState(IPS_OK);
+    StepsPerRevolutionNP.apply();
 
     if (UpdatePosition())
         IDSetNumber(&DomeAbsPosNP, nullptr);
@@ -282,189 +218,34 @@ bool ScopeDome::SetupParms()
         SetAxis1ParkDefault(0);
     }
 
-    uint8_t calibrationNeeded = false;
-    readU8(IsFullSystemCalReq, calibrationNeeded);
-    CalibrationNeededS[0].s = calibrationNeeded ? ISS_ON : ISS_OFF;
-    CalibrationNeededSP.s   = IPS_OK;
-    IDSetSwitch(&CalibrationNeededSP, nullptr);
+    bool calibrationNeeded = interface->isCalibrationNeeded();
+    CalibrationNeededSP[0].setState(calibrationNeeded ? ISS_ON : ISS_OFF);
+    CalibrationNeededSP.setState(IPS_OK);
+    CalibrationNeededSP.apply();
 
-    uint16_t fwVersion;
-    readU16(GetVersionFirmware, fwVersion);
-    FirmwareVersionsN[0].value = fwVersion / 100.0;
+    double fwMain, fwRotary;
+    interface->getFirmwareVersions(fwMain, fwRotary);
+    FirmwareVersionsNP[0].setValue(fwMain);
+    FirmwareVersionsNP[1].setValue(fwRotary);
+    FirmwareVersionsNP.setState(IPS_OK);
+    FirmwareVersionsNP.apply();
 
-    uint8_t fwVersionRotary;
-    readU8(GetVersionFirmwareRotary, fwVersionRotary);
-    FirmwareVersionsN[1].value = (fwVersionRotary + 9) / 10.0;
-    FirmwareVersionsNP.s       = IPS_OK;
-    IDSetNumber(&FirmwareVersionsNP, nullptr);
+    rotaryLinkEstablished = interface->getInputState(ScopeDomeCard::ROTARY_LINK);
+    if(rotaryLinkEstablished == ISS_OFF)
+    {
+        LOG_WARN("Rotary link not established, shutter control not possible");
+    }
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ ************************************************************************************/
 bool ScopeDome::Handshake()
 {
-    return Ack();
-}
+    if(reconnecting)
+        return true;
 
-/************************************************************************************
- *
-* ***********************************************************************************/
-const char *ScopeDome::getDefaultName()
-{
-    return (const char *)"ScopeDome Dome";
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool ScopeDome::updateProperties()
-{
-    INDI::Dome::updateProperties();
-
-    if (isConnected())
-    {
-        defineSwitch(&FindHomeSP);
-        defineSwitch(&DerotateSP);
-        defineSwitch(&AutoCloseSP);
-        defineSwitch(&PowerRelaysSP);
-        defineSwitch(&RelaysSP);
-        defineNumber(&DomeHomePositionNP);
-        defineNumber(&EnvironmentSensorsNP);
-        defineSwitch(&SensorsSP);
-        defineSwitch(&ParkShutterSP);
-        defineNumber(&StepsPerRevolutionNP);
-        defineSwitch(&CalibrationNeededSP);
-        defineSwitch(&StartCalibrationSP);
-        defineNumber(&FirmwareVersionsNP);
-        SetupParms();
-    }
-    else
-    {
-        deleteProperty(FindHomeSP.name);
-        deleteProperty(DerotateSP.name);
-        deleteProperty(PowerRelaysSP.name);
-        deleteProperty(RelaysSP.name);
-        deleteProperty(SensorsSP.name);
-        deleteProperty(AutoCloseSP.name);
-        deleteProperty(DomeHomePositionNP.name);
-        deleteProperty(EnvironmentSensorsNP.name);
-        deleteProperty(ParkShutterSP.name);
-        deleteProperty(StepsPerRevolutionNP.name);
-        deleteProperty(CalibrationNeededSP.name);
-        deleteProperty(StartCalibrationSP.name);
-        deleteProperty(FirmwareVersionsNP.name);
-    }
-
-    return true;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, FindHomeSP.name) == 0)
-        {
-            if (status != DOME_HOMING)
-            {
-                LOG_INFO("Finding home sensor");
-                status = DOME_HOMING;
-                IUResetSwitch(&FindHomeSP);
-                DomeAbsPosNP.s = IPS_BUSY;
-                FindHomeSP.s   = IPS_BUSY;
-                IDSetSwitch(&FindHomeSP, nullptr);
-                writeCmd(FindHome);
-            }
-            return true;
-        }
-
-        if (strcmp(name, DerotateSP.name) == 0)
-        {
-            if (status != DOME_DEROTATING)
-            {
-                LOG_INFO("De-rotating started");
-                status = DOME_DEROTATING;
-                IUResetSwitch(&DerotateSP);
-                DomeAbsPosNP.s = IPS_BUSY;
-                DerotateSP.s   = IPS_BUSY;
-                IDSetSwitch(&DerotateSP, nullptr);
-            }
-            return true;
-        }
-
-        if (strcmp(name, StartCalibrationSP.name) == 0)
-        {
-            if (status != DOME_CALIBRATING)
-            {
-                LOG_INFO("Calibration started");
-                status = DOME_CALIBRATING;
-                IUResetSwitch(&StartCalibrationSP);
-                DomeAbsPosNP.s       = IPS_BUSY;
-                StartCalibrationSP.s = IPS_BUSY;
-                IDSetSwitch(&StartCalibrationSP, nullptr);
-                writeCmd(FullSystemCal);
-            }
-            return true;
-        }
-
-        if (strcmp(name, PowerRelaysSP.name) == 0)
-        {
-            IUUpdateSwitch(&PowerRelaysSP, states, names, n);
-            setOutputState(OUT_CCD, PowerRelaysS[0].s);
-            setOutputState(OUT_SCOPE, PowerRelaysS[1].s);
-            setOutputState(OUT_LIGHT, PowerRelaysS[2].s);
-            setOutputState(OUT_FAN, PowerRelaysS[3].s);
-            IDSetSwitch(&PowerRelaysSP, nullptr);
-            return true;
-        }
-
-        if (strcmp(name, RelaysSP.name) == 0)
-        {
-            IUUpdateSwitch(&RelaysSP, states, names, n);
-            setOutputState(OUT_RELAY1, RelaysS[0].s);
-            setOutputState(OUT_RELAY2, RelaysS[1].s);
-            setOutputState(OUT_RELAY3, RelaysS[2].s);
-            setOutputState(OUT_RELAY4, RelaysS[3].s);
-            IDSetSwitch(&RelaysSP, nullptr);
-            return true;
-        }
-
-        if (strcmp(name, ParkShutterSP.name) == 0)
-        {
-            IUUpdateSwitch(&ParkShutterSP, states, names, n);
-            ParkShutterSP.s = IPS_OK;
-            IDSetSwitch(&ParkShutterSP, nullptr);
-            return true;
-        }
-    }
-
-    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool ScopeDome::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, DomeHomePositionNP.name) == 0)
-        {
-            IUUpdateNumber(&DomeHomePositionNP, values, names, n);
-            DomeHomePositionNP.s = IPS_OK;
-            IDSetNumber(&DomeHomePositionNP, nullptr);
-            return true;
-        }
-    }
-    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool ScopeDome::Ack()
-{
     sim = isSimulation();
 
     if (sim)
@@ -473,182 +254,379 @@ bool ScopeDome::Ack()
     }
     else
     {
-        // TODO, detect card version and instantiate correct one
-        interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(PortFD)));
+        switch(CardTypeSP.findOnSwitchIndex())
+        {
+            case SCOPEDOME_USB21:
+            default:
+                interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(this, PortFD)));
+                break;
+            case SCOPEDOME_ARDUINO:
+            interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
+                break;
+        }
     }
-
-    return interface->detect();
+    if (interface->detect())
+    {
+        return true;
+    }
+    LOG_ERROR("Can't identify the card, check card type and baud rate (115200 for USB Card 2.1, 9600 for Arduino Card)");
+    return false;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ ************************************************************************************/
+const char *ScopeDome::getDefaultName()
+{
+    return (const char *)"ScopeDome Dome";
+}
+
+/************************************************************************************
+ *
+ ************************************************************************************/
+bool ScopeDome::updateProperties()
+{
+    INDI::Dome::updateProperties();
+
+    if (isConnected())
+    {
+        // Initialize dynamic properties
+        {
+            size_t numSensors = interface->getNumberOfSensors();
+            SensorsNP.resize(numSensors);
+            for(size_t i = 0; i < numSensors; i++)
+            {
+                auto info = interface->getSensorInfo(i);
+                SensorsNP[i].fill(info.propName.c_str(), info.label.c_str(),
+                                  info.format.c_str(), info.minValue, info.maxValue, 1.0, 0.0);
+            }
+            SensorsNP.fill(getDeviceName(), "SCOPEDOME_SENSORS",
+                           "Sensors", INFO_TAB, IP_RO, 60, IPS_IDLE);
+        }
+
+        {
+            size_t numRelays = interface->getNumberOfRelays();
+            RelaysSP.resize(numRelays);
+            for(size_t i = 0; i < numRelays; i++)
+            {
+                auto info = interface->getRelayInfo(i);
+                RelaysSP[i].fill(info.propName.c_str(), info.label.c_str(), ISS_OFF);
+            }
+            RelaysSP.fill(getDeviceName(), "RELAYS", "Relays", MAIN_CONTROL_TAB, IP_RW,
+                          ISR_NOFMANY,
+                          0, IPS_IDLE);
+        }
+
+        {
+            size_t numInputs = interface->getNumberOfInputs();
+            InputsSP.resize(numInputs);
+            for(size_t i = 0; i < numInputs; i++)
+            {
+                auto info = interface->getInputInfo(i);
+                InputsSP[i].fill(info.propName.c_str(), info.label.c_str(), ISS_OFF);
+            }
+            InputsSP.fill(getDeviceName(), "INPUTS", "Inputs", INFO_TAB, IP_RO,
+                          ISR_NOFMANY, 0, IPS_IDLE);
+        }
+
+        defineProperty(FindHomeSP);
+        defineProperty(DerotateSP);
+        defineProperty(DomeHomePositionNP);
+        defineProperty(HomeSensorPolaritySP);
+        defineProperty(SensorsNP);
+        defineProperty(RelaysSP);
+        defineProperty(InputsSP);
+        defineProperty(StepsPerRevolutionNP);
+        defineProperty(CalibrationNeededSP);
+        defineProperty(StartCalibrationSP);
+        defineProperty(FirmwareVersionsNP);
+        SetupParms();
+    }
+    else
+    {
+        deleteProperty(FindHomeSP.getName());
+        deleteProperty(DerotateSP.getName());
+        deleteProperty(DomeHomePositionNP.getName());
+        deleteProperty(HomeSensorPolaritySP.getName());
+        deleteProperty(SensorsNP.getName());
+        deleteProperty(RelaysSP.getName());
+        deleteProperty(InputsSP.getName());
+        deleteProperty(StepsPerRevolutionNP.getName());
+        deleteProperty(CalibrationNeededSP.getName());
+        deleteProperty(StartCalibrationSP.getName());
+        deleteProperty(FirmwareVersionsNP.getName());
+    }
+
+    return true;
+}
+
+/************************************************************************************
+ *
+ * ***********************************************************************************/
+bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    // ignore if not ours
+    if (dev == nullptr || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (FindHomeSP.isNameMatch(name))
+    {
+        if (status != DOME_HOMING)
+        {
+            LOG_INFO("Finding home sensor");
+            status = DOME_HOMING;
+            IUResetSwitch(&FindHomeSP);
+            DomeAbsPosNP.s = IPS_BUSY;
+            FindHomeSP.setState(IPS_BUSY);
+            FindHomeSP.apply();
+            interface->findHome();
+        }
+        return true;
+    }
+
+    if (DerotateSP.isNameMatch(name))
+    {
+        if (status != DOME_DEROTATING)
+        {
+            LOG_INFO("De-rotating started");
+            status = DOME_DEROTATING;
+            IUResetSwitch(&DerotateSP);
+            DomeAbsPosNP.s = IPS_BUSY;
+            DerotateSP.setState(IPS_BUSY);
+            DerotateSP.apply();
+        }
+        return true;
+    }
+
+    if (StartCalibrationSP.isNameMatch(name))
+    {
+        if (status != DOME_CALIBRATING)
+        {
+            LOG_INFO("Calibration started");
+            status = DOME_CALIBRATING;
+            IUResetSwitch(&StartCalibrationSP);
+            DomeAbsPosNP.s       = IPS_BUSY;
+            StartCalibrationSP.setState(IPS_BUSY);
+            StartCalibrationSP.apply();
+            interface->calibrate();
+        }
+        return true;
+    }
+
+    if (RelaysSP.isNameMatch(name))
+    {
+        RelaysSP.update(states, names, n);
+        for(int i = 0; i < n; i++)
+        {
+            interface->setRelayState(i, RelaysSP[i].getState());
+        }
+        RelaysSP.apply();
+        return true;
+    }
+
+    if (CardTypeSP.isNameMatch(name))
+    {
+        CardTypeSP.update(states, names, n);
+        CardTypeSP.apply();
+
+        if(CardTypeSP[0].getState() == ISS_ON)
+        {
+            // USB Card 2.1 uses 115200 bauds
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+            setDomeConnection(CONNECTION_SERIAL);
+        }
+        else
+        {
+            // Arduino Card uses 9600 bauds
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+            setDomeConnection(CONNECTION_SERIAL | CONNECTION_TCP);
+        }
+        return true;
+    }
+    if (HomeSensorPolaritySP.isNameMatch(name))
+    {
+        HomeSensorPolaritySP.update(states, names, n);
+        HomeSensorPolaritySP.apply();
+
+        if (HomeSensorPolaritySP[ScopeDomeCard::ACTIVE_LOW].getState() == ISS_ON)
+        {
+            interface->setHomeSensorPolarity(ScopeDomeCard::ACTIVE_LOW);
+            LOG_DEBUG("Home sensor polarity set to ACTIVE_LOW");
+        }
+        else
+        {
+            interface->setHomeSensorPolarity(ScopeDomeCard::ACTIVE_HIGH);
+            LOG_DEBUG("Home sensor polarity set to ACTIVE_HIGH");
+        }
+        return true;
+    }
+
+    // Pass to base class
+    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool ScopeDome::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    // ignore if not ours
+    if (dev == nullptr || strcmp(dev, getDeviceName()))
+        return false;
+
+
+    if (DomeHomePositionNP.isNameMatch(name))
+    {
+        DomeHomePositionNP.update(values, names, n);
+        DomeHomePositionNP.setState(IPS_OK);
+        DomeHomePositionNP.apply();
+        LOGF_DEBUG("Dome home position set to %f", DomeHomePositionNP[0].getValue());
+        return true;
+    }
+    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
+}
+
+bool ScopeDome::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    // ignore if not ours
+    if (dev == nullptr || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (CredentialsTP.isNameMatch(name))
+    {
+        CredentialsTP.update(texts, names, n);
+        CredentialsTP.apply();
+        return true;
+    }
+    return INDI::Dome::ISNewText(dev, name, texts, names, n);
+}
+
+/************************************************************************************
+ *
+ * ***********************************************************************************/
 bool ScopeDome::UpdateShutterStatus()
 {
-    int rc = readBuffer(GetAllDigitalExt, 5, digitalSensorState);
+    int rc = 0;
     if (rc != 0)
     {
         LOGF_ERROR("Error reading input state: %d", rc);
         return false;
     }
-    // LOGF_INFO("digitalext %x %x %x %x %x", digitalSensorState[0],
-    // digitalSensorState[1], digitalSensorState[2], digitalSensorState[3],
-    // digitalSensorState[4]);
-    SensorsS[0].s  = getInputState(IN_ENCODER);
-    SensorsS[1].s  = ISS_OFF; // ?
-    SensorsS[2].s  = getInputState(IN_HOME);
-    SensorsS[3].s  = getInputState(IN_OPEN1);
-    SensorsS[4].s  = getInputState(IN_CLOSED1);
-    SensorsS[5].s  = getInputState(IN_OPEN2);
-    SensorsS[6].s  = getInputState(IN_CLOSED2);
-    SensorsS[7].s  = getInputState(IN_S_HOME);
-    SensorsS[8].s  = getInputState(IN_CLOUDS);
-    SensorsS[9].s  = getInputState(IN_CLOUD);
-    SensorsS[10].s = getInputState(IN_SAFE);
-    SensorsS[11].s = getInputState(IN_ROT_LINK);
-    SensorsS[12].s = getInputState(IN_FREE);
-    SensorsSP.s    = IPS_OK;
-    IDSetSwitch(&SensorsSP, nullptr);
 
-    DomeShutterSP.s = IPS_OK;
-    IUResetSwitch(&DomeShutterSP);
+    for(size_t i = 0; i < InputsSP.size(); i++)
+    {
+        InputsSP[i].setState(interface->getInputValue(i) ? ISS_ON : ISS_OFF);
+    }
+    InputsSP.setState(IPS_OK);
+    InputsSP.apply();
 
-    if (getInputState(IN_OPEN1) == ISS_ON) // shutter open switch triggered
+    if (interface->getInputState(ScopeDomeCard::OPEN1) == ISS_ON) // shutter open switch triggered
     {
         if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
-            setOutputState(OUT_OPEN1, ISS_OFF);
-            m_ShutterState = SHUTTER_OPENED;
+            interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
             if (getDomeState() == DOME_UNPARKING)
+            {
                 SetParked(false);
+            }
         }
-        DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+        setShutterState(SHUTTER_OPENED);
     }
-    else if (getInputState(IN_CLOSED1) == ISS_ON) // shutter closed switch triggered
+    else if (interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_ON) // shutter closed switch triggered
     {
         if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
-            setOutputState(OUT_CLOSE1, ISS_OFF);
-            m_ShutterState = SHUTTER_CLOSED;
+            interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
 
             if (getDomeState() == DOME_PARKING && DomeAbsPosNP.s != IPS_BUSY)
             {
                 SetParked(true);
             }
         }
-        DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
+        setShutterState(SHUTTER_CLOSED);
     }
     else
     {
-        m_ShutterState    = SHUTTER_MOVING;
-        DomeShutterSP.s = IPS_BUSY;
+        setShutterState(SHUTTER_MOVING);
+    }
+
+    ISState link = interface->getInputState(ScopeDomeCard::ROTARY_LINK);
+    if (link != rotaryLinkEstablished)
+    {
+        rotaryLinkEstablished = link;
+        if(rotaryLinkEstablished == ISS_OFF)
+        {
+            LOG_WARN("Rotary link not established, shutter control not possible");
+        }
+        else
+        {
+            LOG_WARN("Rotary link established, shutter control now possible");
+        }
     }
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::UpdatePosition()
 {
-    //    int counter = readS32(GetCounterExt);
-    readS16(GetCounter, rotationCounter);
+    rotationCounter = interface->getRotationCounter();
 
-    //    LOGF_INFO("Counters are %d - %d", counter, counter2);
-
-    // We assume counter value 0 is at home sensor position
-    double az = ((double)rotationCounter * -360.0 / stepsPerTurn) + DomeHomePositionN[0].value;
+    // We assume counter value 0 is at home sensor position and grows counter clockwise as this is
+    // how USB Card 2.1 works.
+    double az = ((double)rotationCounter * -360.0 / stepsPerRevolution) + DomeHomePositionNP[0].getValue();
     az        = fmod(az, 360.0);
     if (az < 0.0)
     {
         az += 360.0;
     }
     DomeAbsPosN[0].value = az;
+    LOGF_DEBUG("Dome position %f, step count %d", az, rotationCounter);
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::UpdateSensorStatus()
 {
-    readU8(GetLinkStrength, linkStrength);
-    readFloat(GetAnalog1, sensors[0]);
-    readFloat(GetAnalog2, sensors[1]);
-    readFloat(GetMainAnalog1, sensors[2]);
-    readFloat(GetMainAnalog2, sensors[3]);
-    readFloat(GetTempIn, sensors[4]);
-    readFloat(GetTempOut, sensors[5]);
-    readFloat(GetTempHum, sensors[6]);
-    readFloat(GetHum, sensors[7]);
-    readFloat(GetPressure, sensors[8]);
-
-    EnvironmentSensorsN[0].value = linkStrength;
-    for (int i = 0; i < 9; ++i)
+    for (size_t i = 0; i < SensorsNP.size(); ++i)
     {
-        EnvironmentSensorsN[i + 1].value = sensors[i];
+        SensorsNP[i].setValue(interface->getSensorValue(i));
     }
-    EnvironmentSensorsN[10].value = getDewPoint(EnvironmentSensorsN[8].value, EnvironmentSensorsN[7].value);
-    EnvironmentSensorsNP.s        = IPS_OK;
-
-    IDSetNumber(&EnvironmentSensorsNP, nullptr);
-
-    // My shutter unit occasionally disconnects so implement a simple watchdog
-    // to check for link strength and reset the controller if link is lost for
-    // more than 5 polling cycles
-    static int count = 0;
-    if (linkStrength == 0)
-    {
-        count++;
-        if (count > 5)
-        {
-            // Issue reset
-            setOutputState(OUT_RELAY1, ISS_ON);
-            count = 0;
-        }
-    }
-    else
-    {
-        count = 0;
-    }
+    //    SensorsN[10].value = getDewPoint(SensorsN[8].value, SensorsN[7].value);
+    SensorsNP.setState(IPS_OK);
+    SensorsNP.apply();
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::UpdateRelayStatus()
 {
-    PowerRelaysS[0].s = getInputState(OUT_CCD);
-    PowerRelaysS[1].s = getInputState(OUT_SCOPE);
-    PowerRelaysS[2].s = getInputState(OUT_LIGHT);
-    PowerRelaysS[3].s = getInputState(OUT_FAN);
-    PowerRelaysSP.s   = IPS_OK;
-    IDSetSwitch(&PowerRelaysSP, nullptr);
-
-    RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[1].s = getInputState(OUT_RELAY2);
-    RelaysS[2].s = getInputState(OUT_RELAY3);
-    RelaysS[3].s = getInputState(OUT_RELAY4);
-    RelaysSP.s   = IPS_OK;
-    IDSetSwitch(&RelaysSP, nullptr);
+    for(size_t i = 0; i < RelaysSP.size(); i++)
+    {
+        RelaysSP[i].setState(interface->getRelayState(i));
+    }
+    RelaysSP.setState(IPS_OK);
+    RelaysSP.apply();
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 void ScopeDome::TimerHit()
 {
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
-    readU16(GetStatus, currentStatus);
-    // LOGF_INFO("Status: %x", currentStatus);
-    UpdatePosition();
+    interface->updateState();
 
+    currentStatus = interface->getStatus();
+
+    UpdatePosition();
     UpdateShutterStatus();
     IDSetSwitch(&DomeShutterSP, nullptr);
 
@@ -656,9 +634,9 @@ void ScopeDome::TimerHit()
 
     if (status == DOME_HOMING)
     {
-        if ((currentStatus & (STATUS_HOMING | STATUS_MOVING)) == 0)
+        if ((currentStatus & (ScopeDomeCard::STATUS_HOMING | ScopeDomeCard::STATUS_MOVING)) == 0)
         {
-            double azDiff = DomeHomePositionN[0].value - DomeAbsPosN[0].value;
+            double azDiff = DomeHomePositionNP[0].getValue() - DomeAbsPosN[0].value;
 
             if (azDiff > 180)
             {
@@ -669,76 +647,67 @@ void ScopeDome::TimerHit()
                 azDiff += 360;
             }
 
-            if (getInputState(IN_HOME) || fabs(azDiff) <= DomeParamN[0].value)
+            if (interface->getInputState(ScopeDomeCard::HOME) || fabs(azDiff) <= DomeParamN[0].value)
             {
                 // Found home (or close enough)
                 LOG_INFO("Home sensor found");
                 status   = DOME_READY;
-                targetAz = DomeHomePositionN[0].value;
+                targetAz = DomeHomePositionNP[0].getValue();
 
                 // Reset counters
-                writeCmd(ResetCounter);
-                writeCmd(ResetCounterExt);
+                interface->resetCounter();
 
-                FindHomeSP.s   = IPS_OK;
-                DomeAbsPosNP.s = IPS_OK;
-                IDSetSwitch(&FindHomeSP, nullptr);
+                FindHomeSP.setState(IPS_OK);
+                FindHomeSP.apply();
+                setDomeState(DOME_IDLE);
             }
             else
             {
                 // We overshoot, go closer
-                MoveAbs(DomeHomePositionN[0].value);
+                MoveAbs(DomeHomePositionNP[0].getValue());
             }
         }
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
     else if (status == DOME_DEROTATING)
     {
-        if ((currentStatus & STATUS_MOVING) == 0)
+        if ((currentStatus & ScopeDomeCard::STATUS_MOVING) == 0)
         {
-            readS32(GetCounterExt, currentRotation);
+            currentRotation = interface->getRotationCounterExt();
             LOGF_INFO("Current rotation is %d", currentRotation);
             if (abs(currentRotation) < 100)
             {
                 // Close enough
                 LOG_INFO("De-rotation complete");
-                status         = DOME_READY;
-                DerotateSP.s   = IPS_OK;
-                DomeAbsPosNP.s = IPS_OK;
-                IDSetSwitch(&DerotateSP, nullptr);
+                status = DOME_READY;
+                DerotateSP.setState(IPS_OK);
+                DerotateSP.apply();
+                setDomeState(DOME_IDLE);
             }
             else
             {
-                if (currentRotation < 0)
-                {
-                    writeU16(CCWRotation, compensateInertia(-currentRotation));
-                }
-                else
-                {
-                    writeU16(CWRotation, compensateInertia(currentRotation));
-                }
+                interface->move(currentRotation);
             }
         }
-        IDSetNumber(&DomeAbsPosNP, nullptr);
     }
     else if (status == DOME_CALIBRATING)
     {
-        if ((currentStatus & (STATUS_CALIBRATING | STATUS_MOVING)) == 0)
+        if ((currentStatus & (ScopeDomeCard::STATUS_CALIBRATING | ScopeDomeCard::STATUS_MOVING)) == 0)
         {
-            readU32(GetImpPerTurn, stepsPerTurn);
-            LOGF_INFO("Calibration complete, steps per turn read as %d", stepsPerTurn);
-            StepsPerRevolutionN[0].value = stepsPerTurn;
-            StepsPerRevolutionNP.s       = IPS_OK;
-            IDSetNumber(&StepsPerRevolutionNP, nullptr);
-            StartCalibrationSP.s = IPS_OK;
-            DomeAbsPosNP.s       = IPS_OK;
-            IDSetSwitch(&StartCalibrationSP, nullptr);
+            stepsPerRevolution = interface->getStepsPerRevolution();
+            LOGF_INFO("Calibration complete, steps per revolution read as %d", stepsPerRevolution);
+            StepsPerRevolutionNP[0].setValue(stepsPerRevolution);
+            StepsPerRevolutionNP.setState(IPS_OK);
+            StepsPerRevolutionNP.apply();
+            StartCalibrationSP.setState(IPS_OK);
+            StartCalibrationSP.apply();
             status = DOME_READY;
+            setDomeState(DOME_IDLE);
         }
     }
     else if (DomeAbsPosNP.s == IPS_BUSY)
     {
-        if ((currentStatus & STATUS_MOVING) == 0)
+        if ((currentStatus & ScopeDomeCard::STATUS_MOVING) == 0)
         {
             // Rotation idle, are we close enough?
             double azDiff = targetAz - DomeAbsPosN[0].value;
@@ -754,13 +723,16 @@ void ScopeDome::TimerHit()
             if (!refineMove || fabs(azDiff) <= DomeParamN[0].value)
             {
                 if (refineMove)
+                {
                     DomeAbsPosN[0].value = targetAz;
+                }
                 DomeAbsPosNP.s = IPS_OK;
                 LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
                 {
-                    if (ParkShutterS[0].s == ISS_ON && getInputState(IN_CLOSED1) == ISS_OFF)
+                    if (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON &&
+                            interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_OFF)
                     {
                         ControlShutter(SHUTTER_CLOSE);
                     }
@@ -770,9 +742,13 @@ void ScopeDome::TimerHit()
                     }
                 }
                 else if (getDomeState() == DOME_UNPARKING)
+                {
                     SetParked(false);
+                }
                 else
+                {
                     setDomeState(DOME_SYNCED);
+                }
             }
             else
             {
@@ -780,11 +756,12 @@ void ScopeDome::TimerHit()
                 MoveAbs(targetAz);
             }
         }
-
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
     else
+    {
         IDSetNumber(&DomeAbsPosNP, nullptr);
+    }
 
     // Read temperatures only every 10th time
     static int tmpCounter = 0;
@@ -794,12 +771,12 @@ void ScopeDome::TimerHit()
         tmpCounter = 10;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::MoveAbs(double az)
 {
     LOGF_DEBUG("MoveAbs (%f)", az);
@@ -825,7 +802,7 @@ IPState ScopeDome::MoveAbs(double az)
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::MoveRel(double azDiff)
 {
     refineMove = false;
@@ -834,41 +811,47 @@ IPState ScopeDome::MoveRel(double azDiff)
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::sendMove(double azDiff)
 {
-    int rc;
-
     if (azDiff < 0)
     {
-        uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
+        int steps = static_cast<int>(-azDiff * stepsPerRevolution / 360.0);
         LOGF_DEBUG("CCW (%d)", steps);
+        if (steps <= 0)
+        {
+            return IPS_OK;
+        }
         steps = compensateInertia(steps);
         LOGF_DEBUG("CCW inertia (%d)", steps);
-        if (steps == 0)
+        if (steps <= 0)
+        {
             return IPS_OK;
-        rc = writeU16(CCWRotation, steps);
+        }
+        interface->move(-steps);
     }
     else
     {
-        uint16_t steps = (uint16_t)(azDiff * stepsPerTurn / 360.0);
+        int steps = static_cast<int>(azDiff * stepsPerRevolution / 360.0);
         LOGF_DEBUG("CW (%d)", steps);
+        if (steps <= 0)
+        {
+            return IPS_OK;
+        }
         steps = compensateInertia(steps);
         LOGF_DEBUG("CW inertia (%d)", steps);
-        if (steps == 0)
+        if (steps <= 0)
+        {
             return IPS_OK;
-        rc = writeU16(CWRotation, steps);
-    }
-    if (rc != 0)
-    {
-        LOGF_ERROR("Error moving dome: %d", rc);
+        }
+        interface->move(steps);
     }
     return IPS_BUSY;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // Map to button outputs
@@ -877,32 +860,32 @@ IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
         refineMove = false;
         if (dir == DOME_CW)
         {
-            setOutputState(OUT_CW, ISS_ON);
-            setOutputState(OUT_CCW, ISS_OFF);
+            interface->setOutputState(ScopeDomeCard::CCW, ISS_OFF);
+            interface->setOutputState(ScopeDomeCard::CW, ISS_ON);
         }
         else
         {
-            setOutputState(OUT_CW, ISS_OFF);
-            setOutputState(OUT_CCW, ISS_ON);
+            interface->setOutputState(ScopeDomeCard::CW, ISS_OFF);
+            interface->setOutputState(ScopeDomeCard::CCW, ISS_ON);
         }
         return IPS_BUSY;
     }
-    setOutputState(OUT_CW, ISS_OFF);
-    setOutputState(OUT_CCW, ISS_OFF);
+    interface->setOutputState(ScopeDomeCard::CW, ISS_OFF);
+    interface->setOutputState(ScopeDomeCard::CCW, ISS_OFF);
     return IPS_OK;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::Park()
 {
     // First move to park position and then optionally close shutter
     targetAz  = GetAxis1Park();
     IPState s = MoveAbs(targetAz);
-    if (s == IPS_OK && ParkShutterS[0].s == ISS_ON)
+    if (s == IPS_OK && ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
     {
-        // Already at home, just close if needed
+        // Already at park position, just close if needed
         return ControlShutter(SHUTTER_CLOSE);
     }
     return s;
@@ -910,10 +893,10 @@ IPState ScopeDome::Park()
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::UnPark()
 {
-    if (ParkShutterS[0].s == ISS_ON)
+    if (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)
     {
         return ControlShutter(SHUTTER_OPEN);
     }
@@ -922,7 +905,7 @@ IPState ScopeDome::UnPark()
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 IPState ScopeDome::ControlShutter(ShutterOperation operation)
 {
     LOGF_INFO("Control shutter %d", (int)operation);
@@ -930,24 +913,22 @@ IPState ScopeDome::ControlShutter(ShutterOperation operation)
     if (operation == SHUTTER_OPEN)
     {
         LOG_INFO("Opening shutter");
-        if (getInputState(IN_OPEN1))
+        if (interface->getInputState(ScopeDomeCard::OPEN1))
         {
             LOG_INFO("Shutter already open");
             return IPS_OK;
         }
-        setOutputState(OUT_CLOSE1, ISS_OFF);
-        setOutputState(OUT_OPEN1, ISS_ON);
+        interface->controlShutter(ScopeDomeCard::OPEN_SHUTTER);
     }
     else
     {
         LOG_INFO("Closing shutter");
-        if (getInputState(IN_CLOSED1))
+        if (interface->getInputState(ScopeDomeCard::CLOSED1))
         {
             LOG_INFO("Shutter already closed");
             return IPS_OK;
         }
-        setOutputState(OUT_OPEN1, ISS_OFF);
-        setOutputState(OUT_CLOSE1, ISS_ON);
+        interface->controlShutter(ScopeDomeCard::CLOSE_SHUTTER);
     }
 
     m_ShutterState = SHUTTER_MOVING;
@@ -956,29 +937,31 @@ IPState ScopeDome::ControlShutter(ShutterOperation operation)
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::Abort()
 {
-    writeCmd(Stop);
+    interface->abort();
     status = DOME_READY;
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &DomeHomePositionNP);
-    IUSaveConfigSwitch(fp, &ParkShutterSP);
+    DomeHomePositionNP.save(fp);
+    HomeSensorPolaritySP.save(fp);
+    CardTypeSP.save(fp);
+    CredentialsTP.save(fp);
     return true;
 }
 
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 bool ScopeDome::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
@@ -986,7 +969,7 @@ bool ScopeDome::SetCurrentPark()
 }
 /************************************************************************************
  *
-* ***********************************************************************************/
+ * ***********************************************************************************/
 
 bool ScopeDome::SetDefaultPark()
 {
@@ -997,262 +980,19 @@ bool ScopeDome::SetDefaultPark()
 
 /************************************************************************************
  *
-* ***********************************************************************************/
-bool ScopeDome::readFloat(ScopeDomeCommand cmd, float &dst)
-{
-    float value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 4, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readFloat: %d %f", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readU8(ScopeDomeCommand cmd, uint8_t &dst)
-{
-    uint8_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 1, &value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readU8: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readS8(ScopeDomeCommand cmd, int8_t &dst)
-{
-    int8_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 1, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readS8: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readU16(ScopeDomeCommand cmd, uint16_t &dst)
-{
-    uint16_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 2, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readU16: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readS16(ScopeDomeCommand cmd, int16_t &dst)
-{
-    int16_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 2, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readS16: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readU32(ScopeDomeCommand cmd, uint32_t &dst)
-{
-    uint32_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 4, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readU32: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-bool ScopeDome::readS32(ScopeDomeCommand cmd, int32_t &dst)
-{
-    int32_t value;
-    ScopeDomeCommand c;
-    int rc;
-    int retryCount = 2;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, 4, (uint8_t *)&value);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    //    LOGF_ERROR("readU32: %d %x", cmd, value);
-    if (rc == 0)
-    {
-        dst = value;
-        return true;
-    }
-    return false;
-}
-
-int ScopeDome::readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf)
-{
-    int rc;
-    int retryCount = 2;
-    ScopeDomeCommand c;
-    do
-    {
-        rc = interface->write(cmd);
-        if (rc == 0)
-            rc = interface->readBuf(c, len, cbuf);
-        else
-            reconnect();
-    } while (rc != 0 && --retryCount);
-    return rc;
-}
-
-int ScopeDome::writeCmd(ScopeDomeCommand cmd)
-{
-    int rc = interface->write(cmd);
-    if (rc != 0)
-    {
-        reconnect();
-        return rc;
-    }
-    return interface->read(cmd);
-}
-
-int ScopeDome::writeU8(ScopeDomeCommand cmd, uint8_t value)
-{
-    int rc = interface->writeBuf(cmd, 1, &value);
-    if (rc != 0)
-    {
-        reconnect();
-        return rc;
-    }
-    return interface->read(cmd);
-}
-
-int ScopeDome::writeU16(ScopeDomeCommand cmd, uint16_t value)
-{
-    int rc = interface->writeBuf(cmd, 2, (uint8_t *)&value);
-    if (rc != 0)
-    {
-        reconnect();
-        return rc;
-    }
-    return interface->read(cmd);
-}
-
-int ScopeDome::writeU32(ScopeDomeCommand cmd, uint32_t value)
-{
-    int rc = interface->writeBuf(cmd, 4, (uint8_t *)&value);
-    if (rc != 0)
-    {
-        reconnect();
-        return rc;
-    }
-    return interface->read(cmd);
-}
-
-int ScopeDome::writeBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf)
-{
-    int rc = interface->writeBuf(cmd, len, cbuf);
-    if (rc != 0)
-    {
-        reconnect();
-        return rc;
-    }
-    return interface->read(cmd);
-}
-
+ * ***********************************************************************************/
 void ScopeDome::reconnect()
 {
     // Reconnect serial port after write error
     LOG_INFO("Reconnecting serial port");
+    reconnecting = true;
     serialConnection->Disconnect();
     usleep(1000000); // 1s
     serialConnection->Connect();
     PortFD = serialConnection->getPortFD();
     interface->setPortFD(PortFD);
     LOG_INFO("Reconnected");
-}
-
-ISState ScopeDome::getInputState(ScopeDomeDigitalIO channel)
-{
-    int ch      = (int)channel;
-    int byte    = ch >> 3;
-    uint8_t bit = 1 << (ch & 7);
-    return (digitalSensorState[byte] & bit) ? ISS_ON : ISS_OFF;
-}
-
-int ScopeDome::setOutputState(ScopeDomeDigitalIO channel, ISState onOff)
-{
-    return writeU8(onOff == ISS_ON ? SetDigitalChannel : ClearDigitalChannel, (int)channel);
+    reconnecting = false;
 }
 
 /*
@@ -1354,11 +1094,11 @@ float ScopeDome::getDewPoint(float RH, float T)
     return solve(PVS, RH / 100 * PVS(T), T) - C_OFFSET;
 }
 
-uint16_t ScopeDome::compensateInertia(uint16_t steps)
+int ScopeDome::compensateInertia(int steps)
 {
     if (inertiaTable.size() == 0)
     {
-        LOGF_INFO("inertia passthrough %d", steps);
+        LOGF_DEBUG("inertia passthrough %d", steps);
         return steps; // pass value as such if we don't have enough data
     }
 
@@ -1366,7 +1106,7 @@ uint16_t ScopeDome::compensateInertia(uint16_t steps)
     {
         if (inertiaTable[out] > steps)
         {
-            LOGF_INFO("inertia %d -> %d", steps, out - 1);
+            LOGF_DEBUG("inertia %d -> %d", steps, out - 1);
             return out - 1;
         }
     }
@@ -1374,8 +1114,8 @@ uint16_t ScopeDome::compensateInertia(uint16_t steps)
     // similar inertia also after that
     int lastEntry = inertiaTable.size() - 1;
     int inertia   = inertiaTable[lastEntry] - lastEntry;
-    int movement  = (int)steps - inertia;
-    LOGF_INFO("inertia %d -> %d", steps, movement);
+    int movement  = steps - inertia;
+    LOGF_DEBUG("inertia %d -> %d", steps, movement);
     if (movement <= 0)
         return 0;
 

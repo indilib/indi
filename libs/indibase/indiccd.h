@@ -29,6 +29,9 @@
 #include "indiccdchip.h"
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
+#include "indipropertynumber.h"
+#include "inditimer.h"
+#include "indielapsedtimer.h"
 #include "dsp/manager.h"
 #include "stream/streammanager.h"
 
@@ -44,9 +47,6 @@
 #include <stdint.h>
 #include <mutex>
 #include <thread>
-
-//JM 2019-01-17: Disabled until further notice
-//#define WITH_EXPOSURE_LOOPING
 
 extern const char * IMAGE_SETTINGS_TAB;
 extern const char * IMAGE_INFO_TAB;
@@ -132,14 +132,15 @@ class CCD : public DefaultDevice, GuiderInterface
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                               char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void wsThreadHelper(void * context);
 
@@ -428,7 +429,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return True if successful, false otherwise.
          */
-        virtual IPState GuideNorth(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms) override;
 
         /**
          * \brief Guide southward for ms milliseconds
@@ -436,7 +437,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideSouth(uint32_t ms);
+        virtual IPState GuideSouth(uint32_t ms) override;
 
         /**
          * \brief Guide easward for ms milliseconds
@@ -444,7 +445,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideEast(uint32_t ms);
+        virtual IPState GuideEast(uint32_t ms) override;
 
         /**
          * \brief Guide westward for ms milliseconds
@@ -452,7 +453,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideWest(uint32_t ms) override;
 
         /**
          * @brief StartStreaming Start live video streaming
@@ -504,9 +505,21 @@ class CCD : public DefaultDevice, GuiderInterface
          * @param fp pointer to file to write to
          * @return True if successful, false otherwise
          */
-        virtual bool saveConfigItems(FILE * fp);
+        virtual bool saveConfigItems(FILE * fp) override;
 
-        void GuideComplete(INDI_EQ_AXIS axis);
+        /**
+         * @brief GuideComplete Signal guide pulse completion
+         * @param axis which axis the guide pulse was acting on
+         */
+        virtual void GuideComplete(INDI_EQ_AXIS axis) override;
+
+        /**
+         * @brief checkTemperatureTarget Checks the current temperature against target temperature and calculates
+         * the next required temperature if there is a ramp. If the current temperature is within threshold of
+         * target temperature, it sets the state as OK.
+         */
+        virtual void checkTemperatureTarget();
+
 
         // Epoch Position
         double RA, Dec;
@@ -517,6 +530,11 @@ class CCD : public DefaultDevice, GuiderInterface
         // J2000 Position
         double J2000RA;
         double J2000DE;
+        bool J2000Valid;
+
+        // exposure information
+	char exposureStartTime[MAXINDINAME];
+	double exposureDuration;
 
         double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
         bool InExposure;
@@ -548,17 +566,22 @@ class CCD : public DefaultDevice, GuiderInterface
         double Airmass;
         double Latitude;
         double Longitude;
+        double Azimuth;
+        double Altitude;
+
+        // Temperature Control
+        double m_TargetTemperature {0};
+        INDI::Timer m_TemperatureCheckTimer;
+        INDI::ElapsedTimer m_TemperatureElapsedTimer;
 
         // Threading
         std::mutex ccdBufferLock;
 
         std::vector<std::string> FilterNames;
-        int CurrentFilterSlot;
+        int CurrentFilterSlot {-1};
 
         std::unique_ptr<StreamManager> Streamer;
-
         std::unique_ptr<DSP::Manager> DSP;
-
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
 
@@ -574,6 +597,14 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         INumberVectorProperty EqNP;
         INumber EqN[2];
+
+        /**
+         * @brief J200EqNP Snoop property to read the equatorial J2000 coordinates of the mount.
+         * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
+         * by the mount driver if specified. It is important to generate a proper FITS header.
+         */
+        INumberVectorProperty J2000EqNP;
+        INumber J2000EqN[2];
 
         /**
          * @brief ActiveDeviceTP defines 4 devices the camera driver can listen to (snoop) for
@@ -597,10 +628,20 @@ class CCD : public DefaultDevice, GuiderInterface
         };
 
         /**
-         * @brief TemperatureNP Read-Only Temperature in Celcius.
+         * @brief TemperatureNP Camera Temperature in Celcius.
          */
         INumberVectorProperty TemperatureNP;
         INumber TemperatureN[1];
+
+        /**
+         * @brief Temperature Ramp in C/Min with configurable threshold
+        */
+        INDI::PropertyNumber TemperatureRampNP {2};
+        enum
+        {
+            RAMP_SLOPE,
+            RAMP_THRESHOLD
+        };
 
         /**
          *@brief BayerTP Bayer pattern offset and type
@@ -661,22 +702,15 @@ class CCD : public DefaultDevice, GuiderInterface
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
 
-#ifdef WITH_EXPOSURE_LOOPING
-        // Exposure Looping
-        ISwitch ExposureLoopS[2];
-        ISwitchVectorProperty ExposureLoopSP;
-        enum
-        {
-            EXPOSURE_LOOP_ON,
-            EXPOSURE_LOOP_OFF
-        };
+        // Fast Exposure Toggle
+        ISwitch FastExposureToggleS[2];
+        ISwitchVectorProperty FastExposureToggleSP;
 
-        // Exposure Looping Count
-        INumber ExposureLoopCountN[1];
-        INumberVectorProperty ExposureLoopCountNP;
-        double uploadTime = { 0 };
-        std::chrono::system_clock::time_point exposureLoopStartup;
-#endif
+        // Fast Exposure Frame Count
+        INumber FastExposureCountN[1];
+        INumberVectorProperty FastExposureCountNP;
+        double m_UploadTime = { 0 };
+        std::chrono::system_clock::time_point FastExposureToggleStartup;
 
         // FITS Header
         IText FITSHeaderT[2] {};
@@ -691,6 +725,7 @@ class CCD : public DefaultDevice, GuiderInterface
         uint32_t capability;
 
         bool m_ValidCCDRotation;
+        int m_ConfigFastExposureIndex {INDI_DISABLED};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
@@ -711,5 +746,6 @@ class CCD : public DefaultDevice, GuiderInterface
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
+        friend class StreamManagerPrivate;
 };
 }

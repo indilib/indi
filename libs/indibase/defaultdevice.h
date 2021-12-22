@@ -89,6 +89,11 @@ extern const char *GUIDE_TAB;
 extern const char *ALIGNMENT_TAB;
 
 /**
+ * @brief SATELLITE_TAB
+ */
+extern const char *SATELLITE_TAB;
+
+/**
  * @brief INFO_TAB Where all the properties for general information are located.
  */
 extern const char *INFO_TAB;
@@ -106,12 +111,19 @@ extern const char *INFO_TAB;
  * \see <a href='tutorial__four_8h_source.html'>Tutorial Four</a>
  * \author Jasem Mutlaq
  */
-class INDI::DefaultDevice : public INDI::BaseDevice
+namespace INDI
 {
+
+class DefaultDevicePrivate;
+class DefaultDevice : public BaseDevice
+{
+        DECLARE_PRIVATE(DefaultDevice)
+
     public:
         DefaultDevice();
         virtual ~DefaultDevice() override = default;
 
+    public:
         /** \brief Add Debug, Simulation, and Configuration options to the driver */
         void addAuxControls();
 
@@ -127,6 +139,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         /** \brief Add Polling period control to the driver */
         void addPollPeriodControl();
 
+    public:
         /** \brief Set all properties to IDLE state */
         void resetProperties();
 
@@ -136,7 +149,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * save configuration files.
          * \param nvp The number vector property to be defined
          */
-        void defineNumber(INumberVectorProperty *nvp);
+        void defineNumber(INumberVectorProperty *nvp) __attribute__((deprecated));
+        void defineProperty(INumberVectorProperty *property);
 
         /**
          * \brief Define text vector to client & register it. Alternatively, IDDefText can be
@@ -144,7 +158,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * configuration files.
          * \param tvp The text vector property to be defined
          */
-        void defineText(ITextVectorProperty *tvp);
+        void defineText(ITextVectorProperty *tvp) __attribute__((deprecated));
+        void defineProperty(ITextVectorProperty *property);
 
         /**
          * \brief Define switch vector to client & register it. Alternatively, IDDefswitch can be
@@ -152,7 +167,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * configuration files.
          * \param svp The switch vector property to be defined
          */
-        void defineSwitch(ISwitchVectorProperty *svp);
+        void defineSwitch(ISwitchVectorProperty *svp) __attribute__((deprecated));
+        void defineProperty(ISwitchVectorProperty *property);
 
         /**
          * \brief Define light vector to client & register it. Alternatively, IDDeflight can be
@@ -160,7 +176,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * configuration files.
          * \param lvp The light vector property to be defined
          */
-        void defineLight(ILightVectorProperty *lvp);
+        void defineLight(ILightVectorProperty *lvp) __attribute__((deprecated));
+        void defineProperty(ILightVectorProperty *property);
 
         /**
          * \brief Define BLOB vector to client & register it. Alternatively, IDDefBLOB can be
@@ -168,14 +185,17 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * save configuration files.
          * \param bvp The BLOB vector property to be defined
          */
-        void defineBLOB(IBLOBVectorProperty *bvp);
+        void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
+        void defineProperty(IBLOBVectorProperty *property);
 
+        void defineProperty(INDI::Property &property);
         /**
          * \brief Delete a property and unregister it. It will also be deleted from all clients.
          * \param propertyName name of property to be deleted.
          */
         virtual bool deleteProperty(const char *propertyName);
 
+    public:
         /**
          * \brief Set connection switch status in the client.
          * \param status True to toggle CONNECT on, false to toggle DISCONNECT on.
@@ -201,40 +221,25 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         virtual void TimerHit();
 
         /** \return driver executable filename */
-        virtual const char *getDriverExec()
-        {
-            return me;
-        }
+        virtual const char *getDriverExec();
 
         /** \return driver name */
-        virtual const char *getDriverName()
-        {
-            return getDefaultName();
-        }
+        virtual const char *getDriverName();
 
         /**
          * \brief Set driver version information to be defined in DRIVER_INFO property as vMajor.vMinor
          * \param vMajor major revision number
          * \param vMinor minor revision number
          */
-        void setVersion(uint16_t vMajor, uint16_t vMinor)
-        {
-            majorVersion = vMajor;
-            minorVersion = vMinor;
-        }
+        void setVersion(uint16_t vMajor, uint16_t vMinor);
 
         /** \return Major driver version number. */
-        uint16_t getMajorVersion()
-        {
-            return majorVersion;
-        }
+        uint16_t getMajorVersion() const;
 
         /** \return Minor driver version number. */
-        uint16_t getMinorVersion()
-        {
-            return minorVersion;
-        }
+        uint16_t getMinorVersion() const;
 
+    public:
         /**
          * \brief define the driver's properties to the client.
          * Usually, only a minimum set of properties are defined to the client in this function
@@ -297,6 +302,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
          * You may send an ORed list of DeviceInterface values.
          * @param value ORed list of DeviceInterface values.
+         * @warning This only updates the internal driver interface property and does not send it to the
+         * client. To synchronize the client, use syncDriverInfo funciton.
          */
         void setDriverInterface(uint16_t value);
 
@@ -315,11 +322,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * False to keep dynamic property in the properties list, but delete it from the client.
          * @note This function has no effect on regular properties initialized directly by the driver.
          */
-        void setDynamicPropertiesBehavior(bool defineEnabled, bool deleteEnabled)
-        {
-            defineDynamicProperties = defineEnabled;
-            deleteDynamicProperties = deleteEnabled;
-        }
+        void setDynamicPropertiesBehavior(bool defineEnabled, bool deleteEnabled);
 
         // Configuration
 
@@ -405,10 +408,10 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         virtual void simulationTriggered(bool enable);
 
         /** \return True if Debug is on, False otherwise. */
-        bool isDebug();
+        bool isDebug() const;
 
         /** \return True if Simulation is on, False otherwise. */
-        bool isSimulation();
+        bool isSimulation() const;
 
         /**
          * \brief Initilize properties initial state and value. The child class must implement this function.
@@ -455,10 +458,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         bool unRegisterConnection(Connection::Interface *existingConnection);
 
         /** @return Return actively selected connection plugin */
-        Connection::Interface *getActiveConnection()
-        {
-            return activeConnection;
-        }
+        Connection::Interface *getActiveConnection();
 
         /**
          * @brief setActiveConnection Switch the active connection to the passed connection plugin
@@ -466,12 +466,13 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          */
         void setActiveConnection(Connection::Interface *existingConnection);
 
+    protected: // polling
         /**
          * @brief setDefaultPollingPeriod Change the default polling period to call TimerHit() function in the driver.
-         * @param period period in milliseconds
+         * @param msec period in milliseconds
          * @note default period is 1000ms
          */
-        void setDefaultPollingPeriod(uint32_t period);
+        void setDefaultPollingPeriod(uint32_t msec);
 
         /**
          * @brief setPollingPeriodRange Set the range permitted by the polling range in milliseconds
@@ -481,69 +482,52 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         void setPollingPeriodRange(uint32_t minimum, uint32_t maximum);
 
         /**
-         * @brief getPollingPeriod Return the current polling period.
+         * @brief getPollingPeriod Return the polling period.
          * @return Polling period in milliseconds.
          */
-        uint32_t getPollingPeriod()
-        {
-            return static_cast<uint32_t>(PollPeriodN[0].value);
-        }
+        uint32_t getPollingPeriod() const;
 
+        /**
+         * @brief setCurrentPollingPeriod Change the current polling period to call TimerHit() function in the driver.
+         * @param msec period in milliseconds
+         * @note default period is 1000ms
+         */
+        void setCurrentPollingPeriod(uint32_t msec);
+
+        /**
+         * @brief getCurrentPollingPeriod Return the current polling period.
+         * @return Polling period in milliseconds.
+         */
+        uint32_t getCurrentPollingPeriod() const;
+
+        /* direct access to POLLMS is deprecated, please use setCurrentPollingPeriod/getCurrentPollingPeriod */
+        uint32_t &refCurrentPollingPeriod() __attribute__((deprecated));
+        uint32_t  refCurrentPollingPeriod() const __attribute__((deprecated));
+#define POLLMS refCurrentPollingPeriod()
+
+    protected:
         /**
          * @brief isConfigLoading Check if driver configuration is currently in the process of getting loaded.
          * @return True if property loading in progress, false otherwise.
          */
-        bool isConfigLoading() const
-        {
-            return m_ConfigLoading;
-        }
+        bool isConfigLoading() const;
+
+        /** @brief syncDriverInfo sends the current driver information to the client. */
+        void syncDriverInfo();
+
 
         /** \return Default name of the device. */
         virtual const char *getDefaultName() = 0;
 
-        /**
-         * @brief POLLMS Period in milliseconds to call TimerHit(). Default 1000 ms
-         */
-        uint32_t POLLMS = 1000;
-
     private:
-        bool isInit { false };
-        bool m_Debug { false };
-        bool m_Simulation { false };
-        bool m_DefaultConfigLoaded {false};
-        bool m_ConfigLoading { false };
-
-        uint16_t majorVersion { 1 };
-        uint16_t minorVersion { 0 };
-        uint16_t interfaceDescriptor { 0 };
-
-        ISwitch DebugS[2];
-        ISwitch SimulationS[2];
-        ISwitch ConfigProcessS[4];
-        ISwitch ConnectionS[2];
-        INumber PollPeriodN[1];
-
-        ISwitchVectorProperty DebugSP;
-        ISwitchVectorProperty SimulationSP;
-        ISwitchVectorProperty ConfigProcessSP;
-        ISwitchVectorProperty ConnectionSP;
-        INumberVectorProperty PollPeriodNP;
-
-        IText DriverInfoT[4] {};
-        ITextVectorProperty DriverInfoTP;
-
-        // Connection modes
-        ISwitch *ConnectionModeS = nullptr;
-        ISwitchVectorProperty ConnectionModeSP;
-
-        std::vector<Connection::Interface *> connections;
-        Connection::Interface *activeConnection = nullptr;
-
         // Connection Plugins
         friend class Connection::Serial;
         friend class Connection::TCP;
         friend class FilterInterface;
+        friend class FocuserInterface;
 
-        bool defineDynamicProperties {true};
-        bool deleteDynamicProperties {true};
+    protected:
+        DefaultDevice(DefaultDevicePrivate &dd);
 };
+
+}

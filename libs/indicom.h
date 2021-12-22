@@ -58,7 +58,10 @@
 #define EARTHRADIUSEQUATORIAL 6378137.0
 #define EARTHRADIUSPOLAR 6356752.0
 #define EARTHRADIUSMEAN 6372797.0
-#define h_20190520 6.62607015E-34
+#define SUNMASS 1.98847E+30
+#define PLANK_H 6.62607015E-34
+#define DIRAC_H (PLANK_H/(2*M_PI))
+#define EINSTEIN_G 6.67408E-11
 #define EULER 2.71828182845904523536028747135266249775724709369995
 #define ROOT2 1.41421356237309504880168872420969807856967187537694
 #define AIRY 1.21966
@@ -67,10 +70,15 @@
 #define CIRCLE_AS (CIRCLE_AM * 60)
 #define RAD_AS (CIRCLE_AS/(M_PI*2))
 #define ASTRONOMICALUNIT 1.495978707E+11
-#define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
+#define PARSEC (ASTRONOMICALUNIT*RAD_AS)
 #define LIGHTSPEED 299792458.0
-#define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define JULIAN_LY (LIGHTSPEED * SOLAR_DAY * 365)
+#define STELLAR_LY (LIGHTSPEED * STELLAR_DAY * 365)
+#define FLUX(wavelength) (wavelength/(PLANK_H*LIGHTSPEED))
+#define CANDLE ((1.0/683.0)*FLUX(555))
+#define LUMEN(wavelength) (CANDLE/(4*M_PI)*pow((FLUX(wavelength)/FLUX(555)), 0.25))
+#define REDSHIFT(wavelength, reference) (1.0-(reference/wavelength))
+#define DOPPLER(shift, speed) (speed*shift)
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -119,12 +127,42 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
     \param fd file descriptor
     \param buf pointer to store data. Must be initilized and big enough to hold data.
     \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+    \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued. 
+    
+    (Total time = timeout_seconds + timeout_microseconds)
+    \param timeout_microseconds number of microseconds to wait for terminal before a timeout error is issued. 
+    
+    (Total time = timeout_seconds + timeout_microseconds)
+    \param nbytes_read the number of bytes read.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+*/
+int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
+
+/** \brief read buffer from terminal with a delimiter
+    \param fd file descriptor
+    \param buf pointer to store data. Must be initilized and big enough to hold data.
+    \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
     \param timeout number of seconds to wait for terminal before a timeout error is issued.
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
+
+/** \brief read buffer from terminal with a delimiter
+    \param fd file descriptor
+    \param buf pointer to store data. Must be initilized and big enough to hold data.
+    \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+    \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
+    \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued.
+
+    (Total Timeout is timeout_seconds + timeout_microseconds)
+    \param timeout_microseconds number of microseconds to wait for terminal before a timeout error is issued.
+
+    (Total Timeout  is timeout_seconds + timeout_microseconds)
+    \param nbytes_read the number of bytes read.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+*/
+int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -135,7 +173,6 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-
 int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
 
 /** \brief Writes a buffer to fd.
@@ -165,7 +202,6 @@ int tty_write_string(int fd, const char *buffer, int *nbytes_written);
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
     \author Wildi Markus
 */
-
 int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd);
 
 /** \brief Closes a tty connection and flushes the bus.
@@ -191,6 +227,9 @@ void tty_set_generic_udp_format(int enabled);
 void tty_clr_trailing_read_lf(int enabled);
 
 int tty_timeout(int fd, int timeout);
+/*@}*/
+
+int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
 /*@}*/
 
 /**
@@ -424,24 +463,54 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
 double estimate_absolute_magnitude(double dist, double delta_mag);
 
 /**
- * @brief interferometry_uv_coords_vector Returns the coordinates in the UV plane of the projection of a single baseline targeting the object in vector
- * @param baseline_m the length of the baseline in meters. This is supposed to be placed into the X 3d plane.
- * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
- * @param target_vector The target direction vector. This is relative to the baseline in XYZ order where X is parallel to the baseline.
- * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ * @brief estimate the star mass in ref_size units e.g. sun masses or kgs
+ * @param delta_mag The absolute magnitude ratio between the reference object used as unit in ref_size.
+ * @param ref_mass The mass of the reference object used to calculate the magnitude difference.
  */
-double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector);
+double estimate_star_mass(double delta_mag, double ref_mass);
 
 /**
- * @brief interferometry_uv_coords_hadec Returns the coordinates in the UV plane of the projection of a single baseline targeting the object by coordinates
- * @param ha current hour angle of the target.
- * @param dec declination of the target.
+ * @brief estimate the orbit radius of an object with known mass orbiting around a star.
+ * @param obs_lambda The observed wavelength of a spectral line observed on the star affected by redshift or blueshift.
+ * @param ref_lambda The reference wavelength of the spectral line observed on earth or the nullshift spectral line position.
+ * @param period The orbital period.
+ */
+double estimate_orbit_radius(double obs_lambda, double ref_lambda, double period);
+
+/**
+ * @brief estimate the mass of an object with known mass orbiting around a star.
+ * @param star_mass The mass of the star hosting an orbiting object.
+ * @param star_drift The star lagrange point L1 (observed drift of the star).
+ * @param orbit_radius The estimated orbit radius of the companion object (star, planet, cloud).
+ */
+double estimate_secondary_mass(double star_mass, double star_drift, double orbit_radius);
+
+/**
+ * @brief estimate the size of an object occulting a star in star_size units.
+ * @param star_size The size of the occulted star.
+ * @param dropoff_ratio The light curve dropoff during the transit. Linear scale. 0.0=no dropoff 1.0=totally occulted.
+ */
+double estimate_secondary_size(double star_size, double dropoff_ratio);
+
+/**
+ * @brief baseline_2d_projection Returns the coordinates of the projection of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
+ * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
+ * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
+ * @param uvresult result plane coordinates of the current projection given the baseline and target vector.
+ */
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2]);
+
+/**
+ * @brief baseline_delay Returns the delay in meters of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
  * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
  * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
  */
-double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength);
-
+double baseline_delay(double alt, double az, double baseline[3]);
 /*@}*/
 
 #ifdef __cplusplus

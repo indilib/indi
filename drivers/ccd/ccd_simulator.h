@@ -60,6 +60,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_PE_PERIOD,
             SIM_PE_MAX,
             SIM_TIME_FACTOR,
+            SIM_ROTATION,
             SIM_N
         };
 
@@ -129,7 +130,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         // Turns on/off Bayer RGB simulation.
         void setBayerEnabled(bool onOff);
 
-        float TemperatureRequest { 0 };
+        double flux(double magnitude) const;
+
+        double TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
         struct timeval ExpStart
@@ -164,8 +167,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool m_SimulateBayer { false };
 
         //  our zero point calcs used for drawing stars
-        float k { 0 };
-        float z { 0 };
+        //float k { 0 };
+        //float z { 0 };
 
         bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
@@ -189,6 +192,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
 
+        double m_LastTemperature {0};
+
         int streamPredicate {0};
         pthread_t primary_thread;
         bool terminateThread;
@@ -199,7 +204,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[SIM_N];
 
-        ISwitchVectorProperty SimulateRgbSP;
+        ISwitchVectorProperty SimulateBayerSP;
         ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser

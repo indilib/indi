@@ -59,7 +59,7 @@ namespace INDI
 {
 class StreamManager;
 
-class Spectrograph : public SensorInterface
+class Spectrograph : public virtual SensorInterface
 {
     public:
         enum
@@ -70,29 +70,29 @@ class Spectrograph : public SensorInterface
         Spectrograph();
         virtual ~Spectrograph();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-        virtual bool StartIntegration(double duration);
-        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
-
-        /**
-         * @brief setSampleRate Set depth of Spectrograph device.
-         * @param bpp bits per pixel
-         */
-        void setSampleRate(double sr);
+        virtual bool StartIntegration(double duration) override;
+        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
         /**
-         * @brief setBandwidth Set bandwidth of Spectrograph device.
-         * @param bandwidth The detector bandwidth
+         * @brief setLowCutFrequency Set low cut frequency of Spectrograph device.
+         * @param freq The low frequency cutoff
          */
-        void setBandwidth(double bandwidth);
+        void setLowCutFrequency(double freq);
+
+        /**
+         * @brief setHighCutFrequency Set high cut frequency of Spectrograph device.
+         * @param freq The high frequency cutoff
+         */
+        void setHighCutFrequency(double freq);
 
         /**
          * @brief setGain Set gain of Spectrograph device.
@@ -101,18 +101,21 @@ class Spectrograph : public SensorInterface
         void setGain(double gain);
 
         /**
-         * @brief setFrequency Set the frequency observed.
-         * @param freq capture frequency
+         * @brief getLowCutFrequency Get requested low cut frequency in Hz.
+         * @return requested low cut frequency in Hz.
          */
-        void setFrequency(double freq);
+        inline double getLowCutFrequency()
+        {
+            return LowCutFrequency;
+        }
 
         /**
-         * @brief getBandwidth Get requested integration bandwidth for the sensor in Hz.
-         * @return requested integration bandwidth for the sensor in Hz.
+         * @brief getHighCutFrequency Get requested high cut frequency in Hz.
+         * @return requested high cut frequency in Hz.
          */
-        inline double getBandwidth()
+        inline double getHighCutFrequency()
         {
-            return Bandwidth;
+            return HighCutFrequency;
         }
 
         /**
@@ -122,24 +125,6 @@ class Spectrograph : public SensorInterface
         inline double getGain()
         {
             return Gain;
-        }
-
-        /**
-         * @brief getFrequency Get requested integration frequency for the sensor in Hz.
-         * @return requested Integration frequency for the sensor in Hz.
-         */
-        inline double getFrequency()
-        {
-            return Frequency;
-        }
-
-        /**
-         * @brief getSampleRate Get requested sample rate for the sensor in Hz.
-         * @return requested sample rate for the sensor in Hz.
-         */
-        inline double getSampleRate()
-        {
-            return Samplerate;
         }
 
         /**
@@ -180,20 +165,18 @@ class Spectrograph : public SensorInterface
         typedef enum
         {
             SPECTROGRAPH_GAIN = 0,
-            SPECTROGRAPH_FREQUENCY,
-            SPECTROGRAPH_BANDWIDTH,
+            SPECTROGRAPH_LOWFREQ,
+            SPECTROGRAPH_HIGHFREQ,
             SPECTROGRAPH_BITSPERSAMPLE,
-            SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
         INumberVectorProperty SpectrographSettingsNP;
+        INumber SpectrographSettingsN[8];
 
 private:
-        double Samplerate;
-        double Frequency;
-        double Bandwidth;
+        double LowCutFrequency;
+        double HighCutFrequency;
         double Gain;
-        INumber SpectrographSettingsN[7];
 
 };
 }

@@ -29,46 +29,6 @@ static std::unique_ptr<FocusSim> focusSim(new FocusSim());
 // Focuser takes 100 microsecond to move for each step, completing 100,000 steps in 10 seconds
 #define FOCUS_MOTION_DELAY 100
 
-void ISPoll(void *p);
-
-void ISGetProperties(const char *dev)
-{
-    focusSim->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    focusSim->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    focusSim->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    focusSim->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    focusSim->ISSnoopDevice(root);
-}
-
 /************************************************************************************
  *
 ************************************************************************************/
@@ -112,7 +72,7 @@ void FocusSim::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&ModeSP);
+    defineProperty(&ModeSP);
     loadConfig(true, "Mode");
 }
 
@@ -164,9 +124,9 @@ bool FocusSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SeeingNP);
-        defineNumber(&FWHMNP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&SeeingNP);
+        defineProperty(&FWHMNP);
+        defineProperty(&TemperatureNP);
     }
     else
     {
@@ -336,34 +296,10 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 ************************************************************************************/
 IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    int mode   = IUFindOnSwitchIndex(&ModeSP);
-
-    if (mode == MODE_ALL || mode == MODE_ABSOLUTE)
-    {
-        uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
-
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        return MoveAbsFocuser(targetTicks);
-    }
-
-    internalTicks += (dir == FOCUS_INWARD ? -1 : 1) * static_cast<int32_t>(ticks);
-
-    ticks = initTicks + (internalTicks - mid) / 5000.0;
-
-    LOGF_DEBUG("REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMN[0].value);
-
-    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
-
-    if (FWHMN[0].value < SeeingN[0].value)
-        FWHMN[0].value = SeeingN[0].value;
-
-    IDSetNumber(&FWHMNP, nullptr);
-
-    return IPS_OK;
+    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    return MoveAbsFocuser(targetTicks);
 }
 
 /************************************************************************************

@@ -42,44 +42,6 @@ static std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 #define FLAT_RES 8
 #define FLAT_TIMEOUT 3
 
-void ISGetProperties(const char *dev)
-{
-    flipflat->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    flipflat->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    flipflat->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    flipflat->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    flipflat->ISSnoopDevice(root);
-}
-
 FlipFlat::FlipFlat() : LightBoxInterface(this, true)
 {
     setVersion(1, 1);
@@ -136,11 +98,11 @@ bool FlipFlat::updateProperties()
     if (isConnected())
     {
         if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
-            defineSwitch(&ParkCapSP);
-        defineSwitch(&LightSP);
-        defineNumber(&LightIntensityNP);
-        defineText(&StatusTP);
-        defineText(&FirmwareTP);
+            defineProperty(&ParkCapSP);
+        defineProperty(&LightSP);
+        defineProperty(&LightIntensityNP);
+        defineProperty(&StatusTP);
+        defineProperty(&FirmwareTP);
 
         updateLightBoxProperties();
 
@@ -172,9 +134,10 @@ bool FlipFlat::Handshake()
     {
         LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
 
         return true;
@@ -275,12 +238,14 @@ bool FlipFlat::ping()
     if (productID == 99)
     {
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
     }
     // AlNitak Dust Cover
     else if (productID == 98)
     {
         setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
     }
     // Flip Man
     else
@@ -564,7 +529,7 @@ void FlipFlat::TimerHit()
             UnParkCap();
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FlipFlat::getBrightness()

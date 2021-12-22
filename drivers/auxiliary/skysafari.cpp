@@ -47,43 +47,6 @@
 // Rest in Peace Tommy 2013-2018
 static std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
 
-void ISGetProperties(const char *dev)
-{
-    tommyGoodBoy->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    tommyGoodBoy->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    tommyGoodBoy->ISSnoopDevice(root);
-}
-
 SkySafari::SkySafari()
 {
     setVersion(0, 2);
@@ -105,7 +68,7 @@ bool SkySafari::Connect()
         skySafariClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
         skySafariClient->setServer(SettingsT[INDISERVER_HOST].text, std::stoi(SettingsT[INDISERVER_PORT].text));
         skySafariClient->connectServer();
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return rc;
@@ -148,8 +111,8 @@ void SkySafari::ISGetProperties(const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&SettingsTP);
-    defineText(&ActiveDeviceTP);
+    defineProperty(&SettingsTP);
+    defineProperty(&ActiveDeviceTP);
 
     loadConfig(true);
 }
@@ -250,13 +213,13 @@ void SkySafari::TimerHit()
         if (cli_fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
             // Try again later
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
         else if (cli_fd < 0)
         {
             LOGF_ERROR("Failed to connect to SkySafari. %s", strerror(errno));
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
 
@@ -308,7 +271,7 @@ void SkySafari::TimerHit()
         // Otherwise EAGAIN so we just try shortly
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SkySafari::startServer()
@@ -511,7 +474,8 @@ void SkySafari::processCommand(std::string cmd)
         int dd, mm, ss;
         char output[32] = { 0 };
         getSexComponents(eqCoordsNP->np[AXIS_DE].value, &dd, &mm, &ss);
-        snprintf(output, 32, "%+02d:%02d:%02d#", dd, mm, ss);
+        snprintf(output, 32, "%c%02d:%02d:%02d#", (eqCoordsNP->np[AXIS_DE].value >= 0) ? '+' : '-',
+                 std::abs(dd), mm, ss);
         sendSkySafari(output);
     }
     // Set RA

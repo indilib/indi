@@ -42,65 +42,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 static std::unique_ptr<LX200Basic> telescope(new LX200Basic());
 
 /**************************************************************************************
-** Send client definitions of all properties.
-***************************************************************************************/
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    telescope->ISGetProperties(dev);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    INDI_UNUSED(root);
-}
-
-/**************************************************************************************
 ** LX200 Basic constructor
 ***************************************************************************************/
 LX200Basic::LX200Basic()
@@ -108,13 +49,6 @@ LX200Basic::LX200Basic()
     setVersion(2, 1);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
 
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
@@ -154,6 +88,9 @@ bool LX200Basic::initProperties()
 
     addAuxControls();
 
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+
     return true;
 }
 
@@ -166,7 +103,7 @@ bool LX200Basic::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&SlewAccuracyNP);
 
         // We don't support NSWE controls
         deleteProperty(MovementNSSP.name);
@@ -384,7 +321,7 @@ bool LX200Basic::Abort()
 void LX200Basic::getBasicData()
 {
     // Make sure short
-    checkLX200Format(PortFD);
+    checkLX200EquatorialFormat(PortFD);
 
     // Get current RA/DEC
     getLX200RA(PortFD, &currentRA);

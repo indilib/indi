@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #define INDI_DEBUG_LOGGING
 #ifdef INDI_DEBUG_LOGGING
@@ -72,7 +73,7 @@ class SkywatcherAPI
 
         /// \brief Check if the current mount is a Virtuoso (AltAz)
         /// \return True if the current mount is Virtuoso otherwise false.
-        bool IsVirtuosoMount() const;
+        //bool IsVirtuosoMount() const;
 
         /// \brief Check if the current mount is a Merlin (AltAz)
         /// \return True if the current mount is Merlin otherwise false.
@@ -80,7 +81,7 @@ class SkywatcherAPI
 
         /// \brief Check if the current mount is AZ GTi
         /// \return True if the current mount is AZ GTi otherwise false.
-        bool IsAZGTiMount() const;
+        //bool IsAZGTiMount() const;
 
         /// \brief Convert a slewing rate in degrees per second into the required
         /// clock ticks per microstep setting.
@@ -140,9 +141,8 @@ class SkywatcherAPI
         bool InitializeMC();
 
         /// \brief Initialize the communication to the mount
-        /// \param[in] recover - The connection is recovering
         /// \return True if successful otherwise false
-        bool InitMount(bool recover);
+        bool InitMount();
 
         /// \brief Bring the axis to an immediate halt.
         /// N.B. This command could cause damage to the mount or telescope
@@ -272,6 +272,7 @@ class SkywatcherAPI
             HEQ5   = 0x01,
             EQ5    = 0x02,
             EQ3    = 0x03,
+            AZEQ6  = 0x22,
             GT     = 0x80,
             MF     = 0x81,
             _114GT = 0x82,
@@ -312,26 +313,13 @@ class SkywatcherAPI
         unsigned int DBG_SCOPE { 0 };
 
     private:
-        enum TTY_ERROR
-        {
-            TTY_OK           = 0,
-            TTY_READ_ERROR   = -1,
-            TTY_WRITE_ERROR  = -2,
-            TTY_SELECT_ERROR = -3,
-            TTY_TIME_OUT     = -4,
-            TTY_PORT_FAILURE = -5,
-            TTY_PARAM_ERROR  = -6,
-            TTY_ERRNO        = -7
-        };
-        virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) = 0;
-        virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) = 0;
-        virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) = 0;
-        //    virtual int skywatcher_tty_write_string(int fd, const char * buffer, int *nbytes_written) = 0;
-        //    virtual int skywatcher_tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd) = 0;
-        //    virtual int skywatcher_tty_disconnect(int fd) = 0;
-        //    virtual void skywatcher_tty_error_msg(int err_code, char *err_msg, int err_msg_len) = 0;
-        //    virtual int skywatcher_tty_timeout(int fd, int timeout) = 0;*/
         int MyPortFD { 0 };
+        // In seconds.
+        static constexpr uint8_t SKYWATCHER_MAX_RETRTY {3};
+        static constexpr uint8_t SKYWATCHER_TIMEOUT {5};
+        static constexpr uint8_t SKYWATCHER_MAX_CMD {16};
+
+        static const std::map<int, std::string> errorCodes;
 
 #ifdef INDI_DEBUG_LOGGING
     public:

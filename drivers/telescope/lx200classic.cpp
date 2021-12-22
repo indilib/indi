@@ -96,7 +96,7 @@ bool LX200Classic::initProperties()
     IUFillSwitch(&UnparkAlignmentS[2], "Land", "", ISS_OFF);
     IUFillSwitchVector(&UnparkAlignmentSP, UnparkAlignmentS, 3, getDeviceName(), "Unpark Mode", "", SITE_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
-                       
+
     return true;
 }
 
@@ -106,15 +106,15 @@ bool LX200Classic::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
-        defineSwitch(&SolarSP);
-        defineSwitch(&StarCatalogSP);
-        defineSwitch(&DeepSkyCatalogSP);
-        defineNumber(&ObjectNoNP);
-        defineNumber(&MaxSlewRateNP);
-        defineSwitch(&UnparkAlignmentSP);
-       
+        defineProperty(&ElevationLimitNP);
+        defineProperty(&ObjectInfoTP);
+        defineProperty(&SolarSP);
+        defineProperty(&StarCatalogSP);
+        defineProperty(&DeepSkyCatalogSP);
+        defineProperty(&ObjectNoNP);
+        defineProperty(&MaxSlewRateNP);
+        defineProperty(&UnparkAlignmentSP);
+
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -343,7 +343,7 @@ bool LX200Classic::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             return true;
         }
-        
+
         // Unpark Alignment Mode
         if (!strcmp(name, UnparkAlignmentSP.name))
         {
@@ -365,7 +365,7 @@ bool LX200Classic::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &MaxSlewRateNP);
     IUSaveConfigNumber(fp, &ElevationLimitNP);
-    
+
     IUSaveConfigSwitch(fp, &UnparkAlignmentSP);
 
     return true;
@@ -376,17 +376,16 @@ bool LX200Classic::Park()
 {
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
-    
+
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    double parkRA  = 0.0;
-    double parkDEC = 0.0;
-    azAltToRaDecNow(parkAz, parkAlt, parkRA, parkDEC);
-    LOGF_DEBUG("Parking to RA (%f) DEC (%f)...", parkRA, parkDEC);
-    
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
+
     //save the current AlignmentMode to UnparkAlignment
     LX200Generic::getAlignment();
     int curAlignment = IUFindOnSwitchIndex(&AlignmentSP);
@@ -396,7 +395,7 @@ bool LX200Classic::Park()
     IDSetSwitch(&UnparkAlignmentSP, nullptr);
     saveConfig(true, UnparkAlignmentSP.name);
 
-    if (!Goto(parkRA, parkDEC))
+    if (!Goto(equatorialCoords.rightascension, equatorialCoords.declination))
     {
         ParkSP.s = IPS_ALERT;
         IDSetSwitch(&ParkSP, "Parking Failed.");
@@ -437,12 +436,15 @@ bool LX200Classic::UnPark()
 
     double parkRA  = 0.0;
     double parkDEC = 0.0;
-    azAltToRaDecNow(parkAz, parkAlt, parkRA, parkDEC);
+    //azAltToRaDecNow(parkAz, parkAlt, parkRA, parkDEC);
+    INDI::IEquatorialCoordinates equatorialCoords {parkRA, parkDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
     if (isSimulation())
     {
         currentRA = parkRA;
-        currentDEC= parkDEC;
+        currentDEC = parkDEC;
     }
     else
     {
@@ -466,17 +468,17 @@ bool LX200Classic::UnPark()
 
 bool LX200Classic::SetCurrentPark()
 {
-    double parkAZ = 0.0;
-    double parkAlt = 0.0;
-    raDecToAzAltNow(currentRA, currentDEC, parkAZ, parkAlt);
-    
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
+    fs_sexa(AzStr, horizontalCoords.azimuth, 2, 3600);
+    fs_sexa(AltStr, horizontalCoords.altitude, 2, 3600);
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    SetAxis1Park(parkAZ);
-    SetAxis2Park(parkAlt);
+    SetAxis1Park(horizontalCoords.azimuth);
+    SetAxis2Park(horizontalCoords.altitude);
 
     return true;
 }
@@ -496,9 +498,9 @@ bool LX200Classic::ReadScopeStatus()
 {
     int curTrackState = TrackState;
     static int settling = -1;
-    
+
     if (settling >= 0) settling--;
-    
+
     if ((TrackState == SCOPE_PARKED) && (settling == 0) && !isSimulation())
     {
         settling = -1;
@@ -515,11 +517,11 @@ bool LX200Classic::ReadScopeStatus()
     }
 
     if (LX200Generic::ReadScopeStatus())
-    { 
+    {
         if ((TrackState == SCOPE_PARKED) && (curTrackState == SCOPE_PARKING) && !isSimulation())
         {
             //allow scope to make internal state change to settled on target.
-            //otherwise changing to landmode slews the scope to same 
+            //otherwise changing to landmode slews the scope to same
             //coordinates intepreted in landmode.
             //Between isSlewComplete() and the beep there is nearly 3 seconds!
             settling = 3; //n iterations of default 1000ms
@@ -527,55 +529,5 @@ bool LX200Classic::ReadScopeStatus()
     }
 
     return true;
-}
-
-void LX200Classic::azAltToRaDecNow(double az, double alt, double &ra, double &dec)
-{
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = az + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = alt;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    
-    ra = equatorialPos.ra / 15.0;
-    dec = equatorialPos.dec;
-    
-    return;
-}
-
-void LX200Classic::raDecToAzAltNow(double ra, double dec, double &az, double &alt)
-{
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-        
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = ra * 15;
-    equatorialPos.dec = dec;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    az = horizontalPos.az - 180;
-    if (az < 0)
-        az+= 360;
-    alt = horizontalPos.alt;
-    
-    return;
 }
 

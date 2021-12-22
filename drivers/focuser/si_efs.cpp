@@ -49,44 +49,6 @@ const std::map<SIEFS::SI_MOTOR, std::string> SIEFS::MotorMap =
     {SIEFS::SI_LOCKED, "Locked"},
 };
 
-void ISGetProperties(const char *dev)
-{
-    siefs->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    siefs->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    siefs->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    siefs->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    siefs->ISSnoopDevice(root);
-}
-
 SIEFS::SIEFS()
 {
     setVersion(0, 1);
@@ -99,7 +61,7 @@ bool SIEFS::Connect()
 {
     if (isSimulation())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -118,16 +80,20 @@ bool SIEFS::Connect()
         {
             FocusMaxPosN[0].value = maximumPosition;
 
-            FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
-            FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
-            FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+            FocusAbsPosN[0].min = 0;
+            FocusAbsPosN[0].max = FocusMaxPosN[0].value;
+            FocusAbsPosN[0].step = FocusMaxPosN[0].value / 50.0;
+
+            FocusSyncN[0].min = 0;
+            FocusSyncN[0].max = FocusMaxPosN[0].value;
+            FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
 
             FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
             FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
             FocusRelPosN[0].min  = 0;
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return (handle != nullptr);
@@ -206,7 +172,7 @@ void SIEFS::TimerHit()
 
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 IPState SIEFS::MoveAbsFocuser(uint32_t targetTicks)

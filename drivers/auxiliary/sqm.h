@@ -32,9 +32,9 @@ class SQM : public INDI::DefaultDevice
         SQM();
         virtual ~SQM() = default;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         /**
          * @struct SqmConnection
@@ -48,8 +48,8 @@ class SQM : public INDI::DefaultDevice
         } SqmConnection;
 
     protected:
-        const char *getDefaultName();
-        void TimerHit();
+        const char *getDefaultName() override;
+        void TimerHit() override;
 
     private:
         bool getReadings();

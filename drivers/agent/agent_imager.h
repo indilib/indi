@@ -33,35 +33,35 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
 
         // DefaultDevice
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                               char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
+                               char *formats[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
         // BaseClient
 
-        virtual void newDevice(INDI::BaseDevice *dp);
-        virtual void newProperty(INDI::Property *property);
-        virtual void removeProperty(INDI::Property *property);
-        virtual void removeDevice(INDI::BaseDevice *dp);
-        virtual void newBLOB(IBLOB *bp);
-        virtual void newSwitch(ISwitchVectorProperty *svp);
-        virtual void newNumber(INumberVectorProperty *nvp);
-        virtual void newText(ITextVectorProperty *tvp);
-        virtual void newLight(ILightVectorProperty *lvp);
-        virtual void newMessage(INDI::BaseDevice *dp, int messageID);
-        virtual void serverConnected();
-        virtual void serverDisconnected(int exit_code);
+        virtual void newDevice(INDI::BaseDevice *dp) override;
+        virtual void newProperty(INDI::Property *property) override;
+        virtual void removeProperty(INDI::Property *property) override;
+        virtual void removeDevice(INDI::BaseDevice *dp) override;
+        virtual void newBLOB(IBLOB *bp) override;
+        virtual void newSwitch(ISwitchVectorProperty *svp) override;
+        virtual void newNumber(INumberVectorProperty *nvp) override;
+        virtual void newText(ITextVectorProperty *tvp) override;
+        virtual void newLight(ILightVectorProperty *lvp) override;
+        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        virtual void serverConnected() override;
+        virtual void serverDisconnected(int exit_code) override;
 
     protected:
-        virtual const char *getDefaultName();
-        virtual bool Connect();
-        virtual bool Disconnect();
+        virtual const char *getDefaultName() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
 
     private:
         bool isRunning();
@@ -81,8 +81,8 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
         int maxGroup { 0 };
         int image { 0 };
         int maxImage { 0 };
-        char *controlledCCD { nullptr };
-        char *controlledFilterWheel { nullptr };
+        const char *controlledCCD { nullptr };
+        const char *controlledFilterWheel { nullptr };
 
         ITextVectorProperty ControlledDeviceTP;
         IText ControlledDeviceT[2] {};

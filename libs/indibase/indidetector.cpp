@@ -72,10 +72,10 @@ bool Detector::updateProperties()
 {
     if (isConnected())
     {
-        defineNumber(&DetectorSettingsNP);
+        defineProperty(&DetectorSettingsNP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
     }
     else
     {

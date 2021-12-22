@@ -160,10 +160,10 @@ bool ioptronHC8406::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&GuideRateSP);
-        defineSwitch(&CenterRateSP);
-        defineSwitch(&CursorMoveSpeedSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&GuideRateSP);
+        defineProperty(&CenterRateSP);
+        defineProperty(&CursorMoveSpeedSP);
         ioptronHC8406Init();
     }
     else
@@ -351,7 +351,7 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-    checkLX200Format(PortFD);
+    checkLX200EquatorialFormat(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }
@@ -396,8 +396,9 @@ bool ioptronHC8406::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -1143,7 +1144,7 @@ int ioptronHC8406::getCommandString(int fd, char *data, const char *cmd)
 
 }
 
-void ioptronHC8406::sendScopeTime()
+bool ioptronHC8406::sendScopeTime()
 {
     char cdate[32] = {0};
     double ctime;
@@ -1164,7 +1165,7 @@ void ioptronHC8406::sendScopeTime()
         IUSaveText(&TimeT[1], "3");
         TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
-        return;
+        return true;
     }
 
     //getCommandSexa(PortFD, &lx200_utc_offset, ":GG#");
@@ -1176,7 +1177,7 @@ void ioptronHC8406::sendScopeTime()
     if (result != 3)
     {
         LOG_ERROR("Error reading UTC offset from Telescope.");
-        return;
+        return false;
     }
     LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g", utc_h, utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
@@ -1192,7 +1193,7 @@ void ioptronHC8406::sendScopeTime()
     if (result != 3)
     {
         LOG_ERROR("Error reading date from Telescope.");
-        return;
+        return false;
     }
 
     // Let's fill in the local time
@@ -1223,6 +1224,7 @@ void ioptronHC8406::sendScopeTime()
     // Let's send everything to the client
     TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
+    return true;
 }
 
 int ioptronHC8406::SendPulseCmd(int8_t direction, uint32_t duration_msec)

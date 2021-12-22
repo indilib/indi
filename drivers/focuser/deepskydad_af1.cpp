@@ -35,44 +35,6 @@
 
 static std::unique_ptr<DeepSkyDadAF1> deepSkyDadAf1(new DeepSkyDadAF1());
 
-void ISGetProperties(const char * dev)
-{
-    deepSkyDadAf1->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    deepSkyDadAf1->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    deepSkyDadAf1->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    deepSkyDadAf1->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    deepSkyDadAf1->ISSnoopDevice(root);
-}
-
 DeepSkyDadAF1::DeepSkyDadAF1()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT);
@@ -87,7 +49,8 @@ bool DeepSkyDadAF1::initProperties()
     IUFillSwitch(&StepModeS[QUARTER], "QUARTER", "Quarter Step", ISS_OFF);
     IUFillSwitch(&StepModeS[HALF], "HALF", "Half Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FULL], "FULL", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 4, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 4, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -112,28 +75,32 @@ bool DeepSkyDadAF1::initProperties()
 
     // Idle coils timeout (ms)
     IUFillNumber(&IdleCoilsTimeoutN[0], "IDLE_COILS_TIMEOUT", "Period (ms)", "%6.0f", 0, 999999, 1000, 60000);
-    IUFillNumberVector(&IdleCoilsTimeoutNP, IdleCoilsTimeoutN, 1, getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT", "Idle - coils timeout",
+    IUFillNumberVector(&IdleCoilsTimeoutNP, IdleCoilsTimeoutN, 1, getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT",
+                       "Idle - coils timeout",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Coils mode
     IUFillSwitch(&CoilsModeS[ALWAYS_ON], "ALWAYS_ON", "Always on", ISS_OFF);
     IUFillSwitch(&CoilsModeS[IDLE_OFF], "IDLE_OFF", "Idle - off", ISS_OFF);
     IUFillSwitch(&CoilsModeS[IDLE_COILS_TIMEOUT], "IDLE_COILS_TIMEOUT", "Idle - coils timeout (ms)", ISS_OFF);
-    IUFillSwitchVector(&CoilsModeSP, CoilsModeS, 3, getDeviceName(), "Coils mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CoilsModeSP, CoilsModeS, 3, getDeviceName(), "Coils mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Current move
     IUFillSwitch(&CurrentMoveS[CURRENT_25], "CMV_25", "25%", ISS_OFF);
     IUFillSwitch(&CurrentMoveS[CURRENT_50], "CMV_50", "50%", ISS_OFF);
     IUFillSwitch(&CurrentMoveS[CURRENT_75], "CMV_75", "75%", ISS_OFF);
     IUFillSwitch(&CurrentMoveS[CURRENT_100], "CMV_100", "100%", ISS_OFF);
-    IUFillSwitchVector(&CurrentMoveSP, CurrentMoveS, 4, getDeviceName(), "Current - move", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CurrentMoveSP, CurrentMoveS, 4, getDeviceName(), "Current - move", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
     // Current hold
     IUFillSwitch(&CurrentHoldS[CURRENT_25], "CHD_25", "25%", ISS_OFF);
     IUFillSwitch(&CurrentHoldS[CURRENT_50], "CHD_50", "50%", ISS_OFF);
     IUFillSwitch(&CurrentHoldS[CURRENT_75], "CHD_75", "75%", ISS_OFF);
     IUFillSwitch(&CurrentHoldS[CURRENT_100], "CHD_100", "100%", ISS_OFF);
-    IUFillSwitchVector(&CurrentHoldSP, CurrentHoldS, 4, getDeviceName(), "Current - hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CurrentHoldSP, CurrentHoldS, 4, getDeviceName(), "Current - hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
     setDefaultPollingPeriod(500);
     addDebugControl();
@@ -147,13 +114,13 @@ bool DeepSkyDadAF1::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineNumber(&SettleBufferNP);
-        defineSwitch(&CoilsModeSP);
-        defineNumber(&IdleCoilsTimeoutNP);
-        defineSwitch(&CurrentMoveSP);
-        defineSwitch(&CurrentHoldSP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&CoilsModeSP);
+        defineProperty(&IdleCoilsTimeoutNP);
+        defineProperty(&CurrentMoveSP);
+        defineProperty(&CurrentHoldSP);
 
         GetFocusParams();
 
@@ -881,14 +848,14 @@ void DeepSkyDadAF1::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (std::abs(lastPos - FocusAbsPosN[0].value) > 5)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -908,7 +875,7 @@ void DeepSkyDadAF1::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF1::AbortFocuser()

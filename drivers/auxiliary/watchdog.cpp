@@ -37,43 +37,6 @@
 // http://indilib.org/images/juli_tommy.jpg
 std::unique_ptr<WatchDog> juli(new WatchDog());
 
-void ISGetProperties(const char *dev)
-{
-    juli->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    juli->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    juli->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    juli->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    juli->ISSnoopDevice(root);
-}
-
 ////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////
@@ -124,10 +87,9 @@ bool WatchDog::Connect()
                       WeatherThresholdN[0].value);
         else
             LOG_INFO("Weather Watchdog is enabled. Shutdown is triggered when Weather status in DANGER zone.");
-        // Trigger Snoop
-        IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
     }
 
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
 
@@ -218,13 +180,13 @@ void WatchDog::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineNumber(&HeartBeatNP);
-    defineNumber(&WeatherThresholdNP);
-    defineText(&SettingsTP);
-    defineSwitch(&ShutdownTriggerSP);
-    defineSwitch(&ShutdownProcedureSP);
-    defineSwitch(&MountPolicySP);
-    defineText(&ActiveDeviceTP);
+    defineProperty(&HeartBeatNP);
+    defineProperty(&WeatherThresholdNP);
+    defineProperty(&SettingsTP);
+    defineProperty(&ShutdownTriggerSP);
+    defineProperty(&ShutdownProcedureSP);
+    defineProperty(&MountPolicySP);
+    defineProperty(&ActiveDeviceTP);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -453,7 +415,10 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                     LOG_INFO("Weather Watchdog is disabled.");
                 }
                 else
+                {
+                    IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
                     LOG_INFO("Weather Watchdog is enabled.");
+                }
 
             }
 
@@ -725,7 +690,7 @@ void WatchDog::TimerHit()
             return;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 void WatchDog::parkDome()

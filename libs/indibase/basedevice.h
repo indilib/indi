@@ -20,32 +20,34 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
+#include "indiproperties.h"
+#include "indiutility.h"
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
-#include <stdint.h>
+// #define MAXRBUF 2048 // #PS: defined in indibase.h
 
-#define MAXRBUF 2048
-
-/**
- * \class INDI::BaseDevice
-   \brief Class to provide basic INDI device functionality.
-
-   INDI::BaseDevice is the base device for all INDI devices and contains a list of all properties defined by the device either explicity or via a skeleton file.
-   You don't need to subclass INDI::BaseDevice class directly, it is inheritied by INDI::DefaultDevice which takes care of building a standard INDI device. Moreover, INDI::BaseClient
-   maintains a list of INDI::BaseDevice objects as they get defined from the INDI server, and those objects may be accessed to retrieve information on the object properties or message log.
-
-   \author Jasem Mutlaq
+/** @class INDI::BaseDevice
+ *  @brief Class to provide basic INDI device functionality.
+ *
+ *  INDI::BaseDevice is the base device for all INDI devices and contains a list of all properties defined by the device either explicity or via a skeleton file.
+ *  You don't need to subclass INDI::BaseDevice class directly, it is inheritied by INDI::DefaultDevice which takes care of building a standard INDI device. Moreover, INDI::BaseClient
+ *  maintains a list of INDI::BaseDevice objects as they get defined from the INDI server, and those objects may be accessed to retrieve information on the object properties or message log.
+ *
+ *  @author Jasem Mutlaq
  */
 namespace INDI
 {
 
+class BaseDevicePrivate;
 class BaseDevice
 {
+        DECLARE_PRIVATE(BaseDevice)
     public:
-        BaseDevice();
-        virtual ~BaseDevice();
+        typedef INDI::Properties Properties;
+        // typedef std::vector<INDI::Property*> Properties;
 
         /*! INDI error codes. */
         enum INDI_ERROR
@@ -63,9 +65,7 @@ class BaseDevice
             INDI_DISABLED
         };
 
-        /**
-         * @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces.
-         */
+        /** @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces. */
         enum DRIVER_INTERFACE
         {
             GENERAL_INTERFACE       = 0,         /**< Default interface for all INDI devices */
@@ -85,167 +85,171 @@ class BaseDevice
             SPECTROGRAPH_INTERFACE  = (1 << 13), /**< Spectrograph interface */
             CORRELATOR_INTERFACE    = (1 << 14), /**< Correlators (interferometers) interface */
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
+
+            SENSOR_INTERFACE        = SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE
         };
+    public:
+        BaseDevice();
+        virtual ~BaseDevice();
 
-        static const unsigned int SENSOR_INTERFACE { SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE };
+    public:
+        /** @return Return vector number property given its name */
+        INDI::PropertyView<INumber> *getNumber(const char *name) const;
+        /** @return Return vector text property given its name */
+        INDI::PropertyView<IText>   *getText(const char *name) const;
+        /** @return Return vector switch property given its name */
+        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
+        /** @return Return vector light property given its name */
+        INDI::PropertyView<ILight>  *getLight(const char *name) const;
+        /** @return Return vector BLOB property given its name */
+        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
 
-        /** \return Return vector number property given its name */
-        INumberVectorProperty *getNumber(const char *name);
-        /** \return Return vector text property given its name */
-        ITextVectorProperty *getText(const char *name);
-        /** \return Return vector switch property given its name */
-        ISwitchVectorProperty *getSwitch(const char *name);
-        /** \return Return vector light property given its name */
-        ILightVectorProperty *getLight(const char *name);
-        /** \return Return vector BLOB property given its name */
-        IBLOBVectorProperty *getBLOB(const char *name);
-        /** \return Return property state */
-        IPState getPropertyState(const char *name);
-        /** \return Return property permission */
-        IPerm getPropertyPermission(const char *name);
+    public:
+        /** @return Return property state */
+        IPState getPropertyState(const char *name) const;
+        /** @return Return property permission */
+        IPerm getPropertyPermission(const char *name) const;
 
+    public:
         void registerProperty(void *p, INDI_PROPERTY_TYPE type);
 
-        /** \brief Remove a property
-            \param name name of property to be removed. Pass NULL to remove the whole device.
-            \param errmsg buffer to store error message.
-            \return 0 if successul, -1 otherwise.
-        */
+        // #PS: will be deprecated / backward compatibility
+        void registerProperty(ITextVectorProperty *property);
+        void registerProperty(INumberVectorProperty *property);
+        void registerProperty(ISwitchVectorProperty *property);
+        void registerProperty(ILightVectorProperty *property);
+        void registerProperty(IBLOBVectorProperty *property);
+
+        void registerProperty(INDI::PropertyView<IText> *property);
+        void registerProperty(INDI::PropertyView<INumber> *property);
+        void registerProperty(INDI::PropertyView<ISwitch> *property);
+        void registerProperty(INDI::PropertyView<ILight> *property);
+        void registerProperty(INDI::PropertyView<IBLOB> *property);
+
+        void registerProperty(INDI::Property &property);
+
+        /** @brief Remove a property
+         *  @param name name of property to be removed. Pass NULL to remove the whole device.
+         *  @param errmsg buffer to store error message.
+         *  @return 0 if successul, -1 otherwise.
+         */
         int removeProperty(const char *name, char *errmsg);
 
-        /** \brief Return a property and its type given its name.
-            \param name of property to be found.
-            \param type of property found.
-            \return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
-            returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
+        /** @brief Return a property and its type given its name.
+         *  @param name of property to be found.
+         *  @param type of property found.
+         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
+         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
+         *
+         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
+         *  is the property type (Number, Text, Switch..etc).
+         */
+        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
-            \note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
-            is the property type (Number, Text, Switch..etc).
+        /** @brief Return a property and its type given its name.
+         *  @param name of property to be found.
+         *  @param type of property found.
+         *  @return If property is found, it is returned. To be used you must use static_cast with given the type of property
+         *  returned.
+         */
+        Property getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
-        */
-        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+        /** @brief Return a list of all properties in the device. */
+        Properties getProperties();
+        const Properties getProperties() const;
 
-        /** \brief Return a property and its type given its name.
-            \param name of property to be found.
-            \param type of property found.
-            \return If property is found, it is returned. To be used you must use static_cast with given the type of property
-            returned.
-        */
-        INDI::Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
-
-        /** \brief Return a list of all properties in the device.
-        */
-        std::vector<INDI::Property *> *getProperties()
-        {
-            return &pAll;
-        }
-
-        /** \brief Build driver properties from a skeleton file.
-            \param filename full path name of the file.
-            \return true if successful, false otherwise.
-
-        A skeloton file defines the properties supported by this driver. It is a list of defXXX elements enclosed by @<INDIDriver>@
-        and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
-        to other clients.
-
-        \see An example skeleton file can be found under examples/tutorial_four_sk.xml
-
-        */
-        bool buildSkeleton(const char *filename);
-
-        /** \return True if the device is connected (CONNECT=ON), False otherwise */
-        bool isConnected();
-
-        /** \brief Set the device name
-          \param dev new device name
-          */
-        void setDeviceName(const char *dev);
-
-        /** \return Returns the device name */
-        const char *getDeviceName();
-
-        /** \brief Add message to the driver's message queue.
-            \param msg Message to add.
-        */
+    public:
+        /** @brief Add message to the driver's message queue.
+         *  @param msg Message to add.
+         */
         void addMessage(const std::string &msg);
-
         void checkMessage(XMLEle *root);
         void doMessage(XMLEle *msg);
 
-        /** \return Returns a specific message. */
-        std::string messageQueue(int index) const;
+        /** @return Returns a specific message. */
+        const std::string &messageQueue(size_t index) const;
 
-        /** \return Returns last message message. */
-        std::string lastMessage();
+        /** @return Returns last message message. */
+        const std::string &lastMessage() const;
 
-        /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
-        void setMediator(INDI::BaseMediator *med)
-        {
-            mediator = med;
-        }
+    public:
+        /** @return True if the device is connected (CONNECT=ON), False otherwise */
+        bool isConnected() const;
 
-        /** \returns Get the meditator assigned to this driver */
-        INDI::BaseMediator *getMediator()
-        {
-            return mediator;
-        }
+        /** @brief Set the driver's mediator to receive notification of news devices and updated property values. */
+        void setMediator(INDI::BaseMediator *mediator);
 
-        /** \return driver name
-         *  \note This can only be valid if DRIVER_INFO is defined by the driver.
-         **/
-        const char *getDriverName();
+        /** @returns Get the meditator assigned to this driver */
+        INDI::BaseMediator *getMediator() const;
 
-        /** \return driver executable name
-         *  \note This can only be valid if DRIVER_INFO is defined by the driver.
-         **/
-        const char *getDriverExec();
+        /** @brief Set the device name
+         *  @param dev new device name
+         */
+        void setDeviceName(const char *dev);
 
-        /** \return driver version
-         *  \note This can only be valid if DRIVER_INFO is defined by the driver.
-         **/
-        const char *getDriverVersion();
+        /** @return Returns the device name */
+        const char *getDeviceName() const;
 
-        /** \brief
-         * \return
-         **/
+        /** @brief Check that the device name matches the argument. **/
+        bool isDeviceNameMatch(const char *otherName) const;
 
-        /**
-         * @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.
-         * @return driver device interface descriptor.
-         * @note For example, to know if the driver supports CCD interface, check the retruned value:
-         @code{.cpp}
-          if (device->getDriverInterface() & CCD_INTERFACE)
-                   cout << "We received a camera!" << endl;
-         @endcode
+        /** @brief Check that the device name matches the argument. **/
+        bool isDeviceNameMatch(const std::string &otherName) const;
+
+        /** @return driver name
+         *  @note This can only be valid if DRIVER_INFO is defined by the driver.
+         */
+        const char *getDriverName() const;
+
+        /** @return driver executable name
+         *  @note This can only be valid if DRIVER_INFO is defined by the driver.
+         */
+        const char *getDriverExec() const;
+
+        /** @return driver version
+         *  @note This can only be valid if DRIVER_INFO is defined by the driver.
+         */
+        const char *getDriverVersion() const;
+
+        /** @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.
+         *  @return driver device interface descriptor.
+         *  @note For example, to know if the driver supports CCD interface, check the retruned value:
+         *  @code{.cpp}
+         *  if (device->getDriverInterface() & CCD_INTERFACE)
+         *       cout << "We received a camera!" << endl;
+         *  @endcode
          */
         virtual uint16_t getDriverInterface();
 
-    protected:
-        /** \brief Build a property given the supplied XML element (defXXX)
-          \param root XML element to parse and build.
-          \param errmsg buffer to store error message in parsing fails.
-          \return 0 if parsing is successful, -1 otherwise and errmsg is set */
-        int buildProp(XMLEle *root, char *errmsg);
+    public:
+        /** @brief Build driver properties from a skeleton file.
+         *  @param filename full path name of the file.
+         *  @return true if successful, false otherwise.
+         *
+         *  A skeloton file defines the properties supported by this driver. It is a list of defXXX elements enclosed by @<INDIDriver>@
+         *  and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
+         *  to other clients.
+         *  @see An example skeleton file can be found under examples/tutorial_four_sk.xml
+         */
+        bool buildSkeleton(const char *filename);
 
-        /** \brief handle SetXXX commands from client */
+        /** @brief Build a property given the supplied XML element (defXXX)
+         *  @param root XML element to parse and build.
+         *  @param errmsg buffer to store error message in parsing fails.
+         *  @param isDynamic set to true if property is loaded from an XML file.
+         *  @return 0 if parsing is successful, -1 otherwise and errmsg is set
+         */
+        int buildProp(XMLEle *root, char *errmsg, bool isDynamic = false);
+
+        /** @brief handle SetXXX commands from client */
         int setValue(XMLEle *root, char *errmsg);
-        /** \brief Parse and store BLOB in the respective vector */
+
+        /** @brief Parse and store BLOB in the respective vector */
         int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
 
-    private:
-        char *deviceID;
-
-        std::vector<INDI::Property *> pAll;
-
-        LilXML *lp;
-
-        std::vector<std::string> messageLog;
-
-        INDI::BaseMediator *mediator;
-
-        friend class INDI::BaseClient;
-        friend class INDI::BaseClientQt;
-        friend class INDI::DefaultDevice;
+    protected:
+        std::shared_ptr<BaseDevicePrivate> d_ptr;
+        BaseDevice(BaseDevicePrivate &dd);
 };
 
 }

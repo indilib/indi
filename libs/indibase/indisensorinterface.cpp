@@ -26,6 +26,7 @@
 #include "libastro.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -41,31 +42,6 @@
 #include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
-
-// Create dir recursively
-static int _det_mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -86,9 +62,9 @@ SensorInterface::SensorInterface()
     RA              = -1000;
     Dec             = -1000;
     MPSAS           = -1000;
-    Lat             = -1000;
-    Lon             = -1000;
-    El              = -1000;
+    Latitude             = -1000;
+    Longitude             = -1000;
+    Elevation              = -1000;
     primaryAperture = primaryFocalLength - 1;
 
     Buffer     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
@@ -113,25 +89,25 @@ bool SensorInterface::updateProperties()
     //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineNumber(&FramedIntegrationNP);
+        defineProperty(&FramedIntegrationNP);
 
         if (CanAbort())
-            defineSwitch(&AbortIntegrationSP);
+            defineProperty(&AbortIntegrationSP);
 
-        defineText(&FITSHeaderTP);
+        defineProperty(&FITSHeaderTP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
-        defineBLOB(&FitsBP);
+        defineProperty(&FitsBP);
 
-        defineSwitch(&TelescopeTypeSP);
+        defineProperty(&TelescopeTypeSP);
 
-        defineSwitch(&UploadSP);
+        defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineProperty(&UploadSettingsTP);
     }
     else
     {
@@ -163,7 +139,7 @@ void SensorInterface::processProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -183,10 +159,10 @@ bool SensorInterface::processSnoopDevice(XMLEle *root)
     }
     if (!IUSnoopNumber(root, &LocationNP))
     {
-        Lat = LocationNP.np[0].value;
-        Lon = LocationNP.np[1].value;
-        El = LocationNP.np[2].value;
-        //IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n", RA, Dec, El);
+        Latitude = LocationNP.np[0].value;
+        Longitude = LocationNP.np[1].value;
+        Elevation = LocationNP.np[2].value;
+        //IDLog("Snooped Latitude %4.2f  Longitude %4.2f  Elevation %4.2f\n", RA, Dec, Elevation);
     }
     if (!IUSnoopNumber(root, &ScopeParametersNP))
     {
@@ -217,6 +193,7 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
@@ -341,12 +318,12 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
             else if (UploadS[1].s == ISS_ON)
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             else
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             return true;
         }
@@ -480,8 +457,8 @@ bool SensorInterface::initProperties()
     IUFillNumberVector(&EqNP, EqN, 2, getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&LocationN[0], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[1], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    IUFillNumber(&LocationN[0], "LAT", "Latitude (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    IUFillNumber(&LocationN[1], "LONG", "Longitude (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[2], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
@@ -494,6 +471,7 @@ bool SensorInterface::initProperties()
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
@@ -640,8 +618,10 @@ bool SensorInterface::AbortIntegration()
 
 void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 {
+#ifndef WITH_MINMAX
     INDI_UNUSED(buf);
     INDI_UNUSED(len);
+#endif
     int status = 0;
     char dev_name[32];
     char exp_start[32];
@@ -699,31 +679,30 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    if (Lat != -1000 && Lon != -1000 && El != -1000)
+    if (Latitude != -1000 && Longitude != -1000 && Elevation != -1000)
     {
         char lat_str[MAXINDIFORMAT];
         char lon_str[MAXINDIFORMAT];
         char el_str[MAXINDIFORMAT];
-        fs_sexa(lat_str, Lat, 2, 360000);
-        fs_sexa(lat_str, Lon, 2, 360000);
-        snprintf(el_str, MAXINDIFORMAT, "%lf", El);
-        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
-        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
-        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+        fs_sexa(lat_str, Latitude, 2, 360000);
+        fs_sexa(lat_str, Longitude, 2, 360000);
+        snprintf(el_str, MAXINDIFORMAT, "%lf", Elevation);
+        fits_update_key_s(fptr, TSTRING, "SITELAT", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "SITELONG", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "SITEELEV", el_str, "Location Elevation", &status);
     }
     if (RA != -1000 && Dec != -1000)
     {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
+        INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.rightascension  = RA;
+        epochPos.declination = Dec;
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+        INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
+        double raJ2000  = J2000Pos.rightascension;
+        double decJ2000 = J2000Pos.declination;
         char ra_str[32], de_str[32];
 
         fs_sexa(ra_str, raJ2000, 2, 360000);
@@ -752,7 +731,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
-    fits_update_key_s(fptr, TSTRING, "TIMESTAMP", timestamp, "Timestamp of start of integration", &status);
+    fits_update_key_s(fptr, TSTRING, "EPOCH", timestamp, "Unix Epoch of start of integration", &status);
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 
@@ -889,7 +868,7 @@ void* SensorInterface::sendFITS(uint8_t *buf, int len)
 bool SensorInterface::IntegrationComplete()
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     if(HasDSP())
     {
@@ -1205,9 +1184,9 @@ int SensorInterface::getFileIndex(const char *dir, const char *prefix, const cha
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_det_mkdir(dir, 0755) == -1)
-            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        LOGF_DEBUG("Creating directory %s...", dir);
+        if (INDI::mkpath(dir, 0755) == -1)
+            LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);

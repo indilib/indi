@@ -46,44 +46,6 @@
 
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
-void ISGetProperties(const char *dev)
-{
-    pyxis->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    pyxis->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    pyxis->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    pyxis->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                char *formats[], char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice (XMLEle *root)
-{
-    pyxis->ISSnoopDevice(root);
-}
-
 Pyxis::Pyxis()
 {
     // We do not have absolute ticks
@@ -144,11 +106,11 @@ bool Pyxis::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&RotationRateNP)  ;
-        defineSwitch(&SteppingSP);
-        defineSwitch(&PowerSP);
-        defineText(&FirmwareTP) ;
-        defineText(&ModelTP) ;
+        defineProperty(&RotationRateNP)  ;
+        defineProperty(&SteppingSP);
+        defineProperty(&PowerSP);
+        defineProperty(&FirmwareTP) ;
+        defineProperty(&ModelTP) ;
 
         queryParams();
     }
@@ -561,7 +523,7 @@ void Pyxis::TimerHit()
 {
     if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -577,7 +539,7 @@ void Pyxis::TimerHit()
         else
         {
             // Fast timer
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
     }
@@ -599,7 +561,7 @@ void Pyxis::TimerHit()
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Pyxis::isMotionComplete()

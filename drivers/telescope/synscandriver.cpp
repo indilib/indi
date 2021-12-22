@@ -17,10 +17,10 @@
 *******************************************************************************/
 
 #include "synscandriver.h"
+#include "libastro.h"
 #include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
-#include "libastro.h"
 
 #include <libnova/transform.h>
 #include <libnova/precession.h>
@@ -142,16 +142,16 @@ bool SynscanDriver::updateProperties()
     {
         setupParams();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineText(&StatusTP);
-        defineNumber(&CustomSlewRateNP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&StatusTP);
+        defineProperty(&CustomSlewRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         if (m_isAltAz)
         {
-            defineSwitch(&GotoModeSP);
+            defineProperty(&GotoModeSP);
         }
 
         if (InitPark())
@@ -383,7 +383,7 @@ bool SynscanDriver::readTracking()
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if ((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP))
+        if (((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP)) && (m_TrackingFlag))
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[m_TrackingFlag - 1].s = ISS_ON;
@@ -519,19 +519,19 @@ bool SynscanDriver::ReadScopeStatus()
     double ra  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double de  = static_cast<double>(n2) / 0x100000000 * 360.0;
 
-    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-    J2000Pos.ra  = range360(ra);
-    J2000Pos.dec = rangeDec(de);
+    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    J2000Pos.rightascension  = range24(ra / 15.0);
+    J2000Pos.declination = rangeDec(de);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
-    LibAstro::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
+    INDI::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
 
-    CurrentRA = epochPos.ra / 15.0;
-    CurrentDE = epochPos.dec;
+    CurrentRA = epochPos.rightascension;
+    CurrentDE = epochPos.declination;
 
     char Axis1Coords[MAXINDINAME] = {0}, Axis2Coords[MAXINDINAME] = {0};
-    fs_sexa(Axis1Coords, J2000Pos.ra / 15.0, 2, 3600);
-    fs_sexa(Axis2Coords, J2000Pos.dec, 2, 3600);
+    fs_sexa(Axis1Coords, J2000Pos.rightascension, 2, 3600);
+    fs_sexa(Axis2Coords, J2000Pos.declination, 2, 3600);
     LOGF_DEBUG("J2000 RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
     memset(Axis1Coords, 0, MAXINDINAME);
     memset(Axis2Coords, 0, MAXINDINAME);
@@ -631,40 +631,35 @@ bool SynscanDriver::Goto(double ra, double dec)
         return true;
 
     // INDI is JNow. Synscan Controll uses J2000 Epoch
-    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-    epochPos.ra  = ra * 15.0;
-    epochPos.dec = dec;
+    epochPos.rightascension  = ra;
+    epochPos.declination = dec;
 
     // For Alt/Az mounts, we must issue Goto Alt/Az
     if (goto_AltAz && m_isAltAz) // only if enabled to use AltAz goto
     {
-        struct ln_lnlat_posn lnobserver;
-        struct ln_hrz_posn lnaltaz;
-
-        lnobserver.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (lnobserver.lng > 180)
-            lnobserver.lng -= 360;
-        lnobserver.lat = LocationN[LOCATION_LATITUDE].value;
-        ln_get_hrz_from_equ(&epochPos, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+        INDI::IHorizontalCoordinates altaz;
+        INDI::EquatorialToHorizontal(&epochPos, &m_Location, ln_get_julian_from_sys(), &altaz);
         /* libnova measures azimuth from south towards west */
-        double az = range360(lnaltaz.az + 180);
-        double al = lnaltaz.alt;
+        double az = altaz.azimuth;
+        double al = altaz.altitude;
 
         return GotoAzAlt(az, al);
     }
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-    double dec_pos = J2000Pos.dec;
-    if (J2000Pos.dec < 0) dec_pos = dec_pos + 360;
+    double dec_pos = J2000Pos.declination;
+    if (J2000Pos.declination < 0)
+        dec_pos = dec_pos + 360;
     // Mount deals in J2000 coords.
-    uint32_t n1 = J2000Pos.ra  / 360  * 0x100000000;
+    uint32_t n1 = J2000Pos.rightascension * 15.0 / 360 * 0x100000000;
     uint32_t n2 = dec_pos / 360 * 0x100000000;
 
-    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
-
+    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.rightascension,
+               J2000Pos.declination);
 
     snprintf(cmd, SYN_RES, "r%08X,%08X", n1, n2);
     if (sendCommand(cmd, res, 18))
@@ -688,22 +683,12 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
     if (m_isAltAz == false)
     {
         // For EQ Mount, we convert Parking Az/Alt to RA/DE and go to there.
-        struct ln_lnlat_posn observer;
-        ln_hrz_posn horizontalPos;
-        ln_equ_posn equatorialPos;
-
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (observer.lng > 180)
-            observer.lng -= 360;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-
-        horizontalPos.az = az + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
-        horizontalPos.alt = alt;
-
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-        return Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        INDI::IHorizontalCoordinates horizontalPos;
+        INDI::IEquatorialCoordinates equatorialPos;
+        horizontalPos.azimuth = az;
+        horizontalPos.altitude = alt;
+        INDI::HorizontalToEquatorial(&horizontalPos, &m_Location, ln_get_julian_from_sys(), &equatorialPos);
+        return Goto(equatorialPos.rightascension, equatorialPos.declination);
     }
 
     // Az/Alt to encoders
@@ -1124,7 +1109,6 @@ bool SynscanDriver::updateTime(ln_date * utc, double utc_offset)
 bool SynscanDriver::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-
     char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
     bool IsWest = false;
 
@@ -1183,42 +1167,22 @@ bool SynscanDriver::Sync(double ra, double dec)
         return true;
 
     // INDI is JNow. Synscan Controll uses J2000 Epoch
-    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-
-    epochPos.ra  = ra * 15.0;
-    epochPos.dec = dec;
+    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    epochPos.rightascension = ra;
+    epochPos.declination = dec;
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
     // Mount deals in J2000 coords.
-    uint32_t n1 = J2000Pos.ra  / 360 * 0x100000000;
-    uint32_t n2 = J2000Pos.dec / 360 * 0x100000000;
+    uint32_t n1 = J2000Pos.rightascension * 15.0 / 360 * 0x100000000;
+    uint32_t n2 = J2000Pos.declination / 360 * 0x100000000;
 
-    LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
+    LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.rightascension,
+               J2000Pos.declination);
 
     snprintf(cmd, SYN_RES, "s%08X,%08X", n1, n2);
     return sendCommand(cmd, res, 18);
-}
-
-ln_hrz_posn SynscanDriver::getAltAzPosition(double ra, double dec)
-{
-    ln_lnlat_posn Location { 0, 0 };
-    ln_equ_posn Eq { 0, 0 };
-    ln_hrz_posn AltAz { 0, 0 };
-
-    // Set the current location
-    Location.lat = LocationN[LOCATION_LATITUDE].value;
-    Location.lng = LocationN[LOCATION_LONGITUDE].value;
-
-    Eq.ra  = ra * 360.0 / 24.0;
-    Eq.dec = dec;
-    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
-    AltAz.az -= 180;
-    if (AltAz.az < 0)
-        AltAz.az += 360;
-
-    return AltAz;
 }
 
 void SynscanDriver::sendStatus()

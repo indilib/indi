@@ -36,46 +36,10 @@
 
 static std::unique_ptr<DMFC> dmfc(new DMFC());
 
-void ISGetProperties(const char *dev)
-{
-    dmfc->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    dmfc->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    dmfc->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    dmfc->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    dmfc->ISSnoopDevice(root);
-}
-
 DMFC::DMFC()
 {
+    setVersion(1, 1);
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -101,12 +65,14 @@ bool DMFC::initProperties()
     // Encoders
     IUFillSwitch(&EncoderS[ENCODERS_ON], "On", "", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODERS_OFF], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "Encoders", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "Encoders", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Motor Modes
-    IUFillSwitch(&MotorTypeS[MOTOR_DC], "DC", "", ISS_OFF);
-    IUFillSwitch(&MotorTypeS[MOTOR_STEPPER], "Stepper", "", ISS_ON);
-    IUFillSwitchVector(&MotorTypeSP, MotorTypeS, 2, getDeviceName(), "Motor Type", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&MotorTypeS[MOTOR_DC], "DC", "DC", ISS_OFF);
+    IUFillSwitch(&MotorTypeS[MOTOR_STEPPER], "Stepper", "Stepper", ISS_ON);
+    IUFillSwitchVector(&MotorTypeSP, MotorTypeS, 2, getDeviceName(), "Motor Type", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
     // LED
     IUFillSwitch(&LEDS[LED_OFF], "Off", "", ISS_ON);
@@ -115,7 +81,8 @@ bool DMFC::initProperties()
 
     // Firmware Version
     IUFillText(&FirmwareVersionT[0], "Version", "Version", "");
-    IUFillTextVector(&FirmwareVersionTP, FirmwareVersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&FirmwareVersionTP, FirmwareVersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO,
+                     0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -124,7 +91,7 @@ bool DMFC::initProperties()
     FocusRelPosN[0].step  = 1000;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
+    FocusAbsPosN[0].max   = 100000;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
@@ -134,13 +101,38 @@ bool DMFC::initProperties()
     FocusBacklashN[0].value = 1;
     FocusBacklashN[0].step  = 1;
 
+    //LED Default ON
+    LEDS[LED_ON].s = ISS_ON;
+    LEDS[LED_OFF].s = ISS_OFF;
+
     addDebugControl();
-
-    setDefaultPollingPeriod(500);
-
+    setDefaultPollingPeriod(200);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
+}
+
+void DMFC::ISGetProperties(const char *dev)
+{
+    INDI::Focuser::ISGetProperties(dev);
+    int configSwitch = MOTOR_STEPPER;
+
+    // Try to read config value for motor type
+    // If relative, then update the capability of the focuser as such.
+    if (IUGetConfigOnSwitchIndex(getDeviceName(), MotorTypeSP.name, &configSwitch) == 0)
+    {
+        // We are only relative focuser now.
+        if (configSwitch == MOTOR_DC)
+            FI::SetCapability(GetCapability() & ~(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+        else
+            FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+
+        MotorTypeSP.s = IPS_OK;
+    }
+
+    IUResetSwitch(&MotorTypeSP);
+    MotorTypeS[configSwitch].s = ISS_ON;
+    defineProperty(&MotorTypeSP);
 }
 
 bool DMFC::updateProperties()
@@ -149,18 +141,16 @@ bool DMFC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&EncoderSP);
-        defineSwitch(&MotorTypeSP);
-        defineNumber(&MaxSpeedNP);
-        defineSwitch(&LEDSP);
-        defineText(&FirmwareVersionTP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&EncoderSP);
+        defineProperty(&MaxSpeedNP);
+        defineProperty(&LEDSP);
+        defineProperty(&FirmwareVersionTP);
     }
     else
     {
         deleteProperty(TemperatureNP.name);
         deleteProperty(EncoderSP.name);
-        deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(LEDSP.name);
         deleteProperty(FirmwareVersionTP.name);
@@ -173,14 +163,19 @@ bool DMFC::Handshake()
 {
     if (ack())
     {
-        LOG_INFO("DMFC is online. Getting focus parameters...");
+        LOGF_INFO("%s is online. Getting focus parameters...", this->getDeviceName());
+
+        // Set motor type on startup only.
+        setMotorType((MotorTypeS[MOTOR_DC].s == ISS_ON) ? MOTOR_DC : MOTOR_STEPPER);
+
         return true;
     }
 
-    LOG_INFO(
-        "Error retrieving data from DMFC, please ensure DMFC controller is powered and the port is correct.");
+    LOGF_INFO(
+        "Error retrieving data from %s, please ensure device is powered and the port is correct.", this->getDeviceName());
     return false;
 }
+
 
 const char *DMFC::getDefaultName()
 {
@@ -218,15 +213,19 @@ bool DMFC::ack()
     // Get rid of 0xA
     res[nbytes_read - 1] = 0;
 
-    // Check for '\r' at end of string and replace with nullptr (DMFC firmware version 2.8)
+
     if( res[nbytes_read - 2] == '\r') res[nbytes_read - 2] = 0;
 
     LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
 
-    return (strstr(res, "OK_") != nullptr);
+    if((strstr(res, "OK_DMFCN") != nullptr) || (strstr(res, "OK_SMFC") != nullptr))
+        return true;
+
+    return false;
 }
+
 
 bool DMFC::SyncFocuser(uint32_t ticks)
 {
@@ -247,10 +246,12 @@ bool DMFC::SyncFocuser(uint32_t ticks)
         return false;
     }
 
+    this->ignoreResponse();
+
     return true;
 }
 
-bool DMFC::move(uint32_t newPosition)
+bool DMFC::moveAbsolute(uint32_t newPosition)
 {
     int nbytes_written = 0, rc = -1;
     char cmd[16] = {0};
@@ -265,21 +266,67 @@ bool DMFC::move(uint32_t newPosition)
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("move error: %s.", errstr);
+        LOGF_ERROR("Absolute move error: %s.", errstr);
         return false;
     }
+
+    this->ignoreResponse();
 
     return true;
 }
 
+bool DMFC::moveRelative(int relativePosition)
+{
+    int nbytes_written = 0, rc = -1;
+    char cmd[16] = {0};
+
+    snprintf(cmd, 16, "G:%d", relativePosition);
+    cmd[strlen(cmd)] = 0xA;
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    // Set Relative Position
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        char errstr[MAXRBUF];
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Relative move error: %s.", errstr);
+        return false;
+    }
+
+    this->ignoreResponse();
+
+    return true;
+}
 
 bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        /////////////////////////////////////////////
+        // Motor Type
+        if (!strcmp(name, MotorTypeSP.name))
+        {
+            IUUpdateSwitch(&MotorTypeSP, states, names, n);
+            MotorTypeSP.s = IPS_OK;
+            saveConfig(true, MotorTypeSP.name);
+
+            // If we're not connected, let's then set the capability now.
+            if (!isConnected())
+            {
+                // We are only relative focuser now.
+                if (MotorTypeS[MOTOR_DC].s == ISS_ON)
+                    FI::SetCapability(GetCapability() & ~(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+                else
+                    FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
+            }
+            else
+                LOG_INFO("Motor type changed. Please restart driver for this change to take effect.");
+
+            IDSetSwitch(&MotorTypeSP, nullptr);
+            return true;
+        }
+
         // Encoders
-        /////////////////////////////////////////////
         if (!strcmp(name, EncoderSP.name))
         {
             IUUpdateSwitch(&EncoderSP, states, names, n);
@@ -288,10 +335,9 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(&EncoderSP, nullptr);
             return true;
         }
-        /////////////////////////////////////////////
+
         // LED
-        /////////////////////////////////////////////
-        else if (!strcmp(name, LEDSP.name))
+        if (!strcmp(name, LEDSP.name))
         {
             IUUpdateSwitch(&LEDSP, states, names, n);
             bool rc = setLedEnabled(LEDS[LED_ON].s == ISS_ON);
@@ -299,19 +345,7 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(&LEDSP, nullptr);
             return true;
         }
-        /////////////////////////////////////////////
-        // Motor Type
-        /////////////////////////////////////////////
-        if (!strcmp(name, MotorTypeSP.name))
-        {
-            IUUpdateSwitch(&MotorTypeSP, states, names, n);
-            bool rc = setMotorType(MotorTypeS[MOTOR_DC].s == ISS_ON ? 0 : 1);
-            MotorTypeSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&MotorTypeSP, nullptr);
-            return true;
-        }
     }
-
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -319,9 +353,7 @@ bool DMFC::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        /////////////////////////////////////////////
         // MaxSpeed
-        /////////////////////////////////////////////
         if (strcmp(name, MaxSpeedNP.name) == 0)
         {
             IUUpdateNumber(&MaxSpeedNP, values, names, n);
@@ -333,6 +365,13 @@ bool DMFC::ISNewNumber(const char *dev, const char *name, double values[], char 
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+}
+
+void DMFC::ignoreResponse()
+{
+    int nbytes_read = 0;
+    char res[64];
+    tty_read_section(PortFD, res, 0xA, DMFC_TIMEOUT, &nbytes_read);
 }
 
 bool DMFC::updateFocusParams()
@@ -355,6 +394,7 @@ bool DMFC::updateFocusParams()
         return false;
     }
 
+
     if ((rc = tty_read_section(PortFD, res, 0xA, DMFC_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -373,10 +413,11 @@ bool DMFC::updateFocusParams()
 
     char *token = std::strtok(res, ":");
 
+
     // #1 Status
-    if (token == nullptr || strstr(token, "OK_") == nullptr)
+    if (token == nullptr || ((strstr(token, "OK_DMFCN") == nullptr) && (strstr(token, "OK_SMFC") == nullptr)))
     {
-        LOG_ERROR("Invalid status response.");
+        LOGF_ERROR("Invalid status response. %s", res);
         return false;
     }
 
@@ -406,8 +447,12 @@ bool DMFC::updateFocusParams()
     }
 
     int motorType = atoi(token);
+
+
     if (motorType >= 0 && motorType <= 1)
     {
+        //1 stepper
+        //0 dc
         IUResetSwitch(&MotorTypeSP);
         MotorTypeS[MOTOR_DC].s = (motorType == 0) ? ISS_ON : ISS_OFF;
         MotorTypeS[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
@@ -584,6 +629,7 @@ bool DMFC::setMaxSpeed(uint16_t speed)
         return false;
     }
 
+    this->ignoreResponse();
     return true;
 }
 
@@ -607,6 +653,8 @@ bool DMFC::ReverseFocuser(bool enabled)
         LOGF_ERROR("Reverse error: %s.", errstr);
         return false;
     }
+
+    this->ignoreResponse();
 
     return true;
 }
@@ -632,6 +680,7 @@ bool DMFC::setLedEnabled(bool enable)
         return false;
     }
 
+    this->ignoreResponse();
     return true;
 }
 
@@ -656,6 +705,7 @@ bool DMFC::setEncodersEnabled(bool enable)
         return false;
     }
 
+    this->ignoreResponse();
     return true;
 }
 
@@ -680,6 +730,7 @@ bool DMFC::SetFocuserBacklash(int32_t steps)
         return false;
     }
 
+    this->ignoreResponse();
     return true;
 }
 
@@ -693,10 +744,14 @@ bool DMFC::SetFocuserBacklashEnabled(bool enabled)
 
 bool DMFC::setMotorType(uint8_t type)
 {
+
     int nbytes_written = 0, rc = -1;
     char cmd[16] = {0};
 
-    snprintf(cmd, 16, "R:%d", (type == MOTOR_STEPPER) ? 1 : 0);
+    //commands:
+    //2 dc
+    //1 stepper
+    snprintf(cmd, 16, "R:%d", (type == MOTOR_STEPPER) ? 1 : 2);
     cmd[strlen(cmd)] = 0xA;
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -712,6 +767,8 @@ bool DMFC::setMotorType(uint8_t type)
         return false;
     }
 
+    this->ignoreResponse();
+
     return true;
 }
 
@@ -719,7 +776,7 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPosition = targetTicks;
 
-    bool rc = move(targetPosition);
+    bool rc = moveAbsolute(targetPosition);
 
     if (!rc)
         return IPS_ALERT;
@@ -731,30 +788,15 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState DMFC::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc = false;
-
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
-
-    rc = move(newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    int relativePosition = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
+    return moveRelative(relativePosition) ? IPS_BUSY : IPS_ALERT;
 }
 
 void DMFC::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -775,7 +817,7 @@ void DMFC::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DMFC::AbortFocuser()
@@ -789,6 +831,7 @@ bool DMFC::AbortFocuser()
         FocusRelPosNP.s = IPS_IDLE;
         IDSetNumber(&FocusAbsPosNP, nullptr);
         IDSetNumber(&FocusRelPosNP, nullptr);
+        this->ignoreResponse();
         return true;
     }
     else
@@ -798,9 +841,8 @@ bool DMFC::AbortFocuser()
 bool DMFC::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
-
-    IUSaveConfigSwitch(fp, &EncoderSP);
     IUSaveConfigSwitch(fp, &MotorTypeSP);
+    IUSaveConfigSwitch(fp, &EncoderSP);
     IUSaveConfigNumber(fp, &MaxSpeedNP);
     IUSaveConfigSwitch(fp, &LEDSP);
 

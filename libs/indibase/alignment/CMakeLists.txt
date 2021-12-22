@@ -7,12 +7,6 @@ if(ALIGNMENT_CONVEX_HULL_DEBUGGING)
    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS CONVEX_HULL_DEBUGGING)
 endif(ALIGNMENT_CONVEX_HULL_DEBUGGING)
 
-option(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE "Skywatcher API - use initial Julian date only" OFF)
-
-if(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
-   set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS USE_INITIAL_JULIAN_DATE)
-endif(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
-
 ##################################################
 ####### INDI AlignmentDriver shared library ######
 ##################################################
@@ -20,7 +14,7 @@ SET(AlignmentDriver_SRC
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForDrivers.cpp ;
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForMathPlugins.h ;
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BasicMathPlugin.cpp ;
-    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp ;    
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/ConvexHull.cpp ;
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/DriverCommon.cpp ;
     ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/InMemoryDatabase.cpp ;
@@ -62,9 +56,23 @@ install(TARGETS AlignmentDriver
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES AlignmentSubsystemForMathPlugins.h AlignmentSubsystemForDrivers.h BasicMathPlugin.h BuiltInMathPlugin.h
-              ClientAPIForAlignmentDatabase.h ClientAPIForMathPluginManagement.h Common.h ConvexHull.h DriverCommon.h InMemoryDatabase.h MathPlugin.h
-              MathPluginManagement.h SVDMathPlugin.h TelescopeDirectionVectorSupportFunctions.h MapPropertiesToInMemoryDatabase.h
+install(FILES
+    AlignmentSubsystemForMathPlugins.h
+    AlignmentSubsystemForDrivers.h
+    BasicMathPlugin.h
+    BuiltInMathPlugin.h
+    NearestMathPlugin.h
+    ClientAPIForAlignmentDatabase.h
+    ClientAPIForMathPluginManagement.h
+    Common.h
+    ConvexHull.h
+    DriverCommon.h
+    InMemoryDatabase.h
+    MathPlugin.h
+    MathPluginManagement.h
+    SVDMathPlugin.h
+    TelescopeDirectionVectorSupportFunctions.h
+    MapPropertiesToInMemoryDatabase.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/alignment COMPONENT Devel)
 
 ##################################################
@@ -128,6 +136,26 @@ install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #target_link_libraries(indi_Dummy_MathPlugin indidriver)
 
 #install(TARGETS indi_Dummy_MathPlugin LIBRARY DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
+
+##################################################
+################ Nearest math plugin #############
+##################################################
+set(NearestMathPlugin_SRCS
+        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/NearestMathPlugin.cpp
+        )
+
+if (CYGWIN)
+add_library(indi_Nearest_MathPlugin STATIC ${NearestMathPlugin_SRCS})
+target_link_libraries(indi_Nearest_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+else(CYGWIN)
+add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
+target_link_libraries(indi_Nearest_MathPlugin indidriver)
+endif(CYGWIN)
+
+install(TARGETS indi_Nearest_MathPlugin
+    ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
+    LIBRARY DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
+    RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
 
 ##################################################
 ################ SVD math plugin #################

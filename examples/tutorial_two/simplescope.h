@@ -25,10 +25,10 @@
 
 class SimpleScope : public INDI::Telescope
 {
-  public:
+public:
     SimpleScope();
 
-  protected:
+protected:
     bool Handshake() override;
 
     const char *getDefaultName() override;
@@ -39,7 +39,7 @@ class SimpleScope : public INDI::Telescope
     bool Goto(double, double) override;
     bool Abort() override;
 
-  private:
+private:
     double currentRA {0};
     double currentDEC {90};
     double targetRA {0};

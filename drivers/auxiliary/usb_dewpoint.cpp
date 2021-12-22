@@ -34,44 +34,6 @@
 
 std::unique_ptr<USBDewpoint> usbDewpoint(new USBDewpoint());
 
-void ISGetProperties(const char *dev)
-{
-    usbDewpoint->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    usbDewpoint->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    usbDewpoint->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    usbDewpoint->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    usbDewpoint->ISSnoopDevice(root);
-}
-
 USBDewpoint::USBDewpoint()
 {
     setVersion(1, 1);
@@ -165,22 +127,22 @@ bool USBDewpoint::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&OutputsNP);
-        defineNumber(&TemperaturesNP);
-        defineNumber(&HumidityNP);
-        defineNumber(&DewpointNP);
-        defineNumber(&CalibrationsNP);
-        defineNumber(&ThresholdsNP);
-        defineNumber(&AggressivityNP);
-        defineSwitch(&AutoModeSP);
-        defineSwitch(&LinkOut23SP);
-        defineSwitch(&ResetSP);
-        defineNumber(&FWversionNP);
+        defineProperty(&OutputsNP);
+        defineProperty(&TemperaturesNP);
+        defineProperty(&HumidityNP);
+        defineProperty(&DewpointNP);
+        defineProperty(&CalibrationsNP);
+        defineProperty(&ThresholdsNP);
+        defineProperty(&AggressivityNP);
+        defineProperty(&AutoModeSP);
+        defineProperty(&LinkOut23SP);
+        defineProperty(&ResetSP);
+        defineProperty(&FWversionNP);
 
         loadConfig(true);
         readSettings();
         LOG_INFO("USB_Dewpoint parameters updated, device ready for use.");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else
     {
@@ -561,5 +523,5 @@ void USBDewpoint::TimerHit()
 
     // Get temperatures etc.
     readSettings();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
