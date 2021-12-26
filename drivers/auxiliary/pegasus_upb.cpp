@@ -714,7 +714,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
                 USBControlV2SP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&USBControlSP, nullptr);
+            IDSetSwitch(&USBControlV2SP, nullptr);
+
             return true;
         }
 
