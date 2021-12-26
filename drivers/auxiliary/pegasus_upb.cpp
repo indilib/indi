@@ -703,7 +703,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             }
 
             // All is OK
-            if (rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
+            if (rc[0] && rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
             {
                 USBControlSP.s = IPS_OK;
             }
