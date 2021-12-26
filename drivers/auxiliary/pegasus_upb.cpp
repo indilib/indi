@@ -688,7 +688,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         // USB Hub Control v2
         if (!strcmp(name, USBControlV2SP.name))
         {
-            bool rc[6] = {true};
+            bool rc[6] = {false};
+            std::fill_n(rc, 6, true);
             ISState ports[6] = {ISS_ON};
 
             for (int i = 0; i < USBControlV2SP.nsp; i++)
@@ -702,7 +703,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             }
 
             // All is OK
-            if (rc[0] && rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
+            if (rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
             {
                 USBControlSP.s = IPS_OK;
             }
