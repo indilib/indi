@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx/Lx.h"
 
 // Pixel size info for different cameras
-typedef struct
+typedef struct PixelSizeInfo
 {
     const char * deviceLabel; // Device label used by INDI
     const char * deviceName; // device name reported by V4L
