@@ -37,7 +37,7 @@
 
 std::unique_ptr<Integra> integra(new Integra());
 
-typedef struct
+typedef struct COMMANDDESC
 {
     const char cmd[12];
     char ret[2][3];

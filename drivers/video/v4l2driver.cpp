@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx/Lx.h"
 
 // Pixel size info for different cameras
-typedef struct
+typedef struct PixelSizeInfo
 {
     const char * deviceLabel; // Device label used by INDI
     const char * deviceName; // device name reported by V4L
@@ -165,8 +165,10 @@ bool V4L2_Driver::initProperties()
                      IPS_IDLE);
 
     /* Color space */
-    IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", ISS_ON);
-    IUFillSwitch(&ImageColorS[1], "CCD_COLOR_RGB", "Color", ISS_OFF);
+    int configColor = IMAGE_GRAYSCALE;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_COLOR_SPACE", &configColor);
+    IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", configColor == IMAGE_GRAYSCALE ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&ImageColorS[IMAGE_COLOR], "CCD_COLOR_RGB", "Color", configColor == IMAGE_COLOR ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE",
                        "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -1946,6 +1948,7 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
 
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &StackModeSP);
+    IUSaveConfigSwitch(fp, &ImageColorSP);
 
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);

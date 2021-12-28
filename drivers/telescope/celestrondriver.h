@@ -169,7 +169,7 @@ typedef struct
     CELESTRON_TRACK_MODE celestronTrackMode;
 } FirmwareInfo;
 
-typedef struct
+typedef struct SimData
 {
     double ra;
     double dec;
