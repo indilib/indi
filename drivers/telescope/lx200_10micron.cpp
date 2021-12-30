@@ -84,7 +84,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 // Note that getDriverName calls ::getDefaultName which returns LX200 Generic
 const char *LX200_10MICRON::getDefaultName()
 {
-    return (const char *)"10micron";
+    return "10micron";
 }
 
 // Called by INDI::Telescope::callHandshake, either TCP Connect or Serial Port Connect
@@ -288,7 +288,7 @@ void LX200_10MICRON::getBasicData()
         getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#");
         float rmtemp;
         sscanf(RefractionModelTemperature, "%f#", &rmtemp);
-        RefractionModelTemperatureN[0].value = (double) rmtemp;
+        RefractionModelTemperatureN[0].value = rmtemp;
         LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
         IDSetNumber(&RefractionModelTemperatureNP, nullptr);
 
@@ -296,20 +296,20 @@ void LX200_10MICRON::getBasicData()
         getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#");
         float rmpres;
         sscanf(RefractionModelPressure, "%f#", &rmpres);
-        RefractionModelPressureN[0].value = (double) rmpres;
+        RefractionModelPressureN[0].value = rmpres;
         LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
         IDSetNumber(&RefractionModelPressureNP, nullptr);
 
         int ModelCount;
         getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
         ModelCountN[0].value = (double) ModelCount;
-        LOGF_INFO("%d Alignment Models", (int) ModelCountN[0].value);
+        LOGF_INFO("%d Alignment Models", static_cast<int>(ModelCountN[0].value));
         IDSetNumber(&ModelCountNP, nullptr);
 
         int AlignmentPoints;
         getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
-        AlignmentPointsN[0].value = (double) AlignmentPoints;
-        LOGF_INFO("%d Alignment Stars in active model", (int) AlignmentPointsN[0].value);
+        AlignmentPointsN[0].value = AlignmentPoints;
+        LOGF_INFO("%d Alignment Stars in active model", static_cast<int>(AlignmentPointsN[0].value));
         IDSetNumber(&AlignmentPointsNP, nullptr);
 
         if (false == getUnattendedFlipSetting())
@@ -541,6 +541,8 @@ bool LX200_10MICRON::Park()
     {
         return false;
     }
+
+    TrackState = SCOPE_PARKING;
     // postpone SetParked(true) for ReadScopeStatus so that we know it is actually correct
     return true;
 }
@@ -555,6 +557,8 @@ bool LX200_10MICRON::UnPark()
     {
         return false;
     }
+
+    TrackState = SCOPE_IDLE;
     SetParked(false);
     return true;
 }
@@ -711,10 +715,10 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
         {
             LOG_ERROR("Invalid formatting of TLE, trying to split:");
             char *pch = strtok ((char*) tle, "\n");
-            while (pch != NULL)
+            while (pch != nullptr)
             {
                 LOGF_INFO("%s\n", pch);
-                pch = strtok (NULL, "\n");
+                pch = strtok (nullptr, "\n");
             }
             return 1;
         }
@@ -722,10 +726,10 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
     else
     {
         char *pch = strtok ((char*) tle, "\n");
-        while (pch != NULL)
+        while (pch != nullptr)
         {
             LOGF_INFO("%s\n", pch);
-            pch = strtok (NULL, "\n");
+            pch = strtok (nullptr, "\n");
         }
     }
     return 0;
@@ -794,7 +798,7 @@ bool LX200_10MICRON::CalculateSatTrajectory(std::string start_pass_isodatetime, 
     double JD_end;
     JD_start = ln_get_julian_day(&start_pass);
     JD_end = ln_get_julian_day(&end_pass);
-    int nextPassInMinutes = (int) ceil((JD_end - JD_start) * 24 * 60);
+    int nextPassInMinutes = static_cast<int>(ceil((JD_end - JD_start) * 24 * 60));
     int nextPassinMinutesUpTo1440 = std::min(nextPassInMinutes,  1440);
     int nextPassinMinutesBetween1and1440 = std::max(nextPassinMinutesUpTo1440, 1);
 
@@ -928,7 +932,7 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
     fs_sexa(MDec_str, MDec, 0, 3600);
 
     char MSide_char;
-    ((int)MSide == 0) ? MSide_char = 'E' : MSide_char = 'W';
+    (static_cast<int>(MSide) == 0) ? MSide_char = 'E' : MSide_char = 'W';
 
     char PRa_str[32], PDec_str[32];
     fs_sexa(PRa_str, PRa, 0, 36000);
@@ -1284,8 +1288,6 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
                 LOG_ERROR("TLE was not correctly uploaded");
                 return false;
             }
-
-            return true;
         }
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
@@ -1304,8 +1306,6 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }
-
-            return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);

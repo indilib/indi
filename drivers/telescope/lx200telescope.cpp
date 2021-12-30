@@ -480,7 +480,6 @@ bool LX200Telescope::Park()
         }
     }
 
-    ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking telescope in progress...");
     return true;
@@ -832,7 +831,8 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 return false;
             }
             char siteName[64] = {0};
-            if (isSimulation()){
+            if (isSimulation())
+            {
                 IUSaveText(&SiteNameTP.tp[0], "Sample Site");
             }
             else
@@ -1187,7 +1187,8 @@ void LX200Telescope::getBasicData()
         if (genericCapability & LX200_HAS_SITES)
         {
             char siteName[64] = {0};
-            if (getSiteName(PortFD, siteName, currentSiteNum) < 0) {
+            if (getSiteName(PortFD, siteName, currentSiteNum) < 0)
+            {
                 LOG_ERROR("Failed to get site name from device");
             }
             else
