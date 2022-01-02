@@ -87,6 +87,7 @@ OPTION (INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
 OPTION (INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
 OPTION (INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+OPTION (INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
@@ -2061,6 +2062,11 @@ ENDIF (GTEST_FOUND)
 
 endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
+
+IF (INDI_BUILD_INTEGTESTS)
+  ADD_SUBDIRECTORY(integs)
+ENDIF (INDI_BUILD_INTEGTESTS)
+
 
 ###################################################################################################
 #######################################  config.h  ################################################
