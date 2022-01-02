@@ -2047,7 +2047,15 @@ ENDIF ()
 #########################################  Tests  #################################################
 ###################################################################################################
 
-find_package (GTest)
+IF (DEFINED GTEST_ROOT)
+    MESSAGE (STATUS  "Using GTEST from ${GTEST_ROOT}")
+    add_subdirectory(${GTEST_ROOT}
+        "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
+    set(GTEST_FOUND true)
+ELSE (DEFINED GTEST_ROOT)
+    find_package (GTest)
+ENDIF()
+
 find_package (GMock)
 IF (GTEST_FOUND)
   IF (INDI_BUILD_UNITTESTS)
