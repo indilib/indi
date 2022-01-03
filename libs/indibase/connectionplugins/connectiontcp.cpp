@@ -26,6 +26,7 @@
 #include <netdb.h>
 #include <cstring>
 #include <unistd.h>
+#include <regex>
 
 #ifdef __FreeBSD__
 #include <arpa/inet.h>
@@ -138,7 +139,7 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-bool TCP::establishConnection(const char *hostname, const char *port, int timeout)
+bool TCP::establishConnection(const std::string &hostname, const std::string &port, int timeout)
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp = nullptr;
@@ -151,13 +152,13 @@ bool TCP::establishConnection(const char *hostname, const char *port, int timeou
         close(m_SockFD);
 
     if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
-        LOGF_INFO("Connecting to %s@%s ...", hostname, port);
+        LOGF_INFO("Connecting to %s@%s ...", hostname.c_str(), port.c_str());
     else
-        LOGF_DEBUG("Connecting to %s@%s ...", hostname, port);
+        LOGF_DEBUG("Connecting to %s@%s ...", hostname.c_str(), port.c_str());
 
 
     // Lookup host name or IPv4 address
-    hp = gethostbyname(hostname);
+    hp = gethostbyname(hostname.c_str());
     if (!hp)
     {
         if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
@@ -168,7 +169,7 @@ bool TCP::establishConnection(const char *hostname, const char *port, int timeou
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port        = htons(atoi(port));
+    serv_addr.sin_port        = htons(atoi(port.c_str()));
 
     int socketType = 0;
     if (TcpUdpS[0].s == ISS_ON)
@@ -194,7 +195,7 @@ bool TCP::establishConnection(const char *hostname, const char *port, int timeou
     if (::connect(m_SockFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
-            LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname, port, strerror(errno));
+            LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname.c_str(), port.c_str(), strerror(errno));
         close(m_SockFD);
         m_SockFD = -1;
         return false;
@@ -216,9 +217,11 @@ bool TCP::Connect()
     }
 
     bool rc = true;
-    char hostname[MAXRBUF] = {0};
-    strncpy(hostname, AddressT[0].text, MAXRBUF);
-    const char *port = AddressT[1].text;
+    std::string hostname = AddressT[0].text;
+    std::string port = AddressT[1].text;
+
+    std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    const auto isIPv4 = regex_match(hostname, ipv4);
 
     if (m_Device->isSimulation() == false)
     {
@@ -229,41 +232,57 @@ bool TCP::Connect()
             if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
                 return false;
             // LAN search is enabled.
-            else
+            else if (isIPv4)
             {
-                auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
-                for (auto &oneInterfaceAddress : addrs_ipv4)
-                {
-                    // Skip local IPs
-                    if (oneInterfaceAddress.rfind("127", 0) == 0)
-                        continue;
+                size_t found = hostname.find_last_of(".");
 
-                    size_t found = oneInterfaceAddress.find_last_of(".");
-                    if (found != std::string::npos)
+                if (found != std::string::npos)
+                {
+                    const auto sourceSubnet = hostname.substr(0, found);
+
+                    auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
+                    for (auto &oneInterfaceAddress : addrs_ipv4)
                     {
-                        LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", oneInterfaceAddress.substr(0, found).c_str());
-                        // Brute force search through all subnet
-                        // N.B. This operation cannot be interrupted.
-                        // TODO Must add a method to abort the search.
-                        for (int i = 1; i < 255; i++)
+                        // Skip local IPs
+                        if (oneInterfaceAddress.rfind("127", 0) == 0)
+                            continue;
+
+                        size_t found = oneInterfaceAddress.find_last_of(".");
+                        if (found != std::string::npos)
                         {
-                            const std::string newAddress = oneInterfaceAddress.substr(0, found + 1) + std::to_string(i);
-                            if (newAddress == oneInterfaceAddress)
+                            const auto targetSubnet = oneInterfaceAddress.substr(0, found);
+
+                            // Only stick with the same subnet as the address specified to avoid
+                            // interfaces not related to this.
+                            if (sourceSubnet != targetSubnet)
                                 continue;
 
-                            strncpy(hostname, newAddress.c_str(), MAXRBUF);
-                            if (establishConnection(hostname, port, 1))
+                            LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", targetSubnet.c_str());
+                            // Brute force search through all subnet
+                            // N.B. This operation cannot be interrupted.
+                            // TODO Must add a method to abort the search.
+                            for (int i = 1; i < 255; i++)
                             {
-                                PortFD = m_SockFD;
-                                LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname, port);
-                                rc = Handshake();
-                                if (rc)
-                                    break;
-                            }
-                        }
+                                const auto newAddress = targetSubnet + "." + std::to_string(i);
+                                if (newAddress == oneInterfaceAddress)
+                                    continue;
 
-                        if (rc)
-                            break;
+                                if (establishConnection(newAddress, port, 1))
+                                {
+                                    PortFD = m_SockFD;
+                                    LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
+                                    rc = Handshake();
+                                    if (rc)
+                                    {
+                                        hostname = newAddress;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (rc)
+                                break;
+                        }
                     }
                 }
             }
@@ -271,7 +290,7 @@ bool TCP::Connect()
         else
         {
             PortFD = m_SockFD;
-            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname, port);
+            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
             rc = Handshake();
         }
     }
@@ -279,7 +298,7 @@ bool TCP::Connect()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        IUSaveText(&AddressT[0], hostname);
+        IUSaveText(&AddressT[0], hostname.c_str());
         m_Device->saveConfig(true, "DEVICE_ADDRESS");
         m_Device->saveConfig(true, "CONNECTION_TYPE");
         if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
