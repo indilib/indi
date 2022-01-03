@@ -95,10 +95,11 @@ class TCP : public Interface
          * @brief establishConnection Create a socket connection to the host and port. If successful, set the socket variable.
          * @param hostname fully qualified hostname or IP address to host
          * @param port Port
+         * @param timeout timeout in seconds. If not sent, use default 5 seconds timeout.
          * @return Success if connection established, false otherwise.
          * @note Connection type (TCP vs UDP) is fetched from the TcpUdpSP property.
          */
-        bool establishConnection(const char *hostname, const char *port);
+        bool establishConnection(const char *hostname, const char *port, int timeout = -1);
 
         //////////////////////////////////////////////////////////////////////////////////////////////////
         /// Properties

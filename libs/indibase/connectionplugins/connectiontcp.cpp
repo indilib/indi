@@ -138,13 +138,13 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-bool TCP::establishConnection(const char *hostname, const char *port)
+bool TCP::establishConnection(const char *hostname, const char *port, int timeout)
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp = nullptr;
 
     struct timeval ts;
-    ts.tv_sec  = SOCKET_TIMEOUT;
+    ts.tv_sec  = timeout <= 0 ? SOCKET_TIMEOUT : timeout;
     ts.tv_usec = 0;
 
     if (m_SockFD != -1)
@@ -252,7 +252,7 @@ bool TCP::Connect()
                                 continue;
 
                             strncpy(hostname, newAddress.c_str(), MAXRBUF);
-                            if (establishConnection(hostname, port))
+                            if (establishConnection(hostname, port, 1))
                             {
                                 PortFD = m_SockFD;
                                 LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname, port);
