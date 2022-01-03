@@ -18,6 +18,7 @@
 
 #include "connectiontcp.h"
 
+#include "NetIF.hpp"
 #include "indilogger.h"
 #include "indistandardproperty.h"
 
@@ -36,6 +37,9 @@ namespace Connection
 {
 extern const char *CONNECTION_TAB;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
 {
     char defaultHostname[MAXINDINAME] = {0};
@@ -51,13 +55,28 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
     IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&TcpUdpS[0], "TCP", "TCP", ISS_ON);
-    IUFillSwitch(&TcpUdpS[1], "UDP", "UDP", ISS_OFF);
+    int connectionTypeIndex = 0;
+    IUGetConfigOnSwitchIndex(dev->getDeviceName(), "CONNECTION_TYPE", &connectionTypeIndex);
+    IUFillSwitch(&TcpUdpS[TYPE_TCP], "TCP", "TCP", connectionTypeIndex == TYPE_TCP ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&TcpUdpS[TYPE_UDP], "UDP", "UDP", connectionTypeIndex == TYPE_UDP ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, getDeviceName(), "CONNECTION_TYPE", "Connection Type",
+                       CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    int autoSearchIndex = 1;
+    // Try to load the port from the config file. If that fails, use default port.
+    IUGetConfigOnSwitchIndex(dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, &autoSearchIndex);
+    IUFillSwitch(&LANSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled",
+                 autoSearchIndex == 0 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&LANSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled",
+                 autoSearchIndex == 0 ? ISS_OFF : ISS_ON);
+    IUFillSwitchVector(&LANSearchSP, LANSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_LAN_SEARCH, "LAN Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (!strcmp(dev, m_Device->getDeviceName()))
@@ -75,6 +94,9 @@ bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *name
     return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (!strcmp(dev, m_Device->getDeviceName()))
@@ -88,11 +110,102 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
             return true;
         }
+
+        // Auto Search Devices on connection failure
+        if (!strcmp(name, LANSearchSP.name))
+        {
+            bool wasEnabled = (LANSearchS[0].s == ISS_ON);
+
+            IUUpdateSwitch(&LANSearchSP, states, names, n);
+            LANSearchSP.s = IPS_OK;
+
+            // Only display message if there is an actual change
+            if (wasEnabled == false && LANSearchS[0].s == ISS_ON)
+                LOG_INFO("LAN search is enabled. When connecting, the driver shall attempt to "
+                         "communicate with all devices on the local network until a connection is "
+                         "established.");
+            else if (wasEnabled && LANSearchS[1].s == ISS_ON)
+                LOG_INFO("Auto search is disabled.");
+            IDSetSwitch(&LANSearchSP, nullptr);
+
+            return true;
+        }
     }
 
     return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool TCP::establishConnection(const char *hostname, const char *port)
+{
+    struct sockaddr_in serv_addr;
+    struct hostent *hp = nullptr;
+
+    struct timeval ts;
+    ts.tv_sec  = SOCKET_TIMEOUT;
+    ts.tv_usec = 0;
+
+    if (m_SockFD != -1)
+        close(m_SockFD);
+
+    if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+        LOGF_INFO("Connecting to %s@%s ...", hostname, port);
+    else
+        LOGF_DEBUG("Connecting to %s@%s ...", hostname, port);
+
+
+    // Lookup host name or IPv4 address
+    hp = gethostbyname(hostname);
+    if (!hp)
+    {
+        if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+            LOG_ERROR("Failed to lookup IP Address or hostname.");
+        return false;
+    }
+
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family      = AF_INET;
+    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+    serv_addr.sin_port        = htons(atoi(port));
+
+    int socketType = 0;
+    if (TcpUdpS[0].s == ISS_ON)
+    {
+        socketType = SOCK_STREAM;
+    }
+    else
+    {
+        socketType = SOCK_DGRAM;
+    }
+
+    if ((m_SockFD = socket(AF_INET, socketType, 0)) < 0)
+    {
+        LOG_ERROR("Failed to create socket.");
+        return false;
+    }
+
+    // Set the socket receiving and sending timeouts
+    setsockopt(m_SockFD, SOL_SOCKET, SO_RCVTIMEO, &ts, sizeof(struct timeval));
+    setsockopt(m_SockFD, SOL_SOCKET, SO_SNDTIMEO, &ts, sizeof(struct timeval));
+
+    // Connect to the device
+    if (::connect(m_SockFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+            LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname, port, strerror(errno));
+        close(m_SockFD);
+        m_SockFD = -1;
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::Connect()
 {
     if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr ||
@@ -102,76 +215,79 @@ bool TCP::Connect()
         return false;
     }
 
-    const char *hostname = AddressT[0].text;
-    const char *port     = AddressT[1].text;
-
-    LOGF_INFO("Connecting to %s@%s ...", hostname, port);
+    bool rc = true;
+    char hostname[MAXRBUF] = {0};
+    strncpy(hostname, AddressT[0].text, MAXRBUF);
+    const char *port = AddressT[1].text;
 
     if (m_Device->isSimulation() == false)
     {
-        struct sockaddr_in serv_addr;
-        struct hostent *hp = nullptr;
-
-        struct timeval ts;
-        ts.tv_sec  = SOCKET_TIMEOUT;
-        ts.tv_usec = 0;
-
-        if (sockfd != -1)
-            close(sockfd);
-
-        // Lookup host name or IPv4 address
-        hp = gethostbyname(hostname);
-        if (!hp)
+        rc = false;
+        if (establishConnection(hostname, port) == false)
         {
-            LOG_ERROR("Failed to lookup IP Address or hostname.");
-            return false;
-        }
+            // Auto search is disabled.
+            if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+                return false;
+            // LAN search is enabled.
+            else
+            {
+                auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
+                for (auto &oneInterfaceAddress : addrs_ipv4)
+                {
+                    // Skip local IPs
+                    if (oneInterfaceAddress.rfind("127", 0) == 0)
+                        continue;
 
-        memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family      = AF_INET;
-        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-        serv_addr.sin_port        = htons(atoi(port));
+                    size_t found = oneInterfaceAddress.find_last_of(".");
+                    if (found != std::string::npos)
+                    {
+                        LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", oneInterfaceAddress.substr(0, found).c_str());
+                        // Brute force search through all subnet
+                        // N.B. This operation cannot be interrupted.
+                        // TODO Must add a method to abort the search.
+                        for (int i = 1; i < 255; i++)
+                        {
+                            const std::string newAddress = oneInterfaceAddress.substr(0, found + 1) + std::to_string(i);
+                            if (newAddress == oneInterfaceAddress)
+                                continue;
 
-        int socketType = 0;
-        if (TcpUdpS[0].s == ISS_ON)
-        {
-            socketType = SOCK_STREAM;
+                            strncpy(hostname, newAddress.c_str(), MAXRBUF);
+                            if (establishConnection(hostname, port))
+                            {
+                                PortFD = m_SockFD;
+                                LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname, port);
+                                rc = Handshake();
+                                if (rc)
+                                    break;
+                            }
+                        }
+
+                        if (rc)
+                            break;
+                    }
+                }
+            }
         }
         else
         {
-            socketType = SOCK_DGRAM;
-        }
-
-        if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
-        {
-            LOG_ERROR("Failed to create socket.");
-            return false;
-        }
-
-        // Set the socket receiving and sending timeouts
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts, sizeof(struct timeval));
-        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
-
-        // Connect to the device
-        if (::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        {
-            LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname, port, strerror(errno));
-            close(sockfd);
-            sockfd = -1;
-            return false;
+            PortFD = m_SockFD;
+            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname, port);
+            rc = Handshake();
         }
     }
-
-    PortFD = sockfd;
-
-    LOG_DEBUG("Connection successful, attempting handshake...");
-    bool rc = Handshake();
 
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
+        IUSaveText(&AddressT[0], hostname);
         m_Device->saveConfig(true, "DEVICE_ADDRESS");
         m_Device->saveConfig(true, "CONNECTION_TYPE");
+        if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
+        {
+            LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
+            LANSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
+            m_Device->saveConfig(true, LANSearchSP.name);
+        }
     }
     else
         LOG_DEBUG("Handshake failed.");
@@ -179,55 +295,93 @@ bool TCP::Connect()
     return rc;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::Disconnect()
 {
-    if (sockfd > 0)
+    if (m_SockFD > 0)
     {
-        close(sockfd);
-        sockfd = PortFD = -1;
+        close(m_SockFD);
+        m_SockFD = PortFD = -1;
     }
 
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::Activated()
 {
     m_Device->defineProperty(&AddressTP);
     m_Device->defineProperty(&TcpUdpSP);
-    m_Device->loadConfig(true, "DEVICE_ADDRESS");
-    m_Device->loadConfig(true, "CONNECTION_TYPE");
+    m_Device->defineProperty(&LANSearchSP);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::Deactivated()
 {
     m_Device->deleteProperty(AddressTP.name);
     m_Device->deleteProperty(TcpUdpSP.name);
+    m_Device->deleteProperty(LANSearchSP.name);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &AddressTP);
     IUSaveConfigSwitch(fp, &TcpUdpSP);
+    IUSaveConfigSwitch(fp, &LANSearchSP);
 
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setDefaultHost(const char *addressHost)
 {
     IUSaveText(&AddressT[0], addressHost);
+    if (m_Device->isInitializationComplete())
+        IDSetText(&AddressTP, nullptr);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setDefaultPort(uint32_t addressPort)
 {
     char portStr[8];
     snprintf(portStr, 8, "%d", addressPort);
     IUSaveText(&AddressT[1], portStr);
+    if (m_Device->isInitializationComplete())
+        IDSetText(&AddressTP, nullptr);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setConnectionType(int type)
 {
     IUResetSwitch(&TcpUdpSP);
     TcpUdpS[type].s = ISS_ON;
-    IDSetSwitch(&TcpUdpSP, nullptr);
+    if (m_Device->isInitializationComplete())
+        IDSetSwitch(&TcpUdpSP, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void TCP::setLANSearchEnabled(bool enabled)
+{
+    LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s = enabled ? ISS_ON : ISS_OFF;
+    LANSearchS[INDI::DefaultDevice::INDI_DISABLED].s = enabled ? ISS_OFF : ISS_ON;
+    if (m_Device->isInitializationComplete())
+        IDSetSwitch(&LANSearchSP, nullptr);
 }
 }

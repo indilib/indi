@@ -432,7 +432,10 @@ bool SkywatcherAPIMount::initProperties()
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
 
     if (strstr(getDeviceName(), "GTi"))
+    {
         setActiveConnection(tcpConnection);
+        tcpConnection->setLANSearchEnabled(true);
+    }
 
     SetParkDataType(PARK_AZ_ALT_ENCODER);
 

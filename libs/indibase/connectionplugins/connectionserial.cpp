@@ -358,6 +358,8 @@ void Serial::setDefaultPort(const char *port)
     // JM 2021.09.19: Only set default port if configuration port was not loaded already.
     if (m_ConfigPort.empty())
         IUSaveText(&PortT[0], port);
+    if (m_Device->isInitializationComplete())
+        IDSetText(&PortTP, nullptr);
 }
 
 void Serial::setDefaultBaudRate(BaudRate newRate)
@@ -368,6 +370,9 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
         IUResetSwitch(&BaudRateSP);
         BaudRateS[newRate].s = ISS_ON;
     }
+
+    if (m_Device->isInitializationComplete())
+        IDSetSwitch(&BaudRateSP, nullptr);
 }
 
 uint32_t Serial::baud()

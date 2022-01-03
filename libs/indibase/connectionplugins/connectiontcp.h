@@ -88,18 +88,34 @@ class TCP : public Interface
         void setDefaultHost(const char *addressHost);
         void setDefaultPort(uint32_t addressPort);
         void setConnectionType(int type);
+        void setLANSearchEnabled(bool enabled);
 
     protected:
+        /**
+         * @brief establishConnection Create a socket connection to the host and port. If successful, set the socket variable.
+         * @param hostname fully qualified hostname or IP address to host
+         * @param port Port
+         * @return Success if connection established, false otherwise.
+         * @note Connection type (TCP vs UDP) is fetched from the TcpUdpSP property.
+         */
+        bool establishConnection(const char *hostname, const char *port);
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        //////////////////////////////////////////////////////////////////////////////////////////////////
         // IP Address/Port
         ITextVectorProperty AddressTP;
         IText AddressT[2] {};
-
+        // Connection Type
         ISwitch TcpUdpS[2];
         ISwitchVectorProperty TcpUdpSP;
+        // Auto search
+        ISwitch LANSearchS[2];
+        ISwitchVectorProperty LANSearchSP;
 
-        int sockfd                   = -1;
-        const uint8_t SOCKET_TIMEOUT = 5;
-
+        // Variables
+        int m_SockFD {-1};
         int PortFD = -1;
+        static constexpr uint8_t SOCKET_TIMEOUT {5};
 };
 }

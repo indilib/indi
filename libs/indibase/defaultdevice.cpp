@@ -1260,4 +1260,10 @@ bool DefaultDevice::isConfigLoading() const
     return d->isConfigLoading;
 }
 
+bool DefaultDevice::isInitializationComplete() const
+{
+    D_PTR(const DefaultDevice);
+    return d->isInit;
+}
+
 }
