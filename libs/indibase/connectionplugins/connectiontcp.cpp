@@ -220,12 +220,11 @@ bool TCP::Connect()
     std::string hostname = AddressT[0].text;
     std::string port = AddressT[1].text;
 
-    std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-    const auto isIPv4 = regex_match(hostname, ipv4);
-
     if (m_Device->isSimulation() == false)
     {
         rc = false;
+        std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+        const auto isIPv4 = regex_match(hostname, ipv4);
         if (establishConnection(hostname, port) == false)
         {
             // Auto search is disabled.
@@ -238,8 +237,11 @@ bool TCP::Connect()
 
                 if (found != std::string::npos)
                 {
+                    // Get the source subnet
                     const auto sourceSubnet = hostname.substr(0, found);
+                    std::deque<std::string> subnets;
 
+                    // Get all interface IPv4 addresses. From there we extract subnets
                     auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
                     for (auto &oneInterfaceAddress : addrs_ipv4)
                     {
@@ -250,39 +252,44 @@ bool TCP::Connect()
                         size_t found = oneInterfaceAddress.find_last_of(".");
                         if (found != std::string::npos)
                         {
+                            // Extract target subnect
                             const auto targetSubnet = oneInterfaceAddress.substr(0, found);
+                            // Prefer subnets matching source subnet
+                            if (targetSubnet == sourceSubnet)
+                                subnets.push_front(targetSubnet);
+                            else
+                                subnets.push_back(targetSubnet);
 
-                            // Only stick with the same subnet as the address specified to avoid
-                            // interfaces not related to this.
-                            if (sourceSubnet != targetSubnet)
+                        }
+                    }
+
+                    for (auto &oneSubnet : subnets)
+                    {
+                        LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", oneSubnet.c_str());
+                        // Brute force search through all subnet
+                        // N.B. This operation cannot be interrupted.
+                        // TODO Must add a method to abort the search.
+                        for (int i = 1; i < 255; i++)
+                        {
+                            const auto newAddress = oneSubnet + "." + std::to_string(i);
+                            if (newAddress == hostname)
                                 continue;
 
-                            LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", targetSubnet.c_str());
-                            // Brute force search through all subnet
-                            // N.B. This operation cannot be interrupted.
-                            // TODO Must add a method to abort the search.
-                            for (int i = 1; i < 255; i++)
+                            if (establishConnection(newAddress, port, 1))
                             {
-                                const auto newAddress = targetSubnet + "." + std::to_string(i);
-                                if (newAddress == oneInterfaceAddress)
-                                    continue;
-
-                                if (establishConnection(newAddress, port, 1))
+                                PortFD = m_SockFD;
+                                LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
+                                rc = Handshake();
+                                if (rc)
                                 {
-                                    PortFD = m_SockFD;
-                                    LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
-                                    rc = Handshake();
-                                    if (rc)
-                                    {
-                                        hostname = newAddress;
-                                        break;
-                                    }
+                                    hostname = newAddress;
+                                    break;
                                 }
                             }
-
-                            if (rc)
-                                break;
                         }
+
+                        if (rc)
+                            break;
                     }
                 }
             }
