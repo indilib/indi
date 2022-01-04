@@ -164,7 +164,13 @@ void CCDChip::setExposureLeft(double duration)
 {
     ImageExposureNP.s = IPS_BUSY;
     ImageExposureN[0].value = duration;
+    IDSetNumber(&ImageExposureNP, nullptr);
+}
 
+void CCDChip::setExposureComplete()
+{
+    ImageExposureNP.s = IPS_OK;
+    ImageExposureN[0].value = 0;
     IDSetNumber(&ImageExposureNP, nullptr);
 }
 

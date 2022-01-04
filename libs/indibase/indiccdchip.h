@@ -337,6 +337,11 @@ class CCDChip
         void setExposureLeft(double duration);
 
         /**
+         * @brief setExposureComplete Mark exposure as complete by setting ImageExposure property to IPS_OK
+         */
+        void setExposureComplete();
+
+        /**
          * @brief setExposureFailed Alert the client that the exposure failed.
          */
         void setExposureFailed();

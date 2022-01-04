@@ -520,6 +520,15 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         virtual void checkTemperatureTarget();
 
+        /**
+         * @brief processFastExposure After an exposure is complete, check if fast
+         * exposure was enabled. If it is, then immediately start the next exposure
+         * if possible and decrement the counter.
+         * @param targetChip Active fast exposure chip.
+         * @return True if next fast exposure is started, false otherwise.
+         */
+        virtual bool processFastExposure(CCDChip * targetChip);
+
 
         // Epoch Position
         double RA, Dec;
@@ -533,8 +542,8 @@ class CCD : public DefaultDevice, GuiderInterface
         bool J2000Valid;
 
         // exposure information
-	char exposureStartTime[MAXINDINAME];
-	double exposureDuration;
+        char exposureStartTime[MAXINDINAME];
+        double exposureDuration;
 
         double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
         bool InExposure;
