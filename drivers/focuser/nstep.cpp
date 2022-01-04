@@ -62,10 +62,14 @@ bool NStep::initProperties()
                        COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Compensation Settings
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Delta T. (C)", "%.1f", -99, 99, 0.1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Delta", "%.0f", 0, 999, 1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_BACKLASH], "COMPENSATION_SETTING_BACKLASH", "Backlash steps", "%.0f", 0, 999, 1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Averaged Time (s)", "%.0f", 0, 75, 1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Delta T. (C)", "%.1f",
+                 -99, 99, 0.1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Delta", "%.0f", 0,
+                 999, 1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_BACKLASH], "COMPENSATION_SETTING_BACKLASH", "Backlash steps",
+                 "%.0f", 0, 999, 1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Averaged Time (s)", "%.0f",
+                 0, 75, 1, 0);
     IUFillNumberVector(&CompensationSettingsNP, CompensationSettingsN, 4, getDeviceName(), "COMPENSATION_SETTING", "Settings",
                        COMPENSATION_TAB, IP_RW, 0, IPS_OK);
 
@@ -88,7 +92,7 @@ bool NStep::initProperties()
 
     // Coil Energized Status
     IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_OFF], "COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
-    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_OFF", "Energized", ISS_OFF);
+    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_ON", "Energized", ISS_OFF);
     IUFillSwitchVector(&CoilStatusSP, CoilStatusS, 2, getDeviceName(), "COIL_MODE", "Coil After Move",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
