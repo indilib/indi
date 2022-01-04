@@ -147,6 +147,10 @@ bool Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             if (MoveRotator(PresetN[index].value) != IPS_ALERT)
             {
+                // Ensure Goto Rotator is set to busy.
+                GotoRotatorNP.s = IPS_BUSY;
+                IDSetNumber(&GotoRotatorNP, nullptr);
+
                 PresetGotoSP.s = IPS_OK;
                 DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
