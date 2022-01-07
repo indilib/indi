@@ -1999,7 +1999,7 @@ void MsgQueue::writeToFd() {
             cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
 
             /* Write the fd as ancillary data */
-            cmsgh->cmsg_len = CMSG_LEN(sizeof(int));
+            cmsgh->cmsg_len = CMSG_LEN(fdCount * sizeof(int));
             cmsgh->cmsg_level = SOL_SOCKET;
             cmsgh->cmsg_type = SCM_RIGHTS;
             msgh.msg_control = cmsgh;
