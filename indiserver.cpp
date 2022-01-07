@@ -1508,6 +1508,17 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (!strcmp(roottag, "enableBLOB"))
         crackBLOBHandling(dev, name, pcdataXMLEle(root));
 
+    if (!strcmp(roottag, "serverPingRequest")) {
+        setXMLEleTag(root, "serverPingReply");
+
+        Msg * mp = new Msg();
+        mp->setFromXMLEle(root);
+        pushMsg(mp);
+        if (mp->count == 0)
+            delete mp;
+        return;
+    }
+
     /* build a new message -- set content iff anyone cares */
     Msg* mp = new Msg();
     // FIXME: this should be made only if message is of interest
@@ -1596,6 +1607,17 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     /* log messages if any and wanted */
     if (ldir)
         logDMsg(root, dev);
+
+    if (!strcmp(roottag, "serverPingRequest")) {
+        setXMLEleTag(root, "serverPingReply");
+
+        Msg * mp = new Msg();
+        mp->setFromXMLEle(root);
+        pushMsg(mp);
+        if (mp->count == 0)
+            delete mp;
+        return;
+    }
 
     /* build a new message -- set content iff anyone cares */
     Msg * mp = new Msg();
