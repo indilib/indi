@@ -652,6 +652,17 @@ void appXMLEle(XMLEle *ep, XMLEle *newep)
     ep->el[ep->nel++] = newep;
 }
 
+/* Update the tag of an element
+ */
+XMLEle *setXMLEleTag(XMLEle *ep, const char * tag)
+{
+    freeString(&ep->tag);
+    newString(&ep->tag);
+    appendString(&ep->tag, tag);
+    return ep;
+}
+
+
 /* set the pcdata of the given element */
 void editXMLEle(XMLEle *ep, const char *pcdata)
 {

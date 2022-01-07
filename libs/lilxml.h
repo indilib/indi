@@ -204,6 +204,13 @@ extern int nXMLAtt(XMLEle *ep);
 */
 extern XMLEle *addXMLEle(XMLEle *parent, const char *tag);
 
+
+/** \brief Update the tag of an element
+    \param ep pointer to an XML element
+    \param tag the new tag value to set
+ */
+extern XMLEle *setXMLEleTag(XMLEle *ep, const char * tag);
+
 /** \brief set the pcdata of the given element
     \param ep pointer to an XML element.
     \param pcdata pcdata to set.
