@@ -280,6 +280,7 @@ void CCDChip::binFrame()
             uint16_t *bin_buf    = reinterpret_cast<uint16_t *>(BinFrame);
             uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
             uint16_t val;
+
             for (uint32_t i = 0; i < SubH; i += BinX)
                 for (uint32_t j = 0; j < SubW; j += BinX)
                 {
@@ -296,6 +297,106 @@ void CCDChip::binFrame()
                     }
                     bin_buf++;
                 }
+        }
+        break;
+
+        default:
+            return;
+    }
+
+    // Swap frame pointers
+    uint8_t *rawFramePointer = RawFrame;
+    RawFrame                 = BinFrame;
+    // We just memset it next time we use it
+    BinFrame = rawFramePointer;
+}
+
+
+// Thx8411:
+// Binning Bayer frames
+// Each raw frame pixel is mapped and summed onto the binned frame
+// The right place of each pixel in the 2x2 Bayer matrix is found by :
+// (((i/BinX) & 0xFFFFFFFE) + (i & 0x00000001))
+// and
+// ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001)
+//
+void CCDChip::binBayerFrame()
+{
+    if (BinX == 1)
+        return;
+
+    // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
+    if (BinFrame == nullptr)
+        BinFrame = new uint8_t[RawFrameSize];
+
+    memset(BinFrame, 0, RawFrameSize);
+
+    switch (getBPP())
+    {
+        // 8 bpp frame
+        case 8:
+        {
+            uint32_t BinFrameOffset;
+            uint32_t val;
+            uint32_t BinW=SubW/BinX;
+            uint8_t BinFactor=BinX*BinY;
+            uint32_t RawOffset=0;
+            uint32_t BinOffsetH;
+
+            // for each raw frame row
+            for (uint32_t i = 0; i < SubH; i++)
+            {
+                // find the binned frame row
+                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                // for each raw column
+                for (uint32_t j = 0; j < SubW; j++)
+                {
+                    // find the proper position in the binned frame
+                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    // get the existing value in the binned frame
+                    val=BinFrame[BinFrameOffset];
+                    // add the new value, averaged and caped
+                    val+=RawFrame[RawOffset]/BinFactor;
+                    if(val>UINT8_MAX)
+                        val=UINT8_MAX;
+                    // write back into the binned frame
+                    BinFrame[BinFrameOffset]=(uint8_t)val;
+                    // next binned frame pixel
+                    RawOffset++;
+                }
+            }
+        }
+        break;
+
+        // 16 bpp frame
+        case 16:
+        {
+            // works the same as the 8 bits version, without averaging but
+            // mapped onto 16 bits pixel
+            uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
+            uint16_t *BinFrame16 = reinterpret_cast<uint16_t *>(BinFrame);
+
+            uint32_t BinFrameOffset;
+            uint32_t val;
+            uint32_t BinW=SubW/BinX;
+            uint32_t RawOffset=0;
+            uint32_t BinOffsetH;
+
+            for (uint32_t i = 0; i < SubH; i++)
+            {
+                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                for (uint32_t j = 0; j < SubW; j++)
+                {
+                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    val=BinFrame16[BinFrameOffset];
+                    val+=RawFrame16[RawOffset];
+                    if(val>UINT16_MAX)
+                        val=UINT16_MAX;
+                    BinFrame16[BinFrameOffset]=(uint16_t)val;
+                    RawOffset++;
+                }
+            }
+
         }
         break;
 
