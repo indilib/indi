@@ -9,7 +9,7 @@ ENABLE_TESTING()
 
 add_executable(fakedriver fakedriver.cpp utils.cpp)
 
-add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp FakeDriverCnx.cpp IndiServerCnx.cpp utils.cpp)
+add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp)
 target_link_libraries(TestIndiserverSingleDriver gtest_main)
 
 gtest_discover_tests(TestIndiserverSingleDriver PROPERTIES TIMEOUT 5)

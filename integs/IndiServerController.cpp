@@ -2,10 +2,10 @@
 #include <sys/wait.h>
 
 #include "utils.h"
-#include "IndiServerCnx.h"
+#include "IndiServerController.h"
 
-void IndiServerCnx::start(const char * * args) {
-    int argCount;
+void IndiServerController::start(const char * * args) {
+    int argCount = 0;
     if (!args) {
         argCount = 0;
     } else {
@@ -33,7 +33,7 @@ void IndiServerCnx::start(const char * * args) {
     }
 }
 
-void IndiServerCnx::waitProcessEnd(int exitCode) {
+void IndiServerController::waitProcessEnd(int exitCode) {
     int wstatus;
     pid_t ret = waitpid(indiServerPid, &wstatus, 0);
     if (ret == -1) {

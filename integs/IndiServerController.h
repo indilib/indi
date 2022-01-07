@@ -1,5 +1,5 @@
-#ifndef INDISERVER_H_
-#define INDISERVER_H_ 1
+#ifndef INDI_SERVER_CONTROLLER_H_
+#define INDI_SERVER_CONTROLLER_H_ 1
 
 #include <string>
 #include <unistd.h>
@@ -9,7 +9,7 @@
  *
  * Allows starting it, sending it signals and inspecting exit code
  */
-class IndiServerCnx {
+class IndiServerController {
 
 public:
     // pid of the indiserver
@@ -22,4 +22,4 @@ public:
 };
 
 
-#endif // INDISERVER_H_
+#endif // INDI_SERVER_CONTROLLER_H_
