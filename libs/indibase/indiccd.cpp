@@ -1363,8 +1363,14 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (FastExposureToggleSP.s == IPS_IDLE && FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
                 LOG_WARN("Experimental Feature: After a frame is downloaded, the next frame capture immediately starts to avoid any delays.");
 
-            if (FastExposureToggleS[INDI_DISABLED].s == ISS_ON && PrimaryCCD.isExposing())
-                AbortExposure();
+            if (FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
+            {
+                FastExposureCountNP.s = IPS_IDLE;
+                IDSetNumber(&FastExposureCountNP, nullptr);
+                m_UploadTime = 0;
+                if (PrimaryCCD.isExposing())
+                    AbortExposure();
+            }
 
             FastExposureToggleSP.s = IPS_OK;
             IDSetSwitch(&FastExposureToggleSP, nullptr);
