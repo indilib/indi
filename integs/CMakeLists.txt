@@ -9,7 +9,11 @@ ENABLE_TESTING()
 
 add_executable(fakedriver fakedriver.cpp utils.cpp)
 
-add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp)
+add_executable(XmlAwaiterTest XmlAwaiterTest.cpp XmlAwaiter.cpp)
+target_link_libraries(XmlAwaiterTest gtest_main)
+gtest_discover_tests(XmlAwaiterTest PROPERTIES TIMEOUT 5)
+
+add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp)
 target_link_libraries(TestIndiserverSingleDriver gtest_main)
 
 gtest_discover_tests(TestIndiserverSingleDriver PROPERTIES TIMEOUT 5)

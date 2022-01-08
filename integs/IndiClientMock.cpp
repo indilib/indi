@@ -21,3 +21,8 @@ void IndiClientMock::connectUnix(const std::string & path) {
     fd = unixSocketConnect(path);
     cnx.setFds(fd, fd);
 }
+
+void IndiClientMock::ping() {
+    cnx.send("<serverPingRequest uid='flush'/>\n");
+    cnx.expect("<serverPingReply uid=\"flush\"/>\n");
+}

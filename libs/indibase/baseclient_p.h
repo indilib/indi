@@ -86,6 +86,8 @@ class BaseClientPrivate
     private:
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
         bool unixSocket {false};
+        // TODO : blob control flow descriptor
+        // TODO : blob control limit enforcing structure
 
         // Add an attribute for access to shared blobs
         bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> & blobs);

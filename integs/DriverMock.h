@@ -29,6 +29,8 @@ public:
 
     void terminateDriver();
 
+    void ping();
+
     ConnectionMock cnx;
 };
 

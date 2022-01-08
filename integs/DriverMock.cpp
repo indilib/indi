@@ -27,6 +27,13 @@ void DriverMock::terminateDriver() {
     driverFds[1] = -1;
 }
 
+
+void DriverMock::ping() {
+    cnx.send("<serverPingRequest uid='flush'/>\n");
+    cnx.expect("<serverPingReply uid=\"flush\"/>\n");
+}
+
+
 void DriverMock::unsetup() {
     if (serverConnection != -1) {
         close(serverConnection);

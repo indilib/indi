@@ -17,6 +17,9 @@ public:
     void connectUnix(const std::string & path= "/tmp/indiserver");
     void connectTcp(const std::string & host = "127.0.0.1", int port = 7624);
 
+    // This ensure that previous orders were received
+    void ping();
+
     void close();
 };
 
