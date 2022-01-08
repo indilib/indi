@@ -17,8 +17,6 @@ TEST(IndiserverSingleDriver, MissingDriver) {
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
-    fprintf(stderr, "Testing indiserver running one missing driver from cmd line");
-
     setupSigPipe();
 
     // Start indiserver with one instance, repeat 0
@@ -33,8 +31,6 @@ TEST(IndiserverSingleDriver, MissingDriver) {
 TEST(IndiserverSingleDriver, ReplyToPing) {
     DriverMock fakeDriver;
     IndiServerController indiServer;
-
-    fprintf(stderr, "Testing indiserver running one driver from cmd line");
 
     setupSigPipe();
 
@@ -111,15 +107,9 @@ void connectFakeDev1Client(IndiServerController & indiServer, DriverMock & fakeD
     indiClient.cnx.expect("<defBLOBVector device=\"fakedev1\" name=\"testblob\" label=\"test label\" group=\"test_group\" state=\"Idle\" perm=\"ro\" timeout=\"100\" timestamp=\"2018-01-01T00:00:00\">\n");
     indiClient.cnx.expect("    <defBLOB name=\"content\" label=\"content\"/>\n");
     indiClient.cnx.expect("</defBLOBVector>\n");
-
-    fprintf(stderr, "Client ask blobs\n");
-    indiClient.cnx.send("<enableBLOB device=\"fakedev1\" >Also</enableBLOB>\n");
-    indiClient.ping();
 }
 
-TEST(IndiserverSingleDriver, ForwardBlobDefToClient) {
-    fprintf(stderr, "Testing indiserver running one driver from cmd line");
-
+TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient) {
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -130,6 +120,71 @@ TEST(IndiserverSingleDriver, ForwardBlobDefToClient) {
     indiClient.connectUnix();
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
+
+    fprintf(stderr, "Driver send new blob value\n");
+    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='21' format='.fits' enclen='29'>\n");
+    fakeDriver.cnx.send("MDEyMzQ1Njc4OTAxMjM0NTY3ODkK\n");
+    fakeDriver.cnx.send("</oneBLOB>\n");
+    fakeDriver.cnx.send("</setBLOBVector>\n");
+    fakeDriver.ping();
+
+    fprintf(stderr, "Client don't receive blob\n");
+    indiClient.ping();
+
+    fakeDriver.terminateDriver();
+    // Exit code 1 is expected when driver stopped
+    indiServer.waitProcessEnd(1);
+}
+
+TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient) {
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+
+    startFakeDev1(indiServer, fakeDriver);
+
+    IndiClientMock indiClient;
+
+    indiClient.connectUnix();
+
+    connectFakeDev1Client(indiServer, fakeDriver, indiClient);
+
+    fprintf(stderr, "Client ask blobs\n");
+    indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob2'>Also</enableBLOB>\n");
+    indiClient.ping();
+
+
+    fprintf(stderr, "Driver send new blob value\n");
+    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='21' format='.fits' enclen='29'>\n");
+    fakeDriver.cnx.send("MDEyMzQ1Njc4OTAxMjM0NTY3ODkK\n");
+    fakeDriver.cnx.send("</oneBLOB>\n");
+    fakeDriver.cnx.send("</setBLOBVector>\n");
+    fakeDriver.ping();
+
+    fprintf(stderr, "Client don't receive blob\n");
+    indiClient.ping();
+
+    fakeDriver.terminateDriver();
+    // Exit code 1 is expected when driver stopped
+    indiServer.waitProcessEnd(1);
+}
+
+TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+
+    startFakeDev1(indiServer, fakeDriver);
+
+    IndiClientMock indiClient;
+
+    indiClient.connectUnix();
+
+    connectFakeDev1Client(indiServer, fakeDriver, indiClient);
+
+    fprintf(stderr, "Client ask blobs\n");
+    indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
+    indiClient.ping();
 
     fprintf(stderr, "Driver send new blob value\n");
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
