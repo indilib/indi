@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -198,4 +200,42 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
         }
     }
     throw std::runtime_error("Did not receive fds");
+}
+
+int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
+    struct sockaddr_in serv_addr;
+    struct sockaddr *sockaddr;
+    int sockfd;
+    socklen_t addrlen;
+
+    /* lookup host address */
+    auto hp = gethostbyname(host.c_str());
+    if (!hp)
+    {
+        throw std::system_error(h_errno, std::generic_category(), "Could not resolve " + host);
+    }
+
+    /* create a socket to the INDI server */
+    (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family      = AF_INET;
+    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+    serv_addr.sin_port        = htons(port);
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "socket");
+    }
+
+    /* connect */
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        if (!failAllowed) {
+            throw std::system_error(errno, std::generic_category(), "Connect to " + host);
+        }
+        auto e = errno;
+        close(sockfd);
+        errno = e;
+        return -1;
+    }
+
+    return sockfd;
 }

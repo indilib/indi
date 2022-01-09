@@ -8,3 +8,4 @@ int unixSocketConnect(const std::string & unixAddr, bool failAllowed = false);
 void unixSocketSendFds(int fd, int count, int * fds);
 void unixSocketRecvFds(int fd, int count, int * fds);
 
+int tcpSocketConnect(const std::string & unixAddr, int port, bool failAllowed = false);
