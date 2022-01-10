@@ -821,14 +821,20 @@ bool get_pmc8_track_rate(int fd, double &rate)
 
 bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode)
 {
-
     if (!get_pmc8_track_rate(fd, rate)) return false;
+    mode = get_pmc8_tracking_mode_from_rate(rate);
+    return true;
+}
 
-    int refmotor, tmotor;
 
-    //get our current precise motor rate
+uint8_t get_pmc8_tracking_mode_from_rate(double rate)
+{
+    int tmotor, refmotor;
+    uint8_t mode;
+    
+    //get precise motor rate
     bool rc = convert_precise_rate_to_motor(rate, &tmotor);
-
+    
     //now check what sidereal would be
     rc = convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
     if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;
@@ -855,8 +861,7 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode)
             }
         }
     }
-
-    return true;
+    return mode;
 }
 
 
@@ -1847,7 +1852,6 @@ bool abort_pmc8(int fd)
 {
     bool rc;
 
-
     if (pmc8_simulation)
     {
         // FIXME - need to do something to represent mount has stopped slewing
@@ -1868,6 +1872,40 @@ bool abort_pmc8(int fd)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping DEC axis!");
         return false;
+    }
+
+    return true;
+}
+
+bool abort_pmc8_goto(int fd)
+{
+    char cmd[32];
+    char expresp[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+    
+    snprintf(cmd, sizeof(cmd), "ESPt300000!");
+
+    if (!pmc8_simulation)
+    {
+
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        snprintf(expresp, sizeof(expresp), "ESGt3!");
+
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))
+        {
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Abort Goto cmd response incorrect: %s - expected %s", response, expresp);
+            return false;
+        }
     }
 
     return true;

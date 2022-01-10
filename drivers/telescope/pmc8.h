@@ -79,6 +79,7 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool Sync(double ra, double dec) override;
         virtual bool Goto(double, double) override;
         virtual bool Abort() override;
+        static void AbortGotoTimeoutHelper(void *p);
 
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
@@ -169,7 +170,6 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;
         double targetRA, targetDEC;
-        double currentTrackRate = 0;
 
         int trackingPollCounter = 0;
 
