@@ -938,7 +938,16 @@ add_executable(indi_nfocus ${nfocus_SRC})
 target_link_libraries(indi_nfocus indidriver)
 install(TARGETS indi_nfocus RUNTIME DESTINATION bin)
 
-################ Rigelsys NStep Focuser ################
+################ Rigelsys nFrame Rotator ################
+
+SET(nframe_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/nframe.cpp)
+
+add_executable(indi_nframe_rotator ${nframe_SRC})
+target_link_libraries(indi_nframe_rotator indidriver)
+install(TARGETS indi_nframe_rotator RUNTIME DESTINATION bin)
+
+################ Rigelsys nStep Focuser ################
 
 SET(nstep_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/nstep.cpp)
