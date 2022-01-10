@@ -76,6 +76,8 @@ class RainbowRSF : public INDI::Focuser
 
         const static uint32_t homePosition { 8000 };
 
+        time_t timeoutStartSeconds = 0;
+
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
