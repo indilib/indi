@@ -947,6 +947,15 @@ add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 
+################ Rigelsys nFrame Rotator ################
+
+SET(nframe_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/nframe.cpp)
+
+add_executable(indi_nframe_rotator ${nframe_SRC})
+target_link_libraries(indi_nframe_rotator indidriver)
+install(TARGETS indi_nframe_rotator RUNTIME DESTINATION bin)
+
 ################ PlaneWave EFA ################
 
 SET(efa_SRC
