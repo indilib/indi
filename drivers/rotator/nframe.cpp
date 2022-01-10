@@ -1,5 +1,8 @@
 /*
-  nFrameRotator Focuser
+  nFrameRotator Rotator
+
+  nFrame added by Gene N
+  Modified from indi_nstep_focuser
 
   Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
@@ -58,9 +61,8 @@ bool nFrameRotator::initProperties()
                        STEPPING_TAB, IP_RW, 0, IPS_OK);
 
 
-    IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Step Rate", "%3.0f", 0.0, 255.0, 1.0, 255.0);
-    //    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 0,
+    IUFillNumber(&RotatorSpeedN[0], "ROTATE_SPEED_VALUE", "Step Rate", "%3.0f", 0.0, 255.0, 1.0, 255.0);
+    IUFillNumberVector(&RotatorSpeedNP, RotatorSpeedN, 1, getDeviceName(), "ROTATE_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_OK);
 
     // Max Speed
@@ -90,13 +92,9 @@ bool nFrameRotator::initProperties()
     GotoRotatorN[0].max  = 999999;
     GotoRotatorN[0].step = 1000;
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 999;
-    FocusRelPosN[0].step = 100;
-
-    FocusSpeedN[0].min  = 1;
-    FocusSpeedN[0].max  = 254;
-    FocusSpeedN[0].step = 10;
+    RotatorSpeedN[0].min  = 1;
+    RotatorSpeedN[0].max  = 254;
+    RotatorSpeedN[0].step = 10;
 
     return true;
 }
@@ -108,24 +106,21 @@ const char *nFrameRotator::getDefaultName()
 
 bool nFrameRotator::updateProperties()
 {
+    INDI::Rotator::updateProperties();
+
     if (isConnected())
     {
         // Read these values before defining focuser interface properties
         defineProperty(&RotatorAbsPosNP);
         defineProperty(&SettingNP);
-        defineProperty(&FocusSpeedNP);
+        defineProperty(&RotatorSpeedNP);
         defineProperty(&GotoRotatorNP);
         loadConfig(true, SettingNP.name);
         readPosition();
         readSpeedInfo();
         IDSetNumber(&RotatorAbsPosNP, nullptr);
         IDSetNumber(&GotoRotatorNP, nullptr);
-    }
 
-    INDI::Rotator::updateProperties();
-
-    if (isConnected())
-    {
         loadConfig(true, PresetNP.name);
 
         bool rc = getStartupValues();
@@ -148,7 +143,7 @@ bool nFrameRotator::updateProperties()
         deleteProperty(SteppingModeSP.name);
         deleteProperty(SteppingPhaseNP.name);
         deleteProperty(CoilStatusSP.name);
-        deleteProperty(FocusSpeedNP.name);
+        deleteProperty(RotatorSpeedNP.name);
         deleteProperty(RotatorAbsPosNP.name);
     }
 
@@ -157,7 +152,7 @@ bool nFrameRotator::updateProperties()
 
 bool nFrameRotator::Handshake()
 {
-    char cmd[NSTEP_LEN] = {0}, res[NSTEP_LEN] = {0};
+    char cmd[NFRAME_LEN] = {0}, res[NFRAME_LEN] = {0};
 
     // Ack
     cmd[0] = 0x6;
@@ -177,7 +172,7 @@ bool nFrameRotator::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     if (cmd_len > 0)
     {
-        char hex_cmd[NSTEP_LEN * 3] = {0};
+        char hex_cmd[NFRAME_LEN * 3] = {0};
         hexDump(hex_cmd, cmd, cmd_len);
         LOGF_DEBUG("CMD <%s>", hex_cmd);
         rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
@@ -200,9 +195,9 @@ bool nFrameRotator::sendCommand(const char * cmd, char * res, int cmd_len, int r
         return true;
 
     if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, NSTEP_TIMEOUT, &nbytes_read);
+        rc = tty_read(PortFD, res, res_len, NFRAME_TIMEOUT, &nbytes_read);
     else
-        rc = tty_nread_section(PortFD, res, NSTEP_LEN, NSTEP_STOP_CHAR, NSTEP_TIMEOUT, &nbytes_read);
+        rc = tty_nread_section(PortFD, res, NFRAME_LEN, NFRAME_STOP_CHAR, NFRAME_TIMEOUT, &nbytes_read);
 
     if (rc != TTY_OK)
     {
@@ -214,7 +209,7 @@ bool nFrameRotator::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     if (res_len > 0)
     {
-        char hex_res[NSTEP_LEN * 3] = {0};
+        char hex_res[NFRAME_LEN * 3] = {0};
         hexDump(hex_res, res, res_len);
         LOGF_DEBUG("RES <%s>", hex_res);
     }
@@ -259,19 +254,19 @@ bool nFrameRotator::ISNewNumber(const char *dev, const char *name, double values
 
         // Current speed
 
-        if (!strcmp(name, FocusSpeedNP.name))
+        if (!strcmp(name, RotatorSpeedNP.name))
         {
-            if (SetFocuserSpeed(static_cast<uint8_t>(values[0])))
+            if (SetRotatorSpeed(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&FocusSpeedNP, values, names, n);
-                FocusSpeedNP.s = IPS_OK;
+                IUUpdateNumber(&RotatorSpeedNP, values, names, n);
+                RotatorSpeedNP.s = IPS_OK;
             }
             else
             {
-                FocusSpeedNP.s = IPS_ALERT;
+                RotatorSpeedNP.s = IPS_ALERT;
             }
 
-            IDSetNumber(&FocusSpeedNP, nullptr);
+            IDSetNumber(&RotatorSpeedNP, nullptr);
             return true;
         }
 
@@ -284,8 +279,8 @@ bool nFrameRotator::ISNewNumber(const char *dev, const char *name, double values
                 MaxSpeedNP.s = IPS_OK;
 
                 // We must update the Min/Max of focus speed
-                FocusSpeedN[0].max = values[0];
-                IUUpdateMinMax(&FocusSpeedNP);
+                RotatorSpeedN[0].max = values[0];
+                IUUpdateMinMax(&RotatorSpeedNP);
             }
             else
             {
@@ -394,30 +389,10 @@ IPState nFrameRotator::MoveRotator(double angle)
     r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
 
     double newTarget = r * SettingN[PARAM_STEPS_DEGREE].value + m_ZeroPosition;
-    // LOGF_DEBUG("newTarget = <%f>", newTarget);
-    // LOGF_DEBUG("newTargetI = <%d>", (int)newTarget);
-
-    // LOGF_DEBUG("Angle = <%f> Step/Deg=<%d> GotoRot=<%d> AbsRot=<%f>", angle, (int)SettingN[PARAM_STEPS_DEGREE].value,
-    //           GotoRotatorN[0].value, RotatorAbsPosN[0].value); //QQQ
-
-    //    m_TargetDiff = (int)newTarget - GotoRotatorN[0].value;
     m_TargetDiff = (int)newTarget - (int)RotatorAbsPosN[0].value;
-    // LOGF_DEBUG("mTargetDiff = <%d> CP=<%d>", m_TargetDiff, GotoRotatorN[0].value);//XXXX
     return IPS_BUSY;
 }
 
-IPState nFrameRotator::MoveAbsFocuser(uint32_t targetTicks)
-{
-    m_TargetDiff = targetTicks - GotoRotatorN[0].value;
-    RotatorAbsPosNP.s = IPS_BUSY;
-    return IPS_BUSY;
-}
-
-IPState nFrameRotator::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
-{
-    m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(GotoRotatorN[0].value + m_TargetDiff);
-}
 
 bool nFrameRotator::AbortRotator()
 {
@@ -426,7 +401,6 @@ bool nFrameRotator::AbortRotator()
 	 m_TargetDiff = 1; wantAbort = true;  return false;
     }
     return true;
-//    return sendCommand("F00000#");
 }
 
 void nFrameRotator::TimerHit()
@@ -434,25 +408,20 @@ void nFrameRotator::TimerHit()
     if (isConnected() == false)
         return;
 
-//    double currentPosition = GotoRotatorN[0].value;
-//    RotatorAbsPosN[0].value = GotoRotatorN[0].value;
-
     readPosition();
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
     if ( ((RotatorAbsPosNP.s == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY) && isMoving() == false) || wantAbort == true)
     {
-	LOGF_INFO("wantAbort = %d, diff = %d",wantAbort,m_TargetDiff);
+	LOGF_DEBUG("wantAbort = %d, diff = %d",wantAbort,m_TargetDiff);
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
 	    LOGF_DEBUG("HIT reqAngle=%f diff=%d",requestedAngle,m_TargetDiff);
-//            GotoRotatorN[0].value = requestedAngle;
             IDSetNumber(&RotatorAbsPosNP, nullptr);
-//            IDSetNumber(&GotoRotatorNP, nullptr);
 	    wantAbort = false;
         }
         else
@@ -461,10 +430,10 @@ void nFrameRotator::TimerHit()
             // so we need to go 999 or LESS
             // therefore for larger movements, we break it down.
             int nextMotion = (std::abs(m_TargetDiff) > 999) ? 999 : std::abs(m_TargetDiff);
-            int direction = m_TargetDiff > 0 ? FOCUS_OUTWARD : FOCUS_INWARD;
+            int direction = m_TargetDiff > 0 ? ROTATE_OUTWARD : ROTATE_INWARD;
             int mode = IUFindOnSwitchIndex(&SteppingModeSP);
-            char cmd[NSTEP_LEN] = {0};
-            snprintf(cmd, NSTEP_LEN, ":F%d%d%03d#", direction, mode, nextMotion);
+            char cmd[NFRAME_LEN] = {0};
+            snprintf(cmd, NFRAME_LEN, ":F%d%d%03d#", direction, mode, nextMotion);
             if (sendCommand(cmd) == false)
             {
                 LOG_ERROR("Failed to issue motion command.");
@@ -484,36 +453,24 @@ void nFrameRotator::TimerHit()
                 // Reduce target diff depending on the motion direction
                 // Negative targetDiff increases eventually to zero
                 // Positive targetDiff decreases eventually to zero
-//                IDSetNumber(&GotoRotatorNP, nullptr);
-                m_TargetDiff = m_TargetDiff + (nextMotion * ((direction == FOCUS_INWARD) ? 1 : -1));
+                m_TargetDiff = m_TargetDiff + (nextMotion * ((direction == ROTATE_INWARD) ? 1 : -1));
 	    }
         }
         // Check if can update the absolute position in case it changed.
     }
-//    else if (currentPosition != GotoRotatorN[0].value)
-//    {
-//        IDSetNumber(&RotatorAbsPosNP, nullptr);
-//    }
     if (m_TargetDiff == 0)
     {
-//        RotatorAbsPosNP.s = IPS_OK;
         IDSetNumber(&RotatorAbsPosNP, nullptr);
     }
-//    RotatorAbsPosNP.s = IPS_OK;
     IDSetNumber(&RotatorAbsPosNP, nullptr);
     IDSetNumber(&GotoRotatorNP, nullptr);
-    if(m_TargetDiff == 0 && requestedAngle != -1.0 && isMoving() == false)
-    {
-//	LOGF_INFO("HIT reqAngle=%f diff=%d",requestedAngle,m_TargetDiff);
-//        GotoRotatorN[0].value = requestedAngle;
-    }
 
     SetTimer(getCurrentPollingPeriod());
 }
 
 bool nFrameRotator::isMoving()
 {
-    char res[NSTEP_LEN] = {0};
+    char res[NFRAME_LEN] = {0};
 
     bool rc = sendCommand("S", res, 1, 1);
 
@@ -526,7 +483,7 @@ bool nFrameRotator::isMoving()
 
 bool nFrameRotator::readPosition()
 {
-    char res[NSTEP_LEN] = {0};
+    char res[NFRAME_LEN] = {0};
 
     if (sendCommand(":RP", res, 3, 7) == false)
         return false;
@@ -550,7 +507,7 @@ bool nFrameRotator::readPosition()
 
 bool nFrameRotator::readSpeedInfo()
 {
-    char res[NSTEP_LEN] = {0};
+    char res[NFRAME_LEN] = {0};
     int32_t max_step = 1e6, current_step = 1e6;
 
     // Max Step
@@ -572,18 +529,18 @@ bool nFrameRotator::readSpeedInfo()
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = 254 - max_step + 1;
-    FocusSpeedN[0].value = 254 - current_step + 1;
-    IDSetNumber(&FocusSpeedNP, nullptr);
-    FocusSpeedNP.s = IPS_OK;
-    LOGF_DEBUG("Speed= %f cs=%d", FocusSpeedN[0].value, current_step);
+    RotatorSpeedN[0].max   = 254 - max_step + 1;
+    RotatorSpeedN[0].value = 254 - current_step + 1;
+    IDSetNumber(&RotatorSpeedNP, nullptr);
+    RotatorSpeedNP.s = IPS_OK;
+    LOGF_DEBUG("Speed= %f cs=%d", RotatorSpeedN[0].value, current_step);
 
     return true;
 }
 
 bool nFrameRotator::readSteppingInfo()
 {
-    char res[NSTEP_LEN] = {0};
+    char res[NFRAME_LEN] = {0};
 
     if (sendCommand(":RW", res, 3, 1) == false)
         return false;
@@ -602,7 +559,7 @@ bool nFrameRotator::readSteppingInfo()
 
 bool nFrameRotator::readCoilStatus()
 {
-    char res[NSTEP_LEN] = {0};
+    char res[NFRAME_LEN] = {0};
 
     if (sendCommand(":RC", res, 3, 1) == false)
         return false;
@@ -632,27 +589,27 @@ bool nFrameRotator::SyncRotator(double angle)
     r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
     double newTarget = r * SettingN[PARAM_STEPS_DEGREE].value + m_ZeroPosition;
 
-    char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CP+%06d#", (int)newTarget);
+    char cmd[NFRAME_LEN] = {0};
+    snprintf(cmd, NFRAME_LEN, "#:CP+%06d#", (int)newTarget);
     return sendCommand(cmd);
 }
 
-bool nFrameRotator::SetFocuserSpeed(uint8_t speed)
+bool nFrameRotator::SetRotatorSpeed(uint8_t speed)
 {
     // Speed and Current nFrameRotator steps are opposite.
     // Speed 1 is slowest, translated to 254 for nStep.
-    char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed + 1);
+    char cmd[NFRAME_LEN] = {0};
+    snprintf(cmd, NFRAME_LEN, "#:CO%03d#", 254 - speed + 1);
     return sendCommand(cmd);
 }
 
 bool nFrameRotator::setMaxSpeed(uint8_t maxSpeed)
 {
-    // INDI Focus Speed and Current nFrameRotator steps are opposite.
-    // INDI Speed 1 is slowest, translated to 254 for nStep.
+    // INDI Rotate Speed and Current nFrameRotator steps are opposite.
+    // INDI Speed 1 is slowest, translated to 254 for nFrame.
     // and vice versa
-    char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, ":CS%03d#", 254 - maxSpeed + 1);
+    char cmd[NFRAME_LEN] = {0};
+    snprintf(cmd, NFRAME_LEN, ":CS%03d#", 254 - maxSpeed + 1);
     return sendCommand(cmd);
 }
 
@@ -660,15 +617,15 @@ bool nFrameRotator::setMaxSpeed(uint8_t maxSpeed)
 
 bool nFrameRotator::setSteppingPhase(uint8_t phase)
 {
-    char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CW%01d#", phase);
+    char cmd[NFRAME_LEN] = {0};
+    snprintf(cmd, NFRAME_LEN, "#:CW%01d#", phase);
     return sendCommand(cmd);
 }
 
 bool nFrameRotator::setCoilStatus(uint8_t status)
 {
-    char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CC%01d#", status == COIL_ENERGIZED_OFF ? 1 : 0);
+    char cmd[NFRAME_LEN] = {0};
+    snprintf(cmd, NFRAME_LEN, "#:CC%01d#", status == COIL_ENERGIZED_OFF ? 1 : 0);
     LOGF_DEBUG("setCoil = %d hex=%x", status, status);
     LOGF_DEBUG("setCoilS = %s CEOFF=%d CEON = %d", cmd, COIL_ENERGIZED_OFF, COIL_ENERGIZED_ON);
     return sendCommand(cmd);
