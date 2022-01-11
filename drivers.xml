@@ -311,7 +311,11 @@
             <driver name="Rigelsys NStep">indi_nstep_focus</driver>
             <version>1.2</version>
         </device>
-          <device label="RBFocus" manufacturer="RBFocus">
+        <device label="Rigelsys nFrame" manufacturer="Rigel Systems">
+            <driver name="Rigelsys nFrame">indi_nstep_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="RBFocus" manufacturer="RBFocus">
             <driver name="RBFocus">indi_rbfocus_focus</driver>
             <version>1.2</version>
         </device>
