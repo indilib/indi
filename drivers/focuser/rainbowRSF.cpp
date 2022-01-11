@@ -100,7 +100,7 @@ bool RainbowRSF::initProperties()
     addSimulationControl();
     addDebugControl();
 
-    m_MovementTimer.reset();
+    m_MovementTimerActive = false;
 
     return true;
 }
@@ -262,15 +262,15 @@ bool RainbowRSF::updatePosition()
         // sometimes stops 1 position away from the target, and occasionally 2 or 3.
         if (!focuserDone && ((GoHomeSP.s == IPS_BUSY) || (FocusAbsPosNP.s == IPS_BUSY)))
         {
-            if (m_MovementTimer.get() == nullptr)
+            if (!m_MovementTimerActive)
             {
                 // Waiting for motion completion. Initialize the start time for timeouts.
-                m_MovementTimer.reset(new INDI::ElapsedTimer());
-                m_MovementTimer->start();
+                m_MovementTimer.start();
+                m_MovementTimerActive = true;
             }
             else
             {
-                const double elapsedSeconds = m_MovementTimer->elapsed() / 1000.0;
+                const double elapsedSeconds = m_MovementTimer.elapsed() / 1000.0;
                 if ((elapsedSeconds > 5 && offset < 3) ||
                         (elapsedSeconds > 10 && offset < 6) ||
                         (elapsedSeconds > 60))
@@ -284,7 +284,7 @@ bool RainbowRSF::updatePosition()
 
         if (focuserDone)
         {
-            m_MovementTimer.reset();
+            m_MovementTimerActive = false;
             if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
@@ -354,7 +354,7 @@ bool RainbowRSF::updateTemperature()
 /////////////////////////////////////////////////////////////////////////////////////
 IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 {
-    m_MovementTimer.reset();
+    m_MovementTimerActive = false;
     m_TargetPosition = targetTicks;
 
     char cmd[DRIVER_LEN] = {0};
@@ -373,7 +373,7 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    m_MovementTimer.reset();
+    m_MovementTimerActive = false;
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosN[0].value + relativeTicks;
@@ -396,7 +396,7 @@ bool RainbowRSF::findHome()
     }
     else
     {
-        m_MovementTimer.reset();
+        m_MovementTimerActive = false;
         m_TargetPosition = homePosition;
         FocusAbsPosNP.s = IPS_BUSY;
         char res[DRIVER_LEN] = {0};

@@ -78,7 +78,8 @@ class RainbowRSF : public INDI::Focuser
         const static uint32_t homePosition { 8000 };
 
         // Timer used to timeout when waiting for requested movement to complete.
-        std::unique_ptr<INDI::ElapsedTimer> m_MovementTimer;
+        INDI::ElapsedTimer m_MovementTimer;
+        bool m_MovementTimerActive { false };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
