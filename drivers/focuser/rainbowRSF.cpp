@@ -100,7 +100,7 @@ bool RainbowRSF::initProperties()
     addSimulationControl();
     addDebugControl();
 
-    timeoutStartSeconds = 0;
+    m_MovementTimer.reset();
 
     return true;
 }
@@ -262,33 +262,29 @@ bool RainbowRSF::updatePosition()
         // sometimes stops 1 position away from the target, and occasionally 2 or 3.
         if (!focuserDone && ((GoHomeSP.s == IPS_BUSY) || (FocusAbsPosNP.s == IPS_BUSY)))
         {
-            struct timeval now;
-            if (0 == gettimeofday(&now, nullptr))
+            if (m_MovementTimer.get() == nullptr)
             {
-                time_t nowSeconds = now.tv_sec;
-                if (timeoutStartSeconds == 0)
+                // Waiting for motion completion. Initialize the start time for timeouts.
+                m_MovementTimer.reset(new INDI::ElapsedTimer());
+                m_MovementTimer->start();
+            }
+            else
+            {
+                const double elapsedSeconds = m_MovementTimer->elapsed() / 1000.0;
+                if ((elapsedSeconds > 5 && offset < 3) ||
+                        (elapsedSeconds > 10 && offset < 6) ||
+                        (elapsedSeconds > 60))
                 {
-                    // Waiting for motion completion. Initialize the start time for timeouts.
-                    timeoutStartSeconds = nowSeconds;
-                }
-                else
-                {
-                    const int elapsedSeconds = nowSeconds - timeoutStartSeconds;
-                    if ((elapsedSeconds > 5 && offset < 3) ||
-                            (elapsedSeconds > 10 && offset < 6) ||
-                            (elapsedSeconds > 60))
-                    {
-                        focuserDone = true;
-                        LOGF_INFO("Rainbow focuser timed out: %d seconds, offset %d (target %d, position %d)",
-                                  elapsedSeconds, offset, m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
-                    }
+                    focuserDone = true;
+                    LOGF_INFO("Rainbow focuser timed out: %.1f seconds, offset %d (target %d, position %d)",
+                              elapsedSeconds, offset, m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
                 }
             }
         }
 
         if (focuserDone)
         {
-            timeoutStartSeconds = 0;
+            m_MovementTimer.reset();
             if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
@@ -358,7 +354,7 @@ bool RainbowRSF::updateTemperature()
 /////////////////////////////////////////////////////////////////////////////////////
 IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 {
-    timeoutStartSeconds = 0;
+    m_MovementTimer.reset();
     m_TargetPosition = targetTicks;
 
     char cmd[DRIVER_LEN] = {0};
@@ -377,7 +373,7 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    timeoutStartSeconds = 0;
+    m_MovementTimer.reset();
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosN[0].value + relativeTicks;
@@ -400,7 +396,7 @@ bool RainbowRSF::findHome()
     }
     else
     {
-        timeoutStartSeconds = 0;
+        m_MovementTimer.reset();
         m_TargetPosition = homePosition;
         FocusAbsPosNP.s = IPS_BUSY;
         char res[DRIVER_LEN] = {0};

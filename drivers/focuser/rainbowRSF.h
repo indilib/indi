@@ -22,6 +22,7 @@
 
 #include <memory>
 #include "indifocuser.h"
+#include "indielapsedtimer.h"
 
 class RainbowRSF : public INDI::Focuser
 {
@@ -76,8 +77,8 @@ class RainbowRSF : public INDI::Focuser
 
         const static uint32_t homePosition { 8000 };
 
-        time_t timeoutStartSeconds = 0;
-
+        // Timer used to timeout when waiting for requested movement to complete.
+        std::unique_ptr<INDI::ElapsedTimer> m_MovementTimer;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
