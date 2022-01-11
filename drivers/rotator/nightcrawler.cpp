@@ -46,7 +46,7 @@ static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -768,6 +768,12 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
+    // Sometimes Rotator motor returns negative result, we must sync it.
+    if (RotatorAbsPosN[0].value < 0)
+    {
+        syncMotor(MOTOR_ROTATOR, 0);
+        rc = getPosition(MOTOR_ROTATOR);
+    }
     if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosN[0].value;
