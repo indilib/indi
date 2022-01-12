@@ -772,6 +772,7 @@ void NightCrawler::TimerHit()
     if (RotatorAbsPosN[0].value < 0)
     {
         syncMotor(MOTOR_ROTATOR, 0);
+        LOG_WARN("Bogus motor position receving. Syncing rotator to 0 degrees");
         rc = getPosition(MOTOR_ROTATOR);
     }
     if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
