@@ -80,12 +80,6 @@ bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    // My understanding is that all mounts communicate at 115200
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-
-    tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
-    tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);
-
     // Serial Cable Connection Type
     // Letting them choose standard cable can speed up connection time significantly
     IUFillSwitch(&SerialCableTypeS[0], "SERIAL_CABLE_AUTO", "Auto", ISS_ON);
@@ -402,6 +396,17 @@ void PMC8::ISGetProperties(const char *dev)
     defineProperty(&MountTypeSP);
     defineProperty(&SerialCableTypeSP);
     loadConfig(true,SerialCableTypeSP.name);
+    
+    // set default connection parameters
+    // unfortunately, the only way I've found to set these is after calling ISGetProperties on base class
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
+    tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);        
+    
+    // reload config here, even though it was already loaded in call to base class
+    // since defaults may have overridden saved properties
+    loadConfig(false,nullptr);
+
 }
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
