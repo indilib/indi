@@ -822,7 +822,7 @@ bool CelestronGPS::ReadScopeStatus()
             if (driver.is_slewing(&slewing) && !slewing)
             {
                 LOG_INFO("Slew complete, tracking...");
-                TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
                 // update ra offset
                 double raoffset = targetRA - currentRA + SlewOffsetRa;
                 if (raoffset > 0.0 || raoffset < 10.0 / 3600.0)
@@ -843,7 +843,6 @@ bool CelestronGPS::ReadScopeStatus()
                     LOG_DEBUG("Mount tracking is off.");
 
                 SetParked(true);
-
                 saveConfig(true);
 
                 // Check if we need to hibernate
