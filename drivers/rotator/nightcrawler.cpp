@@ -771,8 +771,10 @@ void NightCrawler::TimerHit()
     // Sometimes Rotator motor returns negative result, we must sync it.
     if (RotatorAbsPosN[0].value < 0)
     {
-        syncMotor(MOTOR_ROTATOR, 0);
-        LOG_WARN("Bogus motor position receving. Syncing rotator to 0 degrees");
+        // 180 degress so that we can move right or left
+        // at 0 we'd be forced to make 360 degrees rotation to reach 1 degree CW of zero position.
+        syncMotor(MOTOR_ROTATOR, 180);
+        LOG_WARN("Bogus motor position receving. Syncing rotator to 180 degrees");
         rc = getPosition(MOTOR_ROTATOR);
     }
     if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
