@@ -78,3 +78,40 @@ TEST(CORE_BASE64, Test_from64tobits_fast)
     ASSERT_EQ(out_len, res_len);
     ASSERT_STREQ(out_msg, res_msg);
 }
+
+TEST(CORE_BASE64, Test_from64tobits_fast_time)
+{
+    const char   inp_msg[] = "Rk9PQkFSQkFa";
+    const size_t inp_len   = sizeof(inp_msg) - 1;
+
+    const char   out_msg[] = "FOOBARBAZ";
+    const size_t out_len   = sizeof(out_msg) - 1;
+
+    char   res_msg[out_len + 1] = {0,};
+    size_t res_len = 0;
+
+    int i, iterations = 1000 * 1000 * 10;
+
+    for (i=0; i<iterations; i++) {
+       res_len = from64tobits_fast(res_msg, inp_msg, inp_len);
+    }
+}
+
+TEST(CORE_BASE64, Test_from64tobits_fast_with_bug_time)
+{
+    const char   inp_msg[] = "Rk9PQkFSQkFa";
+    const size_t inp_len   = sizeof(inp_msg) - 1;
+
+    const char   out_msg[] = "FOOBARBAZ";
+    const size_t out_len   = sizeof(out_msg) - 1;
+
+    char   res_msg[out_len + 1] = {0,};
+    size_t res_len = 0;
+
+    int i, iterations = 1000 * 1000 * 10;
+
+    for (i=0; i<iterations; i++) {
+       res_len = from64tobits_fast_with_bug(res_msg, inp_msg, inp_len);
+    }
+}
+
