@@ -132,7 +132,23 @@ char ConnectionMock::readChar(const std::string & expected) {
 
 enum XmlStatus { PRE, TAGNAME, WAIT_ATTRIB, ATTRIB, QUOTE, WAIT_CLOSE };
 
+static std::string parseXmlFragmentFromString(const std::string & str) {
+    ssize_t pos = 0;
+    auto lambda = [&pos, &str]()->char {
+        return str[pos++];
+    };
+    std::string result = parseXmlFragment(lambda);
+    while(pos < str.length() && str[pos] == '\n') pos++;
+    if (pos != str.length()) {
+        throw std::runtime_error("Expected string contains garbage: " + str);
+    }
+    return result;
+}
+
+
 void ConnectionMock::expectXml(const std::string & expected) {
+    std::string expectedCanonical = parseXmlFragmentFromString(expected);
+
     std::string received;
     auto readchar = [this, expected, &received]()->char{
         char c = readChar(expected);
@@ -141,12 +157,12 @@ void ConnectionMock::expectXml(const std::string & expected) {
     };
     try {
         auto fragment = parseXmlFragment(readchar);
-        if (fragment != expected) {
+        if (fragment != expectedCanonical) {
             fprintf(stderr, "canonicalized as %s\n", fragment.c_str());
             throw std::runtime_error("xml fragment does not match");
         }
     } catch(std::runtime_error & e) {
-        throw std::runtime_error(std::string(e.what()) + "\nexpected: " + expected + "\nReceived:" + received);
+        throw std::runtime_error(std::string(e.what()) + "\nexpected: " + expected + "\nReceived: " + received);
     }
 }
 
