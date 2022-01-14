@@ -104,6 +104,9 @@
 #define FIFONAME "/tmp/indiserverFIFO"
 #endif
 
+#define STRINGIFY_TOK(x) #x
+#define TO_STRING(x) STRINGIFY_TOK(x)
+
 static ev::default_loop loop;
 
 template<class M>
@@ -222,25 +225,32 @@ protected:
 
 
 class Msg {
-public:
-    int count;         /* number of consumers left */
+    friend void writeToFd();
+private:
     unsigned long cl;  /* content length */
     char *cp;          /* content: malloced */
+
+    /* save str as content in mp. */
+    void setFromStr(const char * str);
+
+    void alloc(unsigned long cl);
+
+public:
+    int count;         /* number of consumers left */
     std::vector<int> sharedBuffers; /* fds of shared buffer */
 
     Msg();
     ~Msg();
-    void alloc(unsigned long cl);
     bool initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers);
-
-    /* save str as content in mp. */
-    void setFromStr(const char * str);
 
     /* print root as content in mp.*/
     void setFromXMLEle(XMLEle *root);
 
     /* Create a new instance converted to base64 */
     Msg * toBase64Encoding();
+
+    void getContent(unsigned long & cl, const char * & cp);
+    unsigned long queueSize();
 };
 
 class MsgQueue: public Collectable {
@@ -915,8 +925,11 @@ void LocalDvrInfo::start()
         log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 
     mp = new Msg();
-    snprintf(buf, sizeof(buf), "<getProperties version='%g'/>\n", INDIV);
-    mp->setFromStr(buf);
+
+    XMLEle *root = addXMLEle(NULL, "getProperties");
+    addXMLAtt(root, "version", TO_STRING(INDIV));
+    mp->setFromXMLEle(root);
+    delXMLEle(root);
 
     // pushmsg can kill mp. do at end
     pushMsg(mp);
@@ -974,14 +987,21 @@ void RemoteDvrInfo::start()
      * outbound (and our inbound) traffic on this socket to this device.
      */
     Msg *mp = new Msg();
-    if (!dev.empty())
-        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev.c_str(), INDIV);
-    else
+
+    XMLEle *root = addXMLEle(NULL, "getProperties");
+
+    if (!dev.empty()) {
+        addXMLAtt(root, "device", dev.c_str());
+        addXMLAtt(root, "version", TO_STRING(INDIV));
+    } else {
         // This informs downstream server that it is connecting to an upstream server
         // and not a regular client. The difference is in how it treats snooping properties
         // among properties.
-        sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
-    mp->setFromStr(buf);
+        addXMLAtt(root, "device", "*");
+        addXMLAtt(root, "version", TO_STRING(INDIV));
+    }
+    mp->setFromXMLEle(root);
+    delXMLEle(root);
 
     // pushmsg can kill this. do at end
     pushMsg(mp);
@@ -1973,13 +1993,18 @@ void MsgQueue::writeToFd() {
         return;
     }
 
+    unsigned long cl;
+    const char * cp;
+
+    mp->getContent(cl, cp);
+
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    nsend = mp->cl - nsent;
+    nsend = cl - nsent;
     if (nsend > MAXWSIZ)
         nsend = MAXWSIZ;
 
     if (!useSharedBuffer) {
-        nw = write(wFd, &mp->cp[nsent], nsend);
+        nw = write(wFd, &cp[nsent], nsend);
     } else {
         struct msghdr msgh;
         struct iovec iov[1];
@@ -2014,7 +2039,7 @@ void MsgQueue::writeToFd() {
             msgh.msg_controllen = cmsghdrlength;
         }
 
-        iov[0].iov_base = &mp->cp[nsent];
+        iov[0].iov_base = (void*)&cp[nsent];
         iov[0].iov_len = nsend;
 
         msgh.msg_flags = 0;
@@ -2041,18 +2066,18 @@ void MsgQueue::writeToFd() {
     if (verbose > 2)
     {
         log(fmt("sending msg copy %d nq %ld:\n%.*s\n", mp->count,
-                msgq.size(), (int)nw, &mp->cp[nsent]));
+                msgq.size(), (int)nw, &cp[nsent]));
     }
     else if (verbose > 1)
     {
-        log(fmt("sending %.*s\n", (int)nw, &mp->cp[nsent]));
+        log(fmt("sending %.*s\n", (int)nw, &cp[nsent]));
     }
 
     /* update amount sent. when complete: free message if we are the last
      * to use it and pop from our queue.
      */
     nsent += nw;
-    if (nsent == mp->cl)
+    if (nsent == cl)
         consumeHeadMsg();
 }
 
@@ -2400,6 +2425,15 @@ Msg::~Msg() {
     }
 }
 
+void Msg::getContent(unsigned long & cl, const char * & cp) {
+    cl = this->cl;
+    cp = this->cp;
+}
+
+unsigned long Msg::queueSize() {
+    return cl;
+}
+
 /** Init a message from xml content & additional incoming buffers */
 bool Msg::initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers) {
     /* Consume every buffers */
@@ -2664,7 +2698,7 @@ unsigned long MsgQueue::msgQSize() const {
     for (auto mp : msgq)
     {
         l += sizeof(Msg);
-        l += mp->cl;
+        l += mp->queueSize();
     }
 
     return (l);
