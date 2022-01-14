@@ -45,7 +45,7 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
     fakeDriver.waitEstablish();
     fprintf(stderr, "fake driver started\n");
 
-    fakeDriver.cnx.expect("<getProperties version='1.7'/>\n");
+    fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
     fprintf(stderr, "getProperties received");
 
     // Establish a client & send ping
@@ -54,16 +54,16 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
 
     // Send ping from driver
     fakeDriver.cnx.send("<serverPingRequest uid='1'/>\n");
-    fakeDriver.cnx.expect("<serverPingReply uid=\"1\"/>\n");
+    fakeDriver.cnx.expectXml("<serverPingReply uid='1'/>");
 
     client.cnx.send("<serverPingRequest uid='2'/>\n");
-    client.cnx.expect("<serverPingReply uid=\"2\"/>\n");
+    client.cnx.expectXml("<serverPingReply uid='2'/>\n");
 
     fakeDriver.cnx.send("<serverPingRequest uid='3'/>\n");
-    fakeDriver.cnx.expect("<serverPingReply uid=\"3\"/>\n");
+    fakeDriver.cnx.expectXml("<serverPingReply uid='3'/>\n");
 
     client.cnx.send("<serverPingRequest uid='4'/>\n");
-    client.cnx.expect("<serverPingReply uid=\"4\"/>\n");
+    client.cnx.expectXml("<serverPingReply uid='4'/>\n");
 
     fakeDriver.terminateDriver();
 
@@ -85,7 +85,7 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
     fakeDriver.waitEstablish();
     fprintf(stderr, "fake driver started\n");
 
-    fakeDriver.cnx.expect("<getProperties version='1.7'/>\n");
+    fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
     fprintf(stderr, "getProperties received\n");
 
     // Give one props to the driver
@@ -97,7 +97,7 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
 void connectFakeDev1Client(IndiServerController & indiServer, DriverMock & fakeDriver, IndiClientMock & indiClient) {
     fprintf(stderr, "Client asks properties\n");
     indiClient.cnx.send("<getProperties version='1.7'/>\n");
-    fakeDriver.cnx.expect("<getProperties version=\"1.7\"/>\n");
+    fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
 
     fprintf(stderr, "Driver sends properties\n");
     fakeDriver.cnx.send("<defBLOBVector device='fakedev1' name='testblob' label='test label' group='test_group' state='Idle' perm='ro' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
@@ -105,9 +105,9 @@ void connectFakeDev1Client(IndiServerController & indiServer, DriverMock & fakeD
     fakeDriver.cnx.send("</defBLOBVector>\n");
 
     fprintf(stderr, "Client receive properties\n");
-    indiClient.cnx.expect("<defBLOBVector device=\"fakedev1\" name=\"testblob\" label=\"test label\" group=\"test_group\" state=\"Idle\" perm=\"ro\" timeout=\"100\" timestamp=\"2018-01-01T00:00:00\">\n");
-    indiClient.cnx.expect("    <defBLOB name=\"content\" label=\"content\"/>\n");
-    indiClient.cnx.expect("</defBLOBVector>\n");
+    indiClient.cnx.expectXml("<defBLOBVector device=\"fakedev1\" name=\"testblob\" label=\"test label\" group=\"test_group\" state=\"Idle\" perm=\"ro\" timeout=\"100\" timestamp=\"2018-01-01T00:00:00\">");
+    indiClient.cnx.expectXml("<defBLOB name=\"content\" label=\"content\"/>");
+    indiClient.cnx.expectXml("</defBLOBVector>");
 }
 
 TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient) {
@@ -266,6 +266,7 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient) {
 
     fprintf(stderr, "Client ask blobs\n");
     indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
+    // This ping ensures enableBLOB is handled before the blob is received
     indiClient.ping();
 
 
