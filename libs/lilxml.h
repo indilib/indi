@@ -250,6 +250,21 @@ extern char *entityXML(char *str);
 */
 extern const char *findXMLAttValu(XMLEle *ep, const char *name);
 
+/** \brief return a surface copy of a node.
+    Don't copy childs or cdata.
+    \return a new independant node
+*/
+extern XMLEle *shallowCloneXMLEle(XMLEle * ele);
+
+/** \brief clone (deep) a xmlEle.
+    Optional replacement function can be passed, to replace a whole subtree instead of copying
+    \param ele the original tree
+    \param replace function which can provide replacement. Return 1 & set replace for replacement. Optional
+    \param self additional value passed to replace function
+    \return a new independant node
+*/
+extern XMLEle * cloneXMLEle(XMLEle * ep, int (*replace)(void * self, XMLEle * source, XMLEle * * replace), void * self);
+
 /** \brief Handy wrapper to read one xml file.
     \param fp pointer to FILE to read.
     \param lp pointer to lilxml parser.

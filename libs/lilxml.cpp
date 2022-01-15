@@ -68,6 +68,7 @@ static void appendString(String *sp, const char *str);
 static void freeString(String *sp);
 static void newString(String *sp);
 static void *moremem(void *old, int n);
+static void appXMLEle(XMLEle *ep, XMLEle *newep);
 
 typedef enum {
     LOOK4START = 0, /* looking for first element start */
@@ -487,6 +488,30 @@ XMLEle *cloneXMLEle(XMLEle *ep)
     return (newep);
 }
 
+XMLEle * cloneXMLEle(XMLEle * ep, int (*replace)(void * self, XMLEle * source, XMLEle * * replace), void * self)
+{
+    XMLEle * result = nullptr;
+    if (replace && (*replace)(self, ep, &result)) {
+        return result;
+    }
+    result = shallowCloneXMLEle(ep);
+
+    for(int i = 0; i < ep->nel; ++i) {
+        XMLEle * child = ep->el[i];
+        XMLEle * repl = cloneXMLEle(child, replace, self);
+        if (repl != nullptr) {
+            repl->pe = result;
+            appXMLEle(result, repl);
+        }
+    }
+
+    if (pcdatalenXMLEle(ep)) {
+        editXMLEle(result, pcdataXMLEle(ep));
+    }
+
+    return result;
+}
+
 /* search ep for an attribute with given name.
  * return NULL if not found.
  */
@@ -646,7 +671,7 @@ XMLEle *addXMLEle(XMLEle *parent, const char *tag)
 /* append an existing element to the given element.
  * N.B. be mindful of when these are deleted, this is not a deep copy.
  */
-void appXMLEle(XMLEle *ep, XMLEle *newep)
+static void appXMLEle(XMLEle *ep, XMLEle *newep)
 {
     ep->el            = (XMLEle **)moremem(ep->el, (ep->nel + 1) * sizeof(XMLEle *));
     ep->el[ep->nel++] = newep;
@@ -694,6 +719,18 @@ void rmXMLAtt(XMLEle *ep, const char *name)
             return;
         }
     }
+}
+
+/* Copy a node, without any child (nor cdata) */
+XMLEle * shallowCloneXMLEle(XMLEle * ele) {
+    XMLEle *repl = addXMLEle(nullptr, tagXMLEle(ele));
+
+    for(int i = 0; i < ele->nat; ++i) {
+        auto att = ele->at[i];
+        addXMLAtt(repl, nameXMLAtt(att), valuXMLAtt(att));
+    }
+
+    return repl;
 }
 
 /* change the value of an attribute to str */
