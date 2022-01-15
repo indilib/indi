@@ -654,7 +654,7 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     {
         case MOTION_START:
             TrackState = SCOPE_SLEWING;
-            manualSlewing = true;
+            manualSlewingAlt = true;
             if (driver.start_motion(move, rate) == false)
             {
                 LOG_ERROR("Error setting N/S motion direction.");
@@ -665,7 +665,7 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            manualSlewing = false;
+            manualSlewingAlt = false;
             if (driver.stop_motion(move) == false)
             {
                 LOG_ERROR("Error stopping N/S motion.");
@@ -688,7 +688,7 @@ bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     {
         case MOTION_START:
             TrackState = SCOPE_SLEWING;
-            manualSlewing = true;
+            manualSlewingAz = true;
             if (driver.start_motion(move, rate) == false)
             {
                 LOG_ERROR("Error setting W/E motion direction.");
@@ -699,7 +699,7 @@ bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            manualSlewing = false;
+            manualSlewingAz = false;
             if (driver.stop_motion(move) == false)
             {
                 LOG_ERROR("Error stopping W/E motion.");
@@ -825,7 +825,7 @@ bool CelestronGPS::ReadScopeStatus()
         case SCOPE_SLEWING:
             // are we done?
             bool slewing;
-            if (driver.is_slewing(&slewing) && !slewing && !manualSlewing)
+            if (driver.is_slewing(&slewing) && !slewing && !manualSlewingAlt && !manualSlewingAz)
             {
                 LOG_INFO("Slew complete, tracking...");
                 SetTrackEnabled(true);

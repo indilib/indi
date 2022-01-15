@@ -178,7 +178,8 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         ISwitchVectorProperty DSTSettingSP;
 
         bool slewToIndex;
-        bool manualSlewing;
+        bool manualSlewingAlt;
+        bool manualSlewingAz;
 
         size_t numPecBins = 0;
 
