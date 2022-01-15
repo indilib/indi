@@ -1478,7 +1478,7 @@ set(scopedome_SRCS
    )
 
 add_executable(indi_scopedome_dome ${scopedome_SRCS})
-target_link_libraries(indi_scopedome_dome indidriver ${CURL_LIBRARIES})
+target_link_libraries(indi_scopedome_dome indidriver CURL::libcurl)
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
 ################ Technical Innovations DDW Dome ################
@@ -1785,7 +1785,7 @@ SET(weatherwatcher_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weatherwatcher.cpp)
 
 add_executable(indi_watcher_weather ${weatherwatcher_SRC})
-target_link_libraries(indi_watcher_weather indidriver ${CURL_LIBRARIES})
+target_link_libraries(indi_watcher_weather indidriver CURL::libcurl)
 install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 
 ########### Weather Safety Proxy ###############
@@ -1795,7 +1795,7 @@ SET(weathersafetyproxy_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weather_safety_proxy.cpp)
 
 add_executable(indi_weather_safety_proxy ${weathersafetyproxy_SRC})
-target_link_libraries(indi_weather_safety_proxy indidriver ${CURL_LIBRARIES})
+target_link_libraries(indi_weather_safety_proxy indidriver CURL::libcurl)
 install(TARGETS indi_weather_safety_proxy RUNTIME DESTINATION bin )
 
 ########### MBox Driver ###############
@@ -1827,7 +1827,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
-target_link_libraries(indi_openweathermap_weather indidriver ${CURL_LIBRARIES})
+target_link_libraries(indi_openweathermap_weather indidriver CURL::libcurl)
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 ########### Deep Sky Dad FP1 ###############
