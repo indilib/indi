@@ -136,6 +136,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 SET(indiserver_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp)
 
 IF (UNITY_BUILD)

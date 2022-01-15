@@ -18,6 +18,7 @@
 #define STRINGIFY_TOK(x) #x
 #define TO_STRING(x) STRINGIFY_TOK(x)
 
+
 TEST(IndiserverSingleDriver, MissingDriver) {
     DriverMock fakeDriver;
     IndiServerController indiServer;
@@ -199,18 +200,23 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
 
     fprintf(stderr, "Driver send new blob value\n");
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
-    fakeDriver.cnx.send("<oneBLOB name='content' size='21' format='.fits' enclen='29'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='20' format='.fits' enclen='29'>\n");
     fakeDriver.cnx.send("MDEyMzQ1Njc4OTAxMjM0NTY3ODkK\n");
     fakeDriver.cnx.send("</oneBLOB>\n");
     fakeDriver.cnx.send("</setBLOBVector>\n");
     fakeDriver.ping();
 
     fprintf(stderr, "Client receive blob\n");
+    indiClient.cnx.allowBufferReceive(true);
     indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    indiClient.cnx.expectXml("<oneBLOB name='content' size='21' format='.fits' enclen='29'>");
-    indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkK\n");
-    indiClient.cnx.expectXml("</oneBLOB>");
+    indiClient.cnx.expectXml("<oneBLOB name='content' size='20' format='.fits' attached='true'/>");
     indiClient.cnx.expectXml("</setBLOBVector>");
+
+    SharedBuffer receivedFd;
+    indiClient.cnx.expectBuffer(receivedFd);
+    indiClient.cnx.allowBufferReceive(false);
+
+    EXPECT_EQ( receivedFd.getSize(), 20);
 
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped

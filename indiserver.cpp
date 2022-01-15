@@ -52,10 +52,14 @@
 #include <string>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <vector>
+
+#include <assert.h>
 
 #include "indiapi.h"
 #include "indidevapi.h"
+#include "sharedblob.h"
 #include "libs/lilxml.h"
 #include "base64.h"
 
@@ -223,46 +227,251 @@ protected:
     }
 };
 
+/**
+ * A MsgChunk is either:
+ *  a raw xml fragment
+ *  a ref to a shared buffer in the message
+ */
+class MsgChunck {
+    friend class SerializedMsg;
+    friend class SerializedMsgWithSharedBuffer;
+    friend class SerializedMsgWithoutSharedBuffer;
+    friend class MsgChunckIterator;
 
-class Msg {
-    friend void writeToFd();
-private:
-    unsigned long cl;  /* content length */
-    char *cp;          /* content: malloced */
+    MsgChunck();
+    MsgChunck(char * content, unsigned long length);
 
-    /* save str as content in mp. */
-    void setFromStr(const char * str);
+    char * content;
+    unsigned long contentLength;
 
-    void alloc(unsigned long cl);
+    std::vector<int> sharedBufferIdsToAttach;
+};
+
+
+class Msg;
+class MsgQueue;
+class MsgChunckIterator;
+
+class SerializationRequirement {
+    friend class Msg;
+    friend class SerializedMsg;
+
+    // If the xml is still required
+    bool xml;
+    // Set of sharedBuffer that are still required
+    std::set<int> sharedBuffers;
+
+    SerializationRequirement() : sharedBuffers() {
+        xml = false;
+    }
+
+    void add(const SerializationRequirement & from) {
+        xml |= from.xml;
+        for(auto fd : from.sharedBuffers) {
+            sharedBuffers.insert(fd);
+        }
+    }
+};
+
+enum SerializationStatus { PENDING, RUNNING, TERMINATED };
+
+class SerializedMsg {
+    friend class Msg;
+    friend class MsgChunckIterator;
+
+
+    // The requirements. Prior to starting, everything is required.
+    SerializationRequirement requirements;
+
+    // This is to be called only during asyncRun()
+    void updateRequirements(const SerializationRequirement & requirements);
+
+protected:
+
+    SerializationStatus asyncStatus;
+    Msg * owner;
+
+    MsgQueue* blockedProducer;
+
+    std::set<MsgQueue *> awaiters;
+
+    bool chuncksReady;
+    std::vector<MsgChunck> chuncks;
+
+    // Buffers malloced during asyncRun
+    std::list<void*> ownBuffers;
+
+    // This will notify awaiters and possibly release the owner
+    void onDataReady();
+
+    virtual void asyncRun() = 0;
+
+    void collectRequirements(SerializationRequirement & req);
+
+    // The task will cancel itself if all owner release it
+    void abort();
+
+    // Make sure the given receiver will not be processed until this task complete
+    // TODO : to implement + make sure the task start when it actually block something
+    void blockReceiver(MsgQueue * toblock);
 
 public:
-    int count;         /* number of consumers left */
+    SerializedMsg(Msg * parent);
+    virtual ~SerializedMsg();
+
+    // Calling requestContent will start production
+    bool requestContent(const MsgChunckIterator & position);
+
+    bool getContent(const MsgChunckIterator & position, void * & data, ssize_t & nsend, std::vector<int> & sharedBuffers);
+
+    // When a queue is done with sending this message
+    void release(MsgQueue * from);
+
+    void addAwaiter(MsgQueue * awaiter);
+
+    ssize_t queueSize();
+};
+
+class SerializedMsgWithSharedBuffer: public SerializedMsg{
+    std::set<int> ownSharedBuffers;
+protected:
+    bool detectInlineBlobs();
+
+public:
+    SerializedMsgWithSharedBuffer(Msg * parent);
+    virtual ~SerializedMsgWithSharedBuffer();
+
+    virtual void asyncRun();
+};
+
+class SerializedMsgWithoutSharedBuffer: public SerializedMsg {
+
+public:
+    SerializedMsgWithoutSharedBuffer(Msg * parent);
+    virtual ~SerializedMsgWithoutSharedBuffer();
+
+    virtual void asyncRun();
+};
+
+class MsgChunckIterator {
+    friend class SerializedMsg;
+    std::size_t chunckId;
+    unsigned long chunckOffset;
+    bool endReached;
+public:
+    MsgChunckIterator() {
+        reset();
+    }
+
+    // Point to start of message.
+    void reset() {
+        chunckId = 0;
+        chunckOffset = 0;
+        // No risk of 0 length message, so always false here
+        endReached = false;
+    }
+
+    // Advance this pointer
+    void progress(SerializedMsg * within, ssize_t s) {
+        MsgChunck & cur = within->chuncks[chunckId];
+        chunckOffset += s;
+        if (chunckOffset >= cur.contentLength) {
+            chunckId ++ ;
+            chunckOffset = 0;
+            if (chunckId >= within->chuncks.size()) {
+                endReached = true;
+            }
+        }
+    }
+
+    bool done() const {
+        return endReached;
+    }
+};
+
+
+class Msg {
+    friend class SerializedMsg;
+    friend class SerializedMsgWithSharedBuffer;
+    friend class SerializedMsgWithoutSharedBuffer;
+private:
+    // Present for sure until message queing is doned. Prune asap then
+    XMLEle * xmlContent;
+
+    // Present until message was queued.
+    MsgQueue * from;
+
+    int queueSize;
+    bool hasInlineBlobs;
+    bool hasSharedBufferBlobs;
+
     std::vector<int> sharedBuffers; /* fds of shared buffer */
 
-    Msg();
+    // Convertion task and resultat of the task
+    SerializedMsg* convertionToSharedBuffer;
+    SerializedMsg* convertionToInline;
+
+    SerializedMsg * buildConvertionToSharedBuffer();
+    SerializedMsg * buildConvertionToInline();
+
+    bool fetchBlobs(std::list<int> & incomingSharedBuffers);
+
+    void releaseXmlContent();
+    void releaseSharedBuffers(const std::set<int> & keep);
+
+    // Remove resources that can be removed.
+    // Will be called when queuingDone is true and for every change of staus from convertionToXXX
+    void prune();
+
+    void releaseSerialization(SerializedMsg * form);
+
     ~Msg();
-    bool initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers);
 
-    /* print root as content in mp.*/
-    void setFromXMLEle(XMLEle *root);
+public:
+    /* Message will not be queued anymore. Release all possible resources, incl self */
+    void queuingDone();
 
-    /* Create a new instance converted to base64 */
-    Msg * toBase64Encoding();
+    Msg(MsgQueue * from, XMLEle * root);
 
-    void getContent(unsigned long & cl, const char * & cp);
-    unsigned long queueSize();
+    static Msg * fromXml(MsgQueue * from, XMLEle * root, std::list<int> & incomingSharedBuffers);
+
+    /**
+     * Handle multiple cases:
+     *
+     *  - inline => attached.
+     * Exceptional. The inline is already in memory within xml. It must be converted to shared buffer async.
+     * FIXME: The convertion should block the emitter.
+     *
+     *  - attached => attached
+     * Default case. No convertion is required.
+     *
+     *  - inline => inline
+     * Frequent on system not supporting attachment.
+     *
+     *  - attached => inline
+     * Frequent. The convertion will be made during write. The convert/write must be offshored to a dedicated thread.
+     *
+     * The returned AsyncTask will be ready once "to" can write the message
+     */
+    SerializedMsg * serialize(MsgQueue * from);
 };
 
 class MsgQueue: public Collectable {
-    void unrefMsg(Msg * msg);
     int rFd, wFd;
     LilXML * lp;         /* XML parsing context */
     ev::io   rio, wio;   /* Event loop io events */
     void ioCb(ev::io &watcher, int revents);
 
-    std::list<Msg*> msgq;           /* Msg queue */
+    // Update the status of FD read/write ability
+    void updateIos();
+
+    std::set<SerializedMsg*> readBlocker;     /* The message that block this queue */
+
+    std::list<SerializedMsg*> msgq;           /* To send msg queue */
     std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
-    unsigned int nsent; /* bytes of current Msg sent so far */
+
+    // Position in the head message
+    MsgChunckIterator nsent;
 
     // Handle fifo or socket case
     size_t doRead(char * buff, size_t len);
@@ -301,7 +510,7 @@ public:
     /* return storage size of all Msqs on the given q */
     unsigned long msgQSize() const;
 
-    Msg * headMsg() const;
+    SerializedMsg * headMsg() const;
     void consumeHeadMsg();
 
     /* Remove all messages from queue */
@@ -309,7 +518,9 @@ public:
 
     void setFds(int rFd, int wFd);
 
-    virtual void log(const std::string & log) const = 0;
+    bool acceptSharedBuffers() const { return useSharedBuffer; }
+
+    virtual void log(const std::string & log) const;
 };
 
 /* device + property name */
@@ -897,6 +1108,8 @@ void LocalDvrInfo::start()
 
         /* record pid, io channels, init lp and snoop list */
         setFds(ux[1], ux[1]);
+        rp[0] = ux[1];
+        wp[1] = ux[1];
     } else {
         /* don't need child's side of pipes */
         ::close(wp[0]);
@@ -924,12 +1137,9 @@ void LocalDvrInfo::start()
     if (verbose > 0)
         log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 
-    mp = new Msg();
-
     XMLEle *root = addXMLEle(NULL, "getProperties");
     addXMLAtt(root, "version", TO_STRING(INDIV));
-    mp->setFromXMLEle(root);
-    delXMLEle(root);
+    mp = new Msg(nullptr, root);
 
     // pushmsg can kill mp. do at end
     pushMsg(mp);
@@ -986,8 +1196,6 @@ void RemoteDvrInfo::start()
     /* Sending getProperties with device lets remote server limit its
      * outbound (and our inbound) traffic on this socket to this device.
      */
-    Msg *mp = new Msg();
-
     XMLEle *root = addXMLEle(NULL, "getProperties");
 
     if (!dev.empty()) {
@@ -1000,8 +1208,8 @@ void RemoteDvrInfo::start()
         addXMLAtt(root, "device", "*");
         addXMLAtt(root, "version", TO_STRING(INDIV));
     }
-    mp->setFromXMLEle(root);
-    delXMLEle(root);
+
+    Msg *mp = new Msg(nullptr, root);
 
     // pushmsg can kill this. do at end
     pushMsg(mp);
@@ -1500,6 +1708,7 @@ void Fifo::ioCb(ev::io &, int revents)
     }
 }
 
+// root will be released
 void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
 {
     char *roottag    = tagXMLEle(root);
@@ -1531,21 +1740,16 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (!strcmp(roottag, "serverPingRequest")) {
         setXMLEleTag(root, "serverPingReply");
 
-        Msg * mp = new Msg();
-        mp->setFromXMLEle(root);
+        Msg * mp = new Msg(this, root);
         pushMsg(mp);
-        if (mp->count == 0)
-            delete mp;
+        mp->queuingDone();
         return;
     }
 
     /* build a new message -- set content iff anyone cares */
-    Msg* mp = new Msg();
-    // FIXME: this should be made only if message is of interest
-    // FIXME: base64 convertion must occur async in separate thread(s)
-    mp->setFromXMLEle(root);
-    if (!mp->initFrom(root, sharedBuffers)) {
-        delete(mp);
+    Msg* mp = Msg::fromXml(this, root, sharedBuffers);
+    if (!mp) {
+        log("Closing after malformed message\n");
         close();
         return;
     }
@@ -1566,9 +1770,7 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
         q2Clients(this, isblob, dev, name, mp, root);
     }
 
-    /* set message content if anyone cares else forget it */
-    if (mp->count == 0)
-        delete mp;
+    mp->queuingDone();
 }
 
 void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
@@ -1591,16 +1793,16 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (!strcmp(roottag, "getProperties"))
     {
         this->addSDevice(dev, name);
-        Msg *mp = new Msg();
+        Msg *mp = new Msg(this, root);
         /* send to interested chained servers upstream */
+        // FIXME: no use of root here
         ClInfo::q2Servers(this, mp, root);
         /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
+        // FIXME: no use of root here
         q2RDrivers(dev, mp, root);
 
-        if (mp->count > 0)
-            mp->setFromXMLEle(root);
-        else
-            delete(mp);
+        mp->queuingDone();
+
         return;
     }
 
@@ -1610,6 +1812,7 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
         Property *sp = findSDevice(dev, name);
         if (sp)
             crackBLOB(pcdataXMLEle(root), &sp->blob);
+        delXMLEle(root);
         return;
     }
 
@@ -1631,21 +1834,15 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (!strcmp(roottag, "serverPingRequest")) {
         setXMLEleTag(root, "serverPingReply");
 
-        Msg * mp = new Msg();
-        mp->setFromXMLEle(root);
+        Msg * mp = new Msg(this, root);
         pushMsg(mp);
-        if (mp->count == 0)
-            delete mp;
+        mp->queuingDone();
         return;
     }
 
     /* build a new message -- set content iff anyone cares */
-    Msg * mp = new Msg();
-    // FIXME: this should be made only if message is of interest
-    // FIXME: base64 convertion must occur async in separate thread(s)
-    mp->setFromXMLEle(root);
-    if (!mp->initFrom(root, sharedBuffers)) {
-        delete(mp);
+    Msg * mp = Msg::fromXml(this, root, sharedBuffers);
+    if (!mp) {
         close();
         return;
     }
@@ -1657,8 +1854,7 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     DvrInfo::q2SDrivers(this, isblob, dev, name, mp, root);
 
     /* set message content if anyone cares else forget it */
-    if (mp->count == 0)
-        delete mp;
+    mp->queuingDone();
 }
 
 void ClInfo::close()
@@ -1684,14 +1880,10 @@ void DvrInfo::close()
         addXMLAtt(root, "device", dev.c_str());
 
         prXMLEle(stderr, root, 0);
-        Msg *mp = new Msg();
+        Msg *mp = new Msg(this, root);
 
         ClInfo::q2Clients(NULL, 0, dev.c_str(), "", mp, root);
-        if (mp->count > 0)
-            mp->setFromXMLEle(root);
-        else
-            delete mp;
-        delXMLEle(root);
+        mp->queuingDone();
     }
 
     bool terminate;
@@ -1983,35 +2175,36 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 }
 
 void MsgQueue::writeToFd() {
-    ssize_t nsend, nw;
-    Msg *mp;
-
     /* get current message */
-    mp = headMsg();
+    auto mp = headMsg();
     if (mp == nullptr) {
         log("Unexpected write notification");
         return;
     }
 
-    unsigned long cl;
-    const char * cp;
+    ssize_t nw;
+    void * data;
+    ssize_t nsend;
+    std::vector<int> sharedBuffers;
 
-    mp->getContent(cl, cp);
+    if (!mp->getContent(nsent, data, nsend, sharedBuffers)) {
+        wio.stop();
+        return;
+    }
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    nsend = cl - nsent;
     if (nsend > MAXWSIZ)
         nsend = MAXWSIZ;
 
     if (!useSharedBuffer) {
-        nw = write(wFd, &cp[nsent], nsend);
+        nw = write(wFd, data, nsend);
     } else {
         struct msghdr msgh;
         struct iovec iov[1];
         int cmsghdrlength;
         struct cmsghdr * cmsgh;
 
-        int fdCount = nsent == 0 ? mp->sharedBuffers.size() : 0;
+        int fdCount = sharedBuffers.size();
         if (fdCount > 0) {
             if (fdCount > MAXFD_PER_MESSAGE) {
                 log(fmt("attempt to send too many FD\n"));
@@ -2022,6 +2215,7 @@ void MsgQueue::writeToFd() {
             cmsghdrlength = CMSG_SPACE((fdCount * sizeof(int)));
             // FIXME: abort on alloc error here
             cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
+            memset(cmsgh, 0, cmsghdrlength);
 
             /* Write the fd as ancillary data */
             cmsgh->cmsg_len = CMSG_LEN(fdCount * sizeof(int));
@@ -2030,7 +2224,7 @@ void MsgQueue::writeToFd() {
             msgh.msg_control = cmsgh;
             msgh.msg_controllen = cmsghdrlength;
             for(int i = 0; i < fdCount; ++i) {
-                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = mp->sharedBuffers[i];
+                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = sharedBuffers[i];
             }
         } else {
             cmsgh = NULL;
@@ -2039,7 +2233,7 @@ void MsgQueue::writeToFd() {
             msgh.msg_controllen = cmsghdrlength;
         }
 
-        iov[0].iov_base = (void*)&cp[nsent];
+        iov[0].iov_base = data;
         iov[0].iov_len = nsend;
 
         msgh.msg_flags = 0;
@@ -2065,20 +2259,28 @@ void MsgQueue::writeToFd() {
     /* trace */
     if (verbose > 2)
     {
-        log(fmt("sending msg copy %d nq %ld:\n%.*s\n", mp->count,
-                msgq.size(), (int)nw, &cp[nsent]));
+        log(fmt("sending msg nq %ld:\n%.*s\n",
+                msgq.size(), (int)nw, data));
     }
     else if (verbose > 1)
     {
-        log(fmt("sending %.*s\n", (int)nw, &cp[nsent]));
+        log(fmt("sending %.*s\n", (int)nw, data));
     }
 
     /* update amount sent. when complete: free message if we are the last
      * to use it and pop from our queue.
      */
-    nsent += nw;
-    if (nsent == cl)
+    nsent.progress(mp, nw);
+    if (nsent.done())
         consumeHeadMsg();
+}
+
+void MsgQueue::log(const std::string & str) const {
+    // This is only invoked from destructor
+    std::string logLine = "Dying Connection ";
+    logLine += ": ";
+    logLine += str;
+    ::log(logLine);
 }
 
 int ClInfo::findDevice(const std::string & dev, const std::string & name) const
@@ -2398,7 +2600,7 @@ ClInfo::~ClInfo() {
     for(auto prop : props) {
         delete prop;
     }
-    
+
     clients.erase(this);
 }
 
@@ -2410,192 +2612,513 @@ void ClInfo::log(const std::string & str) const {
 
 ConcurrentSet<ClInfo> ClInfo::clients;
 
-Msg::Msg(void): count(0), cl(0), cp(nullptr), sharedBuffers()
+SerializedMsg::SerializedMsg(Msg * parent) : owner(parent), awaiters(), chuncksReady(false), chuncks(), ownBuffers()
 {
+    blockedProducer = nullptr;
+    // At first, everything is required.
+    for(auto fd : parent->sharedBuffers) {
+        if (fd != -1) {
+            requirements.sharedBuffers.insert(fd);
+        }
+    }
+    requirements.xml = true;
+    asyncStatus = PENDING;
 }
 
-Msg::~Msg() {
-    if (cp) {
-        free(cp);
+// Delete occurs when no async task is running and no awaiters are left
+SerializedMsg::~SerializedMsg() {
+    for(auto buff : ownBuffers) {
+        free(buff);
     }
-    for(auto fd : sharedBuffers) {
-        if (fd != -1) {
-            close(fd);
+}
+
+bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
+    if (!chuncksReady) {
+        // FIXME: move this to real async thread
+        log("asyncRun ?\n");
+        asyncRun();
+        log("asyncRun done\n");
+        asyncStatus = TERMINATED;
+        owner->prune();
+    }
+
+    return true;
+}
+
+void SerializedMsg::addAwaiter(MsgQueue * q) {
+    awaiters.insert(q);
+}
+
+void SerializedMsg::release(MsgQueue * q) {
+    awaiters.erase(q);
+    if (awaiters.empty() && asyncStatus == TERMINATED) {
+        owner->releaseSerialization(this);
+    }
+}
+
+void SerializedMsg::collectRequirements(SerializationRequirement & sr)
+{
+    sr.add(requirements);
+}
+
+// This is called when a received message require additional // work, to avoid overflow
+void SerializedMsg::blockReceiver(MsgQueue * receiver) {
+    // TODO : implement or remove
+}
+
+SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent) {
+}
+
+SerializedMsgWithoutSharedBuffer::~SerializedMsgWithoutSharedBuffer() {
+}
+
+ssize_t SerializedMsg::queueSize() {
+    return owner->queueSize;
+}
+
+SerializedMsgWithSharedBuffer::SerializedMsgWithSharedBuffer(Msg * parent): SerializedMsg(parent), ownSharedBuffers() {
+}
+
+SerializedMsgWithSharedBuffer::~SerializedMsgWithSharedBuffer() {
+    for(auto id : ownSharedBuffers) {
+        close(id);
+    }
+}
+
+bool SerializedMsg::getContent(const MsgChunckIterator & from, void*& data, long& size, std::vector<int, std::allocator<int> >& sharedBuffers)
+{
+    // FIXME: crude. Could got be concurrent with production
+    if (!chuncksReady) {
+        return false;
+    }
+    const MsgChunck & ck = chuncks[from.chunckId];
+
+    if (from.chunckOffset == 0) {
+        sharedBuffers = ck.sharedBufferIdsToAttach;
+    } else {
+        sharedBuffers.clear();
+    }
+
+    data = ck.content + from.chunckOffset;
+    size = ck.contentLength - from.chunckOffset;
+    return true;
+}
+
+MsgChunck::MsgChunck() : sharedBufferIdsToAttach() {
+    content = nullptr;
+    contentLength = 0;
+}
+
+MsgChunck::MsgChunck(char * content, unsigned long length) : sharedBufferIdsToAttach() {
+    this->content = content;
+    this->contentLength = length;
+}
+
+Msg::Msg(MsgQueue * from, XMLEle * ele): sharedBuffers()
+{
+    this->from = from;
+    xmlContent = ele;
+    hasInlineBlobs = false;
+    hasSharedBufferBlobs = false;
+
+    convertionToSharedBuffer = nullptr;
+    convertionToInline = nullptr;
+
+    queueSize = sprlXMLEle(xmlContent, 0);
+    for(auto blobContent : findBlobElements(xmlContent)) {
+        std::string attached = findXMLAttValu(blobContent, "attached");
+        if (attached == "true") {
+            hasSharedBufferBlobs = true;
+        } else {
+            hasInlineBlobs = true;
         }
     }
 }
 
-void Msg::getContent(unsigned long & cl, const char * & cp) {
-    cl = this->cl;
-    cp = this->cp;
+Msg::~Msg() {
+    // Assume convertionToSharedBlob and convertionToInlineBlob were already droped
+    assert(convertionToSharedBuffer == nullptr);
+    assert(convertionToInline == nullptr);
+
+    releaseXmlContent();
+    releaseSharedBuffers(std::set<int>());
 }
 
-unsigned long Msg::queueSize() {
-    return cl;
+void Msg::releaseSerialization(SerializedMsg * msg) {
+    if (msg == convertionToSharedBuffer) {
+        convertionToSharedBuffer = nullptr;
+    }
+
+    if (msg == convertionToInline) {
+        convertionToInline = nullptr;
+    }
+
+    delete(msg);
+    prune();
+}
+
+void Msg::releaseXmlContent() {
+    if (xmlContent != nullptr) {
+        delXMLEle(xmlContent);
+        xmlContent = nullptr;
+    }
+}
+
+void Msg::releaseSharedBuffers(const std::set<int> & keep) {
+    for(std::size_t i = 0; i < sharedBuffers.size(); ++i) {
+        auto fd = sharedBuffers[i];
+        if (fd != -1 && keep.find(fd) == keep.end()) {
+            close(fd);
+            sharedBuffers[i] = -1;
+        }
+    }
+}
+
+void Msg::prune() {
+    // Collect ressources required.
+    SerializationRequirement req;
+    if (convertionToSharedBuffer) {
+        convertionToSharedBuffer->collectRequirements(req);
+    }
+    if (convertionToInline) {
+        convertionToInline->collectRequirements(req);
+    }
+    // Free the resources.
+    if (!req.xml) {
+        releaseXmlContent();
+    }
+
+    releaseSharedBuffers(req.sharedBuffers);
+
+    // Nobody cares anymore ?
+    if (convertionToSharedBuffer == nullptr && convertionToInline == nullptr) {
+        delete(this);
+    }
+}
+
+bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t & size)
+{
+    std::string sizeStr = findXMLAttValu(blobWithAttachedBuffer, "size");
+    if (sizeStr == "") {
+        return false;
+    }
+    std::size_t pos;
+    size = std::stoll(sizeStr, &pos, 10);
+    if (pos != sizeStr.size()) {
+        log("Invalid size attribute value " + sizeStr);
+        return false;
+    }
+    return true;
 }
 
 /** Init a message from xml content & additional incoming buffers */
-bool Msg::initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers) {
+bool Msg::fetchBlobs(std::list<int> & incomingSharedBuffers) {
     /* Consume every buffers */
-    for(auto blobContent : findBlobElements(root)) {
+    for(auto blobContent : findBlobElements(xmlContent)) {
+        ssize_t blobSize;
+        if (!parseBlobSize(blobContent, blobSize)) {
+            log("Attached blob misses the size attribute");
+            return false;
+        }
+
         std::string attached = findXMLAttValu(blobContent, "attached");
         if (attached == "true") {
             if (incomingSharedBuffers.empty()) {
                 log("Missing shared buffer...\n");
                 return false;
             }
+
+            queueSize += blobSize;
             log("Found one fd !\n");
             int fd = *incomingSharedBuffers.begin();
             incomingSharedBuffers.pop_front();
 
             sharedBuffers.push_back(fd);
+        } else {
+            // Check cdata length vs blobSize ?
         }
     }
     return true;
 }
 
-void Msg::alloc(unsigned long cl) {
-    if (cp) {
-        free(cp);
-        cp = nullptr;
-    }
-    cp = (char*)malloc(cl);
-    this->cl = cl;
+void Msg::queuingDone() {
+    prune();
 }
 
-void Msg::setFromStr(const char * str)
+Msg * Msg::fromXml(MsgQueue * from, XMLEle * root, std::list<int> & incomingSharedBuffers)
 {
-    alloc(strlen(str));
-    memcpy(cp, str, cl);
-}
-
-void Msg::setFromXMLEle(XMLEle *root)
-{
-    /* want cl to only count content, but need room for final \0 */
-    alloc(sprlXMLEle(root, 0) + 1);
-    sprXMLEle(cp, root, 0);
-
-    /* Drop the last zero */
-    cl--;
-}
-
-Msg * Msg::toBase64Encoding()
-{
-    LilXML * lp = newLilXML();
-    char err[1024];
-    XMLEle ** nodes = parseXMLChunk(lp, this->cp, this->cl, err);
-
-    if (!nodes)
-    {
-        log(fmt("XML error: %s\n", err));
-        log(fmt("XML read: %.*s\n", (int)this->cl, this->cp));
+    Msg * m = new Msg(from, root);
+    if (!m->fetchBlobs(incomingSharedBuffers)) {
+        delete(m);
         return nullptr;
     }
+    return m;
+}
 
-    Msg * ret = new Msg();
-    /* Consume every buffers */
-    int inode = 0;
-
-    XMLEle *root = nodes[inode];
-    if (!root) {
-       log(fmt("Found 0 xml node in message ??? \n%.s\n", cl, cp));
-       Bye();
+SerializedMsg * Msg::buildConvertionToSharedBuffer() {
+    if (convertionToSharedBuffer) {
+        return convertionToSharedBuffer;
     }
 
-    while (root)
-    {
-        std::vector<XMLEle*> cdata;
+    convertionToSharedBuffer = new SerializedMsgWithSharedBuffer(this);
+    if (hasInlineBlobs && from) {
+        convertionToSharedBuffer->blockReceiver(from);
+    }
+    return convertionToSharedBuffer;
+}
 
-        for(auto blobContent : findBlobElements(root)) {
-            std::string attached = findXMLAttValu(blobContent, "attached");
+SerializedMsg * Msg::buildConvertionToInline() {
+    if (convertionToInline) {
+        return convertionToInline;
+    }
 
-            if (attached == "true") {
-                rmXMLAtt(blobContent, "attached");
-                rmXMLAtt(blobContent, "enclen");
+    return convertionToInline = new SerializedMsgWithoutSharedBuffer(this);
+}
 
-
-                // Put something here for later replacement
-                editXMLEle(blobContent, "_");
-                cdata.push_back(blobContent);
-            }
+SerializedMsg * Msg::serialize(MsgQueue * to) {
+    if (hasSharedBufferBlobs || hasInlineBlobs) {
+        if (to->acceptSharedBuffers()) {
+            return buildConvertionToSharedBuffer();
+        } else {
+            return buildConvertionToInline();
         }
+    } else {
+        // Just serialize using copy
+        return buildConvertionToInline();
+    }
+}
+
+bool SerializedMsgWithSharedBuffer::detectInlineBlobs() {
+    for(auto blobContent : findBlobElements(owner->xmlContent)) {
+        // C'est pas trivial, dans ce cas, car il faut les réattacher
+        std::string attached = findXMLAttValu(blobContent, "attached");
+        if (attached != "true") {
+            return true;
+        }
+    }
+    return false;
+}
+
+static int xmlReplacementMapFind(void * self, XMLEle * source, XMLEle * * replace)
+{
+    auto map = (const std::unordered_map<XMLEle*, XMLEle*> *) self;
+    auto idx = map->find(source);
+    if (idx == map->end()) {
+        return 0;
+    }
+    *replace = (XMLEle*)idx->second;
+    return 1;
+}
+
+XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<XMLEle*, XMLEle*> & replacement)
+{
+    return cloneXMLEle(root, &xmlReplacementMapFind, (void*)&replacement);
+}
+
+
+void SerializedMsgWithoutSharedBuffer::asyncRun() {
+    // Convert every shared buffer into an inline base64
+    auto xmlContent = owner->xmlContent;
+
+    std::vector<XMLEle*> cdata;
+    // Every cdata will have either sharedBuffer or sharedCData
+    std::vector<int> sharedBuffers;
+    std::vector<XMLEle *> sharedCData;
+
+    std::unordered_map<XMLEle*, XMLEle*> replacement;
+
+    int ownerSharedBufferId = 0;
+
+    // Identify shared buffer blob to base64 them
+    // Identify base64 blob to avoid copying them (we'll copy the cdata)
+    for(auto blobContent : findBlobElements(xmlContent)) {
+        std::string attached = findXMLAttValu(blobContent, "attached");
+
+        if (attached != "true" && pcdatalenXMLEle(blobContent) == 0) {
+            continue;
+        }
+
+        XMLEle * clone = shallowCloneXMLEle(blobContent);
+        rmXMLAtt(clone, "attached");
+        editXMLEle(clone, "_");
+
+        replacement[blobContent]= clone;
+        cdata.push_back(clone);
+
+        if (attached == "true") {
+            rmXMLAtt(clone, "enclen");
+
+            // FIXME: we could add enclen there
+
+            // Put something here for later replacement
+            sharedBuffers.push_back(owner->sharedBuffers[ownerSharedBufferId++]);
+            sharedCData.push_back(nullptr);
+        } else {
+            sharedBuffers.push_back(-1);
+            sharedCData.push_back(blobContent);
+        }
+    }
+
+    if (replacement.empty()) {
+        // Just print the content as is...
+
+        char * model = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
+        int modelSize = sprXMLEle(model, xmlContent, 0);
+
+        chuncks.push_back(MsgChunck(model, modelSize));
+
+        // FIXME: lower requirements asap... how to do that ?
+        // requirements.xml = false;
+        // requirements.sharedBuffers.clear();
+
+    } else {
+        // Create a replacement that shares original CData buffers
+        xmlContent = cloneXMLEleWithReplacementMap(xmlContent, replacement);
 
         std::vector<size_t> modelCdataOffset(cdata.size());
 
-        char * model = (char*)malloc(sprlXMLEle(root, 0) + 1);
-        int modelSize = sprXMLEle(model, root, 0);
+        char * model = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
+        int modelSize = sprXMLEle(model, xmlContent, 0);
+
+        ownBuffers.push_back(model);
 
         // Get the element offset
         for(std::size_t i = 0; i < cdata.size(); ++i) {
-            modelCdataOffset[i] = sprXMLCDataOffset(root, cdata[i], 0);
+            modelCdataOffset[i] = sprXMLCDataOffset(xmlContent, cdata[i], 0);
         }
-        delXMLEle(root);
+        delXMLEle(xmlContent);
 
         std::vector<int> fds(cdata.size());
         std::vector<void*> blobs(cdata.size());
         std::vector<size_t> sizes(cdata.size());
 
-        size_t totalBlobSize = 0;
         // Attach all blobs
         for(std::size_t i = 0; i < cdata.size(); ++i) {
-            fds[i] = sharedBuffers[i];
+            if (sharedBuffers[i] != -1) {
+                fds[i] = sharedBuffers[i];
 
-            size_t dataSize;
-            blobs[i] = attachSharedBuffer(fds[i], dataSize);
-            sizes[i] = dataSize;
-
-            // FIXME: include newlines for readability ?
-            totalBlobSize += (4 * dataSize / 3 + 4);
+                size_t dataSize;
+                blobs[i] = attachSharedBuffer(fds[i], dataSize);
+                // FIXME: check dataSize is compatible with the blob element's size
+                // It's mandatory for attached blob to give their size
+                sizes[i] = dataSize;
+            } else {
+                fds[i] = -1;
+            }
         }
-
-        ret->alloc(modelSize + totalBlobSize + 1);
 
         // Copy from model or blob (streaming base64 encode)
         int modelOffset = 0;
-        int targetOffset = 0;
         for(std::size_t i = 0; i < cdata.size(); ++i) {
             int cdataOffset = modelCdataOffset[i];
             if (cdataOffset > modelOffset) {
-                memcpy(ret->cp + targetOffset, model + modelOffset, cdataOffset - modelOffset);
-                targetOffset += (cdataOffset - modelOffset);
+                chuncks.push_back(MsgChunck(model + modelOffset, cdataOffset - modelOffset));
             }
             // Skip the dummy cdata completly
             modelOffset = cdataOffset + 1;
 
             // Perform inplace base64
-            int base64Count = to64frombits_s((unsigned char*)ret->cp + targetOffset, (const unsigned char*)blobs[i], sizes[i], (4 * sizes[i] / 3 + 4));
-            targetOffset += base64Count;
+            // FIXME: could be streamed/splitted
 
-            // Dettach blobs ASAP
-            dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
+            if (fds[i] != -1) {
+                // Add a binary chunck. This needs base64 convertion
+                // FIXME: the size here should be the size of the blob element
+                char* buffer = (char*) malloc(4 * sizes[i] / 3 + 4);
+                ownBuffers.push_back(buffer);
+                int base64Count = to64frombits_s((unsigned char*)buffer, (const unsigned char*)blobs[i], sizes[i], (4 * sizes[i] / 3 + 4));
+
+                chuncks.push_back(MsgChunck(buffer, base64Count));
+
+                // Dettach blobs ASAP
+                dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
+
+                // requirements.sharedBuffers.erase(fds[i]);
+            } else {
+                // Add an already ready cdata section
+
+                auto len = pcdatalenXMLEle(sharedCData[i]);
+                auto data = pcdataXMLEle(sharedCData[i]);
+                chuncks.push_back(MsgChunck(data, len));
+            }
         }
 
         if (modelOffset < modelSize) {
-            memcpy(ret->cp + targetOffset, model + modelOffset, modelSize - modelOffset);
-            targetOffset += (modelSize - modelOffset);
+            chuncks.push_back(MsgChunck(model + modelOffset, modelSize - modelOffset));
             modelOffset = modelSize;
         }
-
-        ret->count = targetOffset;
-
-
-        free(model);
-        inode++;
-        root = nodes[inode];
-        if (root) {
-            log(fmt("Buffer contains multiple message ???"));
-            Bye();
-        }
     }
-
-    free(nodes);
-    delLilXML(lp);
-
-    log(fmt("Size of base64 converted message: %d\n", ret->count));
-    return ret;
+    chuncksReady = true;
 }
 
-MsgQueue::MsgQueue(bool useSharedBuffer): nsent(0), useSharedBuffer(useSharedBuffer) {
+void SerializedMsgWithSharedBuffer::asyncRun() {
+    // Convert every inline base64 blob from xml into an attached buffer
+    auto xmlContent = owner->xmlContent;
+
+    std::vector<int> sharedBuffers = owner->sharedBuffers;
+
+    std::unordered_map<XMLEle*, XMLEle*> replacement;
+    int blobPos = 0;
+    for(auto blobContent : findBlobElements(owner->xmlContent)) {
+        if (!pcdatalenXMLEle(blobContent)) {
+            continue;
+        }
+        std::string attached = findXMLAttValu(blobContent, "attached");
+        if (attached != "true") {
+            // We need to replace.
+            XMLEle * clone = shallowCloneXMLEle(blobContent);
+            rmXMLAtt(clone, "enclen");
+            rmXMLAtt(clone, "attached");
+            addXMLAtt(clone, "attached", "true");
+
+            replacement[blobContent] = clone;
+
+            int base64datalen = pcdatalenXMLEle(blobContent);
+            char * base64data = pcdataXMLEle(blobContent);
+            // Shall we really trust the size here ?
+
+            ssize_t size;
+            parseBlobSize(blobContent, size);
+
+            void * blob = IDSharedBlobAlloc(size);
+
+            int actualLen = from64tobits_fast((char*)blob, base64data, base64datalen);
+
+            if (actualLen != size) {
+                // FIXME: WTF ? at least prevent overflow...
+            }
+
+            int newFd = IDSharedBlobGetFd(blob);
+            ownSharedBuffers.insert(newFd);
+
+            IDSharedBlobDettach(blob);
+
+            sharedBuffers.insert(sharedBuffers.begin() + blobPos, newFd);
+        }
+        blobPos++;
+    }
+
+    if (!replacement.empty()) {
+        // Work on a copy --- but we don't want to copy the blob !!!
+        xmlContent = cloneXMLEleWithReplacementMap(xmlContent, replacement);
+    }
+
+    // Now create a Chunk from xmlContent
+    MsgChunck chunck;
+
+    chunck.content = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
+    ownBuffers.push_back(chunck.content);
+    chunck.contentLength = sprXMLEle(chunck.content, xmlContent, 0);
+    chunck.sharedBufferIdsToAttach = sharedBuffers;
+
+    chuncks.push_back(chunck);
+    chuncksReady = true;
+
+    if (!replacement.empty()) {
+        delXMLEle(xmlContent);
+    }
+}
+
+MsgQueue::MsgQueue(bool useSharedBuffer): useSharedBuffer(useSharedBuffer) {
     lp = newLilXML();
     rio.set<MsgQueue, &MsgQueue::ioCb>(this);
     wio.set<MsgQueue, &MsgQueue::ioCb>(this);
@@ -2613,9 +3136,12 @@ MsgQueue::~MsgQueue() {
 
     setFds(-1, -1);
 
-    /* decrement and possibly free any unsent messages for this client */
-    for(auto mp : msgq)
-        unrefMsg(mp);
+    /* unreference messages queue for this client */
+    auto msgqcp = msgq;
+    msgq.clear();
+    for(auto mp : msgqcp) {
+        mp->release(this);
+    }
 }
 
 void MsgQueue::setFds(int rFd, int wFd)
@@ -2631,7 +3157,7 @@ void MsgQueue::setFds(int rFd, int wFd)
 
     this->rFd = rFd;
     this->wFd = wFd;
-    this->nsent = 0;
+    this->nsent.reset();
     
     if (rFd != -1) {
         fcntl(rFd, F_SETFL, fcntl(rFd, F_GETFL, 0) | O_NONBLOCK); 
@@ -2641,54 +3167,58 @@ void MsgQueue::setFds(int rFd, int wFd)
         
         rio.set(rFd, ev::READ);
         wio.set(wFd, ev::WRITE);
-        rio.start();
+        updateIos();
     }
 }
 
-void MsgQueue::unrefMsg(Msg * mp) {
-    if (--mp->count == 0)
-        delete(mp);
-}
-
-Msg * MsgQueue::headMsg() const {
+SerializedMsg * MsgQueue::headMsg() const {
     if (msgq.empty()) return nullptr;
     return *(msgq.begin());
 }
 
 void MsgQueue::consumeHeadMsg() {
-    unrefMsg(headMsg());
+    auto msg = headMsg();
     msgq.pop_front();
-    nsent = 0;
-    if (msgq.empty()) {
-        wio.stop();
-    }
+    msg->release(this);
+    nsent.reset();
+
+    updateIos();
 }
 
 void MsgQueue::pushMsg(Msg * mp) {
-    if (mp->sharedBuffers.size() && !useSharedBuffer) {
-        log("Converting buffers to base 64 for queuing\n");
-        mp=mp->toBase64Encoding();
-        if (mp == nullptr) {
-            // Internal error or outofmemory
-            log("base64 convertion failed.\n");
-            Bye();
+    auto serialized = mp->serialize(this);
+
+    msgq.push_back(serialized);
+    serialized->addAwaiter(this);
+
+    // Register for client write
+    updateIos();
+}
+
+void MsgQueue::updateIos() {
+    if (wFd != -1) {
+        if (msgq.empty() || !msgq.front()->requestContent(nsent)) {
+            wio.stop();
+        } else {
+            wio.start();
         }
     }
-
-    mp->count++;
-    msgq.push_back(mp);
-    // Register for client write
-    if (wFd != -1) wio.start();
+    if (rFd != -1) {
+        rio.start();
+    }
 }
 
 void MsgQueue::clearMsgQueue() {
-    for(auto mp: msgq) {
-        unrefMsg(mp);
+    nsent.reset();
+
+    auto queueCopy = msgq;
+    for(auto mp : queueCopy) {
+        mp->release(this);
     }
     msgq.clear();
 
-    nsent = 0;
     // Cancel io write events
+    updateIos();
     wio.stop();
 }
 
@@ -2824,8 +3354,10 @@ void MsgQueue::readFromFd()
             }
 
             onMessage(root, incomingSharedBuffers);
+        } else {
+            // Otherwise, client got killed. Just release pending messages
+            delXMLEle(root);
         }
-        delXMLEle(root);
         inode++;
         root = nodes[inode];
     }
