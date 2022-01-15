@@ -84,6 +84,7 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
             int * fds = (int*)CMSG_DATA(cmsg);
             for(int i = 0; i < fdCount; ++i) {
                 if (!bufferReceiveAllowed) {
+                    pendingData = std::string((char*)buffer, size);
                     throw std::runtime_error("Received unexpected buffer");
                 }
                 receivedFds.push_back(fds[i]);
@@ -158,14 +159,16 @@ std::string ConnectionMock::receiveMore() {
     char buffer[256];
     auto r = read(buffer, 256);
     if (! (currentFlag & O_NONBLOCK)) {
+        auto errno_cpy = errno;
         fcntl(fds[0], F_SETFL, currentFlag);
+        errno = errno_cpy;
     }
 
     if (r != -1) {
-        return std::string(buffer, r);
+        return pendingData + std::string(buffer, r);
     }
     perror("receiveMore");
-    return "";
+    return pendingData;
 }
 
 

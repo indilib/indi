@@ -18,6 +18,9 @@ class ConnectionMock {
 
     void release();
     std::string receiveMore();
+
+    // On error, contains data that were not returned
+    std::string pendingData;
 public:
     ConnectionMock();
     ~ConnectionMock();
