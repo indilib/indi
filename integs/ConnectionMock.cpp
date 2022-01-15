@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "ConnectionMock.h"
 #include "SharedBuffer.h"
@@ -146,6 +148,27 @@ static std::string parseXmlFragmentFromString(const std::string & str) {
 }
 
 
+std::string ConnectionMock::receiveMore() {
+    
+    auto currentFlag = fcntl(fds[0], F_GETFL, 0);
+    if (! (currentFlag & O_NONBLOCK)) {
+        fcntl(fds[0], F_SETFL, currentFlag | O_NONBLOCK);
+    }
+
+    char buffer[256];
+    auto r = read(buffer, 256);
+    if (! (currentFlag & O_NONBLOCK)) {
+        fcntl(fds[0], F_SETFL, currentFlag);
+    }
+
+    if (r != -1) {
+        return std::string(buffer, r);
+    }
+    perror("receiveMore");
+    return "";
+}
+
+
 void ConnectionMock::expectXml(const std::string & expected) {
     std::string expectedCanonical = parseXmlFragmentFromString(expected);
 
@@ -162,6 +185,7 @@ void ConnectionMock::expectXml(const std::string & expected) {
             throw std::runtime_error("xml fragment does not match");
         }
     } catch(std::runtime_error & e) {
+        received += receiveMore();
         throw std::runtime_error(std::string(e.what()) + "\nexpected: " + expected + "\nReceived: " + received);
     }
 }
@@ -199,6 +223,7 @@ void ConnectionMock::send(const std::string & str, const SharedBuffer ** buffers
 
     cmsghdrlength = CMSG_SPACE((fdCount * sizeof(int)));
     cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
+    memset(cmsgh, 0, cmsghdrlength);
 
     /* Write the fd as ancillary data */
     cmsgh->cmsg_len = CMSG_LEN(sizeof(int));

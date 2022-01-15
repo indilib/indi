@@ -17,6 +17,7 @@ class ConnectionMock {
     char readChar(const std::string & expected);
 
     void release();
+    std::string receiveMore();
 public:
     ConnectionMock();
     ~ConnectionMock();
