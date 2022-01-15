@@ -92,7 +92,7 @@ void * IDSharedBlobAlloc(size_t size) {
     sb->fd = memfd_create("indiblob", MFD_ALLOW_SEALING|MFD_CLOEXEC);
     if (sb->fd == -1)  goto ERROR;
 
-    int ret = ftruncate(sb->fd, sb->allocated);
+    int ret = ftruncate(sb->fd, size);
     if (ret == -1) goto ERROR;
 
     // FIXME: try to map far more than sb->allocated, to allow efficient mremap
@@ -154,6 +154,20 @@ void IDSharedBlobFree(void * ptr) {
     free(sb);
 }
 
+void IDSharedBlobDettach(void * ptr) {
+    shared_buffer * sb = sharedBufferRemove(ptr);
+    if (sb == NULL) {
+        // Error ?
+        free(ptr);
+        return;
+    }
+    if (munmap(sb->mapstart, sb->allocated) == -1) {
+        perror("shared buffer munmap");
+        _exit(1);
+    }
+    free(sb);
+}
+
 void * IDSharedBlobRealloc(void * ptr, size_t size) {
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
@@ -162,19 +176,23 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
         return realloc(ptr, size);
     }
 
-    size_t reallocated = allocation(size);
-    if (reallocated == sb->allocated) {
-        return NULL;
+    if (sb->size == size) {
+        return ptr;
     }
 
-    int ret = ftruncate(sb->fd, reallocated);
+    int ret = ftruncate(sb->fd, size);
     if (ret == -1) return NULL;
+    sb->size = size;
+
+    size_t reallocated = allocation(size);
+    if (reallocated == sb->allocated) {
+        return ptr;
+    }
 
     // FIXME: compatibility path for MACOS ?
     void * remaped = mremap(sb->mapstart, sb->allocated, reallocated, MREMAP_MAYMOVE);
     if (remaped == MAP_FAILED) return NULL;
 
-    sb->size = size;
     sb->allocated = reallocated;
     sb->mapstart = remaped;
 
