@@ -212,7 +212,7 @@ class SkywatcherAPIMount :
         static constexpr double MAX_TRACKING_DELTA {5};
 
         long OldTrackingTarget[2] { 0, 0 };
-        INDI::ElapsedTimer m_TrackingElapsedTimer;
+        INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
         double m_AzimuthRateScale {1.0};

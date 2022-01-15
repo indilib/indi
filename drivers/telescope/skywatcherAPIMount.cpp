@@ -49,11 +49,17 @@ SkywatcherAPIMount::SkywatcherAPIMount()
 {
     // Set up the logging pointer in SkyWatcherAPI
     pChildTelescope  = this;
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK,
+    SetTelescopeCapability(TELESCOPE_CAN_PARK |
+                           TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_CAN_CONTROL_TRACK,
                            SLEWMODES);
 
-    setVersion(1, 4);
+    setVersion(1, 5);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,6 +85,155 @@ bool SkywatcherAPIMount::Handshake()
 const char *SkywatcherAPIMount::getDefaultName()
 {
     return "Skywatcher Alt-Az";
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::initProperties()
+{
+    // Allow the base class to initialise its visible before connection properties
+    INDI::Telescope::initProperties();
+
+    for (int i = 0; i < SlewRateSP.nsp; ++i)
+    {
+        sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
+        SlewRateSP.sp[i].aux = (void *)&SlewSpeeds[i];
+    }
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
+
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
+
+    // Add default properties
+    addDebugControl();
+    addConfigurationControl();
+
+    // Add alignment properties
+    InitAlignmentProperties(this);
+
+    // Force the alignment system to always be on
+    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+
+    // Set up property variables
+    IUFillText(&BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
+               "Motor control firmware version", "-");
+    IUFillText(&BasicMountInfoT[MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
+    IUFillText(&BasicMountInfoT[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
+    IUFillText(&BasicMountInfoT[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
+    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 4, getDeviceName(), "BASIC_MOUNT_INFO",
+                     "Basic mount information", MountInfoTab, IP_RO, 60, IPS_IDLE);
+
+    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
+                 "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Stepper clock frequency", "%.0f", 0,
+                 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
+                 "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
+
+    IUFillNumberVector(&AxisOneInfoNP, AxisOneInfoN, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
+                       MountInfoTab, IP_RO, 60, IPS_IDLE);
+
+    IUFillSwitch(&AxisOneStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
+    IUFillSwitchVector(&AxisOneStateSP, AxisOneStateS, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state",
+                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
+
+    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
+                 "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Step timer frequency", "%.0f", 0,
+                 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
+                 "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
+
+    IUFillNumberVector(&AxisTwoInfoNP, AxisTwoInfoN, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
+                       MountInfoTab, IP_RO, 60, IPS_IDLE);
+
+    IUFillSwitch(&AxisTwoStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
+    IUFillSwitchVector(&AxisTwoStateSP, AxisTwoStateS, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state",
+                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
+
+    IUFillNumber(&AxisOneEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
+                 "%.4f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
+                 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
+                 -1000.0, 1000.0, 1, 0);
+
+    IUFillNumberVector(&AxisOneEncoderValuesNP, AxisOneEncoderValuesN, 4, getDeviceName(), "AXIS1_ENCODER_VALUES",
+                       "Axis 1 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
+
+    IUFillNumber(&AxisTwoEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
+                 "%.4f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
+                 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
+                 -1000.0, 1000.0, 1, 0);
+
+    IUFillNumberVector(&AxisTwoEncoderValuesNP, AxisTwoEncoderValuesN, 4, getDeviceName(), "AXIS2_ENCODER_VALUES",
+                       "Axis 2 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
+    // Register any visible before connection properties
+
+    // Slew modes
+    IUFillSwitch(&SlewModesS[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
+    IUFillSwitch(&SlewModesS[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_ON);
+    IUFillSwitchVector(&SlewModesSP, SlewModesS, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
+                       MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // SoftPEC modes
+    IUFillSwitch(&SoftPECModesS[SOFTPEC_ENABLED], "SOFTPEC_ENABLED", "Enable for tracking", ISS_OFF);
+    IUFillSwitch(&SoftPECModesS[SOFTPEC_DISABLED], "SOFTPEC_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&SoftPECModesSP, SoftPECModesS, 2, getDeviceName(), "TELESCOPE_MOTION_SOFTPECMODE",
+                       "SoftPEC Mode", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // SoftPEC value for tracking mode
+    IUFillNumber(&SoftPecN, "SOFTPEC_VALUE", "degree/minute (Alt)", "%1.3f", 0.001, 1.0, 0.001, 0.009);
+    IUFillNumberVector(&SoftPecNP, &SoftPecN, 1, getDeviceName(), "SOFTPEC", "SoftPEC Value", MOTION_TAB, IP_RW, 60,
+                       IPS_IDLE);
+
+    // Guiding rates for RA/DEC axes
+    IUFillNumber(&GuidingRatesN[0], "GUIDERA_RATE", "arcsec/seconds (RA)", "%1.3f", 1.0, 6000.0, 1.0, 120.0);
+    IUFillNumber(&GuidingRatesN[1], "GUIDEDEC_RATE", "arcsec/seconds (Dec)", "%1.3f", 1.0, 6000.0, 1.0, 120.0);
+    IUFillNumberVector(&GuidingRatesNP, GuidingRatesN, 2, getDeviceName(), "GUIDE_RATES", "Guide Rates", MOTION_TAB,
+                       IP_RW, 60, IPS_IDLE);
+
+    tcpConnection->setDefaultHost("192.168.4.1");
+    tcpConnection->setDefaultPort(11880);
+    tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
+
+    if (strstr(getDeviceName(), "GTi"))
+    {
+        setActiveConnection(tcpConnection);
+        tcpConnection->setLANSearchEnabled(true);
+    }
+
+    SetParkDataType(PARK_AZ_ALT_ENCODER);
+
+    // Guiding support
+    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+
+    //Set default values in parent class
+    IUFindNumber(&ScopeParametersNP, "TELESCOPE_APERTURE")->value = 200;
+    IUFindNumber(&ScopeParametersNP, "TELESCOPE_FOCAL_LENGTH")->value = 2000;
+    IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE")->value = 30;
+    IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH")->value = 120;
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,151 +458,6 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     SlewTo(AXIS2, AltitudeOffsetMicrosteps);
 
     TrackState = SCOPE_SLEWING;
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::initProperties()
-{
-    // Allow the base class to initialise its visible before connection properties
-    INDI::Telescope::initProperties();
-
-    for (int i = 0; i < SlewRateSP.nsp; ++i)
-    {
-        sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP.sp[i].aux = (void *)&SlewSpeeds[i];
-    }
-    strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
-
-    // Add default properties
-    addDebugControl();
-    addConfigurationControl();
-
-    // Add alignment properties
-    InitAlignmentProperties(this);
-
-    // Force the alignment system to always be on
-    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
-
-    // Set up property variables
-    IUFillText(&BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
-               "Motor control firmware version", "-");
-    IUFillText(&BasicMountInfoT[MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
-    IUFillText(&BasicMountInfoT[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
-    IUFillText(&BasicMountInfoT[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
-    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 4, getDeviceName(), "BASIC_MOUNT_INFO",
-                     "Basic mount information", MountInfoTab, IP_RO, 60, IPS_IDLE);
-
-    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
-                 "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Stepper clock frequency", "%.0f", 0,
-                 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
-                 "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
-
-    IUFillNumberVector(&AxisOneInfoNP, AxisOneInfoN, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
-                       MountInfoTab, IP_RO, 60, IPS_IDLE);
-
-    IUFillSwitch(&AxisOneStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
-    IUFillSwitch(&AxisOneStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
-    IUFillSwitch(&AxisOneStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
-    IUFillSwitch(&AxisOneStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
-    IUFillSwitch(&AxisOneStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
-    IUFillSwitch(&AxisOneStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
-    IUFillSwitchVector(&AxisOneStateSP, AxisOneStateS, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state",
-                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
-
-    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
-                 "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Step timer frequency", "%.0f", 0,
-                 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
-                 "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
-
-    IUFillNumberVector(&AxisTwoInfoNP, AxisTwoInfoN, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
-                       MountInfoTab, IP_RO, 60, IPS_IDLE);
-
-    IUFillSwitch(&AxisTwoStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
-    IUFillSwitch(&AxisTwoStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
-    IUFillSwitch(&AxisTwoStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
-    IUFillSwitch(&AxisTwoStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
-    IUFillSwitch(&AxisTwoStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
-    IUFillSwitch(&AxisTwoStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
-    IUFillSwitchVector(&AxisTwoStateSP, AxisTwoStateS, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state",
-                       MountInfoTab, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
-
-    IUFillNumber(&AxisOneEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
-                 "%.4f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
-                 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
-                 -1000.0, 1000.0, 1, 0);
-
-    IUFillNumberVector(&AxisOneEncoderValuesNP, AxisOneEncoderValuesN, 4, getDeviceName(), "AXIS1_ENCODER_VALUES",
-                       "Axis 1 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
-
-    IUFillNumber(&AxisTwoEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
-                 "%.4f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
-                 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
-                 -1000.0, 1000.0, 1, 0);
-
-    IUFillNumberVector(&AxisTwoEncoderValuesNP, AxisTwoEncoderValuesN, 4, getDeviceName(), "AXIS2_ENCODER_VALUES",
-                       "Axis 2 Encoder values", MountInfoTab, IP_RO, 60, IPS_IDLE);
-    // Register any visible before connection properties
-
-    // Slew modes
-    IUFillSwitch(&SlewModesS[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
-    IUFillSwitch(&SlewModesS[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_ON);
-    IUFillSwitchVector(&SlewModesSP, SlewModesS, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
-                       MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
-    // SoftPEC modes
-    IUFillSwitch(&SoftPECModesS[SOFTPEC_ENABLED], "SOFTPEC_ENABLED", "Enable for tracking", ISS_OFF);
-    IUFillSwitch(&SoftPECModesS[SOFTPEC_DISABLED], "SOFTPEC_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&SoftPECModesSP, SoftPECModesS, 2, getDeviceName(), "TELESCOPE_MOTION_SOFTPECMODE",
-                       "SoftPEC Mode", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
-    // SoftPEC value for tracking mode
-    IUFillNumber(&SoftPecN, "SOFTPEC_VALUE", "degree/minute (Alt)", "%1.3f", 0.001, 1.0, 0.001, 0.009);
-    IUFillNumberVector(&SoftPecNP, &SoftPecN, 1, getDeviceName(), "SOFTPEC", "SoftPEC Value", MOTION_TAB, IP_RW, 60,
-                       IPS_IDLE);
-
-    // Guiding rates for RA/DEC axes
-    IUFillNumber(&GuidingRatesN[0], "GUIDERA_RATE", "arcsec/seconds (RA)", "%1.3f", 1.0, 6000.0, 1.0, 120.0);
-    IUFillNumber(&GuidingRatesN[1], "GUIDEDEC_RATE", "arcsec/seconds (Dec)", "%1.3f", 1.0, 6000.0, 1.0, 120.0);
-    IUFillNumberVector(&GuidingRatesNP, GuidingRatesN, 2, getDeviceName(), "GUIDE_RATES", "Guide Rates", MOTION_TAB,
-                       IP_RW, 60, IPS_IDLE);
-
-    tcpConnection->setDefaultHost("192.168.4.1");
-    tcpConnection->setDefaultPort(11880);
-    tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
-
-    if (strstr(getDeviceName(), "GTi"))
-    {
-        setActiveConnection(tcpConnection);
-        tcpConnection->setLANSearchEnabled(true);
-    }
-
-    SetParkDataType(PARK_AZ_ALT_ENCODER);
-
-    // Guiding support
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
-    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
-
-    //Set default values in parent class
-    IUFindNumber(&ScopeParametersNP, "TELESCOPE_APERTURE")->value = 200;
-    IUFindNumber(&ScopeParametersNP, "TELESCOPE_FOCAL_LENGTH")->value = 2000;
-    IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE")->value = 30;
-    IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH")->value = 120;
 
     return true;
 }
@@ -905,6 +915,23 @@ void SkywatcherAPIMount::TimerHit()
                 //double JulianOffset = (getCurrentPollingPeriod() / 1000) / (24.0 * 60 * 60);
                 TelescopeDirectionVector TDV;
                 INDI::IHorizontalCoordinates AltAz { 0, 0 };
+
+                // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
+                // FIXME: This was not tested.
+                if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+                {
+                    // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
+                    // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
+                    double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+                    m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+                    m_TrackingRateTimer.restart();
+                }
+                else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+                {
+                    double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+                    m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+                    m_TrackingRateTimer.restart();
+                }
 
                 if (TransformCelestialToTelescope(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination,
                                                   0, TDV))
@@ -1520,7 +1547,7 @@ bool SkywatcherAPIMount::SetDefaultPark()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void SkywatcherAPIMount::resetTracking()
 {
-    m_TrackingElapsedTimer.restart();
+    m_TrackingRateTimer.restart();
     GuideDeltaAlt = 0;
     GuideDeltaAz = 0;
     ResetGuidePulses();
