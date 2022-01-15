@@ -239,3 +239,28 @@ int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
 
     return sockfd;
 }
+
+
+std::string getTestExePath(const std::string & str) {
+    size_t size = 256;
+    char * buffer;
+
+    buffer = (char*)malloc(size);
+
+    while(true) {
+        if (getcwd(buffer, size) != nullptr) {
+            break;
+        }
+        if ((errno == ERANGE) && (size < 0x100000)) {
+            size *= 2;
+            buffer = (char*)realloc(buffer, size);
+        } else {
+            perror("getcwd");
+            exit(255);
+        }
+    }
+    std::string ret = std::string(buffer) + "/" + str;
+    fprintf(stderr, "starting : %s\n" , ret.c_str());
+    free(buffer);
+    return ret;
+}

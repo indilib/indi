@@ -13,6 +13,10 @@
 #include "IndiServerController.h"
 #include "IndiClientMock.h"
 
+#define TEST_TCP_PORT 17624
+#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
+#define STRINGIFY_TOK(x) #x
+#define TO_STRING(x) STRINGIFY_TOK(x)
 
 TEST(IndiserverSingleDriver, MissingDriver) {
     DriverMock fakeDriver;
@@ -20,8 +24,10 @@ TEST(IndiserverSingleDriver, MissingDriver) {
 
     setupSigPipe();
 
+    std::string fakeDriverPath = getTestExePath("fakedriver-not-existing");
+
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-r", "0", "./fakedriver-not-existing", nullptr };
+    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
     indiServer.start(args);
     fprintf(stderr, "indiserver started\n");
 
@@ -37,8 +43,10 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
 
     fakeDriver.setup();
 
+    std::string fakeDriverPath = getTestExePath("fakedriver");
+
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-r", "0", "./fakedriver", nullptr };
+    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
     indiServer.start(args);
     fprintf(stderr, "indiserver started\n");
 
@@ -50,7 +58,7 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
 
     // Establish a client & send ping
     IndiClientMock client;
-    client.connectUnix();
+    client.connectUnix(TEST_UNIX_SOCKET);
 
     // Send ping from driver
     fakeDriver.cnx.send("<serverPingRequest uid='1'/>\n");
@@ -77,8 +85,10 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
 
     fakeDriver.setup();
 
+    std::string fakeDriverPath = getTestExePath("fakedriver");
+
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-vvv", "-r", "0", "./fakedriver", nullptr };
+    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str(), nullptr };
     indiServer.start(args);
     fprintf(stderr, "indiserver started\n");
 
@@ -118,7 +128,7 @@ TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix();
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -146,7 +156,7 @@ TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix();
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -179,7 +189,7 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix();
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -215,7 +225,7 @@ TEST(IndiserverAttachedBlob, DropMisbehavingDriver) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix();
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -260,7 +270,7 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix();
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -299,7 +309,7 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectTcp();
+    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
