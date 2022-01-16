@@ -1823,15 +1823,30 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     va_end(ap);
 }
 
+static long lastBlobPingUid = 0;
+#define BLOB_PING_PATTERN "SetBLOB/%ld"
+
 /* tell client to update an existing BLOB vector property */
 void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
+    char buffer[64];
+
+    // Wait for ack of previous blob if any
+    if (lastBlobPingUid) {
+        snprintf(buffer, 64, BLOB_PING_PATTERN, lastBlobPingUid);
+        waitPingReply(buffer);
+    }
+
     driverio io;
     driverio_init(&io);
 
     userio_xmlv1(&io.userio, io.user);
-    // FIXME: must change here
     IUUserIOSetBLOBVA(&io.userio, io.user, bvp, fmt, ap);
+
+    // Send a new <pingReply> so next blob won't be delayed until reception of this one
+    lastBlobPingUid++;
+    snprintf(buffer, 64, BLOB_PING_PATTERN, lastBlobPingUid);
+    IUUserIOPingRequest(&io.userio, io.user, buffer);
 
     driverio_finish(&io);
 }
