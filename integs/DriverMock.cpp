@@ -29,8 +29,8 @@ void DriverMock::terminateDriver() {
 
 
 void DriverMock::ping() {
-    cnx.send("<serverPingRequest uid='flush'/>\n");
-    cnx.expectXml("<serverPingReply uid=\"flush\"/>");
+    cnx.send("<pingRequest uid='flush'/>\n");
+    cnx.expectXml("<pingReply uid=\"flush\"/>");
 }
 
 

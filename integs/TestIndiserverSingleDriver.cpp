@@ -62,17 +62,17 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
     client.connectUnix(TEST_UNIX_SOCKET);
 
     // Send ping from driver
-    fakeDriver.cnx.send("<serverPingRequest uid='1'/>\n");
-    fakeDriver.cnx.expectXml("<serverPingReply uid='1'/>");
+    fakeDriver.cnx.send("<pingRequest uid='1'/>\n");
+    fakeDriver.cnx.expectXml("<pingReply uid='1'/>");
 
-    client.cnx.send("<serverPingRequest uid='2'/>\n");
-    client.cnx.expectXml("<serverPingReply uid='2'/>\n");
+    client.cnx.send("<pingRequest uid='2'/>\n");
+    client.cnx.expectXml("<pingReply uid='2'/>\n");
 
-    fakeDriver.cnx.send("<serverPingRequest uid='3'/>\n");
-    fakeDriver.cnx.expectXml("<serverPingReply uid='3'/>\n");
+    fakeDriver.cnx.send("<pingRequest uid='3'/>\n");
+    fakeDriver.cnx.expectXml("<pingReply uid='3'/>\n");
 
-    client.cnx.send("<serverPingRequest uid='4'/>\n");
-    client.cnx.expectXml("<serverPingReply uid='4'/>\n");
+    client.cnx.send("<pingRequest uid='4'/>\n");
+    client.cnx.expectXml("<pingReply uid='4'/>\n");
 
     fakeDriver.terminateDriver();
 
