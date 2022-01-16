@@ -222,12 +222,27 @@ class INDI::BaseClient : public INDI::BaseMediator
         /** @brief Send closing tag for BLOB command to server */
         void finishBlob();
 
+        /** @brief Send one ping request, the server will answer back with the same uuid
+         *  @param uid This string will server as identifier for the reply
+         *  @note reply will be dispatched to newPingReply
+         */
+        void sendPingRequest(const char * uid);
+
+        /** @brief Send a ping reply for the given uuid
+         *  @note This should not be called directly, as it is already handled by baseclient
+         */
+        void sendPingReply(const char * uid);
+
     protected:
         /** @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
          *  @param message content of message.
          *  @note The default implementation simply logs the message to stderr. Override to handle the message.
          */
         virtual void newUniversalMessage(std::string message);
+
+        /** @brief pingReply are sent by the server on response to pingReply (see above).
+         */
+        virtual void newPingReply(std::string uid);
 
     protected:
         std::unique_ptr<INDI::BaseClientPrivate> d_ptr;

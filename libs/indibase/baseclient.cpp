@@ -704,6 +704,20 @@ int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 {
     const char *tag = tagXMLEle(root);
 
+    if (!strcmp(tagXMLEle(root), "pingRequest")) {
+        const char *uid = findXMLAttValu(root, "uid");
+        if (!uid)
+            uid = "";
+
+        parent->sendPingReply(uid);
+        return 0;
+    }
+
+    if (!strcmp(tagXMLEle(root), "pingReply")) {
+        const char * uid = findXMLAttValu(root, "uid");
+        parent->newPingReply(uid);
+    }
+
     if (!strcmp(tag, "message"))
         return messageCmd(root, errmsg);
     else if (!strcmp(tag, "delProperty"))
@@ -1154,6 +1168,11 @@ void INDI::BaseClient::newUniversalMessage(std::string message)
     IDLog("%s\n", message.c_str());
 }
 
+void INDI::BaseClient::newPingReply(std::string uid)
+{
+    IDLog("Ping reply %s\n", uid.c_str());
+}
+
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     D_PTR(BaseClient);
@@ -1212,6 +1231,16 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
     np->setValue(value);
 
     sendNewNumber(nvp);
+}
+
+void INDI::BaseClient::sendPingReply(const char * uuid) {
+    D_PTR(BaseClient);
+    IUUserIOPingReply(&io, d, uuid);
+}
+
+void INDI::BaseClient::sendPingRequest(const char * uuid) {
+    D_PTR(BaseClient);
+    IUUserIOPingRequest(&io, d, uuid);
 }
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)

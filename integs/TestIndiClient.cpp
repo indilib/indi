@@ -182,6 +182,6 @@ TEST(IndiclientTcpConnect, ClientConnect) {
     t1.join();
 
     // Check client reply to ping...
-    // indiServerCnx.cnx.send("<pingRequest uuid='123456'/>");
-    // indiServerCnx.cnx.expectXml("<pingReply uuid='123456'/>");
+    indiServerCnx.cnx.send("<pingRequest uid='123456'/>");
+    indiServerCnx.cnx.expectXml("<pingReply uid='123456'/>");
 }

@@ -783,3 +783,17 @@ void IUUserIOUpdateMinMax(
     userio_prints    (io, user, "</setNumberVector>\n");
     indi_locale_C_numeric_pop(orig);
 }
+
+void IUUserIOPingRequest(const userio * io, void *user, const char * pingUid)
+{
+    userio_prints    (io, user, "<pingRequest uid='");
+    userio_xml_escape(io, user, pingUid);
+    userio_prints    (io, user, "' />\n");
+}
+
+void IUUserIOPingReply(const userio * io, void *user, const char * pingUid)
+{
+    userio_prints    (io, user, "<pingReply uid='");
+    userio_xml_escape(io, user, pingUid);
+    userio_prints    (io, user, "' />\n");
+}

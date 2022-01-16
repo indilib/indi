@@ -86,6 +86,9 @@ void IDUserIOMessageVA(const userio *io, void *user, const char *dev, const char
 
 void IUUserIOConfigTag(const userio *io, void *user, int ctag);
 
+void IUUserIOPingRequest(const userio * io, void *user, const char * pingUid);
+void IUUserIOPingReply(const userio * io, void *user, const char * pingUid);
+
 #ifdef __cplusplus
 }
 #endif
