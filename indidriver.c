@@ -62,6 +62,8 @@ INDI_BLOB,
 INDI_UNKNOWN
 };
 
+extern void waitPingReply(const char *);
+
 // TODO use fast map
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct {
