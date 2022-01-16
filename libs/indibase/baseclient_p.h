@@ -86,6 +86,8 @@ class BaseClientPrivate
     private:
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
         bool unixSocket {false};
+
+        bool establish(const std::string & target);
         // TODO : blob control flow descriptor
         // TODO : blob control limit enforcing structure
 

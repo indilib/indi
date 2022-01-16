@@ -129,6 +129,187 @@ static const char * unixDomainPrefix = "localhost:";
 
 static const char * unixDefaultPath = "/tmp/indiserver";
 
+bool BaseClientPrivate::establish(const std::string & cServer) {
+    struct sockaddr_un serv_addr_un;
+    struct sockaddr_in serv_addr_in;
+    const struct sockaddr *sockaddr;
+    socklen_t addrlen;
+
+    struct timeval ts;
+    ts.tv_sec  = timeout_sec;
+    ts.tv_usec = timeout_us;
+
+    int ret;
+
+    // Special handling for localhost: addresses
+    // pos=0 limits the search to the prefix
+    unixSocket = cServer.rfind(unixDomainPrefix, 0) == 0;
+    std::string unixAddr;
+    if (unixSocket) {
+        unixAddr = cServer.substr(strlen(unixDomainPrefix));
+    }
+
+    if (unixSocket) {
+#ifndef _WINDOWS
+        if (unixAddr.empty()) {
+            unixAddr = unixDefaultPath;
+        }
+
+        memset(&serv_addr_un, 0, sizeof(serv_addr_un));
+        serv_addr_un.sun_family = AF_UNIX;
+
+        // Using abstract socket path to avoid filesystem boilerplate
+        // FIXME: is this supported on MACOS ?
+        strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+        int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
+        serv_addr_un.sun_path[0] = 0;
+
+        sockaddr = (struct sockaddr *)&serv_addr_un;
+        addrlen = len;
+
+        if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+        {
+            perror("socket");
+            return false;
+        }
+        // FIXME: for default mode, fallback to tcp
+#else
+        IDLog("local domain not supported on windows");
+        return false;
+#endif
+    } else {
+        struct hostent *hp;
+
+        /* lookup host address */
+        hp = gethostbyname(cServer.c_str());
+        if (!hp)
+        {
+            perror("gethostbyname");
+            return false;
+        }
+
+        /* create a socket to the INDI server */
+        (void)memset((char *)&serv_addr_in, 0, sizeof(serv_addr_in));
+        serv_addr_in.sin_family      = AF_INET;
+        serv_addr_in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr_in.sin_port        = htons(cPort);
+
+        sockaddr = (struct sockaddr *)&serv_addr_in;
+        addrlen = sizeof(serv_addr_in);
+#ifdef _WINDOWS
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
+        {
+            IDLog("Socket error: %d\n", WSAGetLastError());
+            WSACleanup();
+            return false;
+        }
+#else
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            perror("socket");
+            return false;
+        }
+#endif
+    }
+
+    /* set the socket in non-blocking */
+    //set socket nonblocking flag
+#ifdef _WINDOWS
+    u_long iMode = 0;
+    iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
+    if (iResult != NO_ERROR)
+    {
+        IDLog("ioctlsocket failed with error: %ld\n", iResult);
+        net_close(sockfd);
+        return false;
+    }
+#else
+    int flags = 0;
+    if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0) {
+        net_close(sockfd);
+        return false;
+    }
+
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        net_close(sockfd);
+        return false;
+    }
+
+    // Handle SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
+#endif
+
+    //clear out descriptor sets for select
+    //add socket to the descriptor sets
+    fd_set rset, wset;
+    FD_ZERO(&rset);
+    FD_SET(sockfd, &rset);
+    wset = rset; //structure assignment okok
+
+    /* connect */
+    if ((ret = ::connect(sockfd, sockaddr, addrlen)) < 0)
+    {
+        if (errno != EINPROGRESS)
+        {
+            perror("connect");
+            net_close(sockfd);
+            return false;
+        }
+    }
+
+    /* If it is connected, continue, otherwise wait */
+    if (ret != 0)
+    {
+        //we are waiting for connect to complete now
+        if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0) {
+            net_close(sockfd);
+            return false;
+        }
+        //we had a timeout
+        if (ret == 0)
+        {
+#ifdef _WINDOWS
+            IDLog("select timeout\n");
+#else
+            net_close(sockfd);
+
+            errno = ETIMEDOUT;
+            perror("select timeout");
+#endif
+            return false;
+        }
+    }
+
+    /* we had a positivite return so a descriptor is ready */
+#ifndef _WINDOWS
+    int error     = 0;
+    socklen_t len = sizeof(error);
+    if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
+    {
+        if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+        {
+            perror("getsockopt");
+            net_close(sockfd);
+            return false;
+        }
+    }
+    else {
+        net_close(sockfd);
+        return false;
+    }
+
+    /* check if we had a socket error */
+    if (error)
+    {
+        errno = error;
+        perror("socket");
+        net_close(sockfd);
+        return false;
+    }
+#endif
+    return true;
+}
+
 bool BaseClientPrivate::connect()
 {
     {
@@ -151,183 +332,23 @@ bool BaseClientPrivate::connect()
         }
 #endif
 
-        struct sockaddr_un serv_addr_un;
-        struct sockaddr_in serv_addr_in;
-        const struct sockaddr *sockaddr;
-        socklen_t addrlen;
-
-        struct timeval ts;
-        ts.tv_sec  = timeout_sec;
-        ts.tv_usec = timeout_us;
-
-        int ret;
-
-        // Special handling for localhost: addresses
-        // pos=0 limits the search to the prefix
-        unixSocket = cServer.rfind(unixDomainPrefix, 0) == 0;
-        std::string unixAddr;
-        if (unixSocket) {
-            unixAddr = cServer.substr(strlen(unixDomainPrefix));
-        }
-
 #ifndef _WINDOWS
         // System with unix support automatically connect over unix domain
-        if ((!unixSocket) && (cServer == "localhost")) {
-            unixSocket = true;
-        }
-#endif
-
-        if (unixSocket) {
-#ifndef _WINDOWS
-            if (unixAddr.empty()) {
-                unixAddr = unixDefaultPath;
-            }
-
-            memset(&serv_addr_un, 0, sizeof(serv_addr_un));
-            serv_addr_un.sun_family = AF_UNIX;
-
-            // Using abstract socket path to avoid filesystem boilerplate
-            // FIXME: is this supported on MACOS ?
-            strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
-            int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
-            serv_addr_un.sun_path[0] = 0;
-
-            sockaddr = (struct sockaddr *)&serv_addr_un;
-            addrlen = len;
-
-            if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
-            {
-                perror("socket");
+        if (cServer == "localhost") {
+            if (!(establish(unixDomainPrefix) || establish(cServer)))
                 return false;
-            }
-
-#else
-            IDLog("local domain not supported on windows");
-            return false;
-#endif
         } else {
-            struct hostent *hp;
-
-            /* lookup host address */
-            hp = gethostbyname(cServer.c_str());
-            if (!hp)
-            {
-                perror("gethostbyname");
+            if (!establish(cServer))
                 return false;
-            }
-
-            /* create a socket to the INDI server */
-            (void)memset((char *)&serv_addr_in, 0, sizeof(serv_addr_in));
-            serv_addr_in.sin_family      = AF_INET;
-            serv_addr_in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-            serv_addr_in.sin_port        = htons(cPort);
-
-            sockaddr = (struct sockaddr *)&serv_addr_in;
-            addrlen = sizeof(serv_addr_in);
-#ifdef _WINDOWS
-            if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
-            {
-                IDLog("Socket error: %d\n", WSAGetLastError());
-                WSACleanup();
-                return false;
-            }
-#else
-            if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-            {
-                perror("socket");
-                return false;
-            }
-#endif
-        }
-
-        /* set the socket in non-blocking */
-        //set socket nonblocking flag
-#ifdef _WINDOWS
-        u_long iMode = 0;
-        iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
-        if (iResult != NO_ERROR)
-        {
-            IDLog("ioctlsocket failed with error: %ld\n", iResult);
-            return false;
         }
 #else
-        int flags = 0;
-        if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
+        if (!establish(cServer))
             return false;
-
-        if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
-            return false;
-
-        // Handle SIGPIPE
-        signal(SIGPIPE, SIG_IGN);
 #endif
-
-        //clear out descriptor sets for select
-        //add socket to the descriptor sets
-        fd_set rset, wset;
-        FD_ZERO(&rset);
-        FD_SET(sockfd, &rset);
-        wset = rset; //structure assignment okok
-
-        /* connect */
-        if ((ret = ::connect(sockfd, sockaddr, addrlen)) < 0)
-        {
-            if (errno != EINPROGRESS)
-            {
-                perror("connect");
-                net_close(sockfd);
-                return false;
-            }
-        }
-
-        /* If it is connected, continue, otherwise wait */
-        if (ret != 0)
-        {
-            //we are waiting for connect to complete now
-            if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
-                return false;
-            //we had a timeout
-            if (ret == 0)
-            {
-#ifdef _WINDOWS
-                IDLog("select timeout\n");
-#else
-                errno = ETIMEDOUT;
-                perror("select timeout");
-#endif
-                return false;
-            }
-        }
-
-        /* we had a positivite return so a descriptor is ready */
-#ifndef _WINDOWS
-        int error     = 0;
-        socklen_t len = sizeof(error);
-        if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
-        {
-            if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-            {
-                perror("getsockopt");
-                return false;
-            }
-        }
-        else
-            return false;
-
-        /* check if we had a socket error */
-        if (error)
-        {
-            errno = error;
-            perror("socket");
-            return false;
-        }
-#endif
-
-        // FIXME: wait for welcome message on the unix protocol
-        // Store the passed filehandle for blob ack
 
 #ifndef _WINDOWS
         int pipefd[2];
+        int ret;
         ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
         if (ret < 0)
