@@ -997,6 +997,7 @@ int dispatch(XMLEle *root, char msg[])
         static int *sizes = NULL;
         static int maxn = 0;
 
+        // FIXME: shared blob not supported here
         /* pull out each name/BLOB pair, decode */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
         {
