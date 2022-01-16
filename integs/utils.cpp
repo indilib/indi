@@ -70,7 +70,42 @@ int unixSocketListen(const std::string & unixAddr) {
     return sockfd;
 }
 
-int unixSocketAccept(int fd) {
+int tcpSocketListen(int port) {
+    struct sockaddr_in serv_socket;
+    int sockfd;
+    int reuse = 1;
+
+    /* make socket endpoint */
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "Socket");
+    }
+
+    /* bind to given port for any IP address */
+    memset(&serv_socket, 0, sizeof(serv_socket));
+    serv_socket.sin_family = AF_INET;
+    serv_socket.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_socket.sin_port = htons((unsigned short)port);
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "SO_REUSEADDR");
+    }
+    if (bind(sockfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "Bind to " + std::to_string(port));
+    }
+
+    /* willing to accept connections with a backlog of 5 pending */
+    if (::listen(sockfd, 5) < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "Listen to " + std::to_string(port));
+    }
+
+    return sockfd;
+}
+
+
+int socketAccept(int fd) {
     /* get a private connection to new client */
     int cli_fd  = ::accept(fd, 0, 0);
     if (cli_fd < 0)

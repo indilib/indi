@@ -12,7 +12,7 @@ void DriverMock::setup() {
 }
 
 void DriverMock::waitEstablish() {
-    driverConnection = unixSocketAccept(serverConnection);
+    driverConnection = socketAccept(serverConnection);
     unixSocketRecvFds(driverConnection, 2, driverFds);
     cnx.setFds(driverFds[0], driverFds[1]);
 }

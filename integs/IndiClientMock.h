@@ -16,6 +16,7 @@ public:
     virtual ~IndiClientMock();
     void connectUnix(const std::string & path= "/tmp/indiserver");
     void connectTcp(const std::string & host = "127.0.0.1", int port = 7624);
+    void associate(int fd);
 
     // This ensure that previous orders were received
     void ping();

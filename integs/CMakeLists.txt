@@ -13,10 +13,16 @@ add_executable(XmlAwaiterTest XmlAwaiterTest.cpp XmlAwaiter.cpp)
 target_link_libraries(XmlAwaiterTest gtest_main)
 gtest_discover_tests(XmlAwaiterTest PROPERTIES TIMEOUT 5)
 
-add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp)
+add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp ServerMock.cpp)
 target_link_libraries(TestIndiserverSingleDriver gtest_main)
-
 gtest_discover_tests(TestIndiserverSingleDriver PROPERTIES TIMEOUT 5)
+
+add_executable(TestIndiClient TestIndiClient.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp ServerMock.cpp)
+target_link_libraries(TestIndiClient gtest_main indiclient ${ZLIB_LIBRARY} ${NOVA_LIBRARIES})
+IF (UNIX AND NOT APPLE)
+    target_link_libraries(TestIndiClient -lpthread)
+ENDIF ()
+gtest_discover_tests(TestIndiClient PROPERTIES TIMEOUT 5)
 
 # Inject properties for discovered tests
 set_property(DIRECTORY APPEND PROPERTY

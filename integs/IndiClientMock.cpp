@@ -27,6 +27,11 @@ void IndiClientMock::connectTcp(const std::string & host, int port) {
     cnx.setFds(fd, fd);
 }
 
+void IndiClientMock::associate(int fd) {
+    this->fd = fd;
+    cnx.setFds(fd, fd);
+}
+
 void IndiClientMock::ping() {
     cnx.send("<pingRequest uid='flush'/>\n");
     cnx.expectXml("<pingReply uid='flush'/>\n");
