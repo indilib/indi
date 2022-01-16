@@ -122,6 +122,12 @@ extern int nsecRemainingTimer(int tid);
 */
 extern void rmTimer(int tid);
 
+/** Register a given function to be called once after the current loop
+ * \param fp a pointer to the callback function.
+ * \param ud a pointer to be passed to the callback function when called.
+ */
+extern void addImmediateWork(TCF * fp, void *ud);
+
 /* utility functions */
 extern int deferLoop(int maxms, int *flagp);
 extern int deferLoop0(int maxms, int *flagp);

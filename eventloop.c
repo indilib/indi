@@ -98,6 +98,7 @@ static void callCallback(fd_set *rfdp);
 static void checkTimer();
 static void oneLoop(void);
 static void deferTO(void *p);
+static void runImmediates();
 
 /* inf loop to dispatch callbacks, work procs and timers as necessary.
  * never returns.
@@ -499,6 +500,8 @@ static void oneLoop()
         runWorkProc();
     else
         callCallback(&rfd);
+
+    runImmediates();
 }
 
 /* timer callback used to implement deferLoop().
@@ -509,6 +512,57 @@ static void deferTO(void *p)
     *(int *)p = 1;
 }
 
+typedef struct Immediate
+{
+    void *ud;
+    WPF * fp;
+    struct Immediate * prev, *next;
+} Immediate;
+
+static Immediate * firstImmediate = NULL;
+static Immediate * lastImmediate = NULL;
+
+void addImmediateWork(TCF * fp, void *ud)
+{
+    Immediate * immediate = (Immediate*)malloc(sizeof(Immediate));
+    immediate->fp = fp;
+    immediate->ud = ud;
+    immediate->prev = lastImmediate;
+    immediate->next = NULL;
+    if (lastImmediate) {
+        lastImmediate->next = immediate;
+    } else {
+        firstImmediate = immediate;
+    }
+    lastImmediate = immediate;
+}
+
+static int peekImmediate(Immediate * into)
+{
+    if (!firstImmediate) {
+        return 0;
+    }
+    Immediate * o = firstImmediate;
+    into->fp = o->fp;
+    into->ud = o->ud;
+
+    firstImmediate = o->next;
+    if (o->next) {
+        o->next->prev = NULL;
+    } else {
+        lastImmediate = NULL;
+    }
+    free(o);
+
+    return 1;
+}
+
+void runImmediates() {
+    Immediate immediate;
+    while((peekImmediate(&immediate))) {
+        (*immediate.fp)(immediate.ud);
+    }
+}
 
 /* "INDI" wrappers to the more generic eventloop facility. */
 
