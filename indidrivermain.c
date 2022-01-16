@@ -71,6 +71,8 @@ static void clientMsgCB(int fd, void *arg)
     char buf[MAXRBUF], msg[MAXRBUF], *bp;
     int nr;
 
+    (void) arg;
+
     // FIXME: not ready for receiving shared buffer blobs here
     // Also this is completely similar to indidriver code... Common code ?
 
@@ -128,6 +130,9 @@ static DeferredMessage * lastDeferredMessage = NULL;
 static void flushDeferredMessages(void * arg) {
     DeferredMessage * p;
     char msg[MAXRBUF];
+
+    (void) arg;
+
     while((p = firstDeferredMessage)) {
         firstDeferredMessage = p->next;
         if (firstDeferredMessage) {

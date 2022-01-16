@@ -988,7 +988,6 @@ static void noSIGPIPE()
 void LocalDvrInfo::start()
 {
     Msg *mp;
-    char buf[32];
     int rp[2], wp[2], ep[2];
     int ux[2];
     int pid;
@@ -1172,7 +1171,6 @@ void RemoteDvrInfo::extractRemoteId(const std::string & name, std::string & o_ho
  */
 void RemoteDvrInfo::start()
 {
-    char buf[MAXSBUF] = {0};
     int sockfd;
     std::string dev;
     extractRemoteId(name, host, port, dev);
@@ -2633,6 +2631,8 @@ SerializedMsg::~SerializedMsg() {
 }
 
 bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
+    (void) position;
+
     if (!chuncksReady) {
         // FIXME: move this to real async thread
         log("asyncRun ?\n");
@@ -2664,6 +2664,7 @@ void SerializedMsg::collectRequirements(SerializationRequirement & sr)
 // This is called when a received message require additional // work, to avoid overflow
 void SerializedMsg::blockReceiver(MsgQueue * receiver) {
     // TODO : implement or remove
+    (void) receiver;
 }
 
 SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent) {

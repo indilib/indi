@@ -239,9 +239,7 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
 
 int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
     struct sockaddr_in serv_addr;
-    struct sockaddr *sockaddr;
     int sockfd;
-    socklen_t addrlen;
 
     /* lookup host address */
     auto hp = gethostbyname(host.c_str());
