@@ -103,14 +103,7 @@ static void clientMsgCB(int fd, void *arg)
                 delXMLEle(root);
                 continue;
             }
-
-            if (messageHandling == PROCEED_IMMEDIATE) {
-                if (dispatch(root, msg) < 0)
-                    fprintf(stderr, "%s dispatch error: %s\n", me, msg);
-                delXMLEle(root);
-            } else {
-                deferMessage(root);
-            }
+            deferMessage(root);
         }
         else if (msg[0])
             fprintf(stderr, "%s XML error: %s\n", me, msg);
