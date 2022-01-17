@@ -340,6 +340,11 @@ ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
+if (CMAKE_VERSION VERSION_LESS 3.12.0)
+set(CURL ${CURL_LIBRARIES})
+else()
+set(CURL CURL::libcurl)
+endif()
 ###################################################################################################
 ########################################  Sources  ################################################
 ###################################################################################################
@@ -1478,7 +1483,7 @@ set(scopedome_SRCS
    )
 
 add_executable(indi_scopedome_dome ${scopedome_SRCS})
-target_link_libraries(indi_scopedome_dome indidriver CURL::libcurl)
+target_link_libraries(indi_scopedome_dome indidriver ${CURL})
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
 ################ Technical Innovations DDW Dome ################
@@ -1785,7 +1790,7 @@ SET(weatherwatcher_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weatherwatcher.cpp)
 
 add_executable(indi_watcher_weather ${weatherwatcher_SRC})
-target_link_libraries(indi_watcher_weather indidriver CURL::libcurl)
+target_link_libraries(indi_watcher_weather indidriver ${CURL})
 install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 
 ########### Weather Safety Proxy ###############
@@ -1793,9 +1798,8 @@ install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 SET(weathersafetyproxy_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weather_safety_proxy.cpp)
-
 add_executable(indi_weather_safety_proxy ${weathersafetyproxy_SRC})
-target_link_libraries(indi_weather_safety_proxy indidriver CURL::libcurl)
+target_link_libraries(indi_weather_safety_proxy indidriver ${CURL})
 install(TARGETS indi_weather_safety_proxy RUNTIME DESTINATION bin )
 
 ########### MBox Driver ###############
@@ -1827,7 +1831,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
-target_link_libraries(indi_openweathermap_weather indidriver CURL::libcurl)
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL})
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 ########### Deep Sky Dad FP1 ###############
