@@ -172,7 +172,6 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
             perror("socket");
             return false;
         }
-        // FIXME: for default mode, fallback to tcp
 #else
         IDLog("local domain not supported on windows");
         return false;
@@ -568,17 +567,14 @@ void BaseClientPrivate::listenINDI()
                     clientFatalError = true;
                     break;
                 }
-                // TODO: reception ack of blobs here
                 int err_code;
                 try {
                     err_code = dispatchCommand(root, msg);
                 } catch(...) {
                     releaseBlobUids(blobs);
-                    // TODO: consumption ack of blobs here. blobs must be copied for this purpose
                     throw;
                 }
                 releaseBlobUids(blobs);
-                // TODO: consumption ack of blobs here. blobs must be copied for this purpose
 
                 if (err_code < 0)
                 {
@@ -620,8 +616,6 @@ void BaseClientPrivate::listenINDI()
         close(sockfd);
         close(receiveFd);
         close(sendFd);
-
-        // FIXME: close flow control FDS
 #endif
 
         exit_code = sAboutToClose ? sExitCode : -1;
@@ -655,7 +649,6 @@ bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string
     // modify the xml to add an attribute with the guid
     for(auto blobContent : findBlobElements(root)) {
         std::string attached = findXMLAttValu(blobContent, "attached");
-        // TODO: parse received blob ids here
 
         if (attached == "true") {
             std::string device = findXMLAttValu(root, "dev");

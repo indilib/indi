@@ -88,8 +88,6 @@ class BaseClientPrivate
         bool unixSocket {false};
 
         bool establish(const std::string & target);
-        // TODO : blob control flow descriptor
-        // TODO : blob control limit enforcing structure
 
         // Add an attribute for access to shared blobs
         bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> & blobs);
