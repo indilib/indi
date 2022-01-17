@@ -101,6 +101,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
         void sendCommand(const char *cmd);
         void updateMountStatus(char);
+        void updateSlewRate(void);
    
         // Send Mount time and location settings to client
         bool sendScopeTime();
