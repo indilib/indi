@@ -1,3 +1,77 @@
++ From 1.9.3 to 1.9.4
+
+    6e82671c 2022-01-17 nouspiro             Send command at start to flush serial line for Pulsar/Rigel dome (#1596)
+    237397fe 2022-01-15 Jasem Mutlaq         Experimental support for Lunar and Solar tracking in Alt-Az skywatcher
+    4e21b464 2022-01-15 Thorsten Alteholz    fix for bug 1359 (#1593)
+    5ed21bda 2022-01-14 rlancasteAstro       "Updating CURL to solve linking problem in Craft" (#1594)
+    8d1fc0ae 2022-01-12 Jasem Mutlaq         On bogus results, reset to 180 degrees instead of 0
+    221c10c2 2022-01-12 Jasem Mutlaq         Explicitly call SetTrackEnabled(true) as the mount apparently sometimes does not engage tracking after slew is complete
+    5bd64eaf 2022-01-12 Jasem Mutlaq         Add warning message
+    15534d58 2022-01-11 Jasem Mutlaq         Sync rotator motor on bogus position
+    bade6566 2022-01-11 astrogene1000        Add driver for Rigelsys/Astrogene1000 nFrame rotator - Take 2 after Jasem comments (#1590)
+    8520be2a 2022-01-10 murveit              Add timeouts to rainbow focuser (#1589)
+    f47a0107 2022-01-10 Jim                  spec_autosetup: switch from setup to autosetup in the spec file (#1591)
+    5ee49f3d 2022-01-10 Jasem Mutlaq         Do not set SCOPE_SLEWING in manual motion
+    dc20c108 2022-01-09 Jasem Mutlaq         Simplify name and remove wifi since that is covered under EQMod driver
+    bbfefbe4 2022-01-08 Jasem Mutlaq         Reset fast exposure count and upload time on disable
+    ee2bfb57 2022-01-08 Jasem Mutlaq         If fast exposure is disabled while we are exposring then abort capture
+    bfa0ea2c 2022-01-07 thx8411              Proposal for Bayer frames software binning (#1586)
+    78244936 2022-01-05 Jasem Mutlaq         Make sure GotoRotator is set to busy when changing presets
+    85fd5bba 2022-01-05 Jasem Mutlaq         Fix bug as reported by Gene
+    4536f7b3 2022-01-04 Jasem Mutlaq         Code cleanup. Do not save or send an empty image.
+    3bddbf7a 2022-01-04 Jasem Mutlaq         Add entry for ZWO AM5 as LX200 Autostar compatible mount. This is a guess at this point, it could require tweaking
+    cecb9ba4 2022-01-04 Chris Kuethe         Fix "mictosteps" typo (#1585)
+    7631749f 2022-01-03 Jasem Mutlaq         Prefer matching subnet over others
+    8e0bb260 2022-01-03 Jasem Mutlaq         Limit search to the source subnet
+    ffee42b0 2022-01-03 Jasem Mutlaq         Make timeout shorter when scanning
+    6dab56c2 2022-01-03 Jasem Mutlaq         Add an optional brute force subnet search for network connection. This could be useful for some drivers where the device exact IP address on the LAN..
+    15500f7b 2021-12-31 Jasem Mutlaq         Prepare for v1.9.4
+    03e588ef 2021-12-30 Jasem Mutlaq         Fix TrackState not set in Park. Fixes #1582
+    d319ddaa 2021-12-27 Jasem Mutlaq         Fix image color not saved in config
+    eacd21f0 2021-12-27 gnthibault           Trying to fix https://github.com/indilib/indi/issues/1580 (#1581)
+    a407e851 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    3d3067b7 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    5efaa3f8 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    ce741633 2021-12-20 Jasem Mutlaq         Increase range to 1
+    6d99a1f8 2021-12-19 Jasem Mutlaq         Improve the PID controller
+    ce6f6a85 2021-12-16 sywong2000           Fix a problem on the Serial Number and Firmware display
+    4e882ea2 2021-12-07 Jasem Mutlaq         Put the properties in settings tab to separate them from common driver options
+    4110ab42 2021-12-07 Jasem Mutlaq         Fix property names and save to config
+    cf97d472 2021-12-05 Jasem Mutlaq         Trigger snoop when weather watchdog is enabled
+    4e5a3f62 2021-12-05 Jasem Mutlaq         Remove unused variable
+    bbf74b90 2021-12-05 Jasem Mutlaq         Clean up guide simulator and add timeout capability to simulate devices that time out during exposure
+    bb68c407 2021-12-03 James Lancaster      OnStep: Update version to 1.13, introduce timeouts based on network or not (2sec & 0.1sec), add input verification where possible.
+    f3ebd901 2021-12-01 Jasem Mutlaq         Less spammy log
+    154fee44 2021-12-01 Jasem Mutlaq         1. Fix PEC being on by default, it should be OFF by default. 2. Fix iOptronV3 parking bug by using a workaround, the firmware must be fixed by iOptr..
+    bacf8af4 2021-11-30 Jasem Mutlaq         Anything less than 2 bytes is wrong
+    422f6b94 2021-11-30 Jasem Mutlaq         If we read too few bytes, retry or exit in error
+    19118b42 2021-11-30 Jasem Mutlaq         Add extra check for invalid values
+    41fa4848 2021-11-30 Jasem Mutlaq         Check if code exists in map
+    6f150a14 2021-11-30 Jasem Mutlaq         Only accept valid encoder values
+    208b92dd 2021-11-27 Jasem Mutlaq         Remove experimental
+    8ddda182 2021-11-27 Jasem Mutlaq         Remove older AP driver and remove experimental name from it
+    f001a03f 2021-11-27 Jasem Mutlaq         Few a few pointer cast warnings
+    a5300a25 2021-11-27 Jasem Mutlaq         Fix include header
+    8f0ce312 2021-11-20 Jasem Mutlaq         Added iterative GOTO, fixed tracking issue and simplified driver + logging
+    463db860 2021-11-20 Jasem Mutlaq         Improving drift compensation
+    8880ca3b 2021-11-19 Jasem Mutlaq         Improved method for reading responses with retries from Skywatcher. reset tracking drift time in a function
+    4169ce7b 2021-11-25 Jasem Mutlaq         Improved use of fpack without storing image to disk first
+    16f21839 2021-11-23 Jasem Mutlaq         Use multimap as suggested by Inder in INDI forum
+    061fbdca 2021-11-23 Jasem Mutlaq         Add one more VID:PID for FCUSB
+    9b0eab9f 2021-11-22 stefansimg           CCD drivers: snooping for standard epoch positions and issues with fast exposure mode fixed (#1574)
+    392027d6 2021-11-20 Jasem Mutlaq         Fix Pegasus pocket DSLR switch
+    254f151e 2021-11-18 jimmy-ck             Fixing pull request #1566 by adding missing property init and update (#1572)
+    3f162369 2021-11-17 Jasem Mutlaq         Do not load config port for an explicitly defined device
+    7f95a6b3 2021-11-17 Jasem Mutlaq         Add iPolar alias as well
+    2a8f6658 2021-11-17 Jasem Mutlaq         Further clarify the search algorithm
+    2813aaef 2021-11-17 Jasem Mutlaq         Apparently iGuider shows up differently sometimes
+    49593d26 2021-11-17 Jasem Mutlaq         Fix issue where we are not detecting correct camera label and the device label was not considered
+    c48ba8a6 2021-11-17 sywong2000           Save Alignment Data to mount before sync (#1566)
+    c5f70309 2021-11-15 james-lan            OnStep: Remove Focuser on disconnect (#1569)
+    bbaa5531 2021-11-16 Daniel Van Noord     More Lynx fixes - Step Size and Devices Types (#1570)
+    59d4d553 2021-11-15 Jim                  1.9.4git-spec: update the spec to 1.9.4git for the dev cycle (#1568)
+    9108a3f0 2021-11-14 james-lan            OnStep: Don't show focuser tab unless found. (#1567)
+
 + From 1.9.2 to 1.9.3
 
     1293b062 2021-11-10 Jasem Mutlaq         Skyris is from Celestron
