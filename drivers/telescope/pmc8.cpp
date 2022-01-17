@@ -48,6 +48,8 @@
 #define PMC8_DEFAULT_PORT 54372
 #define PMC8_DEFAULT_IP_ADDRESS "192.168.47.1"
 #define PMC8_TRACKING_AUTODETECT_INTERVAL 10
+#define PMC8_VERSION_MAJOR 0
+#define PMC8_VERSION_MINOR 5
 
 static std::unique_ptr<PMC8> scope(new PMC8());
 
@@ -64,7 +66,7 @@ PMC8::PMC8()
                            TELESCOPE_HAS_LOCATION,
                            9);
 
-    setVersion(0, 3);
+    setVersion(PMC8_VERSION_MAJOR, PMC8_VERSION_MINOR);
 }
 
 PMC8::~PMC8()
