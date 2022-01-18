@@ -1849,6 +1849,7 @@ int abortSlew(int fd)
     int error_type;
     int nbytes_write = 0;
 
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Q#");
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
 

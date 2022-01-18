@@ -18,6 +18,7 @@ add_executable(test_lx200drivers
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ap_experimentaldriver.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ap_experimental.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ap.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ap_cp3.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ap_gtocp2.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200fs2.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ss2000pc.cpp"
