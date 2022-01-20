@@ -2788,7 +2788,7 @@ void SerializedMsg::advance(MsgChunckIterator & iter, ssize_t s)
     if (iter.chunckOffset >= cur.contentLength) {
         iter.chunckId ++ ;
         iter.chunckOffset = 0;
-        if (iter.chunckId >= chuncks.size()) {
+        if (iter.chunckId >= chuncks.size() && asyncStatus == TERMINATED) {
             iter.endReached = true;
         }
     }
