@@ -54,6 +54,8 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <thread>
+#include <mutex>
 
 #include <assert.h>
 
@@ -247,7 +249,6 @@ class MsgChunck {
     std::vector<int> sharedBufferIdsToAttach;
 };
 
-
 class Msg;
 class MsgQueue;
 class MsgChunckIterator;
@@ -271,20 +272,42 @@ class SerializationRequirement {
             sharedBuffers.insert(fd);
         }
     }
+
+    bool operator==(const SerializationRequirement  & sr) const {
+        return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
+    }
 };
 
-enum SerializationStatus { PENDING, RUNNING, TERMINATED };
+enum SerializationStatus { PENDING, RUNNING, CANCELING, TERMINATED };
 
 class SerializedMsg {
     friend class Msg;
     friend class MsgChunckIterator;
 
+    std::recursive_mutex lock;
+    ev::async asyncProgress;
+
+    // Start a thread for execution of asyncRun
+    void async_start();
+    void async_cancel();
+
+    // Called within main loop when async task did some progress
+    void async_progressed();
 
     // The requirements. Prior to starting, everything is required.
     SerializationRequirement requirements;
 
-    // This is to be called only during asyncRun()
-    void updateRequirements(const SerializationRequirement & requirements);
+    void produce(bool sync);
+
+protected:
+    // These methods are to be called from asyncRun
+    bool async_canceled();
+    void async_updateRequirement(const SerializationRequirement & n);
+    void async_pushChunck(const MsgChunck & m);
+    void async_done();
+
+    // True if a producing thread is active
+    bool isAsyncRunning();
 
 protected:
 
@@ -294,17 +317,18 @@ protected:
     MsgQueue* blockedProducer;
 
     std::set<MsgQueue *> awaiters;
-
-    bool chuncksReady;
+private:
     std::vector<MsgChunck> chuncks;
 
+protected:
     // Buffers malloced during asyncRun
     std::list<void*> ownBuffers;
 
     // This will notify awaiters and possibly release the owner
     void onDataReady();
 
-    virtual void asyncRun() = 0;
+    virtual bool generateContentAsync() const = 0;
+    virtual void generateContent() = 0;
 
     void collectRequirements(SerializationRequirement & req);
 
@@ -320,9 +344,14 @@ public:
     virtual ~SerializedMsg();
 
     // Calling requestContent will start production
+    // Return true if some content is available
     bool requestContent(const MsgChunckIterator & position);
 
-    bool getContent(const MsgChunckIterator & position, void * & data, ssize_t & nsend, std::vector<int> & sharedBuffers);
+    // Return true if some content is available
+    // It is possible to have 0 to send, meaning end was actually reached
+    bool getContent(MsgChunckIterator & position, void * & data, ssize_t & nsend, std::vector<int> & sharedBuffers);
+
+    void advance(MsgChunckIterator & position, ssize_t s);
 
     // When a queue is done with sending this message
     void release(MsgQueue * from);
@@ -341,7 +370,8 @@ public:
     SerializedMsgWithSharedBuffer(Msg * parent);
     virtual ~SerializedMsgWithSharedBuffer();
 
-    virtual void asyncRun();
+    virtual bool generateContentAsync() const;
+    virtual void generateContent();
 };
 
 class SerializedMsgWithoutSharedBuffer: public SerializedMsg {
@@ -350,7 +380,8 @@ public:
     SerializedMsgWithoutSharedBuffer(Msg * parent);
     virtual ~SerializedMsgWithoutSharedBuffer();
 
-    virtual void asyncRun();
+    virtual bool generateContentAsync() const;
+    virtual void generateContent();
 };
 
 class MsgChunckIterator {
@@ -369,19 +400,6 @@ public:
         chunckOffset = 0;
         // No risk of 0 length message, so always false here
         endReached = false;
-    }
-
-    // Advance this pointer
-    void progress(SerializedMsg * within, ssize_t s) {
-        MsgChunck & cur = within->chuncks[chunckId];
-        chunckOffset += s;
-        if (chunckOffset >= cur.contentLength) {
-            chunckId ++ ;
-            chunckOffset = 0;
-            if (chunckId >= within->chuncks.size()) {
-                endReached = true;
-            }
-        }
     }
 
     bool done() const {
@@ -515,6 +533,8 @@ public:
 
     /* Remove all messages from queue */
     void clearMsgQueue();
+
+    void messageMayHaveProgressed(const SerializedMsg * msg);
 
     void setFds(int rFd, int wFd);
 
@@ -2173,6 +2193,11 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 }
 
 void MsgQueue::writeToFd() {
+    ssize_t nw;
+    void * data;
+    ssize_t nsend;
+    std::vector<int> sharedBuffers;
+
     /* get current message */
     auto mp = headMsg();
     if (mp == nullptr) {
@@ -2180,15 +2205,18 @@ void MsgQueue::writeToFd() {
         return;
     }
 
-    ssize_t nw;
-    void * data;
-    ssize_t nsend;
-    std::vector<int> sharedBuffers;
 
-    if (!mp->getContent(nsent, data, nsend, sharedBuffers)) {
-        wio.stop();
-        return;
-    }
+    do {
+        if (!mp->getContent(nsent, data, nsend, sharedBuffers)) {
+            wio.stop();
+            return;
+        }
+        
+        if (nsend == 0) {
+            consumeHeadMsg();
+            mp = headMsg();
+        }
+    } while(nsend == 0);
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
     if (nsend > MAXWSIZ)
@@ -2268,7 +2296,7 @@ void MsgQueue::writeToFd() {
     /* update amount sent. when complete: free message if we are the last
      * to use it and pop from our queue.
      */
-    nsent.progress(mp, nw);
+    mp->advance(nsent, nw);
     if (nsent.done())
         consumeHeadMsg();
 }
@@ -2610,7 +2638,7 @@ void ClInfo::log(const std::string & str) const {
 
 ConcurrentSet<ClInfo> ClInfo::clients;
 
-SerializedMsg::SerializedMsg(Msg * parent) : owner(parent), awaiters(), chuncksReady(false), chuncks(), ownBuffers()
+SerializedMsg::SerializedMsg(Msg * parent) : owner(parent), awaiters(), chuncks(), asyncProgress(), ownBuffers()
 {
     blockedProducer = nullptr;
     // At first, everything is required.
@@ -2621,6 +2649,7 @@ SerializedMsg::SerializedMsg(Msg * parent) : owner(parent), awaiters(), chuncksR
     }
     requirements.xml = true;
     asyncStatus = PENDING;
+    asyncProgress.set<SerializedMsg, &SerializedMsg::async_progressed>(this);
 }
 
 // Delete occurs when no async task is running and no awaiters are left
@@ -2630,19 +2659,139 @@ SerializedMsg::~SerializedMsg() {
     }
 }
 
-bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
-    (void) position;
+bool SerializedMsg::async_canceled() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    return asyncStatus == CANCELING;
+}
 
-    if (!chuncksReady) {
-        // FIXME: move this to real async thread
-        log("asyncRun ?\n");
-        asyncRun();
-        log("asyncRun done\n");
-        asyncStatus = TERMINATED;
-        owner->prune();
+void SerializedMsg::async_updateRequirement(const SerializationRequirement & req)
+{
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    if (this->requirements == req) {
+        return;
+    }
+    this->requirements = req;
+    asyncProgress.send();
+}
+
+void SerializedMsg::async_pushChunck(const MsgChunck & m) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    this->chuncks.push_back(m);
+    asyncProgress.send();
+}
+
+void SerializedMsg::async_done() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    asyncStatus = TERMINATED;
+    asyncProgress.send();
+}
+
+void SerializedMsg::async_start() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    if (asyncStatus != PENDING) {
+        return;
     }
 
+    asyncStatus = RUNNING;
+    if (generateContentAsync()) {
+        asyncProgress.start();
+
+        std::thread t([this]() {
+            generateContent();
+        });
+        t.detach();
+    } else {
+        generateContent();
+    }
+}
+
+void SerializedMsg::async_progressed() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    if (asyncStatus == TERMINATED) {
+        // FIXME: unblock ?
+        asyncProgress.stop();
+    }
+
+    // Update ios of awaiters
+    for(auto awaiter : awaiters) {
+        awaiter->messageMayHaveProgressed(this);
+    }
+
+    // Then prune
+    owner->prune();
+}
+
+bool SerializedMsg::isAsyncRunning() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    return (asyncStatus == RUNNING) || (asyncStatus == CANCELING);
+}
+
+
+bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    if (asyncStatus == PENDING) {
+        async_start();
+    }
+
+    if (asyncStatus == TERMINATED) {
+        return true;
+    }
+
+    // Not reached the last chunck
+    if (position.chunckId < chuncks.size()) {
+        return true;
+    }
+
+    return false;
+}
+
+bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, long& size, std::vector<int, std::allocator<int> >& sharedBuffers)
+{
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    if (asyncStatus != TERMINATED && from.chunckId >= chuncks.size()) {
+        // Not ready yet
+        return false;
+    }
+
+    if (from.chunckId == chuncks.size()) {
+        // Done
+        data = 0;
+        size = 0;
+        from.endReached = true;
+        return true;
+    }
+
+    const MsgChunck & ck = chuncks[from.chunckId];
+
+    if (from.chunckOffset == 0) {
+        sharedBuffers = ck.sharedBufferIdsToAttach;
+    } else {
+        sharedBuffers.clear();
+    }
+
+    data = ck.content + from.chunckOffset;
+    size = ck.contentLength - from.chunckOffset;
     return true;
+}
+
+void SerializedMsg::advance(MsgChunckIterator & iter, ssize_t s)
+{
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    MsgChunck & cur = chuncks[iter.chunckId];
+    iter.chunckOffset += s;
+    if (iter.chunckOffset >= cur.contentLength) {
+        iter.chunckId ++ ;
+        iter.chunckOffset = 0;
+        if (iter.chunckId >= chuncks.size()) {
+            iter.endReached = true;
+        }
+    }
 }
 
 void SerializedMsg::addAwaiter(MsgQueue * q) {
@@ -2651,7 +2800,7 @@ void SerializedMsg::addAwaiter(MsgQueue * q) {
 
 void SerializedMsg::release(MsgQueue * q) {
     awaiters.erase(q);
-    if (awaiters.empty() && asyncStatus == TERMINATED) {
+    if (awaiters.empty() && !isAsyncRunning()) {
         owner->releaseSerialization(this);
     }
 }
@@ -2667,14 +2816,14 @@ void SerializedMsg::blockReceiver(MsgQueue * receiver) {
     (void) receiver;
 }
 
+ssize_t SerializedMsg::queueSize() {
+    return owner->queueSize;
+}
+
 SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent) {
 }
 
 SerializedMsgWithoutSharedBuffer::~SerializedMsgWithoutSharedBuffer() {
-}
-
-ssize_t SerializedMsg::queueSize() {
-    return owner->queueSize;
 }
 
 SerializedMsgWithSharedBuffer::SerializedMsgWithSharedBuffer(Msg * parent): SerializedMsg(parent), ownSharedBuffers() {
@@ -2686,24 +2835,6 @@ SerializedMsgWithSharedBuffer::~SerializedMsgWithSharedBuffer() {
     }
 }
 
-bool SerializedMsg::getContent(const MsgChunckIterator & from, void*& data, long& size, std::vector<int, std::allocator<int> >& sharedBuffers)
-{
-    // FIXME: crude. Could got be concurrent with production
-    if (!chuncksReady) {
-        return false;
-    }
-    const MsgChunck & ck = chuncks[from.chunckId];
-
-    if (from.chunckOffset == 0) {
-        sharedBuffers = ck.sharedBufferIdsToAttach;
-    } else {
-        sharedBuffers.clear();
-    }
-
-    data = ck.content + from.chunckOffset;
-    size = ck.contentLength - from.chunckOffset;
-    return true;
-}
 
 MsgChunck::MsgChunck() : sharedBufferIdsToAttach() {
     content = nullptr;
@@ -2916,8 +3047,11 @@ XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<X
     return cloneXMLEle(root, &xmlReplacementMapFind, (void*)&replacement);
 }
 
+bool SerializedMsgWithoutSharedBuffer::generateContentAsync() const {
+    return owner->hasInlineBlobs || owner->hasSharedBufferBlobs;
+}
 
-void SerializedMsgWithoutSharedBuffer::asyncRun() {
+void SerializedMsgWithoutSharedBuffer::generateContent() {
     // Convert every shared buffer into an inline base64
     auto xmlContent = owner->xmlContent;
 
@@ -2966,7 +3100,7 @@ void SerializedMsgWithoutSharedBuffer::asyncRun() {
         char * model = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
         int modelSize = sprXMLEle(model, xmlContent, 0);
 
-        chuncks.push_back(MsgChunck(model, modelSize));
+        async_pushChunck(MsgChunck(model, modelSize));
 
         // FIXME: lower requirements asap... how to do that ?
         // requirements.xml = false;
@@ -3013,7 +3147,7 @@ void SerializedMsgWithoutSharedBuffer::asyncRun() {
         for(std::size_t i = 0; i < cdata.size(); ++i) {
             int cdataOffset = modelCdataOffset[i];
             if (cdataOffset > modelOffset) {
-                chuncks.push_back(MsgChunck(model + modelOffset, cdataOffset - modelOffset));
+                async_pushChunck(MsgChunck(model + modelOffset, cdataOffset - modelOffset));
             }
             // Skip the dummy cdata completly
             modelOffset = cdataOffset + 1;
@@ -3028,7 +3162,7 @@ void SerializedMsgWithoutSharedBuffer::asyncRun() {
                 ownBuffers.push_back(buffer);
                 int base64Count = to64frombits_s((unsigned char*)buffer, (const unsigned char*)blobs[i], sizes[i], (4 * sizes[i] / 3 + 4));
 
-                chuncks.push_back(MsgChunck(buffer, base64Count));
+                async_pushChunck(MsgChunck(buffer, base64Count));
 
                 // Dettach blobs ASAP
                 dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
@@ -3039,19 +3173,23 @@ void SerializedMsgWithoutSharedBuffer::asyncRun() {
 
                 auto len = pcdatalenXMLEle(sharedCData[i]);
                 auto data = pcdataXMLEle(sharedCData[i]);
-                chuncks.push_back(MsgChunck(data, len));
+                async_pushChunck(MsgChunck(data, len));
             }
         }
 
         if (modelOffset < modelSize) {
-            chuncks.push_back(MsgChunck(model + modelOffset, modelSize - modelOffset));
+            async_pushChunck(MsgChunck(model + modelOffset, modelSize - modelOffset));
             modelOffset = modelSize;
         }
     }
-    chuncksReady = true;
+    async_done();
 }
 
-void SerializedMsgWithSharedBuffer::asyncRun() {
+bool SerializedMsgWithSharedBuffer::generateContentAsync() const {
+    return owner->hasInlineBlobs;
+}
+
+void SerializedMsgWithSharedBuffer::generateContent() {
     // Convert every inline base64 blob from xml into an attached buffer
     auto xmlContent = owner->xmlContent;
 
@@ -3111,12 +3249,12 @@ void SerializedMsgWithSharedBuffer::asyncRun() {
     chunck.contentLength = sprXMLEle(chunck.content, xmlContent, 0);
     chunck.sharedBufferIdsToAttach = sharedBuffers;
 
-    chuncks.push_back(chunck);
-    chuncksReady = true;
+    async_pushChunck(chunck);
 
     if (!replacement.empty()) {
         delXMLEle(xmlContent);
     }
+    async_done();
 }
 
 MsgQueue::MsgQueue(bool useSharedBuffer): useSharedBuffer(useSharedBuffer) {
@@ -3206,6 +3344,12 @@ void MsgQueue::updateIos() {
     }
     if (rFd != -1) {
         rio.start();
+    }
+}
+
+void MsgQueue::messageMayHaveProgressed(const SerializedMsg * msg) {
+    if ((!msgq.empty()) && (msgq.front() == msg)) {
+        updateIos();
     }
 }
 
