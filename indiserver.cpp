@@ -3158,11 +3158,25 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
             if (fds[i] != -1) {
                 // Add a binary chunck. This needs base64 convertion
                 // FIXME: the size here should be the size of the blob element
-                char* buffer = (char*) malloc(4 * sizes[i] / 3 + 4);
-                ownBuffers.push_back(buffer);
-                int base64Count = to64frombits_s((unsigned char*)buffer, (const unsigned char*)blobs[i], sizes[i], (4 * sizes[i] / 3 + 4));
+                unsigned long buffSze = sizes[i];
+                const unsigned char* src = (const unsigned char*)blobs[i];
 
-                async_pushChunck(MsgChunck(buffer, base64Count));
+                // split here in smaller chuncks for faster startup
+                // This allow starting write before the whole blob is converted
+                while(buffSze > 0) {
+                    // We need a block size multiple of 24 bits (3 bytes)
+                    unsigned long sze = buffSze > 3 * 16384 ? 3*16384 : buffSze;
+
+                    char* buffer = (char*) malloc(4 * sze / 3 + 4);
+                    ownBuffers.push_back(buffer);
+                    int base64Count = to64frombits_s((unsigned char*)buffer, src, sze, (4 * sze / 3 + 4));
+
+                    async_pushChunck(MsgChunck(buffer, base64Count));
+
+                    buffSze -= sze;
+                    src += sze;
+                }
+
 
                 // Dettach blobs ASAP
                 dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
