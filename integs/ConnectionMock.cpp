@@ -106,17 +106,24 @@ void ConnectionMock::expectBuffer(SharedBuffer & sb) {
 void ConnectionMock::expect(const std::string & str) {
     ssize_t l = str.size();
     char buff[l];
-    // FIXME: could interrupt sooner if input does not match
-    ssize_t rd = read(buff, l);
-    if (rd == 0) {
-        throw std::runtime_error("Input closed while expecting " + str);
+
+    char * in = buff;
+    ssize_t left = l;
+    while(left) {
+        // FIXME: could interrupt sooner if input does not match
+        ssize_t rd = read(in, left);
+        if (rd == 0) {
+            throw std::runtime_error("Input closed while expecting " + str);
+        }
+        if (rd == -1) {
+            int e = errno;
+            throw std::system_error(e, std::generic_category(), "Read failed while expecting " + str);
+        }
+        left -= rd;
+        in += rd;
     }
-    if (rd == -1) {
-        int e = errno;
-        throw std::system_error(e, std::generic_category(), "Read failed while expecting " + str);
-    }
-    if (rd < l || strncmp(str.c_str(), buff, l)) {
-        throw std::runtime_error("Received unexpected content while expecting " + str + ": " + std::string(buff, rd));
+    if (strncmp(str.c_str(), buff, l)) {
+        throw std::runtime_error("Received unexpected content while expecting " + str + ": " + std::string(buff, l));
     }
 }
 
