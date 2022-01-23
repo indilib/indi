@@ -36,15 +36,18 @@ jobs:
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
+        with:
+          repository: indilib/pyindi-client
+          path: ./pyindi-client
 
       - name: Build PyIndi
         run: |
-          python3 ./setup.py install
+          cd pyindi-client && python3 ./setup.py install
 
       - name: Install test deps
         run: |
-          pip3 install -r requirements-test.txt
+          cd pyindi-client && pip3 install -r requirements-test.txt
 
       - name: Test PyIndi
         run: |
-          /bin/bash -c "indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & tox ."
+          cd pyindi-client && /bin/bash -c "indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & tox ."
