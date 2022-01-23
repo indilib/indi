@@ -36,13 +36,10 @@ jobs:
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
-        with:
-          repository: indilib/pyindi-client
-          path: ./pyindi-client
 
       - name: Build PyIndi
         run: |
-          cd pyindi-client && python3 ./setup.py install
+          python3 ./setup.py install
 
       - name: Install test deps
         run: |
