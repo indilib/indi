@@ -43,7 +43,11 @@ jobs:
       - name: Build PyIndi
         run: |
           cd pyindi-client && python3 ./setup.py install
-      
+
+      - name: Install test deps
+        run: |
+          pip3 install -r requirements-test.txt
+
       - name: Test PyIndi
         run: |
-          python3 -c "import PyIndi"
+          /bin/bash -c "indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & tox ."
