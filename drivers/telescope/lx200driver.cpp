@@ -923,6 +923,9 @@ int setMaxSlewRate(int fd, int slewRate)
 
 int setObjectRA(int fd, double ra)
 {
+    // LX200_EQ_SHORT_FORMAT  :SrHH:MM.T#     (hours, minutes and tenths of minutes)
+    // LX200_EQ_LONG_FORMAT   :SrHH:MM:SS#    (hours, minutes, seconds)
+    // LX200_EQ_LONGER_FORMAT :SrHH:MM:SS.SS# (hours, minutes, seconds and hundredths of second)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
     int h, m, s;
@@ -935,18 +938,18 @@ int setObjectRA(int fd, double ra)
     {
         case LX200_EQ_LONG_FORMAT:
             getSexComponents(ra, &h, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr %02d:%02d:%02d#", h, m, s);
+            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d:%02d#", h, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
             getSexComponentsIID(ra, &h, &m, &d_s);
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr %02d:%02d:%05.02f#", h, m, d_s);
+            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d:%05.02f#", h, m, d_s);
             break;
         case LX200_EQ_SHORT_FORMAT:
             int frac_m;
             getSexComponents(ra, &h, &m, &s);
             frac_m = (s / 60.0) * 10.;
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr %02d:%02d.%01d#", h, m, frac_m);
+            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d.%01d#", h, m, frac_m);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
@@ -958,6 +961,9 @@ int setObjectRA(int fd, double ra)
 
 int setObjectDEC(int fd, double dec)
 {
+    // LX200_EQ_SHORT_FORMAT  :SdsDD*MM#       (sign, degrees, arcminutes)
+    // LX200_EQ_LONG_FORMAT   :SdsDD*MM:SS#    (sign, degrees, arcminutes, arcseconds)
+    // LX200_EQ_LONGER_FORMAT :Sd sDD*MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
 /* Add mutex */
@@ -972,26 +978,26 @@ int setObjectDEC(int fd, double dec)
             getSexComponents(dec, &d, &m, &s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd -%02d:%02d:%02d#", d, m, s);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd-%02d*%02d:%02d#", d, m, s);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd %+03d:%02d:%02d#", d, m, s);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd%+03d*%02d:%02d#", d, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
             getSexComponentsIID(dec, &d, &m, &d_s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd -%02d:%02d:%05.02f#", d, m, d_s);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd -%02d*%02d:%05.02f#", d, m, d_s);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd %+03d:%02d:%05.02f#", d, m, d_s);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd %+03d*%02d:%05.02f#", d, m, d_s);
             break;
         case LX200_EQ_SHORT_FORMAT:
             getSexComponents(dec, &d, &m, &s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd -%02d*%02d#", d, m);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd-%02d*%02d#", d, m);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd %+03d*%02d#", d, m);
+                snprintf(read_buffer, sizeof(read_buffer), ":Sd%+03d*%02d#", d, m);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
