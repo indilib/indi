@@ -195,8 +195,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
                        "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", -180, 180, 1, 16);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", -180, 180, 1, -16);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -993,13 +993,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             {
                 minPMEast = values[i];
                 LOGF_DEBUG("===CMD==> minutesPastMeridianN[0]/East = %f", minPMEast);
-                nset += minPMEast >= 0 && minPMEast <= 180;  //range 0 to 180
+                nset += minPMEast >= -180 && minPMEast <= 180;  //range -180 to 180
             }
             else if (bktp == &minutesPastMeridianN[1])
             {
                 minPMWest = values[i];
                 LOGF_DEBUG("===CMD==> minutesPastMeridianN[1]/West= %f", minPMWest);
-                nset += minPMWest >= 0 && minPMWest <= 180;   //range 0 to 180
+                nset += minPMWest >= -180 && minPMWest <= 180;   //range -180 to 180
             }
         }
         if (nset == 2)
@@ -1009,7 +1009,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if (sendOnStepCommand(cmd))
             {
                 minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash DEC limit.");
+                IDSetNumber(&minutesPastMeridianNP, "Error minutesPastMeridian East.");
             }
             const struct timespec timeout = {0, 100000000L};
             nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
@@ -1017,7 +1017,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if (sendOnStepCommand(cmd))
             {
                 minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash RA limit.");
+                IDSetNumber(&minutesPastMeridianNP, "Error minutesPastMeridian West.");
             }
 
             minutesPastMeridianNP.np[0].value = minPMEast;
