@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 13);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 14);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -195,8 +195,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
                        "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", -180, 180, 1, 16);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", -180, 180, 1, -16);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East  ± 180", "%g", -180, 180, 1, 16);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West  ± 180", "%g", -180, 180, 1, -16);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
