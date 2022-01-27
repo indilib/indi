@@ -195,8 +195,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
                        "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East  ± 180", "%g", -180, 180, 1, 16);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West  ± 180", "%g", -180, 180, 1, -16);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East  ± 180", "%g", -180, 180, 1, 20);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West  ± 180", "%g", -180, 180, 1, -20);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
