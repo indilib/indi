@@ -34,26 +34,31 @@
 
 LX200_OpenAstroTech::LX200_OpenAstroTech(void) : LX200GPS()
 {
-    setVersion(0,9);
-/*
-    setLX200Capability(LX200_HAS_PULSE_GUIDING);
-
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC |
-                           TELESCOPE_CAN_GOTO |
-                           TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME |
-                           TELESCOPE_CAN_PARK |
-                           TELESCOPE_HAS_LOCATION, 4);
-*/
+    setVersion(MAJOR_VERSION, MINOR_VERSION);
 }
-bool on = false;
+
+bool LX200_OpenAstroTech::Handshake()
+{
+    bool result = LX200GPS::Handshake();
+    return result;
+}
+
+#define OAT_MEADE_COMMAND "OAT_MEADE_COMMAND"
+#define OAT_DEC_LOWER_LIMIT "OAT_DEC_LOWER_LIMIT"
+#define OAT_DEC_UPPER_LIMIT "OAT_DEC_UPPER_LIMIT"
+#define OAT_GET_DEBUG_LEVEL "OAT_GET_DEBUG_LEVEL"
+#define OAT_GET_ENABLED_DEBUG_LEVEL "OAT_GET_ENABLED_DEBUG_LEVEL"
+#define OAT_SET_DEBUG_LEVEL "OAT_GET_DEBUG_LEVEL"
+
+const char *OAT_TAB       = "Open Astro Tech";
 
 bool LX200_OpenAstroTech::initProperties()
 {
     LX200GPS::initProperties();
-    IUFillText(&MeadeCommandT, "MEADE_COMMAND", "Result / Command", "");
-    IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillText(&MeadeCommandT, OAT_MEADE_COMMAND, "Result / Command", "");
+    IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -97,7 +102,7 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                     DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "Meade Command Result %d <%s>", err, MeadeCommandResult);
                     if(err == 0) {
                         MeadeCommandTP.s = IPS_OK;
-                        IUSaveText(tp, MeadeCommandResult); // really?
+                        IUSaveText(tp, MeadeCommandResult);
                         IDSetText(&MeadeCommandTP, MeadeCommandResult);
                         return true;
                     } else {
@@ -134,6 +139,56 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
     }
 
     return LX200GPS::ISNewNumber(dev, name, values, names, n);
+}
+
+bool LX200_OpenAstroTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    int index = 0;
+
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        /*
+        //Intercept Before inditelescope base can set TrackState
+        //Next one modification of inditelescope.cpp function
+        if (!strcmp(name, TrackStateSP.name))
+        {
+            //             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
+            IUUpdateSwitch(&TrackStateSP, states, names, n);
+            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            //             LOG_DEBUG("OnStep driver TrackStateSP override called");
+            //             if (previousState == targetState)
+            //             {
+            //                 IDSetSwitch(&TrackStateSP, nullptr);
+            //                 return true;
+            //             }
+
+            if (TrackState == SCOPE_PARKED)
+            {
+                LOG_WARN("Telescope is Parked, Unpark before tracking.");
+                return false;
+            }
+
+            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
+
+            if (rc)
+            {
+                return true;
+                //TrackStateSP moved to Update
+            }
+            else
+            {
+                //This is the case for an error on sending the command, so change TrackStateSP
+                TrackStateSP.s = IPS_ALERT;
+                IUResetSwitch(&TrackStateSP);
+                return false;
+            }
+
+            LOG_DEBUG("TrackStateSP intercept, OnStep driver, should never get here");
+            return false;
+        }
+        */
+    }
+    return LX200GPS::ISNewSwitch(dev, name, states, names, n);
 }
 
 const char *LX200_OpenAstroTech::getDefaultName(void)

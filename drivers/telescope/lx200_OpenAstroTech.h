@@ -22,16 +22,20 @@
 
 #include "lx200gps.h"
 
+#define MAJOR_VERSION 0
+#define MINOR_VERSION 9
+ 
 class LX200_OpenAstroTech : public LX200GPS
 {
   public:
     LX200_OpenAstroTech(void);
 
+    virtual bool Handshake() override;
     virtual const char *getDefaultName(void) override;
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
