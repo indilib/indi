@@ -47,8 +47,8 @@ class Beaver : public INDI::Dome
         virtual IPState MoveAbs(double az) override;
         virtual IPState MoveRel(double azDiff) override;
         virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
         // Shutter
         virtual IPState ControlShutter(ShutterOperation operation) override;

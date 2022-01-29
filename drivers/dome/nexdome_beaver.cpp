@@ -40,7 +40,7 @@ static std::unique_ptr<Beaver> dome(new Beaver());
 
 Beaver::Beaver()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK);
 
     setDomeConnection(CONNECTION_TCP | CONNECTION_SERIAL);
@@ -211,7 +211,7 @@ bool Beaver::Handshake()
 //////////////////////////////////////////////////////////////////////////////
 const char *Beaver::getDefaultName()
 {
-    return  "Beaver Dome";
+    return  "NexDome Beaver";
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -471,8 +471,8 @@ void Beaver::TimerHit()
         // Dome Parked
         if (rotatorIsParked() & (getDomeState() == DOME_PARKING))  {
             SetParked(true);
-            //setDomeState(DOME_PARKED);
-            RotatorStatusTP[0].setText("Parked");
+            std::string rStatus = "Parked";
+            RotatorStatusTP[0].setText(rStatus);
             RotatorStatusTP.setState(IPS_OK);
             LOG_DEBUG("Dome is parked.");
         }
@@ -481,7 +481,8 @@ void Beaver::TimerHit()
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
             RotatorCalibrationSP.apply();
-            RotatorStatusTP[0].setText("Home");
+            std::string rStatus = "Home";
+            RotatorStatusTP[0].setText(rStatus);
             RotatorStatusTP.setState(IPS_OK);
         }
         // Finding Home completed
@@ -489,13 +490,15 @@ void Beaver::TimerHit()
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
             RotatorCalibrationSP.apply();
-            RotatorStatusTP[0].setText("Home");
+            std::string rStatus = "Home";
+            RotatorStatusTP[0].setText(rStatus);
             RotatorStatusTP.setState(IPS_OK);
         }
         // Homing completed
         else if (!strcmp(RotatorStatusTP[0].getText(), "Homing")) {
             setDomeState(DOME_IDLE);
-            RotatorStatusTP[0].setText("Home");
+            std::string rStatus = "Home";
+            RotatorStatusTP[0].setText(rStatus);
             RotatorStatusTP.setState(IPS_OK);
             GotoHomeSP.setState(IPS_OK);
             GotoHomeSP.apply();
@@ -507,7 +510,8 @@ void Beaver::TimerHit()
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
             RotatorCalibrationSP.apply();
-            RotatorStatusTP[0].setText("Idle");
+            std::string rStatus = "Idle";
+            RotatorStatusTP[0].setText(rStatus);
             RotatorStatusTP.setState(IPS_OK);
             LOG_DEBUG("Dome reached target position.");
         }
@@ -522,7 +526,8 @@ void Beaver::TimerHit()
         // Test for shutter error
         if (domeStatus & DOME_STATUS_SHUTTER_ERROR) {
             LOG_ERROR("Shutter Mechanical Error");
-            ShutterStatusTP[0].setText("Mechanical Error");
+            std::string rStatus = "Mechanical Error";
+            ShutterStatusTP[0].setText(rStatus);
             ShutterStatusTP.apply();
             setShutterState(SHUTTER_ERROR);
         }
@@ -532,17 +537,20 @@ void Beaver::TimerHit()
 
             if (domeStatus & DOME_STATUS_SHUTTER_OPENING) {
                 setShutterState(SHUTTER_MOVING);
-                ShutterStatusTP[0].setText("Opening");
+                std::string rStatus = "Opening";
+                ShutterStatusTP[0].setText(rStatus);
                 LOG_DEBUG("Shutter state set to Opening");
             }
             else if (domeStatus & DOME_STATUS_SHUTTER_CLOSING) {
                 setShutterState(SHUTTER_MOVING);
-                ShutterStatusTP[0].setText("Closing");
+                std::string rStatus = "Closing";
+                ShutterStatusTP[0].setText(rStatus);
                 LOG_DEBUG("Shutter state set to Closing");
             }
             else if (domeStatus & DOME_STATUS_SHUTTER_MOVING) {
                 setShutterState(SHUTTER_MOVING);
-                ShutterStatusTP[0].setText("Moving");
+                std::string rStatus = "Moving";
+                ShutterStatusTP[0].setText(rStatus);
                 LOG_DEBUG("Shutter is moving");
             }
 
@@ -551,12 +559,14 @@ void Beaver::TimerHit()
         // if stopped, test if opened or closed
         if (domeStatus & DOME_STATUS_SHUTTER_OPENED) {
             setShutterState(SHUTTER_OPENED);
-            ShutterStatusTP[0].setText("Open");
+            std::string rStatus = "Open";
+            ShutterStatusTP[0].setText(rStatus);
             LOG_DEBUG("Shutter state set to OPEN");
         }
         if (domeStatus & DOME_STATUS_SHUTTER_CLOSED) {
             setShutterState(SHUTTER_CLOSED);
-            ShutterStatusTP[0].setText("Closed");
+            std::string rStatus = "Closed";
+            ShutterStatusTP[0].setText(rStatus);
             LOG_DEBUG("Shutter state set to CLOSED");
         }
         ShutterStatusTP.apply();
@@ -584,7 +594,8 @@ IPState Beaver::MoveAbs(double az)
     {
         m_TargetRotatorAz = az;
         setDomeState(DOME_MOVING);
-        RotatorStatusTP[0].setText("Moving");
+        std::string rStatus = "Moving";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return IPS_BUSY;
     }
@@ -674,7 +685,8 @@ bool Beaver::rotatorGotoAz(double az)
     double res = 0;
     snprintf(cmd, DRIVER_LEN, "!dome gotoaz %.2f#", az);
     setDomeState(DOME_MOVING);
-    RotatorStatusTP[0].setText("Moving");
+    std::string rStatus = "Moving";
+    RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
     return sendCommand(cmd, res);
 }
@@ -716,7 +728,8 @@ IPState Beaver::Park()
 {
     double res;
     if (sendCommand("!dome gopark#", res)) {
-        RotatorStatusTP[0].setText("Parking");
+        std::string rStatus = "Parking";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         // check shutter policy
         if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)) {
@@ -738,8 +751,8 @@ IPState Beaver::Park()
 /////////////////////////////////////////////////////////////////////////////
 IPState Beaver::UnPark()
 {
-    //setDomeState(DOME_UNPARKED);
-    RotatorStatusTP[0].setText("Dome UnParked");
+    std::string rStatus = "Dome Parked";
+    RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
     // check shutter policy
     if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)) {
@@ -812,7 +825,8 @@ bool Beaver::rotatorGotoHome()
     double res = 0;
     if (sendCommand("!dome gohome#", res)) {
         setDomeState(DOME_MOVING);
-        RotatorStatusTP[0].setText("Homing");
+        std::string rStatus = "Homing";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return true;
     }
@@ -827,7 +841,8 @@ bool Beaver::rotatorMeasureHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 1#", res)) {
         setDomeState(DOME_MOVING);
-        RotatorStatusTP[0].setText("Measuring Home");
+        std::string rStatus = "Measuring Home";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return true;
     }
@@ -842,7 +857,8 @@ bool Beaver::rotatorFindHome()
     double res = 0;
     if (sendCommand("!dome autocalrot 0#", res)) {
         setDomeState(DOME_MOVING);
-        RotatorStatusTP[0].setText("Finding Home");
+        std::string rStatus = "Finding Home";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         return true;
     }
@@ -941,7 +957,8 @@ bool Beaver::abortAll()
 {
     double res = 0;
     if (sendCommand("!dome abort 1 1 1#", res)) {
-        RotatorStatusTP[0].setText("Idle");
+        std::string rStatus = "Idle";
+        RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         if (!rotatorGetAz())
             return false;
