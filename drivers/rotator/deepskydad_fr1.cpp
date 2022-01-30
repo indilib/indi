@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
+#include <cmath>
 
 #define DSD_CMD 40
 #define DSD_RES 40
