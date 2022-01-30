@@ -649,6 +649,9 @@ IPState Beaver::ControlShutter(ShutterOperation operation)
     if (operation == SHUTTER_OPEN)
     {
         if (sendCommand("!dome openshutter#", res)) {
+            std::string rStatus = "Opening";
+            ShutterStatusTP[0].setText(rStatus);
+            ShutterStatusTP.apply();
             setShutterState(SHUTTER_MOVING);
             return IPS_BUSY;
         }
@@ -658,6 +661,9 @@ IPState Beaver::ControlShutter(ShutterOperation operation)
     else if (operation == SHUTTER_CLOSE)
     {
         if (sendCommand("!dome closeshutter#", res)) {
+            std::string rStatus = "Shutting";
+            ShutterStatusTP[0].setText(rStatus);
+            ShutterStatusTP.apply();
             setShutterState(SHUTTER_MOVING);
             return IPS_BUSY;
         }
@@ -736,7 +742,6 @@ IPState Beaver::Park()
             if(ControlShutter(SHUTTER_CLOSE)) {
                 DomeShutterS[SHUTTER_OPEN].s = ISS_OFF;
                 DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
-                setShutterState(SHUTTER_MOVING);
             }
             else
                 return IPS_ALERT;
@@ -751,15 +756,14 @@ IPState Beaver::Park()
 /////////////////////////////////////////////////////////////////////////////
 IPState Beaver::UnPark()
 {
-    std::string rStatus = "Dome Parked";
+    std::string rStatus = "unParked";
     RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
     // check shutter policy
     if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)) {
-        if(!ControlShutter(SHUTTER_CLOSE)) {
+        if(ControlShutter(SHUTTER_OPEN)) {
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_OFF;
-            setShutterState(SHUTTER_MOVING);
         }
         else
             return IPS_ALERT;
