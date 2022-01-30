@@ -1506,6 +1506,14 @@ add_executable(indi_script_dome ${domescript_SRC})
 target_link_libraries(indi_script_dome indidriver)
 install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
 
+########### NexDome Beaver Controller ##############
+SET(nexdome_beaver_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/nexdome_beaver.cpp)
+
+add_executable(indi_nexdome_beaver ${nexdome_beaver_SRC})
+target_link_libraries(indi_nexdome_beaver indidriver)
+install(TARGETS indi_nexdome_beaver RUNTIME DESTINATION bin)
+
 #################################################################################
 
 #########################################
