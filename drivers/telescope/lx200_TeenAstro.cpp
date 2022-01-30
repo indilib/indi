@@ -330,6 +330,13 @@ void LX200_TeenAstro::handleStatusChange(void)
             //            SetTrackEnabled(false);     //disable since TeenAstro enables it by default
         }
     }
+    // Byte 4 is current slew rate
+    if (OSStat[4] != OldOSStat[4])
+    {
+        updateSlewRate();
+    }
+
+
     // Byte 13 is pier side
     if (OSStat[13] != OldOSStat[13])
     {
@@ -587,12 +594,32 @@ bool LX200_TeenAstro::updateLocation(double latitude, double longitude, double e
     return true;
 }
 
+void LX200_TeenAstro::updateSlewRate()
+{
+    int slewRateIndex;
+
+    // get current slew rate
+    if (getSlewRate(&slewRateIndex))
+    {
+        LOGF_INFO("current slew rate : %d", slewRateIndex);
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[slewRateIndex].s = ISS_ON;
+        SlewRateSP.s = IPS_OK;
+        IDSetSwitch(&SlewRateSP, nullptr);
+    }
+    else
+    {
+        LOG_ERROR("Error reading current slew rate");
+    }
+}
+
+
 /*
  *  getBasicData: standard LX200 commands
  */
 void LX200_TeenAstro::getBasicData()
 {
-    int currentSiteIndex, slewRateIndex;
+    int currentSiteIndex;
 
     if (!isSimulation())
     {
@@ -637,18 +664,7 @@ void LX200_TeenAstro::getBasicData()
         handleStatusChange();
         LOGF_INFO("Initial Status: %s", OSStat);
 
-        // get current slew rate
-        if (getSlewRate(&slewRateIndex))
-        {
-            LOGF_INFO("current slew rate : %d", slewRateIndex);
-            SlewRateS[slewRateIndex].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
-        }
-        else
-        {
-            LOG_ERROR("Error reading current slew rate");
-        }
+        updateSlewRate();
 
         // Turn off tracking. (too much interaction with telescope.cpp if we try to keep the mount's current track state)
         if (TrackState != SCOPE_TRACKING)
@@ -1021,8 +1037,8 @@ bool LX200_TeenAstro::getSiteIndex(int *ndxP)
  */
 bool LX200_TeenAstro::getSlewRate(int *ndxP)
 {
-    if (getCommandInt(PortFD, ndxP, ":GXRD#") != 0)
-        return false;
+    unsigned char rate = (OSStat[4] - '0');
+    *ndxP = (int) rate;
     return true;
 }
 
@@ -1316,7 +1332,7 @@ bool LX200_TeenAstro::selectSlewRate(int index)
 {
     char cmd[20];
 
-    snprintf(cmd, sizeof(cmd), ":SXRD:%d#", index);
+    snprintf(cmd, sizeof(cmd), ":R%d#", index);
     sendCommand(cmd);
     return true;
 }

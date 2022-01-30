@@ -25,6 +25,9 @@
     ===========================================
     
     Version not yet updated/No INDI release:
+    Version 1.14
+    - Modified range for Minutes Pas Meridian East and West to -180 .. +180
+    - Modified debug messages Minutes Pas Meridian (Was B"acklash ...)
 
     Version 1.13
     - Timeouts and misc errors due to new behavior of SWS (SmartWebServer)

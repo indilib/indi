@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -232,6 +232,7 @@ if (ANDROID)
         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
     endif ()
 else ()
+    find_package(Qt5Core REQUIRED)
     find_package(Qt5Network REQUIRED)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
@@ -340,6 +341,11 @@ ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
+if (CMAKE_VERSION VERSION_LESS 3.12.0)
+set(CURL ${CURL_LIBRARIES})
+else()
+set(CURL CURL::libcurl)
+endif()
 ###################################################################################################
 ########################################  Sources  ################################################
 ###################################################################################################
@@ -1478,7 +1484,7 @@ set(scopedome_SRCS
    )
 
 add_executable(indi_scopedome_dome ${scopedome_SRCS})
-target_link_libraries(indi_scopedome_dome indidriver CURL::libcurl)
+target_link_libraries(indi_scopedome_dome indidriver ${CURL})
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
 ################ Technical Innovations DDW Dome ################
@@ -1499,6 +1505,14 @@ SET(domescript_SRC
 add_executable(indi_script_dome ${domescript_SRC})
 target_link_libraries(indi_script_dome indidriver)
 install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
+
+########### NexDome Beaver Controller ##############
+SET(nexdome_beaver_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/nexdome_beaver.cpp)
+
+add_executable(indi_nexdome_beaver ${nexdome_beaver_SRC})
+target_link_libraries(indi_nexdome_beaver indidriver)
+install(TARGETS indi_nexdome_beaver RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -1785,7 +1799,7 @@ SET(weatherwatcher_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weatherwatcher.cpp)
 
 add_executable(indi_watcher_weather ${weatherwatcher_SRC})
-target_link_libraries(indi_watcher_weather indidriver CURL::libcurl)
+target_link_libraries(indi_watcher_weather indidriver ${CURL})
 install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 
 ########### Weather Safety Proxy ###############
@@ -1793,9 +1807,8 @@ install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 SET(weathersafetyproxy_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weather_safety_proxy.cpp)
-
 add_executable(indi_weather_safety_proxy ${weathersafetyproxy_SRC})
-target_link_libraries(indi_weather_safety_proxy indidriver CURL::libcurl)
+target_link_libraries(indi_weather_safety_proxy indidriver ${CURL})
 install(TARGETS indi_weather_safety_proxy RUNTIME DESTINATION bin )
 
 ########### MBox Driver ###############
@@ -1827,7 +1840,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
-target_link_libraries(indi_openweathermap_weather indidriver CURL::libcurl)
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL})
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 ########### Deep Sky Dad FP1 ###############

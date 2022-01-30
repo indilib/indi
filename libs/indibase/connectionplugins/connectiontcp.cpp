@@ -47,8 +47,10 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
     char defaultPort[MAXINDINAME] = {0};
 
     // Try to load the port from the config file. If that fails, use default port.
-    IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "ADDRESS", defaultHostname, MAXINDINAME);
-    IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "PORT", defaultPort, MAXINDINAME);
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "ADDRESS", defaultHostname, MAXINDINAME) == 0)
+        m_ConfigHost = defaultHostname;
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "PORT", defaultPort, MAXINDINAME) == 0)
+        m_ConfigPort = defaultPort;
 
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", defaultHostname);
@@ -57,7 +59,8 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
                      IP_RW, 60, IPS_IDLE);
 
     int connectionTypeIndex = 0;
-    IUGetConfigOnSwitchIndex(dev->getDeviceName(), "CONNECTION_TYPE", &connectionTypeIndex);
+    if (IUGetConfigOnSwitchIndex(dev->getDeviceName(), "CONNECTION_TYPE", &connectionTypeIndex) == 0)
+        m_ConfigConnectionType = connectionTypeIndex;
     IUFillSwitch(&TcpUdpS[TYPE_TCP], "TCP", "TCP", connectionTypeIndex == TYPE_TCP ? ISS_ON : ISS_OFF);
     IUFillSwitch(&TcpUdpS[TYPE_UDP], "UDP", "UDP", connectionTypeIndex == TYPE_UDP ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, getDeviceName(), "CONNECTION_TYPE", "Connection Type",
@@ -306,8 +309,11 @@ bool TCP::Connect()
     {
         LOGF_INFO("%s is online.", getDeviceName());
         IUSaveText(&AddressT[0], hostname.c_str());
-        m_Device->saveConfig(true, "DEVICE_ADDRESS");
-        m_Device->saveConfig(true, "CONNECTION_TYPE");
+
+        if (m_ConfigHost != std::string(AddressT[0].text) || m_ConfigPort != std::string(AddressT[1].text))
+            m_Device->saveConfig(true, "DEVICE_ADDRESS");
+        if (m_ConfigConnectionType != IUFindOnSwitchIndex(&TcpUdpSP))
+            m_Device->saveConfig(true, "CONNECTION_TYPE");
         if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
         {
             LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
@@ -372,7 +378,8 @@ bool TCP::saveConfigItems(FILE *fp)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setDefaultHost(const char *addressHost)
 {
-    IUSaveText(&AddressT[0], addressHost);
+    if (m_ConfigHost.empty())
+        IUSaveText(&AddressT[0], addressHost);
     if (m_Device->isInitializationComplete())
         IDSetText(&AddressTP, nullptr);
 }
@@ -382,20 +389,26 @@ void TCP::setDefaultHost(const char *addressHost)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setDefaultPort(uint32_t addressPort)
 {
-    char portStr[8];
-    snprintf(portStr, 8, "%d", addressPort);
-    IUSaveText(&AddressT[1], portStr);
+    if (m_ConfigPort.empty())
+    {
+        char portStr[8];
+        snprintf(portStr, 8, "%d", addressPort);
+        IUSaveText(&AddressT[1], portStr);
+    }
     if (m_Device->isInitializationComplete())
         IDSetText(&AddressTP, nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-///
+/// TODO should be renamed to setDefaultConnectionType
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void TCP::setConnectionType(int type)
 {
-    IUResetSwitch(&TcpUdpSP);
-    TcpUdpS[type].s = ISS_ON;
+    if (m_ConfigConnectionType < 0)
+    {
+        IUResetSwitch(&TcpUdpSP);
+        TcpUdpS[type].s = ISS_ON;
+    }
     if (m_Device->isInitializationComplete())
         IDSetSwitch(&TcpUdpSP, nullptr);
 }
