@@ -24,70 +24,71 @@
 
 class LX200ZEQ25 : public LX200Generic
 {
-  public:
-    LX200ZEQ25();
-    virtual ~LX200ZEQ25() override = default;
+    public:
+        LX200ZEQ25();
+        virtual ~LX200ZEQ25() override = default;
 
-    virtual bool updateProperties() override;
-    virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool initProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
+    protected:
+        virtual const char *getDefaultName() override;
 
-    virtual void getBasicData() override;
-    virtual bool checkConnection() override;
-    virtual bool isSlewComplete() override;
+        virtual void getBasicData() override;
+        virtual bool checkConnection() override;
+        virtual bool isSlewComplete() override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool SetSlewRate(int index) override;
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Sync(double, double) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool SetSlewRate(int index) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Sync(double, double) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+        virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
- private:
-    int setZEQ25StandardProcedure(int fd, const char *data);
-    int setZEQ25Latitude(double Lat);
-    int setZEQ25Longitude(double Long);
-    int setZEQ25UTCOffset(double hours);
-    int setZEQ25Date(int days, int months, int years);
-    bool slewZEQ25();
-    int moveZEQ25To(int direction);
-    int haltZEQ25Movement();
-    int getZEQ25MoveRate();
-    int setZEQ25Park();
-    int setZEQ25UnPark();
-    int setZEQ25TrackMode(int mode);
-    int getZEQ25GuideRate(double *rate);
-    int setZEQ25GuideRate(double rate);
+    private:
+        int setZEQ25StandardProcedure(int fd, const char *data);
+        int setZEQ25Latitude(double Lat);
+        int setZEQ25Longitude(double Long);
+        int setZEQ25UTCOffset(double hours);
+        int setZEQ25Date(int days, int months, int years);
+        bool slewZEQ25();
+        int moveZEQ25To(int direction);
+        int haltZEQ25Movement();
+        int getZEQ25MoveRate();
+        int setZEQ25Park();
+        int setZEQ25UnPark();
+        int setZEQ25TrackMode(int mode);
+        int getZEQ25GuideRate(double *rate);
+        int setZEQ25GuideRate(double rate);
+        bool getZEQ25PierSide(TelescopePierSide &side);
 
-    bool isZEQ25Home();
-    int gotoZEQ25Home();
+        bool isZEQ25Home();
+        int gotoZEQ25Home();
 
-    bool isZEQ25Parked();
+        bool isZEQ25Parked();
 
-    bool getMountInfo();
-    void mountSim();
+        bool getMountInfo();
+        void mountSim();
 
-    ISwitch HomeS[1];
-    ISwitchVectorProperty HomeSP;
+        ISwitch HomeS[1];
+        ISwitchVectorProperty HomeSP;
 
-    /* Guide Rate */
-    INumber GuideRateN[1];
-    INumberVectorProperty GuideRateNP;
+        /* Guide Rate */
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
 };
