@@ -191,15 +191,15 @@
         </device>
         <device label="iOptron ZEQ25" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="iOptron iEQ30" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="iOptron iEQ45" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="GotoNova 8400 Kit" manufacturer="iOptron">
             <driver name="GotoNova">indi_lx200gotonova</driver>

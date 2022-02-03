@@ -36,12 +36,18 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
+    SetTelescopeCapability(TELESCOPE_CAN_PARK |
+                           TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_HAS_PIER_SIDE,
                            9);
 }
 
@@ -99,7 +105,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return static_cast<const char *>("ZEQ25");
+    return "ZEQ25";
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -1187,6 +1193,12 @@ bool LX200ZEQ25::ReadScopeStatus()
         return false;
     }
 
+    // Get Pier side
+
+    TelescopePierSide side = PIER_UNKNOWN;
+    if (getZEQ25PierSide(side))
+        setPierSide(side);
+
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -1258,6 +1270,10 @@ void LX200ZEQ25::mountSim()
         default:
             break;
     }
+
+    TelescopePierSide side = PIER_UNKNOWN;
+    if (getZEQ25PierSide(side))
+        setPierSide(side);
 
     NewRaDec(currentRA, currentDEC);
 }
@@ -1400,4 +1416,54 @@ int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 
     tcflush(PortFD, TCIFLUSH);
     return TTY_OK;
+}
+
+bool LX200ZEQ25::getZEQ25PierSide(TelescopePierSide &side)
+{
+    int nbytes_written = 0;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8] = {0};
+    int nbytes_read    = 0;
+
+    if (isSimulation())
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write_string(PortFD, ":pS#", &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        if ( response[0] == '0')
+            side = PIER_EAST;
+        else if ( response[0] == '1')
+            side = PIER_WEST;
+        else
+            side = PIER_UNKNOWN;
+
+        return true;
+    }
+
+    return false;
 }
