@@ -2821,7 +2821,7 @@ bool FocusLynxBase::SyncFocuser(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-//bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+//bool FocusLynxBase::setMaxTravel(uint16_t travel)
 bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 {
     char cmd[LYNX_MAX] = {0};
@@ -2886,7 +2886,7 @@ bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setStepSize(u_int16_t stepsize)
+bool FocusLynxBase::setStepSize(uint16_t stepsize)
 {
     char cmd[LYNX_MAX] = {0};
     int errcode = 0;
