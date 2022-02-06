@@ -28,10 +28,7 @@
 #include <string>
 #include "indicom.h"
 
-#ifdef __FreeBSD__
 #include <stdint.h>
-typedef uint8_t u_int8_t;
-#endif
 
 //#include <thread>
 //#include <condition_variable>
@@ -312,8 +309,8 @@ class CelestronDriver
 
         // get and set guide rate
         // 0 to 255 corresponding to 0 to 100% sidereal
-        bool get_guide_rate(CELESTRON_AXIS axis, u_int8_t  * rate);
-        bool set_guide_rate(CELESTRON_AXIS axis, u_int8_t  rate);
+        bool get_guide_rate(CELESTRON_AXIS axis, uint8_t  * rate);
+        bool set_guide_rate(CELESTRON_AXIS axis, uint8_t  rate);
 
         // Pointing state, pier side, returns 'E' or 'W'
         bool get_pier_side(char * sop);
