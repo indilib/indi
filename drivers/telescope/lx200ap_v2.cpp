@@ -69,7 +69,7 @@ LX200AstroPhysicsV2::LX200AstroPhysicsV2() : LX200Generic()
 
 const char *LX200AstroPhysicsV2::getDefaultName()
 {
-    return "AstroPhysics";
+    return "AstroPhysics Testing";
 }
 
 bool LX200AstroPhysicsV2::Connect()
