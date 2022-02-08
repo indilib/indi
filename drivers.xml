@@ -53,7 +53,7 @@
             <driver name="AstroPhysics">indi_lx200ap</driver>
             <version>1.0</version>
         </device>
-        <device label="AstroPhysics" manufacturer="Astrophysics">
+        <device label="AstroPhysics Testing" manufacturer="Astrophysics">
             <driver name="AstroPhysics Testing">indi_lx200ap_v2</driver>
             <version>1.0</version>
         </device>
