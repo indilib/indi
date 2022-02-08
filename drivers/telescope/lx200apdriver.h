@@ -67,6 +67,9 @@ int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
 
+// experiment!
+int getAPHourAngle(int fd, double *value);
+
 #ifdef __cplusplus
 }
 #endif

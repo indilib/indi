@@ -45,7 +45,7 @@
  * Swap bytes in 16-bit value.
  */
 //#define bswap_16(x) __builtin_bswap16 (x);
-#define bswap_16(x) ((__uint16_t) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
+#define bswap_16(x) ((uint16_t) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
 
 #include <arpa/inet.h>
 #define  IS_BIG_ENDIAN     (1 == htons(1))
