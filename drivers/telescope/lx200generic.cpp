@@ -33,7 +33,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
 #include "lx200ap.h"
-#include "lx200ap_cp3.h"
+#include "lx200ap_v2.h"
 #include "lx200ap_gtocp2.h"
 #include "lx200classic.h"
 #include "lx200fs2.h"
@@ -93,10 +93,10 @@ static class Loader
                 IDLog("initializing from Autostar device...\n");
                 telescope.reset(new LX200Autostar());
             }
-            else if (strstr(__progname, "indi_lx200ap_cp3"))
+            else if (strstr(__progname, "indi_lx200ap_v2"))
             {
-                IDLog("initializing from Astrophysics CP3 device...\n");
-                telescope.reset(new LX200AstroPhysicsCp3());
+                IDLog("initializing from Astrophysics V2 device...\n");
+                telescope.reset(new LX200AstroPhysicsV2());
             }
             else if (strstr(__progname, "indi_lx200ap_gtocp2"))
             {

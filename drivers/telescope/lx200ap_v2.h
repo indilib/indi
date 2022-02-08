@@ -22,14 +22,22 @@
 
 #pragma once
 
+/***********************************************************************
+ * This file was copied an modified from lx200ap.h in Jan 2022.
+ * 
+ * This is an update of the Wildi and Fulbright A-P drivers.
+ * It is currently being tested. 
+ * You should not use this unless part of the test group.
+***********************************************************************/
+
 #include "lx200generic.h"
 #define MOUNTNOTINITIALIZED 0
 #define MOUNTINITIALIZED    1
 
-class LX200AstroPhysicsCp3 : public LX200Generic
+class LX200AstroPhysicsV2 : public LX200Generic
 {
     public:
-        LX200AstroPhysicsCp3();
+        LX200AstroPhysicsV2();
 
         typedef enum { MCV_D, MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
                        MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
