@@ -481,26 +481,14 @@ void SkySafari::processCommand(std::string cmd)
     // Set RA
     else if (cmd.compare(0, 2, "Sr") == 0)
     {
-        int hh = 0, mm = 0, ss = 0;
-        if (sscanf(cmd.c_str(), "Sr%d:%d:%d", &hh, &mm, &ss) == 3)
-        {
-            RA = hh + mm / 60.0 + ss / 3600.0;
-        }
-
+        f_scansexa(cmd.c_str() + 2, &RA);
         // Always respond with valid
         sendSkySafari("1");
     }
     // Set DE
     else if (cmd.compare(0, 2, "Sd") == 0)
     {
-        int dd = 0, mm = 0, ss = 0;
-        if (sscanf(cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
-        {
-            DE = abs(dd) + mm / 60.0 + ss / 3600.0;
-            if (std::signbit(dd))
-                DE *= -1;
-        }
-
+        f_scansexa(cmd.c_str() + 2, &DE);
         // Always respond with valid
         sendSkySafari("1");
     }

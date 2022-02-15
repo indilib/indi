@@ -95,6 +95,8 @@ int check_lx200ap_connection(int fd)
 
     return -1;
 }
+
+// get UTC offset.
 int getAPUTCOffset(int fd, double *value)
 {
     int error_type;
@@ -102,6 +104,8 @@ int getAPUTCOffset(int fd, double *value)
     int nbytes_read  = 0;
 
     char temp_string[16];
+    temp_string[0] = 0;
+    temp_string[1] = 0;
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:GG#");
 
@@ -259,15 +263,21 @@ int setAPObjectAlt(int fd, double alt)
 
     return (setStandardProcedure(fd, temp_string));
 }
+
+// Set the UTC offset.
+// Previously this only set positive offsets.
+// Added the sign according to the doc in https://astro-physics.info/tech_support/mounts/protocol-cp3-cp4.pdf
 int setAPUTCOffset(int fd, double hours)
 {
     int h, m, s;
 
     char temp_string[16];
 
+    // Note, this loses sign of hours.
     getSexComponents(hours, &h, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), "#:SG %+03d:%02d:%02d#", h, m, s);
+    snprintf(temp_string, sizeof(temp_string), "#:SG %s%02d:%02d:%02d#",
+             hours >= 0 ? "+" : "-", h, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -622,10 +632,17 @@ int setAPObjectDEC(int fd, double dec)
     return (setStandardProcedure(fd, temp_string));
 }
 
+// Set the longitude.
 int setAPSiteLongitude(int fd, double Long)
 {
     int d, m, s;
     char temp_string[32];
+
+    // Make sure longitude is 0-360.
+    while (Long < 0)
+        Long += 360.0;
+    while (Long > 360.0)
+        Long -= 360.0;
 
     getSexComponents(Long, &d, &m, &s);
     snprintf(temp_string, sizeof(temp_string), "#:Sg %03d*%02d:%02d#", d, m, s);
@@ -635,13 +652,16 @@ int setAPSiteLongitude(int fd, double Long)
     return (setStandardProcedure(fd, temp_string));
 }
 
+// Set the latitude.
 int setAPSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char temp_string[32];
 
+    // Note, this loses sign of Lat.
     getSexComponents(Lat, &d, &m, &s);
-    snprintf(temp_string, sizeof(temp_string), "#:St %+03d*%02d:%02d#", d, m, s);
+    snprintf(temp_string, sizeof(temp_string), "#:St %s%02d*%02d:%02d#",
+             Lat >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -784,54 +804,6 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     return 0;
 }
 
-#if 0
-// experimental function!!!
-int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
-{
-    char temp_string[64];
-    int error_type;
-    int nbytes_write = 0;
-    int nbytes_read  = 0;
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: check status...");
-
-    if (fd <= 0)
-    {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                    "check_lx200ap_connection: not a valid file descriptor received");
-
-        return -1;
-    }
-
-    if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
-    {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
-
-        return error_type;
-    }
-    tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
-    tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 1)
-    {
-        temp_string[nbytes_read - 1] = '\0';
-
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
-                     nbytes_write, temp_string);
-
-        *parkStatus = temp_string[0];
-        *slewStatus = temp_string[3];
-
-        return 0;
-    }
-
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
-
-    return -1;
-}
-#endif
-
 // make this a function with logging instead of a #define like in legacy driver
 int APParkMount(int fd)
 {
@@ -970,4 +942,43 @@ int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
     DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
 
     return -1;
+}
+
+// guessing how to get the hour angle.
+// It does seem to work.
+#define HA_COMMAND "#:GH#"
+int getAPHourAngle(int fd, double *value)
+{
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    char temp_string[16];
+    temp_string[0] = 0;
+    temp_string[1] = 0;
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", HA_COMMAND);
+
+    if ((error_type = tty_write_string(fd, HA_COMMAND, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    if ((error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPHourAngle: saying good bye %d, %d", error_type,
+                     nbytes_read);
+        return error_type;
+    }
+
+    tcflush(fd, TCIFLUSH);
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", temp_string);
+
+    temp_string[nbytes_read - 1] = '\0';
+    if (f_scansexa(temp_string, value))
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: unable to process %s", temp_string);
+        return -1;
+    }
+
+    return 0;
 }

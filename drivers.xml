@@ -19,7 +19,7 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.13</version>
+            <version>1.14</version>
         </device>
         <device label="LX200 TeenAstro" manufacturer="TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
@@ -51,6 +51,10 @@
         </device>
         <device label="AstroPhysics" manufacturer="Astrophysics">
             <driver name="AstroPhysics">indi_lx200ap</driver>
+            <version>1.0</version>
+        </device>
+        <device label="AstroPhysics Testing" manufacturer="Astrophysics">
+            <driver name="AstroPhysics Testing">indi_lx200ap_v2</driver>
             <version>1.0</version>
         </device>
         <device label="ZWO AM5" manufacturer="ZWO">
@@ -191,15 +195,15 @@
         </device>
         <device label="iOptron ZEQ25" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="iOptron iEQ30" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="iOptron iEQ45" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
-            <version>1.4</version>
+            <version>1.5</version>
         </device>
         <device label="GotoNova 8400 Kit" manufacturer="iOptron">
             <driver name="GotoNova">indi_lx200gotonova</driver>
@@ -679,6 +683,10 @@
         </device>
         <device label="DomePro2" manufacturer="Astrometric">
             <driver name="DomePro2">indi_domepro2_dome</driver>
+            <version>1.0</version>
+        </device>
+        <device label="NexDome Beaver" manufacturer="Lunatico">
+            <driver name="NexDome Beaver">indi_nexdome_beaver</driver>
             <version>1.0</version>
         </device>
     </devGroup>
