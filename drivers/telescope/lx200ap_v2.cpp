@@ -33,9 +33,9 @@ Horizon check during slewing functions :ho# and :hq#
 
 /***********************************************************************
  * This file was copied an modified from lx200ap.cpp in Jan 2022.
- * 
+ *
  * This is an update of the Wildi and Fulbright A-P drivers.
- * It is currently being tested. 
+ * It is currently being tested.
  * You should not use this unless part of the test group.
 ***********************************************************************/
 
@@ -1932,9 +1932,7 @@ bool LX200AstroPhysicsV2::updateAPLocation(double latitude, double longitude, do
     while (apLongitude > 360)
         apLongitude -= 360;
 
-    char errStr[200];
-    sprintf(errStr, "updateLocation(): Setting site longitude coordinates, %f %f", longitude, apLongitude);
-    LOG_ERROR(errStr);
+    LOGF_DEBUG("Setting site longitude coordinates, %f %f", longitude, apLongitude);
 
     if (!isSimulation() && setAPSiteLongitude(PortFD, apLongitude) < 0)
     {

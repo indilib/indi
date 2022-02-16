@@ -54,7 +54,7 @@ int check_lx200ap_connection(int fd)
 {
     const struct timespec timeout = {0, 50000000L};
     int i = 0;
-    char temp_string[64];
+    char temp_string[256];
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -103,7 +103,7 @@ int getAPUTCOffset(int fd, double *value)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    char temp_string[16];
+    char temp_string[256];
     temp_string[0] = 0;
     temp_string[1] = 0;
 
@@ -229,7 +229,7 @@ int getAPUTCOffset(int fd, double *value)
 int setAPObjectAZ(int fd, double az)
 {
     int h, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(az, &h, &m, &s);
 
@@ -245,7 +245,7 @@ int setAPObjectAZ(int fd, double az)
 int setAPObjectAlt(int fd, double alt)
 {
     int d, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(alt, &d, &m, &s);
 
@@ -271,10 +271,12 @@ int setAPUTCOffset(int fd, double hours)
 {
     int h, m, s;
 
-    char temp_string[16];
+    char temp_string[256];
 
-    // Note, this loses sign of hours.
     getSexComponents(hours, &h, &m, &s);
+
+    if (h < 0)
+        h = -h;
 
     snprintf(temp_string, sizeof(temp_string), "#:SG %s%02d:%02d:%02d#",
              hours >= 0 ? "+" : "-", h, m, s);
@@ -600,7 +602,7 @@ int setAPObjectRA(int fd, double ra)
 {
     /*ToDo AP accepts "#:Sr %02d:%02d:%02d.%1d#"*/
     int h, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(ra, &h, &m, &s);
 
@@ -614,7 +616,7 @@ int setAPObjectRA(int fd, double ra)
 int setAPObjectDEC(int fd, double dec)
 {
     int d, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(dec, &d, &m, &s);
     /* case with negative zero */
@@ -636,7 +638,7 @@ int setAPObjectDEC(int fd, double dec)
 int setAPSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[256];
 
     // Make sure longitude is 0-360.
     while (Long < 0)
@@ -656,7 +658,7 @@ int setAPSiteLongitude(int fd, double Long)
 int setAPSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[256];
 
     // Note, this loses sign of Lat.
     getSexComponents(Lat, &d, &m, &s);
@@ -902,7 +904,7 @@ int selectAPCenterRate(int fd, int centerRate)
 
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
-    char temp_string[64];
+    char temp_string[256];
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -953,7 +955,7 @@ int getAPHourAngle(int fd, double *value)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    char temp_string[16];
+    char temp_string[256];
     temp_string[0] = 0;
     temp_string[1] = 0;
 
