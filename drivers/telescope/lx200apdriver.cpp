@@ -231,6 +231,10 @@ int setAPObjectAZ(int fd, double az)
     int h, m, s;
     char temp_string[256];
 
+    // The azimuth should be 0-360.
+    while (az < 0) az += 360.0;
+    while (az > 360.0) az -= 360.0;
+
     getSexComponents(az, &h, &m, &s);
 
     snprintf(temp_string, sizeof(temp_string), "#:Sz %03d*%02d:%02d#", h, m, s);
@@ -248,16 +252,9 @@ int setAPObjectAlt(int fd, double alt)
     char temp_string[256];
 
     getSexComponents(alt, &d, &m, &s);
-
-    /* case with negative zero */
-    if (!d && alt < 0)
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sa -%02d*%02d:%02d#", d, m, s);
-    }
-    else
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sa %+02d*%02d:%02d#", d, m, s);
-    }
+    if (d < 0) d = -d;
+    snprintf(temp_string, sizeof(temp_string), "#:Sa %s%02d*%02d:%02d#",
+             alt >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -274,10 +271,7 @@ int setAPUTCOffset(int fd, double hours)
     char temp_string[256];
 
     getSexComponents(hours, &h, &m, &s);
-
-    if (h < 0)
-        h = -h;
-
+    if (h < 0) h = -h;
     snprintf(temp_string, sizeof(temp_string), "#:SG %s%02d:%02d:%02d#",
              hours >= 0 ? "+" : "-", h, m, s);
 
@@ -604,6 +598,10 @@ int setAPObjectRA(int fd, double ra)
     int h, m, s;
     char temp_string[256];
 
+    // Make sure RA is 0-24.
+    while (ra < 0) ra += 24.0;
+    while (ra > 24.0) ra -= 24.0;
+
     getSexComponents(ra, &h, &m, &s);
 
     snprintf(temp_string, sizeof(temp_string), "#:Sr %02d:%02d:%02d#", h, m, s);
@@ -619,15 +617,9 @@ int setAPObjectDEC(int fd, double dec)
     char temp_string[256];
 
     getSexComponents(dec, &d, &m, &s);
-    /* case with negative zero */
-    if (!d && dec < 0)
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sd -%02d*%02d:%02d#", d, m, s);
-    }
-    else
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sd %+03d*%02d:%02d#", d, m, s);
-    }
+    if (d < 0) d = -d;
+    snprintf(temp_string, sizeof(temp_string), "#:Sd %s%02d*%02d:%02d#",
+             dec >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -641,10 +633,8 @@ int setAPSiteLongitude(int fd, double Long)
     char temp_string[256];
 
     // Make sure longitude is 0-360.
-    while (Long < 0)
-        Long += 360.0;
-    while (Long > 360.0)
-        Long -= 360.0;
+    while (Long < 0) Long += 360.0;
+    while (Long > 360.0) Long -= 360.0;
 
     getSexComponents(Long, &d, &m, &s);
     snprintf(temp_string, sizeof(temp_string), "#:Sg %03d*%02d:%02d#", d, m, s);
@@ -660,8 +650,8 @@ int setAPSiteLatitude(int fd, double Lat)
     int d, m, s;
     char temp_string[256];
 
-    // Note, this loses sign of Lat.
     getSexComponents(Lat, &d, &m, &s);
+    if (d < 0) d = -d;
     snprintf(temp_string, sizeof(temp_string), "#:St %s%02d*%02d:%02d#",
              Lat >= 0 ? "+" : "-", d, m, s);
 
