@@ -1119,7 +1119,7 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
     }
     char dbgStr[1000];
     sprintf(dbgStr,
-            "%s %s stime: %s uOffset %4.1f lTime %6.3f %s LL: %03d:%2d %04d:%2d RA/DEC: %.3f %.3f AltAz: %.3f %.3f HA: %.3f",
+            "%s %s stime: %s uOffset %4.1f lTime %6.3f %s LL: %03d:%02d %04d:%02d RA/DEC: %.3f %.3f AltAz: %.3f %.3f HA: %.3f",
             trackStateString(TrackState), isAPParked ? "Parked" : "Unparked", sTimeStr.c_str(),
             val_utc_offset, lTimeDbl, dateStr.c_str(), latD, latM, lonD, lonM,  currentRA,
             currentDEC, Alt, Az, ha);
