@@ -62,6 +62,7 @@ static const PixelSizeInfo CameraDatabase[] =
     { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
     { "IMX290 H264 Camera", "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
     { "Microsoft LifeCam Cinema", "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
+    { "OpenAstroGuider", "OpenAstroGuider IMX290", nullptr, 2.9f, -1, false },
     { nullptr, nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 

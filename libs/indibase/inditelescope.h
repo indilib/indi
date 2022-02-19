@@ -931,6 +931,9 @@ class Telescope : public DefaultDevice
         float motionDirWEValue {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
+
+        // 100 millisecond of arc or time.
+        static constexpr double EQ_NOTIFY_THRESHOLD {1.0/(60*60*10)};
 };
 
 }
