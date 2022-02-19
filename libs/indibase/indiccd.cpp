@@ -346,6 +346,24 @@ bool CCD::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /**********************************************/
+    /************** Capture Format ***************/
+    /**********************************************/
+    char configLabel[64] = {0};
+    if (IUGetConfigOnSwitchLabel(getDeviceName(), "CCD_CAPTURE_FORMAT", configLabel, 64) == 0)
+        m_ConfigCaptureFormatLabel = configLabel;
+    CaptureFormatSP.fill(getDeviceName(), "CCD_CAPTURE_FORMAT", "Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                         IPS_IDLE);
+
+    m_ConfigEncodeFormatIndex = ENCODE_FORMAT_FITS;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_ENCODER_FORMAT", &m_ConfigEncodeFormatIndex);
+    EncodeFormatSP[ENCODE_FORMAT_FITS].fill("ENCODE_FORMAT_FITS", "FITS",
+                                            m_ConfigEncodeFormatIndex == ENCODE_FORMAT_FITS ? ISS_ON : ISS_OFF);
+    EncodeFormatSP[ENCODE_FORMAT_NATIVE].fill("ENCODE_FORMAT_NATIVE", "Native",
+            m_ConfigEncodeFormatIndex == ENCODE_FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+    EncodeFormatSP.fill(getDeviceName(), "CCD_ENCODE_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                        IPS_IDLE);
+
+    /**********************************************/
     /************** Upload Settings ***************/
     /**********************************************/
 
@@ -516,6 +534,9 @@ bool CCD::updateProperties()
             defineProperty(&TemperatureRampNP);
         }
 
+        defineProperty(&CaptureFormatSP);
+        defineProperty(&EncodeFormatSP);
+
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
         {
@@ -584,6 +605,9 @@ bool CCD::updateProperties()
     {
         deleteProperty(PrimaryCCD.ImageFrameNP.name);
         deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
+
+        deleteProperty(CaptureFormatSP.getName());
+        deleteProperty(EncodeFormatSP.getName());
 
         if (CanBin())
             deleteProperty(PrimaryCCD.ImageBinNP.name);
@@ -1597,6 +1621,41 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             return true;
         }
 
+        // Capture Format
+        if (CaptureFormatSP.isNameMatch(name))
+        {
+            int previousIndex = CaptureFormatSP.findOnSwitchIndex();
+            CaptureFormatSP.update(states, names, n);
+
+            if (SetCaptureFormat(CaptureFormatSP.findOnSwitchIndex()))
+                CaptureFormatSP.setState(IPS_OK);
+            else
+            {
+                CaptureFormatSP.reset();
+                CaptureFormatSP[previousIndex].setState(ISS_ON);
+                CaptureFormatSP.setState(IPS_ALERT);
+            }
+            CaptureFormatSP.apply();
+
+            if (m_ConfigCaptureFormatLabel != CaptureFormatSP.findOnSwitch()->getLabel())
+                saveConfig(true, CaptureFormatSP.getName());
+
+            return true;
+        }
+
+        // Encode Format
+        if (EncodeFormatSP.isNameMatch(name))
+        {
+            EncodeFormatSP.update(states, names, n);
+            EncodeFormatSP.setState(IPS_OK);
+            EncodeFormatSP.apply();
+
+            if (m_ConfigEncodeFormatIndex != EncodeFormatSP.findOnSwitchIndex())
+                saveConfig(true, EncodeFormatSP.getName());
+
+            return true;
+        }
+
 #if 0
         // Primary Chip Rapid Guide Enable/Disable
         if (strcmp(name, PrimaryCCD.RapidGuideSP.name) == 0)
@@ -2116,7 +2175,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (sendImage || saveImage)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[ENCODE_FORMAT_FITS].getState() == ISS_ON)
         {
             void * memptr;
             size_t memsize;
@@ -2220,7 +2279,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             fits_close_file(fptr, &status);
 
-            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
+            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage);
 
             free(memptr);
 
@@ -2234,6 +2293,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
         else
         {
+            // If image extension was set to fits (default), change if bin if not already set to another format by the driver.
+            if (!strcmp(targetChip->getImageExtension(), "fits"))
+                targetChip->setImageExtension("bin");
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             bool rc = uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
                                  saveImage);
@@ -2323,7 +2385,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (targetChip->SendCompressed)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[ENCODE_FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
         {
             fpstate	fpvar;
             fp_init (&fpvar);
@@ -2510,6 +2572,9 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &FastExposureToggleSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
+
+    IUSaveConfigSwitch(fp, &CaptureFormatSP);
+    IUSaveConfigSwitch(fp, &EncodeFormatSP);
 
     if (HasCooler())
         IUSaveConfigNumber(fp, &TemperatureRampNP);
@@ -2764,4 +2829,22 @@ void CCD::checkTemperatureTarget()
         }
     }
 }
+
+void CCD::addCaptureFormat(const CaptureFormat &format)
+{
+
+    auto count = CaptureFormatSP.size();
+    CaptureFormatSP.resize(count + 1);
+    // Format is ON if the label matches the configuration label OR if there is no configuration saved and isDefault is true.
+    const bool isOn = (format.label == m_ConfigCaptureFormatLabel) || (m_ConfigCaptureFormatLabel.empty() && format.isDefault);
+    CaptureFormatSP[count].fill(format.name.c_str(), format.label.c_str(), isOn ? ISS_ON : ISS_OFF);
+    m_CaptureFormats.push_back(format);
+}
+
+bool CCD::SetCaptureFormat(uint8_t index)
+{
+    INDI_UNUSED(index);
+    return false;
+}
+
 }

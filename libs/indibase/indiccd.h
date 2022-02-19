@@ -30,6 +30,7 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 #include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "inditimer.h"
 #include "indielapsedtimer.h"
 #include "dsp/manager.h"
@@ -41,7 +42,7 @@
 
 #include <fitsio.h>
 
-#include <memory>
+#include <map>
 #include <cstring>
 #include <chrono>
 #include <stdint.h>
@@ -131,6 +132,15 @@ class CCD : public DefaultDevice, GuiderInterface
         } CCDCapability;
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
+
+        typedef struct CaptureFormat
+        {
+            std::string name;
+            std::string label;
+            uint8_t bitsPerPixel {8};
+            bool isDefault {false};
+            bool isLittleEndian {true};
+        } CaptureFormat;
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -468,6 +478,13 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool StopStreaming();
 
         /**
+         * @brief SetCaptureFormat Set Active Capture format.
+         * @param index Index of capture format from CaptureFormatSP property.
+         * @return True if change is successful, false otherwise.
+         */
+        virtual bool SetCaptureFormat(uint8_t index);
+
+        /**
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
          * \param targetChip The target chip to extract the keywords from.
@@ -529,6 +546,14 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         virtual bool processFastExposure(CCDChip * targetChip);
 
+        /**
+         * @brief addCaptureFormat Add a supported camera native capture format (e.g. Mono, Bayer8..etc)
+         * @param name Name of format (e.g. FORMAT_MONO)
+         * @param label Label of format (e.g. Mono)
+         * @param isDefault If true, it would be set as the default format if there is config file does not specify one.
+         * Config file override default format.
+         */
+        virtual void addCaptureFormat(const CaptureFormat &format);
 
         // Epoch Position
         double RA, Dec;
@@ -588,6 +613,8 @@ class CCD : public DefaultDevice, GuiderInterface
 
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot {-1};
+
+        std::vector<CaptureFormat> m_CaptureFormats;
 
         std::unique_ptr<StreamManager> Streamer;
         std::unique_ptr<DSP::Manager> DSP;
@@ -666,6 +693,17 @@ class CCD : public DefaultDevice, GuiderInterface
         ITextVectorProperty FileNameTP;
         IText FileNameT[1] {};
 
+        /// Specifies Camera NATIVE capture format (e.g. Mono, RGB, RAW8..etc).
+        INDI::PropertySwitch CaptureFormatSP {0};
+
+        /// Specifies Driver image encoding format (FITS, Native, JPG, ..etc)
+        INDI::PropertySwitch EncodeFormatSP {2};
+        enum
+        {
+            ENCODE_FORMAT_FITS,     /*!< Save Image as FITS format  */
+            ENCODE_FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+        };
+
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;
 
@@ -733,7 +771,9 @@ class CCD : public DefaultDevice, GuiderInterface
     private:
         uint32_t capability;
 
-        bool m_ValidCCDRotation;
+        bool m_ValidCCDRotation {false};
+        std::string m_ConfigCaptureFormatLabel;
+        int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
 
         ///////////////////////////////////////////////////////////////////////////////
