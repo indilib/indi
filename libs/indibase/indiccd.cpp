@@ -354,13 +354,13 @@ bool CCD::initProperties()
     CaptureFormatSP.fill(getDeviceName(), "CCD_CAPTURE_FORMAT", "Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                          IPS_IDLE);
 
-    m_ConfigEncodeFormatIndex = ENCODE_FORMAT_FITS;
+    m_ConfigEncodeFormatIndex = FORMAT_FITS;
     IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_ENCODER_FORMAT", &m_ConfigEncodeFormatIndex);
-    EncodeFormatSP[ENCODE_FORMAT_FITS].fill("ENCODE_FORMAT_FITS", "FITS",
-                                            m_ConfigEncodeFormatIndex == ENCODE_FORMAT_FITS ? ISS_ON : ISS_OFF);
-    EncodeFormatSP[ENCODE_FORMAT_NATIVE].fill("ENCODE_FORMAT_NATIVE", "Native",
-            m_ConfigEncodeFormatIndex == ENCODE_FORMAT_NATIVE ? ISS_ON : ISS_OFF);
-    EncodeFormatSP.fill(getDeviceName(), "CCD_ENCODE_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+    EncodeFormatSP[FORMAT_FITS].fill("FORMAT_FITS", "FITS",
+                                     m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
+    EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
+                                       m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+    EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
 
     /**********************************************/
@@ -1631,8 +1631,11 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 CaptureFormatSP.setState(IPS_OK);
             else
             {
-                CaptureFormatSP.reset();
-                CaptureFormatSP[previousIndex].setState(ISS_ON);
+                if (previousIndex >= 0)
+                {
+                    CaptureFormatSP.reset();
+                    CaptureFormatSP[previousIndex].setState(ISS_ON);
+                }
                 CaptureFormatSP.setState(IPS_ALERT);
             }
             CaptureFormatSP.apply();
@@ -2175,7 +2178,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (sendImage || saveImage)
     {
-        if (EncodeFormatSP[ENCODE_FORMAT_FITS].getState() == ISS_ON)
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON)
         {
             void * memptr;
             size_t memsize;
@@ -2385,7 +2388,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (targetChip->SendCompressed)
     {
-        if (EncodeFormatSP[ENCODE_FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
         {
             fpstate	fpvar;
             fp_init (&fpvar);

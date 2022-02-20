@@ -700,8 +700,8 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertySwitch EncodeFormatSP {2};
         enum
         {
-            ENCODE_FORMAT_FITS,     /*!< Save Image as FITS format  */
-            ENCODE_FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+            FORMAT_FITS,     /*!< Save Image as FITS format  */
+            FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
         };
 
         ISwitch UploadS[3];
