@@ -75,7 +75,7 @@ public:
         virtual bool AbortExposure() override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
-
+        virtual bool SetCaptureFormat(uint8_t index) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
         virtual bool StartStreaming() override;
@@ -98,6 +98,12 @@ public:
             float *darkFrame;
         } img_t;
 
+        enum
+        {
+            IMAGE_MONO = 0,
+            IMAGE_RGB
+        };
+
         enum stackmodes
         {
             STACK_NONE       = 0,
@@ -110,12 +116,6 @@ public:
         /* Switches */
 
         ISwitch *CompressS;
-        ISwitch ImageColorS[2];
-        enum
-        {
-            IMAGE_GRAYSCALE,
-            IMAGE_COLOR
-        };
         ISwitch ImageDepthS[2];
         ISwitch StackModeS[5];
         ISwitch ColorProcessingS[3];
@@ -132,7 +132,6 @@ public:
 
         /* Switch vectors */
         ISwitchVectorProperty *CompressSP;      /* Compress stream switch */
-        ISwitchVectorProperty ImageColorSP;     /* Color or grey switch */
         ISwitchVectorProperty ImageDepthSP;     /* 8 bits or 16 bits switch */
         ISwitchVectorProperty StackModeSP;      /* StackMode switch */
         ISwitchVectorProperty InputsSP;         /* Select input switch */

@@ -116,6 +116,9 @@ bool CCDSim::initProperties()
 {
     INDI::CCD::initProperties();
 
+    CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
+    addCaptureFormat(format);
+
     IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
     IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
     IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
@@ -1569,5 +1572,11 @@ bool CCDSim::loadNextImage()
     }
 
     fits_close_file(fptr, &status);
+    return true;
+}
+
+bool CCDSim::SetCaptureFormat(uint8_t index)
+{
+    INDI_UNUSED(index);
     return true;
 }
