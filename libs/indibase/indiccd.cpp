@@ -1626,7 +1626,10 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             CaptureFormatSP.apply();
 
             if (m_ConfigCaptureFormatLabel != CaptureFormatSP.findOnSwitch()->getLabel())
+            {
+                m_ConfigCaptureFormatLabel = CaptureFormatSP.findOnSwitch()->getLabel();
                 saveConfig(true, CaptureFormatSP.getName());
+            }
 
             return true;
         }
@@ -1639,7 +1642,10 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             EncodeFormatSP.apply();
 
             if (m_ConfigEncodeFormatIndex != EncodeFormatSP.findOnSwitchIndex())
+            {
+                m_ConfigEncodeFormatIndex = EncodeFormatSP.findOnSwitchIndex();
                 saveConfig(true, EncodeFormatSP.getName());
+            }
 
             return true;
         }
