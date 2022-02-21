@@ -2826,7 +2826,15 @@ void CCD::checkTemperatureTarget()
 
 void CCD::addCaptureFormat(const CaptureFormat &format)
 {
+    // Avoid duplicates.
+    auto pos = std::find_if(m_CaptureFormats.begin(), m_CaptureFormats.end(), [format](auto & oneFormat)
+    {
+        return format.name == oneFormat.name;
+    });
+    if (pos != m_CaptureFormats.end())
+        return;
 
+    // Add NEW format.
     auto count = CaptureFormatSP.size();
     CaptureFormatSP.resize(count + 1);
     // Format is ON if the label matches the configuration label OR if there is no configuration saved and isDefault is true.
@@ -2838,7 +2846,7 @@ void CCD::addCaptureFormat(const CaptureFormat &format)
 bool CCD::SetCaptureFormat(uint8_t index)
 {
     INDI_UNUSED(index);
-    return false;
+    return true;
 }
 
 }
