@@ -115,7 +115,6 @@ public:
 
         /* Switches */
 
-        ISwitch *CompressS;
         ISwitch ImageDepthS[2];
         ISwitch StackModeS[5];
         ISwitch ColorProcessingS[3];
@@ -131,7 +130,6 @@ public:
         INumber FrameRateN[1];
 
         /* Switch vectors */
-        ISwitchVectorProperty *CompressSP;      /* Compress stream switch */
         ISwitchVectorProperty ImageDepthSP;     /* 8 bits or 16 bits switch */
         ISwitchVectorProperty StackModeSP;      /* StackMode switch */
         ISwitchVectorProperty InputsSP;         /* Select input switch */
@@ -149,7 +147,6 @@ public:
         //INumberVectorProperty *ExposeTimeNP;			/* Exposure */
         INumberVectorProperty CaptureSizesNP; /* Select Capture size switch (Step/Continuous)*/
         INumberVectorProperty FrameRateNP;    /* Frame rate (Step/Continuous) */
-        INumberVectorProperty *FrameNP;       /* Frame dimenstion */
         INumberVectorProperty ImageAdjustNP;  /* Image controls */
 
         /* Text vectors */

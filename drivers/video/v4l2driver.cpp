@@ -296,15 +296,6 @@ bool V4L2_Driver::updateProperties()
 
     if (isConnected())
     {
-        //ExposeTimeNP=getNumber("CCD_EXPOSURE");
-        //ExposeTimeN=ExposeTimeNP->np;
-
-        CompressSP = getSwitch("CCD_COMPRESSION");
-        CompressS  = CompressSP->sp;
-
-        FrameNP = getNumber("CCD_FRAME");
-        FrameN  = FrameNP->np;
-
         defineProperty(&camNameTP);
         getBasicData();
 
