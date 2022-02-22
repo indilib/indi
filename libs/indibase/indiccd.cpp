@@ -169,7 +169,7 @@ bool CCD::initProperties()
     IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::DARK_FRAME], "FRAME_DARK", "Dark", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::FLAT_FRAME], "FRAME_FLAT", "Flat", ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.FrameTypeSP, PrimaryCCD.FrameTypeS, 4, getDeviceName(), "CCD_FRAME_TYPE",
-                       "Frame Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Primary CCD Exposure
     IUFillNumber(&PrimaryCCD.ImageExposureN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
@@ -179,7 +179,7 @@ bool CCD::initProperties()
     // Primary CCD Abort
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.AbortExposureSP, PrimaryCCD.AbortExposureS, 1, getDeviceName(), "CCD_ABORT_EXPOSURE",
-                       "Expose Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Primary CCD Binning
     IUFillNumber(&PrimaryCCD.ImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
@@ -202,9 +202,9 @@ bool CCD::initProperties()
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Primary CCD Compression Options
-    IUFillSwitch(&PrimaryCCD.CompressS[0], "CCD_COMPRESS", "Compress", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.CompressS[1], "CCD_RAW", "Raw", ISS_ON);
-    IUFillSwitchVector(&PrimaryCCD.CompressSP, PrimaryCCD.CompressS, 2, getDeviceName(), "CCD_COMPRESSION", "Image",
+    IUFillSwitch(&PrimaryCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&PrimaryCCD.CompressSP, PrimaryCCD.CompressS, 2, getDeviceName(), "CCD_COMPRESSION", "Compression",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
@@ -274,14 +274,14 @@ bool CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f", 8,
                  64, 0, 0);
     IUFillNumberVector(&GuideCCD.ImagePixelSizeNP, GuideCCD.ImagePixelSizeN, 6, getDeviceName(), "GUIDER_INFO",
-                       "Guide Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
+                       "Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0], "FRAME_LIGHT", "Light", ISS_ON);
     IUFillSwitch(&GuideCCD.FrameTypeS[1], "FRAME_BIAS", "Bias", ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[2], "FRAME_DARK", "Dark", ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[3], "FRAME_FLAT", "Flat", ISS_OFF);
     IUFillSwitchVector(&GuideCCD.FrameTypeSP, GuideCCD.FrameTypeS, 4, getDeviceName(), "GUIDER_FRAME_TYPE",
-                       "Frame Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0], "GUIDER_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
     IUFillNumberVector(&GuideCCD.ImageExposureNP, GuideCCD.ImageExposureN, 1, getDeviceName(), "GUIDER_EXPOSURE",
@@ -289,11 +289,11 @@ bool CCD::initProperties()
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&GuideCCD.AbortExposureSP, GuideCCD.AbortExposureS, 1, getDeviceName(), "GUIDER_ABORT_EXPOSURE",
-                       "Guide Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.CompressS[0], "GUIDER_COMPRESS", "Compress", ISS_OFF);
-    IUFillSwitch(&GuideCCD.CompressS[1], "GUIDER_RAW", "Raw", ISS_ON);
-    IUFillSwitchVector(&GuideCCD.CompressSP, GuideCCD.CompressS, 2, getDeviceName(), "GUIDER_COMPRESSION", "Image",
+    IUFillSwitch(&GuideCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&GuideCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&GuideCCD.CompressSP, GuideCCD.CompressS, 2, getDeviceName(), "GUIDER_COMPRESSION", "Compression",
                        GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
@@ -344,6 +344,24 @@ bool CCD::initProperties()
     IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
     IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    /**********************************************/
+    /************** Capture Format ***************/
+    /**********************************************/
+    char configLabel[64] = {0};
+    if (IUGetConfigOnSwitchLabel(getDeviceName(), "CCD_CAPTURE_FORMAT", configLabel, 64) == 0)
+        m_ConfigCaptureFormatLabel = configLabel;
+    CaptureFormatSP.fill(getDeviceName(), "CCD_CAPTURE_FORMAT", "Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                         IPS_IDLE);
+
+    m_ConfigEncodeFormatIndex = FORMAT_FITS;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_ENCODER_FORMAT", &m_ConfigEncodeFormatIndex);
+    EncodeFormatSP[FORMAT_FITS].fill("FORMAT_FITS", "FITS",
+                                     m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
+    EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
+                                       m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+    EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                        IPS_IDLE);
 
     /**********************************************/
     /************** Upload Settings ***************/
@@ -495,6 +513,9 @@ bool CCD::updateProperties()
             PrimaryCCD.ImageFrameNP.p = IP_RO;
 
         defineProperty(&PrimaryCCD.ImageFrameNP);
+        if (CanBin() || CanSubFrame())
+            defineProperty(&PrimaryCCD.ResetSP);
+
         if (CanBin())
             defineProperty(&PrimaryCCD.ImageBinNP);
 
@@ -516,6 +537,9 @@ bool CCD::updateProperties()
             defineProperty(&TemperatureRampNP);
         }
 
+        defineProperty(&CaptureFormatSP);
+        defineProperty(&EncodeFormatSP);
+
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
         {
@@ -536,9 +560,6 @@ bool CCD::updateProperties()
             defineProperty(&GuideWENP);
         }
         defineProperty(&PrimaryCCD.FrameTypeSP);
-
-        if (CanBin() || CanSubFrame())
-            defineProperty(&PrimaryCCD.ResetSP);
 
         if (HasGuideHead())
             defineProperty(&GuideCCD.FrameTypeSP);
@@ -583,7 +604,13 @@ bool CCD::updateProperties()
     else
     {
         deleteProperty(PrimaryCCD.ImageFrameNP.name);
+        if (CanBin() || CanSubFrame())
+            deleteProperty(PrimaryCCD.ResetSP.name);
+
         deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
+
+        deleteProperty(CaptureFormatSP.getName());
+        deleteProperty(EncodeFormatSP.getName());
 
         if (CanBin())
             deleteProperty(PrimaryCCD.ImageBinNP.name);
@@ -639,8 +666,6 @@ bool CCD::updateProperties()
             deleteProperty(GuideWENP.name);
         }
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
-        if (CanBin() || CanSubFrame())
-            deleteProperty(PrimaryCCD.ResetSP.name);
         if (HasBayer())
             deleteProperty(BayerTP.name);
         deleteProperty(TelescopeTypeSP.name);
@@ -1502,15 +1527,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             IUUpdateSwitch(&PrimaryCCD.CompressSP, states, names, n);
             PrimaryCCD.CompressSP.s = IPS_OK;
             IDSetSwitch(&PrimaryCCD.CompressSP, nullptr);
-
-            if (PrimaryCCD.CompressS[0].s == ISS_ON)
-            {
-                PrimaryCCD.SendCompressed = true;
-            }
-            else
-            {
-                PrimaryCCD.SendCompressed = false;
-            }
+            PrimaryCCD.SendCompressed = PrimaryCCD.CompressS[INDI_ENABLED].s == ISS_ON;
             return true;
         }
 
@@ -1520,15 +1537,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             IUUpdateSwitch(&GuideCCD.CompressSP, states, names, n);
             GuideCCD.CompressSP.s = IPS_OK;
             IDSetSwitch(&GuideCCD.CompressSP, nullptr);
-
-            if (GuideCCD.CompressS[0].s == ISS_ON)
-            {
-                GuideCCD.SendCompressed = true;
-            }
-            else
-            {
-                GuideCCD.SendCompressed = false;
-            }
+            GuideCCD.SendCompressed = GuideCCD.CompressS[INDI_ENABLED].s == ISS_ON;
             return true;
         }
 
@@ -1593,6 +1602,50 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 GuideCCD.FrameTypeSP.s = IPS_ALERT;
 
             IDSetSwitch(&GuideCCD.FrameTypeSP, nullptr);
+
+            return true;
+        }
+
+        // Capture Format
+        if (CaptureFormatSP.isNameMatch(name))
+        {
+            int previousIndex = CaptureFormatSP.findOnSwitchIndex();
+            CaptureFormatSP.update(states, names, n);
+
+            if (SetCaptureFormat(CaptureFormatSP.findOnSwitchIndex()))
+                CaptureFormatSP.setState(IPS_OK);
+            else
+            {
+                if (previousIndex >= 0)
+                {
+                    CaptureFormatSP.reset();
+                    CaptureFormatSP[previousIndex].setState(ISS_ON);
+                }
+                CaptureFormatSP.setState(IPS_ALERT);
+            }
+            CaptureFormatSP.apply();
+
+            if (m_ConfigCaptureFormatLabel != CaptureFormatSP.findOnSwitch()->getLabel())
+            {
+                m_ConfigCaptureFormatLabel = CaptureFormatSP.findOnSwitch()->getLabel();
+                saveConfig(true, CaptureFormatSP.getName());
+            }
+
+            return true;
+        }
+
+        // Encode Format
+        if (EncodeFormatSP.isNameMatch(name))
+        {
+            EncodeFormatSP.update(states, names, n);
+            EncodeFormatSP.setState(IPS_OK);
+            EncodeFormatSP.apply();
+
+            if (m_ConfigEncodeFormatIndex != EncodeFormatSP.findOnSwitchIndex())
+            {
+                m_ConfigEncodeFormatIndex = EncodeFormatSP.findOnSwitchIndex();
+                saveConfig(true, EncodeFormatSP.getName());
+            }
 
             return true;
         }
@@ -2116,7 +2169,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (sendImage || saveImage)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON)
         {
             void * memptr;
             size_t memsize;
@@ -2220,7 +2273,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             fits_close_file(fptr, &status);
 
-            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
+            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage);
 
             free(memptr);
 
@@ -2234,6 +2287,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
         else
         {
+            // If image extension was set to fits (default), change if bin if not already set to another format by the driver.
+            if (!strcmp(targetChip->getImageExtension(), "fits"))
+                targetChip->setImageExtension("bin");
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             bool rc = uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
                                  saveImage);
@@ -2323,7 +2379,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (targetChip->SendCompressed)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
         {
             fpstate	fpvar;
             fp_init (&fpvar);
@@ -2510,6 +2566,9 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &FastExposureToggleSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
+
+    IUSaveConfigSwitch(fp, &CaptureFormatSP);
+    IUSaveConfigSwitch(fp, &EncodeFormatSP);
 
     if (HasCooler())
         IUSaveConfigNumber(fp, &TemperatureRampNP);
@@ -2764,4 +2823,30 @@ void CCD::checkTemperatureTarget()
         }
     }
 }
+
+void CCD::addCaptureFormat(const CaptureFormat &format)
+{
+    // Avoid duplicates.
+    auto pos = std::find_if(m_CaptureFormats.begin(), m_CaptureFormats.end(), [format](auto & oneFormat)
+    {
+        return format.name == oneFormat.name;
+    });
+    if (pos != m_CaptureFormats.end())
+        return;
+
+    // Add NEW format.
+    auto count = CaptureFormatSP.size();
+    CaptureFormatSP.resize(count + 1);
+    // Format is ON if the label matches the configuration label OR if there is no configuration saved and isDefault is true.
+    const bool isOn = (format.label == m_ConfigCaptureFormatLabel) || (m_ConfigCaptureFormatLabel.empty() && format.isDefault);
+    CaptureFormatSP[count].fill(format.name.c_str(), format.label.c_str(), isOn ? ISS_ON : ISS_OFF);
+    m_CaptureFormats.push_back(format);
+}
+
+bool CCD::SetCaptureFormat(uint8_t index)
+{
+    INDI_UNUSED(index);
+    return true;
+}
+
 }
