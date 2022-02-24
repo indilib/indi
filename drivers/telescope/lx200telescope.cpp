@@ -140,6 +140,7 @@ bool LX200Telescope::initProperties()
         FocusSpeedN[0].min = 1;
         FocusSpeedN[0].max = 2;
         FocusSpeedN[0].value = 1;
+        setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
     }
 
     TrackState = SCOPE_IDLE;
