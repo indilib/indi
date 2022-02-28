@@ -219,93 +219,101 @@ bool TCP::Connect()
         return false;
     }
 
-    bool rc = true;
+    bool handshakeResult = true;
     std::string hostname = AddressT[0].text;
     std::string port = AddressT[1].text;
 
     if (m_Device->isSimulation() == false)
     {
-        rc = false;
+        handshakeResult = false;
         std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
         const auto isIPv4 = regex_match(hostname, ipv4);
-        if (establishConnection(hostname, port) == false)
-        {
-            // Auto search is disabled.
-            if (LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
-                return false;
-            // LAN search is enabled.
-            else if (isIPv4)
-            {
-                size_t found = hostname.find_last_of(".");
 
-                if (found != std::string::npos)
-                {
-                    // Get the source subnet
-                    const auto sourceSubnet = hostname.substr(0, found);
-                    std::deque<std::string> subnets;
-
-                    // Get all interface IPv4 addresses. From there we extract subnets
-                    auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
-                    for (auto &oneInterfaceAddress : addrs_ipv4)
-                    {
-                        // Skip local IPs
-                        if (oneInterfaceAddress.rfind("127", 0) == 0)
-                            continue;
-
-                        size_t found = oneInterfaceAddress.find_last_of(".");
-                        if (found != std::string::npos)
-                        {
-                            // Extract target subnect
-                            const auto targetSubnet = oneInterfaceAddress.substr(0, found);
-                            // Prefer subnets matching source subnet
-                            if (targetSubnet == sourceSubnet)
-                                subnets.push_front(targetSubnet);
-                            else
-                                subnets.push_back(targetSubnet);
-
-                        }
-                    }
-
-                    for (auto &oneSubnet : subnets)
-                    {
-                        LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", oneSubnet.c_str());
-                        // Brute force search through all subnet
-                        // N.B. This operation cannot be interrupted.
-                        // TODO Must add a method to abort the search.
-                        for (int i = 1; i < 255; i++)
-                        {
-                            const auto newAddress = oneSubnet + "." + std::to_string(i);
-                            if (newAddress == hostname)
-                                continue;
-
-                            if (establishConnection(newAddress, port, 1))
-                            {
-                                PortFD = m_SockFD;
-                                LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
-                                rc = Handshake();
-                                if (rc)
-                                {
-                                    hostname = newAddress;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (rc)
-                            break;
-                    }
-                }
-            }
-        }
-        else
+        // Establish connection to host:port
+        if (establishConnection(hostname, port))
         {
             PortFD = m_SockFD;
             LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
-            rc = Handshake();
+            handshakeResult = Handshake();
+
+            // Auto search is disabled.
+            if (handshakeResult == false && LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_OFF)
+            {
+                LOG_DEBUG("Handshake failed.");
+                return false;
+            }
+        }
+
+        // If connection failed; or
+        // handshake failed; then we can search LAN if the IP address is v4
+        // LAN search is enabled.
+        if (handshakeResult == false &&
+                LANSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON &&
+                isIPv4)
+        {
+            size_t found = hostname.find_last_of(".");
+
+            if (found != std::string::npos)
+            {
+                // Get the source subnet
+                const auto sourceSubnet = hostname.substr(0, found);
+                std::deque<std::string> subnets;
+
+                // Get all interface IPv4 addresses. From there we extract subnets
+                auto addrs_ipv4 = gmlc::netif::getInterfaceAddressesV4();
+                for (auto &oneInterfaceAddress : addrs_ipv4)
+                {
+                    // Skip local IPs
+                    if (oneInterfaceAddress.rfind("127", 0) == 0)
+                        continue;
+
+                    size_t found = oneInterfaceAddress.find_last_of(".");
+                    if (found != std::string::npos)
+                    {
+                        // Extract target subnect
+                        const auto targetSubnet = oneInterfaceAddress.substr(0, found);
+                        // Prefer subnets matching source subnet
+                        if (targetSubnet == sourceSubnet)
+                            subnets.push_front(targetSubnet);
+                        else
+                            subnets.push_back(targetSubnet);
+
+                    }
+                }
+
+                for (auto &oneSubnet : subnets)
+                {
+                    LOGF_INFO("Searching %s subnet, this operation will take a few minutes to complete. Stand by...", oneSubnet.c_str());
+                    // Brute force search through all subnet
+                    // N.B. This operation cannot be interrupted.
+                    // TODO Must add a method to abort the search.
+                    for (int i = 1; i < 255; i++)
+                    {
+                        const auto newAddress = oneSubnet + "." + std::to_string(i);
+                        if (newAddress == hostname)
+                            continue;
+
+                        if (establishConnection(newAddress, port, 1))
+                        {
+                            PortFD = m_SockFD;
+                            LOGF_DEBUG("Connection to %s@%s is successful, attempting handshake...", hostname.c_str(), port.c_str());
+                            handshakeResult = Handshake();
+                            if (handshakeResult)
+                            {
+                                hostname = newAddress;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (handshakeResult)
+                        break;
+                }
+            }
         }
     }
 
-    if (rc)
+    if (handshakeResult)
     {
         LOGF_INFO("%s is online.", getDeviceName());
         IUSaveText(&AddressT[0], hostname.c_str());
@@ -324,7 +332,7 @@ bool TCP::Connect()
     else
         LOG_DEBUG("Handshake failed.");
 
-    return rc;
+    return handshakeResult;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -364,7 +372,7 @@ void TCP::Deactivated()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-bool TCP::saveConfigItems(FILE *fp)
+bool TCP::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &AddressTP);
     IUSaveConfigSwitch(fp, &TcpUdpSP);
