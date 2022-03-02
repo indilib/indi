@@ -431,6 +431,10 @@
             <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
             <version>0.7</version>
         </device>
+        <device label="Esatto Arco" manufacturer="Primaluce Lab">
+            <driver name="Esatto Arco">indi_esattoarco_focus</driver>
+            <version>0.1</version>
+        </device>
         <device label="Lakeside" manufacturer="LakesideAstro">
             <driver name="Lakeside">indi_lakeside_focus</driver>
             <version>1.1</version>
