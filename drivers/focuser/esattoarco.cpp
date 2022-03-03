@@ -1994,7 +1994,7 @@ bool CommandSet::isArcoBusy()
 	}
 
 	int busy = std::stoi(res);
-	if(!busy==0) return true;
+	if(!(busy==0)) return true;
 	
   return false;
 }
