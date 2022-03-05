@@ -355,7 +355,7 @@ bool CCD::initProperties()
                          IPS_IDLE);
 
     m_ConfigEncodeFormatIndex = FORMAT_FITS;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_ENCODER_FORMAT", &m_ConfigEncodeFormatIndex);
+    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_TRANSFER_FORMAT", &m_ConfigEncodeFormatIndex);
     EncodeFormatSP[FORMAT_FITS].fill("FORMAT_FITS", "FITS",
                                      m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
