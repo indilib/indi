@@ -45,7 +45,6 @@ namespace INDI
    <tr><td>WI::initProperties</td><td>initProperties()</td></tr>
    <tr><td>WI::updateProperties</td><td>updateProperties()</td></tr>
    <tr><td>WI::processNumber</td><td>ISNewNumber(...) Check if the property name contains WEATHER_* and then call WI::processNumber(..) for such properties</td></tr>
-   <tr><td>WI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
    </table>
 
    Implement and overwrite the rest of the virtual functions as needed. INDI Pegasus Ultimate Power Box driver is a good example to check for an actual implementation
