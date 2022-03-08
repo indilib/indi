@@ -38,14 +38,13 @@ namespace INDI
    The weather functionality can be an independent device (e.g. weather station), or weather-related reports within another device.
 
    When developing a driver for a fully independent weather device, use INDI::Weather directly. To add focus functionality to
-   an existing driver, subclass INDI::WeatherInterface. In your driver, then call the necessary focuser interface functions.
+   an existing driver, subclass INDI::WeatherInterface. In your driver, then call the necessary weather interface functions.
 
    <table>
    <tr><th>Function</th><th>Where to call it from your driver</th></tr>
    <tr><td>WI::initProperties</td><td>initProperties()</td></tr>
    <tr><td>WI::updateProperties</td><td>updateProperties()</td></tr>
    <tr><td>WI::processNumber</td><td>ISNewNumber(...) Check if the property name contains WEATHER_* and then call WI::processNumber(..) for such properties</td></tr>
-   <tr><td>WI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
    </table>
 
    Implement and overwrite the rest of the virtual functions as needed. INDI Pegasus Ultimate Power Box driver is a good example to check for an actual implementation
