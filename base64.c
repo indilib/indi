@@ -48,7 +48,7 @@
 #define bswap_16(x) ((uint16_t) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
 
 #ifdef _WIN32
-#define IS_BIG_ENDIAN (*(WORD *)"\0\x2" == 0x200)
+#define IS_BIG_ENDIAN (!*(unsigned char *)&(uint16_t){1})
 #else
 #include <arpa/inet.h>
 #define  IS_BIG_ENDIAN     (1 == htons(1))
