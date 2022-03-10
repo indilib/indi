@@ -61,118 +61,6 @@ void setLX200Debug(const char *deviceName, unsigned int debug_level)
     DBG_SCOPE = debug_level;
 }
 
-/**************************************************************************
- Diagnostics
- **************************************************************************/
-char ACK(int fd);
-int check_lx200_connection(int fd);
-
-/**************************************************************************
- Get Commands: store data in the supplied buffer. Return 0 on success or -1 on failure
- **************************************************************************/
-
-/* Get Double from Sexagisemal */
-int getCommandSexa(int fd, double *value, const char *cmd);
-/* Get String */
-int getCommandString(int fd, char *data, const char *cmd);
-/* Get Int */
-int getCommandInt(int fd, int *value, const char *cmd);
-/* Get tracking frequency */
-int getTrackFreq(int fd, double *value);
-/* Get site Latitude */
-int getSiteLatitude(int fd, int *dd, int *mm, double *ssf);
-/* Get site Longitude */
-int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf);
-/* Get Calender data */
-int getCalendarDate(int fd, char *date);
-/* Get site Name */
-int getSiteName(int fd, char *siteName, int siteNum);
-/* Get Home Search Status */
-int getHomeSearchStatus(int fd, int *status);
-/* Get OTA Temperature */
-int getOTATemp(int fd, double *value);
-/* Get time format: 12 or 24 */
-int getTimeFormat(int fd, int *format);
-
-/**************************************************************************
- Set Commands
- **************************************************************************/
-
-/* Set Int */
-int setCommandInt(int fd, int data, const char *cmd);
-/* Set Sexagesimal */
-int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
-/* Common routine for Set commands */
-int setStandardProcedure(int fd, const char *writeData);
-/* Set Slew Mode */
-int setSlewMode(int fd, int slewMode);
-/* Set Alignment mode */
-int setAlignmentMode(int fd, unsigned int alignMode);
-/* Set Object RA */
-int setObjectRA(int fd, double ra);
-/* set Object DEC */
-int setObjectDEC(int fd, double dec);
-/* Set Calendar date */
-int setCalenderDate(int fd, int dd, int mm, int yy);
-/* Set UTC offset */
-int setUTCOffset(int fd, double hours);
-/* Set Track Freq */
-int setTrackFreq(int fd, double trackF);
-/* Set current site longitude */
-int setSiteLongitude(int fd, double CartographicLongitude);
-/* Set current site latitude */
-int setSiteLatitude(int fd, double Lat);
-/* Set Object Azimuth */
-int setObjAz(int fd, double az);
-/* Set Object Altitude */
-int setObjAlt(int fd, double alt);
-/* Set site name */
-int setSiteName(int fd, char *siteName, int siteNum);
-/* Set maximum slew rate */
-int setMaxSlewRate(int fd, int slewRate);
-/* Set focuser motion */
-int setFocuserMotion(int fd, int motionType);
-/* Set focuser speed mode */
-int setFocuserSpeedMode(int fd, int speedMode);
-/* Set minimum elevation limit */
-int setMinElevationLimit(int fd, int min);
-/* Set maximum elevation limit */
-int setMaxElevationLimit(int fd, int max);
-
-/**************************************************************************
- Motion Commands
- **************************************************************************/
-/* Slew to the selected coordinates */
-int Slew(int fd);
-/* Synchronize to the selected coordinates and return the matching object if any */
-int Sync(int fd, char *matchedObject);
-/* Abort slew in all axes */
-int abortSlew(int fd);
-/* Move into one direction, two valid directions can be stacked */
-int MoveTo(int fd, int direction);
-/* Half movement in a particular direction */
-int HaltMovement(int fd, int direction);
-/* Select the tracking mode */
-int selectTrackingMode(int fd, int trackMode);
-/* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
-int SendPulseCmd(int fd, int direction, uint32_t duration_msec);
-
-/**************************************************************************
- Other Commands
- **************************************************************************/
-/* Determines LX200 RA/DEC format, tries to set to long if found short */
-int checkLX200EquatorialFormat(int fd);
-/* return the eq_format enum value */
-int getLX200EquatorialFormat();
-/* return the geo_format enum value */
-int getLX200GeographicFormat();
-/* Select a site from the LX200 controller */
-int selectSite(int fd, int siteNum);
-/* Select a catalog object */
-int selectCatalogObject(int fd, int catalog, int NNNN);
-/* Select a sub catalog */
-int selectSubCatalog(int fd, int catalog, int subCatalog);
-
 int check_lx200_connection(int in_fd)
 {
     const struct timespec timeout = {0, 50000000L};
@@ -1023,7 +911,7 @@ int setMaxSlewRate(int fd, int slewRate)
     return (setStandardProcedure(fd, read_buffer));
 }
 
-int setObjectRA(int fd, double ra)
+int setObjectRA(int fd, double ra, bool addSpace)
 {
     // Meade Telescope Serial Command Protocol Revision 2010.10
     // :SrHH:MM.T#
@@ -1046,10 +934,17 @@ int setObjectRA(int fd, double ra)
     // LX200_EQ_SHORT_FORMAT  :SrHH:MM.T#     (hours, minutes and tenths of minutes)
     // LX200_EQ_LONG_FORMAT   :SrHH:MM:SS#    (hours, minutes, seconds)
     // LX200_EQ_LONGER_FORMAT :SrHH:MM:SS.SS# (hours, minutes, seconds and hundredths of second)
+    // Add space is used to add space between the command the and rest of the arguments.
+    // i.e. :Sr HH:MM:SS# for example since some mounts require space.
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
     int h, m, s;
-    char read_buffer[22];
+    char read_buffer[22] = {0};
+    char cmd[8] = {0};
+    if (addSpace)
+        strcpy(cmd, "Sr ");
+    else
+        strcpy(cmd, "Sr");
 
     /* Add mutex */
     /*    std::unique_lock<std::mutex> guard(lx200CommsLock);  */
@@ -1060,16 +955,16 @@ int setObjectRA(int fd, double ra)
             int frac_m;
             getSexComponents(ra, &h, &m, &s);
             frac_m = (s / 60.0) * 10.;
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d.%01d#", h, m, frac_m);
+            snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d.%01d#", cmd, h, m, frac_m);
             break;
         case LX200_EQ_LONG_FORMAT:
             getSexComponents(ra, &h, &m, &s);
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d:%02d#", h, m, s);
+            snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%02d#", cmd, h, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
             getSexComponentsIID(ra, &h, &m, &d_s);
-            snprintf(read_buffer, sizeof(read_buffer), ":Sr%02d:%02d:%05.02f#", h, m, d_s);
+            snprintf(read_buffer, sizeof(read_buffer), ":%s%02d:%02d:%05.02f#", cmd, h, m, d_s);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
@@ -1079,7 +974,7 @@ int setObjectRA(int fd, double ra)
     return (setStandardProcedure(fd, read_buffer));
 }
 
-int setObjectDEC(int fd, double dec)
+int setObjectDEC(int fd, double dec, bool addSpace)
 {
     // Meade Telescope Serial Command Protocol Revision 2010.10
     // :SdsDD*MM#
@@ -1101,13 +996,20 @@ int setObjectDEC(int fd, double dec)
     // LX200_EQ_SHORT_FORMAT  :SdsDD*MM#       (sign, degrees, arcminutes)
     // LX200_EQ_LONG_FORMAT   :SdsDD*MM:SS#    (sign, degrees, arcminutes, arcseconds)
     // LX200_EQ_LONGER_FORMAT :Sd sDD*MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
+    // Add space is used to add space between the command the and rest of the arguments.
+    // i.e. :Sd DD:MM:SS# for example since some mounts require space.
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
     /* Add mutex */
     /*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
+    char cmd[8] = {0};
+    if (addSpace)
+        strcpy(cmd, "Sd ");
+    else
+        strcpy(cmd, "Sd");
     int d, m, s;
-    char read_buffer[22];
+    char read_buffer[22] = {0};
 
     switch (eq_format)
     {
@@ -1115,26 +1017,26 @@ int setObjectDEC(int fd, double dec)
             getSexComponents(dec, &d, &m, &s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd-%02d*%02d#", d, m);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s-%02d*%02d#", cmd, d, m);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd%+03d*%02d#", d, m);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s%+03d*%02d#", cmd, d, m);
             break;
         case LX200_EQ_LONG_FORMAT:
             getSexComponents(dec, &d, &m, &s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd-%02d*%02d:%02d#", d, m, s);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s-%02d*%02d:%02d#", cmd, d, m, s);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd%+03d*%02d:%02d#", d, m, s);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s%+03d*%02d:%02d#", cmd, d, m, s);
             break;
         case LX200_EQ_LONGER_FORMAT:
             double d_s;
             getSexComponentsIID(dec, &d, &m, &d_s);
             /* case with negative zero */
             if (!d && dec < 0)
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd -%02d*%02d:%04.1f#", d, m, d_s);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s-%02d*%02d:%04.1f#", cmd, d, m, d_s);
             else
-                snprintf(read_buffer, sizeof(read_buffer), ":Sd %+03d*%02d:%04.1f#", d, m, d_s);
+                snprintf(read_buffer, sizeof(read_buffer), ":%s%+03d*%02d:%04.1f#", cmd, d, m, d_s);
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
