@@ -69,7 +69,8 @@ bool LX200GotoNova::initProperties()
     IUFillSwitch(&ParkPositionS[PS_LEFT_HORIZON], "Left and Horizon", "", ISS_OFF);
     IUFillSwitch(&ParkPositionS[PS_RIGHT_VERTICAL], "Right and Vertical", "", ISS_OFF);
     IUFillSwitch(&ParkPositionS[PS_RIGHT_HORIZON], "Right and Horizon", "", ISS_OFF);
-    IUFillSwitchVector(&ParkPositionSP, ParkPositionS, 5, getDeviceName(), "PARKING_POSITION", "Parking Position", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&ParkPositionSP, ParkPositionS, 5, getDeviceName(), "PARKING_POSITION", "Parking Position", SITE_TAB,
+                       IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Guide Rate
@@ -77,7 +78,8 @@ bool LX200GotoNova::initProperties()
     IUFillSwitch(&GuideRateS[1], "0.8x", "", ISS_OFF);
     IUFillSwitch(&GuideRateS[2], "0.6x", "", ISS_OFF);
     IUFillSwitch(&GuideRateS[3], "0.4x", "", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 4, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&GuideRateSP, GuideRateS, 4, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY,
+                       0,
                        IPS_IDLE);
 
     // Track Mode -- We do not support Custom so let's just define the first 3 properties
@@ -259,7 +261,7 @@ bool LX200GotoNova::isSlewComplete()
 
 void LX200GotoNova::getBasicData()
 {
-    int guideRate=-1;
+    int guideRate = -1;
     int rc = getGotoNovaGuideRate(&guideRate);
     if (rc == TTY_OK)
     {
@@ -313,7 +315,7 @@ bool LX200GotoNova::Goto(double r, double d)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error setting RA/DEC.");
@@ -344,7 +346,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
+        if (setObjectRA(PortFD, ra, true) < 0 || setObjectDEC(PortFD, dec, true) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
@@ -355,18 +357,18 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
         switch (syncType)
         {
-        case USE_REGULAR_SYNC:
-            if (::Sync(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_REGULAR_SYNC:
+                if (::Sync(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        case USE_CMR_SYNC:
-            if (GotonovaSyncCMR(syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_CMR_SYNC:
+                if (GotonovaSyncCMR(syncString) < 0)
+                    syncOK = false;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (syncOK == false)
@@ -539,7 +541,8 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
 
     DEBUGF(DBG_SCOPE, "RES <%s>", response);
 
-    if (strncmp(response, good_result, strlen(good_result)) == 0) {
+    if (strncmp(response, good_result, strlen(good_result)) == 0)
+    {
         return 0;
     }
 
@@ -777,51 +780,51 @@ void LX200GotoNova::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_TRACKING:
-        /* RA moves at sidereal, Dec stands still */
-        currentRA += (SIDRATE * dt / 15.);
-        break;
+        case SCOPE_TRACKING:
+            /* RA moves at sidereal, Dec stands still */
+            currentRA += (SIDRATE * dt / 15.);
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        if (fabs(dx) <= da)
-        {
-            currentRA = targetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da / 15.;
-        else
-            currentRA -= da / 15.;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-            currentDEC = targetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentDEC += da;
-        else
-            currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                SetParked(true);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
 
-    default:
-        break;
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);

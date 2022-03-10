@@ -245,9 +245,9 @@ int setSlewMode(int fd, int slewMode);
 /* Set Alignment mode */
 int setAlignmentMode(int fd, unsigned int alignMode);
 /* Set Object RA */
-int setObjectRA(int fd, double ra);
+int setObjectRA(int fd, double ra, bool addSpace = false);
 /* set Object DEC */
-int setObjectDEC(int fd, double dec);
+int setObjectDEC(int fd, double dec, bool addSpace = false);
 /* Set Calender date */
 int setCalenderDate(int fd, int dd, int mm, int yy);
 /* Set UTC offset */

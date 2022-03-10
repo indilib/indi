@@ -401,7 +401,7 @@ void LX200ZEQ25::getBasicData()
 
 bool LX200ZEQ25::Sync(double ra, double dec)
 {
-    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (!isSimulation() && (setObjectRA(PortFD, ra, true) < 0 || (setObjectDEC(PortFD, dec, true)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
@@ -470,7 +470,7 @@ bool LX200ZEQ25::Goto(double r, double d)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error setting RA/DEC.");
