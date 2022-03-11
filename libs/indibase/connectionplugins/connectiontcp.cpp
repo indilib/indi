@@ -223,7 +223,11 @@ bool TCP::Connect()
     std::string hostname = AddressT[0].text;
     std::string port = AddressT[1].text;
 
-    if (m_Device->isSimulation() == false)
+    // Should just call handshake on simulation
+    if (m_Device->isSimulation())
+        handshakeResult = Handshake();
+
+    else
     {
         handshakeResult = false;
         std::regex ipv4("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
