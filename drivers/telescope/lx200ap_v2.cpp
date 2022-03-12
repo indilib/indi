@@ -731,11 +731,9 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
 {
     if (!isAPReady())
     {
-        char dbgStr[1000];
-        sprintf(dbgStr, "APStatus: Not ready--Checked %s Initialized %s Time updated %s Location Updated %s",
-                apInitializationChecked ? "Y" : "N", apIsInitialized ? "Y" : "N",
-                apTimeInitialized ? "Y" : "N", apLocationInitialized ? "Y" : "N");
-        LOGF_DEBUG("%s", dbgStr);
+        LOGF_DEBUG("APStatus: Not ready--Checked %s Initialized %s Time updated %s Location Updated %s",
+                   apInitializationChecked ? "Y" : "N", apIsInitialized ? "Y" : "N",
+                   apTimeInitialized ? "Y" : "N", apLocationInitialized ? "Y" : "N");
 
         // hope this return doen't delay the time & location. If it does return true?
         return false;
@@ -796,18 +794,15 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
             IDSetNumber(&HourangleCoordsNP, nullptr );
         }
     }
-    char dbgStr[1000];
-    sprintf(dbgStr, "APStatus: %s %s stime: %s  RA/DEC: %.3f %.3f",
-            trackStateString(TrackState), apParked ? "Parked" : "Unparked", sTimeStr.c_str(), currentRA, currentDEC);
-    LOGF_DEBUG("%s", dbgStr);
+    LOGF_DEBUG("APStatus: %s %s stime: %s  RA/DEC: %.3f %.3f",
+               trackStateString(TrackState), apParked ? "Parked" : "Unparked", sTimeStr.c_str(), currentRA, currentDEC);
 
     if (TrackState == SCOPE_SLEWING)
     {
         const double dx = fabs(lastRA - currentRA);
         const double dy = fabs(lastDE - currentDEC);
 
-        sprintf(dbgStr, "Slewing... currentRA: %.3f dx: %g currentDE: %.3f dy: %g", currentRA, dx, currentDEC, dy);
-        LOGF_DEBUG("%s", dbgStr);
+        LOGF_DEBUG("Slewing... currentRA: %.3f dx: %g currentDE: %.3f dy: %g", currentRA, dx, currentDEC, dy);
 
         // Note, RA won't hit 0 if it's not tracking, becuase the RA changes when still.
         // Dec might, though.
@@ -841,8 +836,7 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
 
         const double dx = fabs(lastAZ - currentAz);
         const double dy = fabs(lastAL - currentAlt);
-        sprintf(dbgStr, "Parking... currentAz: %g dx: %g currentAlt: %g dy: %g", currentAz, dx, currentAlt, dy);
-        LOGF_DEBUG("%s", dbgStr);
+        LOGF_DEBUG("Parking... currentAz: %g dx: %g currentAlt: %g dy: %g", currentAz, dx, currentAlt, dy);
 
         // if for some reason we check slew status BEFORE park motion starts make sure we dont consider park
         // action complete too early by checking how far from park position we are!
@@ -872,12 +866,6 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
     NewRaDec(currentRA, currentDEC);
 
     syncSideOfPier();
-
-    // Hack -- when the ra/dec doen't change, the hour angle info isn't being updated. Not sure how to fix...
-    // This may be unnecessary now with changed to KStars. Hy 3/11/2022.
-    EqN[AXIS_RA].value = currentRA;
-    EqN[AXIS_DE].value = currentDEC;
-    IDSetNumber(&EqNP, nullptr);
 
     return true;
 }

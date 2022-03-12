@@ -932,26 +932,24 @@ int selectAPCenterRate(int fd, int centerRate)
 //    VCP4-P02-01 and later
 //
 
-int getApStatusString(int fd, char *statusString)
+int getApStatusStringInternal(int fd, char *statusString, bool complain)
 {
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "Check status...");
-
     if (fd <= 0)
     {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                    "check_lx200ap_connection: not a valid file descriptor received");
+        if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                      "getApStatusString: not a valid file descriptor received");
 
         return -1;
     }
 
     if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
     {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
+        if (complain) DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                       "getApStatusString: unsuccessful write to telescope, %d", nbytes_write);
 
         return error_type;
     }
@@ -961,15 +959,35 @@ int getApStatusString(int fd, char *statusString)
     {
         statusString[nbytes_read - 1] = '\0';
 
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getApStatusString: received bytes %d, [%s]",
                      nbytes_write, statusString);
 
         return 0;
     }
 
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
+    if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getApStatusString: wrote, but nothing received.");
 
     return -1;
+}
+
+int getApStatusString(int fd, char *statusString)
+{
+    // I seem to get intermittant failures.
+    // Try again on these after a 50ms delay, and the 250ms delay.
+    if (getApStatusStringInternal(fd, statusString, false) != TTY_OK)
+    {
+        const struct timespec timeout50ms = {0, 50000000L};
+        nanosleep(&timeout50ms, nullptr);
+        if (getApStatusStringInternal(fd, statusString, true) == TTY_OK)
+            return TTY_OK;
+        else
+        {
+            const struct timespec timeout250ms = {0, 250000000L};
+            nanosleep(&timeout250ms, nullptr);
+            return getApStatusStringInternal(fd, statusString, true);
+        }
+    }
+    return TTY_OK;
 }
 
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
