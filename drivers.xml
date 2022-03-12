@@ -53,9 +53,9 @@
             <driver name="AstroPhysics">indi_lx200ap</driver>
             <version>1.0</version>
         </device>
-        <device label="AstroPhysics Testing" manufacturer="Astrophysics">
-            <driver name="AstroPhysics Testing">indi_lx200ap_v2</driver>
-            <version>1.0</version>
+        <device label="AstroPhysics V2" manufacturer="Astrophysics">
+            <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
+            <version>1.1</version>
         </device>
         <device label="ZWO AM5" manufacturer="ZWO">
             <driver name="LX200 Autostar">indi_lx200autostar</driver>
