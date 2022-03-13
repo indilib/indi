@@ -24,9 +24,9 @@
 
 /***********************************************************************
  * This file was copied an modified from lx200ap.h in Jan 2022.
- * 
+ *
  * This is an update of the Wildi and Fulbright A-P drivers.
- * It is currently being tested. 
+ * It is currently being tested.
  * You should not use this unless part of the test group.
 ***********************************************************************/
 
@@ -150,8 +150,8 @@ class LX200AstroPhysicsV2 : public LX200Generic
     private:
         bool ApInitialize();
         bool updateAPLocation(double latitude, double longitude, double elevation);
-        bool recoverFromUnparkedInitialize();
         bool parkInternal();
+        bool isAPReady();
 
 #ifdef no
         bool initMount();
@@ -163,7 +163,6 @@ class LX200AstroPhysicsV2 : public LX200Generic
         bool IsMountInitialized(bool *initialized);
 #endif
         bool IsMountParked(bool *isParked);
-        bool getMountStatus(bool *isParked);
         bool getFirmwareVersion(void);
         bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
         void disclaimerMessage(void);
@@ -182,5 +181,10 @@ class LX200AstroPhysicsV2 : public LX200Generic
         //bool motionCommanded=false; // 2020-05-24, wildi, never reset
         //bool mountInitialized=false;
         int rememberSlewRate = { -1 };
-        uint8_t initStatus = MOUNTNOTINITIALIZED;
+
+        bool apIsInitialized = false;
+        bool apLocationInitialized = false;
+        bool apTimeInitialized = false;
+        bool apInitializationChecked = false;
+
 };
