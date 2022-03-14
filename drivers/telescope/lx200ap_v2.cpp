@@ -82,7 +82,7 @@ LX200AstroPhysicsV2::LX200AstroPhysicsV2() : LX200Generic()
 
 const char *LX200AstroPhysicsV2::getDefaultName()
 {
-    return "AstroPhysics Testing";
+    return "AstroPhysics V2";
 }
 
 bool LX200AstroPhysicsV2::Connect()
@@ -207,11 +207,11 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
     LX200Generic::ISGetProperties(dev);
 
     defineProperty(&ManualSetParkedSP);
+    defineProperty(&UnparkFromSP);
+    defineProperty(&ParkToSP);
 
     if (isConnected())
     {
-        defineProperty(&UnparkFromSP);
-        defineProperty(&ParkToSP);
         defineProperty(&VersionTP);
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
@@ -225,30 +225,28 @@ bool LX200AstroPhysicsV2::updateProperties()
     LX200Generic::updateProperties();
 
     defineProperty(&ManualSetParkedSP);
+    defineProperty(&UnparkFromSP);
+    defineProperty(&ParkToSP);
 
     if (isConnected())
     {
         defineProperty(&VersionTP);
-        defineProperty(&UnparkFromSP);
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
         defineProperty(&SyncCMRSP);
         defineProperty(&APGuideSpeedSP);
-        defineProperty(&ParkToSP);
         defineProperty(&APSiderealTimeNP);
         defineProperty(&HourangleCoordsNP);
         defineProperty(&APUTCOffsetNP);
     }
     else
     {
-        deleteProperty(UnparkFromSP.name);
         deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
         deleteProperty(APGuideSpeedSP.name);
-        deleteProperty(ParkToSP.name);
         deleteProperty(APUTCOffsetNP.name);
         deleteProperty(APSiderealTimeNP.name);
         deleteProperty(HourangleCoordsNP.name);
