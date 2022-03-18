@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 14);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 15);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -5058,5 +5058,19 @@ void LX200_OnStep::PrintTrackState()
     }
 #endif
     return;
+}
+
+bool LX200_OnStep::setUTCOffset(double offset)  //azwing fix after change in lx200driver.cpp
+{
+    bool result = true;
+    int ss_timezone;
+    const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
+    if (send_to_skysensor)
+    {
+        char temp_string[RB_MAX_LEN];
+        snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
+        result = (setStandardProcedure(PortFD, temp_string) == 0);
+    }
+    return result;
 }
 
