@@ -5060,17 +5060,17 @@ void LX200_OnStep::PrintTrackState()
     return;
 }
 
-bool LX200_OnStep::setUTCOffset(double offset)  //azwing fix after change in lx200driver.cpp
+bool LX200_OnStep::setUTCOffset(double offset)  //azwing fix after change in lx200driver.cpp and fix to have UTC hh:00, hh:30, hh:45
 {
     bool result = true;
-    int ss_timezone;
-    const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
-    if (send_to_skysensor)
-    {
-        char temp_string[RB_MAX_LEN];
-        snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
-        result = (setStandardProcedure(PortFD, temp_string) == 0);
-    }
+    char temp_string[RB_MAX_LEN];
+    int utc_hour, utc_min;
+    // strange thing offset is rounded up to first decimal so that .75 is .8
+    utc_hour=int(offset)*-1;
+    utc_min=(offset-int(offset))*60;
+    if (utc_min > 30) utc_min=45;   
+    snprintf(temp_string, sizeof(temp_string), ":SG%03d:%02d#", utc_hour, utc_min);                          
+    result = (setStandardProcedure(PortFD, temp_string) == 0);
     return result;
 }
 
