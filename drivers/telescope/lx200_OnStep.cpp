@@ -5067,7 +5067,7 @@ bool LX200_OnStep::setUTCOffset(double offset)  //azwing fix after change in lx2
     int utc_hour, utc_min;
     // strange thing offset is rounded up to first decimal so that .75 is .8
     utc_hour=int(offset)*-1;
-    utc_min=(offset-int(offset))*60;
+    utc_min=abs((offset-int(offset))*60);   // negtive offsets require this abs()
     if (utc_min > 30) utc_min=45;   
     snprintf(temp_string, sizeof(temp_string), ":SG%03d:%02d#", utc_hour, utc_min);                          
     result = (setStandardProcedure(PortFD, temp_string) == 0);
