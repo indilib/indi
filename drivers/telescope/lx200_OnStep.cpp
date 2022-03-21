@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 14);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 15);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -5058,5 +5058,19 @@ void LX200_OnStep::PrintTrackState()
     }
 #endif
     return;
+}
+
+bool LX200_OnStep::setUTCOffset(double offset)  //azwing fix after change in lx200driver.cpp and fix to have UTC hh:00, hh:30, hh:45
+{
+    bool result = true;
+    char temp_string[RB_MAX_LEN];
+    int utc_hour, utc_min;
+    // strange thing offset is rounded up to first decimal so that .75 is .8
+    utc_hour=int(offset)*-1;
+    utc_min=abs((offset-int(offset))*60);   // negtive offsets require this abs()
+    if (utc_min > 30) utc_min=45;   
+    snprintf(temp_string, sizeof(temp_string), ":SG%03d:%02d#", utc_hour, utc_min);                          
+    result = (setStandardProcedure(PortFD, temp_string) == 0);
+    return result;
 }
 
