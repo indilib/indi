@@ -793,6 +793,8 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 {
     int nbytes_written = 0, rc = -1;
 
+    tcflush(PortFD, TCIOFLUSH);
+
     // Send
     LOGF_DEBUG("CMD <%s>", cmd);
     rc = tty_write_string(PortFD, cmd, &nbytes_written);
