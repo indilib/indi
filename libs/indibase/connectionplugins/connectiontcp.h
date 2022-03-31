@@ -115,6 +115,9 @@ class TCP : public Interface
         ISwitchVectorProperty LANSearchSP;
 
         // Variables
+        std::string m_ConfigHost;
+        std::string m_ConfigPort;
+        int m_ConfigConnectionType {-1};
         int m_SockFD {-1};
         int PortFD = -1;
         static constexpr uint8_t SOCKET_TIMEOUT {5};

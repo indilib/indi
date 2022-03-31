@@ -64,7 +64,8 @@ sudo apt-get install -y \
   libusb-1.0-0-dev \
   libdc1394-22-dev \
   libboost-regex-dev \
-  libcurl4-gnutls-dev
+  libcurl4-gnutls-dev \
+  libtheora-dev
 ```
 
 ## Create Project Directory

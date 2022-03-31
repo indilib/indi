@@ -708,7 +708,9 @@ void Telescope::NewRaDec(double ra, double dec)
         IDSetSwitch(&TrackStateSP, nullptr);
     }
 
-    if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != lastEqState)
+    if (std::abs(EqN[AXIS_RA].value - ra) > EQ_NOTIFY_THRESHOLD ||
+            std::abs(EqN[AXIS_DE].value - dec) > EQ_NOTIFY_THRESHOLD ||
+            EqNP.s != lastEqState)
     {
         EqN[AXIS_RA].value = ra;
         EqN[AXIS_DE].value = dec;

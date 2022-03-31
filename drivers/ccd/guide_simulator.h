@@ -165,10 +165,6 @@ class GuideSim : public INDI::CCD
         ISwitchVectorProperty SimulateRgbSP;
         ISwitch SimulateRgbS[2];
 
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
-
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
 

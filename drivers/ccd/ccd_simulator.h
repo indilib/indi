@@ -111,8 +111,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
-
         virtual bool UpdateGuiderBin(int hor, int ver) override;
+
+        virtual bool SetCaptureFormat(uint8_t index) override;
 
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;

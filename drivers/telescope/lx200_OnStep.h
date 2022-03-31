@@ -25,6 +25,11 @@
     ===========================================
     
     Version not yet updated/No INDI release:
+    Version 1.15
+    - Fixed setUTCOffset after change in lx200driver to comply with OnStep format :SG[sHH]#
+    Version 1.14
+    - Modified range for Minutes Pas Meridian East and West to -180 .. +180
+    - Modified debug messages Minutes Pas Meridian (Was B"acklash ...)
 
     Version 1.13
     - Timeouts and misc errors due to new behavior of SWS (SmartWebServer)
@@ -190,6 +195,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         
         virtual bool sendScopeTime() override;
         virtual bool sendScopeLocation() override;
+        virtual bool setUTCOffset(double offset) override; //azwing fix after change in lx200driver.cpp
         
         // Goto
         virtual bool Goto(double ra, double dec) override;

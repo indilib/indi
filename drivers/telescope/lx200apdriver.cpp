@@ -54,7 +54,7 @@ int check_lx200ap_connection(int fd)
 {
     const struct timespec timeout = {0, 50000000L};
     int i = 0;
-    char temp_string[64];
+    char temp_string[256];
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -95,13 +95,17 @@ int check_lx200ap_connection(int fd)
 
     return -1;
 }
+
+// get UTC offset.
 int getAPUTCOffset(int fd, double *value)
 {
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    char temp_string[16];
+    char temp_string[256];
+    temp_string[0] = 0;
+    temp_string[1] = 0;
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:GG#");
 
@@ -225,7 +229,11 @@ int getAPUTCOffset(int fd, double *value)
 int setAPObjectAZ(int fd, double az)
 {
     int h, m, s;
-    char temp_string[16];
+    char temp_string[256];
+
+    // The azimuth should be 0-360.
+    while (az < 0) az += 360.0;
+    while (az > 360.0) az -= 360.0;
 
     getSexComponents(az, &h, &m, &s);
 
@@ -241,33 +249,31 @@ int setAPObjectAZ(int fd, double az)
 int setAPObjectAlt(int fd, double alt)
 {
     int d, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(alt, &d, &m, &s);
-
-    /* case with negative zero */
-    if (!d && alt < 0)
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sa -%02d*%02d:%02d#", d, m, s);
-    }
-    else
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sa %+02d*%02d:%02d#", d, m, s);
-    }
+    if (d < 0) d = -d;
+    snprintf(temp_string, sizeof(temp_string), "#:Sa %s%02d*%02d:%02d#",
+             alt >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
+
+// Set the UTC offset.
+// Previously this only set positive offsets.
+// Added the sign according to the doc in https://astro-physics.info/tech_support/mounts/protocol-cp3-cp4.pdf
 int setAPUTCOffset(int fd, double hours)
 {
     int h, m, s;
 
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(hours, &h, &m, &s);
-
-    snprintf(temp_string, sizeof(temp_string), "#:SG %+03d:%02d:%02d#", h, m, s);
+    if (h < 0) h = -h;
+    snprintf(temp_string, sizeof(temp_string), "#:SG %s%02d:%02d:%02d#",
+             hours >= 0 ? "+" : "-", h, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -590,7 +596,11 @@ int setAPObjectRA(int fd, double ra)
 {
     /*ToDo AP accepts "#:Sr %02d:%02d:%02d.%1d#"*/
     int h, m, s;
-    char temp_string[16];
+    char temp_string[256];
+
+    // Make sure RA is 0-24.
+    while (ra < 0) ra += 24.0;
+    while (ra > 24.0) ra -= 24.0;
 
     getSexComponents(ra, &h, &m, &s);
 
@@ -604,28 +614,27 @@ int setAPObjectRA(int fd, double ra)
 int setAPObjectDEC(int fd, double dec)
 {
     int d, m, s;
-    char temp_string[16];
+    char temp_string[256];
 
     getSexComponents(dec, &d, &m, &s);
-    /* case with negative zero */
-    if (!d && dec < 0)
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sd -%02d*%02d:%02d#", d, m, s);
-    }
-    else
-    {
-        snprintf(temp_string, sizeof(temp_string), "#:Sd %+03d*%02d:%02d#", d, m, s);
-    }
+    if (d < 0) d = -d;
+    snprintf(temp_string, sizeof(temp_string), "#:Sd %s%02d*%02d:%02d#",
+             dec >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
 
+// Set the longitude.
 int setAPSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[256];
+
+    // Make sure longitude is 0-360.
+    while (Long < 0) Long += 360.0;
+    while (Long > 360.0) Long -= 360.0;
 
     getSexComponents(Long, &d, &m, &s);
     snprintf(temp_string, sizeof(temp_string), "#:Sg %03d*%02d:%02d#", d, m, s);
@@ -635,13 +644,16 @@ int setAPSiteLongitude(int fd, double Long)
     return (setStandardProcedure(fd, temp_string));
 }
 
+// Set the latitude.
 int setAPSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[256];
 
     getSexComponents(Lat, &d, &m, &s);
-    snprintf(temp_string, sizeof(temp_string), "#:St %+03d*%02d:%02d#", d, m, s);
+    if (d < 0) d = -d;
+    snprintf(temp_string, sizeof(temp_string), "#:St %s%02d*%02d:%02d#",
+             Lat >= 0 ? "+" : "-", d, m, s);
 
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -784,54 +796,6 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     return 0;
 }
 
-#if 0
-// experimental function!!!
-int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
-{
-    char temp_string[64];
-    int error_type;
-    int nbytes_write = 0;
-    int nbytes_read  = 0;
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: check status...");
-
-    if (fd <= 0)
-    {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                    "check_lx200ap_connection: not a valid file descriptor received");
-
-        return -1;
-    }
-
-    if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
-    {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
-
-        return error_type;
-    }
-    tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
-    tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 1)
-    {
-        temp_string[nbytes_read - 1] = '\0';
-
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
-                     nbytes_write, temp_string);
-
-        *parkStatus = temp_string[0];
-        *slewStatus = temp_string[3];
-
-        return 0;
-    }
-
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
-
-    return -1;
-}
-#endif
-
 // make this a function with logging instead of a #define like in legacy driver
 int APParkMount(int fd)
 {
@@ -925,49 +889,210 @@ int selectAPCenterRate(int fd, int centerRate)
     return 0;
 }
 
-// experimental functions!!!
+// Doc for the :GOS command fom A-P:
+//
+// Response for GTOCP3 Rev “T” through GTOCP4 Rev VCP4-P01-14 is a 13 character string: ABCDEFGHIJKLM.
+//
+// Note the addition of the last two characters: L & M. (Rev “S” had the 1st 11 characters)
+// 14th character “N” added in VCPx-P02-xx and later
+//
+// Possible values for each variable are as follows (Please note the difference between “0” and “O” in the responses)
+// Note the differences starting with the GTOCP4, especially with P02-01 and later!!
+//
+// A: Park Status                         'P' parked, '0' not parked, '1' auto-park - ON
+// B: RA Tracking Status                  '0'=Lunar Rate, '1'=Solar Rate, '2'=Sidereal, '9'=Tracking Stopped,
+//                                        'C'=Custom RA Tracking Rate (read specific value with :Rr# command)
+// C: Dec Tracking Status                 '9'=No Motion (to mimic RA Tracking), 'C'=Custom DEC Tracking Rate
+//                                        (read specific value with :Rd# command)
+// D: Slewing Satus (GOTO Slews)          'S'=Slewing, '0'=Not slewing
+// E: Moving RA Axis                      'E'=Moving East, 'W'=Moving West, '0'=Not Moving
+//    (via a Move command/Slew/ST4 Port signal)
+// F: Moving Dec Axis                     'N'=Moving North (counter-clockwise), 'S'=Moving South (clockwise), '0'=Not Moving
+//    (via a Move command/Slew/ST4 Port signal):
+// G: Guide Rate                          '0'=0.25x, '1'=0.50x, '2'=1.00x
+// H: Center/Move Rate < P02-xx           '0'=12x, '1'=64x, '2'=600x, '3'=1200x, 'C'=Custom Rate
+//                                        NOTE: Divide rates for '2' and '3' by 2 for 3600GTO
+//                                        Read “C” rate with  :Rc#  command.  Do not divide by 2 for 3600GTO
+// H: Center/Move Rate > P02-xx           '0'=12x, '1'=64x, '2'=200x, '3'= 400x - 600x  see table,
+//                                        '4'= 600x - 1200x  see table, '5'=0.25x, '6'=0.5x, '7'=1.0x, 'C'=Custom Rate
+// I: Slew Rate                           '0'=600x     Slow, '1'=900x     Medium, '2'=1200x   Fast, 'C'=Custom Rate
+//                                        NOTE: Rates are scaled for “0”, “1” & “2” by different amounts for 3600GTOs
+//                                        and for some 400GTO and 600EGTO mounts.
+//                                        Read 'C' rate with  :Rs#  command.  Do not scale custom rates.
+// J: PEM                                'O'=Off, 'P'=Playback, 'R'=Recording, 'E'=Encoder
+// K: Mount Status                       '0'=Normal, '1'=Stalled, '2'=Low Power Supply,
+//                                       '4'=Servo fault / number problem, '8'=Reserved  (CP3 only)
+// K: Mount Status                       '0'=Normal 'Z'=Stalled, 'Y'=Low Power Supply, 'X'=Servo fault / number problem,
+//    VCP4-P02-01 and later              'N'=CCW Internal Declination Limit or AE Limit, 'S'=CW Internal Declination Limit or AE Limit,
+//                                       'E'=East Internal RA Limit or AE Limit, 'W'=West Internal RA Limit or AE Limit,
+//                                       'z'=Kill Function has been issued
+// L: E – W button reversal              '0'=Normal  E = E  and W = W, '1'=Reversed   E = W  and  W = E
+// M: N – S button reversal              '0'=Normal   N = CCW  and  S = CW, '1'=Reversed    N = CW  and  S = CCW
+// N: Button / Slew Rate Table           '0'=Normal, '1'= ~75% speed reduction, '2'= ~50% speed reduction, '3'= High Speed for Mach2GTO
+//    VCP4-P02-01 and later
+//
 
-
-int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
+int getApStatusStringInternal(int fd, char *statusString, bool complain)
 {
-    char temp_string[64];
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "Check status...");
-
     if (fd <= 0)
     {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                    "check_lx200ap_connection: not a valid file descriptor received");
+        if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                      "getApStatusString: not a valid file descriptor received");
 
         return -1;
     }
 
     if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
     {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
-                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
+        if (complain) DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                       "getApStatusString: unsuccessful write to telescope, %d", nbytes_write);
 
         return error_type;
     }
-    tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+    tty_read_section(fd, statusString, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 1)
+    if (nbytes_read > 3)
     {
-        temp_string[nbytes_read - 1] = '\0';
+        statusString[nbytes_read - 1] = '\0';
 
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
-                     nbytes_write, temp_string);
-
-        *parkStatus = temp_string[0];
-        *slewStatus = temp_string[3];
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getApStatusString: received bytes %d, [%s]",
+                     nbytes_write, statusString);
 
         return 0;
     }
 
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
+    if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getApStatusString: wrote, but nothing received.");
 
     return -1;
+}
+
+int getApStatusString(int fd, char *statusString)
+{
+    // I seem to get intermittant failures.
+    // Try again on these after a 50ms delay, and the 250ms delay.
+    if (getApStatusStringInternal(fd, statusString, false) != TTY_OK)
+    {
+        const struct timespec timeout50ms = {0, 50000000L};
+        nanosleep(&timeout50ms, nullptr);
+        if (getApStatusStringInternal(fd, statusString, true) == TTY_OK)
+            return TTY_OK;
+        else
+        {
+            const struct timespec timeout250ms = {0, 250000000L};
+            nanosleep(&timeout250ms, nullptr);
+            return getApStatusStringInternal(fd, statusString, true);
+        }
+    }
+    return TTY_OK;
+}
+
+int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
+{
+    char temp_string[256];
+    int res = getApStatusString(fd, temp_string);
+    if (res != TTY_OK) return res;
+
+    *parkStatus = temp_string[0];
+    *slewStatus = temp_string[3];
+    return TTY_OK;
+}
+
+bool apStatusParked(char *statusString)
+{
+    return statusString[0] == 'P';
+}
+
+bool apStatusSlewing(char *statusString)
+{
+    return statusString[3] !=  '0';
+}
+int isAPInitialized(int fd, bool *isInitialized)
+{
+    constexpr int RB_MAX_LEN = 256;
+    char readBuffer[RB_MAX_LEN];
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "Check initialized...");
+
+    if (fd <= 0)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                    "isAPInitialized: not a valid file descriptor received");
+
+        return -1;
+    }
+
+    if ((error_type = tty_write_string(fd, "#:GR#", &nbytes_write)) != TTY_OK)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                     "isAPInitialized: unsuccessful write to telescope, %d", nbytes_write);
+
+        return error_type;
+    }
+
+    error_type = tty_nread_section(fd, readBuffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
+
+
+    if (nbytes_read < 1)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "RES ERROR <%d>", error_type);
+        return error_type;
+    }
+
+    readBuffer[nbytes_read - 1] = '\0';
+
+    if (!strcmp("00:00.0", readBuffer))
+        *isInitialized = false;
+    else if (!strcmp("00:00:00.0", readBuffer))
+        *isInitialized = false; // not sure about this one--high precision 0.
+    else
+        *isInitialized = true; // Should I test further????
+
+    tcflush(fd, TCIFLUSH);
+    return 0;
+}
+
+// guessing how to get the hour angle.
+// It does seem to work.
+#define HA_COMMAND "#:GH#"
+int getAPHourAngle(int fd, double *value)
+{
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    char temp_string[256];
+    temp_string[0] = 0;
+    temp_string[1] = 0;
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", HA_COMMAND);
+
+    if ((error_type = tty_write_string(fd, HA_COMMAND, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    if ((error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPHourAngle: saying good bye %d, %d", error_type,
+                     nbytes_read);
+        return error_type;
+    }
+
+    tcflush(fd, TCIFLUSH);
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", temp_string);
+
+    temp_string[nbytes_read - 1] = '\0';
+    if (f_scansexa(temp_string, value))
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: unable to process %s", temp_string);
+        return -1;
+    }
+
+    return 0;
 }

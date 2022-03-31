@@ -67,6 +67,17 @@ int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
 
+// Make sure the buffer passed in to getApStatusString (statusString) is at least 32 bytes.
+int getApStatusString(int fd, char *statusString);
+bool apStatusParked(char *statusString);
+bool apStatusSlewing(char *statusString);
+int isAPInitialized(int fd, bool *isInitialized);
+
+
+
+// experiment!
+int getAPHourAngle(int fd, double *value);
+
 #ifdef __cplusplus
 }
 #endif

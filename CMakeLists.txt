@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 6)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -660,6 +660,7 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200pulsar2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap_v2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap_gtocp2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
@@ -688,6 +689,7 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap_v2)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap_gtocp2)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gemini)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200zeq25)\n
@@ -1058,6 +1060,16 @@ SET(sesto2_SRC
 add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver)
 install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
+
+################ Esatto with Arco Focuser ################
+SET(esarc_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/esattoarco.cpp)
+
+add_executable(indi_esattoarco_focus ${esarc_SRC})
+target_link_libraries(indi_esattoarco_focus indidriver)
+install(TARGETS indi_esattoarco_focus RUNTIME DESTINATION bin)
+
+
 
 ################ Televue FocusMaster ################
 #SET(focusmaster_SRC
@@ -1505,6 +1517,14 @@ SET(domescript_SRC
 add_executable(indi_script_dome ${domescript_SRC})
 target_link_libraries(indi_script_dome indidriver)
 install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
+
+########### NexDome Beaver Controller ##############
+SET(nexdome_beaver_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/nexdome_beaver.cpp)
+
+add_executable(indi_nexdome_beaver ${nexdome_beaver_SRC})
+target_link_libraries(indi_nexdome_beaver indidriver)
+install(TARGETS indi_nexdome_beaver RUNTIME DESTINATION bin)
 
 #################################################################################
 

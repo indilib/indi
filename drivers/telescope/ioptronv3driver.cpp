@@ -50,6 +50,7 @@ const std::map<std::string, std::string> Driver::models =
     {"0060", "CEM60"},
     {"0061", "CEM60-EC"},
     {"0070", "CEM70"},
+    {"0071", "CEM70-EC"},
     {"0120", "CEM120"},
     {"0121", "CEM120-EC"},
     {"0122", "CEM120-EC2"},
@@ -504,7 +505,10 @@ bool Driver::startGuide(IOP_DIRECTION dir, uint32_t ms)
 {
     char cmd[IOP_BUFFER] = {0};
     char dir_c = 0;
-
+    
+    // Sophie Taylor 2022-03-01
+    // TODO: This command set is deprecated, to be replaced with RA+/- and Dec+/- commands
+    // See https://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf
     switch (dir)
     {
         case IOP_N:
