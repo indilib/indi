@@ -58,6 +58,9 @@ class LX200ZEQ25 : public LX200Generic
         virtual bool Park() override;
         virtual bool UnPark() override;
 
+        // Time
+        virtual bool setUTCOffset(double offset) override;
+
         virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     private:

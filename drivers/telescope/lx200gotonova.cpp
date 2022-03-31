@@ -487,7 +487,7 @@ bool LX200GotoNova::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("New JD is %f", (float)JD);
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds, true) < 0)
     {
         LOG_ERROR("Error setting local time.");
         return false;
