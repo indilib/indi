@@ -20,20 +20,25 @@
 
 #pragma once
 
-#define getAPDeclinationAxis(fd, x)            getCommandString(fd, x, "#:pS#")
+// Used by cp2 driver
+#define setAPPark(fd)                          write(fd, "#:KA#", 4)
+#define setAPUnPark(fd)                        write(fd, "#:PO#", 4)
+
+// Used by several drivers
 #define getAPVersionNumber(fd, x)              getCommandString(fd, x, "#:V#")
-#define setAPPark(fd)                          write(fd, "#:KA", 4)
-#define setAPUnPark(fd)                        write(fd, "#:PO", 4)
-#define setAPLongFormat(fd)                    write(fd, "#:U", 3)
 #define setAPClearBuffer(fd)                   write(fd, "#", 1) /* AP key pad manual startup sequence */
 #define setAPBackLashCompensation(fd, x, y, z) setCommandXYZ(fd, x, y, z, "#:Br")
-#define setAPMotionStop(fd)                    write(fd, "#:Q", 3)
 
 #define AP_TRACKING_SIDEREAL     0
 #define AP_TRACKING_SOLAR       1
 #define AP_TRACKING_LUNAR       2
 #define AP_TRACKING_CUSTOM      3
 #define AP_TRACKING_OFF         4
+
+#define AP_PEC_OFF 0
+#define AP_PEC_ON 1
+#define AP_PEC_RECORD 2
+#define AP_PEC_ENCODER 3
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,17 +71,14 @@ int selectAPCenterRate(int fd, int centerRate);
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
+int getAPPECState(int fd, int *pecState);
+int getAPWormPosition(int fd, int *position);
 
 // Make sure the buffer passed in to getApStatusString (statusString) is at least 32 bytes.
 int getApStatusString(int fd, char *statusString);
 bool apStatusParked(char *statusString);
 bool apStatusSlewing(char *statusString);
 int isAPInitialized(int fd, bool *isInitialized);
-
-
-
-// experiment!
-int getAPHourAngle(int fd, double *value);
 
 #ifdef __cplusplus
 }
