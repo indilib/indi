@@ -54,13 +54,12 @@ Horizon check during slewing functions :ho# and :hq#
 #include <unistd.h>
 #include <termios.h>
 
-//////////////////////////////////////////////
-// TODO:
-// Go through all the INDI tabs in the driver and remove unused switches
-// main tab: On Set, Use...Cmd, ManualSetParked?
-// what is SyncCMR ????
-//////////////////////////////////////////////
-
+// PEC Recording values
+enum APPECRecordingState
+{
+    AP_PEC_RECORD_OFF = 0,
+    AP_PEC_RECORD_ON = 1
+};
 
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
@@ -70,7 +69,6 @@ Horizon check during slewing functions :ho# and :hq#
 // This didn't work. The driver simply doesn't send pulse
 // commands longer than 999ms since CP3 controllers don't support that.
 
-/* Constructor */
 LX200AstroPhysicsV2::LX200AstroPhysicsV2() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
@@ -195,6 +193,22 @@ bool LX200AstroPhysicsV2::initProperties()
     IUFillNumberVector(&APSiderealTimeNP, APSiderealTimeN, 1, getDeviceName(), "AP_SIDEREAL_TIME", "ap sidereal time", SITE_TAB,
                        IP_RO, 60, IPS_OK);
 
+    // Worm position
+    IUFillNumber(&APWormPositionN[0], "APWormPosition", "AP Worm Position", "%3.0f", 0, 1000, 1, 0);
+    IUFillNumberVector(&APWormPositionNP, APWormPositionN, 1, getDeviceName(), "APWormPosition", "AP Worm Position",
+                       MOTION_TAB, IP_RO, 0, IPS_IDLE);
+
+    // PEC State
+    IUFillText(&APPECStateT[0], "APPECState", "AP PEC State", "");
+    IUFillTextVector(&APPECStateTP, APPECStateT, 1, getDeviceName(), "APPECState", "AP PEC State",
+                     MOTION_TAB, IP_RO, 0, IPS_IDLE);
+
+    // PEC Record button.
+    IUFillSwitch(&APPECRecordS[AP_PEC_RECORD_OFF], "APPECRecordOFF", "Off", ISS_ON);
+    IUFillSwitch(&APPECRecordS[AP_PEC_RECORD_ON], "APPECRecordON", "Record", ISS_OFF);
+    IUFillSwitchVector(&APPECRecordSP, APPECRecordS, 2, getDeviceName(), "APPECRecord", "Record PEC", MOTION_TAB,
+                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Without below, it will not write the ParkData.xml file.
     // However, ParkData.xml is not used.
     // SetParkDataType(PARK_AZ_ALT);
@@ -217,6 +231,9 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
         defineProperty(&SwapSP);
         defineProperty(&SyncCMRSP);
         defineProperty(&APGuideSpeedSP);
+        defineProperty(&APWormPositionNP);
+        defineProperty(&APPECStateTP);
+        defineProperty(&APPECRecordSP);
     }
 }
 
@@ -239,6 +256,9 @@ bool LX200AstroPhysicsV2::updateProperties()
         defineProperty(&APSiderealTimeNP);
         defineProperty(&HourangleCoordsNP);
         defineProperty(&APUTCOffsetNP);
+        defineProperty(&APWormPositionNP);
+        defineProperty(&APPECStateTP);
+        defineProperty(&APPECRecordSP);
     }
     else
     {
@@ -250,7 +270,103 @@ bool LX200AstroPhysicsV2::updateProperties()
         deleteProperty(APUTCOffsetNP.name);
         deleteProperty(APSiderealTimeNP.name);
         deleteProperty(HourangleCoordsNP.name);
+        deleteProperty(APWormPositionNP.name);
+        deleteProperty(APPECStateTP.name);
+        deleteProperty(APPECRecordSP.name);
     }
+
+    return true;
+}
+
+bool LX200AstroPhysicsV2::getWormPosition()
+{
+    int position;
+    if (isSimulation())
+        position = 0;
+    else
+    {
+        int res = getAPWormPosition(PortFD, &position);
+        if (res != TTY_OK)
+        {
+            APWormPositionNP.np[0].value = 0;
+            APWormPositionNP.s           = IPS_ALERT;
+            IDSetNumber(&APWormPositionNP, nullptr);
+            return false;
+        }
+    }
+    APWormPositionNP.np[0].value = position;
+    APWormPositionNP.s           = IPS_OK;
+    IDSetNumber(&APWormPositionNP, nullptr);
+    return true;
+}
+
+bool LX200AstroPhysicsV2::getPECState()
+{
+    int pecState;
+    if (isSimulation())
+        pecState = AP_PEC_OFF;
+    else
+    {
+        int res = getAPPECState(PortFD, &pecState);
+        if (res != TTY_OK)
+        {
+            IUSaveText(&APPECStateT[0], "");
+            IDSetText(&APPECStateTP, nullptr);
+            APPECStateTP.s = IPS_ALERT;
+            return false;
+        }
+    }
+    // Set the text status display based on the info from the mount.
+    // Also set the PEC buttons: playback on/off & recording on/off.
+    switch (pecState)
+    {
+        case AP_PEC_OFF:
+            IUSaveText(&APPECStateT[0], "Off");
+
+            APPECRecordS[AP_PEC_RECORD_OFF].s = ISS_ON;
+            APPECRecordS[AP_PEC_RECORD_ON].s = ISS_OFF;
+            APPECRecordSP.s           = IPS_OK;
+            IDSetSwitch(&APPECRecordSP, nullptr);
+
+            setPECState(PEC_OFF);
+
+            break;
+        case AP_PEC_ON:
+            IUSaveText(&APPECStateT[0], "On");
+
+            APPECRecordS[AP_PEC_RECORD_OFF].s = ISS_ON;
+            APPECRecordS[AP_PEC_RECORD_ON].s = ISS_OFF;
+            APPECRecordSP.s           = IPS_OK;
+            IDSetSwitch(&APPECRecordSP, nullptr);
+
+            setPECState(PEC_ON);
+
+            break;
+        case AP_PEC_RECORD:
+            IUSaveText(&APPECStateT[0], "Recording");
+
+            APPECRecordS[AP_PEC_RECORD_OFF].s = ISS_OFF;
+            APPECRecordS[AP_PEC_RECORD_ON].s = ISS_ON;
+            APPECRecordSP.s           = IPS_OK;
+            IDSetSwitch(&APPECRecordSP, nullptr);
+
+            setPECState(PEC_OFF);
+
+            break;
+        case AP_PEC_ENCODER:
+            IUSaveText(&APPECStateT[0], "Encoder");
+
+            APPECRecordS[AP_PEC_RECORD_OFF].s = ISS_ON;
+            APPECRecordS[AP_PEC_RECORD_ON].s = ISS_OFF;
+            APPECRecordSP.s           = IPS_OK;
+            IDSetSwitch(&APPECRecordSP, nullptr);
+
+            setPECState(PEC_OFF);
+
+            break;
+    }
+    IDSetText(&APPECStateTP, nullptr);
+    APPECStateTP.s = IPS_OK;
 
     return true;
 }
@@ -593,6 +709,30 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    if (strcmp(name, APPECRecordSP.name) == 0)
+    {
+        IUResetSwitch(&APPECRecordSP);
+        IUUpdateSwitch(&APPECRecordSP, states, names, n);
+        IUFindOnSwitchIndex(&APPECRecordSP);
+
+        int recordState = IUFindOnSwitchIndex(&APPECRecordSP);
+
+        // Can't turn recording off.
+        if (recordState == AP_PEC_RECORD_ON)
+        {
+            err = selectAPPECState(PortFD, AP_PEC_RECORD);
+            if (!isSimulation() && (err != 0))
+            {
+                LOGF_ERROR("Error setting PEC state RECORD (%d).", err);
+                return false;
+            }
+            LOG_INFO("Recording PEC");
+            APPECRecordSP.s = IPS_OK;
+            IDSetSwitch(&PECStateSP, nullptr);
+        }
+        return true;
+    }
+
     // ===========================================================
     // Unpark from positions
     // ===========================================================
@@ -664,8 +804,7 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
 
     if (strcmp(name, ManualSetParkedSP.name) == 0)
     {
-        // This whole if may need rethinking. For now just copied some connect code and then force the
-        // mount to be parked where it is and disconnect.
+        // Force the mount to be parked where it is and disconnect.
         IUResetSwitch(&ManualSetParkedSP);
         bool alreadyConnected = isConnected();
         if (!alreadyConnected)
@@ -758,6 +897,9 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
     APSiderealTimeNP.np[0].value = lst;
     APSiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&APSiderealTimeNP, nullptr);
+
+    getWormPosition();
+    getPECState();
 
     if (isSimulation())
     {
@@ -1025,7 +1167,7 @@ IPState LX200AstroPhysicsV2::GuideNorth(uint32_t ms)
     }
     if (usePulseCommand)
     {
-        SendPulseCmd(LX200_NORTH, ms);
+        APSendPulseCmd(PortFD, LX200_NORTH, ms);
         GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
 
@@ -1057,7 +1199,7 @@ IPState LX200AstroPhysicsV2::GuideSouth(uint32_t ms)
     }
     if (usePulseCommand)
     {
-        SendPulseCmd(LX200_SOUTH, ms);
+        APSendPulseCmd(PortFD, LX200_SOUTH, ms);
         GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
 
@@ -1089,7 +1231,7 @@ IPState LX200AstroPhysicsV2::GuideEast(uint32_t ms)
     }
     if (usePulseCommand)
     {
-        SendPulseCmd(LX200_EAST, ms);
+        APSendPulseCmd(PortFD, LX200_EAST, ms);
         GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
 
@@ -1121,7 +1263,7 @@ IPState LX200AstroPhysicsV2::GuideWest(uint32_t ms)
     }
     if (usePulseCommand)
     {
-        SendPulseCmd(LX200_WEST, ms);
+        APSendPulseCmd(PortFD, LX200_WEST, ms);
         GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
 
@@ -1812,7 +1954,7 @@ bool LX200AstroPhysicsV2::SetDefaultPark()
 
 void LX200AstroPhysicsV2::syncSideOfPier()
 {
-    const char *cmd = ":pS#";
+    const char *cmd = "#:pS#";
     // Response
     char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;

@@ -147,27 +147,31 @@ class LX200AstroPhysicsV2 : public LX200Generic
         ISwitchVectorProperty ManualSetParkedSP;
         ISwitch ManualSetParkedS[1];
 
+        INumber APWormPositionN[1];
+        INumberVectorProperty APWormPositionNP;
+
+        IText APPECStateT[1] {};
+        ITextVectorProperty APPECStateTP;
+
+        ISwitchVectorProperty APPECRecordSP;
+        ISwitch APPECRecordS[2];
+
     private:
         bool ApInitialize();
         bool updateAPLocation(double latitude, double longitude, double elevation);
         bool parkInternal();
         bool isAPReady();
 
-#ifdef no
-        bool initMount();
-#endif
-
         // Side of pier
         void syncSideOfPier();
-#ifdef no
-        bool IsMountInitialized(bool *initialized);
-#endif
+
         bool IsMountParked(bool *isParked);
         bool getFirmwareVersion(void);
         bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
         void disclaimerMessage(void);
+        bool getWormPosition(void);
+        bool getPECState(void);
 
-        //bool timeUpdated=false, locationUpdated=false;
         ControllerVersion firmwareVersion = MCV_UNKNOWN;
         ServoVersion servoType = GTOCP_UNKNOWN;
 
@@ -175,11 +179,6 @@ class LX200AstroPhysicsV2 : public LX200Generic
         double lastRA = 0, lastDE = 0;
         double lastAZ = 0, lastAL = 0;
 
-        //int GuideNSTID;
-        //int GuideWETID;
-
-        //bool motionCommanded=false; // 2020-05-24, wildi, never reset
-        //bool mountInitialized=false;
         int rememberSlewRate = { -1 };
 
         bool apIsInitialized = false;
