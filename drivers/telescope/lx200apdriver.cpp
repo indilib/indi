@@ -447,7 +447,7 @@ int getAPWormPosition(int fd, int *position)
     }
 
     tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 2)
+    if (nbytes_read > 1)
     {
         response[nbytes_read - 1] = '\0';
         response[3] = '\0';
