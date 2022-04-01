@@ -70,6 +70,7 @@ int check_lx200ap_connection(int fd)
     }
     for (i = 0; i < 2; i++)
     {
+        // This is the command to get the UTC offset. Used as a connection test.
         if ((error_type = tty_write_string(fd, "#:GG#", &nbytes_write)) != TTY_OK)
         {
             DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
@@ -107,9 +108,10 @@ int getAPUTCOffset(int fd, double *value)
     temp_string[0] = 0;
     temp_string[1] = 0;
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:GG#");
+    const char *cmd = "#:GG#";
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    if ((error_type = tty_write_string(fd, "#:GG#", &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
     if ((error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -229,7 +231,7 @@ int getAPUTCOffset(int fd, double *value)
 int setAPObjectAZ(int fd, double az)
 {
     int h, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     // The azimuth should be 0-360.
     while (az < 0) az += 360.0;
@@ -237,11 +239,11 @@ int setAPObjectAZ(int fd, double az)
 
     getSexComponents(az, &h, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), "#:Sz %03d*%02d:%02d#", h, m, s);
+    snprintf(cmd, sizeof(cmd), "#:Sz %03d*%02d:%02d#", h, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 /* wildi Valid set Values are positive, add error condition */
@@ -249,16 +251,16 @@ int setAPObjectAZ(int fd, double az)
 int setAPObjectAlt(int fd, double alt)
 {
     int d, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     getSexComponents(alt, &d, &m, &s);
     if (d < 0) d = -d;
-    snprintf(temp_string, sizeof(temp_string), "#:Sa %s%02d*%02d:%02d#",
+    snprintf(cmd, sizeof(cmd), "#:Sa %s%02d*%02d:%02d#",
              alt >= 0 ? "+" : "-", d, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 // Set the UTC offset.
@@ -268,16 +270,16 @@ int setAPUTCOffset(int fd, double hours)
 {
     int h, m, s;
 
-    char temp_string[256];
+    char cmd[256];
 
     getSexComponents(hours, &h, &m, &s);
     if (h < 0) h = -h;
-    snprintf(temp_string, sizeof(temp_string), "#:SG %s%02d:%02d:%02d#",
+    snprintf(cmd, sizeof(cmd), "#:SG %s%02d:%02d:%02d#",
              hours >= 0 ? "+" : "-", h, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 int APSyncCM(int fd, char *matchedObject)
 {
@@ -286,9 +288,10 @@ int APSyncCM(int fd, char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:CM#");
+    const char *cmd = "#:CM#";
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    if ((error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
     if ((error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -313,9 +316,10 @@ int APSyncCMR(int fd, char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:CMR#");
+    const char *cmd = "#:CMR#";
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    if ((error_type = tty_write_string(fd, "#:CMR#", &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
     /* read_ret = portRead(matchedObject, -1, LX200_TIMEOUT); */
@@ -334,260 +338,209 @@ int APSyncCMR(int fd, char *matchedObject)
     return 0;
 }
 
-int selectAPPECState(int fd, int pecstate)
+
+int sendAPCommand(int fd, const char *cmd, const char *comment)
 {
     int error_type;
     int nbytes_write = 0;
 
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, comment);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    return 0;
+}
+
+int selectAPPECState(int fd, int pecstate)
+{
     switch (pecstate)
     {
-        // PEC OFF
-        case 0:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC OFF");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:p#");
-
-            if ((error_type = tty_write_string(fd, "#:p#", &nbytes_write)) != TTY_OK)
-                return error_type;
-
-            break;
-
-        // PEC ON
-        case 1:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC ON");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:pP#");
-
-            if ((error_type = tty_write_string(fd, "#:pP#", &nbytes_write)) != TTY_OK)
-                return error_type;
-
-            break;
-
+        case AP_PEC_OFF:
+            return sendAPCommand(fd, "#:p#", "selectAPPECState: Setting PEC OFF");
+        case AP_PEC_ON:
+            return sendAPCommand(fd, "#:pP#", "selectAPPECState: Setting PEC ON");
+        case AP_PEC_RECORD:
+            return sendAPCommand(fd, "#:pR#", "selectAPPECState: Enabling PEC RECORD");
         default:
             return -1;
-            break;
     }
 
     return 0;
 }
 
+int getAPPECState(int fd, int *pecState)
+{
+    int nbytes_read  = 0;
+    char response[128];
+
+    int res = sendAPCommand(fd, "#:pG#", "getApPECState");
+    if (res != TTY_OK)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: write failed.");
+        return res;
+    }
+
+    res = tty_read_section(fd, response, '#', LX200_TIMEOUT, &nbytes_read);
+    if (res != TTY_OK)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: read failed.");
+        return res;
+    }
+
+    tcflush(fd, TCIFLUSH);
+    if (nbytes_read > 2)
+    {
+        response[nbytes_read - 1] = '\0';
+
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getAPPECState: response: %s", response);
+        if (!strncmp(response, "OFF", 3))
+        {
+            *pecState = AP_PEC_OFF;
+            return TTY_OK;
+        }
+        else if (!strncmp(response, "PLAYBACK", 8))
+        {
+            *pecState = AP_PEC_ON;
+            return TTY_OK;
+        }
+        else if (!strncmp(response, "RECORD", 6))
+        {
+            *pecState = AP_PEC_RECORD;
+            return TTY_OK;
+        }
+        else if (!strncmp(response, "ENCODER", 7))
+        {
+            *pecState = AP_PEC_ENCODER;
+            return TTY_OK;
+        }
+        else
+        {
+            DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: bad response: %s", response);
+            // fall through
+        }
+    }
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: wrote, but bad response.");
+    return -1;
+}
+
+// Should return a number between 0 and 969 inclusive.
+// It is a "normalized worm position", normalized to the number of PEM datapoints per revolution.
+// It is based on the gear angle and remembered through a power cycle.
+int getAPWormPosition(int fd, int *position)
+{
+    int nbytes_read  = 0;
+    char response[128];
+
+    int res = sendAPCommand(fd, "#:Gp#", "getAWormPosition");
+    if (res != TTY_OK)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPWormPosition: write failed.");
+        return res;
+    }
+
+    res = tty_read_section(fd, response, '#', LX200_TIMEOUT, &nbytes_read);
+    if (res != TTY_OK)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPWormPosition: read failed.");
+        return res;
+    }
+
+    tcflush(fd, TCIFLUSH);
+    if (nbytes_read > 1)
+    {
+        response[nbytes_read - 1] = '\0';
+        response[3] = '\0';
+        sscanf(response, "%d", position);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getAPWormPosition: response: %d", *position);
+        return TTY_OK;
+    }
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPWormPosition: wrote, but bad response.");
+    return -1;
+}
+
 int selectAPMoveToRate(int fd, int moveToRate)
 {
-    int error_type;
-    int nbytes_write = 0;
-
     switch (moveToRate)
     {
-        /* 12x*/
         case 0:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC0#");
-
-            if ((error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 64x */
+            return sendAPCommand(fd, "#:RC0#", "selectAPMoveToRate: Setting move to rate to 12x");
         case 1:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC1#");
-
-            if ((error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 600x */
+            return sendAPCommand(fd, "#:RC1#", "selectAPMoveToRate: Setting move to rate to 64x");
         case 2:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC2#");
-            if ((error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 1200x */
+            return sendAPCommand(fd, "#:RC2#", "selectAPMoveToRate: Setting move to rate to 600x");
         case 3:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC3#");
-
-            if ((error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RC3#", "selectAPMoveToRate: Setting move to rate to 1200x");
         default:
             return -1;
-            break;
     }
     return 0;
 }
 
 int selectAPSlewRate(int fd, int slewRate)
 {
-    int error_type;
-    int nbytes_write = 0;
     switch (slewRate)
     {
-        /* 600x */
         case 0:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 600x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS0#");
-
-            if ((error_type = tty_write_string(fd, "#:RS0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 900x */
+            return sendAPCommand(fd, "#:RS0#", "selectAPSlewRate: Setting slew to rate to 600x");
         case 1:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 900x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS1#");
-
-            if ((error_type = tty_write_string(fd, "#:RS1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-
-        /* 1200x */
+            return sendAPCommand(fd, "#:RS1#", "selectAPSlewRate: Setting slew to rate to 900x");
         case 2:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 1200x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS2#");
-
-            if ((error_type = tty_write_string(fd, "#:RS2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RS2#", "selectAPSlewRate: Setting slew to rate to 1200x");
         default:
             return -1;
-            break;
     }
     return 0;
 }
 
 int selectAPTrackingMode(int fd, int trackMode)
 {
-    int error_type;
-    int nbytes_write = 0;
-
     switch (trackMode)
     {
-        /* Sidereal */
         case AP_TRACKING_SIDEREAL:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
-                        "selectAPTrackingMode: Setting tracking mode to sidereal.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT2#");
-
-            if ((error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* Solar */
+            return sendAPCommand(fd, "#:RT2#", "selectAPTrackingMode: Setting tracking mode to sidereal.");
         case AP_TRACKING_SOLAR:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT1#");
-
-            if ((error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* Lunar */
+            return sendAPCommand(fd, "#:RT1#", "selectAPTrackingMode: Setting tracking mode to solar.");
         case AP_TRACKING_LUNAR:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT0#");
-
-            if ((error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RT0#", "selectAPTrackingMode: Setting tracking mode to lunar.");
         case AP_TRACKING_CUSTOM:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Custom.");
+            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
+                        "selectAPTrackingMode: Setting tracking mode to Custom -- NOT IMPLEMENTED!.");
             break;
-
-        /* Zero */
         case AP_TRACKING_OFF:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT9#");
-
-            if ((error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RT9#", "selectAPTrackingMode: Setting tracking mode to Zero.");
         default:
             return -1;
-            break;
     }
     return 0;
 }
 
 int selectAPGuideRate(int fd, int guideRate)
 {
-    int error_type;
-    int nbytes_write = 0;
     switch (guideRate)
     {
-        /* 0.25x */
         case 0:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 0.25x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG0#");
-
-            if ((error_type = tty_write_string(fd, "#:RG0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 0.50x */
+            return sendAPCommand(fd, "#:RG0#", "selectAPGuideRate: Setting guide to rate to 0.25x");
         case 1:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 0.50x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG1#");
-
-            if ((error_type = tty_write_string(fd, "#:RG1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-
-        /* 1.00x */
+            return sendAPCommand(fd, "#:RG1#", "selectAPGuideRate: Setting guide to rate to 0.50x");
         case 2:
-
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 1.00x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG2#");
-
-            if ((error_type = tty_write_string(fd, "#:RG2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RG2#", "selectAPGuideRate: Setting guide to rate to 1.00x");
         default:
             return -1;
-            break;
     }
     return 0;
 }
 
 int swapAPButtons(int fd, int currentSwap)
 {
-    int error_type;
-    int nbytes_write = 0;
-
     switch (currentSwap)
     {
         case 0:
-
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:NS#");
-            if ((error_type = tty_write_string(fd, "#:NS#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:NS#", "swapAPButtons: Swapping NS.");
         case 1:
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:EW#");
-            if ((error_type = tty_write_string(fd, "#:EW#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:EW#", "swapAPButtons: Swapping EW.");
         default:
             return -1;
-            break;
     }
     return 0;
 }
@@ -596,7 +549,7 @@ int setAPObjectRA(int fd, double ra)
 {
     /*ToDo AP accepts "#:Sr %02d:%02d:%02d.%1d#"*/
     int h, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     // Make sure RA is 0-24.
     while (ra < 0) ra += 24.0;
@@ -604,60 +557,60 @@ int setAPObjectRA(int fd, double ra)
 
     getSexComponents(ra, &h, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), "#:Sr %02d:%02d:%02d#", h, m, s);
+    snprintf(cmd, sizeof(cmd), "#:Sr %02d:%02d:%02d#", h, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 int setAPObjectDEC(int fd, double dec)
 {
     int d, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     getSexComponents(dec, &d, &m, &s);
     if (d < 0) d = -d;
-    snprintf(temp_string, sizeof(temp_string), "#:Sd %s%02d*%02d:%02d#",
+    snprintf(cmd, sizeof(cmd), "#:Sd %s%02d*%02d:%02d#",
              dec >= 0 ? "+" : "-", d, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 // Set the longitude.
 int setAPSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     // Make sure longitude is 0-360.
     while (Long < 0) Long += 360.0;
     while (Long > 360.0) Long -= 360.0;
 
     getSexComponents(Long, &d, &m, &s);
-    snprintf(temp_string, sizeof(temp_string), "#:Sg %03d*%02d:%02d#", d, m, s);
+    snprintf(cmd, sizeof(cmd), "#:Sg %03d*%02d:%02d#", d, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 // Set the latitude.
 int setAPSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
-    char temp_string[256];
+    char cmd[256];
 
     getSexComponents(Lat, &d, &m, &s);
     if (d < 0) d = -d;
-    snprintf(temp_string, sizeof(temp_string), "#:St %s%02d*%02d:%02d#",
+    snprintf(cmd, sizeof(cmd), "#:St %s%02d*%02d:%02d#",
              Lat >= 0 ? "+" : "-", d, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
 
-    return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, cmd));
 }
 
 int setAPRATrackRate(int fd, double rate)
@@ -675,7 +628,7 @@ int setAPRATrackRate(int fd, double rate)
     else
         sign = '+';
 
-    snprintf(cmd, 16, ":RR%c%03.4f#", sign, fabs(rate));
+    snprintf(cmd, 16, "#:RR%c%03.4f#", sign, fabs(rate));
 
     DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -723,7 +676,7 @@ int setAPDETrackRate(int fd, double rate)
     else
         sign = '+';
 
-    snprintf(cmd, 16, ":RD%c%03.4f#", sign, fabs(rate));
+    snprintf(cmd, 16, "#:RD%c%03.4f#", sign, fabs(rate));
 
     DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -759,8 +712,6 @@ int setAPDETrackRate(int fd, double rate)
 
 int APSendPulseCmd(int fd, int direction, int duration_msec)
 {
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "<%s>", __FUNCTION__);
-    int nbytes_write = 0;
     char cmd[20];
 
     // GTOCP3 supports 3 digits for msec duration
@@ -773,57 +724,35 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     switch (direction)
     {
         case LX200_NORTH:
-            sprintf(cmd, ":Mn%03d#", duration_msec);
+            sprintf(cmd, "#:Mn%03d#", duration_msec);
             break;
         case LX200_SOUTH:
-            sprintf(cmd, ":Ms%03d#", duration_msec);
+            sprintf(cmd, "#:Ms%03d#", duration_msec);
             break;
         case LX200_EAST:
-            sprintf(cmd, ":Me%03d#", duration_msec);
+            sprintf(cmd, "#:Me%03d#", duration_msec);
             break;
         case LX200_WEST:
-            sprintf(cmd, ":Mw%03d#", duration_msec);
+            sprintf(cmd, "#:Mw%03d#", duration_msec);
             break;
         default:
             return 1;
     }
 
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
-
-    tty_write_string(fd, cmd, &nbytes_write);
-
+    int res = sendAPCommand(fd, cmd, "APSendPulseCmd: Sending pulse command.");
     tcflush(fd, TCIFLUSH);
-    return 0;
+    return res;
 }
 
-// make this a function with logging instead of a #define like in legacy driver
 int APParkMount(int fd)
 {
-    int error_type;
-    int nbytes_write = 0;
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "APParkMount: Sending park command.");
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:KA");
-
-    if ((error_type = tty_write_string(fd, "#:KA", &nbytes_write)) != TTY_OK)
-        return error_type;
-
-    return 0;
+    return sendAPCommand(fd, "#:KA#", "APParkMount: Sending park command.");
 }
 
-// make this a function with logging instead of a #define like in legacy driver
+
 int APUnParkMount(int fd)
 {
-    int error_type;
-    int nbytes_write = 0;
-
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "APUnParkMount: Sending unpark command.");
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:PO");
-
-    if ((error_type = tty_write_string(fd, "#:PO", &nbytes_write)) != TTY_OK)
-        return error_type;
-
-    return 0;
+    return sendAPCommand(fd, "#:PO#", "APUnParkMount: Sending unpark command.");
 }
 
 // This is a modified version of selectAPMoveRate() from lx200apdriver.cpp
@@ -833,58 +762,20 @@ int APUnParkMount(int fd)
 // to GUIDE and then starting and halting a move of the correct duration.
 int selectAPCenterRate(int fd, int centerRate)
 {
-    int error_type;
-    int nbytes_write = 0;
-
     switch (centerRate)
     {
-        /* Guide */
         case 0:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to GUIDE");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG#");
-
-            if ((error_type = tty_write_string(fd, "#:RG#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 12x */
+            return sendAPCommand(fd, "#:RG#", "selectAPMoveToRate: Setting move to rate to GUIDE");
         case 1:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC0#");
-
-            if ((error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 64x */
+            return sendAPCommand(fd, "#:RC0#", "selectAPMoveToRate: Setting move to rate to 12x");
         case 2:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC1#");
-
-            if ((error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 600x */
+            return sendAPCommand(fd, "#:RC1#", "selectAPMoveToRate: Setting move to rate to 64x");
         case 3:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC2#");
-            if ((error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
-        /* 1200x */
+            return sendAPCommand(fd, "#:RC2#", "selectAPMoveToRate: Setting move to rate to 600x");
         case 4:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC3#");
-
-            if ((error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-
+            return sendAPCommand(fd, "#:RC3#", "selectAPMoveToRate: Setting move to rate to 1200x");
         default:
             return -1;
-            break;
     }
     return 0;
 }
@@ -934,7 +825,6 @@ int selectAPCenterRate(int fd, int centerRate)
 
 int getApStatusStringInternal(int fd, char *statusString, bool complain)
 {
-    int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
@@ -942,17 +832,17 @@ int getApStatusStringInternal(int fd, char *statusString, bool complain)
     {
         if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
                                       "getApStatusString: not a valid file descriptor received");
-
         return -1;
     }
 
-    if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
+    int res = sendAPCommand(fd, "#:GOS#", "getApStatusString");
+    if (res != TTY_OK)
     {
         if (complain) DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
                                        "getApStatusString: unsuccessful write to telescope, %d", nbytes_write);
-
-        return error_type;
+        return res;
     }
+
     tty_read_section(fd, statusString, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     if (nbytes_read > 3)
@@ -992,12 +882,12 @@ int getApStatusString(int fd, char *statusString)
 
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
-    char temp_string[256];
-    int res = getApStatusString(fd, temp_string);
+    char status_string[256];
+    int res = getApStatusString(fd, status_string);
     if (res != TTY_OK) return res;
 
-    *parkStatus = temp_string[0];
-    *slewStatus = temp_string[3];
+    *parkStatus = status_string[0];
+    *slewStatus = status_string[3];
     return TTY_OK;
 }
 
@@ -1055,44 +945,5 @@ int isAPInitialized(int fd, bool *isInitialized)
         *isInitialized = true; // Should I test further????
 
     tcflush(fd, TCIFLUSH);
-    return 0;
-}
-
-// guessing how to get the hour angle.
-// It does seem to work.
-#define HA_COMMAND "#:GH#"
-int getAPHourAngle(int fd, double *value)
-{
-    int error_type;
-    int nbytes_write = 0;
-    int nbytes_read  = 0;
-
-    char temp_string[256];
-    temp_string[0] = 0;
-    temp_string[1] = 0;
-
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", HA_COMMAND);
-
-    if ((error_type = tty_write_string(fd, HA_COMMAND, &nbytes_write)) != TTY_OK)
-        return error_type;
-
-    if ((error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPHourAngle: saying good bye %d, %d", error_type,
-                     nbytes_read);
-        return error_type;
-    }
-
-    tcflush(fd, TCIFLUSH);
-
-    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", temp_string);
-
-    temp_string[nbytes_read - 1] = '\0';
-    if (f_scansexa(temp_string, value))
-    {
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: unable to process %s", temp_string);
-        return -1;
-    }
-
     return 0;
 }
