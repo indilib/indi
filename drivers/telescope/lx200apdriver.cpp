@@ -369,60 +369,6 @@ int selectAPPECState(int fd, int pecstate)
     return 0;
 }
 
-int getAPPECState(int fd, int *pecState)
-{
-    int nbytes_read  = 0;
-    char response[128];
-
-    int res = sendAPCommand(fd, "#:pG#", "getApPECState");
-    if (res != TTY_OK)
-    {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: write failed.");
-        return res;
-    }
-
-    res = tty_read_section(fd, response, '#', LX200_TIMEOUT, &nbytes_read);
-    if (res != TTY_OK)
-    {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: read failed.");
-        return res;
-    }
-
-    tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 2)
-    {
-        response[nbytes_read - 1] = '\0';
-
-        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getAPPECState: response: %s", response);
-        if (!strncmp(response, "OFF", 3))
-        {
-            *pecState = AP_PEC_OFF;
-            return TTY_OK;
-        }
-        else if (!strncmp(response, "PLAYBACK", 8))
-        {
-            *pecState = AP_PEC_ON;
-            return TTY_OK;
-        }
-        else if (!strncmp(response, "RECORD", 6))
-        {
-            *pecState = AP_PEC_RECORD;
-            return TTY_OK;
-        }
-        else if (!strncmp(response, "ENCODER", 7))
-        {
-            *pecState = AP_PEC_ENCODER;
-            return TTY_OK;
-        }
-        else
-        {
-            DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: bad response: %s", response);
-            // fall through
-        }
-    }
-    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPPECState: wrote, but bad response.");
-    return -1;
-}
 
 // Should return a number between 0 and 969 inclusive.
 // It is a "normalized worm position", normalized to the number of PEM datapoints per revolution.
@@ -891,12 +837,53 @@ int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
     return TTY_OK;
 }
 
-bool apStatusParked(char *statusString)
+// See above for the full list.
+// K: Mount Status                       '0'=Normal, '1'=Stalled, '2'=Low Power Supply,
+//                                       '4'=Servo fault / number problem, '8'=Reserved  (CP3 only)
+// K: Mount Status                       '0'=Normal 'Z'=Stalled, 'Y'=Low Power Supply, 'X'=Servo fault / number problem,
+//    VCP4-P02-01 and later              'N'=CCW Internal Declination Limit or AE Limit, 'S'=CW Internal Declination Limit or AE Limit,
+//                                       'E'=East Internal RA Limit or AE Limit, 'W'=West Internal RA Limit or AE Limit,
+//                                       'z'=Kill Function has been issued
+const char *apMountStatus(const char *statusString)
+{
+    if (strlen(statusString) < 11)
+        return "????";
+    const char statusChar = statusString[10];
+    switch (statusChar)
+    {
+        case '0':
+            return "Normal";
+        case '1':
+        case 'Z':
+            return "Stalled";
+        case '2':
+        case 'Y':
+            return "Low Power Supply";
+        case '4':
+        case 'X':
+            return "Servo Fault";
+        case 'N':
+            return "CCW DEC or AE Limit";
+        case 'S':
+            return "CW DEC or AE Limit";
+        case 'E':
+            return "East RA or AE Limit";
+        case 'W':
+            return "West RA or AE Limit";
+        case 'z':
+            return "Kill Function issued";
+        case '8':
+        default:
+            return "";
+    }
+}
+
+bool apStatusParked(const char *statusString)
 {
     return statusString[0] == 'P';
 }
 
-bool apStatusSlewing(char *statusString)
+bool apStatusSlewing(const char *statusString)
 {
     return statusString[3] !=  '0';
 }

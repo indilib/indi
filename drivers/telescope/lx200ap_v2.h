@@ -153,6 +153,9 @@ class LX200AstroPhysicsV2 : public LX200Generic
         IText APPECStateT[1] {};
         ITextVectorProperty APPECStateTP;
 
+        IText APMountStatusT[1] {};
+        ITextVectorProperty APMountStatusTP;
+
         ISwitchVectorProperty APPECRecordSP;
         ISwitch APPECRecordS[2];
 
@@ -170,7 +173,8 @@ class LX200AstroPhysicsV2 : public LX200Generic
         bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
         void disclaimerMessage(void);
         bool getWormPosition(void);
-        bool getPECState(void);
+        bool getPECState(const char *statusString);
+        void processMountStatus(const char *statusString);
 
         ControllerVersion firmwareVersion = MCV_UNKNOWN;
         ServoVersion servoType = GTOCP_UNKNOWN;
