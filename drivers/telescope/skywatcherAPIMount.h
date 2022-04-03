@@ -18,6 +18,7 @@
 #include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
 #include "indielapsedtimer.h"
+#include "indipropertynumber.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -200,6 +201,8 @@ class SkywatcherAPIMount :
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
+        INDI::PropertyNumber TrackFactorNP {2};
+
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Private Variables
@@ -215,8 +218,6 @@ class SkywatcherAPIMount :
         INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
-        double m_AzimuthRateScale {1.0};
-        double m_AltitudeRateScale {1.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;

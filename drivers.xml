@@ -243,7 +243,7 @@
         </device>
         <device label="Skywatcher Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.3</version>
+            <version>1.6</version>
         </device>
         <device label="Star Adventurer" manufacturer="SkyWatcher">
             <driver name="Telescope Simulator">indi_simulator_telescope</driver>
@@ -251,7 +251,7 @@
         </device>
         <device label="AZ-GTi Alt-Az WiFi" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.3</version>
+            <version>1.6</version>
         </device>
         <device label="Skywatcher Alt-Az Wedge" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>

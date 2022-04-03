@@ -59,7 +59,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
                            TELESCOPE_CAN_CONTROL_TRACK,
                            SLEWMODES);
 
-    setVersion(1, 5);
+    setVersion(1, 6);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ bool SkywatcherAPIMount::initProperties()
     for (int i = 0; i < SlewRateSP.nsp; ++i)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP.sp[i].aux = (void *)&SlewSpeeds[i];
+        SlewRateSP.sp[i].aux = &SlewSpeeds[i];
     }
     strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
 
@@ -211,6 +211,11 @@ bool SkywatcherAPIMount::initProperties()
     IUFillNumberVector(&GuidingRatesNP, GuidingRatesN, 2, getDeviceName(), "GUIDE_RATES", "Guide Rates", MOTION_TAB,
                        IP_RW, 60, IPS_IDLE);
 
+    // Tracking Factor
+    TrackFactorNP[AXIS_AZ].fill("AXIS_AZ", "Azimuth", "%.2f", 0.1, 5, 0.1, 1);
+    TrackFactorNP[AXIS_ALT].fill("AXIS_ALT", "Altitude", "%.2f", 0.1, 5, 0.1, 1);
+    TrackFactorNP.fill(getDeviceName(), "TRACK_FACTOR", "Track Factor", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(11880);
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
@@ -274,6 +279,15 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             GuidingRatesNP.s = IPS_OK;
             IUUpdateNumber(&GuidingRatesNP, values, names, n);
             IDSetNumber(&GuidingRatesNP, nullptr);
+            return true;
+        }
+
+        if (TrackFactorNP.isNameMatch(name))
+        {
+            TrackFactorNP.update(values, names, n);
+            TrackFactorNP.setState(IPS_OK);
+            TrackFactorNP.apply();
+            saveConfig(true, TrackFactorNP.getName());
             return true;
         }
 
@@ -499,9 +513,7 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
 double SkywatcherAPIMount::GetSlewRate()
 {
     ISwitch *Switch = IUFindOnSwitch(&SlewRateSP);
-    double Rate     = *((double *)Switch->aux);
-
-    return Rate;
+    return *(static_cast<double *>(Switch->aux));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -509,8 +521,6 @@ double SkywatcherAPIMount::GetSlewRate()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveNS");
-
     double speed =
         (dir == DIRECTION_NORTH) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
@@ -538,8 +548,6 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
-
     double speed =
         (dir == DIRECTION_WEST) ? -GetSlewRate() * LOW_SPEED_MARGIN / 2 : GetSlewRate() * LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
@@ -567,7 +575,6 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool SkywatcherAPIMount::Park()
 {
-    //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Park");
     // Move the telescope to the desired position
     long AltitudeOffsetMicrosteps = GetAxis2Park() - CurrentEncoders[AXIS2];
     long AzimuthOffsetMicrosteps  = GetAxis1Park() - CurrentEncoders[AXIS1];
@@ -766,6 +773,8 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 {
     SaveAlignmentConfigProperties(fp);
 
+    IUSaveConfigNumber(fp, &TrackFactorNP);
+
     return INDI::Telescope::saveConfigItems(fp);
 }
 
@@ -788,12 +797,11 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     {
         INDI::IHorizontalCoordinates AltAz { 0, 0 };
         TelescopeDirectionVector TDV;
-        double OrigAlt = 0;
 
         if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
         {
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-            OrigAlt = AltAz.altitude;
+            double OrigAlt = AltAz.altitude;
             ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1] - DegreesToMicrosteps(AXIS1, AltAz.azimuth);
             ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2] - DegreesToMicrosteps(AXIS2, AltAz.altitude);
             LOGF_INFO("Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.azimuth);
@@ -1025,7 +1033,7 @@ void SkywatcherAPIMount::TimerHit()
                     else
                     {
                         char Direction = AzimuthRate > 0 ? '0' : '1';
-                        AzimuthRate    = std::abs(AzimuthRate) * m_AzimuthRateScale;
+                        AzimuthRate    = std::abs(AzimuthRate) * TrackFactorNP[AXIS_AZ].getValue();
                         SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
                         if (AxesStatus[AXIS1].FullStop)
                         {
@@ -1065,7 +1073,7 @@ void SkywatcherAPIMount::TimerHit()
                     else
                     {
                         char Direction = AltitudeRate > 0 ? '0' : '1';
-                        AltitudeRate   = std::abs(AltitudeRate) * m_AltitudeRateScale;
+                        AltitudeRate   = std::abs(AltitudeRate) * TrackFactorNP[AXIS_ALT].getValue();
                         SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
                         if (AxesStatus[AXIS2].FullStop)
                         {
@@ -1091,8 +1099,6 @@ void SkywatcherAPIMount::TimerHit()
                 OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
                 OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             }
-
-            break;
         }
         break;
 
@@ -1149,6 +1155,7 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuidingRatesNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
+        defineProperty(&TrackFactorNP);
 
         if (InitPark())
         {
@@ -1190,6 +1197,7 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(GuidingRatesNP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
+        deleteProperty(TrackFactorNP.getName());
 
         return true;
     }
@@ -1205,8 +1213,8 @@ IPState SkywatcherAPIMount::GuideNorth(uint32_t ms)
     CalculateGuidePulses();
     Pulse.DeltaAz = NorthPulse.DeltaAz;
     Pulse.DeltaAlt = NorthPulse.DeltaAlt;
-    Pulse.Duration = (int)ms;
-    Pulse.OriginalDuration = (int)ms;
+    Pulse.Duration = ms;
+    Pulse.OriginalDuration = ms;
     GuidingPulses.push_back(Pulse);
     return IPS_OK;
 }
@@ -1221,8 +1229,8 @@ IPState SkywatcherAPIMount::GuideSouth(uint32_t ms)
     CalculateGuidePulses();
     Pulse.DeltaAz = -NorthPulse.DeltaAz;
     Pulse.DeltaAlt = -NorthPulse.DeltaAlt;
-    Pulse.Duration = (int)ms;
-    Pulse.OriginalDuration = (int)ms;
+    Pulse.Duration = ms;
+    Pulse.OriginalDuration = ms;
     GuidingPulses.push_back(Pulse);
     return IPS_OK;
 }
@@ -1237,8 +1245,8 @@ IPState SkywatcherAPIMount::GuideWest(uint32_t ms)
     CalculateGuidePulses();
     Pulse.DeltaAz = WestPulse.DeltaAz;
     Pulse.DeltaAlt = WestPulse.DeltaAlt;
-    Pulse.Duration = (int)ms;
-    Pulse.OriginalDuration = (int)ms;
+    Pulse.Duration = ms;
+    Pulse.OriginalDuration = ms;
     GuidingPulses.push_back(Pulse);
     return IPS_OK;
 }
@@ -1253,8 +1261,8 @@ IPState SkywatcherAPIMount::GuideEast(uint32_t ms)
     CalculateGuidePulses();
     Pulse.DeltaAz = -WestPulse.DeltaAz;
     Pulse.DeltaAlt = -WestPulse.DeltaAlt;
-    Pulse.Duration = (int)ms;
-    Pulse.OriginalDuration = (int)ms;
+    Pulse.Duration = ms;
+    Pulse.OriginalDuration = ms;
     GuidingPulses.push_back(Pulse);
     return IPS_OK;
 }
@@ -1269,14 +1277,14 @@ void SkywatcherAPIMount::CalculateGuidePulses()
 
     // Calculate the west reference delta
     // Note: The RA is multiplied by 3.75 (90/24) to be more comparable with DEC values.
-    const double WestRate = IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value / 10 * -(double)1 / 60 / 60 * 3.75 / 100;
+    const double WestRate = IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value / 10 * -1.0 / 60 / 60 * 3.75 / 100;
 
     ConvertGuideCorrection(WestRate, 0, WestPulse.DeltaAlt, WestPulse.DeltaAz);
     WestPulse.Duration = 1;
 
     // Calculate the north reference delta
     // Note: By some reason, it must be multiplied by 100 to match with the RA values.
-    const double NorthRate = IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value / 10 * (double)1 / 60 / 60 * 100 / 100;
+    const double NorthRate = IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value / 10 * 1.0 / 60 / 60 * 100 / 100;
 
     ConvertGuideCorrection(0, NorthRate, NorthPulse.DeltaAlt, NorthPulse.DeltaAz);
     NorthPulse.Duration = 1;
