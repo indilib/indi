@@ -1314,6 +1314,10 @@ bool LX200Telescope::sendScopeTime()
     char ctime[MAXINDINAME] = {0};
     struct tm ltm;
     struct tm utm;
+    
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
+    
     time_t time_epoch;
 
     double offset = 0;
@@ -1352,6 +1356,7 @@ bool LX200Telescope::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 

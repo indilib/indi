@@ -19,11 +19,11 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.15</version>
+            <version>1.16</version>
         </device>
         <device label="LX200 TeenAstro" manufacturer="TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
@@ -211,7 +211,7 @@
         </device>
         <device label="iOptron HC8406" manufacturer="iOptron">
             <driver name="iOptron HC8406">indi_ioptronHC8406</driver>
-            <version>1.1</version>
+            <version>1.3</version>
         </device>
         <device label="iOptron v3" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
@@ -227,7 +227,7 @@
         </device>
         <device label="Pulsar2" manufacturer="GTD">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
-            <version>1.0</version>
+            <version>1.3</version>
         </device>
         <device label="SkyCommander" manufacturer="DIY">
             <driver name="SkyCommander">indi_skycommander_telescope</driver>

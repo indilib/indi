@@ -33,7 +33,7 @@ static std::unique_ptr<Rainbow> scope(new Rainbow());
 
 Rainbow::Rainbow() : INDI::Telescope ()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     SetTelescopeCapability(TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_SYNC |
@@ -1515,6 +1515,10 @@ bool Rainbow::sendScopeTime()
     char ctime[MAXINDINAME] = {0};
     struct tm ltm;
     struct tm utm;
+    
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
+
     time_t time_epoch;
 
     double offset = 0;
@@ -1553,6 +1557,7 @@ bool Rainbow::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
