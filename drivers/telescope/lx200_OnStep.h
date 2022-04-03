@@ -25,6 +25,8 @@
     ===========================================
     
     Version not yet updated/No INDI release:
+    Version 1.16
+    - fixed uninitialized UTC structure thanks to Norikyu
     Version 1.15
     - Fixed setUTCOffset after change in lx200driver to comply with OnStep format :SG[sHH]#
     Version 1.14

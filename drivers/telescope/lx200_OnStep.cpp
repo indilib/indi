@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 15);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 16);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -4749,6 +4749,8 @@ bool LX200_OnStep::sendScopeTime()
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
 
     double offset = 0;
     if (getUTFOffset(&offset))
@@ -4786,6 +4788,7 @@ bool LX200_OnStep::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 

@@ -512,6 +512,7 @@ static time_t timestampINDI(char *ts)
     {
         tm.tm_mon -= 1;     /* want 0..11 */
         tm.tm_year -= 1900; /* want years since 1900 */
+        tm.tm_isdst = 0;
         return (mktime(&tm));
     }
     else
