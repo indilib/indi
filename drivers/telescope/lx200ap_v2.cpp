@@ -418,16 +418,18 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
     IUSaveText(&VersionT[0], versionString);
     IDSetText(&VersionTP, nullptr);
 
-    // Check controller version
-    // example "VCP4-P01-01" for CP4 or newer
-    //         single or double letter like "T" or "V1" for CP3 and older
-
-    // CP4
-    // 2020-06-02, wildi, ToDo unify all versions
     if (strstr(versionString, "VCP4"))
     {
         firmwareVersion = MCV_V;
         servoType = GTOCP4;
+        strcpy(rev, "V");
+        success = true;
+    }
+    else if (strstr(versionString, "VCP5"))
+
+    {
+        firmwareVersion = MCV_V;
+        servoType = GTOCP5;
         strcpy(rev, "V");
         success = true;
     }

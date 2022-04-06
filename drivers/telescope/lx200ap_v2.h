@@ -43,7 +43,7 @@ class LX200AstroPhysicsV2 : public LX200Generic
                        MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
                        MCV_T, MCV_U, MCV_V, MCV_UNKNOWN
                      } ControllerVersion;
-        typedef enum { GTOCP1 = 1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
+        typedef enum { GTOCP1 = 1, GTOCP2, GTOCP3, GTOCP4, GTOCP5, GTOCP_UNKNOWN} ServoVersion;
         // This is shared by ParkFrom and ParkTo, and should be coordinated with those.
         typedef enum { PARK_LAST = 0, PARK_CUSTOM = 0, PARK_PARK1 = 1, PARK_PARK2 = 2, PARK_PARK3 = 3, PARK_PARK4 = 4, PARK_CURRENT = 5} ParkPosition;
         enum APTelescopeSlewRate {AP_SLEW_GUIDE, AP_SLEW_12X, AP_SLEW_64X, AP_SLEW_600X, AP_SLEW_1200X};
