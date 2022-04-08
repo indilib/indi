@@ -203,6 +203,10 @@ bool LX200AstroPhysicsV2::initProperties()
     IUFillTextVector(&APPECStateTP, APPECStateT, 1, getDeviceName(), "APPECState", "AP PEC State",
                      MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
+    IUFillText(&APMountStatusT[0], "APMountStatus", "AP Mount Status", "");
+    IUFillTextVector(&APMountStatusTP, APMountStatusT, 1, getDeviceName(), "APMountStatus", "AP Mount Status",
+                     MOTION_TAB, IP_RO, 0, IPS_IDLE);
+
     // PEC Record button.
     IUFillSwitch(&APPECRecordS[AP_PEC_RECORD_OFF], "APPECRecordOFF", "Off", ISS_ON);
     IUFillSwitch(&APPECRecordS[AP_PEC_RECORD_ON], "APPECRecordON", "Record", ISS_OFF);
@@ -234,6 +238,7 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
         defineProperty(&APWormPositionNP);
         defineProperty(&APPECStateTP);
         defineProperty(&APPECRecordSP);
+        defineProperty(&APMountStatusTP);
     }
 }
 
@@ -259,6 +264,7 @@ bool LX200AstroPhysicsV2::updateProperties()
         defineProperty(&APWormPositionNP);
         defineProperty(&APPECStateTP);
         defineProperty(&APPECRecordSP);
+        defineProperty(&APMountStatusTP);
     }
     else
     {
@@ -273,6 +279,7 @@ bool LX200AstroPhysicsV2::updateProperties()
         deleteProperty(APWormPositionNP.name);
         deleteProperty(APPECStateTP.name);
         deleteProperty(APPECRecordSP.name);
+        deleteProperty(APMountStatusTP.name);
     }
 
     return true;
@@ -300,20 +307,43 @@ bool LX200AstroPhysicsV2::getWormPosition()
     return true;
 }
 
-bool LX200AstroPhysicsV2::getPECState()
+void LX200AstroPhysicsV2::processMountStatus(const char *statusString)
+{
+    const char *mountStatusString = apMountStatus(statusString);
+    IUSaveText(&APMountStatusT[0], mountStatusString);
+    IDSetText(&APMountStatusTP, nullptr);
+    APMountStatusTP.s = IPS_OK;
+}
+
+bool LX200AstroPhysicsV2::getPECState(const char *statusString)
 {
     int pecState;
     if (isSimulation())
         pecState = AP_PEC_OFF;
     else
     {
-        int res = getAPPECState(PortFD, &pecState);
-        if (res != TTY_OK)
-        {
-            IUSaveText(&APPECStateT[0], "");
-            IDSetText(&APPECStateTP, nullptr);
-            APPECStateTP.s = IPS_ALERT;
+        if (strlen(statusString) < 10)
             return false;
+        const char pecChar = statusString[9];
+        switch (pecChar)
+        {
+            case 'O':
+                pecState = AP_PEC_OFF;
+                break;
+            case 'P':
+                pecState = AP_PEC_ON;
+                break;
+            case 'R':
+                pecState = AP_PEC_RECORD;
+                break;
+            case 'E':
+                pecState = AP_PEC_ENCODER;
+                break;
+            default:
+                IUSaveText(&APPECStateT[0], "");
+                IDSetText(&APPECStateTP, nullptr);
+                APPECStateTP.s = IPS_ALERT;
+                return false;
         }
     }
     // Set the text status display based on the info from the mount.
@@ -388,16 +418,18 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
     IUSaveText(&VersionT[0], versionString);
     IDSetText(&VersionTP, nullptr);
 
-    // Check controller version
-    // example "VCP4-P01-01" for CP4 or newer
-    //         single or double letter like "T" or "V1" for CP3 and older
-
-    // CP4
-    // 2020-06-02, wildi, ToDo unify all versions
     if (strstr(versionString, "VCP4"))
     {
         firmwareVersion = MCV_V;
         servoType = GTOCP4;
+        strcpy(rev, "V");
+        success = true;
+    }
+    else if (strstr(versionString, "VCP5"))
+
+    {
+        firmwareVersion = MCV_V;
+        servoType = GTOCP5;
         strcpy(rev, "V");
         success = true;
     }
@@ -605,7 +637,7 @@ bool LX200AstroPhysicsV2::ApInitialize()
     return true;
 }
 
-bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState * states, char *names[], int n)
 {
     int err = 0;
     if (strcmp(getDeviceName(), dev))
@@ -898,9 +930,6 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
     APSiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&APSiderealTimeNP, nullptr);
 
-    getWormPosition();
-    getPECState();
-
     if (isSimulation())
     {
         mountSim();
@@ -919,6 +948,10 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
         LOG_ERROR("Reading AP status failed");
         return false;
     }
+
+    getWormPosition();
+    getPECState(apStatusString);
+    processMountStatus(apStatusString);
 
     const bool apParked = apStatusParked(apStatusString);
     if (!apParked)
@@ -1026,7 +1059,7 @@ bool LX200AstroPhysicsV2::parkInternal()
     return true;
 }
 
-bool LX200AstroPhysicsV2::IsMountParked(bool *isAPParked)
+bool LX200AstroPhysicsV2::IsMountParked(bool * isAPParked)
 {
     if (isSimulation())
     {
@@ -1537,7 +1570,7 @@ bool LX200AstroPhysicsV2::Sync(double ra, double dec)
     return true;
 }
 
-bool LX200AstroPhysicsV2::updateTime(ln_date *utc, double utc_offset)
+bool LX200AstroPhysicsV2::updateTime(ln_date * utc, double utc_offset)
 {
     // 2020-06-02, wildi, ToDo, time obtained from KStars differs up to a couple
     // of 5 seconds from system time.
@@ -1730,7 +1763,7 @@ bool LX200AstroPhysicsV2::Park()
     return true;
 }
 
-bool LX200AstroPhysicsV2::calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz)
+bool LX200AstroPhysicsV2::calcParkPosition(ParkPosition pos, double * parkAlt, double * parkAz)
 {
     switch (pos)
     {
@@ -1994,7 +2027,7 @@ void LX200AstroPhysicsV2::syncSideOfPier()
         LOGF_ERROR("Invalid pier side response from device-> %s", response);
 }
 
-bool LX200AstroPhysicsV2::saveConfigItems(FILE *fp)
+bool LX200AstroPhysicsV2::saveConfigItems(FILE * fp)
 {
     LX200Generic::saveConfigItems(fp);
 
@@ -2074,7 +2107,7 @@ bool LX200AstroPhysicsV2::SetTrackRate(double raRate, double deRate)
     return true;
 }
 
-bool LX200AstroPhysicsV2::getUTFOffset(double *offset)
+bool LX200AstroPhysicsV2::getUTFOffset(double * offset)
 {
     if (isSimulation())
     {

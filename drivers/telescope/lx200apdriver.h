@@ -71,13 +71,13 @@ int selectAPCenterRate(int fd, int centerRate);
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
-int getAPPECState(int fd, int *pecState);
 int getAPWormPosition(int fd, int *position);
 
 // Make sure the buffer passed in to getApStatusString (statusString) is at least 32 bytes.
 int getApStatusString(int fd, char *statusString);
-bool apStatusParked(char *statusString);
-bool apStatusSlewing(char *statusString);
+bool apStatusParked(const char *statusString);
+bool apStatusSlewing(const char *statusString);
+const char *apMountStatus(const char *statusString);
 int isAPInitialized(int fd, bool *isInitialized);
 
 #ifdef __cplusplus
