@@ -175,6 +175,7 @@ class LX200AstroPhysicsV2 : public LX200Generic
         bool getWormPosition(void);
         bool getPECState(const char *statusString);
         void processMountStatus(const char *statusString);
+        bool APSync(double ra, double dec, bool recalibrate = true);
 
         ControllerVersion firmwareVersion = MCV_UNKNOWN;
         ServoVersion servoType = GTOCP_UNKNOWN;
