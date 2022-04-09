@@ -147,12 +147,6 @@ bool LX200AstroPhysicsV2::initProperties()
     IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    //2020-06-02, wildi, I'm not fond of this CMR sync
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
-
     // guide speed
     IUFillSwitch(&APGuideSpeedS[0], "0.25", "0.25x", ISS_OFF);
     IUFillSwitch(&APGuideSpeedS[1], "0.5", "0.50x", ISS_OFF);
@@ -233,7 +227,6 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
         defineProperty(&VersionTP);
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
-        defineProperty(&SyncCMRSP);
         defineProperty(&APGuideSpeedSP);
         defineProperty(&APWormPositionNP);
         defineProperty(&APPECStateTP);
@@ -256,7 +249,6 @@ bool LX200AstroPhysicsV2::updateProperties()
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
-        defineProperty(&SyncCMRSP);
         defineProperty(&APGuideSpeedSP);
         defineProperty(&APSiderealTimeNP);
         defineProperty(&HourangleCoordsNP);
@@ -271,7 +263,6 @@ bool LX200AstroPhysicsV2::updateProperties()
         deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
-        deleteProperty(SyncCMRSP.name);
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(APUTCOffsetNP.name);
         deleteProperty(APSiderealTimeNP.name);
@@ -512,7 +503,7 @@ bool LX200AstroPhysicsV2::ISNewNumber(const char *dev, const char *name, double 
         }
         else
         {
-            success = Sync(ra, dec);
+            success = APSync(ra, dec, true);
         }
         if (success)
         {
@@ -702,19 +693,6 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
 
         APGuideSpeedSP.s = IPS_OK;
         IDSetSwitch(&APGuideSpeedSP, nullptr);
-        return true;
-    }
-
-    // =======================================
-    // Choose the appropriate sync command
-    // =======================================
-    if (!strcmp(name, SyncCMRSP.name))
-    {
-        IUResetSwitch(&SyncCMRSP);
-        IUUpdateSwitch(&SyncCMRSP, states, names, n);
-        IUFindOnSwitchIndex(&SyncCMRSP);
-        SyncCMRSP.s = IPS_OK;
-        IDSetSwitch(&SyncCMRSP, nullptr);
         return true;
     }
 
@@ -1387,8 +1365,6 @@ bool LX200AstroPhysicsV2::Handshake()
         if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
         {
             LOGF_ERROR("Error setting backlash compensation (%d): %s.", err, strerror(err));
-            // wildi, downgrade
-            //return false;
         }
     }
 
@@ -1518,11 +1494,11 @@ bool LX200AstroPhysicsV2::Disconnect()
 
     return LX200Generic::Disconnect();
 }
-bool LX200AstroPhysicsV2::Sync(double ra, double dec)
+
+bool LX200AstroPhysicsV2::APSync(double ra, double dec, bool recalibrate)
 {
     char syncString[256] = ""; // simulation needs UTF-8
 
-    int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
     if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, ra) < 0 || setAPObjectDEC(PortFD, dec) < 0)
@@ -1533,21 +1509,15 @@ bool LX200AstroPhysicsV2::Sync(double ra, double dec)
         }
         bool syncOK = true;
 
-        switch (syncType)
+        if (recalibrate)
         {
-            case USE_REGULAR_SYNC:
-
-                if (::Sync(PortFD, syncString) < 0)
-                    syncOK = false;
-                break;
-
-            case USE_CMR_SYNC:
-                if (APSyncCMR(PortFD, syncString) < 0)
-                    syncOK = false;
-                break;
-
-            default:
-                break;
+            if (APSyncCMR(PortFD, syncString) < 0)
+                syncOK = false;
+        }
+        else
+        {
+            if (APSyncCM(PortFD, syncString) < 0)
+                syncOK = false;
         }
 
         if (!syncOK)
@@ -1561,13 +1531,19 @@ bool LX200AstroPhysicsV2::Sync(double ra, double dec)
 
     currentRA  = ra;
     currentDEC = dec;
-    LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
+    LOGF_DEBUG("%s Synchronization successful %s", (recalibrate ? "CMR" : "CM"), syncString);
 
     EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
     return true;
+}
+
+bool LX200AstroPhysicsV2::Sync(double ra, double dec)
+{
+    // The default sync is a "CMR" / "Recalibrate" sync.
+    return APSync(ra, dec, true);
 }
 
 bool LX200AstroPhysicsV2::updateTime(ln_date * utc, double utc_offset)
@@ -1865,8 +1841,7 @@ bool LX200AstroPhysicsV2::UnPark()
             IDSetSwitch(&UnparkFromSP, nullptr);
             return false;
         }
-        // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
-        // 2020-05-27, wildi, ToDo taking care of above comment later
+
         if (APUnParkMount(PortFD) < 0)
         {
             IUResetSwitch(&ParkSP);
@@ -1924,7 +1899,9 @@ bool LX200AstroPhysicsV2::UnPark()
         IDSetNumber(&HourangleCoordsNP, nullptr);
 
 
-        bool success = Sync(equatorialCoords.rightascension, equatorialCoords.declination);
+        // If we are not using PARK_LAST, then we're unparking from a pre-defined position, and this is the
+        // only time we should use the full :CM "Fully Calibrate" sync command.
+        bool success = APSync(equatorialCoords.rightascension, equatorialCoords.declination, false);
         if(!success)
         {
             LOG_WARN("Could not sync mount");
@@ -1932,7 +1909,7 @@ bool LX200AstroPhysicsV2::UnPark()
         }
         else
         {
-            LOGF_INFO("UnPark: Sync'd to RA/DEC: %f %f", equatorialCoords.rightascension, equatorialCoords.declination);
+            LOGF_INFO("UnPark: Sync'd (:CM) to RA/DEC: %f %f", equatorialCoords.rightascension, equatorialCoords.declination);
         }
     }
 
@@ -2031,7 +2008,6 @@ bool LX200AstroPhysicsV2::saveConfigItems(FILE * fp)
 {
     LX200Generic::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
     IUSaveConfigSwitch(fp, &APGuideSpeedSP);
     IUSaveConfigSwitch(fp, &ParkToSP);
