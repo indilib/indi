@@ -322,7 +322,6 @@ int APSyncCMR(int fd, char *matchedObject)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    /* read_ret = portRead(matchedObject, -1, LX200_TIMEOUT); */
     if ((error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
         return error_type;
 
@@ -388,7 +387,8 @@ int getAPWormPosition(int fd, int *position)
     res = tty_read_section(fd, response, '#', LX200_TIMEOUT, &nbytes_read);
     if (res != TTY_OK)
     {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPWormPosition: read failed.");
+        // This does happen occasionally, not sure why, but isn't critical.
+        // DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPWormPosition: read failed.");
         return res;
     }
 
