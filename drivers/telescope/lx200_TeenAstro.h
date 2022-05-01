@@ -30,6 +30,7 @@
 #include "indicom.h"
 
 #define RB_MAX_LEN 64
+#define INITIAL_GUIDE_RATE 0.50
 
 class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -77,7 +78,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         bool isSlewComplete();
         void slewError(int slewCode);
         void mountSim();
-        bool SetGuideRate(int);
+        bool SetGuideRate(float);
 
         bool getLocalDate(char *dateString);
         bool setLocalDate(uint8_t days, uint8_t months, uint16_t years);
@@ -124,8 +125,8 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch SlewRateS[5];
         ISwitchVectorProperty SlewRateSP;
 
-        ISwitch GuideRateS[3];
-        ISwitchVectorProperty GuideRateSP;
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
 
         ISwitch TATrackModeS[3];
         ISwitchVectorProperty TATrackModeSP;
@@ -149,6 +150,6 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         char OSStat[RB_MAX_LEN];
         char OldOSStat[RB_MAX_LEN];
         const char *statusCommand;           // :GU# for version 1.1, :GXI# for 1.2 and later
-        const char *guideSpeedCommand;       // :SX90# or SXR0
+        const char *guideSpeedCommand;       // :SXR0
 
 };
