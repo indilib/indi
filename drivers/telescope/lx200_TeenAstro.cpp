@@ -901,6 +901,9 @@ bool LX200_TeenAstro::sendScopeTime()
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
+    
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
 
     double offset = 0;
 
@@ -939,6 +942,7 @@ bool LX200_TeenAstro::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 

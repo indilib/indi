@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 5)
+set(CMAKE_INDI_VERSION_RELEASE 6)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -1060,6 +1060,16 @@ SET(sesto2_SRC
 add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver)
 install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
+
+################ Esatto with Arco Focuser ################
+SET(esarc_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/esattoarco.cpp)
+
+add_executable(indi_esattoarco_focus ${esarc_SRC})
+target_link_libraries(indi_esattoarco_focus indidriver)
+install(TARGETS indi_esattoarco_focus RUNTIME DESTINATION bin)
+
+
 
 ################ Televue FocusMaster ################
 #SET(focusmaster_SRC

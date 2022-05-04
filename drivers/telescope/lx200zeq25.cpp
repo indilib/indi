@@ -36,7 +36,7 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -397,11 +397,16 @@ void LX200ZEQ25::getBasicData()
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
     }
+
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
+        sendScopeLocation();
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
+        sendScopeTime();
 }
 
 bool LX200ZEQ25::Sync(double ra, double dec)
 {
-    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (!isSimulation() && (setObjectRA(PortFD, ra, true) < 0 || (setObjectDEC(PortFD, dec, true)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
@@ -470,7 +475,7 @@ bool LX200ZEQ25::Goto(double r, double d)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error setting RA/DEC.");
@@ -627,7 +632,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds, true) < 0)
     {
         LOG_ERROR("Error setting local time.");
         return false;
@@ -1466,4 +1471,14 @@ bool LX200ZEQ25::getZEQ25PierSide(TelescopePierSide &side)
     }
 
     return false;
+}
+
+bool LX200ZEQ25::setUTCOffset(double offset)
+{
+    int h, m, s;
+    char command[64] = {0};
+    getSexComponents(offset, &h, &m, &s);
+
+    snprintf(command, 64, ":SG %c%02d:%02d#", offset >= 0 ? '+' : '-', h, m);
+    return setZEQ25StandardProcedure(PortFD, command);
 }

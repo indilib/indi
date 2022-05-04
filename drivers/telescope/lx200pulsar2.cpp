@@ -1241,7 +1241,7 @@ bool isParking(const int fd)
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 LX200Pulsar2::LX200Pulsar2() : LX200Generic(), just_started_slewing(false)
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     //setLX200Capability(0);
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -3362,6 +3362,7 @@ bool LX200Pulsar2::storeScopeLocation()
 bool LX200Pulsar2::sendScopeTime()
 {
     struct tm ltm;
+    memset(&ltm, 0, sizeof(ltm));
     if (isSimulation())
     {
         const time_t t = time(nullptr);
@@ -3378,6 +3379,7 @@ bool LX200Pulsar2::sendScopeTime()
         ltm.tm_year -= 1900;
     }
 
+    ltm.tm_isdst = 0;
     // Get time epoch and convert to TimeT
     const time_t time_epoch = mktime(&ltm);
     struct tm utm;

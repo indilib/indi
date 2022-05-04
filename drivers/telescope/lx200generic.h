@@ -24,8 +24,8 @@
 
 class LX200Generic : public LX200Telescope
 {
-  public:
-    LX200Generic();
-    virtual ~LX200Generic() = default;
+    public:
+        LX200Generic();
+        virtual ~LX200Generic() override = default;
 
 };

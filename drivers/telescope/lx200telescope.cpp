@@ -140,6 +140,7 @@ bool LX200Telescope::initProperties()
         FocusSpeedN[0].min = 1;
         FocusSpeedN[0].max = 2;
         FocusSpeedN[0].value = 1;
+        setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
     }
 
     TrackState = SCOPE_IDLE;
@@ -1313,6 +1314,10 @@ bool LX200Telescope::sendScopeTime()
     char ctime[MAXINDINAME] = {0};
     struct tm ltm;
     struct tm utm;
+    
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
+    
     time_t time_epoch;
 
     double offset = 0;
@@ -1351,6 +1356,7 @@ bool LX200Telescope::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 

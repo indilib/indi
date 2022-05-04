@@ -1856,7 +1856,6 @@ bool LX200AstroPhysics::calcParkPosition(ParkPosition pos, double *parkAlt, doub
         default:
             LOG_ERROR("Unknown park position!");
             return false;
-            break;
     }
 
     LOGF_DEBUG("calcParkPosition: parkPos=%d parkAlt=%f parkAz=%f", pos, *parkAlt, *parkAz);

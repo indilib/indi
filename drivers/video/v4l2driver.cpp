@@ -62,6 +62,7 @@ static const PixelSizeInfo CameraDatabase[] =
     { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
     { "IMX290 H264 Camera", "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
     { "Microsoft LifeCam Cinema", "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
+    { "OpenAstroGuider", "OpenAstroGuider IMX290", nullptr, 2.9f, -1, false },
     { nullptr, nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 
@@ -138,9 +139,8 @@ V4L2_Driver::~V4L2_Driver()
 
 void V4L2_Driver::updateFrameSize()
 {
-    if (ISS_ON == ImageColorS[IMAGE_GRAYSCALE].s)
-        frameBytes =
-            PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0));
+    if (CaptureFormatSP.findOnSwitchIndex() == IMAGE_MONO)
+        frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0));
     else
         frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() *
                      (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0)) * 3;
@@ -164,13 +164,17 @@ bool V4L2_Driver::initProperties()
     IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
-    /* Color space */
-    int configColor = IMAGE_GRAYSCALE;
-    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_COLOR_SPACE", &configColor);
-    IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", configColor == IMAGE_GRAYSCALE ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&ImageColorS[IMAGE_COLOR], "CCD_COLOR_RGB", "Color", configColor == IMAGE_COLOR ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE",
-                       "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Capture format.
+    CaptureFormat mono = {"INDI_MONO", "Mono", 8};
+    CaptureFormat color = {"INDI_RGB", "RGB", 8, true};
+    addCaptureFormat(mono);
+    addCaptureFormat(color);
+    if (CaptureFormatSP[IMAGE_RGB].getState() == ISS_ON)
+    {
+        PrimaryCCD.setNAxis(3);
+        updateFrameSize();
+    }
 
     /* Image depth */
     IUFillSwitch(&ImageDepthS[0], "8 bits", "", ISS_ON);
@@ -264,7 +268,6 @@ void V4L2_Driver::ISGetProperties(const char * dev)
     {
         defineProperty(&camNameTP);
 
-        defineProperty(&ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -293,19 +296,9 @@ bool V4L2_Driver::updateProperties()
 
     if (isConnected())
     {
-        //ExposeTimeNP=getNumber("CCD_EXPOSURE");
-        //ExposeTimeN=ExposeTimeNP->np;
-
-        CompressSP = getSwitch("CCD_COMPRESSION");
-        CompressS  = CompressSP->sp;
-
-        FrameNP = getNumber("CCD_FRAME");
-        FrameN  = FrameNP->np;
-
         defineProperty(&camNameTP);
         getBasicData();
 
-        defineProperty(&ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -385,7 +378,6 @@ bool V4L2_Driver::updateProperties()
 
         deleteProperty(camNameTP.name);
 
-        deleteProperty(ImageColorSP.name);
         deleteProperty(InputsSP.name);
         deleteProperty(CaptureFormatsSP.name);
 
@@ -617,44 +609,6 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         return true;
     }
 
-    /* Image Type */
-    if (strcmp(name, ImageColorSP.name) == 0)
-    {
-        if (Streamer->isRecording())
-        {
-            LOG_WARN("Can not set Image type (GRAY/COLOR) while recording.");
-            return false;
-        }
-
-        IUResetSwitch(&ImageColorSP);
-        IUUpdateSwitch(&ImageColorSP, states, names, n);
-        ImageColorSP.s = IPS_OK;
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        {
-            //PrimaryCCD.setBPP(8);
-            PrimaryCCD.setNAxis(2);
-        }
-        else
-        {
-            //PrimaryCCD.setBPP(32);
-            //PrimaryCCD.setBPP(8);
-            PrimaryCCD.setNAxis(3);
-        }
-
-        updateFrameSize();
-#if 0
-        INDI_PIXEL_FORMAT pixelFormat;
-        uint8_t pixelDepth = 8;
-        if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
-            Streamer->setPixelFormat(pixelFormat, pixelDepth);
-#endif
-        Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
-        IDSetSwitch(&ImageColorSP, nullptr);
-
-        saveConfig(true, ImageColorSP.name);
-        return true;
-    }
-
     /* Image Depth */
     if (strcmp(name, ImageDepthSP.name) == 0)
     {
@@ -745,7 +699,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     /* ColorProcessing */
     if (strcmp(name, ColorProcessingSP.name) == 0)
     {
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             IUUpdateSwitch(&ColorProcessingSP, states, names, n);
             v4l_base->setColorProcessing(ColorProcessingS[0].s == ISS_ON, ColorProcessingS[1].s == ISS_ON,
@@ -1009,7 +963,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     if (nullptr == AbsExposureN)
     {
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             //use frame interval as frame duration instead of max exposure time.
             if(FrameRatesSP.sp != nullptr)
@@ -1043,7 +997,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     /* Then if we have an exposure control, check the requested exposure duration */
     else if (AbsExposureN->max < ticks)
     {
-        if( ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode == STACK_NONE )
+        if( CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode == STACK_NONE )
         {
             LOG_WARN("Requested manual exposure is out of device bounds auto set stackMode to ADDITIVE" );
             stackMode = STACK_ADDITIVE;
@@ -1053,7 +1007,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         }
 
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             if( AbsExposureN->value != AbsExposureN->max )
             {
@@ -1277,7 +1231,7 @@ void V4L2_Driver::lxtimerCallback(void * userpointer)
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
-    if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
+    if (CaptureFormatSP[IMAGE_RGB].getState() == ISS_ON)
     {
         if (hor == 1 && ver == 1)
         {
@@ -1410,7 +1364,7 @@ void V4L2_Driver::newFrame()
         unsigned char * buffer = nullptr;
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
             totalBytes  = width * height * (dbpp / 8);
@@ -1508,20 +1462,20 @@ void V4L2_Driver::newFrame()
         PrimaryCCD.setExposureLeft(remaining);
 
         // Stack Mono frames
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
+        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             stackFrame();
         }
 
         /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
+        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON &&
                 (timercmp(&elapsed_exposure, &exposure_duration, < )))
             return; // go on stacking
 
         struct timeval const current_exposure = getElapsedExposure();
 
         //IDLog("Copying frame.\n");
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             if (!stackMode)
             {
@@ -1948,7 +1902,6 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
 
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &StackModeSP);
-    IUSaveConfigSwitch(fp, &ImageColorSP);
 
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
@@ -2077,4 +2030,16 @@ bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT &pixelFo
     }
 }
 
+bool V4L2_Driver::SetCaptureFormat(uint8_t index)
+{
+    if (Streamer->isRecording())
+    {
+        LOG_WARN("Can not set Image type (GRAY/COLOR) while recording.");
+        return false;
+    }
 
+    PrimaryCCD.setNAxis(index == IMAGE_MONO ? 2 : 3);
+    updateFrameSize();
+    Streamer->setPixelFormat(index == 0 ? INDI_MONO : INDI_RGB, 8);
+    return true;
+}

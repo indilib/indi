@@ -20,6 +20,7 @@
 
 #include "defaultdevice.h"
 #include "libastro.h"
+#include "indipropertyswitch.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -745,6 +746,14 @@ class Telescope : public DefaultDevice
         ISwitch MovementWES[2];
         ISwitchVectorProperty MovementWESP;
 
+        // Reverse NS or WE
+        INDI::PropertySwitch ReverseMovementSP {2};
+        enum
+        {
+            REVERSE_NS,
+            REVERSE_WE
+        };
+
         // Slew Rate
         ISwitchVectorProperty SlewRateSP;
         ISwitch *SlewRateS {nullptr};
@@ -931,6 +940,9 @@ class Telescope : public DefaultDevice
         float motionDirWEValue {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
+
+        // 100 millisecond of arc or time.
+        static constexpr double EQ_NOTIFY_THRESHOLD {1.0 / (60 * 60 * 10)};
 };
 
 }
