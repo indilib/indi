@@ -1,5 +1,24 @@
+/*
+WandererAstro WandererRotatorLite
+   Copyright (C) 2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
-#include "WandererRotatorLite.h"
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
+
+#include "wanderer_rotator_lite.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 #include <cmath>
@@ -18,26 +37,15 @@ static std::unique_ptr<WandererRotatorLite> RotatorLite(new WandererRotatorLite(
 WandererRotatorLite::WandererRotatorLite()
 {
     setVersion(1, 0);
-    RI::SetCapability(ROTATOR_CAN_REVERSE|ROTATOR_CAN_SYNC|ROTATOR_CAN_ABORT);
+    RI::SetCapability(ROTATOR_CAN_REVERSE|ROTATOR_CAN_SYNC|ROTATOR_CAN_ABORT|ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
 }
 bool WandererRotatorLite::initProperties()
 {
     INDI::Rotator::initProperties();
     setDefaultPollingPeriod(500);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
-    // Home Rotator
-    IUFillSwitch(&HomeRotatorS[0], "HOME", "Start", ISS_OFF);
-    IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, getDeviceName(), "ROTATOR_HOME", "Homing", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     IUFillSwitch(&HomeS[0], "SetHomeButton", "Set Current Position as Home", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "SetHome", "Set Home", MAIN_CONTROL_TAB,IP_RW, ISR_ATMOST1,5, IPS_IDLE);
-
-    // Backlash Compensation Value
-    IUFillNumber(&RotatorBacklashN[0], "ROTATOR_BACKLASH_VALUE", "Angle", "%.2f", 0, 2., 0.1, 0.5);
-    IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, getDeviceName(), "ROTATOR_BACKLASH_angle",
-                       "Backlash",
-                       MAIN_CONTROL_TAB, IP_RW, 5, IPS_OK);
-
 
     return true;
 }
@@ -49,17 +57,13 @@ bool WandererRotatorLite::updateProperties()
     if (isConnected())
     {
 
-        defineProperty(&RotatorBacklashNP);
         defineProperty(&HomeSP);
-        defineProperty(&HomeRotatorSP);
         deleteProperty(PresetNP.name);
         deleteProperty(PresetGotoSP.name);
     }
     else
     {
         deleteProperty(HomeSP.name);
-        deleteProperty(RotatorBacklashNP.name);
-        deleteProperty(HomeRotatorSP.name);
         deleteProperty(PresetNP.name);
         deleteProperty(PresetGotoSP.name);
     }
@@ -95,24 +99,6 @@ bool WandererRotatorLite::ISNewSwitch(const char *dev, const char *name, ISState
     return Rotator::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool WandererRotatorLite::ISNewNumber(const char *dev, const char *name, double values[], char * names[], int n)
-{
-    if (dev && !strcmp(dev, getDeviceName()))
-    {
-        if (!strcmp(name, RotatorBacklashNP.name))
-        {
-
-            RotatorBacklashNP.s=SetRotatorBacklash(values[0])? IPS_OK : IPS_ALERT;
-            LOG_INFO("Backlash is set");
-            RotatorBacklashN[0].value = values[0];
-            IDSetNumber(&RotatorBacklashNP, nullptr);
-            return true;
-
-        }
-    }
-
-    return Rotator::ISNewNumber(dev, name, values, names, n);
-}
 
 
 const char *WandererRotatorLite::getDefaultName()
@@ -180,14 +166,13 @@ bool WandererRotatorLite::Handshake()
 IPState WandererRotatorLite::MoveRotator(double angle)
 {
     backlashcompensation=0;
-    backlash=RotatorBacklashN[0].value;
     angle=angle-GotoRotatorN[0].value;
     if (angle * positionhistory < 0 && angle>0) { angle = angle + backlash;backlashcompensation = -1*backlash; }
     if (angle * positionhistory < 0 && angle < 0) { angle = angle - backlash; backlashcompensation = backlash; }
     char cmd[16];
     int position=(int)(reversecoefficient*angle*1155);
     positionhistory = angle;
-    sprintf(cmd,"%d",position);
+    snprintf(cmd,16,"%d",position);
     Move(cmd);
     return IPS_BUSY;
 }
@@ -232,7 +217,6 @@ bool WandererRotatorLite::AbortRotator()
             haltcommand=false;
         }
         GotoRotatorN[0].value=atof(res2)/100;
-        LOG_INFO("Abort");
         res1[nbytes_read1 - 1] = '\0';
         res2[nbytes_read2 - 1] = '\0';
          LOGF_DEBUG("Move Relative:%s", res1);
@@ -252,29 +236,16 @@ IPState WandererRotatorLite::HomeRotator()
     positionhistory=angle;
     char cmd[16];
     int position=(int)(angle*1155);
-    sprintf(cmd,"%d",position);
+    snprintf(cmd,16,"%d",position);
     Move(cmd);
     return IPS_BUSY;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief WandererRotatorLite::SetRotatorBacklash
-/// \param angle
+/////////////////////////////////////////////////////////////
+/// \brief WandererRotatorLite::ReverseRotator
+/// \param enabled
 /// \return
 ///
-bool WandererRotatorLite::SetRotatorBacklash(double angle)
-{
-    return true;
-}
-
-
-
-bool WandererRotatorLite::SyncRotator(double angle)
-{
-
-    return true;
-}
-
 bool WandererRotatorLite::ReverseRotator(bool enabled)
 {
 
@@ -410,13 +381,6 @@ bool WandererRotatorLite::sendCommand(const char *cmd)
 }
 
 
-
-bool WandererRotatorLite::saveConfigItems(FILE * fp)
-{
-    INDI::Rotator::saveConfigItems(fp);
-
-    return true;
-}
 /////////////////////////////////////////////////////////////////////////////////////
 /// \brief WandererRotatorLite::SetHomePosition
 /// \return
@@ -439,4 +403,30 @@ bool WandererRotatorLite::SetHomePosition()
     GotoRotatorN[0].value=0;
     return true;
 }
+/////////////////////////////////////////////////////////////////////////////
+/// \brief WandererRotatorLite::SetRotatorBacklash
+/// \param steps
+/// \return
+///
+bool WandererRotatorLite::SetRotatorBacklash(int32_t steps)
+ {
+     backlash=(double)(steps/1155);
+     return true;
+ }
+////////////////////////////////////////////////////////////////////////////////
+/// \brief WandererRotatorLite::SetRotatorBacklashEnabled
+/// \param enabled
+/// \return
+///
+ bool WandererRotatorLite::SetRotatorBacklashEnabled(bool enabled)
+ {
+     if(enabled)
+     {
+         return SetRotatorBacklash(RotatorBacklashN[0].value);
+     }
+     else
+     {
+        return SetRotatorBacklash(0);
+     }
 
+ }

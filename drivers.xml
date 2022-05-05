@@ -656,7 +656,7 @@
             <version>1.0</version>
         </device>
                  <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
-            <driver name="Wanderer Rotator Lite">indi_WandererRotatorLite</driver>
+            <driver name="Wanderer Rotator Lite">indi_wanderer_rotator_lite</driver>
             <version>1.0</version>
         </device>
     </devGroup>
