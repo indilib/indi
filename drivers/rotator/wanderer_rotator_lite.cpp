@@ -1,6 +1,6 @@
 /*
-WandererAstro WandererRotatorLite
-   Copyright (C) 2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
+   WandererAstro WandererRotatorLite
+   Copyright (C) 2022 Frank Wang (1010965596@qq.com)
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -272,11 +272,6 @@ bool WandererRotatorLite::ReverseRotator(bool enabled)
 void WandererRotatorLite::TimerHit()
 {
 
-    if (!isConnected())
-    {
-        SetTimer(getCurrentPollingPeriod());
-        return;
-    }
     if(haltcommand)
     {
         GotoRotatorNP.s = IPS_OK;HomeRotatorSP.s = IPS_OK;IDSetSwitch(&HomeRotatorSP, nullptr);haltcommand=false;positioncount=0;return;
@@ -292,7 +287,7 @@ void WandererRotatorLite::TimerHit()
     if (GotoRotatorNP.s == IPS_BUSY || HomeRotatorSP.s==IPS_BUSY)
     {
         LOG_INFO("Done");
-        int nbytes_read1 = 0, nbytes_written = 0, rc = -1;
+        int nbytes_read1 = 0, rc = -1;
         int nbytes_read2 = 0;
         char res1[16] = {0};char res2[16] = {0};
 
