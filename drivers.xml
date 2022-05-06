@@ -655,9 +655,9 @@
             <driver name="DeepSkyDad FR1">indi_deepskydad_fr1</driver>
             <version>1.0</version>
         </device>
-                 <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
-            <driver name="Wanderer Rotator Lite">indi_wanderer_rotator_lite</driver>
-            <version>1.0</version>
+        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
+               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
+               <version>1.0</version>
         </device>
     </devGroup>
     <devGroup group="Domes">
