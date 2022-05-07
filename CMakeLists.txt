@@ -1330,6 +1330,14 @@ add_executable(indi_activefocuser_focus ${activefocuser_SRC} drivers/focuser/act
 target_link_libraries(indi_activefocuser_focus indidriver)
 install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)
 
+################ Wanderer Rotator Lite ################
+SET(WandererRotatorLite_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/wanderer_rotator_lite.cpp)
+
+add_executable(indi_wanderer_lite_rotator ${WandererRotatorLite_SRC})
+target_link_libraries(indi_wanderer_lite_rotator indidriver)
+install(TARGETS indi_wanderer_lite_rotator RUNTIME DESTINATION bin)
+
 #################################################################################
 
 #####################################
