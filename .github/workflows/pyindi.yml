@@ -1,9 +1,5 @@
 name: PyIndi
-on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: ["Linux"]
-    types: [completed]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
