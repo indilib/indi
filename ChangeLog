@@ -1,3 +1,33 @@
++ From 1.9.5 to 1.9.6
+
+    63d41777 2022-05-20 Michal Jamry         Fix pyindi pipeline (#1660)
+    f477093d 2022-05-20 Jasem Mutlaq         Fix MacOS error
+    c0021969 2022-05-07 WandererAstro        Driver for WandererRotatorLite added (#1657)
+    f5bac914 2022-05-05 François Desvallées  Allow any guide rate between 0.1x and 1x (#1656)
+    d719724c 2022-04-12 Jasem Mutlaq         Add native support for reversing Motion NS and WE directional keys
+    8ae25029 2022-04-08 murveit              Remove user choice for CM/CMR. (#1654)
+    13906846 2022-04-07 murveit              Add mount status. Start CP5 (#1653)
+    19956ec4 2022-04-03 Alain                UTC uninitialized structure fix by Norikyu (#1652)
+    e947175a 2022-04-03 Jasem Mutlaq         Make tracking factor configurable
+    4aa5f0eb 2022-03-31 murveit              fix issue reading worm position (#1651)
+    aca6a902 2022-03-31 murveit              Terminate commands missing #, introduce PEC recording and status, rem… (#1648)
+    b3c9e1eb 2022-03-31 Jim                  1.9.6_spec: update spec to build 1.9.6git (#1650)
+    5fc42420 2022-03-31 Jasem Mutlaq         Fix few issues related to commands needing space in lx200 ZEQ driver
+    1d453be5 2022-03-26 Jasem Mutlaq         Flush IO before sending command
+    e04bf987 2022-03-24 Jasem Mutlaq         use capture format
+    e0158b46 2022-03-21 Jasem Mutlaq         INDI v1.9.6 development cycle
+    fd391d51 2022-03-21 Alain                Fixing UTC Offset format allowing :SGHH:MM# where MM can be 00, 30 and 45 (#1644)
+    658ed77c 2022-03-13 murveit              Change driver name. Allow ParkTo & UnparkFrom to be visible before co… (#1642)
+    78196d41 2022-03-13 Jasem Mutlaq         Bump version
+    3f66b577 2022-03-12 murveit              add lastparked logic (#1639)
+    1ea97f03 2022-03-11 Jasem Mutlaq         Call handshake on simulation
+    8beeeb9c 2022-03-10 Jasem Mutlaq         Some mounts like iOptron require space in Sr and Sd commands otherwise it would not work
+    dfcd2922 2022-03-10 Jasem Mutlaq         Previous one did not work
+    74532f9c 2022-03-10 Jasem Mutlaq         Add endianess test for Windows
+    604776da 2022-03-10 Jasem Mutlaq         Fix compile on Windows
+    679d6a80 2022-03-08 Jasem Mutlaq         INDI v1.9.5 change log
+    fc5f5dc6 2022-03-08 Sophie Taylor        Remove incorrect documentation (#1637)
+
 + From 1.9.4 to 1.9.5
 
     4f9db311 2022-03-05 Jasem Mutlaq         Fix typo
