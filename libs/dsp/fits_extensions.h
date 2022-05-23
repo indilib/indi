@@ -17,28 +17,29 @@
 *   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "dsp.h"
+#ifndef _FITS_EXTENSIONS_H
+#define _FITS_EXTENSIONS_H
 
-double* dsp_stats_histogram(dsp_stream_p stream, int size)
-{
-    if(stream == NULL)
-        return NULL;
-    int k;
-    long i = 0;
-    double* out = (double*)malloc(sizeof(double)*size);
-    double* tmp = (double*)malloc(sizeof(double)*stream->len);
-    dsp_buffer_set(out, size, 0.0);
-    dsp_buffer_copy(stream->buf, tmp, stream->len);
-    dsp_buffer_stretch(tmp, stream->len, 0, size-1);
-    for(k = 0; k < stream->len; k++) {
-        i = (long)tmp[k];
-        if(i > 0 && i < size)
-            out[i] ++;
-    }
-    free(tmp);
-    dsp_t mn = dsp_stats_min(out, size);
-    dsp_t mx = dsp_stats_max(out, size);
-    if(mn < mx)
-        dsp_buffer_stretch(out, size, 0, size);
-    return out;
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+#ifndef DLL_EXPORT
+#define DLL_EXPORT extern
+#endif
+
+/**
+ * \defgroup dsp_FitsExtensions DSP API FITS Extensions functions
+*/
+/**\{*/
+/// \defgroup dsp_FitsExtensionSDFITS DSP API SDFITS Extension
+#include <sdfits.h>
+/// \defgroup dsp_FitsExtensionFITSIDI DSP API FITSIDI Extension
+#include <fitsidi.h>
+/**\}*/
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif //_FITS_EXTENSIONS_H

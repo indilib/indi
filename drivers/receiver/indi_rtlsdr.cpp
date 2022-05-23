@@ -113,10 +113,10 @@ RTLSDR::RTLSDR(int32_t index)
     char name[MAXINDIDEVICE];
     snprintf(name, MAXINDIDEVICE, "%s %s%c", getDefaultName(), index < 0 ? "TCP" : "USB", index < 0 ? '\0' : index + '1');
     setDeviceName(name);
+
     // We set the Receiver capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING | SENSOR_HAS_DSP;
     SetReceiverCapability(cap);
-
 }
 
 bool RTLSDR::Connect()
@@ -168,12 +168,12 @@ bool RTLSDR::initProperties()
     // Must init parent properties first!
     INDI::Receiver::initProperties();
 
-    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 600, 0.001, false);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_SAMPLERATE", 2.5e+5, 2.0e+6, 2.5e+5, false);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, false);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 2.5e+5, 2.0e+6, 2.5e+5, false);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 600, 0.001, true);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_FREQUENCY", 2.4e+7, 2.0e+9, 1, true);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_SAMPLERATE", 2.5e+5, 2.0e+6, 2.5e+5, true);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, true);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 2.5e+5, 2.0e+6, 2.5e+5, true);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, true);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
@@ -391,8 +391,7 @@ void RTLSDR::grabData()
                 IntegrationComplete();
             } else {
                 StartIntegration(1.0 / Streamer->getTargetFPS());
-                int32_t size = getBufferSize();
-                Streamer->newFrame(getBuffer(), size);
+                Streamer->newFrame(getBuffer(), getBufferSize());
             }
         }
     }
