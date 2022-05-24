@@ -52,6 +52,7 @@ sudo apt-get install -y \
   zlib1g-dev \
   libftdi-dev \
   libgsl0-dev \
+  libpng-dev \
   libjpeg-dev \
   libkrb5-dev \
   libnova-dev \
