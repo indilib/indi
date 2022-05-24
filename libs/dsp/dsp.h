@@ -563,6 +563,7 @@ DLL_EXPORT void dsp_convolution_correlation(dsp_stream_p stream, dsp_stream_p ma
     dsp_t min = (dsp_t)buf[0];\
     for(i = 0; i < len; i++) {\
         min = Min(buf[i], min);\
+    }\
     min;\
     })
 #endif
