@@ -23,7 +23,6 @@
 #include <locale.h>
 #include <unistd.h>
 #include <jpeglib.h>
-#include <png.h>
 
 dsp_stream_p* dsp_file_read_fits(const char* filename, int *channels, int stretch)
 {
@@ -59,7 +58,7 @@ dsp_stream_p* dsp_file_read_fits(const char* filename, int *channels, int stretc
     for(dim = 0; dim < dims; dim++) {
         nelements *= naxes[dim];
     }
-    void *array = malloc((size_t)(abs(bpp) * nelements / 8));
+    void *array = malloc(((size_t)abs(bpp) * nelements / 8));
     int anynul = 0;
     dsp_t* buf = (dsp_t*)malloc(sizeof(dsp_t)*(size_t)(nelements+1));
     switch(bpp) {
@@ -70,43 +69,43 @@ dsp_stream_p* dsp_file_read_fits(const char* filename, int *channels, int stretc
         break;
     case SHORT_IMG:
         fits_read_img(fptr, TUSHORT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((unsigned short*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((unsigned short*)array), buf, nelements);
         break;
     case USHORT_IMG:
         fits_read_img(fptr, TUSHORT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((unsigned short*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((unsigned short*)array), buf, nelements);
         break;
     case LONG_IMG:
         fits_read_img(fptr, TULONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((int*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((int*)array), buf, nelements);
         break;
     case ULONG_IMG:
         fits_read_img(fptr, TULONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((unsigned int*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((unsigned int*)array), buf, nelements);
         break;
     case LONGLONG_IMG:
         fits_read_img(fptr, TLONGLONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((long*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((long*)array), buf, nelements);
         break;
     case FLOAT_IMG:
         fits_read_img(fptr, TFLOAT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((float*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((float*)array), buf, nelements);
         break;
     case DOUBLE_IMG:
         fits_read_img(fptr, TDOUBLE, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if((size_t)abs(bpp) > 8*sizeof(dsp_t))
             dsp_buffer_stretch(((double*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((double*)array), buf, nelements);
         break;
@@ -168,7 +167,7 @@ void dsp_file_write_fits(const char* filename, int bpp, dsp_stream_p stream)
     int img_type  = USHORT_IMG;
     int byte_type = TUSHORT;
     char bit_depth[64] = "16 bits per sample";
-    void* buf = malloc((size_t)(tmp->len * abs(bpp) / 8 + 512));
+    void* buf = malloc((size_t)(tmp->len * (size_t)abs(bpp) / 8 + 512));
     int status    = 0;
     int naxis    = tmp->dims;
     long *naxes = (long*)malloc(sizeof(long) * (size_t)tmp->dims);
@@ -271,7 +270,7 @@ void dsp_file_write_fits_composite(const char* filename, int components, int bpp
     int img_type  = USHORT_IMG;
     int byte_type = TUSHORT;
     char bit_depth[64] = "16 bits per sample";
-    void* buf = malloc((size_t)(tmp->len * components * abs(bpp) / 8 + 512));
+    void* buf = malloc((size_t)(tmp->len * components * (size_t)abs(bpp) / 8 + 512));
     int status    = 0;
     int naxis    = tmp->dims + 1;
     long *naxes = (long*)malloc(sizeof(long) * (size_t)(tmp->dims + 1));
@@ -281,7 +280,7 @@ void dsp_file_write_fits_composite(const char* filename, int components, int bpp
     for (i = 0;  i < tmp->dims; i++)
         naxes[i] = tmp->sizes[i];
     naxes[i] = components;
-    dsp_t max = (1<<abs(bpp))/2-1;
+    dsp_t max = (1<<(size_t)abs(bpp))/2-1;
     for(x = 0; x < components; x++) {
         tmp = dsp_stream_copy(stream[x]);
         dsp_buffer_stretch(tmp->buf, tmp->len, 0, (dsp_t)max);
@@ -381,7 +380,7 @@ void dsp_file_write_fits_bayer(const char* filename, int components, int bpp, ds
     int byte_type = TUSHORT;
     char bit_depth[64] = "16 bits per sample";
     int len = tmp->len;
-    void* data = malloc((size_t)(len * abs(bpp) / 8 + 512));
+    void* data = malloc((size_t)(len * (size_t)abs(bpp) / 8 + 512));
     int status    = 0;
     int naxis    = tmp->dims;
     long *naxes = (long*)malloc(sizeof(long) * (size_t)(tmp->dims));
@@ -394,7 +393,7 @@ void dsp_file_write_fits_bayer(const char* filename, int components, int bpp, ds
     dsp_stream_free_buffer(tmp);
     dsp_stream_free(tmp);
     for(x = 0; x < components; x++) {
-        dsp_buffer_stretch(buf, stream[components]->len, 0, (dsp_t)(1<<abs(bpp))-1);
+        dsp_buffer_stretch(buf, stream[components]->len, 0, (dsp_t)(1<<(size_t)abs(bpp))-1);
         switch (bpp)
         {
             case 8:
@@ -644,109 +643,6 @@ void dsp_file_write_jpeg_composite(const char* filename, int components, int qua
     jpeg_destroy_compress(&cinfo);
     fclose(outfile);
     free(buf);
-}
-
-dsp_stream_p* dsp_file_read_png(const char* filename, int *channels, int stretch)
-{
-    int width, height;
-    int components;
-    unsigned int type;
-    unsigned int row_stride;
-    int bpp;
-    unsigned char * buf;
-
-    FILE *infile = fopen (filename, "r");
-    if(infile == NULL)
-        return NULL;
-    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png)
-        return NULL;
-    png_infop info = png_create_info_struct(png);
-    if (!info)
-        return NULL;
-    png_infop end_info = png_create_info_struct(png);
-    if (!end_info)
-        return NULL;
-    if (setjmp(png_jmpbuf(png)))
-        return NULL;
-    png_init_io(png, infile);
-    png_read_info(png, info);
-    width = (int)png_get_image_width(png, info);
-    height = (int)png_get_image_height(png, info);
-    type = png_get_color_type(png, info);
-    bpp = png_get_bit_depth(png, info);
-    if (type & PNG_COLOR_MASK_PALETTE)
-        png_set_palette_to_rgb(png);
-    if (type == PNG_COLOR_TYPE_GRAY && bpp < 8) {
-        png_set_expand_gray_1_2_4_to_8(png);
-        bpp = 8;
-    }
-    png_read_update_info(png, info);
-    components = (type & (PNG_COLOR_MASK_COLOR|PNG_COLOR_MASK_PALETTE)) ? 3 : 1;
-    if (type & PNG_COLOR_MASK_ALPHA)
-        components++;
-    row_stride = (unsigned int)(width * components * bpp / 8);
-    buf = (unsigned char *)malloc(row_stride * (size_t)(height));
-    unsigned char *image = (unsigned char *)buf;
-    int row;
-    for (row = 0; row < height; row++) {
-        png_read_row(png, image, NULL);
-        image += row_stride;
-    }
-    png_destroy_read_struct(&png, &info, &end_info);
-    fclose(infile);
-    if (type & PNG_COLOR_MASK_ALPHA)
-        components--;
-    *channels = components;
-    if(bpp == 16)
-        dsp_buffer_swap(((unsigned short*)buf), width * height * components);
-    return dsp_buffer_rgb_to_components(buf, 2, (int[]){width, height}, components, bpp, stretch);
-}
-
-void dsp_file_write_png_composite(const char* filename, int components, int compression, dsp_stream_p* stream)
-{
-    int bpp = 16;
-    unsigned int row_stride;
-    int width = stream[0]->sizes[0];
-    int height = stream[0]->sizes[1];
-
-    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png)
-        return;
-    png_infop info = png_create_info_struct(png);
-    if (!info)
-        return;
-    if (setjmp(png_jmpbuf(png)))
-        return;
-    FILE * outfile;
-    if ((outfile = fopen(filename, "wb")) == NULL) {
-        perr("can't open %s\n", filename);
-        return;
-    }
-    png_init_io(png, outfile);
-    png_set_IHDR(png,
-                 info,
-                 (unsigned int)width,
-                 (unsigned int)height,
-                 bpp,
-                 components == 1 ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_RGB,
-                 PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT,
-                 PNG_FILTER_TYPE_DEFAULT);
-    png_set_compression_level(png, compression);
-    png_write_info(png, info);
-    row_stride = (unsigned int)(width * components * bpp / 8);
-    int row;
-    void *buf = malloc((size_t)(stream[0]->len*components*bpp/8));
-    unsigned char *image = (unsigned char *)buf;
-    dsp_buffer_components_to_rgb(stream, image, components, bpp);
-    for (row = 0; row < height; row++) {
-        png_write_row(png, image);
-        image += row_stride;
-    }
-    png_destroy_write_struct(&png, &info);
-    free(buf);
-    fclose(outfile);
 }
 
 dsp_t* dsp_file_bayer_2_gray(dsp_t *src, int width, int height)
@@ -1244,7 +1140,7 @@ void dsp_buffer_components_to_rgb(dsp_stream_p *stream, void* rgb, int component
 {
     ssize_t y;
     int len = stream[0]->len * components;
-    dsp_t max = (dsp_t)((double)((1<<abs(bpp))-1));
+    dsp_t max = (dsp_t)((double)((1<<(size_t)abs(bpp))-1));
     max = Min(max, dsp_t_max);
     for(y = 0; y < components; y++) {
         dsp_stream_p in = dsp_stream_copy(stream[y]);

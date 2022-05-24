@@ -595,7 +595,7 @@ void dsp_stream_scale(dsp_stream_p in)
 {
     if(in == NULL)
         return;
-    int y;
+    long unsigned int y;
     dsp_stream_p stream = dsp_stream_copy(in);
     dsp_buffer_set(stream->buf, stream->len, 0);
     stream->parent = in;
@@ -665,7 +665,7 @@ void dsp_stream_rotate(dsp_stream_p in)
     dsp_stream_p stream = dsp_stream_copy(in);
     dsp_buffer_set(stream->buf, stream->len, 0);
     stream->parent = in;
-    int y;
+    long unsigned int y;
     pthread_t *th = malloc(sizeof(pthread_t)*dsp_max_threads(0));
     struct {
        int cur_th;

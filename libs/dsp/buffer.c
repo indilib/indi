@@ -190,7 +190,7 @@ void dsp_buffer_sum1(dsp_stream_p stream, dsp_t val)
 {
     if(stream == NULL)
         return;
-	int k;
+    int k;
 
     for(k = 0; k < stream->len; k++) {
         stream->buf[k] += val;
@@ -317,7 +317,8 @@ void dsp_buffer_median(dsp_stream_p in, int size, int median)
 {
     if(in == NULL)
         return;
-    int y, d;
+    long unsigned int y;
+    int d;
     dsp_stream_p stream = dsp_stream_copy(in);
     dsp_buffer_set(stream->buf, stream->len, 0);
     stream->parent = in;
@@ -396,7 +397,8 @@ void dsp_buffer_sigma(dsp_stream_p in, int size)
 {
     if(in == NULL)
         return;
-    int y, d;
+    long unsigned int y;
+    int d;
     dsp_stream_p stream = dsp_stream_copy(in);
     dsp_buffer_set(stream->buf, stream->len, 0);
     stream->parent = in;

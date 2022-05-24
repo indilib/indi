@@ -1382,25 +1382,6 @@ DLL_EXPORT void dsp_file_write_jpeg(const char* filename, int quality, dsp_strea
 DLL_EXPORT void dsp_file_write_jpeg_composite(const char* filename, int components, int quality, dsp_stream_p* stream);
 
 /**
-* \brief Read a PNG file and fill a array of dsp_stream_p with its content,
-* each color channel has its own stream in this array and an additional grayscale at end will be added
-* \param filename the file name.
-* \param channels this value will be updated with the channel quantity into the picture.
-* \param stretch 1 if the buffer intensities have to be stretched
-* \return The new dsp_stream_p structure pointers array
-*/
-DLL_EXPORT dsp_stream_p* dsp_file_read_png(const char* filename, int *channels, int stretch);
-
-/**
-* \brief Write the components dsp_stream_p array into a PNG file,
-* \param filename the file name.
-* \param components the number of streams in the array to be used as components 1 or 3.
-* \param compression the compression of the output PNG 0-9.
-* \param stream the input stream array to be saved
-*/
-DLL_EXPORT void dsp_file_write_png_composite(const char* filename, int components, int compression, dsp_stream_p* stream);
-
-/**
 * \brief Convert a bayer pattern dsp_t array into a grayscale array
 * \param src the input buffer
 * \param width the picture width
