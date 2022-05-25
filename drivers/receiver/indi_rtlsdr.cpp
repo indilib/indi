@@ -168,12 +168,13 @@ bool RTLSDR::initProperties()
     // Must init parent properties first!
     INDI::Receiver::initProperties();
 
-    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 600, 0.001, true);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_FREQUENCY", 2.4e+7, 2.0e+9, 1, true);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_SAMPLERATE", 2.5e+5, 2.0e+6, 2.5e+5, true);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, true);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 2.5e+5, 2.0e+6, 2.5e+5, true);
-    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, true);
+    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 600, 0.001, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_SAMPLERATE", 2.5e+5, 2.0e+6, 2.5e+5, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 2.5e+5, 2.0e+6, 2.5e+5, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_ANTENNA", 1, 1, 0, false);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
