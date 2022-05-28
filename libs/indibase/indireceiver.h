@@ -174,8 +174,8 @@ class Receiver : public virtual SensorInterface
          * @param sendToClient If true (default), the element limits are updated and is sent to the
          * client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                           bool sendToClient = true);
+        virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                           bool sendToClient = true) override;
 
         typedef enum
         {

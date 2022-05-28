@@ -403,6 +403,7 @@ ENDIF(OGGTHEORA_FOUND)
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
@@ -2072,6 +2073,10 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits_extensions.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/sdfits.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fitsidi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h

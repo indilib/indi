@@ -33,22 +33,19 @@ class Convolution : public Interface
 public:
     Convolution(INDI::DefaultDevice *dev);
     bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
 protected:
     ~Convolution();
     void Activated() override;
     void Deactivated() override;
 
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
-
 private:
-    dsp_stream_p matrix;
-
     IBLOBVectorProperty DownloadBP;
     IBLOB DownloadB;
 
+    dsp_stream_p matrix;
     bool matrix_loaded { false };
-    void Convolute();
 };
 
 class Wavelets : public Interface
@@ -56,13 +53,12 @@ class Wavelets : public Interface
 public:
     Wavelets(INDI::DefaultDevice *dev);
     bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
 protected:
     ~Wavelets();
     void Activated() override;
     void Deactivated() override;
-
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
 private:
     dsp_stream_p matrix;

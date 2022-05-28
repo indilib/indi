@@ -161,23 +161,24 @@ bool Spectrograph::StartIntegration(double duration)
 void Spectrograph::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                                    bool sendToClient)
 {
-    INumberVectorProperty *vp = nullptr;
-
-    if (!strcmp(property, SpectrographSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
-
-        INumber *np = IUFindNumber(vp, element);
-        if (np)
-        {
-            np->min  = min;
-            np->max  = max;
-            np->step = step;
-
-            if (sendToClient)
-                IUUpdateMinMax(vp);
-        }
-    }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
+    INumberVectorProperty *nvp = nullptr;
+
+    if (!strcmp(property, SpectrographSettingsNP.name))
+        nvp = &SpectrographSettingsNP;
+    else
+        return;
+
+    INumber *np = IUFindNumber(nvp, element);
+    if (np)
+    {
+        np->min  = min;
+        np->max  = max;
+        np->step = step;
+
+        if (sendToClient)
+            IUUpdateMinMax(nvp);
+    }
 }
 
 void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)

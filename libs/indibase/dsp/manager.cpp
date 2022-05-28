@@ -139,5 +139,13 @@ bool Manager::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_
     r |= wavelets->processBLOB(buf, ndims, dims, bits_per_sample);
     return r;
 }
-
+void Manager::setCaptureFileExtension(const char *ext)
+{
+    convolution->setCaptureFileExtension(ext);
+    dft->setCaptureFileExtension(ext);
+    idft->setCaptureFileExtension(ext);
+    spectrum->setCaptureFileExtension(ext);
+    histogram->setCaptureFileExtension(ext);
+    wavelets->setCaptureFileExtension(ext);
+}
 }

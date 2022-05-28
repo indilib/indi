@@ -57,6 +57,8 @@ class Manager
         inline void setBPS(int bps) { BPS = bps; }
         inline int getBPS() { return BPS; }
 
+        void setCaptureFileExtension(const char *ext);
+
     private:
         Convolution *convolution;
         FourierTransform *dft;

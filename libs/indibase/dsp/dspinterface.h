@@ -73,7 +73,9 @@ class Interface
         DSP_DFT,
         DSP_IDFT,
         DSP_CONVOLUTION,
+        DSP_WAVELETS,
         DSP_SPECTRUM,
+        DSP_HISTOGRAM,
         } Type;
 
         virtual void ISGetProperties(const char *dev);
@@ -92,7 +94,7 @@ class Interface
          * @param bits_per_sample original bit depth of the input buffer
          * @return True if successful, false otherwise.
          */
-        bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
+        virtual bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
         /**
          * @brief setSizes Set the returned file dimensions and corresponding sizes.
@@ -119,6 +121,12 @@ class Interface
          * @return Bit depth / sample size.
          */
         int getBPS() { return BPS; }
+
+        /**
+         * @brief setIntegrationFileExtension Set the returned file extension.
+         * @param ext The extension suffix.
+         */
+        void setCaptureFileExtension(const char *ext);
 
     protected:
 
@@ -173,16 +181,26 @@ class Interface
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         Type m_Type {  DSP_NONE };
-        void setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        bool setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        bool setMagnitude(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        bool setPhase(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        bool setReal(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        bool setImaginary(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
         uint8_t *getStream();
+        uint8_t *getMagnitude();
+        uint8_t *getPhase();
+        uint8_t *getReal();
+        uint8_t *getImaginary();
+        uint8_t* getBuffer(dsp_stream_p in, uint32_t *dims, int **sizes);
         dsp_stream_p stream;
 
     private:
-        uint32_t BufferSizesQty;
-        int *BufferSizes;
-        int BPS;
+        char captureExtention[MAXINDIBLOBFMT] { "fits" };
+        void *buffer { nullptr };
+        uint32_t BufferSizesQty {0 };
+        int *BufferSizes { nullptr };
+        int BPS { 16 };
 
-        char processedFileName[MAXINDINAME];
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
         void addFITSKeywords(fitsfile *fptr);
         bool sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture);
