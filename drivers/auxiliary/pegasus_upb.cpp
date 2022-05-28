@@ -1341,11 +1341,26 @@ bool PegasusUPB::sendFirmware()
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end)
 {
-    for (uint8_t index = start; index <= end; index++)
-        if (result[index] != lastSensorData[index])
+    if (lastSensorData.empty())
+        return true;
+
+    for (uint8_t index = start; index <= end; index++){
+        if (index >= lastSensorData.size() or result[index] != lastSensorData[index])
             return true;
+    }
 
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusUPB::stepperUpdated(const std::vector<std::string> &result, u_int8_t index)
+{
+    if (lastStepperData.empty())
+        return true;
+
+    return index >= lastStepperData.size() or result[index] != lastSensorData[index];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1641,13 +1656,13 @@ bool PegasusUPB::getStepperData()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
-        else if (result[0] != lastStepperData[0])
+        else if (stepperUpdated(result, 0))
             IDSetNumber(&FocusAbsPosNP, nullptr);
 
         FocusReverseS[INDI_ENABLED].s = (std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF;
         FocusReverseS[INDI_DISABLED].s = (std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON;
 
-        if (result[2] != lastStepperData[2])
+        if (stepperUpdated(result, 1))
             IDSetSwitch(&FocusReverseSP, nullptr);
 
         uint16_t backlash = std::stoi(result[3]);
@@ -1656,7 +1671,7 @@ bool PegasusUPB::getStepperData()
             FocusBacklashN[0].value = backlash;
             FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
             FocusBacklashS[INDI_DISABLED].s = ISS_ON;
-            if (result[3] != lastStepperData[3])
+            if (stepperUpdated(result, 3))
             {
                 IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);
@@ -1667,7 +1682,7 @@ bool PegasusUPB::getStepperData()
             FocusBacklashS[INDI_ENABLED].s = ISS_ON;
             FocusBacklashS[INDI_DISABLED].s = ISS_OFF;
             FocusBacklashN[0].value = backlash;
-            if (result[3] != lastStepperData[3])
+            if (stepperUpdated(result, 3))
             {
                 IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);

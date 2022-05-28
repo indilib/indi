@@ -76,18 +76,18 @@ class Detector : public SensorInterface
         Detector();
         virtual ~Detector();
 
-        bool initProperties();
-        bool updateProperties();
-        void ISGetProperties(const char *dev);
-        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        bool ISSnoopDevice(XMLEle *root);
+        bool initProperties() override;
+        bool updateProperties() override;
+        void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        bool ISSnoopDevice(XMLEle *root) override;
 
-        void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+        void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
-        virtual bool StartIntegration(double duration);
+        virtual bool StartIntegration(double duration) override;
 
         /**
          * @brief setResolution Set resolution of the detector in ns.
@@ -151,7 +151,8 @@ class Detector : public SensorInterface
          * @param sendToClient If true (default), the element limits are updated and is sent to the
          * client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient);
+        virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                           bool sendToClient = true) override;
 
         typedef enum
         {

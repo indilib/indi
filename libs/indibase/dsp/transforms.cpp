@@ -40,30 +40,72 @@ FourierTransform::~FourierTransform()
 {
 }
 
-uint8_t* FourierTransform::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool FourierTransform::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
+    if(!PluginActive) return false;
     setStream(buf, dims, sizes, bits_per_sample);
-    dsp_complex* dft = dsp_fourier_dft(stream);
-    for(int x = 0; x < stream->len; x++)
-        stream->buf[x] = sqrt(pow(dft[x].real, 2)+pow(dft[x].imaginary, 2));
-    dsp_buffer_stretch(stream->buf, stream->len, 0.0, (bits_per_sample < 0 ? 1.0 : pow(2, bits_per_sample)-1));
-    return getStream();
+
+    dsp_fourier_dft(stream, 1);
+    return Interface::processBLOB(getMagnitude(), stream->magnitude->dims, stream->magnitude->sizes, bits_per_sample);
 }
 
 InverseFourierTransform::InverseFourierTransform(INDI::DefaultDevice *dev) : Interface(dev, DSP_IDFT, "IDFT", "IDFT")
 {
+    IUFillBLOB(&DownloadB, "PHASE_DOWNLOAD", "Phase", "");
+    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "PHASE", "Phase Data", DSP_TAB, IP_RW, 60, IPS_IDLE);
 }
 
 InverseFourierTransform::~InverseFourierTransform()
 {
 }
 
-uint8_t* InverseFourierTransform::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+void InverseFourierTransform::Activated()
 {
+    m_Device->defineProperty(&DownloadBP);
+    Interface::Activated();
+}
+
+void InverseFourierTransform::Deactivated()
+{
+    m_Device->deleteProperty(DownloadBP.name);
+    Interface::Deactivated();
+}
+
+bool InverseFourierTransform::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    if(!PluginActive) return false;
+    if(!phase_loaded) return false;
     setStream(buf, dims, sizes, bits_per_sample);
+    if (phase->dims != stream->dims) return false;
+    for (int d = 0; d < stream->dims; d++)
+        if (phase->sizes[d] != stream->sizes[d])
+            return false;
+    setMagnitude(buf, dims, sizes, bits_per_sample);
+    stream->phase = phase;
+    dsp_buffer_set(stream->buf, stream->len, 0);
     dsp_fourier_idft(stream);
-    dsp_buffer_stretch(stream->buf, stream->len, 0.0, (bits_per_sample < 0 ? 1.0 : pow(2, bits_per_sample)-1));
-    return getStream();
+    return Interface::processBLOB(getStream(), stream->dims, stream->sizes, bits_per_sample);
+}
+
+bool InverseFourierTransform::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+    if(!strcmp(dev, getDeviceName())) {
+        if(!strcmp(name, DownloadBP.name)) {
+            IUUpdateBLOB(&DownloadBP, sizes, blobsizes, blobs, formats, names, n);
+            LOGF_INFO("Received phase BLOB for %s", getDeviceName());
+            if(phase != nullptr) {
+                dsp_stream_free_buffer(phase);
+                dsp_stream_free(phase);
+            }
+            phase = loadFITS(blobs[0], sizes[0]);
+            if (phase != nullptr) {
+                LOGF_INFO("Phase for %s loaded", getDeviceName());
+                phase_loaded = true;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 Spectrum::Spectrum(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "SPECTRUM", "Spectrum")
@@ -74,19 +116,18 @@ Spectrum::~Spectrum()
 {
 }
 
-uint8_t* Spectrum::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool Spectrum::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
+    if(!PluginActive) return false;
     setStream(buf, dims, sizes, bits_per_sample);
-    dsp_fourier_idft(stream);
-    double *histo = dsp_stats_histogram(stream, 4096);
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, histo, 4096);
-    setSizes(1, new int{4096});
-    return getStream();
+
+    dsp_fourier_dft(stream, 1);
+    double *histo = dsp_stats_histogram(stream->magnitude, 4096);
+    return Interface::processBLOB(static_cast<uint8_t*>(static_cast<void*>(histo)), 1, new int{4096}, -64);
 }
 
 
-Histogram::Histogram(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "HISTOGRAM", "Histogram")
+Histogram::Histogram(INDI::DefaultDevice *dev) : Interface(dev, DSP_HISTOGRAM, "HISTOGRAM", "Histogram")
 {
 }
 
@@ -94,13 +135,12 @@ Histogram::~Histogram()
 {
 }
 
-uint8_t* Histogram::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool Histogram::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
+    if(!PluginActive) return false;
     setStream(buf, dims, sizes, bits_per_sample);
+
     double *histo = dsp_stats_histogram(stream, 4096);
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, histo, 4096);
-    setSizes(1, new int{4096});
-    return getStream();
+    return Interface::processBLOB(static_cast<uint8_t*>(static_cast<void*>(histo)), 1, new int{4096}, -64);
 }
 }

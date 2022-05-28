@@ -205,23 +205,24 @@ bool Correlator::StartIntegration(double duration)
 void Correlator::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                                    bool sendToClient)
 {
-    INumberVectorProperty *vp = nullptr;
-
-    if (!strcmp(property, CorrelatorSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
-
-        INumber *np = IUFindNumber(vp, element);
-        if (np)
-        {
-            np->min  = min;
-            np->max  = max;
-            np->step = step;
-
-            if (sendToClient)
-                IUUpdateMinMax(vp);
-        }
-    }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
+    INumberVectorProperty *nvp = nullptr;
+
+    if (!strcmp(property, CorrelatorSettingsNP.name))
+        nvp = &CorrelatorSettingsNP;
+    else
+        return;
+
+    INumber *np = IUFindNumber(nvp, element);
+    if (np)
+    {
+        np->min  = min;
+        np->max  = max;
+        np->step = step;
+
+        if (sendToClient)
+            IUUpdateMinMax(nvp);
+    }
 }
 }
 
