@@ -72,9 +72,12 @@ enum APPECRecordingState
 LX200AstroPhysicsV2::LX200AstroPhysicsV2() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
+    // The 5 means there are 5 slew rates.
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK
                            | TELESCOPE_HAS_TRACK_RATE, 5);
 
+    majorVersion[0] = 0;
+    minorVersion[0] = 0;
     setVersion(1, 1);
 }
 
@@ -129,6 +132,11 @@ bool LX200AstroPhysicsV2::initProperties()
     IUFillSwitch(&SlewRateS[4], "1200", "1200x", ISS_OFF);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 5, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Home button for clutch aware mounts with encoders.
+    IUFillSwitch(&HomeAndReSyncS[0], "Home and ReSync", "Home and ReSync", ISS_OFF);
+    IUFillSwitchVector(&HomeAndReSyncSP, HomeAndReSyncS, 1, getDeviceName(), "HOME_AND_RESYNC",
+                       "HomeAndReSync", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Manual-set-mount-to-parked button for recovering from issues.
     IUFillSwitch(&ManualSetParkedS[0], "MANUAL SET PARKED", "Manual Set Parked", ISS_OFF);
@@ -224,6 +232,8 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
+        if (homeAndReSyncEnabled)
+            defineProperty(&HomeAndReSyncSP);
         defineProperty(&VersionTP);
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
@@ -245,6 +255,8 @@ bool LX200AstroPhysicsV2::updateProperties()
 
     if (isConnected())
     {
+        if (homeAndReSyncEnabled)
+            defineProperty(&HomeAndReSyncSP);
         defineProperty(&VersionTP);
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
@@ -260,6 +272,8 @@ bool LX200AstroPhysicsV2::updateProperties()
     }
     else
     {
+        if (!homeAndReSyncEnabled)
+            deleteProperty(HomeAndReSyncSP.name);
         deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
@@ -392,11 +406,41 @@ bool LX200AstroPhysicsV2::getPECState(const char *statusString)
     return true;
 }
 
+void LX200AstroPhysicsV2::setMajorMinorVersions(char *version)
+{
+    *majorVersion = 0;
+    *minorVersion = 0;
+
+    char *start1 = strstr(version, "-");
+    if (start1)
+    {
+        char *end1 = strstr(start1 + 1, "-");
+        if (end1)
+        {
+            size_t length1 = (end1 - start1) - 1;
+            if (length1 < sizeof(majorVersion))
+            {
+                strncpy(majorVersion, start1 + 1, sizeof(majorVersion));
+                majorVersion[length1] = 0;
+
+                char *start2 = end1 + 1;
+                if (*start2 != '\0')
+                {
+                    if (strlen(start2) < sizeof(minorVersion))
+                        strncpy(minorVersion, start2, sizeof(minorVersion));
+                }
+            }
+        }
+    }
+}
+
 bool LX200AstroPhysicsV2::getFirmwareVersion()
 {
     bool success;
     char rev[8];
     char versionString[128];
+    majorVersion[0] = 0;
+    minorVersion[0] = 0;
 
     success = false;
 
@@ -415,6 +459,7 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
         servoType = GTOCP4;
         strcpy(rev, "V");
         success = true;
+        setMajorMinorVersions(versionString);
     }
     else if (strstr(versionString, "VCP5"))
 
@@ -422,6 +467,7 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
         firmwareVersion = MCV_V;
         servoType = GTOCP5;
         strcpy(rev, "V");
+        setMajorMinorVersions(versionString);
         success = true;
     }
     else if (strlen(versionString) == 1 || strlen(versionString) == 2)
@@ -452,6 +498,8 @@ bool LX200AstroPhysicsV2::getFirmwareVersion()
     {
         LOGF_INFO("Servo Box Controller: GTOCP%d.", servoType);
         LOGF_INFO("Firmware Version: '%s' - %s", rev, versionString + 5);
+        if (majorVersion[0] && minorVersion[0])
+            LOGF_INFO("Firmware Major Version: %s Minor Version %s", majorVersion, minorVersion);
     }
 
     return success;
@@ -528,6 +576,9 @@ bool LX200AstroPhysicsV2::ApInitialize()
         LOG_ERROR("This driver requires at least version T firmware");
         return false;
     }
+
+    if (apCanHome(PortFD))
+        homeAndReSyncEnabled = true;
 
     // Set location up every time we connect.
     double longitude = -1000, latitude = -1000;
@@ -847,6 +898,17 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    // ===========================================================
+    // Home and ReSync mount
+    // ===========================================================
+    if (strcmp(name, HomeAndReSyncSP.name) == 0)
+    {
+        IUResetSwitch(&HomeAndReSyncSP);
+        apHomeAndSync(PortFD);
+        IDSetSwitch(&HomeAndReSyncSP, nullptr);
+        return true;
+    }
+
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -1128,24 +1190,6 @@ bool LX200AstroPhysicsV2::Goto(double r, double d)
     return true;
 }
 
-
-bool LX200AstroPhysicsV2::updateAPSlewRate(int index)
-{
-    if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
-    {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-        return false;
-    }
-
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[index].s = ISS_ON;
-    SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, nullptr);
-    return true;
-}
-
-
 // AP mounts handle guide commands differently enough from the "generic" LX200 we need to override some
 // functions related to the GuiderInterface
 
@@ -1354,7 +1398,11 @@ bool LX200AstroPhysicsV2::Handshake()
         LOGF_ERROR("Error clearing the buffer (%d): %s", err, strerror(err));
         return false;
     }
-
+    if (!getActiveConnection()->name().compare("CONNECTION_TCP"))
+    {
+        LOG_INFO("Setting generic udp format (1)");
+        tty_set_generic_udp_format(1);
+    }
     if (setAPBackLashCompensation(PortFD, 0, 0, 0) < 0)
     {
         // It seems we need to send it twice before it works!

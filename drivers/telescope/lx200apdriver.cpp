@@ -887,6 +887,120 @@ bool apStatusSlewing(const char *statusString)
 {
     return statusString[3] !=  '0';
 }
+
+// The 14th character in the status string "N" tells up about the rate table.
+APRateTableState apRateTable(const char *statusString)
+{
+    if (strlen(statusString) >= 14)
+    {
+        switch (statusString[13])
+        {
+
+            case '0':
+                return AP_RATE_TABLE_0;
+                break;
+            case '1':
+                return AP_RATE_TABLE_1;
+                break;
+            case '2':
+                return AP_RATE_TABLE_2;
+                break;
+            case '3':
+                return AP_RATE_TABLE_3;
+                break;
+            default:
+                return AP_RATE_TABLE_DEFAULT;
+                break;
+        }
+    }
+    return AP_RATE_TABLE_DEFAULT;
+}
+
+
+// Doc for the :G_E command fom A-P:
+// Note that for CP3, must send G control-E but CP4 and CP5 will also accept G_E.
+// This function just sends the G control-E which should work for all three controllers.
+//
+// Get Mount Features
+// Command:	:G<cntl>E#
+// Response:	xxxx#
+// History:		All firmware versions
+// Gets the bit mask associated with mount features.
+// Bit Weighting  Meaning
+// 0      1       Mount Type:  0 = Equatorial Mount, 1 = Fork Mount
+// 1      2       0 = Normal Speed Range, 2 = Slew Scaling on Standard Rates ( >= 600x)
+//                This function has been eliminated beginning P02-01, in favor of the rate tables.
+// 2      4       0 = Encoders not Supported, 4 = Encoders Supported
+// 3-5            Bit encoded indication of what encoder types are supported
+// 6     64       Motor Type:  0 = Servo Motors, 64 = Stepper Motors
+// 7    128       Encoder Reference: 0 = Clutch Dependent, 128 = Clutch Independent (ex. Mach2GTO)
+//                This bit is only meaningful if bit 2 is set.
+// 8    256       0 = Modeling not Enabled, 256 = Modeling Enabled,
+//                This bit is only meaningful in the GTOCP4, as modeling is always enabled in the GTOCP5,
+//                and isn’t available for the GTOCP1-3
+// 9-31           (reserved for future use)
+int getApMountFeatures(int fd, bool *hasEncoder, bool *clutchAware)
+{
+    bool complain = false;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+    constexpr int RB_MAX_LEN = 256;
+    char readBuffer[RB_MAX_LEN];
+    *hasEncoder = false;
+    *clutchAware = false;
+
+    if (fd <= 0)
+    {
+        if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                      "getApStatusString: not a valid file descriptor received");
+        return TTY_READ_ERROR;
+    }
+
+    int res = sendAPCommand(fd, "#:G\005#", "getApStatusString");
+    if (res != TTY_OK)
+    {
+        if (complain) DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                                       "getApMountFeatures: unsuccessful write to telescope, %d", nbytes_write);
+        return res;
+    }
+
+    tty_read_section(fd, readBuffer, '#', LX200_TIMEOUT, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    if (nbytes_read > 5)
+    {
+        readBuffer[4] = '\0';
+
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getApMountFeatures: received bytes %d, [%s]",
+                     nbytes_write, readBuffer);
+        int value;
+        if (sscanf(readBuffer, "%d", &value) > 0)
+        {
+            *hasEncoder = value & 4;
+            *clutchAware = value & 128;
+        }
+
+        return TTY_OK;
+    }
+
+    if (complain) DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getApReadBuffer: wrote, but nothing received.");
+
+    return TTY_READ_ERROR;
+}
+
+bool apCanHome(int fd)
+{
+    bool hasEncoder = false;
+    bool clutchAware = false;
+    return (getApMountFeatures(fd, &hasEncoder, &clutchAware) == TTY_OK) &&
+           hasEncoder && clutchAware;
+}
+
+// This would just work with a clutch-aware encoder mount running a CP5. Currently only Mach2.
+int apHomeAndSync(int fd)
+{
+    return sendAPCommand(fd, "#$HA#", "AP Home and Sync");
+}
+
 int isAPInitialized(int fd, bool *isInitialized)
 {
     constexpr int RB_MAX_LEN = 256;

@@ -80,6 +80,20 @@ bool apStatusSlewing(const char *statusString);
 const char *apMountStatus(const char *statusString);
 int isAPInitialized(int fd, bool *isInitialized);
 
+enum APRateTableState
+{
+    AP_RATE_TABLE_0 = 0,
+    AP_RATE_TABLE_1 = 1,
+    AP_RATE_TABLE_2 = 2,
+    AP_RATE_TABLE_3 = 3,
+    AP_RATE_TABLE_DEFAULT = -1,
+};
+
+APRateTableState apRateTable(const char *statusString);
+int getApMountFeatures(int fd, bool *hasEncoder, bool *clutchAware);
+bool apCanHome(int fd);
+int apHomeAndSync(int fd);
+
 #ifdef __cplusplus
 }
 #endif
