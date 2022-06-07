@@ -593,7 +593,7 @@
         </device>
          <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
-            <version>1.0</version>
+            <version>1.2</version>
         </device>
         <device label="PlaneWave Delta-T" manufacturer="Planewave Instruments">
             <driver name="PlaneWave Delta-T">indi_planewave_deltat</driver>

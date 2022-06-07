@@ -3,6 +3,8 @@
 
   Pegasus FlatMaster
 
+  2022-06-07 Jasem Mutlaq: Use lightbox interface properly.
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -29,29 +31,34 @@
 
 class PegasusFlatMaster : public INDI::DefaultDevice, public INDI::LightBoxInterface
 {
-public:
+    public:
         PegasusFlatMaster();
-        virtual ~PegasusFlatMaster() = default;
+        virtual ~PegasusFlatMaster() override = default;
 
         const char *getDefaultName() override;
         virtual bool initProperties() override;
-        virtual bool updateProperties() override;   
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool updateProperties() override;
+
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-protected:    
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
+
+    protected:
         virtual bool SetLightBoxBrightness(uint16_t value) override;
         virtual bool EnableLightBox(bool enable) override;
-        
+        virtual bool saveConfigItems(FILE *fp) override;
 
-private:
+
+    private:
         bool Ack();
         int PortFD{ -1 };
-        bool sendCommand(const char* cmd,char* response);
+        bool sendCommand(const char* cmd, char* response);
         void updateFirmwareVersion();
 
-         // Firmware version
+        // Firmware version
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
-                
+
         Connection::Serial *serialConnection{ nullptr };
 };
