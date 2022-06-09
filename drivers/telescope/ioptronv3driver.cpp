@@ -249,12 +249,12 @@ bool Driver::getStatus(IOPInfo *info)
 
     info->longitude    = arcsecLongitude / 360000.0;
     info->latitude     = arcsecLatitude / 360000.0 - 90.0;
-    info->gpsStatus    = (IOP_GPS_STATUS)(res[17] - '0');
-    info->systemStatus = (IOP_SYSTEM_STATUS)(res[18] - '0');
-    info->trackRate    = (IOP_TRACK_RATE)(res[19] - '0');
-    info->slewRate     = (IOP_SLEW_RATE)(res[20] - '0');
-    info->timeSource   = (IOP_TIME_SOURCE)(res[21] - '0');
-    info->hemisphere   = (IOP_HEMISPHERE)(res[22] - '0');
+    info->gpsStatus    = static_cast<IOP_GPS_STATUS>(res[17] - '0');
+    info->systemStatus = static_cast<IOP_SYSTEM_STATUS>(res[18] - '0');
+    info->trackRate    = static_cast<IOP_TRACK_RATE>(res[19] - '0');
+    info->slewRate     = static_cast<IOP_SLEW_RATE>(res[20] - '0');
+    info->timeSource   = static_cast<IOP_TIME_SOURCE>(res[21] - '0');
+    info->hemisphere   = static_cast<IOP_HEMISPHERE>(res[22] - '0');
 
     return true;
 }
@@ -331,20 +331,16 @@ bool Driver::startMotion(IOP_DIRECTION dir)
     {
         case IOP_N:
             return sendCommand(":mn#", 0);
-            break;
         case IOP_S:
             return sendCommand(":ms#", 0);
-            break;
         // JM 2020-10-12
         // We are reversing this since CEM120 moves CW when commanded WEST
         // leading to INCREASING RA, when it is expected to move CCW leading
         // to DECREASING RA
         case IOP_W:
             return sendCommand(":me#", 0);
-            break;
         case IOP_E:
             return sendCommand(":mw#", 0);
-            break;
     }
 
     return false;
@@ -357,12 +353,10 @@ bool Driver::stopMotion(IOP_DIRECTION dir)
         case IOP_N:
         case IOP_S:
             return sendCommand(":qD#");
-            break;
 
         case IOP_W:
         case IOP_E:
             return sendCommand(":qR#");
-            break;
     }
 
     return false;
@@ -426,7 +420,7 @@ bool Driver::getPETEnabled(bool enabled)
 bool Driver::setSlewRate(IOP_SLEW_RATE rate)
 {
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SR%d#", ((int)rate) + 1);
+    snprintf(cmd, IOP_BUFFER, ":SR%u#", static_cast<uint32_t>(rate + 1));
 
     simData.simInfo.slewRate = rate;
 
@@ -441,19 +435,14 @@ bool Driver::setTrackMode(IOP_TRACK_RATE rate)
     {
         case TR_SIDEREAL:
             return sendCommand(":RT0#");
-            break;
         case TR_LUNAR:
             return sendCommand(":RT1#");
-            break;
         case TR_SOLAR:
             return sendCommand(":RT2#");
-            break;
         case TR_KING:
             return sendCommand(":RT3#");
-            break;
         case TR_CUSTOM:
             return sendCommand(":RT4#");
-            break;
     }
 
     return false;
@@ -465,7 +454,7 @@ bool Driver::setCustomRATrackRate(double rate)
         return false;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":RR%05d#", static_cast<uint32_t>(rate * 10000));
+    snprintf(cmd, IOP_BUFFER, ":RR%05u#", static_cast<uint32_t>(rate * 10000));
 
     return sendCommand(cmd);
 }
@@ -476,7 +465,7 @@ bool Driver::setGuideRate(double RARate, double DERate)
         return false;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":RG%02d%02d#", static_cast<uint32_t>(RARate * 100), static_cast<uint32_t>(DERate * 100));
+    snprintf(cmd, IOP_BUFFER, ":RG%02u%02u#", static_cast<uint32_t>(RARate * 100), static_cast<uint32_t>(DERate * 100));
 
     return sendCommand(cmd);
 }
@@ -486,7 +475,7 @@ bool Driver::getGuideRate(double *RARate, double *DERate)
     char res[IOP_BUFFER] = {0};
 
     if (m_Simulation)
-        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100),
+        snprintf(res, IOP_BUFFER, "%02u%02u", static_cast<uint32_t>(simData.ra_guide_rate * 100),
                  static_cast<uint32_t>(simData.de_guide_rate * 100));
     else if (sendCommand(":AG#", -1, res) == false)
         return false;
@@ -505,7 +494,7 @@ bool Driver::startGuide(IOP_DIRECTION dir, uint32_t ms)
 {
     char cmd[IOP_BUFFER] = {0};
     char dir_c = 0;
-    
+
     // Sophie Taylor 2022-03-01
     // TODO: This command set is deprecated, to be replaced with RA+/- and Dec+/- commands
     // See https://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf
@@ -528,7 +517,7 @@ bool Driver::startGuide(IOP_DIRECTION dir, uint32_t ms)
             break;
     }
 
-    snprintf(cmd, IOP_BUFFER, ":M%c%05d#", dir_c, ms);
+    snprintf(cmd, IOP_BUFFER, ":M%c%05u#", dir_c, ms);
 
     return sendCommand(cmd, 0);
 }
@@ -617,7 +606,7 @@ bool Driver::setRA(double ra)
     simData.ra = ra;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SRA%09d#", casRA);
+    snprintf(cmd, IOP_BUFFER, ":SRA%09u#", casRA);
 
     return sendCommand(cmd);
 }
@@ -631,7 +620,7 @@ bool Driver::setDE(double de)
     simData.de = de;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":Sd%c%08d#", de >= 0 ? '+' : '-', casDE);
+    snprintf(cmd, IOP_BUFFER, ":Sd%c%08u#", de >= 0 ? '+' : '-', casDE);
 
     return sendCommand(cmd);
 }
@@ -643,7 +632,7 @@ bool Driver::setLongitude(double longitude)
     simData.simInfo.longitude = longitude;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SLO%c%08d#", longitude >= 0 ? '+' : '-', casLongitude);
+    snprintf(cmd, IOP_BUFFER, ":SLO%c%08u#", longitude >= 0 ? '+' : '-', casLongitude);
 
     return sendCommand(cmd);
 }
@@ -655,7 +644,7 @@ bool Driver::setLatitude(double latitude)
     simData.simInfo.latitude = latitude;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SLA%c%08d#", latitude >= 0 ? '+' : '-', casLatitude);
+    snprintf(cmd, IOP_BUFFER, ":SLA%c%08u#", latitude >= 0 ? '+' : '-', casLatitude);
 
     return sendCommand(cmd);
 }
@@ -697,7 +686,7 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'),
+        snprintf(res, IOP_BUFFER, "%c%08u%09u%d%d", (simData.de >= 0 ? '+' : '-'),
                  static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
                  static_cast<uint32_t>(simData.ra * 15 * 60 * 60 * 100), simData.pier_state, simData.cw_state);
     }
@@ -709,8 +698,16 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     strncpy(deStr, res, 9);
     strncpy(raStr, res + 9, 9);
 
-    *de = atoi(deStr) / (60.0 * 60.0 * 100.0);
-    *ra = atoi(raStr) / (15.0 * 60.0 * 60.0 * 100.0);
+    try
+    {
+        *de = std::atoi(deStr) / (60.0 * 60.0 * 100.0);
+        *ra = std::atoi(raStr) / (15.0 * 60.0 * 60.0 * 100.0);
+    }
+    catch(...)
+    {
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Failed to parse coordinates RA: %s DE: %s", raStr, deStr);
+        return false;
+    }
 
     *pierState = static_cast<IOP_PIER_STATE>(res[18] - '0');
     *cwState   = static_cast<IOP_CW_STATE>(res[19] - '0');
@@ -738,8 +735,16 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     *utcOffsetMinutes = atoi(offsetStr);
     *dayLightSaving   = (res[4] == '1');
 
-    uint64_t iopJD = std::stoull(JDStr);
-    *JD = (iopJD / 8.64e+7) + J2000;
+    try
+    {
+        uint64_t iopJD = std::stoull(JDStr);
+        *JD = (iopJD / 8.64e+7) + J2000;
+    }
+    catch(...)
+    {
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Failed to parse JD String: %s", JDStr);
+        return false;
+    }
 
     return true;
 }
@@ -754,14 +759,21 @@ bool Driver::getMeridianBehavior(IOP_MB_STATE &action, uint8_t &degrees)
     else if (sendCommand(":GMT#", -1, res) == false)
         return false;
 
-    action = static_cast<IOP_MB_STATE>(res[0] - '0');
-    degrees = std::stoi(res + 1);
+    try
+    {
+        action = static_cast<IOP_MB_STATE>(res[0] - '0');
+        degrees = std::stoi(res + 1);
+    }
+    catch(...)
+    {
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Failed to parse MF Behavior: %s", res);
+        return false;
+    }
     return true;
 }
 
 bool Driver::setMeridianBehavior(IOP_MB_STATE action, uint8_t degrees)
 {
-    char cmd[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
         simData.mb_state = action;
@@ -770,6 +782,7 @@ bool Driver::setMeridianBehavior(IOP_MB_STATE action, uint8_t degrees)
     }
     else
     {
+        char cmd[IOP_BUFFER] = {0};
         snprintf(cmd, IOP_BUFFER, ":SMT%d%02d#", action, degrees);
         return sendCommand(cmd);
     }

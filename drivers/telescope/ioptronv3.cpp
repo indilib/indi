@@ -44,7 +44,7 @@ static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     driver.reset(new Driver(getDeviceName()));
 
