@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -218,8 +219,11 @@ static int is_unix_io() {
     if (driverio_is_unix != -1) {
         return driverio_is_unix;
     }
+
+#ifdef SO_DOMAIN
     int domain;
     socklen_t result = sizeof(domain);
+
     if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1) {
         driverio_is_unix = 0;
     } else if (result != sizeof(domain) || domain != AF_UNIX) {
@@ -227,6 +231,18 @@ static int is_unix_io() {
     } else {
         driverio_is_unix = 1;
     }
+#else
+    struct sockaddr_un sockName;
+    socklen_t sockNameLen = sizeof(sockName);
+
+    if (getsockname(1, (struct sockaddr*)&sockName, &sockNameLen) == -1) {
+        driverio_is_unix = 0;
+    } else if (sockName.sun_family == AF_UNIX) {
+        driverio_is_unix = 1;
+    } else {
+        driverio_is_unix = 0;
+    }
+#endif
     return driverio_is_unix;
 }
 
