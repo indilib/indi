@@ -189,9 +189,19 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
         return ptr;
     }
 
-    // FIXME: compatibility path for MACOS ?
+#ifdef HAVE_MREMAP
     void * remaped = mremap(sb->mapstart, sb->allocated, reallocated, MREMAP_MAYMOVE);
     if (remaped == MAP_FAILED) return NULL;
+
+#else
+    // compatibility path for MACOS
+    if (munmap(sb->mapstart, sb->allocated) == -1) {
+        perror("shared buffer munmap");
+        _exit(1);
+    }
+    void * remaped = mmap(0, reallocated, PROT_READ|PROT_WRITE, MAP_SHARED, sb->fd, 0);
+    if (remaped == MAP_FAILED) return NULL;
+#endif
 
     sb->allocated = reallocated;
     sb->mapstart = remaped;

@@ -15,6 +15,7 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
 endif()
 
 include(CMakeCommon)
+include(CheckFunctionExists)
 
 # Clang Format support
 IF (UNIX OR APPLE)
@@ -91,6 +92,12 @@ OPTION (INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
+
+CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+if (HAVE_MREMAP)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MREMAP")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_MREMAP")
+endif()
 
 ###################################################################################################
 #########################################  Fast Blob  #############################################
@@ -569,6 +576,8 @@ IF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     # find has been run. Add an explicit link to avoid runtime errors.
     target_link_libraries(indidriver ${ICONV_LIBRARIES})
 ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+
+CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
 
 ##################################################
 ########### INDI Alignment Subsystem #############
