@@ -1360,11 +1360,6 @@ void UnixServer::accept()
 
     socklen_t len = sizeof(struct ucred);
 
-    if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1) {
-        log(fmt("getsockopt failed: %s\n", strerror(errno)));
-        Bye();
-    }
-
     ClInfo * cp = new ClInfo(true);
 
     /* rig up new clinfo entry */
@@ -1372,7 +1367,16 @@ void UnixServer::accept()
 
     if (verbose > 0)
     {
+#ifdef SO_PEERCRED
+        if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1) {
+            log(fmt("getsockopt failed: %s\n", strerror(errno)));
+            Bye();
+        }
+
         cp->log(fmt("new arrival from local pid %ld (user: %ld:%ld) - welcome!\n", (long)ucred.pid, (long)ucred.uid, (long)ucred.gid));
+#else
+        cp->log(fmt("new arrival from local domain  - welcome!\n"));
+#endif
     }
 
 #ifdef OSX_EMBEDED_MODE
