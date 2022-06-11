@@ -2638,7 +2638,7 @@ void ClInfo::log(const std::string & str) const {
 
 ConcurrentSet<ClInfo> ClInfo::clients;
 
-SerializedMsg::SerializedMsg(Msg * parent) : owner(parent), awaiters(), chuncks(), asyncProgress(), ownBuffers()
+SerializedMsg::SerializedMsg(Msg * parent) : asyncProgress(), owner(parent), awaiters(), chuncks(), ownBuffers()
 {
     blockedProducer = nullptr;
     // At first, everything is required.
