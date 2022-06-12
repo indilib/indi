@@ -55,6 +55,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <assert.h>
 
+// Load shm_open_anon but force it to have static symbol only
+static int shm_open_anon(void);
+#include "shm_open_anon.c"
+
 // A shared buffer will be allocated by chunk of at least 1M (must be ^ 2)
 #define BLOB_SIZE_UNIT 0x100000
 
@@ -89,7 +93,7 @@ void * IDSharedBlobAlloc(size_t size) {
     sb->size = size;
     sb->allocated = allocation(size);
     sb->sealed = 0;
-    sb->fd = memfd_create("indiblob", MFD_ALLOW_SEALING|MFD_CLOEXEC);
+    sb->fd = shm_open_anon();
     if (sb->fd == -1)  goto ERROR;
 
     int ret = ftruncate(sb->fd, size);
