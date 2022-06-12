@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Install Indilib Pre-requisites
         run: |
-          $(command -v sudo) apt-get update && apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtheora-dev libfftw3-dev
+          $(command -v sudo) apt-get update && apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtheora-dev libfftw3-dev libev-dev
 
       - name: Get INDI Sources
         uses: actions/checkout@v2
