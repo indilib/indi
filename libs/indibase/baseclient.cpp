@@ -511,7 +511,11 @@ void BaseClientPrivate::listenINDI()
             msgh.msg_control = control_un.control;
             msgh.msg_controllen = sizeof(control_un.control);
 
-            n = recvmsg(sockfd, &msgh, MSG_CMSG_CLOEXEC | MSG_DONTWAIT);
+            int recvflag = MSG_DONTWAIT;
+#ifdef __linux__
+            recvflag |= MSG_CMSG_CLOEXEC;
+#endif
+            n = recvmsg(sockfd, &msgh, recvflag);
 
             if (n >= 0) {
                 for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
@@ -525,6 +529,9 @@ void BaseClientPrivate::listenINDI()
                         for(int i = 0; i < fdCount; ++i) {
                             int fd = fds[i];
                             IDLog("Received fd %d\n", fd);
+#ifndef __linux__
+                            fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+#endif
                             incomingSharedBuffers.push_back(fd);
                         }
                     } else {

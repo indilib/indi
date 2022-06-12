@@ -70,7 +70,14 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
     msgh.msg_control = control_un.control;
     msgh.msg_controllen = sizeof(control_un.control);
 
-    auto size = recvmsg(fds[0], &msgh, MSG_CMSG_CLOEXEC);
+    int recvflag;
+#ifdef __linux__
+    recvflag = MSG_CMSG_CLOEXEC;
+#else
+    recvflag = 0;
+#endif
+
+    auto size = recvmsg(fds[0], &msgh, recvflag);
     if (size == -1) {
         return -1;
     }
@@ -87,6 +94,9 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
                     pendingData = std::string((char*)buffer, size);
                     throw std::runtime_error("Received unexpected buffer");
                 }
+#ifndef __linux__
+                fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+#endif
                 receivedFds.push_back(fds[i]);
             }
         }

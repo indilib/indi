@@ -1356,10 +1356,6 @@ void UnixServer::accept()
         Bye();
     }
 
-    struct ucred ucred;
-
-    socklen_t len = sizeof(struct ucred);
-
     ClInfo * cp = new ClInfo(true);
 
     /* rig up new clinfo entry */
@@ -1368,6 +1364,9 @@ void UnixServer::accept()
     if (verbose > 0)
     {
 #ifdef SO_PEERCRED
+        struct ucred ucred;
+
+        socklen_t len = sizeof(struct ucred);
         if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1) {
             log(fmt("getsockopt failed: %s\n", strerror(errno)));
             Bye();
@@ -3446,7 +3445,13 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
         msgh.msg_control = control_un.control;
         msgh.msg_controllen = sizeof(control_un.control);
 
-        int size = recvmsg(rFd, &msgh, MSG_CMSG_CLOEXEC);
+        int recvflag;
+#ifdef __linux__
+        recvflag = MSG_CMSG_CLOEXEC;
+#else
+        recvflag = 0;
+#endif
+        int size = recvmsg(rFd, &msgh, recvflag);
         if (size == -1) {
             return -1;
         }
@@ -3460,6 +3465,9 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
                 log(fmt("Received %d fds\n", fdCount));
                 int * fds = (int*)CMSG_DATA(cmsg);
                 for(int i = 0; i < fdCount; ++i) {
+#ifndef __linux__
+                    fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+#endif
                     incomingSharedBuffers.push_back(fds[i]);
                 }
             } else {
@@ -3577,6 +3585,8 @@ static int readFdError(int fd) {
             return ((struct sock_extended_err *)CMSG_DATA(cmsg))->ee_errno;
         }
     }
+#else
+    (void)fd;
 #endif
 
     // Default to EIO as a generic error path

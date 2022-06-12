@@ -211,7 +211,14 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
     msgh.msg_control = control_un.control;
     msgh.msg_controllen = sizeof(control_un.control);
 
-    int size = recvmsg(fd, &msgh, MSG_CMSG_CLOEXEC);
+    int recvflag;
+#ifdef __linux__
+    recvflag = MSG_CMSG_CLOEXEC;
+#else
+    recvflag = 0;
+#endif
+
+    int size = recvmsg(fd, &msgh, recvflag);
     if (size == -1) {
         throw std::system_error(errno, std::generic_category(), "Could not receive fds");
     }
@@ -228,6 +235,9 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
             }
             int * fds = (int*)CMSG_DATA(cmsg);
             for(int i = 0; i < fdCount; ++i) {
+                #ifndef __linux__
+                    fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+                #endif
                 fdsDest[i] = fds[i];
             }
 

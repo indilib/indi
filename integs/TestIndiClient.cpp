@@ -152,8 +152,6 @@ protected:
     virtual void serverDisconnected(int) {
         std::cerr << "server disconnected\n";
     }
-private:
-   INDI::BaseDevice * ccd_simulator;
 };
 
 TEST(IndiclientTcpConnect, ClientConnect) {

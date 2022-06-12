@@ -1,3 +1,9 @@
+extern "C" {
+// Load shm_open_anon but force it to have static symbol only
+static int shm_open_anon(void);
+#include "../shm_open_anon.c"
+}
+
 #include <system_error>
 
 #include <SharedBuffer.h>
@@ -81,10 +87,9 @@ void SharedBuffer::write(const void * data, size_t size) {
     }
 }
 
-
 void SharedBuffer::allocate(ssize_t nsize) {
     release();
-    fd = memfd_create("indiblob", MFD_ALLOW_SEALING|MFD_CLOEXEC);
+    fd = shm_open_anon();
     if (fd == -1) {
         throw std::system_error(errno, std::generic_category(), "memfd_create");
     }

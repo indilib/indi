@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: ISC
 
 #ifdef __linux__
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <linux/memfd.h>
 #include <linux/unistd.h>
 #endif
