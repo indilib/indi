@@ -20,29 +20,37 @@ void setupSigPipe() {
     signal(SIGPIPE, SIG_IGN);
 }
 
-void initSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, struct sockaddr * & sockaddr, socklen_t & addrlen)
+static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
 {
     memset(&serv_addr_un, 0, sizeof(serv_addr_un));
     serv_addr_un.sun_family = AF_UNIX;
 
+#ifdef __linux__
+    (void) bind;
+
     // Using abstract socket path to avoid filesystem boilerplate
-    // FIXME: is this supported on MACOS ?
     strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
 
     int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
-    serv_addr_un.sun_path[0] = 0;
 
-    sockaddr = (struct sockaddr *)&serv_addr_un;
+    addrlen = len;
+#else
+    // Using filesystem socket path
+    strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
+
+    if (bind) {
+        unlink(unixAddr.c_str());
+    }
+#endif
     addrlen = len;
 }
 
 
 int unixSocketListen(const std::string & unixAddr) {
     struct sockaddr_un serv_addr_un;
-    struct sockaddr *sockaddr;
     socklen_t addrlen;
-
-    initSocketAddr(unixAddr, serv_addr_un, sockaddr, addrlen);
 
     int sockfd;
     if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
@@ -56,7 +64,9 @@ int unixSocketListen(const std::string & unixAddr) {
         throw std::system_error(errno, std::generic_category(), "setsockopt");
     }
 
-    if (bind(sockfd, sockaddr, addrlen) < 0)
+    initUnixSocketAddr(unixAddr, serv_addr_un, addrlen, true);
+
+    if (bind(sockfd, (struct sockaddr *)&serv_addr_un, addrlen) < 0)
     {
         throw std::system_error(errno, std::generic_category(), "Bind to " + unixAddr);
     }
@@ -117,10 +127,7 @@ int socketAccept(int fd) {
 
 int unixSocketConnect(const std::string & unixAddr, bool failAllowed) {
     struct sockaddr_un serv_addr_un;
-    struct sockaddr *sockaddr;
     socklen_t addrlen;
-
-    initSocketAddr(unixAddr, serv_addr_un, sockaddr, addrlen);
 
     int sockfd;
     if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
@@ -128,8 +135,9 @@ int unixSocketConnect(const std::string & unixAddr, bool failAllowed) {
         throw std::system_error(errno, std::generic_category(), "Socket");
     }
 
+    initUnixSocketAddr(unixAddr, serv_addr_un, addrlen, false);
 
-    int ret = ::connect(sockfd, sockaddr, addrlen);
+    int ret = ::connect(sockfd, (struct sockaddr *)&serv_addr_un, addrlen);
     if (ret != -1) {
         return sockfd;
     }

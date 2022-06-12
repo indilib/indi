@@ -124,6 +124,37 @@ void BaseClientPrivate::clear()
     directBlobAccess.clear();
 }
 
+#ifndef _WINDOWS
+
+static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
+{
+    memset(&serv_addr_un, 0, sizeof(serv_addr_un));
+    serv_addr_un.sun_family = AF_UNIX;
+
+#ifdef __linux__
+    (void) bind;
+
+    // Using abstract socket path to avoid filesystem boilerplate
+    strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
+
+    addrlen = len;
+#else
+    // Using filesystem socket path
+    strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
+
+    if (bind) {
+        unlink(unixAddr.c_str());
+    }
+#endif
+    addrlen = len;
+}
+
+#endif
+
 // Using this prefix for name allow specifying the unix socket path
 static const char * unixDomainPrefix = "localhost:";
 
@@ -155,17 +186,9 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
             unixAddr = unixDefaultPath;
         }
 
-        memset(&serv_addr_un, 0, sizeof(serv_addr_un));
-        serv_addr_un.sun_family = AF_UNIX;
-
-        // Using abstract socket path to avoid filesystem boilerplate
-        // FIXME: is this supported on MACOS ?
-        strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
-        int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
-        serv_addr_un.sun_path[0] = 0;
+        initUnixSocketAddr(unixAddr, serv_addr_un, addrlen, false);
 
         sockaddr = (struct sockaddr *)&serv_addr_un;
-        addrlen = len;
 
         if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
         {

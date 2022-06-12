@@ -1294,6 +1294,33 @@ void UnixServer::ioCb(ev::io &, int revents)
     }
 }
 
+static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
+{
+    memset(&serv_addr_un, 0, sizeof(serv_addr_un));
+    serv_addr_un.sun_family = AF_UNIX;
+
+#ifdef __linux__
+    (void) bind;
+
+    // Using abstract socket path to avoid filesystem boilerplate
+    strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
+
+    addrlen = len;
+#else
+    // Using filesystem socket path
+    strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
+
+    if (bind) {
+        unlink(unixAddr.c_str());
+    }
+#endif
+    addrlen = len;
+}
+
 void UnixServer::listen()
 {
     struct sockaddr_un serv_socket;
@@ -1312,14 +1339,9 @@ void UnixServer::listen()
         Bye();
     }
 
-    /* bind to given port for any IP address */
-    memset(&serv_socket, 0, sizeof(serv_socket));
-    serv_socket.sun_family = AF_UNIX;
-    // use abstract socket name to avoid filesystem boilerplate
-    // FIXME: is abstract socket name supported on MACOS ?
-    strncpy(serv_socket.sun_path+1, path.c_str(), sizeof(serv_socket.sun_path) - 1);
-    int len = offsetof(struct sockaddr_un, sun_path) + path.size() + 1;
-    serv_socket.sun_path[0] = 0;
+    /* bind to given path as unix address */
+    socklen_t len;
+    initUnixSocketAddr(path, serv_socket, len, true);
 
     if (bind(sfd, (struct sockaddr *)&serv_socket, len) < 0)
     {
