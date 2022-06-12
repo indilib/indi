@@ -2074,17 +2074,20 @@ IF (GTEST_FOUND)
   ELSE (INDI_BUILD_UNITTESTS)
     MESSAGE (STATUS  "Not building unit tests")
   ENDIF (INDI_BUILD_UNITTESTS)
+
+  IF (INDI_BUILD_INTEGTESTS)
+    MESSAGE (STATUS  "Building integration tests")
+    ADD_SUBDIRECTORY(integs)
+  ELSE (INDI_BUILD_INTEGTESTS)
+    MESSAGE (STATUS  "Not building integration tests")
+  ENDIF (INDI_BUILD_INTEGTESTS)
+
 ELSE()
-  MESSAGE (STATUS  "GTEST not found, not building unit tests")
+  MESSAGE (STATUS  "GTEST not found, not building tests")
 ENDIF (GTEST_FOUND)
 
 endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
-
-IF (INDI_BUILD_INTEGTESTS)
-  ADD_SUBDIRECTORY(integs)
-ENDIF (INDI_BUILD_INTEGTESTS)
-
 
 ###################################################################################################
 #######################################  config.h  ################################################

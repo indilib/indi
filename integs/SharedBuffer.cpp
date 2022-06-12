@@ -4,7 +4,9 @@
 
 
 #ifdef __linux__
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <linux/unistd.h>
 #endif
 
@@ -74,7 +76,7 @@ void SharedBuffer::write(const void * data, size_t size) {
         throw std::system_error(e, std::generic_category(), "Write to shared buffer");
     }
 
-    if (ret != size) {
+    if ((size_t)ret != size) {
         throw std::runtime_error("Short write to shared buffer");
     }
 }

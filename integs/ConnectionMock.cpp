@@ -148,8 +148,8 @@ static std::string parseXmlFragmentFromString(const std::string & str) {
         return str[pos++];
     };
     std::string result = parseXmlFragment(lambda);
-    while(pos < str.length() && str[pos] == '\n') pos++;
-    if (pos != str.length()) {
+    while((unsigned)pos < str.length() && str[pos] == '\n') pos++;
+    if ((unsigned)pos != str.length()) {
         throw std::runtime_error("Expected string contains garbage: " + str);
     }
     return result;

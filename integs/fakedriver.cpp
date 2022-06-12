@@ -22,7 +22,7 @@ int main() {
     close(fds[1]);
     fprintf(stderr, "fake driver pipes sent\n");
 
-    char buff[0];
+    char buff[1];
     ssize_t ret = read(cnx, &buff, 1);
     if (ret == -1) {
         perror("read failed");

@@ -105,7 +105,7 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
     fakeDriver.cnx.send("</defBLOBVector>\n");
 }
 
-void connectFakeDev1Client(IndiServerController & indiServer, DriverMock & fakeDriver, IndiClientMock & indiClient) {
+void connectFakeDev1Client(IndiServerController &, DriverMock & fakeDriver, IndiClientMock & indiClient) {
     fprintf(stderr, "Client asks properties\n");
     indiClient.cnx.send("<getProperties version='1.7'/>\n");
     fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
@@ -256,7 +256,7 @@ void driverSendAttachedBlob(DriverMock & fakeDriver, ssize_t size) {
     SharedBuffer fd;
     fd.allocate(size);
     for(auto i = 0; i < size; ++i) {
-        char buffer[1] = {'0' + (i % 10)};
+        char buffer[1] = {(char)('0' + (i % 10))};
         fd.write(buffer, 1);
     }
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");

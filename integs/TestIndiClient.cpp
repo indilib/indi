@@ -29,13 +29,13 @@ class MyClient : public INDI::BaseClient
     MyClient(const std::string & dev, const std::string & prop) : dev(dev), prop(prop) {}
     virtual ~MyClient() {}
 protected:
-    virtual void newDevice(INDI::BaseDevice *dp) {
+    virtual void newDevice(INDI::BaseDevice *) {
         std::cerr << "new device\n";
     }
-    virtual void removeDevice(INDI::BaseDevice *dp) {
+    virtual void removeDevice(INDI::BaseDevice *) {
         std::cerr << "remove device\n";
     }
-    virtual void newProperty(INDI::Property *property) {
+    virtual void newProperty(INDI::Property *) {
         // std::cerr << "new property\n";
         /*if (dev == property->getDeviceName() && prop == property->getName()) {
             setBLOBMode(BLOBHandling::B_ONLY, dev.c_str(), prop.c_str());
@@ -45,7 +45,7 @@ protected:
             this->newNumber(property->getNumber());
         }*/
     };
-    virtual void removeProperty(INDI::Property *property) {
+    virtual void removeProperty(INDI::Property *) {
         // std::cerr << "remove property\n";
     }
     virtual void newBLOB(IBLOB *bp) {
@@ -76,11 +76,11 @@ protected:
 //         nextEntryMutex.unlock();
     }
 
-    virtual void newSwitch(ISwitchVectorProperty *svp) {
+    virtual void newSwitch(ISwitchVectorProperty *) {
         // std::cerr << "new switch\n";
     }
 
-    virtual void newNumber(INumberVectorProperty *nvp) {
+    virtual void newNumber(INumberVectorProperty *) {
         // // std::cerr << "new number " << nvp->name << "\n";
         // if (!strcmp(nvp->name, "CCD_INFO")) {
         //     indiFrame.maxWidth = -1;
@@ -137,19 +137,19 @@ protected:
         // }
     }
 
-    virtual void newMessage(INDI::BaseDevice *dp, int messageID) {
+    virtual void newMessage(INDI::BaseDevice *, int) {
         // std::cerr << "new message\n";
     }
-    virtual void newText(ITextVectorProperty *tvp) {
+    virtual void newText(ITextVectorProperty *) {
         // std::cerr << "new text\n";
     }
-    virtual void newLight(ILightVectorProperty *lvp) {
+    virtual void newLight(ILightVectorProperty *) {
         // std::cerr << "new light\n";
     }
     virtual void serverConnected() {
         std::cerr << "server connected\n";
     }
-    virtual void serverDisconnected(int exit_code) {
+    virtual void serverDisconnected(int) {
         std::cerr << "server disconnected\n";
     }
 private:
