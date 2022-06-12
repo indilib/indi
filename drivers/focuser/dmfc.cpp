@@ -220,7 +220,7 @@ bool DMFC::ack()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if((strstr(res, "OK_DMFCN") != nullptr) || (strstr(res, "OK_SMFC") != nullptr))
+    if((strstr(res, "OK_DMFCN") != nullptr) || (strstr(res, "OK_SMFC") != nullptr) || (strstr(res, "OK_PRDG") != nullptr))
         return true;
 
     return false;
@@ -415,7 +415,7 @@ bool DMFC::updateFocusParams()
 
 
     // #1 Status
-    if (token == nullptr || ((strstr(token, "OK_DMFCN") == nullptr) && (strstr(token, "OK_SMFC") == nullptr)))
+    if (token == nullptr || ((strstr(token, "OK_DMFCN") == nullptr) && (strstr(token, "OK_SMFC") == nullptr) && (strstr(token, "OK_PRDG") == nullptr)))
     {
         LOGF_ERROR("Invalid status response. %s", res);
         return false;

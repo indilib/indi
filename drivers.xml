@@ -163,19 +163,19 @@
         </device>
         <device label="iOptron CEM26" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron GEM28" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron CEM40" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron GEM45" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
@@ -215,15 +215,15 @@
         </device>
         <device label="iOptron v3" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron CEM120" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="iOptron CEM70" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.5</version>
+            <version>1.6</version>
         </device>
         <device label="Pulsar2" manufacturer="GTD">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
@@ -371,7 +371,11 @@
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.1</version>
         </device>
-         <device label="Pegasus FocusCube" manufacturer="Pegasus Astro">
+	    <device label="Pegasus Prodigy MF" manufacturer="Pegasus Astro">
+            <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Pegasus FocusCube" manufacturer="Pegasus Astro">
             <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
             <version>1.0</version>
         </device>
@@ -593,7 +597,7 @@
         </device>
          <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
-            <version>1.0</version>
+            <version>1.2</version>
         </device>
         <device label="PlaneWave Delta-T" manufacturer="Planewave Instruments">
             <driver name="PlaneWave Delta-T">indi_planewave_deltat</driver>
