@@ -12,7 +12,7 @@ public:
     int getFd() const;
 
     void allocate(ssize_t size);
-    void write(const void * buffer, size_t size);
+    void write(const void * buffer, ssize_t offset, ssize_t size);
     void release();
 
     void attach(int fd);

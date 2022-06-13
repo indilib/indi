@@ -20,9 +20,10 @@ static int shm_open_anon(void);
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <sys/mman.h>
 #include <fcntl.h>
 
+#include <string.h>
 
 #include <sys/mman.h>
 
@@ -44,19 +45,14 @@ void SharedBuffer::attach(int fd) {
         return;
     }
 
-    off_t o;
+    struct stat sb;
 
-    o = lseek(fd, 0, SEEK_END);
-    if (o == (off_t) -1) {
+    if (fstat(fd, &sb) == -1) {
         int e = errno;
-        throw std::system_error(e, std::generic_category(), "Cannot seek in buffer");
+        throw std::system_error(e, std::generic_category(), "Unable to stat buffer");
     }
-    size = o;
-    o = lseek(fd, 0, SEEK_SET);
-    if (o == (off_t) -1) {
-        int e = errno;
-        throw std::system_error(e, std::generic_category(), "Cannot seek in buffer");
-    }
+
+    size = sb.st_size;
 }
 
 void SharedBuffer::release() {
@@ -75,16 +71,28 @@ int SharedBuffer::getFd() const {
 }
 
 
-void SharedBuffer::write(const void * data, size_t size) {
-    auto ret = ::write(getFd(), data, size);
-    if (ret == -1) {
-        int e = errno;
-        throw std::system_error(e, std::generic_category(), "Write to shared buffer");
+void SharedBuffer::write(const void * data, ssize_t offset, ssize_t writeSize) {
+    if (writeSize == 0) {
+        return;
     }
 
-    if ((size_t)ret != size) {
-        throw std::runtime_error("Short write to shared buffer");
+    if (size < offset + writeSize) {
+        throw std::runtime_error("Attempt to write beyond past");
     }
+
+    void * mmapped = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mmapped == MAP_FAILED) {
+        perror("mmap");
+        throw std::runtime_error("Mmap failed");
+    }
+
+    memcpy((void*)((char*)mmapped + offset), data, writeSize);
+
+    if (munmap(mmapped, size) == -1) {
+        perror("munmap");
+        throw std::runtime_error("Munmap failed");
+    }
+
 }
 
 void SharedBuffer::allocate(ssize_t nsize) {

@@ -255,10 +255,14 @@ void driverSendAttachedBlob(DriverMock & fakeDriver, ssize_t size) {
     // The attachment must be done before EOF
     SharedBuffer fd;
     fd.allocate(size);
+
+    char * buffer = (char*)malloc(size);
     for(auto i = 0; i < size; ++i) {
-        char buffer[1] = {(char)('0' + (i % 10))};
-        fd.write(buffer, 1);
+        buffer[i] = {(char)('0' + (i % 10))};
     }
+    fd.write(buffer, 0, size);
+    free(buffer);
+
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
     fakeDriver.cnx.send("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits' attached='true'/>\n", fd);
     fakeDriver.cnx.send("</setBLOBVector>");
