@@ -216,7 +216,7 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
     indiClient.cnx.expectBuffer(receivedFd);
     indiClient.cnx.allowBufferReceive(false);
 
-    EXPECT_EQ( receivedFd.getSize(), 20);
+    EXPECT_GE( receivedFd.getSize(), 20);
 
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped
@@ -304,7 +304,7 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient) {
     indiClient.cnx.expectBuffer(receivedFd);
     indiClient.cnx.allowBufferReceive(false);
 
-    EXPECT_EQ( receivedFd.getSize(), size);
+    EXPECT_GE( receivedFd.getSize(), size);
 
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped

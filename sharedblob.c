@@ -96,7 +96,7 @@ void * IDSharedBlobAlloc(size_t size) {
     sb->fd = shm_open_anon();
     if (sb->fd == -1)  goto ERROR;
 
-    int ret = ftruncate(sb->fd, size);
+    int ret = ftruncate(sb->fd, sb->allocated);
     if (ret == -1) goto ERROR;
 
     // FIXME: try to map far more than sb->allocated, to allow efficient mremap
@@ -180,18 +180,20 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
         return realloc(ptr, size);
     }
 
-    if (sb->size == size) {
+    if (sb->size >= size) {
+        // Shrinking is not implemented
+        sb->size = size;
         return ptr;
     }
-
-    int ret = ftruncate(sb->fd, size);
-    if (ret == -1) return NULL;
-    sb->size = size;
 
     size_t reallocated = allocation(size);
     if (reallocated == sb->allocated) {
+        sb->size = size;
         return ptr;
     }
+
+    int ret = ftruncate(sb->fd, reallocated);
+    if (ret == -1) return NULL;
 
 #ifdef HAVE_MREMAP
     void * remaped = mremap(sb->mapstart, sb->allocated, reallocated, MREMAP_MAYMOVE);
@@ -206,7 +208,7 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
     void * remaped = mmap(0, reallocated, PROT_READ|PROT_WRITE, MAP_SHARED, sb->fd, 0);
     if (remaped == MAP_FAILED) return NULL;
 #endif
-
+    sb->size = size;
     sb->allocated = reallocated;
     sb->mapstart = remaped;
 

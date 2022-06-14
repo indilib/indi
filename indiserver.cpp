@@ -3083,6 +3083,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
     std::vector<XMLEle*> cdata;
     // Every cdata will have either sharedBuffer or sharedCData
     std::vector<int> sharedBuffers;
+    std::vector<ssize_t> xmlSizes;
     std::vector<XMLEle *> sharedCData;
 
     std::unordered_map<XMLEle*, XMLEle*> replacement;
@@ -3108,13 +3109,19 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
         if (attached == "true") {
             rmXMLAtt(clone, "enclen");
 
+            // Get the size if present
+            ssize_t size = -1;
+            parseBlobSize(clone, size);
+
             // FIXME: we could add enclen there
 
             // Put something here for later replacement
             sharedBuffers.push_back(owner->sharedBuffers[ownerSharedBufferId++]);
+            xmlSizes.push_back(size);
             sharedCData.push_back(nullptr);
         } else {
             sharedBuffers.push_back(-1);
+            xmlSizes.push_back(-1);
             sharedCData.push_back(blobContent);
         }
     }
@@ -3159,8 +3166,12 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
 
                 size_t dataSize;
                 blobs[i] = attachSharedBuffer(fds[i], dataSize);
-                // FIXME: check dataSize is compatible with the blob element's size
+
+                // check dataSize is compatible with the blob element's size
                 // It's mandatory for attached blob to give their size
+                if (xmlSizes[i] != -1 && ((size_t)xmlSizes[i]) <= dataSize) {
+                    dataSize = xmlSizes[i];
+                }
                 sizes[i] = dataSize;
             } else {
                 fds[i] = -1;
@@ -3255,14 +3266,23 @@ void SerializedMsgWithSharedBuffer::generateContent() {
             // Shall we really trust the size here ?
 
             ssize_t size;
-            parseBlobSize(blobContent, size);
+            if (!parseBlobSize(blobContent, size)) {
+                log("Missing size value for blob");
+                size = 1;
+            }
 
             void * blob = IDSharedBlobAlloc(size);
+            if (blob == nullptr) {
+                log(fmt("Unable to allocate shared buffer of size %d : %s\n", size, strerror(errno)));
+                ::exit(1);
+            }
+            log(fmt("Blob allocated at %p\n", blob));
 
             int actualLen = from64tobits_fast((char*)blob, base64data, base64datalen);
 
             if (actualLen != size) {
-                // FIXME: WTF ? at least prevent overflow...
+                // FIXME: WTF ? at least prevent overflow ???
+                log(fmt("Blob size mismatch after base64dec: %lld vs %lld\n", (long long int)actualLen, (long long int)size));
             }
 
             int newFd = IDSharedBlobGetFd(blob);
