@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
+                  2022 by Ludovic Pollet
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public

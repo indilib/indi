@@ -1,3 +1,10 @@
+#  Copyright (C) 2022  Ludovic Pollet
+#
+#  Redistribution and use is allowed according to the terms of the New
+#  BSD license.
+#  For details see the  COPYING-CMAKE-SCRIPTS file.
+
+
 # - Try to find libev
 # Once done this will define
 #  LIBEV_FOUND        - System has libev

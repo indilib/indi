@@ -1,6 +1,7 @@
 #if 0
 liblilxml
 Copyright (C) 2003 Elwood C. Downey
+              2022 Ludovic Pollet
 
 This library is free software;
 you can redistribute it and / or

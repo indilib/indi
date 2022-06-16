@@ -1,6 +1,7 @@
 /* INDI Server for protocol version 1.7.
  * Copyright (C) 2007 Elwood C. Downey <ecdowney@clearskyinstitute.com>
                  2013 Jasem Mutlaq <mutlaqja@ikarustech.com>
+                 2022 Ludovic Pollet
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
