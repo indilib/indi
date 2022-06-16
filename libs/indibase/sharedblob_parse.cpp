@@ -22,7 +22,6 @@ std::string allocateBlobUid(int fd) {
     std::string id = ss.str();
 
     std::lock_guard<std::mutex> lock(attachedBlobMutex);
-    fprintf(stderr, "received fd: %d\n", fd);
     receivedFds[id] = fd;
     return id;
 }

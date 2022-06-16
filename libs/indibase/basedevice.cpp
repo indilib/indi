@@ -729,7 +729,6 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 blobEL->size    = blobSize;
 
                 XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
-                fprintf(stderr, "modifying attached data of blob");
                 if (attachementId != nullptr) {
                     // Client mark blob that can be attached directly
                     XMLAtt * directAttachment = findXMLAtt(ep, "attachment-direct");

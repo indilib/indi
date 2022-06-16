@@ -673,7 +673,6 @@ static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
 
 bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> & blobs)
 {
-    fprintf(stderr, "parseAttachedBlobs\n");
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
@@ -684,7 +683,6 @@ bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string
             std::string device = findXMLAttValu(root, "dev");
             std::string name = findXMLAttValu(root, "name");
 
-            fprintf(stderr, "found AttachedBlobs\n");
             rmXMLAtt(blobContent, "attached");
             rmXMLAtt(blobContent, "enclen");
 
@@ -693,7 +691,6 @@ bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string
             }
             int fd = *incomingSharedBuffers.begin();
             incomingSharedBuffers.pop_front();
-            fprintf(stderr, "AttachedBlobs id is %d\n", fd);
 
             auto id = allocateBlobUid(fd);
             blobs.push_back(id);

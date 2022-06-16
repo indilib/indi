@@ -1570,8 +1570,6 @@ void Fifo::processLine(const char * line)
             memmove(ptr, ptr + 1, --len);
             ptr[len] = '\0';
         }
-
-        //fprintf(stderr, "Remote Driver: %s\n", tDriver);
     }
     // If local driver
     else
@@ -1585,9 +1583,6 @@ void Fifo::processLine(const char * line)
     int j = 0;
     for (j = 0; j < n_args; j++)
     {
-        //fprintf(stderr, "arg[%d]: %c\n", i, arg[j][0]);
-        //fprintf(stderr, "var[%d]: %s\n", i, var[j]);
-
         if (arg[j][0] == 'n')
         {
             strncpy(tName, var[j], MAXSBUF - 1);
@@ -1663,28 +1658,11 @@ void Fifo::processLine(const char * line)
                 log(fmt("name: %s - dp->dev[0]: %s\n", tName, dp->dev.empty() ? "" : dp->dev.begin()->c_str()));
 
                 /* If device name is given, check against it before shutting down */
-                //if (tName[0] && strcmp(dp->dev[0], tName))
                 if (tName[0] && !dp->isHandlingDevice(tName))
                     continue;
                 if (verbose)
                     log(fmt("FIFO: Shutting down driver: %s\n", tDriver));
 
-                //                    for (i = 0; i < dp->ndev; i++)
-                //                    {
-                //                        /* Inform clients that this driver is dead */
-                //                        XMLEle *root = addXMLEle(NULL, "delProperty");
-                //                        addXMLAtt(root, "device", dp->dev[i]);
-
-                //                        prXMLEle(stderr, root, 0);
-                //                        Msg *mp = newMsg();
-
-                //                        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
-                //                        if (mp->count > 0)
-                //                            setMsgXMLEle(mp, root);
-                //                        else
-                //                            freeMsg(mp);
-                //                        delXMLEle(root);
-                //                    }
                 dp->restart = false;
                 dp->close();
                 break;
@@ -2774,7 +2752,7 @@ bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
     return false;
 }
 
-bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, long& size, std::vector<int, std::allocator<int> >& sharedBuffers)
+bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, ssize_t& size, std::vector<int, std::allocator<int> >& sharedBuffers)
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
@@ -3622,7 +3600,7 @@ static int readFdError(int fd) {
     /* Receive auxiliary data in msgh */
     for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
         fprintf(stderr, "cmsg_len=%lu, cmsg_level=%u, cmsg_type=%u\n", cmsg->cmsg_len, cmsg->cmsg_level, cmsg->cmsg_type);
-        // FIXME : enough for unix sockets ?
+
         if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR) {
             return ((struct sock_extended_err *)CMSG_DATA(cmsg))->ee_errno;
         }
