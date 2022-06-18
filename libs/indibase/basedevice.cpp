@@ -30,6 +30,7 @@
 #include "indipropertyswitch.h"
 #include "indipropertylight.h"
 #include "indipropertyblob.h"
+#include "sharedblob_parse.h"
 
 #include <cerrno>
 #include <cassert>
@@ -726,10 +727,36 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 }
 
                 blobEL->size    = blobSize;
-                uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
-                uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
-                blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
-                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
+
+                XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
+                if (attachementId != nullptr) {
+                    // Client mark blob that can be attached directly
+                    XMLAtt * directAttachment = findXMLAtt(ep, "attachment-direct");
+                    bool directBlobAccess = directAttachment != nullptr;
+                    // FIXME: Where is the blob data buffer freed at the end ?
+                    // FIXME: blobSize is not buffer size here. Must pass it all the way through
+                    // (while compressing shared buffer is useless)
+                    if (directBlobAccess) {
+                        if (blobEL->blob) {
+                            IDSharedBlobFree(blobEL->blob);
+                            blobEL->blob = nullptr;
+                            blobEL->bloblen = 0;
+                        }
+                        blobEL->blob = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
+                    } else {
+                        // For compatibility, copy to a modifiable memory area
+                        blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobSize));
+                        void * tmp = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
+                        memcpy(blobEL->blob, tmp, blobSize);
+                        IDSharedBlobFree(tmp);
+                    }
+                    blobEL->bloblen = blobSize;
+                } else {
+                    uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
+                    uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
+                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
+                    blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
+                }
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 
@@ -755,7 +782,7 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                         return -1;
                     }
                     blobEL->size = dataSize;
-                    free(blobEL->blob);
+                    IDSharedBlobFree(blobEL->blob);
                     blobEL->blob = dataBuffer;
                 }
 

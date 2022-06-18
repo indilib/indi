@@ -11,7 +11,7 @@ RUN yum -y install \
         libcurl-devel boost-devel cfitsio-devel libusbx-devel libtiff-devel \
         libftdi-devel libdc1394-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
-        fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
+        fftw-devel libev-devel zlib-devel libconfuse-devel python3-devel doxygen \
         libdc1394-devel python-devel swig gcc-c++ clang vim
         
 RUN rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro

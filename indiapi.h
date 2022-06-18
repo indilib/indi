@@ -1,6 +1,7 @@
 #if 0
 INDI
 Copyright (C) 2003 Elwood C. Downey
+              2022 Ludovic Pollet
 
 This library is free software;
 you can redistribute it and / or
@@ -446,7 +447,7 @@ typedef struct _IBLOB/* one BLOB descriptor */
     char label[MAXINDILABEL];
     /** Format attr */
     char format[MAXINDIBLOBFMT];
-    /** Allocated binary large object bytes */
+    /** Allocated binary large object bytes - maybe a shared buffer: use IDSharedBlobFree to free*/
     void *blob;
     /** Blob size in bytes */
     int bloblen;
@@ -503,3 +504,31 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
  */
 #define assert_mem(p) if((p) == 0) { fprintf(stderr, "%s(%s): Failed to allocate memory\n", __FILE__, __func__); exit(1); }
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// FIXME: duplicated from indidevapi.h. Can we share ?
+
+// Advertize support for shared blob on this platform
+#define INDI_SHARED_BLOB_SUPPORT
+
+/** \brief Allocate a buffer suitable for fast exchange over local links. Warning : the buffer will be sealed (readonly) once exchanged.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobAlloc(size_t size);
+
+/** \brief Adjust the size of a buffer obtained using IDSharedBlobAlloc.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobRealloc(void * ptr, size_t size);
+
+/** \brief Free a buffer allocated using IDSharedBlobAlloc. Fall back to free for buffer that are not shared blob
+ * Must be used for IBLOB.data
+ */
+extern void IDSharedBlobFree(void * ptr);
+
+#ifdef __cplusplus
+}
+#endif

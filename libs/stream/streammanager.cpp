@@ -479,7 +479,7 @@ void StreamManagerPrivate::asyncStreamThread()
             }
 
             //uploadStream(sourceBuffer->data(), sourceBuffer->size());
-            previewThreadPool.tryStart(std::bind([this, &previewElapsed](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
+            previewThreadPool.start(std::bind([this, &previewElapsed](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
                 INDI_UNUSED(isAboutToQuit);
                 previewElapsed.start();
                 uploadStream(frame.data(), frame.size());

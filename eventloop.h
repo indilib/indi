@@ -1,6 +1,7 @@
 #if 0
 INDI
 Copyright (C) 2003 Elwood C. Downey
+              2022 Ludovic Pollet
 
 This library is free software;
 you can redistribute it and / or
@@ -121,6 +122,12 @@ extern int nsecRemainingTimer(int tid);
 * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer().
 */
 extern void rmTimer(int tid);
+
+/** Register a given function to be called once after the current loop
+ * \param fp a pointer to the callback function.
+ * \param ud a pointer to be passed to the callback function when called.
+ */
+extern void addImmediateWork(TCF * fp, void *ud);
 
 /* utility functions */
 extern int deferLoop(int maxms, int *flagp);

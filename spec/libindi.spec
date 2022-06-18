@@ -22,6 +22,7 @@ BuildRequires: systemd
 BuildRequires: libogg-devel
 BuildRequires: libtheora-devel
 BuildRequires: fftw-devel
+BuildRequires: libev-devel
 BuildRequires: gmock-devel
 BuildRequires: rtl-sdr-devel
 

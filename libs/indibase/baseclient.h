@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+               2022 Ludovic Pollet
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -188,6 +189,18 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
+        /** @brief activate zero-copy delivering of the blob content.
+         * When enabled, all blob copy will be avoided when possible (depending on the connection).
+         * This changes how the IBLOB.data field :
+         * <ul>
+         *   <li>it will point to readonly data: The client must not try to modify its content or realloc it</li>
+         *   <li>when freeing is required, the function IDSharedBlobFree must be used instead of free/realloc.</li>
+         * </ul>
+         *  @param dev name of device, can be NULL to all devs
+         *  @param prop property name, can be NULL to activate for all property of dev
+         */
+        void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
+
         /** @brief Send new Text command to server */
         void sendNewText(ITextVectorProperty *pp);
         /** @brief Send new Text command to server */
@@ -210,12 +223,27 @@ class INDI::BaseClient : public INDI::BaseMediator
         /** @brief Send closing tag for BLOB command to server */
         void finishBlob();
 
+        /** @brief Send one ping request, the server will answer back with the same uuid
+         *  @param uid This string will server as identifier for the reply
+         *  @note reply will be dispatched to newPingReply
+         */
+        void sendPingRequest(const char * uid);
+
+        /** @brief Send a ping reply for the given uuid
+         *  @note This should not be called directly, as it is already handled by baseclient
+         */
+        void sendPingReply(const char * uid);
+
     protected:
         /** @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
          *  @param message content of message.
          *  @note The default implementation simply logs the message to stderr. Override to handle the message.
          */
         virtual void newUniversalMessage(std::string message);
+
+        /** @brief pingReply are sent by the server on response to pingReply (see above).
+         */
+        virtual void newPingReply(std::string uid);
 
     protected:
         std::unique_ptr<INDI::BaseClientPrivate> d_ptr;

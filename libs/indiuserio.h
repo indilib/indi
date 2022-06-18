@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
+                  2022 by Ludovic Pollet
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -85,6 +86,9 @@ void IDUserIOMessage(const userio *io, void *user, const char *dev, const char *
 void IDUserIOMessageVA(const userio *io, void *user, const char *dev, const char *fmt, va_list ap);
 
 void IUUserIOConfigTag(const userio *io, void *user, int ctag);
+
+void IUUserIOPingRequest(const userio * io, void *user, const char * pingUid);
+void IUUserIOPingReply(const userio * io, void *user, const char * pingUid);
 
 #ifdef __cplusplus
 }
