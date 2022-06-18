@@ -46,6 +46,7 @@
  *
  *  @see <a href="http://indilib.org/develop/tutorials/107-client-development-tutorial.html">INDI Client Tutorial</a> for more details.
  *  @author Jasem Mutlaq
+ *  @author Ludovic Pollet
  */
 
 namespace INDI

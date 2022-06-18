@@ -486,7 +486,6 @@ class CCD : public DefaultDevice, GuiderInterface
 
         /**
          * \brief Add FITS keywords to a fits file
-         * \param fptr pointer to a valid FITS file.
          * \param targetChip The target chip to extract the keywords from.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
@@ -506,7 +505,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(fitsfile * fptr, CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);

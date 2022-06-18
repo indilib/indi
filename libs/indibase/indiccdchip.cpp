@@ -28,12 +28,14 @@ namespace INDI
 CCDChip::CCDChip()
 {
     strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
+    m_FITSMemoryBlock = malloc(m_FITSMemorySize);
 }
 
 CCDChip::~CCDChip()
 {
     delete [] RawFrame;
     delete[] BinFrame;
+    free (m_FITSMemoryBlock);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
