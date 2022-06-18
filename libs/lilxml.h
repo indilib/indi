@@ -1,6 +1,7 @@
 #if 0
 liblilxml
 Copyright (C) 2003 Elwood C. Downey
+              2022 Ludovic Pollet
 
 This library is free software;
 you can redistribute it and / or
@@ -204,6 +205,13 @@ extern int nXMLAtt(XMLEle *ep);
 */
 extern XMLEle *addXMLEle(XMLEle *parent, const char *tag);
 
+
+/** \brief Update the tag of an element
+    \param ep pointer to an XML element
+    \param tag the new tag value to set
+ */
+extern XMLEle *setXMLEleTag(XMLEle *ep, const char * tag);
+
 /** \brief set the pcdata of the given element
     \param ep pointer to an XML element.
     \param pcdata pcdata to set.
@@ -231,6 +239,7 @@ extern void editXMLAtt(XMLAtt *ap, const char *str);
 
 /** \brief return a string with all xml-sensitive characters within the passed string replaced with their entity sequence equivalents.
 *   N.B. caller must use the returned string before calling us again.
+*   Warning: This will sometime fail in impredictible way when used from multiple thread contexts
 */
 extern char *entityXML(char *str);
 
@@ -241,6 +250,21 @@ extern char *entityXML(char *str);
     \return the value string of an XML element on success. NULL on failure.
 */
 extern const char *findXMLAttValu(XMLEle *ep, const char *name);
+
+/** \brief return a surface copy of a node.
+    Don't copy childs or cdata.
+    \return a new independant node
+*/
+extern XMLEle *shallowCloneXMLEle(XMLEle * ele);
+
+/** \brief clone (deep) a xmlEle.
+    Optional replacement function can be passed, to replace a whole subtree instead of copying
+    \param ele the original tree
+    \param replace function which can provide replacement. Return 1 & set replace for replacement. Optional
+    \param self additional value passed to replace function
+    \return a new independant node
+*/
+extern XMLEle * cloneXMLEle(XMLEle * ep, int (*replace)(void * self, XMLEle * source, XMLEle * * replace), void * self);
 
 /** \brief Handy wrapper to read one xml file.
     \param fp pointer to FILE to read.
@@ -268,6 +292,11 @@ extern int sprXMLEle(char *s, XMLEle *ep, int level);
 *   N.B. set level = 0 on first call.
 */
 extern int sprlXMLEle(XMLEle *ep, int level);
+
+/** \brief return exact position of cdata of child in printed representation of root
+*   N.B. set level = 0 on first call.
+*/
+extern size_t sprXMLCDataOffset(XMLEle * root, XMLEle * child, int level);
 
 /* install alternatives to malloc/realloc/free */
 extern void indi_xmlMalloc(void *(*newmalloc)(size_t size), void *(*newrealloc)(void *ptr, size_t size),

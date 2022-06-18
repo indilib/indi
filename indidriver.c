@@ -44,8 +44,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "userio.h"
 #include "indiuserio.h"
+#include "indidriverio.h"
 
-static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 int verbose;      /* chatty */
 char *me = "";  /* a.out name */
 
@@ -62,6 +62,8 @@ INDI_BLOB,
 INDI_UNKNOWN
 };
 
+extern void waitPingReply(const char *);
+
 // TODO use fast map
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct {
@@ -71,6 +73,8 @@ typedef struct {
     const void *ptr;
     int type;
 } ROSC;
+
+static pthread_mutex_t rosc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static ROSC *propCache = NULL;
 static int nPropCache = 0; /* # of elements in roCheck */
@@ -103,8 +107,12 @@ static ROSC *rosc_find(const char *propName, const char *devName)
 
 static void rosc_add_unique(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
 {
+    pthread_mutex_lock(&rosc_mutex);
+
     if (rosc_find(propName, devName) == NULL)
         rosc_add(propName, devName, perm, ptr, type);
+
+    pthread_mutex_unlock(&rosc_mutex);
 }
 
 /* tell Client to delete the property with given name on given device, or
@@ -112,15 +120,13 @@ static void rosc_add_unique(const char *propName, const char *devName, IPerm per
  */
 void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
+    driverio io;
+    driverio_init(&io);
 
-    pthread_mutex_lock(&stdout_mutex);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODeleteVA(&io.userio, io.user, dev, name, fmt, ap);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODeleteVA(io, stdout, dev, name, fmt, ap);
-    fflush(stdout);
-
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDDelete(const char *dev, const char *name, const char *fmt, ...)
@@ -139,15 +145,13 @@ void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
     // Ignore empty snooped device
     if (snooped_device[0])
     {
-        const userio *io = userio_file();
+        driverio io;
+        driverio_init(&io);
 
-        pthread_mutex_lock(&stdout_mutex);
+        userio_xmlv1(&io.userio, io.user);
+        IUUserIOGetProperties(&io.userio, io.user, snooped_device, snooped_property);
 
-        userio_xmlv1(io, stdout);
-        IUUserIOGetProperties(io, stdout, snooped_device, snooped_property);
-        fflush(stdout);
-
-        pthread_mutex_unlock(&stdout_mutex);
+        driverio_finish(&io);
     }
 }
 
@@ -156,15 +160,13 @@ void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
  */
 void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOBHandling bh)
 {
-    const userio *io = userio_file();
+    driverio io;
+    driverio_init(&io);
 
-    pthread_mutex_lock(&stdout_mutex);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOEnableBLOB(&io.userio, io.user, snooped_device, snooped_property, bh);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOEnableBLOB(io, stdout, snooped_device, snooped_property, bh);
-    fflush(stdout);
-
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 /* Update property switches in accord with states and names. */
@@ -780,7 +782,10 @@ int dispatch(XMLEle *root, char msg[])
 
         if (name && dev)
         {
+            pthread_mutex_lock(&rosc_mutex);
             ROSC *prop = rosc_find(valuXMLAtt(name), valuXMLAtt(dev));
+            // This is unsafe... prop may be modified concurrently here
+            pthread_mutex_unlock(&rosc_mutex);
 
             if (prop == NULL)
                 return 0;
@@ -834,11 +839,14 @@ int dispatch(XMLEle *root, char msg[])
     if (crackDN(root, &dev, &name, msg) < 0)
         return (-1);
 
+    pthread_mutex_lock(&rosc_mutex);
     if (rosc_find(name, dev) == NULL)
     {
+        pthread_mutex_unlock(&rosc_mutex);
         snprintf(msg, MAXRBUF, "Property %s is not defined in %s.", name, dev);
         return -1;
     }
+    pthread_mutex_unlock(&rosc_mutex);
 
     /* ensure property is not RO */
     for (int i = 0; i < nPropCache; i++)
@@ -991,6 +999,7 @@ int dispatch(XMLEle *root, char msg[])
         static int *sizes = NULL;
         static int maxn = 0;
 
+        // FIXME: shared blob not supported here
         /* pull out each name/BLOB pair, decode */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
         {
@@ -1011,6 +1020,7 @@ int dispatch(XMLEle *root, char msg[])
                         assert_mem(sizes = (int *)realloc(sizes, maxn * sizeof *sizes));
                         assert_mem(blobsizes = (int *)realloc(blobsizes, maxn * sizeof *blobsizes));
                     }
+                    // FIXME : here decode using shared buffer
                     int bloblen = pcdatalenXMLEle(ep);
                     // enclen is optional and not required by INDI protocol
                     if (el)
@@ -1506,17 +1516,14 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
 /* send client a message for a specific device or at large if !dev */
 void IDMessageVA(const char *dev, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
+    driverio io;
+    driverio_init(&io);
 
-    pthread_mutex_lock(&stdout_mutex);
+    userio_xmlv1(&io.userio, io.user);
 
-    userio_xmlv1(io, stdout);
+    IDUserIOMessageVA(&io.userio, io.user, dev, fmt, ap);
 
-    IDUserIOMessageVA(io, stdout, dev, fmt, ap);
-
-    fflush(stdout);
-
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDMessage(const char *dev, const char *fmt, ...)
@@ -1627,17 +1634,17 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
 /* tell client to create a text vector property */
 void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODefTextVA(io, stdout, tvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODefTextVA(&io.userio, io.user, tvp, fmt, ap);
+
+    driverio_finish(&io);
 
     /* Add this property to insure proper sanity check */
     rosc_add_unique(tvp->name, tvp->device, tvp->p, tvp, INDI_TEXT);
 
-    pthread_mutex_unlock(&stdout_mutex);
 }
 
 void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
@@ -1651,17 +1658,16 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
 /* tell client to create a new numeric vector property */
 void IDDefNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODefNumberVA(io, stdout, nvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODefNumberVA(&io.userio, io.user, nvp, fmt, ap);
+
+    driverio_finish(&io);
 
     /* Add this property to insure proper sanity check */
     rosc_add_unique(nvp->name, nvp->device, nvp->p, nvp, INDI_NUMBER);
-
-    pthread_mutex_unlock(&stdout_mutex);
 }
 
 void IDDefNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
@@ -1675,17 +1681,16 @@ void IDDefNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 /* tell client to create a new switch vector property */
 void IDDefSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODefSwitchVA(io, stdout, svp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODefSwitchVA(&io.userio, io.user, svp, fmt, ap);
+
+    driverio_finish(&io);
 
     /* Add this property to insure proper sanity check */
     rosc_add_unique(svp->name, svp->device, svp->p, svp, INDI_SWITCH);
-
-    pthread_mutex_unlock(&stdout_mutex);
 }
 
 void IDDefSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
@@ -1699,14 +1704,13 @@ void IDDefSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 /* tell client to create a new lights vector property */
 void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODefLightVA(io, stdout, lvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODefLightVA(&io.userio, io.user, lvp, fmt, ap);
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
@@ -1720,17 +1724,17 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 /* tell client to create a new BLOB vector property */
 void IDDefBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIODefBLOBVA(io, stdout, bvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIODefBLOBVA(&io.userio, io.user, bvp, fmt, ap);
+
+    driverio_finish(&io);
 
     /* Add this property to insure proper sanity check */
     rosc_add_unique(bvp->name, bvp->device, bvp->p, bvp, INDI_BLOB);
 
-    pthread_mutex_unlock(&stdout_mutex);
 }
 
 void IDDefBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
@@ -1744,14 +1748,13 @@ void IDDefBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 /* tell client to update an existing text vector property */
 void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOSetTextVA(io, stdout, tvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOSetTextVA(&io.userio, io.user, tvp, fmt, ap);
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
@@ -1765,14 +1768,13 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
 /* tell client to update an existing numeric vector property */
 void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOSetNumberVA(io, stdout, nvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOSetNumberVA(&io.userio, io.user, nvp, fmt, ap);
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
@@ -1786,14 +1788,13 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 /* tell client to update an existing switch vector property */
 void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOSetSwitchVA(io, stdout, svp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOSetSwitchVA(&io.userio, io.user, svp, fmt, ap);
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
@@ -1807,14 +1808,13 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 /* tell client to update an existing lights vector property */
 void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOSetLightVA(io, stdout, lvp, fmt, ap);
-    fflush(stdout);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOSetLightVA(&io.userio, io.user, lvp, fmt, ap);
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio_finish(&io);
 }
 
 void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
@@ -1825,17 +1825,32 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     va_end(ap);
 }
 
+static long lastBlobPingUid = 0;
+#define BLOB_PING_PATTERN "SetBLOB/%ld"
+
 /* tell client to update an existing BLOB vector property */
 void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    char buffer[64];
 
-    userio_xmlv1(io, stdout);
-    IUUserIOSetBLOBVA(io, stdout, bvp, fmt, ap);
-    fflush(stdout);
+    // Wait for ack of previous blob if any
+    if (lastBlobPingUid) {
+        snprintf(buffer, 64, BLOB_PING_PATTERN, lastBlobPingUid);
+        waitPingReply(buffer);
+    }
 
-    pthread_mutex_unlock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
+
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOSetBLOBVA(&io.userio, io.user, bvp, fmt, ap);
+
+    // Send a new <pingReply> so next blob won't be delayed until reception of this one
+    lastBlobPingUid++;
+    snprintf(buffer, 64, BLOB_PING_PATTERN, lastBlobPingUid);
+    IUUserIOPingRequest(&io.userio, io.user, buffer);
+
+    driverio_finish(&io);
 }
 
 void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
@@ -1849,13 +1864,13 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 /* tell client to update min/max elements of an existing number vector property */
 void IUUpdateMinMax(const INumberVectorProperty *nvp)
 {
-    const userio *io = userio_file();
-    pthread_mutex_lock(&stdout_mutex);
+    driverio io;
+    driverio_init(&io);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOUpdateMinMax(io, stdout, nvp);
-    fflush(stdout);
-    pthread_mutex_unlock(&stdout_mutex);
+    userio_xmlv1(&io.userio, io.user);
+    IUUserIOUpdateMinMax(&io.userio, io.user, nvp);
+
+    driverio_finish(&io);
 }
 
 int IUFindIndex(const char *needle, char **hay, unsigned int n)

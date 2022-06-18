@@ -23,6 +23,7 @@
 #include "base64.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 static void s_userio_xml_message_vprintf(const userio *io, void *user, const char *fmt, va_list ap)
 {
@@ -121,39 +122,48 @@ void IUUserIOBLOBContextOne(
     }
     else
     {
-        size_t sz = 4 * bloblen / 3 + 4;
-        assert_mem(encblob = (unsigned char *)malloc(sz)); // #PS: TODO
-        l = to64frombits_s(encblob, blob, bloblen, sz);
-        if (l == 0) {
-            fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
-            exit(1);
-        }
-        userio_printf    (io, user, "    enclen='%d'\n", l); // safe
-        userio_prints    (io, user, "    format='");
-        userio_xml_escape(io, user, format);
-        userio_prints    (io, user, "'>\n");
-        size_t written = 0;
+        if (io->joinbuff) {
+            userio_prints    (io, user, "    format='");
+            userio_xml_escape(io, user, format);
+            userio_prints    (io, user, "'\n");
+            userio_printf    (io, user, "    len='%d'\n", bloblen);
 
-        while ((int)written < l)
-        {
-            size_t towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr      = userio_write(io, user, encblob + written, towrite);
-
-            if (wr == 0)
+            io->joinbuff(user, "    attached='true'>\n", (void*)blob, bloblen);
+        } else {
+            size_t sz = 4 * bloblen / 3 + 4;
+            assert_mem(encblob = (unsigned char *)malloc(sz)); // #PS: TODO
+            l = to64frombits_s(encblob, blob, bloblen, sz);
+            if (l == 0) {
+                fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
+                exit(1);
+            }
+            userio_printf    (io, user, "    enclen='%d'\n", l); // safe
+            userio_prints    (io, user, "    format='");
+            userio_xml_escape(io, user, format);
+            userio_prints    (io, user, "'>\n");
+            size_t written = 0;
+            // FIXME: this is not efficient. The CR/LF imply one more copy... Do we need them ?
+            while ((int)written < l)
             {
-                free(encblob);
-                return;
+                size_t towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr      = userio_write(io, user, encblob + written, towrite);
+
+                if (wr == 0)
+                {
+                    free(encblob);
+                    return;
+                }
+
+                written += wr;
+                if ((written % 72) == 0)
+                    userio_putc(io, user, '\n');
             }
 
-            written += wr;
-            if ((written % 72) == 0)
+            if ((written % 72) != 0)
                 userio_putc(io, user, '\n');
+
+            free(encblob);
         }
-
-        if ((written % 72) != 0)
-            userio_putc(io, user, '\n');
-
-        free(encblob);
     }
 
     userio_prints    (io, user, "  </oneBLOB>\n");
@@ -772,4 +782,18 @@ void IUUserIOUpdateMinMax(
 
     userio_prints    (io, user, "</setNumberVector>\n");
     indi_locale_C_numeric_pop(orig);
+}
+
+void IUUserIOPingRequest(const userio * io, void *user, const char * pingUid)
+{
+    userio_prints    (io, user, "<pingRequest uid='");
+    userio_xml_escape(io, user, pingUid);
+    userio_prints    (io, user, "' />\n");
+}
+
+void IUUserIOPingReply(const userio * io, void *user, const char * pingUid)
+{
+    userio_prints    (io, user, "<pingReply uid='");
+    userio_xml_escape(io, user, pingUid);
+    userio_prints    (io, user, "' />\n");
 }

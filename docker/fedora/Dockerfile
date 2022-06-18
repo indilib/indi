@@ -7,7 +7,7 @@ RUN dnf -y install \
         libcurl-devel boost-devel cfitsio-devel libtiff-devel \
         libftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
-        fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
+        fftw-devel libev-devel zlib-devel libconfuse-devel python3-devel doxygen \
         libdc1394-devel python-devel swig gcc-c++ clang vim \
         libavcodec-devel libavdevice-devel libavformat-devel libavutil-devel
 
