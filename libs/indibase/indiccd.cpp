@@ -2226,7 +2226,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             // Reuse memory if possible
             fits_create_memfile(targetChip->fitsFilePointer(), targetChip->fitsMemoryBlockPointer(),
-                                targetChip->fitsMemorySizePointer(), 100000, realloc, &status);
+                                targetChip->fitsMemorySizePointer(), 2880, IDSharedBlobRealloc, &status);
 
             if (status)
             {
