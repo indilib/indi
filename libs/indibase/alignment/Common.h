@@ -115,11 +115,17 @@ struct TelescopeDirectionVector
     }
 
     /// \brief Override the ^ operator to return a dot product
-    inline double operator^(const TelescopeDirectionVector &RHS) const { return x * RHS.x + y * RHS.y + z * RHS.z; }
+    inline double operator^(const TelescopeDirectionVector &RHS) const
+    {
+        return x * RHS.x + y * RHS.y + z * RHS.z;
+    }
 
     /// \brief Return the length of the vector
     /// \return Length of the vector
-    inline double Length() const { return sqrt(x * x + y * y + z * z); }
+    inline double Length() const
+    {
+        return sqrt(x * x + y * y + z * z);
+    }
 
     /// \brief Normalise the vector
     inline void Normalise()

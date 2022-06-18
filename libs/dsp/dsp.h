@@ -1420,7 +1420,8 @@ DLL_EXPORT dsp_stream_p *dsp_stream_from_components(dsp_t* buf, int dims, int *s
 * \param stretch whether to stretch within 0 and dsp_t_max
 * \return The new dsp_stream_p array
 */
-DLL_EXPORT dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int components, int bpp, int stretch);
+DLL_EXPORT dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int components, int bpp,
+        int stretch);
 
 /**
 * \brief Convert a component dsp_stream_p array into an RGB dsp_t array

@@ -42,26 +42,26 @@ class Detector;
  */
 class EncoderInterface
 {
-  public:
-    EncoderInterface() = default;
-    virtual ~EncoderInterface() = default;
+    public:
+        EncoderInterface() = default;
+        virtual ~EncoderInterface() = default;
 
-    virtual void init(INDI::DefaultDevice *mainDevice);
+        virtual void init(INDI::DefaultDevice *mainDevice);
 
-    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
+        virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
 
-    virtual bool setSize(uint16_t width, uint16_t height);
+        virtual bool setSize(uint16_t width, uint16_t height);
 
-    virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) = 0;
+        virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) = 0;
 
-    const char *getName();
+        const char *getName();
 
-  protected:
-    INDI::DefaultDevice *currentDevice;
-    const char *name;
-    INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
-    uint8_t pixelDepth = 8;                   // Bits per Pixels
-    uint16_t rawWidth, rawHeight;
+    protected:
+        INDI::DefaultDevice *currentDevice;
+        const char *name;
+        INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
+        uint8_t pixelDepth = 8;                   // Bits per Pixels
+        uint16_t rawWidth, rawHeight;
 };
 
 }

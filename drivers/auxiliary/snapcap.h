@@ -41,70 +41,70 @@ class Serial;
 
 class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
-  public:
-    SnapCap();
-    virtual ~SnapCap() = default;
+    public:
+        SnapCap();
+        virtual ~SnapCap() = default;
 
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-  protected:
-    const char *getDefaultName() override;
+    protected:
+        const char *getDefaultName() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
-    void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        void TimerHit() override;
 
-    // From Dust Cap
-    virtual IPState ParkCap() override;
-    virtual IPState UnParkCap() override;
+        // From Dust Cap
+        virtual IPState ParkCap() override;
+        virtual IPState UnParkCap() override;
 
-    // From Light Box
-    virtual bool SetLightBoxBrightness(uint16_t value) override;
-    virtual bool EnableLightBox(bool enable) override;
+        // From Light Box
+        virtual bool SetLightBoxBrightness(uint16_t value) override;
+        virtual bool EnableLightBox(bool enable) override;
 
-  private:
-    bool getStartupData();
-    bool ping();
-    bool getStatus();
-    bool getFirmwareVersion();
-    bool getBrightness();
+    private:
+        bool getStartupData();
+        bool ping();
+        bool getStatus();
+        bool getFirmwareVersion();
+        bool getBrightness();
 
-    bool Handshake();
+        bool Handshake();
 
-    bool sendCommand(const char *command, char *response);
+        bool sendCommand(const char *command, char *response);
 
-    IPState Abort();
+        IPState Abort();
 
-    // Status
-    ITextVectorProperty StatusTP;
-    IText StatusT[3]{};
+        // Status
+        ITextVectorProperty StatusTP;
+        IText StatusT[3] {};
 
-    // Firmware version
-    ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1]{};
+        // Firmware version
+        ITextVectorProperty FirmwareTP;
+        IText FirmwareT[1] {};
 
-    // Abort
-    ISwitch AbortS[1];
-    ISwitchVectorProperty AbortSP;
+        // Abort
+        ISwitch AbortS[1];
+        ISwitchVectorProperty AbortSP;
 
-    // Force open & close
-    ISwitch ForceS[2];
-    ISwitchVectorProperty ForceSP;
+        // Force open & close
+        ISwitch ForceS[2];
+        ISwitchVectorProperty ForceSP;
 
-    int PortFD{ -1 };
-    bool hasLight{ true };
-    uint8_t simulationWorkCounter{ 0 };
-    uint8_t targetCoverStatus{ 0xFF };
-    uint8_t prevCoverStatus{ 0xFF };
-    uint8_t prevLightStatus{ 0xFF };
-    uint8_t prevMotorStatus{ 0xFF };
-    uint8_t prevBrightness{ 0xFF };
+        int PortFD{ -1 };
+        bool hasLight{ true };
+        uint8_t simulationWorkCounter{ 0 };
+        uint8_t targetCoverStatus{ 0xFF };
+        uint8_t prevCoverStatus{ 0xFF };
+        uint8_t prevLightStatus{ 0xFF };
+        uint8_t prevMotorStatus{ 0xFF };
+        uint8_t prevBrightness{ 0xFF };
 
-    Connection::Serial *serialConnection{ nullptr };
+        Connection::Serial *serialConnection{ nullptr };
 };

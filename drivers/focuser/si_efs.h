@@ -29,25 +29,25 @@ class SIEFS : public INDI::Focuser
 {
     public:
 
-    // SI EFS State
-    typedef enum { SI_NOOP,
-                   SI_IN,
-                   SI_OUT,
-                   SI_GOTO,
-                   SI_SET_POS,
-                   SI_MAX_POS,
-                   SI_FAST_IN  = 0x11,
-                   SI_FAST_OUT = 0x12,
-                   SI_HALT     = 0xFF
-                  } SI_COMMANDS;
+        // SI EFS State
+        typedef enum { SI_NOOP,
+                       SI_IN,
+                       SI_OUT,
+                       SI_GOTO,
+                       SI_SET_POS,
+                       SI_MAX_POS,
+                       SI_FAST_IN  = 0x11,
+                       SI_FAST_OUT = 0x12,
+                       SI_HALT     = 0xFF
+                     } SI_COMMANDS;
 
 
-    // SI EFS Motor State
-    typedef enum { SI_NOT_MOVING,
-                   SI_MOVING_IN,
-                   SI_MOVING_OUT,
-                   SI_LOCKED = 5,
-                 } SI_MOTOR;
+        // SI EFS Motor State
+        typedef enum { SI_NOT_MOVING,
+                       SI_MOVING_IN,
+                       SI_MOVING_OUT,
+                       SI_LOCKED = 5,
+                     } SI_MOTOR;
 
 
         SIEFS();

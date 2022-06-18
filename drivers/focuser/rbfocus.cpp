@@ -145,46 +145,47 @@ bool RBFOCUS::readTemperature()
 {
     char res[DRIVER_RES] = {0};
 
-       if (sendCommand("Q#", res) == false)
-           return false;
+    if (sendCommand("Q#", res) == false)
+        return false;
 
-       int32_t temp = 0;
-       int rc = sscanf(res, "C%d#", &temp);
-       if (rc > 0)
-           // Hundredth of a degree
-           TemperatureN[0].value = temp / 100.0;
-       else
-       {
-           LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
-           return false;
-       }
+    int32_t temp = 0;
+    int rc = sscanf(res, "C%d#", &temp);
+    if (rc > 0)
+        // Hundredth of a degree
+        TemperatureN[0].value = temp / 100.0;
+    else
+    {
+        LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
+        return false;
+    }
 
-       return true;
+    return true;
 }
 
 bool RBFOCUS::readVersion()
 {
-   return true;
+    return true;
 }
 bool RBFOCUS::readHold()
 {
     char res[DRIVER_RES] = {0};
 
-    if (sendCommand("V#", res) == false){
+    if (sendCommand("V#", res) == false)
+    {
         return false;
-}
+    }
 
-        if(strcmp(res, "Enable")==0)
-        {
-            focuserHoldS[HOLD_ON].s = ISS_ON;
+    if(strcmp(res, "Enable") == 0)
+    {
+        focuserHoldS[HOLD_ON].s = ISS_ON;
 
-        }
-        else if (strcmp(res, "Disable")==0)
-        {
-            focuserHoldS[HOLD_OFF].s = ISS_ON;
+    }
+    else if (strcmp(res, "Disable") == 0)
+    {
+        focuserHoldS[HOLD_OFF].s = ISS_ON;
 
 
-        }
+    }
 
 
 
@@ -194,21 +195,22 @@ bool RBFOCUS::readDir()
 {
     char res[DRIVER_RES] = {0};
 
-    if (sendCommand("B#", res) == false){
+    if (sendCommand("B#", res) == false)
+    {
         return false;
-}
+    }
 
-        if(strcmp(res, "Reversed")==0)
-        {
-            dirS[REVERSED].s = ISS_ON;
+    if(strcmp(res, "Reversed") == 0)
+    {
+        dirS[REVERSED].s = ISS_ON;
 
-        }
-        else if (strcmp(res, "Normal")==0)
-        {
-            dirS[NORMAL].s = ISS_ON;
+    }
+    else if (strcmp(res, "Normal") == 0)
+    {
+        dirS[NORMAL].s = ISS_ON;
 
 
-        }
+    }
 
 
 
@@ -251,7 +253,8 @@ bool RBFOCUS::isMoving()
 
 }
 
-bool RBFOCUS::MaxPos(){
+bool RBFOCUS::MaxPos()
+{
     char res[DRIVER_RES] = {0};
 
     if (sendCommand("X#", res) == false)
@@ -259,15 +262,17 @@ bool RBFOCUS::MaxPos(){
 
     uint32_t mPos = 0;
     int rc = sscanf(res, "%u#", &mPos);
-     if (rc >0){
+    if (rc > 0)
+    {
 
         FocusMaxPosN[0].value = mPos;
         RBFOCUS::SyncPresets(mPos);
-       }else
-     {
-         LOGF_ERROR("Invalid Response: focuser hold value (%s)", res);
-         return false;
-     }
+    }
+    else
+    {
+        LOGF_ERROR("Invalid Response: focuser hold value (%s)", res);
+        return false;
+    }
 
     return true;
 
@@ -304,7 +309,7 @@ IPState RBFOCUS::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_BUSY;
 
     targetPos = targetTicks;
-        return IPS_BUSY;
+    return IPS_BUSY;
 }
 
 
@@ -363,7 +368,8 @@ bool RBFOCUS::setDir()
 {
     return sendCommand("D#");
 }
-bool RBFOCUS::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n){
+bool RBFOCUS::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
+{
     if (strcmp(focuserHoldSP.name, name) == 0)
     {
         int current_mode = IUFindOnSwitchIndex(&focuserHoldSP);

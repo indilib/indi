@@ -28,66 +28,66 @@
 
 class LPM : public INDI::DefaultDevice
 {
-  public:
-    LPM();
-    virtual ~LPM();
+    public:
+        LPM();
+        virtual ~LPM();
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    /**
-     * @struct LpmConnection
-     * @brief Holds the connection mode of the device.
-     */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0,
-        CONNECTION_SERIAL = 1 << 1
-    } LpmConnection;
+        /**
+         * @struct LpmConnection
+         * @brief Holds the connection mode of the device.
+         */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0,
+            CONNECTION_SERIAL = 1 << 1
+        } LpmConnection;
 
-    enum
-    {
-        SAVE_READINGS,
-        DISCARD_READINGS
-    };
+        enum
+        {
+            SAVE_READINGS,
+            DISCARD_READINGS
+        };
 
-  protected:
-    const char *getDefaultName() override;
-    void TimerHit() override;
+    protected:
+        const char *getDefaultName() override;
+        void TimerHit() override;
 
-  private:
-    bool getReadings();
-    bool getDeviceInfo();
-    void openFilePtr();
+    private:
+        bool getReadings();
+        bool getDeviceInfo();
+        void openFilePtr();
 
-    // Readings
-    INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[5] {};
+        // Readings
+        INumberVectorProperty AverageReadingNP;
+        INumber AverageReadingN[5] {};
 
-    // Record File Info
-    IText RecordFileT[2] {};
-    ITextVectorProperty RecordFileTP;
+        // Record File Info
+        IText RecordFileT[2] {};
+        ITextVectorProperty RecordFileTP;
 
-    ISwitch ResetB[1];
-    ISwitchVectorProperty ResetBP;
+        ISwitch ResetB[1];
+        ISwitchVectorProperty ResetBP;
 
-    ISwitch SaveB[2] {};
-    ISwitchVectorProperty SaveBP;
+        ISwitch SaveB[2] {};
+        ISwitchVectorProperty SaveBP;
 
-    // Device Information
-    INumberVectorProperty UnitInfoNP;
-    INumber UnitInfoN[1];
+        // Device Information
+        INumberVectorProperty UnitInfoNP;
+        INumber UnitInfoN[1];
 
-    Connection::Serial *serialConnection { nullptr };
+        Connection::Serial *serialConnection { nullptr };
 
-    int PortFD { -1 };
-    long count = 0;
-    float sumSQ = 0;
-    char filename[2048];
+        int PortFD { -1 };
+        long count = 0;
+        float sumSQ = 0;
+        char filename[2048];
 
-    uint8_t lpmConnection { CONNECTION_SERIAL };
+        uint8_t lpmConnection { CONNECTION_SERIAL };
 
-    FILE * fp = nullptr;
+        FILE * fp = nullptr;
 };

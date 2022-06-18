@@ -26,90 +26,90 @@
 
 class ioptronHC8406 : public LX200Generic
 {
-  public:
-    ioptronHC8406();
+    public:
+        ioptronHC8406();
 
-    virtual bool updateProperties() override;
-    virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool initProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
+    protected:
+        virtual const char *getDefaultName() override;
 
-    virtual void getBasicData() override;
-    virtual bool checkConnection() override;
-    virtual bool isSlewComplete() override;
+        virtual void getBasicData() override;
+        virtual bool checkConnection() override;
+        virtual bool isSlewComplete() override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool SetTrackEnabled(bool enabled)  override;
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool SetTrackEnabled(bool enabled)  override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+        virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool sendScopeTime() override;
-  private:
-    int setioptronHC8406StandardProcedure(int fd, const char *data);
-    int ioptronHC8406SyncCMR(char *matchedObject);
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool sendScopeTime() override;
+    private:
+        int setioptronHC8406StandardProcedure(int fd, const char *data);
+        int ioptronHC8406SyncCMR(char *matchedObject);
 
-    // Mount Initialization. 
-    void ioptronHC8406Init();
+        // Mount Initialization.
+        void ioptronHC8406Init();
 
-    // Settings
-    int setioptronHC8406Latitude(double Lat);
-    int setioptronHC8406Longitude(double Long);
-    int setioptronHC8406UTCOffset(double hours);
-    int getCommandString(int fd, char *data, const char *cmd);
-    int setCalenderDate(int fd, int dd, int mm, int yy);
+        // Settings
+        int setioptronHC8406Latitude(double Lat);
+        int setioptronHC8406Longitude(double Long);
+        int setioptronHC8406UTCOffset(double hours);
+        int getCommandString(int fd, char *data, const char *cmd);
+        int setCalenderDate(int fd, int dd, int mm, int yy);
 
-    // Motion
-    int slewioptronHC8406();    
+        // Motion
+        int slewioptronHC8406();
 
-    // Track Mode
-    int setioptronHC8406TrackMode(int mode);
+        // Track Mode
+        int setioptronHC8406TrackMode(int mode);
 
-    //Set move rates
-    int setMoveRate(int rate,int move_type);
+        //Set move rates
+        int setMoveRate(int rate, int move_type);
 
-    // Guide Rate
-    int setioptronHC8406GuideRate(int rate);
+        // Guide Rate
+        int setioptronHC8406GuideRate(int rate);
 
-    // Center Rate
-    int setioptronHC8406CenterRate(int rate);
+        // Center Rate
+        int setioptronHC8406CenterRate(int rate);
 
-    // Slew Rate
-    int setioptronHC8406SlewRate(int rate);
+        // Slew Rate
+        int setioptronHC8406SlewRate(int rate);
 
-    // Pier Side
-    void syncSideOfPier();
+        // Pier Side
+        void syncSideOfPier();
 
-    // Simulation
-    void mountSim();
+        // Simulation
+        void mountSim();
 
-    // Sync type
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
-    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
+        // Sync type
+        ISwitch SyncCMRS[2];
+        ISwitchVectorProperty SyncCMRSP;
+        enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-    //Cursor move speed
-    ISwitch CursorMoveSpeedS[3];
-    ISwitchVectorProperty CursorMoveSpeedSP;
-    enum { USE_GUIDE_SPEED, USE_CENTERING_SPEED, USE_SLEW_SPEED };
-    int setioptronHC8406CursorMoveSpeed(int type);
-    /* Guide Rate */
-    ISwitch GuideRateS[3];
-    ISwitchVectorProperty GuideRateSP;
+        //Cursor move speed
+        ISwitch CursorMoveSpeedS[3];
+        ISwitchVectorProperty CursorMoveSpeedSP;
+        enum { USE_GUIDE_SPEED, USE_CENTERING_SPEED, USE_SLEW_SPEED };
+        int setioptronHC8406CursorMoveSpeed(int type);
+        /* Guide Rate */
+        ISwitch GuideRateS[3];
+        ISwitchVectorProperty GuideRateSP;
 
-    /* Center Rate */
-    ISwitch CenterRateS[4];
-    ISwitchVectorProperty CenterRateSP;
+        /* Center Rate */
+        ISwitch CenterRateS[4];
+        ISwitchVectorProperty CenterRateSP;
 };

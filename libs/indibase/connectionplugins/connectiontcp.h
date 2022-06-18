@@ -99,7 +99,7 @@ class TCP : public Interface
          * @return Success if connection established, false otherwise.
          * @note Connection type (TCP vs UDP) is fetched from the TcpUdpSP property.
          */
-        bool establishConnection(const std::string &hostname, const std::string &port, int timeout=-1);
+        bool establishConnection(const std::string &hostname, const std::string &port, int timeout = -1);
 
         //////////////////////////////////////////////////////////////////////////////////////////////////
         /// Properties

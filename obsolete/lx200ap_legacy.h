@@ -34,92 +34,92 @@
 
 class LX200AstroPhysics : public LX200Generic
 {
-  public:
-    LX200AstroPhysics();
-    ~LX200AstroPhysics() {}
+    public:
+        LX200AstroPhysics();
+        ~LX200AstroPhysics() {}
 
-    typedef enum { MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
-    typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
+        typedef enum { MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
+        typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+    protected:
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ReadScopeStatus() override;
-    virtual bool Handshake() override;
-    virtual bool Disconnect() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool Handshake() override;
+        virtual bool Disconnect() override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool Goto(double, double) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool SetSlewRate(int index) override;
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool Goto(double, double) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool SetSlewRate(int index) override;
 
-    virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+        virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
-    virtual bool getUTFOffset(double *offset) override;
+        virtual bool getUTFOffset(double *offset) override;
 
-    // Tracking
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        // Tracking
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual void debugTriggered(bool enable) override;
+        virtual void debugTriggered(bool enable) override;
 
-    ISwitch StartUpS[2];
-    ISwitchVectorProperty StartUpSP;
+        ISwitch StartUpS[2];
+        ISwitchVectorProperty StartUpSP;
 
-    INumber HourangleCoordsN[2];
-    INumberVectorProperty HourangleCoordsNP;
+        INumber HourangleCoordsN[2];
+        INumberVectorProperty HourangleCoordsNP;
 
-    INumber HorizontalCoordsN[2];
-    INumberVectorProperty HorizontalCoordsNP;
+        INumber HorizontalCoordsN[2];
+        INumberVectorProperty HorizontalCoordsNP;
 
-    ISwitch APSlewSpeedS[3];
-    ISwitchVectorProperty APSlewSpeedSP;
+        ISwitch APSlewSpeedS[3];
+        ISwitchVectorProperty APSlewSpeedSP;
 
-    ISwitch SwapS[2];
-    ISwitchVectorProperty SwapSP;
+        ISwitch SwapS[2];
+        ISwitchVectorProperty SwapSP;
 
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
-    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
+        ISwitch SyncCMRS[2];
+        ISwitchVectorProperty SyncCMRSP;
+        enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-    ISwitch APGuideSpeedS[3];
-    ISwitchVectorProperty APGuideSpeedSP;
+        ISwitch APGuideSpeedS[3];
+        ISwitchVectorProperty APGuideSpeedSP;
 
-    IText VersionT[1] {};
-    ITextVectorProperty VersionTP;
+        IText VersionT[1] {};
+        ITextVectorProperty VersionTP;
 
-    IText DeclinationAxisT[1] {};
-    ITextVectorProperty DeclinationAxisTP;
+        IText DeclinationAxisT[1] {};
+        ITextVectorProperty DeclinationAxisTP;
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
 
-  private:
-    bool isMountInit();
-    bool setBasicDataPart0();
-    bool setBasicDataPart1();
+    private:
+        bool isMountInit();
+        bool setBasicDataPart0();
+        bool setBasicDataPart1();
 
-    // Side of pier
-    void syncSideOfPier();
+        // Side of pier
+        void syncSideOfPier();
 
-    bool timeUpdated=false, locationUpdated=false;
-    ControllerVersion controllerType = MCV_UNKNOWN;
-    ServoVersion servoType = GTOCP_UNKNOWN;
-    uint8_t initStatus = MOUNTNOTINITIALIZED;
+        bool timeUpdated = false, locationUpdated = false;
+        ControllerVersion controllerType = MCV_UNKNOWN;
+        ServoVersion servoType = GTOCP_UNKNOWN;
+        uint8_t initStatus = MOUNTNOTINITIALIZED;
 };

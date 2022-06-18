@@ -31,18 +31,22 @@
 #include "utils.h"
 
 
-ConnectionMock::ConnectionMock() {
+ConnectionMock::ConnectionMock()
+{
     fds[0] = -1;
     fds[1] = -1;
     bufferReceiveAllowed = false;
 }
 
-ConnectionMock::~ConnectionMock() {
+ConnectionMock::~ConnectionMock()
+{
     release();
 }
 
-void ConnectionMock::release() {
-    for(auto i : receivedFds) {
+void ConnectionMock::release()
+{
+    for(auto i : receivedFds)
+    {
         ::close(i);
     }
     receivedFds.clear();
@@ -52,15 +56,18 @@ void ConnectionMock::release() {
 }
 
 
-void ConnectionMock::setFds(int rd, int wr) {
+void ConnectionMock::setFds(int rd, int wr)
+{
     release();
     fds[0] = rd;
     fds[1] = wr;
     bufferReceiveAllowed = false;
 }
 
-void ConnectionMock::allowBufferReceive(bool state) {
-    if ((!state) && receivedFds.size()) {
+void ConnectionMock::allowBufferReceive(bool state)
+{
+    if ((!state) && receivedFds.size())
+    {
         throw std::runtime_error("More buffer were received");
     }
     bufferReceiveAllowed = state;
@@ -71,7 +78,8 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
     struct msghdr msgh;
     struct iovec iov;
 
-    union {
+    union
+    {
         struct cmsghdr cmsgh;
         /* Space large enough to hold an 'int' */
         char control[CMSG_SPACE(256 * sizeof(int))];
@@ -96,19 +104,25 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
 #endif
 
     auto size = recvmsg(fds[0], &msgh, recvflag);
-    if (size == -1) {
+    if (size == -1)
+    {
         return -1;
     }
 
-    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
-        if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+    {
+        if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+        {
             int fdCount = 0;
-            while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+            while(cmsg->cmsg_len >= CMSG_LEN((fdCount + 1) * sizeof(int)))
+            {
                 fdCount++;
             }
             int * fds = (int*)CMSG_DATA(cmsg);
-            for(int i = 0; i < fdCount; ++i) {
-                if (!bufferReceiveAllowed) {
+            for(int i = 0; i < fdCount; ++i)
+            {
+                if (!bufferReceiveAllowed)
+                {
                     pendingData = std::string((char*)buffer, size);
                     throw std::runtime_error("Received unexpected buffer");
                 }
@@ -122,8 +136,10 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
     return size;
 }
 
-void ConnectionMock::expectBuffer(SharedBuffer & sb) {
-    if (receivedFds.empty()) {
+void ConnectionMock::expectBuffer(SharedBuffer &sb)
+{
+    if (receivedFds.empty())
+    {
         throw std::runtime_error("Buffer not received");
     }
     int fd = receivedFds.front();
@@ -131,37 +147,45 @@ void ConnectionMock::expectBuffer(SharedBuffer & sb) {
     sb.attach(fd);
 }
 
-void ConnectionMock::expect(const std::string & str) {
+void ConnectionMock::expect(const std::string &str)
+{
     ssize_t l = str.size();
     char buff[l];
 
     char * in = buff;
     ssize_t left = l;
-    while(left) {
+    while(left)
+    {
         // FIXME: could interrupt sooner if input does not match
         ssize_t rd = read(in, left);
-        if (rd == 0) {
+        if (rd == 0)
+        {
             throw std::runtime_error("Input closed while expecting " + str);
         }
-        if (rd == -1) {
+        if (rd == -1)
+        {
             int e = errno;
             throw std::system_error(e, std::generic_category(), "Read failed while expecting " + str);
         }
         left -= rd;
         in += rd;
     }
-    if (strncmp(str.c_str(), buff, l)) {
+    if (strncmp(str.c_str(), buff, l))
+    {
         throw std::runtime_error("Received unexpected content while expecting " + str + ": " + std::string(buff, l));
     }
 }
 
-char ConnectionMock::readChar(const std::string & expected) {
+char ConnectionMock::readChar(const std::string &expected)
+{
     char buff[1];
     ssize_t rd = read(buff, 1);
-    if (rd == 0) {
+    if (rd == 0)
+    {
         throw std::runtime_error("Input closed while expecting " + expected);
     }
-    if (rd == -1) {
+    if (rd == -1)
+    {
         int e = errno;
         throw std::system_error(e, std::generic_category(), "Read failed while expecting " + expected);
     }
@@ -170,36 +194,43 @@ char ConnectionMock::readChar(const std::string & expected) {
 
 enum XmlStatus { PRE, TAGNAME, WAIT_ATTRIB, ATTRIB, QUOTE, WAIT_CLOSE };
 
-static std::string parseXmlFragmentFromString(const std::string & str) {
+static std::string parseXmlFragmentFromString(const std::string &str)
+{
     ssize_t pos = 0;
-    auto lambda = [&pos, &str]()->char {
+    auto lambda = [&pos, &str]()->char
+    {
         return str[pos++];
     };
     std::string result = parseXmlFragment(lambda);
     while((unsigned)pos < str.length() && str[pos] == '\n') pos++;
-    if ((unsigned)pos != str.length()) {
+    if ((unsigned)pos != str.length())
+    {
         throw std::runtime_error("Expected string contains garbage: " + str);
     }
     return result;
 }
 
 
-std::string ConnectionMock::receiveMore() {
-    
+std::string ConnectionMock::receiveMore()
+{
+
     auto currentFlag = fcntl(fds[0], F_GETFL, 0);
-    if (! (currentFlag & O_NONBLOCK)) {
+    if (! (currentFlag & O_NONBLOCK))
+    {
         fcntl(fds[0], F_SETFL, currentFlag | O_NONBLOCK);
     }
 
     char buffer[256];
     auto r = read(buffer, 256);
-    if (! (currentFlag & O_NONBLOCK)) {
+    if (! (currentFlag & O_NONBLOCK))
+    {
         auto errno_cpy = errno;
         fcntl(fds[0], F_SETFL, currentFlag);
         errno = errno_cpy;
     }
 
-    if (r != -1) {
+    if (r != -1)
+    {
         return pendingData + std::string(buffer, r);
     }
     perror("receiveMore");
@@ -207,49 +238,61 @@ std::string ConnectionMock::receiveMore() {
 }
 
 
-void ConnectionMock::expectXml(const std::string & expected) {
+void ConnectionMock::expectXml(const std::string &expected)
+{
     std::string expectedCanonical = parseXmlFragmentFromString(expected);
 
     std::string received;
-    auto readchar = [this, expected, &received]()->char{
+    auto readchar = [this, expected, &received]()->char
+    {
         char c = readChar(expected);
         received += c;
         return c;
     };
-    try {
+    try
+    {
         auto fragment = parseXmlFragment(readchar);
-        if (fragment != expectedCanonical) {
+        if (fragment != expectedCanonical)
+        {
             fprintf(stderr, "canonicalized as %s\n", fragment.c_str());
             throw std::runtime_error("xml fragment does not match");
         }
-    } catch(std::runtime_error & e) {
+    }
+    catch(std::runtime_error &e)
+    {
         received += receiveMore();
         throw std::runtime_error(std::string(e.what()) + "\nexpected: " + expected + "\nReceived: " + received);
     }
 }
 
-void ConnectionMock::send(const std::string & str) {
+void ConnectionMock::send(const std::string &str)
+{
     ssize_t l = str.size();
     ssize_t wr = write(fds[1], str.c_str(), l);
-    if (wr == -1) {
+    if (wr == -1)
+    {
         int e = errno;
         throw std::system_error(e, std::generic_category(), "Write failed while sending " + str);
     }
-    if (wr < l) {
+    if (wr < l)
+    {
         throw std::runtime_error("Input closed while sending " + str);
     }
 }
 
-void ConnectionMock::send(const std::string & str, const SharedBuffer ** buffers) {
+void ConnectionMock::send(const std::string &str, const SharedBuffer ** buffers)
+{
     int fdCount = 0;
     while(buffers[fdCount]) fdCount++;
 
-    if (fdCount == 0) {
+    if (fdCount == 0)
+    {
         send(str);
         return;
     }
 
-    if (str.size() == 0) {
+    if (str.size() == 0)
+    {
         throw std::runtime_error("Can't attach buffer to empty message");
     }
 
@@ -269,7 +312,8 @@ void ConnectionMock::send(const std::string & str, const SharedBuffer ** buffers
     cmsgh->cmsg_type = SCM_RIGHTS;
     msgh.msg_control = cmsgh;
     msgh.msg_controllen = cmsghdrlength;
-    for(int i = 0; i < fdCount; ++i) {
+    for(int i = 0; i < fdCount; ++i)
+    {
         int fd = buffers[i]->getFd();
         ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fd;
     }
@@ -285,17 +329,20 @@ void ConnectionMock::send(const std::string & str, const SharedBuffer ** buffers
 
 
     int ret = sendmsg(fds[1], &msgh, 0);
-    if (ret == -1) {
+    if (ret == -1)
+    {
         int e = errno;
         throw std::system_error(e, std::generic_category(), "Write with buffer failed for " + str);
     }
 
-    if ((unsigned)ret < str.size()) {
+    if ((unsigned)ret < str.size())
+    {
         throw std::runtime_error("Input closed while buffer sending " + str);
     }
 }
 
-void ConnectionMock::send(const std::string & str, const SharedBuffer & buffer) {
+void ConnectionMock::send(const std::string &str, const SharedBuffer &buffer)
+{
     const SharedBuffer * bufferPtrs[2];
     bufferPtrs[0] = &buffer;
     bufferPtrs[1] = nullptr;

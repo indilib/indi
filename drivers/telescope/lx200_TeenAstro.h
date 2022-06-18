@@ -1,5 +1,5 @@
 /*
-    LX200_TeenAstro 
+    LX200_TeenAstro
 
     Based on LX200_OnStep and others
     François Desvallées https://github.com/fdesvallees
@@ -49,7 +49,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
- 
+
     protected:
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
@@ -71,7 +71,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         virtual IPState GuideWest(uint32_t ms) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
-        
+
     private:
         bool Move(TDirection dir, TelescopeMotionCommand command);
         bool selectSlewRate(int index);
@@ -97,13 +97,13 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         // Return UTC Offset from mount in hours.
         bool setUTCOffset(double offset);
         bool getUTFOffset(double * offset);
-        
+
         void handleStatusChange(void);
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
         void sendCommand(const char *cmd);
         void updateMountStatus(char);
         void updateSlewRate(void);
-   
+
         // Send Mount time and location settings to client
         bool sendScopeTime();
         bool sendScopeLocation();
@@ -114,8 +114,8 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         INumberVectorProperty SlewAccuracyNP;
 
         ISwitchVectorProperty HomePauseSP;
-        ISwitch HomePauseS[3];    
-        
+        ISwitch HomePauseS[3];
+
         ISwitchVectorProperty SetHomeSP;
         ISwitch SetHomeS[2];
 
@@ -131,7 +131,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch TATrackModeS[3];
         ISwitchVectorProperty TATrackModeSP;
 
-        // Site Management 
+        // Site Management
         ISwitchVectorProperty SiteSP;
         ISwitch SiteS[4];
         int currentSiteNum {0}; // on TeenAstro, sites are numbered 0 to 3, not 1 to 4 like on the Meade standard

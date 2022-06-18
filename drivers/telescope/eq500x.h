@@ -1,5 +1,5 @@
 #if 0
-LX200-based Omegon EQ500X Equatorial Mount
+LX200 - based Omegon EQ500X Equatorial Mount
 
 Copyright (C) 2019 Eric Dejouhanet (eric.dejouhanet@gmail.com)
 

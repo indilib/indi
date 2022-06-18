@@ -55,7 +55,7 @@ class PegasusFocusCube : public INDI::Focuser
         bool move(uint32_t newPosition);
         bool setMaxSpeed(uint16_t speed);
         bool setLedEnabled(bool enable);
-        bool setEncodersEnabled(bool enable);        
+        bool setEncodersEnabled(bool enable);
         bool ack();
         void ignoreResponse();
 

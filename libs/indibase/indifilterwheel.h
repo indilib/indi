@@ -35,66 +35,66 @@ namespace INDI
 
 class FilterWheel : public DefaultDevice, public FilterInterface
 {
-  protected:
-    FilterWheel();
-    virtual ~FilterWheel() = default;
+    protected:
+        FilterWheel();
+        virtual ~FilterWheel() = default;
 
-  public:
-    /**
-     * \struct FilterConnection
-     * \brief Holds the connection mode of the Filter.
-     */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-    } FilterConnection;
+    public:
+        /**
+         * \struct FilterConnection
+         * \brief Holds the connection mode of the Filter.
+         */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } FilterConnection;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
-    static void buttonHelper(const char *button_n, ISState state, void *context);
+        static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
+        static void buttonHelper(const char *button_n, ISState state, void *context);
 
-    /**
-     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before Filter registers
-     * any connection interfaces
-     * @param value ORed combination of FilterConnection values.
-     */
-    void setFilterConnection(const uint8_t &value);
+        /**
+         * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before Filter registers
+         * any connection interfaces
+         * @param value ORed combination of FilterConnection values.
+         */
+        void setFilterConnection(const uint8_t &value);
 
-    /**
-     * @return Get current Filter connection mode
-     */
-    uint8_t getFilterConnection() const;
+        /**
+         * @return Get current Filter connection mode
+         */
+        uint8_t getFilterConnection() const;
 
-  protected:
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual int QueryFilter() override;
-    virtual bool SelectFilter(int) override;
+    protected:
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual int QueryFilter() override;
+        virtual bool SelectFilter(int) override;
 
-    /** \brief perform handshake with device to check communication */
-    virtual bool Handshake();
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
-    void processJoystick(const char *joystick_n, double mag, double angle);
-    void processButton(const char *button_n, ISState state);
+        void processJoystick(const char *joystick_n, double mag, double angle);
+        void processButton(const char *button_n, ISState state);
 
-    Controller *controller;
+        Controller *controller;
 
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+        Connection::Serial *serialConnection = NULL;
+        Connection::TCP *tcpConnection       = NULL;
 
-    /// For Serial & TCP connections
-    int PortFD = -1;
+        /// For Serial & TCP connections
+        int PortFD = -1;
 
-  private:
-    bool callHandshake();
-    uint8_t filterConnection = CONNECTION_NONE;
+    private:
+        bool callHandshake();
+        uint8_t filterConnection = CONNECTION_NONE;
 };
 }

@@ -88,7 +88,8 @@ bool Beaver::initProperties()
     // Rotator Calibrations
     RotatorCalibrationSP[ROTATOR_HOME_FIND].fill("ROTATOR_HOME_FIND", "Find Home", ISS_OFF);
     RotatorCalibrationSP[ROTATOR_HOME_MEASURE].fill("ROTATOR_HOME_MEASURE", "Measure Home", ISS_OFF);
-    RotatorCalibrationSP.fill(getDefaultName(), "ROTATOR_CALIBRATION", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    RotatorCalibrationSP.fill(getDefaultName(), "ROTATOR_CALIBRATION", "Rotator", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 60,
+                              IPS_IDLE);
 
     // Rotator Settings
     RotatorSettingsNP[ROTATOR_MAX_SPEED].fill("ROTATOR_MAX_SPEED", "Max Speed (m/s)", "%.f", 1, 1000, 10, 800);
@@ -160,7 +161,8 @@ bool Beaver::updateProperties()
         defineProperty(&GotoHomeSP);
         defineProperty(&RotatorSettingsNP);
         defineProperty(&RotatorStatusTP);
-        if (shutterOnLine()) {
+        if (shutterOnLine())
+        {
             defineProperty(&ShutterCalibrationSP);
             defineProperty(&ShutterSettingsNP);
             defineProperty(&ShutterSettingsTimeoutNP);
@@ -193,9 +195,11 @@ bool Beaver::updateProperties()
 //////////////////////////////////////////////////////////////////////////////
 bool Beaver::Handshake()
 {
-    if (echo()) {
+    if (echo())
+    {
         // Check if shutter is online
-        if (shutterOnLine()) {
+        if (shutterOnLine())
+        {
             LOG_DEBUG("Shutter in online, enabling Dome has shutter property");
             SetDomeCapability(GetDomeCapability() | DOME_HAS_SHUTTER);
             return true;
@@ -223,7 +227,8 @@ bool Beaver::echo()
 
     // retrieve the controller version from the dome
     char result[DRIVER_LEN] = {0};
-    if (!sendRawCommand("!seletek tversion#", result)) {
+    if (!sendRawCommand("!seletek tversion#", result))
+    {
         LOG_ERROR("Error getting version info");
         return false;
     }
@@ -242,7 +247,8 @@ bool Beaver::echo()
     // retrieve the current home offset from the dome
     if (!sendCommand("!domerot gethome#", res))
         return false;
-    else {
+    else
+    {
         HomePositionNP[0].setValue(res);
         LOGF_INFO("Dome reports home offset: %f", res);
     }
@@ -250,7 +256,8 @@ bool Beaver::echo()
     // retrieve the current park position from the dome
     if (!sendCommand("!domerot getpark#", res))
         return false;
-    else {
+    else
+    {
         SetAxis1Park(res);
         LOGF_INFO("Dome reports park: %.1f", res);
     }
@@ -260,7 +267,8 @@ bool Beaver::echo()
         return false;
 
     // get current shutter settings
-    if (shutterOnLine()) {
+    if (shutterOnLine())
+    {
         if (!shutterGetSettings())
             return false;
     }
@@ -342,7 +350,8 @@ bool Beaver::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         // Shutter Calibration
         /////////////////////////////////////////////
         if (ShutterCalibrationSP.isNameMatch(name))
-        {  //TEST
+        {
+            //TEST
             ShutterCalibrationSP.update(states, names, n);
             bool rc = shutterFindHome();
             if (rc)
@@ -370,10 +379,10 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             RotatorSettingsNP.update(values, names, n);
             RotatorSettingsNP.setState(rotatorSetSettings(RotatorSettingsNP[ROTATOR_MAX_SPEED].getValue(),
-                                                          RotatorSettingsNP[ROTATOR_MIN_SPEED].getValue(),
-                                                          RotatorSettingsNP[ROTATOR_ACCELERATION].getValue(),
-                                                          RotatorSettingsNP[ROTATOR_TIMEOUT].getValue()
-                                                          ) ? IPS_OK : IPS_ALERT);
+                                       RotatorSettingsNP[ROTATOR_MIN_SPEED].getValue(),
+                                       RotatorSettingsNP[ROTATOR_ACCELERATION].getValue(),
+                                       RotatorSettingsNP[ROTATOR_TIMEOUT].getValue()
+                                                         ) ? IPS_OK : IPS_ALERT);
             RotatorSettingsNP.apply();
             return true;
         }
@@ -385,10 +394,10 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             ShutterSettingsNP.update(values, names, n);
             ShutterSettingsNP.setState(shutterSetSettings(ShutterSettingsNP[SHUTTER_MAX_SPEED].getValue(),
-                                                          ShutterSettingsNP[SHUTTER_MIN_SPEED].getValue(),
-                                                          ShutterSettingsNP[SHUTTER_ACCELERATION].getValue(),
-                                                          ShutterSettingsNP[SHUTTER_SAFE_VOLTAGE].getValue()
-                                                          ) ? IPS_OK : IPS_ALERT);
+                                       ShutterSettingsNP[SHUTTER_MIN_SPEED].getValue(),
+                                       ShutterSettingsNP[SHUTTER_ACCELERATION].getValue(),
+                                       ShutterSettingsNP[SHUTTER_SAFE_VOLTAGE].getValue()
+                                                         ) ? IPS_OK : IPS_ALERT);
             ShutterSettingsNP.apply();
             return true;
         }
@@ -399,7 +408,8 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
         if (HomePositionNP.isNameMatch(name))
         {
             HomePositionNP.update(values, names, n);
-            if (rotatorSetHome(HomePositionNP[0].getValue())) {
+            if (rotatorSetHome(HomePositionNP[0].getValue()))
+            {
                 HomePositionNP.apply();
                 return true;
             }
@@ -410,9 +420,11 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
         ///////////////////////////////////////////////////////////////////////////////
         /// Park Position
         ///////////////////////////////////////////////////////////////////////////////
-        if (strcmp(name, ParkPositionNP.name) == 0) {
+        if (strcmp(name, ParkPositionNP.name) == 0)
+        {
             IUUpdateNumber(&ParkPositionNP, values, names, n);
-            if (rotatorSetPark(ParkPositionN[AXIS_RA].value)) {
+            if (rotatorSetPark(ParkPositionN[AXIS_RA].value))
+            {
                 ParkPositionNP.s = IPS_OK;
                 SetAxis1Park(ParkPositionN[AXIS_RA].value);
                 IDSetNumber(&ParkPositionNP, nullptr);
@@ -433,7 +445,8 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
 ///////////////////////////////////////////////////////////////////////////
 void Beaver::TimerHit()
 {
-    if (!isConnected()) {
+    if (!isConnected())
+    {
         return;
     }
 
@@ -443,19 +456,22 @@ void Beaver::TimerHit()
 
     // Query rotator status
     uint16_t domeStatus = 0;
-    if (!getDomeStatus(domeStatus)) {
+    if (!getDomeStatus(domeStatus))
+    {
         LOG_ERROR("Could not get dome status");
     }
 
     ////////////////////////////////////////////
     // Test for general dome errors
     ////////////////////////////////////////////
-    if (domeStatus & DOME_STATUS_UNSAFE_CW) {
+    if (domeStatus & DOME_STATUS_UNSAFE_CW)
+    {
         LOG_ERROR("CW Unsafe Error");
         setDomeState(DOME_ERROR);
         RotatorStatusTP.apply();
     }
-    if (domeStatus & DOME_STATUS_UNSAFE_RG) {
+    if (domeStatus & DOME_STATUS_UNSAFE_RG)
+    {
         LOG_ERROR("RGx Unsafe Error");
         setDomeState(DOME_ERROR);
         RotatorStatusTP.apply();
@@ -466,10 +482,12 @@ void Beaver::TimerHit()
     ////////////////////////////////////////////
 
     // Is rotator idle?
-    if (!(domeStatus & DOME_STATUS_ROTATOR_MOVING)) {
+    if (!(domeStatus & DOME_STATUS_ROTATOR_MOVING))
+    {
 
         // Dome Parked
-        if (rotatorIsParked() & (getDomeState() == DOME_PARKING))  {
+        if (rotatorIsParked() & (getDomeState() == DOME_PARKING))
+        {
             SetParked(true);
             std::string rStatus = "Parked";
             RotatorStatusTP[0].setText(rStatus);
@@ -477,7 +495,8 @@ void Beaver::TimerHit()
             LOG_DEBUG("Dome is parked.");
         }
         // Measuring Home completed
-        else if (!strcmp(RotatorStatusTP[0].getText(), "Measuring Home")) {
+        else if (!strcmp(RotatorStatusTP[0].getText(), "Measuring Home"))
+        {
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
             RotatorCalibrationSP.apply();
@@ -486,7 +505,8 @@ void Beaver::TimerHit()
             RotatorStatusTP.setState(IPS_OK);
         }
         // Finding Home completed
-        else if (!strcmp(RotatorStatusTP[0].getText(), "Finding Home")) {
+        else if (!strcmp(RotatorStatusTP[0].getText(), "Finding Home"))
+        {
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
             RotatorCalibrationSP.apply();
@@ -495,7 +515,8 @@ void Beaver::TimerHit()
             RotatorStatusTP.setState(IPS_OK);
         }
         // Homing completed
-        else if (!strcmp(RotatorStatusTP[0].getText(), "Homing")) {
+        else if (!strcmp(RotatorStatusTP[0].getText(), "Homing"))
+        {
             setDomeState(DOME_IDLE);
             std::string rStatus = "Home";
             RotatorStatusTP[0].setText(rStatus);
@@ -505,7 +526,8 @@ void Beaver::TimerHit()
             LOG_DEBUG("Dome at home");
         }
         // Move completed
-        else if (getDomeState() == DOME_MOVING) {
+        else if (getDomeState() == DOME_MOVING)
+        {
             RotatorStatusTP.apply();
             setDomeState(DOME_IDLE);
             RotatorCalibrationSP.setState(IPS_OK);
@@ -521,10 +543,12 @@ void Beaver::TimerHit()
     ////////////////////////////////////////////
     // Test Shutter and set status
     ////////////////////////////////////////////
-    if (shutterOnLine()) {
+    if (shutterOnLine())
+    {
 
         // Test for shutter error
-        if (domeStatus & DOME_STATUS_SHUTTER_ERROR) {
+        if (domeStatus & DOME_STATUS_SHUTTER_ERROR)
+        {
             LOG_ERROR("Shutter Mechanical Error");
             std::string rStatus = "Mechanical Error";
             ShutterStatusTP[0].setText(rStatus);
@@ -533,21 +557,25 @@ void Beaver::TimerHit()
         }
 
         // If moving, set status
-        if (getShutterState() == SHUTTER_MOVING) {
+        if (getShutterState() == SHUTTER_MOVING)
+        {
 
-            if (domeStatus & DOME_STATUS_SHUTTER_OPENING) {
+            if (domeStatus & DOME_STATUS_SHUTTER_OPENING)
+            {
                 setShutterState(SHUTTER_MOVING);
                 std::string rStatus = "Opening";
                 ShutterStatusTP[0].setText(rStatus);
                 LOG_DEBUG("Shutter state set to Opening");
             }
-            else if (domeStatus & DOME_STATUS_SHUTTER_CLOSING) {
+            else if (domeStatus & DOME_STATUS_SHUTTER_CLOSING)
+            {
                 setShutterState(SHUTTER_MOVING);
                 std::string rStatus = "Closing";
                 ShutterStatusTP[0].setText(rStatus);
                 LOG_DEBUG("Shutter state set to Closing");
             }
-            else if (domeStatus & DOME_STATUS_SHUTTER_MOVING) {
+            else if (domeStatus & DOME_STATUS_SHUTTER_MOVING)
+            {
                 setShutterState(SHUTTER_MOVING);
                 std::string rStatus = "Moving";
                 ShutterStatusTP[0].setText(rStatus);
@@ -557,13 +585,15 @@ void Beaver::TimerHit()
         }
 
         // if stopped, test if opened or closed
-        if (domeStatus & DOME_STATUS_SHUTTER_OPENED) {
+        if (domeStatus & DOME_STATUS_SHUTTER_OPENED)
+        {
             setShutterState(SHUTTER_OPENED);
             std::string rStatus = "Open";
             ShutterStatusTP[0].setText(rStatus);
             LOG_DEBUG("Shutter state set to OPEN");
         }
-        if (domeStatus & DOME_STATUS_SHUTTER_CLOSED) {
+        if (domeStatus & DOME_STATUS_SHUTTER_CLOSED)
+        {
             setShutterState(SHUTTER_CLOSED);
             std::string rStatus = "Closed";
             ShutterStatusTP[0].setText(rStatus);
@@ -574,10 +604,12 @@ void Beaver::TimerHit()
         // Update shutter voltage
         double res;
         // ignoring a random get voltage cmd error here and just reporting successful status
-        if (sendCommand("!dome getshutterbatvoltage#", res)) {
+        if (sendCommand("!dome getshutterbatvoltage#", res))
+        {
             LOGF_DEBUG("Shutter voltage currently is: %.2f", res);
             ShutterVoltsNP[0].setValue(res);
-            (res < ShutterSettingsNP[SHUTTER_SAFE_VOLTAGE].getValue()) ? ShutterVoltsNP.setState(IPS_ALERT) : ShutterVoltsNP.setState(IPS_OK);
+            (res < ShutterSettingsNP[SHUTTER_SAFE_VOLTAGE].getValue()) ? ShutterVoltsNP.setState(IPS_ALERT) : ShutterVoltsNP.setState(
+                IPS_OK);
             ShutterVoltsNP.apply();
         }
     }
@@ -624,21 +656,23 @@ IPState Beaver::MoveRel(double azDiff)
 /// Rotator move (calc's offset and calles abs move)
 //////////////////////////////////////////////////////////////////////////////
 IPState Beaver::Move(DomeDirection dir, DomeMotionCommand operation)
- {
+{
     LOG_DEBUG("Re-implemented move was called");
-     if (operation == MOTION_START)
-     {
-         if (dir == DOME_CW) {
-             domeDir = 1;
-         }
-         else {
-             domeDir = -1;
-         }
-         MoveRel(lastAzDiff);
+    if (operation == MOTION_START)
+    {
+        if (dir == DOME_CW)
+        {
+            domeDir = 1;
+        }
+        else
+        {
+            domeDir = -1;
+        }
+        MoveRel(lastAzDiff);
 
-     }
-     return IPS_OK;
- }
+    }
+    return IPS_OK;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 /// open or close the shutter (will not show if shutter is not present)
@@ -648,7 +682,8 @@ IPState Beaver::ControlShutter(ShutterOperation operation)
     double res = 0;
     if (operation == SHUTTER_OPEN)
     {
-        if (sendCommand("!dome openshutter#", res)) {
+        if (sendCommand("!dome openshutter#", res))
+        {
             std::string rStatus = "Opening";
             ShutterStatusTP[0].setText(rStatus);
             ShutterStatusTP.apply();
@@ -660,7 +695,8 @@ IPState Beaver::ControlShutter(ShutterOperation operation)
     }
     else if (operation == SHUTTER_CLOSE)
     {
-        if (sendCommand("!dome closeshutter#", res)) {
+        if (sendCommand("!dome closeshutter#", res))
+        {
             std::string rStatus = "Shutting";
             ShutterStatusTP[0].setText(rStatus);
             ShutterStatusTP.apply();
@@ -720,7 +756,8 @@ bool Beaver::rotatorSetHome(double az)
     char cmd[DRIVER_LEN] = {0};
     double res = 0;
     snprintf(cmd, DRIVER_LEN, "!domerot sethome %.2f#", az);
-    if (sendCommand(cmd, res)) {
+    if (sendCommand(cmd, res))
+    {
         LOGF_INFO("Home is set to: %.1f", az);
         return true;
     }
@@ -733,13 +770,16 @@ bool Beaver::rotatorSetHome(double az)
 IPState Beaver::Park()
 {
     double res;
-    if (sendCommand("!dome gopark#", res)) {
+    if (sendCommand("!dome gopark#", res))
+    {
         std::string rStatus = "Parking";
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         // check shutter policy
-        if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)) {
-            if(ControlShutter(SHUTTER_CLOSE)) {
+        if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON))
+        {
+            if(ControlShutter(SHUTTER_CLOSE))
+            {
                 DomeShutterS[SHUTTER_OPEN].s = ISS_OFF;
                 DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
             }
@@ -760,8 +800,10 @@ IPState Beaver::UnPark()
     RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
     // check shutter policy
-    if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)) {
-        if(ControlShutter(SHUTTER_OPEN)) {
+    if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON))
+    {
+        if(ControlShutter(SHUTTER_OPEN))
+        {
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_OFF;
         }
@@ -779,7 +821,8 @@ bool Beaver::rotatorSetPark(double az)
     double res = 0;
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "!domerot setpark %.2f#", az);
-    if (sendCommand(cmd, res)) {
+    if (sendCommand(cmd, res))
+    {
         LOGF_INFO("Park set to: %.2f", az);
         SetAxis1Park(az);
         return true;
@@ -791,15 +834,17 @@ bool Beaver::rotatorSetPark(double az)
 /////////////////////////////////////////////////////////////////////////////
 /// Rotator set park position to current
 /////////////////////////////////////////////////////////////////////////////
-bool Beaver::SetCurrentPark() {
+bool Beaver::SetCurrentPark()
+{
     double res = 0;
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "!domerot setpark %.2f#", DomeAbsPosN[0].value);
-    if (sendCommand(cmd, res)) {
+    if (sendCommand(cmd, res))
+    {
         SetAxis1Park(DomeAbsPosN[0].value);
         LOGF_INFO("Park set to current: %.2f", DomeAbsPosN[0].value);
     }
-        return true;
+    return true;
 
     return false;
 }
@@ -807,11 +852,13 @@ bool Beaver::SetCurrentPark() {
 /////////////////////////////////////////////////////////////////////////////
 /// Rotator set park position to default (0 az)
 /////////////////////////////////////////////////////////////////////////////
-bool Beaver::SetDefaultPark() {
+bool Beaver::SetDefaultPark()
+{
     double res = 0;
     char cmd[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "!domerot setpark %d#", 0);
-    if (sendCommand(cmd, res)) {
+    if (sendCommand(cmd, res))
+    {
         SetAxis1Park(0.0);
         LOG_INFO("Park set to default: 0.00");
         return true;
@@ -827,7 +874,8 @@ bool Beaver::SetDefaultPark() {
 bool Beaver::rotatorGotoHome()
 {
     double res = 0;
-    if (sendCommand("!dome gohome#", res)) {
+    if (sendCommand("!dome gohome#", res))
+    {
         setDomeState(DOME_MOVING);
         std::string rStatus = "Homing";
         RotatorStatusTP[0].setText(rStatus);
@@ -843,7 +891,8 @@ bool Beaver::rotatorGotoHome()
 bool Beaver::rotatorMeasureHome()
 {
     double res = 0;
-    if (sendCommand("!dome autocalrot 1#", res)) {
+    if (sendCommand("!dome autocalrot 1#", res))
+    {
         setDomeState(DOME_MOVING);
         std::string rStatus = "Measuring Home";
         RotatorStatusTP[0].setText(rStatus);
@@ -859,7 +908,8 @@ bool Beaver::rotatorMeasureHome()
 bool Beaver::rotatorFindHome()
 {
     double res = 0;
-    if (sendCommand("!dome autocalrot 0#", res)) {
+    if (sendCommand("!dome autocalrot 0#", res))
+    {
         setDomeState(DOME_MOVING);
         std::string rStatus = "Finding Home";
         RotatorStatusTP[0].setText(rStatus);
@@ -875,7 +925,8 @@ bool Beaver::rotatorFindHome()
 bool Beaver::rotatorIsHome()
 {
     double status = 0;
-    if (sendCommand("!dome athome#", status)) {
+    if (sendCommand("!dome athome#", status))
+    {
         LOG_ERROR("Error checking home");
         return false;
     }
@@ -893,7 +944,8 @@ bool Beaver::rotatorIsHome()
 bool Beaver::rotatorIsParked()
 {
     double status = 0;
-    if (!sendCommand("!dome atpark#", status)) {
+    if (!sendCommand("!dome atpark#", status))
+    {
         LOG_ERROR("Error checking park");
         return false;
     }
@@ -910,7 +962,8 @@ bool Beaver::rotatorIsParked()
 bool Beaver::getDomeStatus(uint16_t &domeStatus)
 {
     double res = 0;
-    if (!sendCommand("!dome status#", res))  {
+    if (!sendCommand("!dome status#", res))
+    {
         LOG_ERROR("Status cmd errored out");
         return false;
     }
@@ -928,19 +981,22 @@ bool Beaver::shutterOnLine()
     uint16_t domeStatus;
     bool shutterIsUp = false;
     // retrieving shutter status
-    if (!sendCommand("!dome shutterisup#", res))  {
+    if (!sendCommand("!dome shutterisup#", res))
+    {
         LOG_ERROR("Shutter status cmd errored out");
         //failsave, return false/not online
         return false;
     }
     // retrieving comm status
     shutterIsUp = static_cast<bool>(res);
-    if (!getDomeStatus(domeStatus)) {
+    if (!getDomeStatus(domeStatus))
+    {
         LOG_ERROR("Shutter status cmd errored out");
         //failsave, return false/not online
         return false;
     }
-    LOGF_DEBUG("ShutterIsUp %s  Comms error %s", shutterIsUp ? "true" : "false", (domeStatus & DOME_STATUS_SHUTTER_COMM) ? "true" : "false");
+    LOGF_DEBUG("ShutterIsUp %s  Comms error %s", shutterIsUp ? "true" : "false",
+               (domeStatus & DOME_STATUS_SHUTTER_COMM) ? "true" : "false");
     bool status = (shutterIsUp |  !(domeStatus & DOME_STATUS_SHUTTER_COMM));
     LOGF_DEBUG("ShuttOnLine %s", status ? "true" : "false");
     return status;
@@ -960,7 +1016,8 @@ bool Beaver::Abort()
 bool Beaver::abortAll()
 {
     double res = 0;
-    if (sendCommand("!dome abort 1 1 1#", res)) {
+    if (sendCommand("!dome abort 1 1 1#", res))
+    {
         std::string rStatus = "Idle";
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
@@ -986,31 +1043,37 @@ bool Beaver::shutterAbort()
 /////////////////////////////////////////////////////////////////////////////
 bool Beaver::shutterSetSettings(double maxSpeed, double minSpeed, double acceleration, double voltage)
 {
-    if (shutterOnLine()) {
+    if (shutterOnLine())
+    {
         char cmd[DRIVER_LEN] = {0};
         double res;
 
         snprintf(cmd, DRIVER_LEN, "!dome setshuttermaxspeed %.2f#", maxSpeed);
-        if (!sendCommand(cmd, res)) {
+        if (!sendCommand(cmd, res))
+        {
             LOG_ERROR("Problem setting shutter max speed");
             return false;
         }
         snprintf(cmd, DRIVER_LEN, "!dome setshutterminspeed %.2f#", minSpeed);
-        if (!sendCommand(cmd, res)) {
+        if (!sendCommand(cmd, res))
+        {
             LOG_ERROR("Problem setting shutter min speed");
             return false;
         }
         snprintf(cmd, DRIVER_LEN, "!dome setshutteracceleration %.2f#", acceleration);
-        if (!sendCommand(cmd, res)) {
+        if (!sendCommand(cmd, res))
+        {
             LOG_ERROR("Problem setting shutter acceleration");
             return false;
         }
         snprintf(cmd, DRIVER_LEN, "!dome setshuttersafevoltage %.2f#", voltage);
-        if (!sendCommand(cmd, res)) {
+        if (!sendCommand(cmd, res))
+        {
             LOG_ERROR("Problem setting shutter safe voltage");
             return false;
         }
-        if(!sendCommand("!seletek savefs#", res)) {
+        if(!sendCommand("!seletek savefs#", res))
+        {
             LOG_ERROR("Problem setting shutter savefs");
             return false;
         }
@@ -1026,44 +1089,55 @@ bool Beaver::shutterSetSettings(double maxSpeed, double minSpeed, double acceler
 bool Beaver::shutterGetSettings()
 {
     double res;
-    if (shutterOnLine()) {
-        if (!sendCommand("!dome getshuttermaxspeed#", res)) {
+    if (shutterOnLine())
+    {
+        if (!sendCommand("!dome getshuttermaxspeed#", res))
+        {
             LOG_ERROR("Problem getting shutter max speed");
             return false;
         }
-        else {
+        else
+        {
             ShutterSettingsNP[SHUTTER_MAX_SPEED].setValue(res);
             LOGF_DEBUG("Shutter reports max speed of: %.1f", res);
         }
-        if (!sendCommand("!dome getshutterminspeed#", res)) {
+        if (!sendCommand("!dome getshutterminspeed#", res))
+        {
             LOG_ERROR("Problem getting shutter min speed");
             return false;
         }
-        else {
+        else
+        {
             ShutterSettingsNP[SHUTTER_MIN_SPEED].setValue(res);
             LOGF_DEBUG("Shutter reports min speed of: %.1f", res);
         }
-        if (!sendCommand("!dome getshutteracceleration#", res)) {
+        if (!sendCommand("!dome getshutteracceleration#", res))
+        {
             LOG_ERROR("Problem getting shutter acceleration");
             return false;
         }
-        else {
+        else
+        {
             ShutterSettingsNP[SHUTTER_ACCELERATION].setValue(res);
             LOGF_DEBUG("Shutter reports acceleration of: %.1f", res);
         }
-        if (!sendCommand("!dome getshuttertimeoutopenclose#", res)) {
+        if (!sendCommand("!dome getshuttertimeoutopenclose#", res))
+        {
             LOG_ERROR("Problem getting shutter timeout");
             return false;
         }
-        else {
+        else
+        {
             ShutterSettingsTimeoutNP[0].setValue(res);
             LOGF_DEBUG("Shutter reports safe timeout of: %.1f", res);
         }
-        if (!sendCommand("!dome getshuttersafevoltage#", res)) {
+        if (!sendCommand("!dome getshuttersafevoltage#", res))
+        {
             LOG_ERROR("Problem getting shutter safe voltage");
             return false;
         }
-        else {
+        else
+        {
             ShutterSettingsNP[SHUTTER_SAFE_VOLTAGE].setValue(res);
             LOGF_DEBUG("Shutter reports safe voltage of: %.1f", res);
         }
@@ -1082,26 +1156,31 @@ bool Beaver::rotatorSetSettings(double maxSpeed, double minSpeed, double acceler
     double res;
 
     snprintf(cmd, DRIVER_LEN, "!domerot setmaxspeed %.2f#", maxSpeed);
-    if (!sendCommand(cmd, res)) {
+    if (!sendCommand(cmd, res))
+    {
         LOG_ERROR("Problem setting rotator max speed");
         return false;
     }
     snprintf(cmd, DRIVER_LEN, "!domerot setminspeed %.2f#", minSpeed);
-    if (!sendCommand(cmd, res)) {
+    if (!sendCommand(cmd, res))
+    {
         LOG_ERROR("Problem setting rotator min speed");
         return false;
     }
     snprintf(cmd, DRIVER_LEN, "!domerot setacceleration %.2f#", acceleration);
-    if (!sendCommand(cmd, res)) {
+    if (!sendCommand(cmd, res))
+    {
         LOG_ERROR("Problem setting rotator acceleration");
         return false;
     }
     snprintf(cmd, DRIVER_LEN, "!domerot setmaxfullrotsecs %.2f#", timeout);
-    if (!sendCommand(cmd, res)) {
+    if (!sendCommand(cmd, res))
+    {
         LOG_ERROR("Problem setting rotator full rot secs");
         return false;
     }
-    if(!sendCommand("!seletek savefs#", res)) {
+    if(!sendCommand("!seletek savefs#", res))
+    {
         LOG_ERROR("dome could not savefs");
         return false;
     }
@@ -1116,35 +1195,43 @@ bool Beaver::rotatorSetSettings(double maxSpeed, double minSpeed, double acceler
 bool Beaver::rotatorGetSettings()
 {
     double res;
-    if (!sendCommand("!domerot getmaxspeed#", res)) {
+    if (!sendCommand("!domerot getmaxspeed#", res))
+    {
         LOG_ERROR("Problem getting rotator max speed");
         return false;
     }
-    else {
+    else
+    {
         RotatorSettingsNP[ROTATOR_MAX_SPEED].setValue(res);
         LOGF_DEBUG("Rotator reports max speed of: %.1f", res);
     }
-    if (!sendCommand("!domerot getminspeed#", res)) {
+    if (!sendCommand("!domerot getminspeed#", res))
+    {
         LOG_ERROR("Problem getting rotator min speed");
         return false;
     }
-    else {
+    else
+    {
         RotatorSettingsNP[ROTATOR_MIN_SPEED].setValue(res);
         LOGF_DEBUG("Rotator reports min speed of: %.1f", res);
     }
-    if (!sendCommand("!domerot getacceleration#", res)) {
+    if (!sendCommand("!domerot getacceleration#", res))
+    {
         LOG_ERROR("Problem getting rotator acceleration");
         return false;
     }
-    else {
+    else
+    {
         RotatorSettingsNP[ROTATOR_ACCELERATION].setValue(res);
         LOGF_DEBUG("Rotator reports acceleration of: %.1f", res);
     }
-    if (!sendCommand("!domerot getmaxfullrotsecs#", res)) {
+    if (!sendCommand("!domerot getmaxfullrotsecs#", res))
+    {
         LOG_ERROR("Problem getting rotator full rot secs");
         return false;
     }
-    else {
+    else
+    {
         RotatorSettingsNP[ROTATOR_TIMEOUT].setValue(res);
         LOGF_DEBUG("Rotator reports timeout(s) of: %.1f", res);
     }
@@ -1158,7 +1245,8 @@ bool Beaver::rotatorGetSettings()
 /////////////////////////////////////////////////////////////////////////////
 bool Beaver::shutterFindHome()
 {
-    if (shutterOnLine()) {
+    if (shutterOnLine())
+    {
         double res = 0;
         return sendCommand("!dome autocalshutter#", res);
     }
@@ -1200,7 +1288,8 @@ bool Beaver::sendRawCommand(const char * cmd, char * response)
     }
 
     // timeouts used up, return error
-    if (rc != TTY_OK) {
+    if (rc != TTY_OK)
+    {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
@@ -1219,12 +1308,15 @@ bool Beaver::sendCommand(const char * cmd, double &res)
     std::smatch match;
     std::string input(response);
 
-    if (std::regex_search(input, match, rgx)) {
-        try {
+    if (std::regex_search(input, match, rgx))
+    {
+        try
+        {
             res = std::stof(match.str(1));
             return true;
         }
-        catch (...) {
+        catch (...)
+        {
             LOGF_ERROR("Failed to process response: %s.", response);
             return false;
         }

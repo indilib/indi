@@ -993,7 +993,8 @@ bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate)
 
     if (ieqpro_simulation)
     {
-        snprintf(response, 8, "%02d%02d#", static_cast<int>(simData.ra_guide_rate * 100), static_cast<int>(simData.de_guide_rate * 100));
+        snprintf(response, 8, "%02d%02d#", static_cast<int>(simData.ra_guide_rate * 100),
+                 static_cast<int>(simData.de_guide_rate * 100));
         nbytes_read = strlen(response);
     }
     else
@@ -2074,7 +2075,8 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
-        char utc_str[8] = {0}, yy_str[8] = {0}, mm_str[8] = {0}, dd_str[8] = {0}, hh_str[8] = {0}, minute_str[8] = {0}, ss_str[8] = {0}, dst_str[8] = {0};
+        char utc_str[8] = {0}, yy_str[8] = {0}, mm_str[8] = {0}, dd_str[8] = {0}, hh_str[8] = {0}, minute_str[8] = {0}, ss_str[8] = {0},
+                                           dst_str[8] = {0};
 
         // UTC Offset
         strncpy(utc_str, response, 4);

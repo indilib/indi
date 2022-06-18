@@ -81,22 +81,22 @@ bool PerfectStar::initProperties()
     INDI::Focuser::initProperties();
 
     // Max Position
-//    IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 10000);
-//    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW,
-//                       0, IPS_IDLE);
+    //    IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 10000);
+    //    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW,
+    //                       0, IPS_IDLE);
 
-//    // Sync to a particular position
-//    IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 100000, 100., 0.);
-//    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    //    // Sync to a particular position
+    //    IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 100000, 100., 0.);
+    //    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-//    FocusAbsPosN[0].min = SyncN[0].min = 0;
-//    FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
-//    FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
-//    FocusAbsPosN[0].value                = 0;
+    //    FocusAbsPosN[0].min = SyncN[0].min = 0;
+    //    FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
+    //    FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
+    //    FocusAbsPosN[0].value                = 0;
 
-//    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-//    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
-//    FocusRelPosN[0].value = 100;
+    //    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    //    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
+    //    FocusRelPosN[0].value = 100;
 
     addSimulationControl();
 
@@ -107,16 +107,16 @@ bool PerfectStar::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
-//    if (isConnected())
-//    {
-//        defineProperty(&SyncNP);
-//        defineProperty(&MaxPositionNP);
-//    }
-//    else
-//    {
-//        deleteProperty(SyncNP.name);
-//        deleteProperty(MaxPositionNP.name);
-//    }
+    //    if (isConnected())
+    //    {
+    //        defineProperty(&SyncNP);
+    //        defineProperty(&MaxPositionNP);
+    //    }
+    //    else
+    //    {
+    //        deleteProperty(SyncNP.name);
+    //        deleteProperty(MaxPositionNP.name);
+    //    }
 
     return true;
 }
@@ -188,45 +188,45 @@ bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[]
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Max Travel
-//        if (strcmp(MaxPositionNP.name, name) == 0)
-//        {
-//            IUUpdateNumber(&MaxPositionNP, values, names, n);
+        //        if (strcmp(MaxPositionNP.name, name) == 0)
+        //        {
+        //            IUUpdateNumber(&MaxPositionNP, values, names, n);
 
-//            if (MaxPositionN[0].value > 0)
-//            {
-//                FocusAbsPosN[0].min = SyncN[0].min = 0;
-//                FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
-//                FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
+        //            if (MaxPositionN[0].value > 0)
+        //            {
+        //                FocusAbsPosN[0].min = SyncN[0].min = 0;
+        //                FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
+        //                FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
 
-//                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-//                FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
-//                FocusRelPosN[0].min  = 0;
+        //                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+        //                FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
+        //                FocusRelPosN[0].min  = 0;
 
-//                IUUpdateMinMax(&FocusAbsPosNP);
-//                IUUpdateMinMax(&FocusRelPosNP);
-//                IUUpdateMinMax(&SyncNP);
+        //                IUUpdateMinMax(&FocusAbsPosNP);
+        //                IUUpdateMinMax(&FocusRelPosNP);
+        //                IUUpdateMinMax(&SyncNP);
 
-//                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-//                       FocusAbsPosN[0].max);
-//            }
+        //                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
+        //                       FocusAbsPosN[0].max);
+        //            }
 
-//            MaxPositionNP.s = IPS_OK;
-//            IDSetNumber(&MaxPositionNP, nullptr);
-//            return true;
-//        }
+        //            MaxPositionNP.s = IPS_OK;
+        //            IDSetNumber(&MaxPositionNP, nullptr);
+        //            return true;
+        //        }
 
         // Sync
-//        if (strcmp(SyncNP.name, name) == 0)
-//        {
-//            IUUpdateNumber(&SyncNP, values, names, n);
-//            if (!sync(SyncN[0].value))
-//                SyncNP.s = IPS_ALERT;
-//            else
-//                SyncNP.s = IPS_OK;
+        //        if (strcmp(SyncNP.name, name) == 0)
+        //        {
+        //            IUUpdateNumber(&SyncNP, values, names, n);
+        //            if (!sync(SyncN[0].value))
+        //                SyncNP.s = IPS_ALERT;
+        //            else
+        //                SyncNP.s = IPS_OK;
 
-//            IDSetNumber(&SyncNP, nullptr);
-//            return true;
-//        }
+        //            IDSetNumber(&SyncNP, nullptr);
+        //            return true;
+        //        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);

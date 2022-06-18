@@ -30,91 +30,91 @@
 
 class TCFS : public INDI::Focuser
 {
-  public:
-    enum TCFSCommand
-    {
-        FMMODE, // Focuser Manual Mode
-        FFMODE, // Focuser Free Mode
-        FAMODE, // Focuser Auto-A Mode
-        FBMODE, // Focuser Auto-B Mode
-        FCENTR, // Focus Center
-        FIN,    // Focuser In “nnnn”
-        FOUT,   // Focuser Out “nnnn”
-        FPOSRO, // Focuser Position Read Out
-        FTMPRO, // Focuser Temperature Read Out
-        FSLEEP, // Focuser Sleep
-        FWAKUP, // Focuser Wake Up
-        FHOME,  // Focuser Home Command        
-        FRSLOP, // Focuser Read Slope Command
-        FLSLOP, // Focuser Load Slope Command
-        FQUIET, // Focuser Quiet Command
-        FDELAY, // Focuser Load Delay Command
-        FRSIGN, // Focuser Read Slope Sign Command
-        FLSIGN, // Focuser Load Slope Sign Command
-        FFWVER, // Focuser Firmware Version
-    };
+    public:
+        enum TCFSCommand
+        {
+            FMMODE, // Focuser Manual Mode
+            FFMODE, // Focuser Free Mode
+            FAMODE, // Focuser Auto-A Mode
+            FBMODE, // Focuser Auto-B Mode
+            FCENTR, // Focus Center
+            FIN,    // Focuser In “nnnn”
+            FOUT,   // Focuser Out “nnnn”
+            FPOSRO, // Focuser Position Read Out
+            FTMPRO, // Focuser Temperature Read Out
+            FSLEEP, // Focuser Sleep
+            FWAKUP, // Focuser Wake Up
+            FHOME,  // Focuser Home Command
+            FRSLOP, // Focuser Read Slope Command
+            FLSLOP, // Focuser Load Slope Command
+            FQUIET, // Focuser Quiet Command
+            FDELAY, // Focuser Load Delay Command
+            FRSIGN, // Focuser Read Slope Sign Command
+            FLSIGN, // Focuser Load Slope Sign Command
+            FFWVER, // Focuser Firmware Version
+        };
 
-    enum TCFSMode
-    {
-    	MANUAL,
-        MODE_A,
-        MODE_B
-    };
-    
-    enum TCFSError
-    {
-        NO_ERROR,
-        ER_1,
-        ER_2,
-        ER_3
-    };
+        enum TCFSMode
+        {
+            MANUAL,
+            MODE_A,
+            MODE_B
+        };
 
-    TCFS();
-    virtual ~TCFS() = default;
+        enum TCFSError
+        {
+            NO_ERROR,
+            ER_1,
+            ER_2,
+            ER_3
+        };
 
-    // Standard INDI interface fucntions
-    virtual bool Handshake() override;
-    virtual bool Disconnect() override;
-    const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        TCFS();
+        virtual ~TCFS() = default;
 
-  protected:
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual void TimerHit() override;
-    void GetFocusParams();
-    bool SetManualMode();
+        // Standard INDI interface fucntions
+        virtual bool Handshake() override;
+        virtual bool Disconnect() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-  private:
-    bool read_tcfs(char *response, bool silent = false);
-    bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=MANUAL);
+    protected:
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual void TimerHit() override;
+        void GetFocusParams();
+        bool SetManualMode();
 
-    INumber FocusModeAN[3];
-    INumberVectorProperty FocusModeANP;
-    INumber FocusModeBN[3];
-    INumberVectorProperty FocusModeBNP;
-    ISwitch FocusTelemetryS[2];
-    ISwitchVectorProperty FocusTelemetrySP;
-    ISwitch FocusModeS[3];
-    ISwitchVectorProperty FocusModeSP;
-    ISwitch FocusPowerS[2];
-    ISwitchVectorProperty FocusPowerSP;
-    ISwitch FocusGotoS[4];
-    ISwitchVectorProperty FocusGotoSP;
-    INumber FocusTemperatureN[1];
-    INumberVectorProperty FocusTemperatureNP;
-    ISwitch FocusStartModeS[3];
-    ISwitchVectorProperty FocusStartModeSP;
+    private:
+        bool read_tcfs(char *response, bool silent = false);
+        bool dispatch_command(TCFSCommand command_type, int val = 0, TCFSMode m = MANUAL);
 
-    unsigned int simulated_position { 3000 };
-    float simulated_temperature { 25.4 };
-    TCFSMode currentMode;
+        INumber FocusModeAN[3];
+        INumberVectorProperty FocusModeANP;
+        INumber FocusModeBN[3];
+        INumberVectorProperty FocusModeBNP;
+        ISwitch FocusTelemetryS[2];
+        ISwitchVectorProperty FocusTelemetrySP;
+        ISwitch FocusModeS[3];
+        ISwitchVectorProperty FocusModeSP;
+        ISwitch FocusPowerS[2];
+        ISwitchVectorProperty FocusPowerSP;
+        ISwitch FocusGotoS[4];
+        ISwitchVectorProperty FocusGotoSP;
+        INumber FocusTemperatureN[1];
+        INumberVectorProperty FocusTemperatureNP;
+        ISwitch FocusStartModeS[3];
+        ISwitchVectorProperty FocusStartModeSP;
 
-    unsigned int targetTicks { 0 };
-    unsigned int targetPosition { 0 };
-    bool isTCFS3 { false };
+        unsigned int simulated_position { 3000 };
+        float simulated_temperature { 25.4 };
+        TCFSMode currentMode;
+
+        unsigned int targetTicks { 0 };
+        unsigned int targetPosition { 0 };
+        bool isTCFS3 { false };
 };

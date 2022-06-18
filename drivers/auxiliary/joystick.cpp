@@ -105,7 +105,8 @@ void JoyStick::setupParams()
 
     IUFillNumberVector(&AxisNP, AxisN, nAxis, getDeviceName(), "JOYSTICK_AXES", "Axes", "Monitor", IP_RO, 0, IPS_IDLE);
 
-    IUFillNumberVector(&DeadZoneNP, DeadZoneN, nAxis, getDeviceName(), "JOYSTICK_DEAD_ZONE", "Axes", "Dead Zones", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&DeadZoneNP, DeadZoneN, nAxis, getDeviceName(), "JOYSTICK_DEAD_ZONE", "Axes", "Dead Zones", IP_RW, 0,
+                       IPS_IDLE);
 
     for (int i = 0; i < nButtons; i++)
     {

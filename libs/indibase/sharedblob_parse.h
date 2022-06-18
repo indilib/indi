@@ -28,9 +28,9 @@ namespace INDI
 std::string allocateBlobUid(int fd);
 
 // Release the blob for which uid has not been attached
-void releaseBlobUids(const std::vector<std::string> & uids);
+void releaseBlobUids(const std::vector<std::string> &uids);
 
 // Attach the given blob buffer and release it's uid
-void * attachBlobByUid(const std::string & uid, size_t size);
+void * attachBlobByUid(const std::string &uid, size_t size);
 
 }

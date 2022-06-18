@@ -26,11 +26,11 @@ namespace INDI
 
 class PropertyBlobPrivate: public PropertyBasicPrivateTemplate<IBLOB>
 {
-public:
-    PropertyBlobPrivate(size_t count);
-    virtual ~PropertyBlobPrivate();
+    public:
+        PropertyBlobPrivate(size_t count);
+        virtual ~PropertyBlobPrivate();
 
-public:
+    public:
 
 };
 

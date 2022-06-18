@@ -58,7 +58,7 @@ class nFrameRotator : public INDI::Rotator
 
         virtual void TimerHit() override;
 
-// GeneN hack
+        // GeneN hack
         // Rotator Speed (if variable speeds are supported)
         INumberVectorProperty RotatorSpeedNP;
         INumber RotatorSpeedN[1];
@@ -159,16 +159,16 @@ class nFrameRotator : public INDI::Rotator
         bool setCoilStatus(uint8_t status);
         bool setMaxSpeed(uint8_t maxSpeed);
 
-       bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         bool getStartupValues();
         bool isMoving();
 
         int32_t m_TargetDiff { 0 };
-	double requestedAngle = -1.0;
-	bool wantAbort = false;
+        double requestedAngle = -1.0;
+        bool wantAbort = false;
 
 
-       static constexpr const char * STEPPING_TAB = "Stepping";
+        static constexpr const char * STEPPING_TAB = "Stepping";
         // '#' is the stop char
         static const char NFRAME_STOP_CHAR { 0x23 };
         // Wait up to a maximum of 3 seconds for serial input

@@ -38,24 +38,24 @@
 
 class QFW : public INDI::FilterWheel
 {
-  public:
-    QFW();
-    virtual ~QFW() = default;
+    public:
+        QFW();
+        virtual ~QFW() = default;
 
-    void debugTriggered(bool enable);
-    void simulationTriggered(bool enable);
+        void debugTriggered(bool enable);
+        void simulationTriggered(bool enable);
 
-    bool Handshake();
-    const char *getDefaultName();
+        bool Handshake();
+        const char *getDefaultName();
 
-    bool initProperties();
-//    virtual bool updateProperties() override;
+        bool initProperties();
+        //    virtual bool updateProperties() override;
 
-    void ISGetProperties(const char *dev);
+        void ISGetProperties(const char *dev);
 
-    int QueryFilter();
-    bool SelectFilter(int);
-private:
-    void dump(char *buf, const char *data);
-    int send_command(int fd, const char *cmd, char *resp);
+        int QueryFilter();
+        bool SelectFilter(int);
+    private:
+        void dump(char *buf, const char *data);
+        int send_command(int fd, const char *cmd, char *resp);
 };

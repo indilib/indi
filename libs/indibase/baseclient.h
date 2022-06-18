@@ -50,7 +50,7 @@
 
 namespace INDI
 {
-    class BaseClientPrivate;
+class BaseClientPrivate;
 }
 class INDI::BaseClient : public INDI::BaseMediator
 {

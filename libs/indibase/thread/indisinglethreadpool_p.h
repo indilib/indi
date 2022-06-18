@@ -28,19 +28,19 @@ namespace INDI
 
 class SingleThreadPoolPrivate
 {
-public:
-    SingleThreadPoolPrivate();
-    virtual ~SingleThreadPoolPrivate();
+    public:
+        SingleThreadPoolPrivate();
+        virtual ~SingleThreadPoolPrivate();
 
-    std::function<void(const std::atomic_bool &isAboutToClose)> pendingFunction;
-    std::function<void(const std::atomic_bool &isAboutToClose)> runningFunction;
-    std::atomic_bool isThreadAboutToQuit {false};
-    std::atomic_bool isFunctionAboutToQuit {true};
+        std::function<void(const std::atomic_bool &isAboutToClose)> pendingFunction;
+        std::function<void(const std::atomic_bool &isAboutToClose)> runningFunction;
+        std::atomic_bool isThreadAboutToQuit {false};
+        std::atomic_bool isFunctionAboutToQuit {true};
 
-    std::condition_variable_any acquire;
-    std::condition_variable_any relased;
-    std::mutex runLock;
-    std::thread thread;
+        std::condition_variable_any acquire;
+        std::condition_variable_any relased;
+        std::mutex runLock;
+        std::thread thread;
 };
 
 }

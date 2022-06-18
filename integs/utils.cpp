@@ -34,11 +34,12 @@
 
 #include "utils.h"
 
-void setupSigPipe() {
+void setupSigPipe()
+{
     signal(SIGPIPE, SIG_IGN);
 }
 
-static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
+static void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
 {
     memset(&serv_addr_un, 0, sizeof(serv_addr_un));
     serv_addr_un.sun_family = AF_UNIX;
@@ -58,7 +59,8 @@ static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un 
 
     int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
 
-    if (bind) {
+    if (bind)
+    {
         unlink(unixAddr.c_str());
     }
 #endif
@@ -66,7 +68,8 @@ static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un 
 }
 
 
-int unixSocketListen(const std::string & unixAddr) {
+int unixSocketListen(const std::string &unixAddr)
+{
     struct sockaddr_un serv_addr_un;
     socklen_t addrlen;
 
@@ -98,7 +101,8 @@ int unixSocketListen(const std::string & unixAddr) {
     return sockfd;
 }
 
-int tcpSocketListen(int port) {
+int tcpSocketListen(int port)
+{
     struct sockaddr_in serv_socket;
     int sockfd;
     int reuse = 1;
@@ -133,7 +137,8 @@ int tcpSocketListen(int port) {
 }
 
 
-int socketAccept(int fd) {
+int socketAccept(int fd)
+{
     /* get a private connection to new client */
     int cli_fd  = ::accept(fd, 0, 0);
     if (cli_fd < 0)
@@ -143,7 +148,8 @@ int socketAccept(int fd) {
     return cli_fd;
 }
 
-int unixSocketConnect(const std::string & unixAddr, bool failAllowed) {
+int unixSocketConnect(const std::string &unixAddr, bool failAllowed)
+{
     struct sockaddr_un serv_addr_un;
     socklen_t addrlen;
 
@@ -156,19 +162,22 @@ int unixSocketConnect(const std::string & unixAddr, bool failAllowed) {
     initUnixSocketAddr(unixAddr, serv_addr_un, addrlen, false);
 
     int ret = ::connect(sockfd, (struct sockaddr *)&serv_addr_un, addrlen);
-    if (ret != -1) {
+    if (ret != -1)
+    {
         return sockfd;
     }
 
     int e = errno;
     close(sockfd);
-    if (!failAllowed) {
+    if (!failAllowed)
+    {
         throw std::system_error(e, std::generic_category(), "Connect to " + unixAddr);
     }
     return -1;
 }
 
-void unixSocketSendFds(int fd, int count, int * fds) {
+void unixSocketSendFds(int fd, int count, int * fds)
+{
     struct msghdr msgh;
     struct iovec iov[1];
     char buff[1] = {0};
@@ -186,7 +195,8 @@ void unixSocketSendFds(int fd, int count, int * fds) {
     cmsgh->cmsg_type = SCM_RIGHTS;
     msgh.msg_control = cmsgh;
     msgh.msg_controllen = cmsghdrlength;
-    for(int i = 0; i < count; ++i) {
+    for(int i = 0; i < count; ++i)
+    {
         ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fds[i];
     }
 
@@ -201,26 +211,31 @@ void unixSocketSendFds(int fd, int count, int * fds) {
 
     int ret = sendmsg(fd, &msgh,  MSG_NOSIGNAL);
 
-    if (ret == -1) {
+    if (ret == -1)
+    {
         throw std::system_error(errno, std::generic_category(), "Failed to send fds");
     }
-    if (ret == 0) {
+    if (ret == 0)
+    {
         throw std::runtime_error("Channel closed when sending fds");
     }
 }
 
-void unixSocketRecvFds(int fd, int count, int * fdsDest) {
+void unixSocketRecvFds(int fd, int count, int * fdsDest)
+{
     char buf[1];
     struct msghdr msgh;
     struct iovec iov;
 
-    union {
+    union
+    {
         struct cmsghdr cmsgh;
         /* Space large enough to hold an 'int' */
         char control[CMSG_SPACE(16 * sizeof(int))];
     } control_un;
 
-    if (count > 16) {
+    if (count > 16)
+    {
         throw std::runtime_error("Cannot pass that amount of fds");
     }
 
@@ -245,25 +260,31 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
 #endif
 
     int size = recvmsg(fd, &msgh, recvflag);
-    if (size == -1) {
+    if (size == -1)
+    {
         throw std::system_error(errno, std::generic_category(), "Could not receive fds");
     }
 
-    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
-        if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+    {
+        if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+        {
             int fdCount = 0;
-            while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+            while(cmsg->cmsg_len >= CMSG_LEN((fdCount + 1) * sizeof(int)))
+            {
                 fdCount++;
             }
             fprintf(stderr, "Received fd : %d\n", fdCount);
-            if (fdCount != count) {
+            if (fdCount != count)
+            {
                 throw std::runtime_error("Wrong number of fds received");
             }
             int * fds = (int*)CMSG_DATA(cmsg);
-            for(int i = 0; i < fdCount; ++i) {
-                #ifndef __linux__
-                    fcntl(fds[i], F_SETFD, FD_CLOEXEC);
-                #endif
+            for(int i = 0; i < fdCount; ++i)
+            {
+#ifndef __linux__
+                fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+#endif
                 fdsDest[i] = fds[i];
             }
 
@@ -273,7 +294,8 @@ void unixSocketRecvFds(int fd, int count, int * fdsDest) {
     throw std::runtime_error("Did not receive fds");
 }
 
-int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
+int tcpSocketConnect(const std::string &host, int port, bool failAllowed)
+{
     struct sockaddr_in serv_addr;
     int sockfd;
 
@@ -297,7 +319,8 @@ int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
     /* connect */
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        if (!failAllowed) {
+        if (!failAllowed)
+        {
             throw std::system_error(errno, std::generic_category(), "Connect to " + host);
         }
         auto e = errno;
@@ -310,26 +333,32 @@ int tcpSocketConnect(const std::string & host, int port, bool failAllowed) {
 }
 
 
-std::string getTestExePath(const std::string & str) {
+std::string getTestExePath(const std::string &str)
+{
     size_t size = 256;
     char * buffer;
 
     buffer = (char*)malloc(size);
 
-    while(true) {
-        if (getcwd(buffer, size) != nullptr) {
+    while(true)
+    {
+        if (getcwd(buffer, size) != nullptr)
+        {
             break;
         }
-        if ((errno == ERANGE) && (size < 0x100000)) {
+        if ((errno == ERANGE) && (size < 0x100000))
+        {
             size *= 2;
             buffer = (char*)realloc(buffer, size);
-        } else {
+        }
+        else
+        {
             perror("getcwd");
             exit(255);
         }
     }
     std::string ret = std::string(buffer) + "/" + str;
-    fprintf(stderr, "starting : %s\n" , ret.c_str());
+    fprintf(stderr, "starting : %s\n", ret.c_str());
     free(buffer);
     return ret;
 }

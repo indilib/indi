@@ -64,98 +64,98 @@ namespace INDI
  */
 class Controller
 {
-  public:
-    typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
+    public:
+        typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
 
-    /**
-         * @brief joystickFunc Joystick callback function signature.
-         */
-    typedef std::function<void(const char *joystick_n, double mag, double angle, void *context)> joystickFunc;
+        /**
+             * @brief joystickFunc Joystick callback function signature.
+             */
+        typedef std::function<void(const char *joystick_n, double mag, double angle, void *context)> joystickFunc;
 
-    /**
-         * @brief axisFunc Axis callback function signature.
-         */
-    typedef std::function<void(const char *axis_n, double value, void *context)> axisFunc;
+        /**
+             * @brief axisFunc Axis callback function signature.
+             */
+        typedef std::function<void(const char *axis_n, double value, void *context)> axisFunc;
 
-    /**
-         * @brief buttonFunc Button callback function signature.
-         */
-    typedef std::function<void(const char *button_n, ISState state, void *context)> buttonFunc;
+        /**
+             * @brief buttonFunc Button callback function signature.
+             */
+        typedef std::function<void(const char *button_n, ISState state, void *context)> buttonFunc;
 
-    /**
-         * @brief Controller Default ctor
-         * @param cdevice INDI::DefaultDevice device
-         */
-    Controller(INDI::DefaultDevice *cdevice);
-    virtual ~Controller();
+        /**
+             * @brief Controller Default ctor
+             * @param cdevice INDI::DefaultDevice device
+             */
+        Controller(INDI::DefaultDevice *cdevice);
+        virtual ~Controller();
 
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISSnoopDevice(XMLEle *root);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool saveConfigItems(FILE *fp);
+        virtual void ISGetProperties(const char *dev);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool saveConfigItems(FILE *fp);
 
-    /**
-         * @brief mapController adds a new property to the joystick's settings.
-         * @param propertyName Name
-         * @param propertyLabel Label
-         * @param type The input type of the property. This value cannot be updated.
-         * @param initialValue Initial value for the property.
-         */
-    void mapController(const char *propertyName, const char *propertyLabel, ControllerType type,
-                       const char *initialValue);
+        /**
+             * @brief mapController adds a new property to the joystick's settings.
+             * @param propertyName Name
+             * @param propertyLabel Label
+             * @param type The input type of the property. This value cannot be updated.
+             * @param initialValue Initial value for the property.
+             */
+        void mapController(const char *propertyName, const char *propertyLabel, ControllerType type,
+                           const char *initialValue);
 
-    /**
-         * @brief clearMap clears all properties added previously by mapController()
-         */
-    void clearMap();
+        /**
+             * @brief clearMap clears all properties added previously by mapController()
+             */
+        void clearMap();
 
-    /**
-         * @brief setJoystickCallback Sets the callback function when a new joystick input is detected.
-         * @param joystickCallback the callback function.
-         */
-    void setJoystickCallback(joystickFunc joystickCallback);
+        /**
+             * @brief setJoystickCallback Sets the callback function when a new joystick input is detected.
+             * @param joystickCallback the callback function.
+             */
+        void setJoystickCallback(joystickFunc joystickCallback);
 
-    /**
-         * @brief setAxisCallback Sets the callback function when a new axis input is detected.
-         * @param axisCallback the callback function.
-         */
-    void setAxisCallback(axisFunc axisCallback);
+        /**
+             * @brief setAxisCallback Sets the callback function when a new axis input is detected.
+             * @param axisCallback the callback function.
+             */
+        void setAxisCallback(axisFunc axisCallback);
 
-    /**
-         * @brief setButtonCallback Sets the callback function when a new button input is detected.
-         * @param buttonCallback the callback function.
-         */
-    void setButtonCallback(buttonFunc buttonCallback);
+        /**
+             * @brief setButtonCallback Sets the callback function when a new button input is detected.
+             * @param buttonCallback the callback function.
+             */
+        void setButtonCallback(buttonFunc buttonCallback);
 
-    ControllerType getControllerType(const char *name);
-    const char *getControllerSetting(const char *name);
+        ControllerType getControllerType(const char *name);
+        const char *getControllerSetting(const char *name);
 
-  protected:
-    static void joystickEvent(const char *joystick_n, double mag, double angle, void *context);
-    static void axisEvent(const char *axis_n, int value, void *context);
-    static void buttonEvent(const char *button_n, int value, void *context);
+    protected:
+        static void joystickEvent(const char *joystick_n, double mag, double angle, void *context);
+        static void axisEvent(const char *axis_n, int value, void *context);
+        static void buttonEvent(const char *button_n, int value, void *context);
 
-    void enableJoystick();
-    void disableJoystick();
+        void enableJoystick();
+        void disableJoystick();
 
-    joystickFunc joystickCallbackFunc;
-    buttonFunc buttonCallbackFunc;
-    axisFunc axisCallbackFunc;
+        joystickFunc joystickCallbackFunc;
+        buttonFunc buttonCallbackFunc;
+        axisFunc axisCallbackFunc;
 
-    INDI::DefaultDevice *device;
+        INDI::DefaultDevice *device;
 
-  private:
-    /* Joystick Support */
-    ISwitchVectorProperty UseJoystickSP;
-    ISwitch UseJoystickS[2];
+    private:
+        /* Joystick Support */
+        ISwitchVectorProperty UseJoystickSP;
+        ISwitch UseJoystickS[2];
 
-    ITextVectorProperty JoystickDeviceTP;
-    IText JoystickDeviceT[1] {};
+        ITextVectorProperty JoystickDeviceTP;
+        IText JoystickDeviceT[1] {};
 
-    ITextVectorProperty JoystickSettingTP;
-    IText *JoystickSettingT = nullptr;
+        ITextVectorProperty JoystickSettingTP;
+        IText *JoystickSettingT = nullptr;
 };
 }

@@ -539,7 +539,8 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
     BufferSize = nbuf;
 
     // Reset size
-    if(HasStreaming()) {
+    if(HasStreaming())
+    {
         Streamer->setPixelFormat(INDI_MONO, getBPS());
         Streamer->setSize(getBufferSize() * 8 / abs(getBPS()), 1);
     }

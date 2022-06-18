@@ -61,16 +61,16 @@ class CommandSet
         bool setMotorCurrents(struct MotorCurrents &mc);
         bool setMotorHold(bool hold);
         bool getARCO(char *res);
-	//bool getArcoAbsPos(char *res);
+        //bool getArcoAbsPos(char *res);
         double getArcoAbsPos();
-	double getArcoPosition();
-	bool setArcoAbsPos(double angle, char *res);
-	bool isArcoBusy();
+        double getArcoPosition();
+        bool setArcoAbsPos(double angle, char *res);
+        bool isArcoBusy();
         bool stopArco();
-	bool syncArco(double angle);
-	bool calArco();
-	bool isArcoCalibrating();
-        
+        bool syncArco(double angle);
+        bool calArco();
+        bool isArcoCalibrating();
+
 
 
         std::string deviceName;
@@ -100,7 +100,7 @@ class CommandSet
 
 };
 
-class SestoSenso2 : public INDI::Focuser , public INDI::RotatorInterface
+class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
 {
     public:
         SestoSenso2();
@@ -158,7 +158,7 @@ class SestoSenso2 : public INDI::Focuser , public INDI::RotatorInterface
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
-        
+
 
         FocusDirection backlashDirection { FOCUS_INWARD };
         FocusDirection oldbacklashDirection { FOCUS_INWARD };
@@ -201,7 +201,7 @@ class SestoSenso2 : public INDI::Focuser , public INDI::RotatorInterface
             CALIBRATION_NEXT
         };
 
-        
+
         ISwitch FastMoveS[3];
         ISwitchVectorProperty FastMoveSP;
         enum
@@ -292,18 +292,18 @@ class SestoSenso2 : public INDI::Focuser , public INDI::RotatorInterface
         typedef enum { BacklashIdle, BacklashMinimum, BacklashMaximum, BacklashComplete } BacklashStage;
         BacklashStage bStage { BacklashIdle };
 
-         //Rotator
-         INumber RotatorAbsPosN[1];
-         INumberVectorProperty RotatorAbsPosNP;
-         enum
-         {
-          ROTATOR_ABSOLUTE_POSITION
-         };
+        //Rotator
+        INumber RotatorAbsPosN[1];
+        INumberVectorProperty RotatorAbsPosNP;
+        enum
+        {
+            ROTATOR_ABSOLUTE_POSITION
+        };
 
-  	double lastRotatorPosition { 0 };       
+        double lastRotatorPosition { 0 };
 
-//ROTATOR CALIBRATION	
-	IText RotCalibrationMessageT[1] {};
+        //ROTATOR CALIBRATION
+        IText RotCalibrationMessageT[1] {};
         ITextVectorProperty RotCalibrationMessageTP;
 
         typedef enum { RotCalIdle, RotCalComplete } RotCalibrationStage;
@@ -341,6 +341,6 @@ class SestoSenso2 : public INDI::Focuser , public INDI::RotatorInterface
         static constexpr const uint8_t SESTO_TIMEOUT {5};
         // Maximum buffer for sending/receving.
         static constexpr const int SESTO_LEN {1024};
-      
+
 
 };

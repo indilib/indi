@@ -37,7 +37,7 @@ std::unique_ptr<OnFocus> onFocus(new OnFocus());
 
 OnFocus::OnFocus()
 {
-FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     lastPos = 0;
 }
 
@@ -50,7 +50,8 @@ bool OnFocus::initProperties()
     INDI::Focuser::initProperties();
     // SetZero
     IUFillSwitch(&SetZeroS[0], "SETZERO", "Set Current Position to 0", ISS_OFF);
-    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
     // Maximum Travel
     IUFillNumber(&MaxPosN[0], "MAXPOS", "Maximum Out Position", "%8.0f", 1., 10000000., 0, 0);
     IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
@@ -112,7 +113,7 @@ const char * OnFocus::getDefaultName()
 
 bool OnFocus::Ack()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[16];
     sleep(2);
@@ -131,9 +132,9 @@ bool OnFocus::Ack()
         return false;
     }
     tcflush(PortFD, TCIOFLUSH);
-    resp[nbytes_read]='\0';
+    resp[nbytes_read] = '\0';
     if (!strcmp(resp, "On-Focus#"))
-    { 
+    {
         return true;
     }
     else
@@ -146,10 +147,10 @@ bool OnFocus::Ack()
 
 bool OnFocus::updatePosition()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[16];
-    int pos=-1;
+    int pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -169,7 +170,7 @@ bool OnFocus::updatePosition()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[nbytes_read]='\0';
+    resp[nbytes_read] = '\0';
 
     rc = sscanf(resp, "%d#", &pos);
 
@@ -185,12 +186,12 @@ bool OnFocus::updatePosition()
         return false;
     }
 
-  return true;
+    return true;
 }
 
 bool OnFocus::updateMaxPos()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[16];
     long maxposition;
@@ -212,7 +213,7 @@ bool OnFocus::updateMaxPos()
     }
 
     tcflush(PortFD, TCIOFLUSH);
-    resp[nbytes_read]='\0';
+    resp[nbytes_read] = '\0';
 
     rc = sscanf(resp, "%ld#", &maxposition);
 
@@ -232,7 +233,7 @@ bool OnFocus::updateMaxPos()
 
 bool OnFocus::isMoving()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[16];
 
@@ -254,7 +255,7 @@ bool OnFocus::isMoving()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[nbytes_read]='\0';
+    resp[nbytes_read] = '\0';
     if (!strcmp(resp, "M#"))
         return true;
     else if (!strcmp(resp, "S#"))
@@ -269,12 +270,12 @@ bool OnFocus::isMoving()
 
 bool OnFocus::MoveMyFocuser(uint32_t position)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[24];
 
     snprintf(cmd, 24, ":MA%d#", position);
-  
+
     // Set Position
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -287,10 +288,10 @@ bool OnFocus::MoveMyFocuser(uint32_t position)
 
 void OnFocus::setZero()
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     // Set Zero
-    if ( (rc = tty_write(PortFD, ":SZ#" , 4, &nbytes_written)) != TTY_OK)
+    if ( (rc = tty_write(PortFD, ":SZ#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "set Zero error: %s.", errstr);
@@ -303,12 +304,12 @@ void OnFocus::setZero()
 
 bool OnFocus::setMaxPos(uint32_t maxPos)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[24];
 
     snprintf(cmd, 24, ":SM%d#", maxPos);
-  
+
     // Set Max Out
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -322,34 +323,35 @@ bool OnFocus::setMaxPos(uint32_t maxPos)
 
 bool OnFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-    if (!strcmp(SetZeroSP.name, name))
+        if (!strcmp(SetZeroSP.name, name))
         {
-        setZero();
-        IUResetSwitch(&SetZeroSP);
-        SetZeroSP.s = IPS_OK;
-        IDSetSwitch(&SetZeroSP, NULL);
-        return true;
-    }
-        
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+            setZero();
+            IUResetSwitch(&SetZeroSP);
+            SetZeroSP.s = IPS_OK;
+            IDSetSwitch(&SetZeroSP, NULL);
+            return true;
+        }
+
+        return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
     }
     return false;
 }
 
 bool OnFocus::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp (name, MaxPosNP.name))
         {
             if (values[0] < FocusAbsPosN[0].value)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosN[0].value);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )",
+                       FocusAbsPosN[0].value);
                 return false;
             }
-            IUUpdateNumber(&MaxPosNP, values, names, n);               
+            IUUpdateNumber(&MaxPosNP, values, names, n);
             FocusAbsPosN[0].max = MaxPosN[0].value;
             setMaxPos(MaxPosN[0].value);
             MaxPosNP.s = IPS_OK;
@@ -386,8 +388,8 @@ IPState OnFocus::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState OnFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t newPosition=0;
-    bool rc=false;
+    uint32_t newPosition = 0;
+    bool rc = false;
 
     if (dir == FOCUS_INWARD)
         newPosition = uint32_t(FocusAbsPosN[0].value) - ticks;

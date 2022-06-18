@@ -85,7 +85,8 @@ Interface::~Interface()
 {
     if(buffer != nullptr)
         free(buffer);
-    if(stream != nullptr) {
+    if(stream != nullptr)
+    {
         dsp_stream_free_buffer(stream);
         dsp_stream_free(stream);
     }
@@ -353,9 +354,11 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
         close(fd);
         int channels = 0;
         dsp_stream_p *stream_arr = dsp_file_read_fits(filename, &channels, false);
-        if (channels > 0) {
+        if (channels > 0)
+        {
             loaded_stream = stream_arr[channels];
-            for (int c = 0; c < channels; c++) {
+            for (int c = 0; c < channels; c++)
+            {
                 dsp_stream_free_buffer(stream_arr[c]);
                 dsp_stream_free(stream_arr[c]);
             }
@@ -654,7 +657,7 @@ bool Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sam
         default:
             dsp_stream_free_buffer(stream);
             dsp_stream_free(stream);
-        return false;
+            return false;
     }
     return true;
 }
@@ -692,7 +695,7 @@ bool Interface::setMagnitude(void *buf, uint32_t dims, int *sizes, int bits_per_
         default:
             dsp_stream_free_buffer(stream->magnitude);
             dsp_stream_free(stream->magnitude);
-        return false;
+            return false;
     }
     return true;
 }
@@ -730,7 +733,7 @@ bool Interface::setPhase(void *buf, uint32_t dims, int *sizes, int bits_per_samp
         default:
             dsp_stream_free_buffer(stream->magnitude);
             dsp_stream_free(stream->magnitude);
-        return false;
+            return false;
     }
     return true;
 }
@@ -766,7 +769,7 @@ bool Interface::setReal(void *buf, uint32_t dims, int *sizes, int bits_per_sampl
             dsp_buffer_copy_stepping((static_cast<double *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
             break;
         default:
-        return false;
+            return false;
     }
     return true;
 }
@@ -787,13 +790,16 @@ bool Interface::setImaginary(void *buf, uint32_t dims, int *sizes, int bits_per_
             dsp_buffer_copy_stepping((static_cast<uint8_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
             break;
         case 16:
-            dsp_buffer_copy_stepping((static_cast<uint16_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            dsp_buffer_copy_stepping((static_cast<uint16_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1,
+                                     2);
             break;
         case 32:
-            dsp_buffer_copy_stepping((static_cast<uint32_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            dsp_buffer_copy_stepping((static_cast<uint32_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1,
+                                     2);
             break;
         case 64:
-            dsp_buffer_copy_stepping((static_cast<unsigned long *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            dsp_buffer_copy_stepping((static_cast<unsigned long *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2,
+                                     1, 2);
             break;
         case -32:
             dsp_buffer_copy_stepping((static_cast<float *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
@@ -802,7 +808,7 @@ bool Interface::setImaginary(void *buf, uint32_t dims, int *sizes, int bits_per_
             dsp_buffer_copy_stepping((static_cast<double *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
             break;
         default:
-        return false;
+            return false;
     }
     return true;
 }

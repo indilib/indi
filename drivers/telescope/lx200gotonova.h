@@ -24,81 +24,81 @@
 
 class LX200GotoNova : public LX200Generic
 {
-  public:
-    LX200GotoNova();
-    ~LX200GotoNova() {}
+    public:
+        LX200GotoNova();
+        ~LX200GotoNova() {}
 
-    virtual bool updateProperties() override;
-    virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool initProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
+    protected:
+        virtual const char *getDefaultName() override;
 
-    virtual void getBasicData() override;
-    virtual bool checkConnection() override;
-    virtual bool isSlewComplete() override;
+        virtual void getBasicData() override;
+        virtual bool checkConnection() override;
+        virtual bool isSlewComplete() override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool SetSlewRate(int index) override;
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool SetSlewRate(int index) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-  private:
-    int setGotoNovaStandardProcedure(int fd, const char *data);
-    void setGuidingEnabled(bool enable);
-    int GotonovaSyncCMR(char *matchedObject);
+    private:
+        int setGotoNovaStandardProcedure(int fd, const char *data);
+        void setGuidingEnabled(bool enable);
+        int GotonovaSyncCMR(char *matchedObject);
 
-    // Settings
-    int setGotoNovaLatitude(double Lat);
-    int setGotoNovaLongitude(double Long);
-    int setGotoNovaUTCOffset(double hours);
-    int setCalenderDate(int fd, int dd, int mm, int yy);
+        // Settings
+        int setGotoNovaLatitude(double Lat);
+        int setGotoNovaLongitude(double Long);
+        int setGotoNovaUTCOffset(double hours);
+        int setCalenderDate(int fd, int dd, int mm, int yy);
 
-    // Motion
-    int slewGotoNova();    
+        // Motion
+        int slewGotoNova();
 
-    // Park
-    int setGotoNovaParkPosition(int position);
+        // Park
+        int setGotoNovaParkPosition(int position);
 
-    // Track Mode
-    int setGotoNovaTrackMode(int mode);
-    int getGotoNovaTrackMode(int *mode);
+        // Track Mode
+        int setGotoNovaTrackMode(int mode);
+        int getGotoNovaTrackMode(int *mode);
 
-    // Guide Rate
-    int setGotoNovaGuideRate(int rate);
-    int getGotoNovaGuideRate(int *rate);
+        // Guide Rate
+        int setGotoNovaGuideRate(int rate);
+        int getGotoNovaGuideRate(int *rate);
 
-    // Pier Side
-    void syncSideOfPier();
+        // Pier Side
+        void syncSideOfPier();
 
-    // Simulation
-    void mountSim();
+        // Simulation
+        void mountSim();
 
-    // Custom Parking Position
-    ISwitch ParkPositionS[5];
-    ISwitchVectorProperty ParkPositionSP;
-    enum { PS_NORTH_POLE, PS_LEFT_VERTICAL, PS_LEFT_HORIZON, PS_RIGHT_VERTICAL, PS_RIGHT_HORIZON };
+        // Custom Parking Position
+        ISwitch ParkPositionS[5];
+        ISwitchVectorProperty ParkPositionSP;
+        enum { PS_NORTH_POLE, PS_LEFT_VERTICAL, PS_LEFT_HORIZON, PS_RIGHT_VERTICAL, PS_RIGHT_HORIZON };
 
-    // Sync type
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
-    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
+        // Sync type
+        ISwitch SyncCMRS[2];
+        ISwitchVectorProperty SyncCMRSP;
+        enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
 
-    /* Guide Rate */
-    ISwitch GuideRateS[4];
-    ISwitchVectorProperty GuideRateSP;
+        /* Guide Rate */
+        ISwitch GuideRateS[4];
+        ISwitchVectorProperty GuideRateSP;
 
-    bool isGuiding=false;
+        bool isGuiding = false;
 };

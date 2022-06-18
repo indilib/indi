@@ -117,117 +117,140 @@
 static ev::default_loop loop;
 
 template<class M>
-class ConcurrentSet {
-    unsigned long identifier = 1;
-    std::map<unsigned long, M*> items;
+class ConcurrentSet
+{
+        unsigned long identifier = 1;
+        std::map<unsigned long, M*> items;
 
-public:
-    void insert(M* item) {
-        item->id = identifier++;
-        items[item->id] = item;
-        item->current = (ConcurrentSet<void>*)this;
-    }
-
-    void erase(M* item) {
-        items.erase(item->id);
-        item->id = 0;
-        item->current = nullptr;
-    }
-
-    std::vector<unsigned long> ids() const {
-        std::vector<unsigned long> result;
-        for(auto item : items) {
-            result.push_back(item.first);
-        }
-        return result;
-    }
-
-    M* operator[](unsigned long id) const {
-        auto e = items.find(id);
-        if (e == items.end()) {
-            return nullptr;
-        }
-        return e->second;
-    }
-
-    class iterator {
-        friend class ConcurrentSet<M>;
-        const ConcurrentSet<M> * parent;
-        std::vector<unsigned long> ids;
-        // Will be -1 when done
-        long int pos = 0;
-
-        void skip() {
-            if (pos == -1) return;
-            while(pos < (long int)ids.size() && !(*parent)[ids[pos]]) {
-                pos++;
-            }
-            if (pos == (long int)ids.size()) {
-                pos = -1;
-            }
-        }
     public:
-        iterator(const ConcurrentSet<M> * parent) : parent(parent) {}
-        
-        bool operator!=(const iterator & o) { return pos != o.pos; }
-        
-        iterator & operator++() {
-            if (pos != -1)
+        void insert(M* item)
+        {
+            item->id = identifier++;
+            items[item->id] = item;
+            item->current = (ConcurrentSet<void>*)this;
+        }
+
+        void erase(M* item)
+        {
+            items.erase(item->id);
+            item->id = 0;
+            item->current = nullptr;
+        }
+
+        std::vector<unsigned long> ids() const
+        {
+            std::vector<unsigned long> result;
+            for(auto item : items)
             {
-                pos++;
-                skip();
+                result.push_back(item.first);
             }
-            return *this;
+            return result;
         }
 
-        M * operator*() const {
-            return (*parent)[ids[pos]];
+        M* operator[](unsigned long id) const
+        {
+            auto e = items.find(id);
+            if (e == items.end())
+            {
+                return nullptr;
+            }
+            return e->second;
         }
-    };
 
-    iterator begin() const {
-        iterator result(this);
-        for(auto item : items) {
-            result.ids.push_back(item.first);
+        class iterator
+        {
+                friend class ConcurrentSet<M>;
+                const ConcurrentSet<M> * parent;
+                std::vector<unsigned long> ids;
+                // Will be -1 when done
+                long int pos = 0;
+
+                void skip()
+                {
+                    if (pos == -1) return;
+                    while(pos < (long int)ids.size() && !(*parent)[ids[pos]])
+                    {
+                        pos++;
+                    }
+                    if (pos == (long int)ids.size())
+                    {
+                        pos = -1;
+                    }
+                }
+            public:
+                iterator(const ConcurrentSet<M> * parent) : parent(parent) {}
+
+                bool operator!=(const iterator &o)
+                {
+                    return pos != o.pos;
+                }
+
+                iterator &operator++()
+                {
+                    if (pos != -1)
+                    {
+                        pos++;
+                        skip();
+                    }
+                    return *this;
+                }
+
+                M * operator*() const
+                {
+                    return (*parent)[ids[pos]];
+                }
+        };
+
+        iterator begin() const
+        {
+            iterator result(this);
+            for(auto item : items)
+            {
+                result.ids.push_back(item.first);
+            }
+            result.skip();
+            return result;
         }
-        result.skip();
-        return result;
-    }
 
-    iterator end() const {
-        iterator result(nullptr);
-        result.pos = -1;
-        return result;
-    }
+        iterator end() const
+        {
+            iterator result(nullptr);
+            result.pos = -1;
+            return result;
+        }
 };
 
-/* An object that can be put in a ConcurrentSet, and provide a heartbeat 
+/* An object that can be put in a ConcurrentSet, and provide a heartbeat
  * to detect removal from ConcurrentSet
  */
-class Collectable {
-    template<class P> friend class ConcurrentSet;
-    unsigned long id = 0;
-    const ConcurrentSet<void> * current;
-
-    /* Keep the id */
-    class HeartBeat {
-        friend class Collectable;
-        unsigned long id;
+class Collectable
+{
+        template<class P> friend class ConcurrentSet;
+        unsigned long id = 0;
         const ConcurrentSet<void> * current;
-        HeartBeat(unsigned long id, const ConcurrentSet<void> * current) 
-            :id(id), current(current) {}
-    public:
-        bool alive() const {
-            return id != 0 && (*current)[id] != nullptr;
-        }
-    };
 
-protected:
-    /* heartbeat.alive will return true as long as this item has not changed collection.
-     * Also detect deletion of the Collectable */
-    HeartBeat heartBeat() const {
-        return HeartBeat(id, current);
-    }
+        /* Keep the id */
+        class HeartBeat
+        {
+                friend class Collectable;
+                unsigned long id;
+                const ConcurrentSet<void> * current;
+                HeartBeat(unsigned long id, const ConcurrentSet<void> * current)
+                    : id(id), current(current) {}
+            public:
+                bool alive() const
+                {
+                    return id != 0 && (*current)[id] != nullptr;
+                }
+        };
+
+    protected:
+        /* heartbeat.alive will return true as long as this item has not changed collection.
+         * Also detect deletion of the Collectable */
+        HeartBeat heartBeat() const
+        {
+            return HeartBeat(id, current);
+        }
 };
 
 /**
@@ -235,344 +258,373 @@ protected:
  *  a raw xml fragment
  *  a ref to a shared buffer in the message
  */
-class MsgChunck {
-    friend class SerializedMsg;
-    friend class SerializedMsgWithSharedBuffer;
-    friend class SerializedMsgWithoutSharedBuffer;
-    friend class MsgChunckIterator;
+class MsgChunck
+{
+        friend class SerializedMsg;
+        friend class SerializedMsgWithSharedBuffer;
+        friend class SerializedMsgWithoutSharedBuffer;
+        friend class MsgChunckIterator;
 
-    MsgChunck();
-    MsgChunck(char * content, unsigned long length);
+        MsgChunck();
+        MsgChunck(char * content, unsigned long length);
 
-    char * content;
-    unsigned long contentLength;
+        char * content;
+        unsigned long contentLength;
 
-    std::vector<int> sharedBufferIdsToAttach;
+        std::vector<int> sharedBufferIdsToAttach;
 };
 
 class Msg;
 class MsgQueue;
 class MsgChunckIterator;
 
-class SerializationRequirement {
-    friend class Msg;
-    friend class SerializedMsg;
+class SerializationRequirement
+{
+        friend class Msg;
+        friend class SerializedMsg;
 
-    // If the xml is still required
-    bool xml;
-    // Set of sharedBuffer that are still required
-    std::set<int> sharedBuffers;
+        // If the xml is still required
+        bool xml;
+        // Set of sharedBuffer that are still required
+        std::set<int> sharedBuffers;
 
-    SerializationRequirement() : sharedBuffers() {
-        xml = false;
-    }
-
-    void add(const SerializationRequirement & from) {
-        xml |= from.xml;
-        for(auto fd : from.sharedBuffers) {
-            sharedBuffers.insert(fd);
+        SerializationRequirement() : sharedBuffers()
+        {
+            xml = false;
         }
-    }
 
-    bool operator==(const SerializationRequirement  & sr) const {
-        return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
-    }
+        void add(const SerializationRequirement &from)
+        {
+            xml |= from.xml;
+            for(auto fd : from.sharedBuffers)
+            {
+                sharedBuffers.insert(fd);
+            }
+        }
+
+        bool operator==(const SerializationRequirement   &sr) const
+        {
+            return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
+        }
 };
 
 enum SerializationStatus { PENDING, RUNNING, CANCELING, TERMINATED };
 
-class SerializedMsg {
-    friend class Msg;
-    friend class MsgChunckIterator;
+class SerializedMsg
+{
+        friend class Msg;
+        friend class MsgChunckIterator;
 
-    std::recursive_mutex lock;
-    ev::async asyncProgress;
+        std::recursive_mutex lock;
+        ev::async asyncProgress;
 
-    // Start a thread for execution of asyncRun
-    void async_start();
-    void async_cancel();
+        // Start a thread for execution of asyncRun
+        void async_start();
+        void async_cancel();
 
-    // Called within main loop when async task did some progress
-    void async_progressed();
+        // Called within main loop when async task did some progress
+        void async_progressed();
 
-    // The requirements. Prior to starting, everything is required.
-    SerializationRequirement requirements;
+        // The requirements. Prior to starting, everything is required.
+        SerializationRequirement requirements;
 
-    void produce(bool sync);
+        void produce(bool sync);
 
-protected:
-    // These methods are to be called from asyncRun
-    bool async_canceled();
-    void async_updateRequirement(const SerializationRequirement & n);
-    void async_pushChunck(const MsgChunck & m);
-    void async_done();
+    protected:
+        // These methods are to be called from asyncRun
+        bool async_canceled();
+        void async_updateRequirement(const SerializationRequirement &n);
+        void async_pushChunck(const MsgChunck &m);
+        void async_done();
 
-    // True if a producing thread is active
-    bool isAsyncRunning();
+        // True if a producing thread is active
+        bool isAsyncRunning();
 
-protected:
+    protected:
 
-    SerializationStatus asyncStatus;
-    Msg * owner;
+        SerializationStatus asyncStatus;
+        Msg * owner;
 
-    MsgQueue* blockedProducer;
+        MsgQueue* blockedProducer;
 
-    std::set<MsgQueue *> awaiters;
-private:
-    std::vector<MsgChunck> chuncks;
+        std::set<MsgQueue *> awaiters;
+    private:
+        std::vector<MsgChunck> chuncks;
 
-protected:
-    // Buffers malloced during asyncRun
-    std::list<void*> ownBuffers;
+    protected:
+        // Buffers malloced during asyncRun
+        std::list<void*> ownBuffers;
 
-    // This will notify awaiters and possibly release the owner
-    void onDataReady();
+        // This will notify awaiters and possibly release the owner
+        void onDataReady();
 
-    virtual bool generateContentAsync() const = 0;
-    virtual void generateContent() = 0;
+        virtual bool generateContentAsync() const = 0;
+        virtual void generateContent() = 0;
 
-    void collectRequirements(SerializationRequirement & req);
+        void collectRequirements(SerializationRequirement &req);
 
-    // The task will cancel itself if all owner release it
-    void abort();
+        // The task will cancel itself if all owner release it
+        void abort();
 
-    // Make sure the given receiver will not be processed until this task complete
-    // TODO : to implement + make sure the task start when it actually block something
-    void blockReceiver(MsgQueue * toblock);
+        // Make sure the given receiver will not be processed until this task complete
+        // TODO : to implement + make sure the task start when it actually block something
+        void blockReceiver(MsgQueue * toblock);
 
-public:
-    SerializedMsg(Msg * parent);
-    virtual ~SerializedMsg();
+    public:
+        SerializedMsg(Msg * parent);
+        virtual ~SerializedMsg();
 
-    // Calling requestContent will start production
-    // Return true if some content is available
-    bool requestContent(const MsgChunckIterator & position);
+        // Calling requestContent will start production
+        // Return true if some content is available
+        bool requestContent(const MsgChunckIterator &position);
 
-    // Return true if some content is available
-    // It is possible to have 0 to send, meaning end was actually reached
-    bool getContent(MsgChunckIterator & position, void * & data, ssize_t & nsend, std::vector<int> & sharedBuffers);
+        // Return true if some content is available
+        // It is possible to have 0 to send, meaning end was actually reached
+        bool getContent(MsgChunckIterator &position, void * &data, ssize_t &nsend, std::vector<int> &sharedBuffers);
 
-    void advance(MsgChunckIterator & position, ssize_t s);
+        void advance(MsgChunckIterator &position, ssize_t s);
 
-    // When a queue is done with sending this message
-    void release(MsgQueue * from);
+        // When a queue is done with sending this message
+        void release(MsgQueue * from);
 
-    void addAwaiter(MsgQueue * awaiter);
+        void addAwaiter(MsgQueue * awaiter);
 
-    ssize_t queueSize();
+        ssize_t queueSize();
 };
 
-class SerializedMsgWithSharedBuffer: public SerializedMsg{
-    std::set<int> ownSharedBuffers;
-protected:
-    bool detectInlineBlobs();
+class SerializedMsgWithSharedBuffer: public SerializedMsg
+{
+        std::set<int> ownSharedBuffers;
+    protected:
+        bool detectInlineBlobs();
 
-public:
-    SerializedMsgWithSharedBuffer(Msg * parent);
-    virtual ~SerializedMsgWithSharedBuffer();
+    public:
+        SerializedMsgWithSharedBuffer(Msg * parent);
+        virtual ~SerializedMsgWithSharedBuffer();
 
-    virtual bool generateContentAsync() const;
-    virtual void generateContent();
+        virtual bool generateContentAsync() const;
+        virtual void generateContent();
 };
 
-class SerializedMsgWithoutSharedBuffer: public SerializedMsg {
+class SerializedMsgWithoutSharedBuffer: public SerializedMsg
+{
 
-public:
-    SerializedMsgWithoutSharedBuffer(Msg * parent);
-    virtual ~SerializedMsgWithoutSharedBuffer();
+    public:
+        SerializedMsgWithoutSharedBuffer(Msg * parent);
+        virtual ~SerializedMsgWithoutSharedBuffer();
 
-    virtual bool generateContentAsync() const;
-    virtual void generateContent();
+        virtual bool generateContentAsync() const;
+        virtual void generateContent();
 };
 
-class MsgChunckIterator {
-    friend class SerializedMsg;
-    std::size_t chunckId;
-    unsigned long chunckOffset;
-    bool endReached;
-public:
-    MsgChunckIterator() {
-        reset();
-    }
+class MsgChunckIterator
+{
+        friend class SerializedMsg;
+        std::size_t chunckId;
+        unsigned long chunckOffset;
+        bool endReached;
+    public:
+        MsgChunckIterator()
+        {
+            reset();
+        }
 
-    // Point to start of message.
-    void reset() {
-        chunckId = 0;
-        chunckOffset = 0;
-        // No risk of 0 length message, so always false here
-        endReached = false;
-    }
+        // Point to start of message.
+        void reset()
+        {
+            chunckId = 0;
+            chunckOffset = 0;
+            // No risk of 0 length message, so always false here
+            endReached = false;
+        }
 
-    bool done() const {
-        return endReached;
-    }
+        bool done() const
+        {
+            return endReached;
+        }
 };
 
 
-class Msg {
-    friend class SerializedMsg;
-    friend class SerializedMsgWithSharedBuffer;
-    friend class SerializedMsgWithoutSharedBuffer;
-private:
-    // Present for sure until message queing is doned. Prune asap then
-    XMLEle * xmlContent;
+class Msg
+{
+        friend class SerializedMsg;
+        friend class SerializedMsgWithSharedBuffer;
+        friend class SerializedMsgWithoutSharedBuffer;
+    private:
+        // Present for sure until message queing is doned. Prune asap then
+        XMLEle * xmlContent;
 
-    // Present until message was queued.
-    MsgQueue * from;
+        // Present until message was queued.
+        MsgQueue * from;
 
-    int queueSize;
-    bool hasInlineBlobs;
-    bool hasSharedBufferBlobs;
+        int queueSize;
+        bool hasInlineBlobs;
+        bool hasSharedBufferBlobs;
 
-    std::vector<int> sharedBuffers; /* fds of shared buffer */
+        std::vector<int> sharedBuffers; /* fds of shared buffer */
 
-    // Convertion task and resultat of the task
-    SerializedMsg* convertionToSharedBuffer;
-    SerializedMsg* convertionToInline;
+        // Convertion task and resultat of the task
+        SerializedMsg* convertionToSharedBuffer;
+        SerializedMsg* convertionToInline;
 
-    SerializedMsg * buildConvertionToSharedBuffer();
-    SerializedMsg * buildConvertionToInline();
+        SerializedMsg * buildConvertionToSharedBuffer();
+        SerializedMsg * buildConvertionToInline();
 
-    bool fetchBlobs(std::list<int> & incomingSharedBuffers);
+        bool fetchBlobs(std::list<int> &incomingSharedBuffers);
 
-    void releaseXmlContent();
-    void releaseSharedBuffers(const std::set<int> & keep);
+        void releaseXmlContent();
+        void releaseSharedBuffers(const std::set<int> &keep);
 
-    // Remove resources that can be removed.
-    // Will be called when queuingDone is true and for every change of staus from convertionToXXX
-    void prune();
+        // Remove resources that can be removed.
+        // Will be called when queuingDone is true and for every change of staus from convertionToXXX
+        void prune();
 
-    void releaseSerialization(SerializedMsg * form);
+        void releaseSerialization(SerializedMsg * form);
 
-    ~Msg();
+        ~Msg();
 
-public:
-    /* Message will not be queued anymore. Release all possible resources, incl self */
-    void queuingDone();
+    public:
+        /* Message will not be queued anymore. Release all possible resources, incl self */
+        void queuingDone();
 
-    Msg(MsgQueue * from, XMLEle * root);
+        Msg(MsgQueue * from, XMLEle * root);
 
-    static Msg * fromXml(MsgQueue * from, XMLEle * root, std::list<int> & incomingSharedBuffers);
+        static Msg * fromXml(MsgQueue * from, XMLEle * root, std::list<int> &incomingSharedBuffers);
 
-    /**
-     * Handle multiple cases:
-     *
-     *  - inline => attached.
-     * Exceptional. The inline is already in memory within xml. It must be converted to shared buffer async.
-     * FIXME: The convertion should block the emitter.
-     *
-     *  - attached => attached
-     * Default case. No convertion is required.
-     *
-     *  - inline => inline
-     * Frequent on system not supporting attachment.
-     *
-     *  - attached => inline
-     * Frequent. The convertion will be made during write. The convert/write must be offshored to a dedicated thread.
-     *
-     * The returned AsyncTask will be ready once "to" can write the message
-     */
-    SerializedMsg * serialize(MsgQueue * from);
+        /**
+         * Handle multiple cases:
+         *
+         *  - inline => attached.
+         * Exceptional. The inline is already in memory within xml. It must be converted to shared buffer async.
+         * FIXME: The convertion should block the emitter.
+         *
+         *  - attached => attached
+         * Default case. No convertion is required.
+         *
+         *  - inline => inline
+         * Frequent on system not supporting attachment.
+         *
+         *  - attached => inline
+         * Frequent. The convertion will be made during write. The convert/write must be offshored to a dedicated thread.
+         *
+         * The returned AsyncTask will be ready once "to" can write the message
+         */
+        SerializedMsg * serialize(MsgQueue * from);
 };
 
-class MsgQueue: public Collectable {
-    int rFd, wFd;
-    LilXML * lp;         /* XML parsing context */
-    ev::io   rio, wio;   /* Event loop io events */
-    void ioCb(ev::io &watcher, int revents);
+class MsgQueue: public Collectable
+{
+        int rFd, wFd;
+        LilXML * lp;         /* XML parsing context */
+        ev::io   rio, wio;   /* Event loop io events */
+        void ioCb(ev::io &watcher, int revents);
 
-    // Update the status of FD read/write ability
-    void updateIos();
+        // Update the status of FD read/write ability
+        void updateIos();
 
-    std::set<SerializedMsg*> readBlocker;     /* The message that block this queue */
+        std::set<SerializedMsg*> readBlocker;     /* The message that block this queue */
 
-    std::list<SerializedMsg*> msgq;           /* To send msg queue */
-    std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
+        std::list<SerializedMsg*> msgq;           /* To send msg queue */
+        std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
 
-    // Position in the head message
-    MsgChunckIterator nsent;
+        // Position in the head message
+        MsgChunckIterator nsent;
 
-    // Handle fifo or socket case
-    size_t doRead(char * buff, size_t len);
-    void readFromFd();
+        // Handle fifo or socket case
+        size_t doRead(char * buff, size_t len);
+        void readFromFd();
 
-    /* write the next chunk of the current message in the queue to the given
-     * client. pop message from queue when complete and free the message if we are
-     * the last one to use it. shut down this client if trouble.
-     */
-    void writeToFd();
+        /* write the next chunk of the current message in the queue to the given
+         * client. pop message from queue when complete and free the message if we are
+         * the last one to use it. shut down this client if trouble.
+         */
+        void writeToFd();
 
-protected:
-    bool useSharedBuffer;
-    int getRFd() const { return rFd; }
-    int getWFd() const { return wFd; }
+    protected:
+        bool useSharedBuffer;
+        int getRFd() const
+        {
+            return rFd;
+        }
+        int getWFd() const
+        {
+            return wFd;
+        }
 
-    /* print key attributes and values of the given xml to stderr. */
-    void traceMsg(const std::string & log, XMLEle *root);
+        /* print key attributes and values of the given xml to stderr. */
+        void traceMsg(const std::string &log, XMLEle *root);
 
-    /* Close the connection. (May be restarted later depending on driver logic) */
-    virtual void close() = 0;
-    /* Handle a message. root will be freed by caller. fds of buffers will be closed, unless set to -1 */
-    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers) = 0;
+        /* Close the connection. (May be restarted later depending on driver logic) */
+        virtual void close() = 0;
+        /* Handle a message. root will be freed by caller. fds of buffers will be closed, unless set to -1 */
+        virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers) = 0;
 
-    /* convert the string value of enableBLOB to our B_ state value.
-     * no change if unrecognized
-     */
-    static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
+        /* convert the string value of enableBLOB to our B_ state value.
+         * no change if unrecognized
+         */
+        static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
 
-    MsgQueue(bool useSharedBuffer);
-public:
-    virtual ~MsgQueue();
+        MsgQueue(bool useSharedBuffer);
+    public:
+        virtual ~MsgQueue();
 
-    void pushMsg(Msg * msg);
+        void pushMsg(Msg * msg);
 
-    /* return storage size of all Msqs on the given q */
-    unsigned long msgQSize() const;
+        /* return storage size of all Msqs on the given q */
+        unsigned long msgQSize() const;
 
-    SerializedMsg * headMsg() const;
-    void consumeHeadMsg();
+        SerializedMsg * headMsg() const;
+        void consumeHeadMsg();
 
-    /* Remove all messages from queue */
-    void clearMsgQueue();
+        /* Remove all messages from queue */
+        void clearMsgQueue();
 
-    void messageMayHaveProgressed(const SerializedMsg * msg);
+        void messageMayHaveProgressed(const SerializedMsg * msg);
 
-    void setFds(int rFd, int wFd);
+        void setFds(int rFd, int wFd);
 
-    bool acceptSharedBuffers() const { return useSharedBuffer; }
+        bool acceptSharedBuffers() const
+        {
+            return useSharedBuffer;
+        }
 
-    virtual void log(const std::string & log) const;
+        virtual void log(const std::string &log) const;
 };
 
 /* device + property name */
-class Property {
-public:
-    std::string dev;
-    std::string name;
-    BLOBHandling blob = B_NEVER; /* when to snoop BLOBs */
+class Property
+{
+    public:
+        std::string dev;
+        std::string name;
+        BLOBHandling blob = B_NEVER; /* when to snoop BLOBs */
 
-    Property(const std::string & dev, const std::string & name): dev(dev), name(name) {}
+        Property(const std::string &dev, const std::string &name): dev(dev), name(name) {}
 };
 
 
-class Fifo {
-    std::string name; /* Path to FIFO for dynamic startups & shutdowns of drivers */
+class Fifo
+{
+        std::string name; /* Path to FIFO for dynamic startups & shutdowns of drivers */
 
-    char buffer[1024];
-    int bufferPos = 0;
-    int fd = -1;
-    ev::io fdev;
+        char buffer[1024];
+        int bufferPos = 0;
+        int fd = -1;
+        ev::io fdev;
 
-    void close();
-    void open();
-    void processLine(const char * line);
+        void close();
+        void open();
+        void processLine(const char * line);
 
-    /* Read commands from FIFO and process them. Start/stop drivers accordingly */
-    void read();
-    void ioCb(ev::io &watcher, int revents);
-public:
-    Fifo(const std::string & name);
-    void listen() { open(); }
+        /* Read commands from FIFO and process them. Start/stop drivers accordingly */
+        void read();
+        void ioCb(ev::io &watcher, int revents);
+    public:
+        Fifo(const std::string &name);
+        void listen()
+        {
+            open();
+        }
 };
 
 static Fifo * fifo = nullptr;
@@ -581,212 +633,220 @@ static Fifo * fifo = nullptr;
 class DvrInfo;
 
 /* info for each connected client */
-class ClInfo: public MsgQueue {
-protected:
-    /* send message to each appropriate driver.
-     * also send all newXXX() to all other interested clients.
-     */
-    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers);
+class ClInfo: public MsgQueue
+{
+    protected:
+        /* send message to each appropriate driver.
+         * also send all newXXX() to all other interested clients.
+         */
+        virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers);
 
-    /* Update the client property BLOB handling policy */
-    void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB);
+        /* Update the client property BLOB handling policy */
+        void crackBLOBHandling(const std::string &dev, const std::string &name, const char *enableBLOB);
 
-    /* close down the given client */
-    virtual void close();
+        /* close down the given client */
+        virtual void close();
 
-public:
-    std::list<Property*> props;     /* props we want */
-    int allprops = 0;               /* saw getProperties w/o device */
-    BLOBHandling blob = B_NEVER;    /* when to send setBLOBs */
+    public:
+        std::list<Property*> props;     /* props we want */
+        int allprops = 0;               /* saw getProperties w/o device */
+        BLOBHandling blob = B_NEVER;    /* when to send setBLOBs */
 
-    ClInfo(bool useSharedBuffer);
-    virtual ~ClInfo();
+        ClInfo(bool useSharedBuffer);
+        virtual ~ClInfo();
 
-    /* return 0 if cp may be interested in dev/name else -1
-     */
-    int findDevice(const std::string & dev, const std::string & name) const;
+        /* return 0 if cp may be interested in dev/name else -1
+         */
+        int findDevice(const std::string &dev, const std::string &name) const;
 
-    /* add the given device and property to the props[] list of client if new.
-     */
-    void addDevice(const std::string & dev, const std::string & name, int isblob);
+        /* add the given device and property to the props[] list of client if new.
+         */
+        void addDevice(const std::string &dev, const std::string &name, int isblob);
 
-    virtual void log(const std::string & log) const;
+        virtual void log(const std::string &log) const;
 
-    /* put Msg mp on queue of each chained server client, except notme.
-     */
-    static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
+        /* put Msg mp on queue of each chained server client, except notme.
+         */
+        static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
 
-    /* put Msg mp on queue of each client interested in dev/name, except notme.
-     * if BLOB always honor current mode.
-     */
-    static void q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
+        /* put Msg mp on queue of each client interested in dev/name, except notme.
+         * if BLOB always honor current mode.
+         */
+        static void q2Clients(ClInfo *notme, int isblob, const std::string &dev, const std::string &name, Msg *mp, XMLEle *root);
 
-    /* Reference to all active clients */
-    static ConcurrentSet<ClInfo> clients;
+        /* Reference to all active clients */
+        static ConcurrentSet<ClInfo> clients;
 };
 
 /* info for each connected driver */
 class DvrInfo: public MsgQueue
 {
-    /* add dev/name to this device's snooping list.
-     * init with blob mode set to B_NEVER.
-     */
-    void addSDevice(const std::string & dev, const std::string & name);
+        /* add dev/name to this device's snooping list.
+         * init with blob mode set to B_NEVER.
+         */
+        void addSDevice(const std::string &dev, const std::string &name);
 
-public:
-    /* return Property if dp is this driver is snooping dev/name, else NULL.
-     */
-    Property *findSDevice(const std::string & dev, const std::string & name) const;
+    public:
+        /* return Property if dp is this driver is snooping dev/name, else NULL.
+         */
+        Property *findSDevice(const std::string &dev, const std::string &name) const;
 
-protected:
-    /* send message to each interested client
-     */
-    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers);
+    protected:
+        /* send message to each interested client
+         */
+        virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers);
 
-    /* Construct an instance that will start the same driver */
-    DvrInfo(const DvrInfo & model);
+        /* Construct an instance that will start the same driver */
+        DvrInfo(const DvrInfo &model);
 
-public:
-    std::string name;               /* persistent name */
-    
-    std::set<std::string> dev;      /* device served by this driver */
-    std::list<Property*>sprops;     /* props we snoop */
-    int restarts;                   /* times process has been restarted */
-    bool restart = true;            /* Restart on shutdown */
+    public:
+        std::string name;               /* persistent name */
 
-    DvrInfo(bool useSharedBuffer);
-    virtual ~DvrInfo();
+        std::set<std::string> dev;      /* device served by this driver */
+        std::list<Property*>sprops;     /* props we snoop */
+        int restarts;                   /* times process has been restarted */
+        bool restart = true;            /* Restart on shutdown */
 
-    bool isHandlingDevice(const std::string & dev) const;
+        DvrInfo(bool useSharedBuffer);
+        virtual ~DvrInfo();
 
-    /* start the INDI driver process or connection.
-     * exit if trouble.
-     */
-    virtual void start() = 0;
+        bool isHandlingDevice(const std::string &dev) const;
 
-    /* close down the given driver and restart if set*/
-    virtual void close();
-    
-    /* Allocate an instance that will start the same driver */
-    virtual DvrInfo * clone() const = 0;
+        /* start the INDI driver process or connection.
+         * exit if trouble.
+         */
+        virtual void start() = 0;
 
-    virtual void log(const std::string & log) const;
+        /* close down the given driver and restart if set*/
+        virtual void close();
 
-    virtual const std::string remoteServerUid() const = 0;
+        /* Allocate an instance that will start the same driver */
+        virtual DvrInfo * clone() const = 0;
 
-    /* put Msg mp on queue of each driver responsible for dev, or all drivers
-     * if dev empty.
-     */
-    static void q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root);
+        virtual void log(const std::string &log) const;
 
-    /* put Msg mp on queue of each driver snooping dev/name.
-     * if BLOB always honor current mode.
-     */
-    static void q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
+        virtual const std::string remoteServerUid() const = 0;
 
-    /* Reference to all active drivers */
-    static ConcurrentSet<DvrInfo> drivers;
+        /* put Msg mp on queue of each driver responsible for dev, or all drivers
+         * if dev empty.
+         */
+        static void q2RDrivers(const std::string &dev, Msg *mp, XMLEle *root);
+
+        /* put Msg mp on queue of each driver snooping dev/name.
+         * if BLOB always honor current mode.
+         */
+        static void q2SDrivers(DvrInfo *me, int isblob, const std::string &dev, const std::string &name, Msg *mp, XMLEle *root);
+
+        /* Reference to all active drivers */
+        static ConcurrentSet<DvrInfo> drivers;
 };
 
-class LocalDvrInfo: public DvrInfo {
-    char errbuff[1024];     /* buffer for stderr pipe. line too long will be clipped */
-    int errbuffpos = 0;     /* first free pos in buffer */ 
-    ev::io     eio;         /* Event loop io events */
-    ev::child  pidwatcher;
-    void onEfdEvent(ev::io &watcher, int revents); /* callback for data on efd */
-    void onPidEvent(ev::child & watcher, int revents);
+class LocalDvrInfo: public DvrInfo
+{
+        char errbuff[1024];     /* buffer for stderr pipe. line too long will be clipped */
+        int errbuffpos = 0;     /* first free pos in buffer */
+        ev::io     eio;         /* Event loop io events */
+        ev::child  pidwatcher;
+        void onEfdEvent(ev::io &watcher, int revents); /* callback for data on efd */
+        void onPidEvent(ev::child &watcher, int revents);
 
-    int pid = 0;            /* process id or 0 for N/A (not started/terminated) */
-    int efd = -1;           /* stderr from driver, or -1 when N/A */
+        int pid = 0;            /* process id or 0 for N/A (not started/terminated) */
+        int efd = -1;           /* stderr from driver, or -1 when N/A */
 
-    void closeEfd();
-    void closePid();
-protected:
-    LocalDvrInfo(const LocalDvrInfo & model);
+        void closeEfd();
+        void closePid();
+    protected:
+        LocalDvrInfo(const LocalDvrInfo &model);
 
-public:
-    std::string envDev;
-    std::string envConfig;
-    std::string envSkel;
-    std::string envPrefix;
+    public:
+        std::string envDev;
+        std::string envConfig;
+        std::string envSkel;
+        std::string envPrefix;
 
-    LocalDvrInfo();
-    virtual ~LocalDvrInfo();
+        LocalDvrInfo();
+        virtual ~LocalDvrInfo();
 
-    virtual void start();
+        virtual void start();
 
-    virtual LocalDvrInfo * clone() const;
+        virtual LocalDvrInfo * clone() const;
 
-    virtual const std::string remoteServerUid() const { return ""; }
+        virtual const std::string remoteServerUid() const
+        {
+            return "";
+        }
 };
 
-class RemoteDvrInfo: public DvrInfo {
-    /* open a connection to the given host and port or die.
-     * return socket fd.
-     */
-    int openINDIServer();
+class RemoteDvrInfo: public DvrInfo
+{
+        /* open a connection to the given host and port or die.
+         * return socket fd.
+         */
+        int openINDIServer();
 
-    void extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const;
+        void extractRemoteId(const std::string &name, std::string &o_host, int &o_port, std::string &o_dev) const;
 
-protected:
-    RemoteDvrInfo(const RemoteDvrInfo & model);
+    protected:
+        RemoteDvrInfo(const RemoteDvrInfo &model);
 
-public:
-    std::string host;
-    int port;
+    public:
+        std::string host;
+        int port;
 
-    RemoteDvrInfo();
-    virtual ~RemoteDvrInfo();
+        RemoteDvrInfo();
+        virtual ~RemoteDvrInfo();
 
-    virtual void start();
+        virtual void start();
 
-    virtual RemoteDvrInfo * clone() const;
+        virtual RemoteDvrInfo * clone() const;
 
-    virtual const std::string remoteServerUid() const 
-    { 
-        return std::string(host) + ":" + std::to_string(port);
-    }
+        virtual const std::string remoteServerUid() const
+        {
+            return std::string(host) + ":" + std::to_string(port);
+        }
 };
 
-class TcpServer {
-    int port;
-    int sfd = -1;
-    ev::io sfdev;
+class TcpServer
+{
+        int port;
+        int sfd = -1;
+        ev::io sfdev;
 
-    /* prepare for new client arriving on socket.
-     * exit if trouble.
-     */
-    void accept();
-    void ioCb(ev::io &watcher, int revents);
-public:
-    TcpServer(int port);
+        /* prepare for new client arriving on socket.
+         * exit if trouble.
+         */
+        void accept();
+        void ioCb(ev::io &watcher, int revents);
+    public:
+        TcpServer(int port);
 
-    /* create the public INDI Driver endpoint lsocket on port.
-     * return server socket else exit.
-     */
-    void listen();
+        /* create the public INDI Driver endpoint lsocket on port.
+         * return server socket else exit.
+         */
+        void listen();
 };
 
-class UnixServer {
-    std::string path;
-    int sfd = -1;
-    ev::io sfdev;
+class UnixServer
+{
+        std::string path;
+        int sfd = -1;
+        ev::io sfdev;
 
-    void accept();
-    void ioCb(ev::io & watcher, int revents);
+        void accept();
+        void ioCb(ev::io &watcher, int revents);
 
-    virtual void log(const std::string & log) const;
-public:
-    UnixServer(const std::string & path);
+        virtual void log(const std::string &log) const;
+    public:
+        UnixServer(const std::string &path);
 
-    /* create the public INDI Driver endpoint over UNIX (local) domain.
-     * exit on failure
-     */
-    void listen();
+        /* create the public INDI Driver endpoint over UNIX (local) domain.
+         * exit on failure
+         */
+        void listen();
 };
 
 
-static void log(const std::string & log);
+static void log(const std::string &log);
 /* Turn a printf format into std::string */
 static std::string fmt(const char * fmt, ...) __attribute__ ((format (printf, 1, 0)));
 
@@ -810,9 +870,10 @@ static char *indi_tstamp(char *s);
 static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
 
-static int readFdError(int fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
+static int readFdError(int
+                       fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
 
-static void * attachSharedBuffer(int fd, size_t & size);
+static void * attachSharedBuffer(int fd, size_t &size);
 static void dettachSharedBuffer(int fd, void * ptr, size_t size);
 
 int main(int ac, char *av[])
@@ -930,9 +991,12 @@ int main(int ac, char *av[])
     {
         std::string dvrName = *av++;
         DvrInfo * dr;
-        if (dvrName.find('@') != std::string::npos) {
+        if (dvrName.find('@') != std::string::npos)
+        {
             dr = new RemoteDvrInfo();
-        } else {
+        }
+        else
+        {
             dr = new LocalDvrInfo();
         }
         dr->name = dvrName;
@@ -962,7 +1026,8 @@ static void logStartup(int ac, char *av[])
     int i;
 
     std::string startupMsg = "startup:";
-    for (i = 0; i < ac; i++) {
+    for (i = 0; i < ac; i++)
+    {
         startupMsg += " ";
         startupMsg += av[i];
     }
@@ -1019,13 +1084,17 @@ void LocalDvrInfo::start()
 #endif
 
     /* build three pipes: r, w and error*/
-    if (useSharedBuffer) {
+    if (useSharedBuffer)
+    {
         // FIXME: lots of FD are opened by indiserver. FD_CLOEXEC is a must + check other fds
-        if (socketpair(AF_UNIX, SOCK_STREAM, 0, ux) == -1) {
+        if (socketpair(AF_UNIX, SOCK_STREAM, 0, ux) == -1)
+        {
             log(fmt("socketpair: %s\n", strerror(errno)));
             Bye();
         }
-    } else {
+    }
+    else
+    {
         if (pipe(rp) < 0)
         {
             log(fmt("read pipe: %s\n", strerror(errno)));
@@ -1056,13 +1125,16 @@ void LocalDvrInfo::start()
         int fd;
 
         /* rig up pipes */
-        if (useSharedBuffer) {
+        if (useSharedBuffer)
+        {
             // For unix socket, the same socket end can be used for both read & write
             dup2(ux[0], 0); /* driver stdin reads from ux[0] */
             dup2(ux[0], 1); /* driver stdout writes to ux[0] */
             ::close(ux[0]);
             ::close(ux[1]);
-        } else {
+        }
+        else
+        {
             dup2(wp[0], 0); /* driver stdin reads from wp[0] */
             dup2(rp[1], 1); /* driver stdout writes to rp[1] */
         }
@@ -1122,7 +1194,8 @@ void LocalDvrInfo::start()
         _exit(1); /* parent will notice EOF shortly */
     }
 
-    if (useSharedBuffer) {
+    if (useSharedBuffer)
+    {
         /* don't need child's other socket end */
         ::close(ux[0]);
 
@@ -1130,7 +1203,9 @@ void LocalDvrInfo::start()
         setFds(ux[1], ux[1]);
         rp[0] = ux[1];
         wp[1] = ux[1];
-    } else {
+    }
+    else
+    {
         /* don't need child's side of pipes */
         ::close(wp[0]);
         ::close(rp[1]);
@@ -1148,7 +1223,7 @@ void LocalDvrInfo::start()
 
     // Watch input on efd
     this->efd = ep[0];
-    fcntl(this->efd, F_SETFL, fcntl(this->efd, F_GETFL, 0) | O_NONBLOCK); 
+    fcntl(this->efd, F_SETFL, fcntl(this->efd, F_GETFL, 0) | O_NONBLOCK);
     this->eio.start(this->efd, ev::READ);
 
     /* first message primes driver to report its properties -- dev known
@@ -1165,7 +1240,7 @@ void LocalDvrInfo::start()
     pushMsg(mp);
 }
 
-void RemoteDvrInfo::extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const
+void RemoteDvrInfo::extractRemoteId(const std::string &name, std::string &o_host, int &o_port, std::string &o_dev) const
 {
     char dev[MAXINDIDEVICE] = {0};
     char host[MAXSBUF] = {0};
@@ -1195,7 +1270,7 @@ void RemoteDvrInfo::start()
     int sockfd;
     std::string dev;
     extractRemoteId(name, host, port, dev);
-    
+
     /* connect */
     sockfd = openINDIServer();
 
@@ -1217,10 +1292,13 @@ void RemoteDvrInfo::start()
      */
     XMLEle *root = addXMLEle(NULL, "getProperties");
 
-    if (!dev.empty()) {
+    if (!dev.empty())
+    {
         addXMLAtt(root, "device", dev.c_str());
         addXMLAtt(root, "version", TO_STRING(INDIV));
-    } else {
+    }
+    else
+    {
         // This informs downstream server that it is connecting to an upstream server
         // and not a regular client. The difference is in how it treats snooping properties
         // among properties.
@@ -1270,12 +1348,13 @@ int RemoteDvrInfo::openINDIServer()
     return (sockfd);
 }
 
-UnixServer::UnixServer(const std::string & path): path(path)
+UnixServer::UnixServer(const std::string &path): path(path)
 {
     sfdev.set<UnixServer, &UnixServer::ioCb>(this);
 }
 
-void UnixServer::log(const std::string & str) const {
+void UnixServer::log(const std::string &str) const
+{
     std::string logLine = "Local server: ";
     logLine += str;
     ::log(logLine);
@@ -1283,19 +1362,22 @@ void UnixServer::log(const std::string & str) const {
 
 void UnixServer::ioCb(ev::io &, int revents)
 {
-    if (revents & EV_ERROR) {
+    if (revents & EV_ERROR)
+    {
         int sockErrno = readFdError(this->sfd);
-        if (sockErrno) {
+        if (sockErrno)
+        {
             log(fmt("Error on unix socket: %s\n", strerror(sockErrno)));
             Bye();
         }
     }
-    if (revents & EV_READ) {
+    if (revents & EV_READ)
+    {
         accept();
     }
 }
 
-static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
+static void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
 {
     memset(&serv_addr_un, 0, sizeof(serv_addr_un));
     serv_addr_un.sun_family = AF_UNIX;
@@ -1315,7 +1397,8 @@ static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un 
 
     int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
 
-    if (bind) {
+    if (bind)
+    {
         unlink(unixAddr.c_str());
     }
 #endif
@@ -1390,12 +1473,14 @@ void UnixServer::accept()
         struct ucred ucred;
 
         socklen_t len = sizeof(struct ucred);
-        if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1) {
+        if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1)
+        {
             log(fmt("getsockopt failed: %s\n", strerror(errno)));
             Bye();
         }
 
-        cp->log(fmt("new arrival from local pid %ld (user: %ld:%ld) - welcome!\n", (long)ucred.pid, (long)ucred.uid, (long)ucred.gid));
+        cp->log(fmt("new arrival from local pid %ld (user: %ld:%ld) - welcome!\n", (long)ucred.pid, (long)ucred.uid,
+                    (long)ucred.gid));
 #else
         cp->log(fmt("new arrival from local domain  - welcome!\n"));
 #endif
@@ -1414,14 +1499,17 @@ TcpServer::TcpServer(int port): port(port)
 
 void TcpServer::ioCb(ev::io &, int revents)
 {
-    if (revents & EV_ERROR) {
+    if (revents & EV_ERROR)
+    {
         int sockErrno = readFdError(this->sfd);
-        if (sockErrno) {
+        if (sockErrno)
+        {
             log(fmt("Error on tcp server socket: %s\n", strerror(sockErrno)));
             Bye();
         }
     }
-    if (revents & EV_READ) {
+    if (revents & EV_READ)
+    {
         accept();
     }
 }
@@ -1498,7 +1586,7 @@ void TcpServer::accept()
     if (verbose > 0)
     {
         cp->log(fmt("new arrival from %s:%d - welcome!\n",
-                inet_ntoa(cli_socket.sin_addr), ntohs(cli_socket.sin_port)));
+                    inet_ntoa(cli_socket.sin_addr), ntohs(cli_socket.sin_port)));
     }
 #ifdef OSX_EMBEDED_MODE
     fprintf(stderr, "CLIENTS %d\n", clients.size());
@@ -1506,7 +1594,7 @@ void TcpServer::accept()
 #endif
 }
 
-Fifo::Fifo(const std::string & name) : name(name)
+Fifo::Fifo(const std::string &name) : name(name)
 {
     fdev.set<Fifo, &Fifo::ioCb>(this);
 }
@@ -1546,7 +1634,7 @@ void Fifo::processLine(const char * line)
         log(fmt("FIFO: %s\n", line));
 
     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF],
-            envSkel[MAXSBUF], envPrefix[MAXSBUF];
+         envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
     memset(&tDriver[0], 0, sizeof(char) * MAXSBUF);
     memset(&tName[0], 0, sizeof(char) * MAXSBUF);
@@ -1576,7 +1664,7 @@ void Fifo::processLine(const char * line)
     else
     {
         n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd,
-                    tDriver, arg[0], var[0], arg[1], var[1], arg[2], var[2], arg[3], var[3]);
+                   tDriver, arg[0], var[0], arg[1], var[1], arg[2], var[2], arg[3], var[3]);
     }
 
     int n_args = (n - 2) / 2;
@@ -1628,7 +1716,7 @@ void Fifo::processLine(const char * line)
     {
         if (verbose)
             log(fmt("FIFO: Starting driver %s\n", tDriver));
-        
+
         DvrInfo * dp;
         if (remoteDriver == 0)
         {
@@ -1675,7 +1763,8 @@ void Fifo::processLine(const char * line)
 void Fifo::read(void)
 {
     int rd = ::read(fd, buffer + bufferPos, sizeof(buffer) - 1 - bufferPos);
-    if (rd == 0) {
+    if (rd == 0)
+    {
         if (bufferPos > 0)
         {
             buffer[bufferPos] = '\0';
@@ -1685,7 +1774,8 @@ void Fifo::read(void)
         open();
         return;
     }
-    if (rd == -1) {
+    if (rd == -1)
+    {
         if (errno == EAGAIN || errno == EWOULDBLOCK) return;
 
         log(fmt("Fifo error: %s\n", strerror(errno)));
@@ -1696,8 +1786,10 @@ void Fifo::read(void)
 
     bufferPos += rd;
 
-    for(int i = 0; i < bufferPos; ++i) {
-        if (buffer[i] == '\n') {
+    for(int i = 0; i < bufferPos; ++i)
+    {
+        if (buffer[i] == '\n')
+        {
             buffer[i] = 0;
             processLine(buffer);
             // shift the buffer
@@ -1708,7 +1800,8 @@ void Fifo::read(void)
         }
     }
 
-    if ((unsigned)bufferPos >= sizeof(buffer) - 1) {
+    if ((unsigned)bufferPos >= sizeof(buffer) - 1)
+    {
         log(fmt("Fifo overflow"));
         close();
         open();
@@ -1717,21 +1810,24 @@ void Fifo::read(void)
 
 void Fifo::ioCb(ev::io &, int revents)
 {
-    if (EV_ERROR & revents) {
+    if (EV_ERROR & revents)
+    {
         int sockErrno = readFdError(this->fd);
-        if (sockErrno) {
+        if (sockErrno)
+        {
             log(fmt("Error on fifo: %s\n", strerror(sockErrno)));
             close();
             open();
         }
     }
-    else if (revents & EV_READ) {
+    else if (revents & EV_READ)
+    {
         read();
     }
 }
 
 // root will be released
-void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
+void ClInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
 {
     char *roottag    = tagXMLEle(root);
 
@@ -1759,7 +1855,8 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (!strcmp(roottag, "enableBLOB"))
         crackBLOBHandling(dev, name, pcdataXMLEle(root));
 
-    if (!strcmp(roottag, "pingRequest")) {
+    if (!strcmp(roottag, "pingRequest"))
+    {
         setXMLEleTag(root, "pingReply");
 
         Msg * mp = new Msg(this, root);
@@ -1770,7 +1867,8 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
 
     /* build a new message -- set content iff anyone cares */
     Msg* mp = Msg::fromXml(this, root, sharedBuffers);
-    if (!mp) {
+    if (!mp)
+    {
         log("Closing after malformed message\n");
         close();
         return;
@@ -1795,7 +1893,7 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     mp->queuingDone();
 }
 
-void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
+void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
 {
     char *roottag    = tagXMLEle(root);
     const char *dev  = findXMLAttValu(root, "device");
@@ -1853,7 +1951,8 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
     if (ldir)
         logDMsg(root, dev);
 
-    if (!strcmp(roottag, "pingRequest")) {
+    if (!strcmp(roottag, "pingRequest"))
+    {
         setXMLEleTag(root, "pingReply");
 
         Msg * mp = new Msg(this, root);
@@ -1864,7 +1963,8 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
 
     /* build a new message -- set content iff anyone cares */
     Msg * mp = Msg::fromXml(this, root, sharedBuffers);
-    if (!mp) {
+    if (!mp)
+    {
         close();
         return;
     }
@@ -1909,10 +2009,14 @@ void DvrInfo::close()
     }
 
     bool terminate;
-    if (!restart) {
+    if (!restart)
+    {
         terminate = true;
-    } else {
-        if (restarts >= maxrestarts) {
+    }
+    else
+    {
+        if (restarts >= maxrestarts)
+        {
             log(fmt("Terminated after #%d restarts.\n", restarts));
             terminate = true;
         }
@@ -1930,19 +2034,22 @@ void DvrInfo::close()
 #endif
 
     // FIXME: we loose stderr from dying driver
-    if (terminate) {
+    if (terminate)
+    {
         delete(this);
         if ((!fifo) && (drivers.ids().empty()))
             Bye();
         return;
-    } else {
+    }
+    else
+    {
         DvrInfo * restarted = this->clone();
         delete(this);
         restarted->start();
     }
 }
 
-void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
+void DvrInfo::q2RDrivers(const std::string &dev, Msg *mp, XMLEle *root)
 {
     char *roottag = tagXMLEle(root);
 
@@ -1972,7 +2079,7 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
 
             /* Retain last remote driver data so that we do not send the same info again to a driver
             * residing on the same host:port */
-           remoteAdvertised.insert(remoteUid);
+            remoteAdvertised.insert(remoteUid);
         }
 
         /* JM 2016-10-30: Only send enableBLOB to remote drivers */
@@ -1983,7 +2090,7 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
         if (verbose > 1)
         {
             dp->log(fmt("queuing responsible for <%s device='%s' name='%s'>\n",
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
 
         // pushmsg can kill dp. do at end
@@ -1991,7 +2098,7 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
     }
 }
 
-void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
+void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string &dev, const std::string &name, Msg *mp, XMLEle *root)
 {
     std::string meRemoteServerUid = me ? me->remoteServerUid() : "";
     for (auto dpId : drivers.ids())
@@ -2016,7 +2123,7 @@ void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const
         if (verbose > 1)
         {
             dp->log(fmt("queuing snooped <%s device='%s' name='%s'>\n",
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
 
         // pushmsg can kill dp. do at end
@@ -2024,7 +2131,7 @@ void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const
     }
 }
 
-void DvrInfo::addSDevice(const std::string & dev, const std::string & name)
+void DvrInfo::addSDevice(const std::string &dev, const std::string &name)
 {
     Property *sp;
 
@@ -2042,9 +2149,9 @@ void DvrInfo::addSDevice(const std::string & dev, const std::string & name)
         log(fmt("snooping on %s.%s\n", dev.c_str(), name.c_str()));
 }
 
-Property * DvrInfo::findSDevice(const std::string & dev, const std::string & name) const
+Property * DvrInfo::findSDevice(const std::string &dev, const std::string &name) const
 {
-    for(auto sp : sprops) 
+    for(auto sp : sprops)
     {
         if ((sp->dev == dev) && (sp->name.empty() || sp->name == name))
             return (sp);
@@ -2053,7 +2160,7 @@ Property * DvrInfo::findSDevice(const std::string & dev, const std::string & nam
     return nullptr;
 }
 
-void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
+void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string &dev, const std::string &name, Msg *mp, XMLEle *root)
 {
     /* queue message to each interested client */
     for (auto cpId : clients.ids())
@@ -2130,7 +2237,7 @@ void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string & dev, const
 
         if (verbose > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
 
         // pushmsg can kill cp. do at end
         cp->pushMsg(mp);
@@ -2156,12 +2263,13 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
             case 0:
                 for (auto pp : cp->props)
                 {
-                    if (me->dev.find(pp->dev) != me->dev.end()) {
+                    if (me->dev.find(pp->dev) != me->dev.end())
+                    {
                         devFound = 1;
                         break;
                     }
                 }
-            break;
+                break;
 
             // All props are requested. This is client-only mode (not upstream server)
             case 1:
@@ -2189,14 +2297,15 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
         /* ok: queue message to this client */
         if (verbose > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
-        
+                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+
         // pushmsg can kill cp. do at end
         cp->pushMsg(mp);
     }
 }
 
-void MsgQueue::writeToFd() {
+void MsgQueue::writeToFd()
+{
     ssize_t nw;
     void * data;
     ssize_t nsend;
@@ -2204,39 +2313,49 @@ void MsgQueue::writeToFd() {
 
     /* get current message */
     auto mp = headMsg();
-    if (mp == nullptr) {
+    if (mp == nullptr)
+    {
         log("Unexpected write notification");
         return;
     }
 
 
-    do {
-        if (!mp->getContent(nsent, data, nsend, sharedBuffers)) {
+    do
+    {
+        if (!mp->getContent(nsent, data, nsend, sharedBuffers))
+        {
             wio.stop();
             return;
         }
-        
-        if (nsend == 0) {
+
+        if (nsend == 0)
+        {
             consumeHeadMsg();
             mp = headMsg();
         }
-    } while(nsend == 0);
+    }
+    while(nsend == 0);
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
     if (nsend > MAXWSIZ)
         nsend = MAXWSIZ;
 
-    if (!useSharedBuffer) {
+    if (!useSharedBuffer)
+    {
         nw = write(wFd, data, nsend);
-    } else {
+    }
+    else
+    {
         struct msghdr msgh;
         struct iovec iov[1];
         int cmsghdrlength;
         struct cmsghdr * cmsgh;
 
         int fdCount = sharedBuffers.size();
-        if (fdCount > 0) {
-            if (fdCount > MAXFD_PER_MESSAGE) {
+        if (fdCount > 0)
+        {
+            if (fdCount > MAXFD_PER_MESSAGE)
+            {
                 log(fmt("attempt to send too many FD\n"));
                 close();
                 return;
@@ -2253,10 +2372,13 @@ void MsgQueue::writeToFd() {
             cmsgh->cmsg_type = SCM_RIGHTS;
             msgh.msg_control = cmsgh;
             msgh.msg_controllen = cmsghdrlength;
-            for(int i = 0; i < fdCount; ++i) {
+            for(int i = 0; i < fdCount; ++i)
+            {
                 ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = sharedBuffers[i];
             }
-        } else {
+        }
+        else
+        {
             cmsgh = NULL;
             cmsghdrlength = 0;
             msgh.msg_control = cmsgh;
@@ -2305,7 +2427,8 @@ void MsgQueue::writeToFd() {
         consumeHeadMsg();
 }
 
-void MsgQueue::log(const std::string & str) const {
+void MsgQueue::log(const std::string &str) const
+{
     // This is only invoked from destructor
     std::string logLine = "Dying Connection ";
     logLine += ": ";
@@ -2313,7 +2436,7 @@ void MsgQueue::log(const std::string & str) const {
     ::log(logLine);
 }
 
-int ClInfo::findDevice(const std::string & dev, const std::string & name) const
+int ClInfo::findDevice(const std::string &dev, const std::string &name) const
 {
     if (allprops >= 1 || dev.empty())
         return (0);
@@ -2325,7 +2448,7 @@ int ClInfo::findDevice(const std::string & dev, const std::string & name) const
     return (-1);
 }
 
-void ClInfo::addDevice(const std::string & dev, const std::string & name, int isblob)
+void ClInfo::addDevice(const std::string &dev, const std::string &name, int isblob)
 {
     if (isblob)
     {
@@ -2354,7 +2477,7 @@ void MsgQueue::crackBLOB(const char *enableBLOB, BLOBHandling *bp)
         *bp = B_NEVER;
 }
 
-void ClInfo::crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB)
+void ClInfo::crackBLOBHandling(const std::string &dev, const std::string &name, const char *enableBLOB)
 {
     /* If we have EnableBLOB with property name, we add it to Client device list */
     if (!name.empty())
@@ -2377,7 +2500,7 @@ void ClInfo::crackBLOBHandling(const std::string & dev, const std::string & name
     }
 }
 
-void MsgQueue::traceMsg(const std::string & logMsg, XMLEle *root)
+void MsgQueue::traceMsg(const std::string &logMsg, XMLEle *root)
 {
     log(logMsg);
 
@@ -2475,7 +2598,7 @@ DvrInfo::DvrInfo(bool useSharedBuffer) :
     drivers.insert(this);
 }
 
-DvrInfo::DvrInfo(const DvrInfo & model):
+DvrInfo::DvrInfo(const DvrInfo &model):
     MsgQueue(model.useSharedBuffer),
     name(model.name),
     restarts(model.restarts)
@@ -2483,18 +2606,22 @@ DvrInfo::DvrInfo(const DvrInfo & model):
     drivers.insert(this);
 }
 
-DvrInfo::~DvrInfo() {
+DvrInfo::~DvrInfo()
+{
     drivers.erase(this);
-    for(auto prop : sprops) {
+    for(auto prop : sprops)
+    {
         delete prop;
     }
 }
 
-bool DvrInfo::isHandlingDevice(const std::string & dev) const {
+bool DvrInfo::isHandlingDevice(const std::string &dev) const
+{
     return this->dev.find(dev) != this->dev.end();
 }
 
-void DvrInfo::log(const std::string & str) const {
+void DvrInfo::log(const std::string &str) const
+{
     std::string logLine = "Driver ";
     logLine += name;
     logLine += ": ";
@@ -2504,12 +2631,13 @@ void DvrInfo::log(const std::string & str) const {
 
 ConcurrentSet<DvrInfo> DvrInfo::drivers;
 
-LocalDvrInfo::LocalDvrInfo(): DvrInfo(true) {
+LocalDvrInfo::LocalDvrInfo(): DvrInfo(true)
+{
     eio.set<LocalDvrInfo, &LocalDvrInfo::onEfdEvent>(this);
     pidwatcher.set<LocalDvrInfo, &LocalDvrInfo::onPidEvent>(this);
 }
 
-LocalDvrInfo::LocalDvrInfo(const LocalDvrInfo & model):
+LocalDvrInfo::LocalDvrInfo(const LocalDvrInfo &model):
     DvrInfo(model),
     envDev(model.envDev),
     envConfig(model.envConfig),
@@ -2520,7 +2648,8 @@ LocalDvrInfo::LocalDvrInfo(const LocalDvrInfo & model):
     pidwatcher.set<LocalDvrInfo, &LocalDvrInfo::onPidEvent>(this);
 }
 
-LocalDvrInfo::~LocalDvrInfo() {
+LocalDvrInfo::~LocalDvrInfo()
+{
     closeEfd();
     if (pid != 0)
     {
@@ -2530,7 +2659,8 @@ LocalDvrInfo::~LocalDvrInfo() {
     closePid();
 }
 
-LocalDvrInfo * LocalDvrInfo::clone() const {
+LocalDvrInfo * LocalDvrInfo::clone() const
+{
     return new LocalDvrInfo(*this);
 }
 
@@ -2549,16 +2679,19 @@ void LocalDvrInfo::closePid()
 
 void LocalDvrInfo::onEfdEvent(ev::io &, int revents)
 {
-    if (EV_ERROR & revents) {
+    if (EV_ERROR & revents)
+    {
         int sockErrno = readFdError(this->efd);
-        if (sockErrno) {
+        if (sockErrno)
+        {
             log(fmt("Error on stderr: %s\n", strerror(sockErrno)));
             closeEfd();
         }
         return;
     }
 
-    if (revents & EV_READ) {
+    if (revents & EV_READ)
+    {
         ssize_t nr;
 
         /* read more */
@@ -2577,7 +2710,7 @@ void LocalDvrInfo::onEfdEvent(ev::io &, int revents)
             return;
         }
         errbuffpos += nr;
-    
+
         for(int i = 0; i < errbuffpos; ++i)
         {
             if (errbuff[i] == '\n')
@@ -2594,10 +2727,14 @@ void LocalDvrInfo::onEfdEvent(ev::io &, int revents)
 
 void LocalDvrInfo::onPidEvent(ev::child &, int revents)
 {
-    if (revents & EV_CHILD) {
-        if (WIFEXITED(pidwatcher.rstatus)) {
+    if (revents & EV_CHILD)
+    {
+        if (WIFEXITED(pidwatcher.rstatus))
+        {
             log(fmt("process %d exited with status %d\n", pid, WEXITSTATUS(pidwatcher.rstatus)));
-        } else if (WIFSIGNALED(pidwatcher.rstatus)) {
+        }
+        else if (WIFSIGNALED(pidwatcher.rstatus))
+        {
             int signum = WTERMSIG(pidwatcher.rstatus);
             log(fmt("process %d killed with signal %d - %s\n", pid, signum, strsignal(signum)));
         }
@@ -2606,10 +2743,10 @@ void LocalDvrInfo::onPidEvent(ev::child &, int revents)
     }
 }
 
-RemoteDvrInfo::RemoteDvrInfo():DvrInfo(false)
+RemoteDvrInfo::RemoteDvrInfo(): DvrInfo(false)
 {}
 
-RemoteDvrInfo::RemoteDvrInfo(const RemoteDvrInfo & model):
+RemoteDvrInfo::RemoteDvrInfo(const RemoteDvrInfo &model):
     DvrInfo(model),
     host(model.host),
     port(model.port)
@@ -2618,23 +2755,28 @@ RemoteDvrInfo::RemoteDvrInfo(const RemoteDvrInfo & model):
 RemoteDvrInfo::~RemoteDvrInfo()
 {}
 
-RemoteDvrInfo * RemoteDvrInfo::clone() const {
+RemoteDvrInfo * RemoteDvrInfo::clone() const
+{
     return new RemoteDvrInfo(*this);
 }
 
-ClInfo::ClInfo(bool useSharedBuffer) : MsgQueue(useSharedBuffer) {
+ClInfo::ClInfo(bool useSharedBuffer) : MsgQueue(useSharedBuffer)
+{
     clients.insert(this);
 }
 
-ClInfo::~ClInfo() {
-    for(auto prop : props) {
+ClInfo::~ClInfo()
+{
+    for(auto prop : props)
+    {
         delete prop;
     }
 
     clients.erase(this);
 }
 
-void ClInfo::log(const std::string & str) const {
+void ClInfo::log(const std::string &str) const
+{
     std::string logLine = fmt("Client %d: ", this->getRFd());
     logLine += str;
     ::log(logLine);
@@ -2646,8 +2788,10 @@ SerializedMsg::SerializedMsg(Msg * parent) : asyncProgress(), owner(parent), awa
 {
     blockedProducer = nullptr;
     // At first, everything is required.
-    for(auto fd : parent->sharedBuffers) {
-        if (fd != -1) {
+    for(auto fd : parent->sharedBuffers)
+    {
+        if (fd != -1)
+        {
             requirements.sharedBuffers.insert(fd);
         }
     }
@@ -2657,69 +2801,84 @@ SerializedMsg::SerializedMsg(Msg * parent) : asyncProgress(), owner(parent), awa
 }
 
 // Delete occurs when no async task is running and no awaiters are left
-SerializedMsg::~SerializedMsg() {
-    for(auto buff : ownBuffers) {
+SerializedMsg::~SerializedMsg()
+{
+    for(auto buff : ownBuffers)
+    {
         free(buff);
     }
 }
 
-bool SerializedMsg::async_canceled() {
+bool SerializedMsg::async_canceled()
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
     return asyncStatus == CANCELING;
 }
 
-void SerializedMsg::async_updateRequirement(const SerializationRequirement & req)
+void SerializedMsg::async_updateRequirement(const SerializationRequirement &req)
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
-    if (this->requirements == req) {
+    if (this->requirements == req)
+    {
         return;
     }
     this->requirements = req;
     asyncProgress.send();
 }
 
-void SerializedMsg::async_pushChunck(const MsgChunck & m) {
+void SerializedMsg::async_pushChunck(const MsgChunck &m)
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     this->chuncks.push_back(m);
     asyncProgress.send();
 }
 
-void SerializedMsg::async_done() {
+void SerializedMsg::async_done()
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
     asyncStatus = TERMINATED;
     asyncProgress.send();
 }
 
-void SerializedMsg::async_start() {
+void SerializedMsg::async_start()
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
-    if (asyncStatus != PENDING) {
+    if (asyncStatus != PENDING)
+    {
         return;
     }
 
     asyncStatus = RUNNING;
-    if (generateContentAsync()) {
+    if (generateContentAsync())
+    {
         asyncProgress.start();
 
-        std::thread t([this]() {
+        std::thread t([this]()
+        {
             generateContent();
         });
         t.detach();
-    } else {
+    }
+    else
+    {
         generateContent();
     }
 }
 
-void SerializedMsg::async_progressed() {
+void SerializedMsg::async_progressed()
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus == TERMINATED) {
+    if (asyncStatus == TERMINATED)
+    {
         // FIXME: unblock ?
         asyncProgress.stop();
     }
 
     // Update ios of awaiters
-    for(auto awaiter : awaiters) {
+    for(auto awaiter : awaiters)
+    {
         awaiter->messageMayHaveProgressed(this);
     }
 
@@ -2727,42 +2886,50 @@ void SerializedMsg::async_progressed() {
     owner->prune();
 }
 
-bool SerializedMsg::isAsyncRunning() {
+bool SerializedMsg::isAsyncRunning()
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     return (asyncStatus == RUNNING) || (asyncStatus == CANCELING);
 }
 
 
-bool SerializedMsg::requestContent(const MsgChunckIterator & position) {
+bool SerializedMsg::requestContent(const MsgChunckIterator &position)
+{
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus == PENDING) {
+    if (asyncStatus == PENDING)
+    {
         async_start();
     }
 
-    if (asyncStatus == TERMINATED) {
+    if (asyncStatus == TERMINATED)
+    {
         return true;
     }
 
     // Not reached the last chunck
-    if (position.chunckId < chuncks.size()) {
+    if (position.chunckId < chuncks.size())
+    {
         return true;
     }
 
     return false;
 }
 
-bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, ssize_t& size, std::vector<int, std::allocator<int> >& sharedBuffers)
+bool SerializedMsg::getContent(MsgChunckIterator &from, void* &data, ssize_t &size,
+                               std::vector<int, std::allocator<int> > &sharedBuffers)
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus != TERMINATED && from.chunckId >= chuncks.size()) {
+    if (asyncStatus != TERMINATED && from.chunckId >= chuncks.size())
+    {
         // Not ready yet
         return false;
     }
 
-    if (from.chunckId == chuncks.size()) {
+    if (from.chunckId == chuncks.size())
+    {
         // Done
         data = 0;
         size = 0;
@@ -2770,11 +2937,14 @@ bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, ssize_t& s
         return true;
     }
 
-    const MsgChunck & ck = chuncks[from.chunckId];
+    const MsgChunck &ck = chuncks[from.chunckId];
 
-    if (from.chunckOffset == 0) {
+    if (from.chunckOffset == 0)
+    {
         sharedBuffers = ck.sharedBufferIdsToAttach;
-    } else {
+    }
+    else
+    {
         sharedBuffers.clear();
     }
 
@@ -2783,69 +2953,83 @@ bool SerializedMsg::getContent(MsgChunckIterator & from, void*& data, ssize_t& s
     return true;
 }
 
-void SerializedMsg::advance(MsgChunckIterator & iter, ssize_t s)
+void SerializedMsg::advance(MsgChunckIterator &iter, ssize_t s)
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    MsgChunck & cur = chuncks[iter.chunckId];
+    MsgChunck &cur = chuncks[iter.chunckId];
     iter.chunckOffset += s;
-    if (iter.chunckOffset >= cur.contentLength) {
+    if (iter.chunckOffset >= cur.contentLength)
+    {
         iter.chunckId ++ ;
         iter.chunckOffset = 0;
-        if (iter.chunckId >= chuncks.size() && asyncStatus == TERMINATED) {
+        if (iter.chunckId >= chuncks.size() && asyncStatus == TERMINATED)
+        {
             iter.endReached = true;
         }
     }
 }
 
-void SerializedMsg::addAwaiter(MsgQueue * q) {
+void SerializedMsg::addAwaiter(MsgQueue * q)
+{
     awaiters.insert(q);
 }
 
-void SerializedMsg::release(MsgQueue * q) {
+void SerializedMsg::release(MsgQueue * q)
+{
     awaiters.erase(q);
-    if (awaiters.empty() && !isAsyncRunning()) {
+    if (awaiters.empty() && !isAsyncRunning())
+    {
         owner->releaseSerialization(this);
     }
 }
 
-void SerializedMsg::collectRequirements(SerializationRequirement & sr)
+void SerializedMsg::collectRequirements(SerializationRequirement &sr)
 {
     sr.add(requirements);
 }
 
 // This is called when a received message require additional // work, to avoid overflow
-void SerializedMsg::blockReceiver(MsgQueue * receiver) {
+void SerializedMsg::blockReceiver(MsgQueue * receiver)
+{
     // TODO : implement or remove
     (void) receiver;
 }
 
-ssize_t SerializedMsg::queueSize() {
+ssize_t SerializedMsg::queueSize()
+{
     return owner->queueSize;
 }
 
-SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent) {
+SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent)
+{
 }
 
-SerializedMsgWithoutSharedBuffer::~SerializedMsgWithoutSharedBuffer() {
+SerializedMsgWithoutSharedBuffer::~SerializedMsgWithoutSharedBuffer()
+{
 }
 
-SerializedMsgWithSharedBuffer::SerializedMsgWithSharedBuffer(Msg * parent): SerializedMsg(parent), ownSharedBuffers() {
+SerializedMsgWithSharedBuffer::SerializedMsgWithSharedBuffer(Msg * parent): SerializedMsg(parent), ownSharedBuffers()
+{
 }
 
-SerializedMsgWithSharedBuffer::~SerializedMsgWithSharedBuffer() {
-    for(auto id : ownSharedBuffers) {
+SerializedMsgWithSharedBuffer::~SerializedMsgWithSharedBuffer()
+{
+    for(auto id : ownSharedBuffers)
+    {
         close(id);
     }
 }
 
 
-MsgChunck::MsgChunck() : sharedBufferIdsToAttach() {
+MsgChunck::MsgChunck() : sharedBufferIdsToAttach()
+{
     content = nullptr;
     contentLength = 0;
 }
 
-MsgChunck::MsgChunck(char * content, unsigned long length) : sharedBufferIdsToAttach() {
+MsgChunck::MsgChunck(char * content, unsigned long length) : sharedBufferIdsToAttach()
+{
     this->content = content;
     this->contentLength = length;
 }
@@ -2861,17 +3045,22 @@ Msg::Msg(MsgQueue * from, XMLEle * ele): sharedBuffers()
     convertionToInline = nullptr;
 
     queueSize = sprlXMLEle(xmlContent, 0);
-    for(auto blobContent : findBlobElements(xmlContent)) {
+    for(auto blobContent : findBlobElements(xmlContent))
+    {
         std::string attached = findXMLAttValu(blobContent, "attached");
-        if (attached == "true") {
+        if (attached == "true")
+        {
             hasSharedBufferBlobs = true;
-        } else {
+        }
+        else
+        {
             hasInlineBlobs = true;
         }
     }
 }
 
-Msg::~Msg() {
+Msg::~Msg()
+{
     // Assume convertionToSharedBlob and convertionToInlineBlob were already droped
     assert(convertionToSharedBuffer == nullptr);
     assert(convertionToInline == nullptr);
@@ -2880,12 +3069,15 @@ Msg::~Msg() {
     releaseSharedBuffers(std::set<int>());
 }
 
-void Msg::releaseSerialization(SerializedMsg * msg) {
-    if (msg == convertionToSharedBuffer) {
+void Msg::releaseSerialization(SerializedMsg * msg)
+{
+    if (msg == convertionToSharedBuffer)
+    {
         convertionToSharedBuffer = nullptr;
     }
 
-    if (msg == convertionToInline) {
+    if (msg == convertionToInline)
+    {
         convertionToInline = nullptr;
     }
 
@@ -2893,54 +3085,66 @@ void Msg::releaseSerialization(SerializedMsg * msg) {
     prune();
 }
 
-void Msg::releaseXmlContent() {
-    if (xmlContent != nullptr) {
+void Msg::releaseXmlContent()
+{
+    if (xmlContent != nullptr)
+    {
         delXMLEle(xmlContent);
         xmlContent = nullptr;
     }
 }
 
-void Msg::releaseSharedBuffers(const std::set<int> & keep) {
-    for(std::size_t i = 0; i < sharedBuffers.size(); ++i) {
+void Msg::releaseSharedBuffers(const std::set<int> &keep)
+{
+    for(std::size_t i = 0; i < sharedBuffers.size(); ++i)
+    {
         auto fd = sharedBuffers[i];
-        if (fd != -1 && keep.find(fd) == keep.end()) {
+        if (fd != -1 && keep.find(fd) == keep.end())
+        {
             close(fd);
             sharedBuffers[i] = -1;
         }
     }
 }
 
-void Msg::prune() {
+void Msg::prune()
+{
     // Collect ressources required.
     SerializationRequirement req;
-    if (convertionToSharedBuffer) {
+    if (convertionToSharedBuffer)
+    {
         convertionToSharedBuffer->collectRequirements(req);
     }
-    if (convertionToInline) {
+    if (convertionToInline)
+    {
         convertionToInline->collectRequirements(req);
     }
     // Free the resources.
-    if (!req.xml) {
+    if (!req.xml)
+    {
         releaseXmlContent();
     }
 
     releaseSharedBuffers(req.sharedBuffers);
 
     // Nobody cares anymore ?
-    if (convertionToSharedBuffer == nullptr && convertionToInline == nullptr) {
+    if (convertionToSharedBuffer == nullptr && convertionToInline == nullptr)
+    {
         delete(this);
     }
 }
 
-bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t & size)
+bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t &size)
 {
     std::string sizeStr = findXMLAttValu(blobWithAttachedBuffer, "size");
-    if (sizeStr == "") {
+    if (sizeStr == "")
+    {
         return false;
     }
     std::size_t pos;
     size = std::stoll(sizeStr, &pos, 10);
-    if (pos != sizeStr.size()) {
+    if (pos != sizeStr.size())
+    {
         log("Invalid size attribute value " + sizeStr);
         return false;
     }
@@ -2948,18 +3152,23 @@ bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t & size)
 }
 
 /** Init a message from xml content & additional incoming buffers */
-bool Msg::fetchBlobs(std::list<int> & incomingSharedBuffers) {
+bool Msg::fetchBlobs(std::list<int> &incomingSharedBuffers)
+{
     /* Consume every buffers */
-    for(auto blobContent : findBlobElements(xmlContent)) {
+    for(auto blobContent : findBlobElements(xmlContent))
+    {
         ssize_t blobSize;
-        if (!parseBlobSize(blobContent, blobSize)) {
+        if (!parseBlobSize(blobContent, blobSize))
+        {
             log("Attached blob misses the size attribute");
             return false;
         }
 
         std::string attached = findXMLAttValu(blobContent, "attached");
-        if (attached == "true") {
-            if (incomingSharedBuffers.empty()) {
+        if (attached == "true")
+        {
+            if (incomingSharedBuffers.empty())
+            {
                 log("Missing shared buffer...\n");
                 return false;
             }
@@ -2970,65 +3179,84 @@ bool Msg::fetchBlobs(std::list<int> & incomingSharedBuffers) {
             incomingSharedBuffers.pop_front();
 
             sharedBuffers.push_back(fd);
-        } else {
+        }
+        else
+        {
             // Check cdata length vs blobSize ?
         }
     }
     return true;
 }
 
-void Msg::queuingDone() {
+void Msg::queuingDone()
+{
     prune();
 }
 
-Msg * Msg::fromXml(MsgQueue * from, XMLEle * root, std::list<int> & incomingSharedBuffers)
+Msg * Msg::fromXml(MsgQueue * from, XMLEle * root, std::list<int> &incomingSharedBuffers)
 {
     Msg * m = new Msg(from, root);
-    if (!m->fetchBlobs(incomingSharedBuffers)) {
+    if (!m->fetchBlobs(incomingSharedBuffers))
+    {
         delete(m);
         return nullptr;
     }
     return m;
 }
 
-SerializedMsg * Msg::buildConvertionToSharedBuffer() {
-    if (convertionToSharedBuffer) {
+SerializedMsg * Msg::buildConvertionToSharedBuffer()
+{
+    if (convertionToSharedBuffer)
+    {
         return convertionToSharedBuffer;
     }
 
     convertionToSharedBuffer = new SerializedMsgWithSharedBuffer(this);
-    if (hasInlineBlobs && from) {
+    if (hasInlineBlobs && from)
+    {
         convertionToSharedBuffer->blockReceiver(from);
     }
     return convertionToSharedBuffer;
 }
 
-SerializedMsg * Msg::buildConvertionToInline() {
-    if (convertionToInline) {
+SerializedMsg * Msg::buildConvertionToInline()
+{
+    if (convertionToInline)
+    {
         return convertionToInline;
     }
 
     return convertionToInline = new SerializedMsgWithoutSharedBuffer(this);
 }
 
-SerializedMsg * Msg::serialize(MsgQueue * to) {
-    if (hasSharedBufferBlobs || hasInlineBlobs) {
-        if (to->acceptSharedBuffers()) {
+SerializedMsg * Msg::serialize(MsgQueue * to)
+{
+    if (hasSharedBufferBlobs || hasInlineBlobs)
+    {
+        if (to->acceptSharedBuffers())
+        {
             return buildConvertionToSharedBuffer();
-        } else {
+        }
+        else
+        {
             return buildConvertionToInline();
         }
-    } else {
+    }
+    else
+    {
         // Just serialize using copy
         return buildConvertionToInline();
     }
 }
 
-bool SerializedMsgWithSharedBuffer::detectInlineBlobs() {
-    for(auto blobContent : findBlobElements(owner->xmlContent)) {
+bool SerializedMsgWithSharedBuffer::detectInlineBlobs()
+{
+    for(auto blobContent : findBlobElements(owner->xmlContent))
+    {
         // C'est pas trivial, dans ce cas, car il faut les réattacher
         std::string attached = findXMLAttValu(blobContent, "attached");
-        if (attached != "true") {
+        if (attached != "true")
+        {
             return true;
         }
     }
@@ -3039,23 +3267,26 @@ static int xmlReplacementMapFind(void * self, XMLEle * source, XMLEle * * replac
 {
     auto map = (const std::unordered_map<XMLEle*, XMLEle*> *) self;
     auto idx = map->find(source);
-    if (idx == map->end()) {
+    if (idx == map->end())
+    {
         return 0;
     }
     *replace = (XMLEle*)idx->second;
     return 1;
 }
 
-XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<XMLEle*, XMLEle*> & replacement)
+XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<XMLEle*, XMLEle*> &replacement)
 {
     return cloneXMLEle(root, &xmlReplacementMapFind, (void*)&replacement);
 }
 
-bool SerializedMsgWithoutSharedBuffer::generateContentAsync() const {
+bool SerializedMsgWithoutSharedBuffer::generateContentAsync() const
+{
     return owner->hasInlineBlobs || owner->hasSharedBufferBlobs;
 }
 
-void SerializedMsgWithoutSharedBuffer::generateContent() {
+void SerializedMsgWithoutSharedBuffer::generateContent()
+{
     // Convert every shared buffer into an inline base64
     auto xmlContent = owner->xmlContent;
 
@@ -3071,10 +3302,12 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
 
     // Identify shared buffer blob to base64 them
     // Identify base64 blob to avoid copying them (we'll copy the cdata)
-    for(auto blobContent : findBlobElements(xmlContent)) {
+    for(auto blobContent : findBlobElements(xmlContent))
+    {
         std::string attached = findXMLAttValu(blobContent, "attached");
 
-        if (attached != "true" && pcdatalenXMLEle(blobContent) == 0) {
+        if (attached != "true" && pcdatalenXMLEle(blobContent) == 0)
+        {
             continue;
         }
 
@@ -3082,10 +3315,11 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
         rmXMLAtt(clone, "attached");
         editXMLEle(clone, "_");
 
-        replacement[blobContent]= clone;
+        replacement[blobContent] = clone;
         cdata.push_back(clone);
 
-        if (attached == "true") {
+        if (attached == "true")
+        {
             rmXMLAtt(clone, "enclen");
 
             // Get the size if present
@@ -3098,14 +3332,17 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
             sharedBuffers.push_back(owner->sharedBuffers[ownerSharedBufferId++]);
             xmlSizes.push_back(size);
             sharedCData.push_back(nullptr);
-        } else {
+        }
+        else
+        {
             sharedBuffers.push_back(-1);
             xmlSizes.push_back(-1);
             sharedCData.push_back(blobContent);
         }
     }
 
-    if (replacement.empty()) {
+    if (replacement.empty())
+    {
         // Just print the content as is...
 
         char * model = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
@@ -3117,7 +3354,9 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
         // requirements.xml = false;
         // requirements.sharedBuffers.clear();
 
-    } else {
+    }
+    else
+    {
         // Create a replacement that shares original CData buffers
         xmlContent = cloneXMLEleWithReplacementMap(xmlContent, replacement);
 
@@ -3129,7 +3368,8 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
         ownBuffers.push_back(model);
 
         // Get the element offset
-        for(std::size_t i = 0; i < cdata.size(); ++i) {
+        for(std::size_t i = 0; i < cdata.size(); ++i)
+        {
             modelCdataOffset[i] = sprXMLCDataOffset(xmlContent, cdata[i], 0);
         }
         delXMLEle(xmlContent);
@@ -3139,8 +3379,10 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
         std::vector<size_t> sizes(cdata.size());
 
         // Attach all blobs
-        for(std::size_t i = 0; i < cdata.size(); ++i) {
-            if (sharedBuffers[i] != -1) {
+        for(std::size_t i = 0; i < cdata.size(); ++i)
+        {
+            if (sharedBuffers[i] != -1)
+            {
                 fds[i] = sharedBuffers[i];
 
                 size_t dataSize;
@@ -3148,20 +3390,25 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
 
                 // check dataSize is compatible with the blob element's size
                 // It's mandatory for attached blob to give their size
-                if (xmlSizes[i] != -1 && ((size_t)xmlSizes[i]) <= dataSize) {
+                if (xmlSizes[i] != -1 && ((size_t)xmlSizes[i]) <= dataSize)
+                {
                     dataSize = xmlSizes[i];
                 }
                 sizes[i] = dataSize;
-            } else {
+            }
+            else
+            {
                 fds[i] = -1;
             }
         }
 
         // Copy from model or blob (streaming base64 encode)
         int modelOffset = 0;
-        for(std::size_t i = 0; i < cdata.size(); ++i) {
+        for(std::size_t i = 0; i < cdata.size(); ++i)
+        {
             int cdataOffset = modelCdataOffset[i];
-            if (cdataOffset > modelOffset) {
+            if (cdataOffset > modelOffset)
+            {
                 async_pushChunck(MsgChunck(model + modelOffset, cdataOffset - modelOffset));
             }
             // Skip the dummy cdata completly
@@ -3170,7 +3417,8 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
             // Perform inplace base64
             // FIXME: could be streamed/splitted
 
-            if (fds[i] != -1) {
+            if (fds[i] != -1)
+            {
                 // Add a binary chunck. This needs base64 convertion
                 // FIXME: the size here should be the size of the blob element
                 unsigned long buffSze = sizes[i];
@@ -3178,9 +3426,10 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
 
                 // split here in smaller chuncks for faster startup
                 // This allow starting write before the whole blob is converted
-                while(buffSze > 0) {
+                while(buffSze > 0)
+                {
                     // We need a block size multiple of 24 bits (3 bytes)
-                    unsigned long sze = buffSze > 3 * 16384 ? 3*16384 : buffSze;
+                    unsigned long sze = buffSze > 3 * 16384 ? 3 * 16384 : buffSze;
 
                     char* buffer = (char*) malloc(4 * sze / 3 + 4);
                     ownBuffers.push_back(buffer);
@@ -3197,7 +3446,9 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
                 dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
 
                 // requirements.sharedBuffers.erase(fds[i]);
-            } else {
+            }
+            else
+            {
                 // Add an already ready cdata section
 
                 auto len = pcdatalenXMLEle(sharedCData[i]);
@@ -3206,7 +3457,8 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
             }
         }
 
-        if (modelOffset < modelSize) {
+        if (modelOffset < modelSize)
+        {
             async_pushChunck(MsgChunck(model + modelOffset, modelSize - modelOffset));
             modelOffset = modelSize;
         }
@@ -3214,11 +3466,13 @@ void SerializedMsgWithoutSharedBuffer::generateContent() {
     async_done();
 }
 
-bool SerializedMsgWithSharedBuffer::generateContentAsync() const {
+bool SerializedMsgWithSharedBuffer::generateContentAsync() const
+{
     return owner->hasInlineBlobs;
 }
 
-void SerializedMsgWithSharedBuffer::generateContent() {
+void SerializedMsgWithSharedBuffer::generateContent()
+{
     // Convert every inline base64 blob from xml into an attached buffer
     auto xmlContent = owner->xmlContent;
 
@@ -3226,12 +3480,15 @@ void SerializedMsgWithSharedBuffer::generateContent() {
 
     std::unordered_map<XMLEle*, XMLEle*> replacement;
     int blobPos = 0;
-    for(auto blobContent : findBlobElements(owner->xmlContent)) {
-        if (!pcdatalenXMLEle(blobContent)) {
+    for(auto blobContent : findBlobElements(owner->xmlContent))
+    {
+        if (!pcdatalenXMLEle(blobContent))
+        {
             continue;
         }
         std::string attached = findXMLAttValu(blobContent, "attached");
-        if (attached != "true") {
+        if (attached != "true")
+        {
             // We need to replace.
             XMLEle * clone = shallowCloneXMLEle(blobContent);
             rmXMLAtt(clone, "enclen");
@@ -3245,13 +3502,15 @@ void SerializedMsgWithSharedBuffer::generateContent() {
             // Shall we really trust the size here ?
 
             ssize_t size;
-            if (!parseBlobSize(blobContent, size)) {
+            if (!parseBlobSize(blobContent, size))
+            {
                 log("Missing size value for blob");
                 size = 1;
             }
 
             void * blob = IDSharedBlobAlloc(size);
-            if (blob == nullptr) {
+            if (blob == nullptr)
+            {
                 log(fmt("Unable to allocate shared buffer of size %d : %s\n", size, strerror(errno)));
                 ::exit(1);
             }
@@ -3259,7 +3518,8 @@ void SerializedMsgWithSharedBuffer::generateContent() {
 
             int actualLen = from64tobits_fast((char*)blob, base64data, base64datalen);
 
-            if (actualLen != size) {
+            if (actualLen != size)
+            {
                 // FIXME: WTF ? at least prevent overflow ???
                 log(fmt("Blob size mismatch after base64dec: %lld vs %lld\n", (long long int)actualLen, (long long int)size));
             }
@@ -3274,7 +3534,8 @@ void SerializedMsgWithSharedBuffer::generateContent() {
         blobPos++;
     }
 
-    if (!replacement.empty()) {
+    if (!replacement.empty())
+    {
         // Work on a copy --- but we don't want to copy the blob !!!
         xmlContent = cloneXMLEleWithReplacementMap(xmlContent, replacement);
     }
@@ -3289,13 +3550,15 @@ void SerializedMsgWithSharedBuffer::generateContent() {
 
     async_pushChunck(chunck);
 
-    if (!replacement.empty()) {
+    if (!replacement.empty())
+    {
         delXMLEle(xmlContent);
     }
     async_done();
 }
 
-MsgQueue::MsgQueue(bool useSharedBuffer): useSharedBuffer(useSharedBuffer) {
+MsgQueue::MsgQueue(bool useSharedBuffer): useSharedBuffer(useSharedBuffer)
+{
     lp = newLilXML();
     rio.set<MsgQueue, &MsgQueue::ioCb>(this);
     wio.set<MsgQueue, &MsgQueue::ioCb>(this);
@@ -3303,7 +3566,8 @@ MsgQueue::MsgQueue(bool useSharedBuffer): useSharedBuffer(useSharedBuffer) {
     wFd = -1;
 }
 
-MsgQueue::~MsgQueue() {
+MsgQueue::~MsgQueue()
+{
     rio.stop();
     wio.stop();
 
@@ -3316,18 +3580,21 @@ MsgQueue::~MsgQueue() {
     /* unreference messages queue for this client */
     auto msgqcp = msgq;
     msgq.clear();
-    for(auto mp : msgqcp) {
+    for(auto mp : msgqcp)
+    {
         mp->release(this);
     }
 }
 
 void MsgQueue::setFds(int rFd, int wFd)
 {
-    if (this->rFd != -1) {
+    if (this->rFd != -1)
+    {
         rio.stop();
         wio.stop();
         ::close(rFd);
-        if (rFd != wFd) {
+        if (rFd != wFd)
+        {
             ::close(wFd);
         }
     }
@@ -3335,25 +3602,29 @@ void MsgQueue::setFds(int rFd, int wFd)
     this->rFd = rFd;
     this->wFd = wFd;
     this->nsent.reset();
-    
-    if (rFd != -1) {
-        fcntl(rFd, F_SETFL, fcntl(rFd, F_GETFL, 0) | O_NONBLOCK); 
-        if (wFd != rFd) {
-            fcntl(wFd, F_SETFL, fcntl(wFd, F_GETFL, 0) | O_NONBLOCK); 
+
+    if (rFd != -1)
+    {
+        fcntl(rFd, F_SETFL, fcntl(rFd, F_GETFL, 0) | O_NONBLOCK);
+        if (wFd != rFd)
+        {
+            fcntl(wFd, F_SETFL, fcntl(wFd, F_GETFL, 0) | O_NONBLOCK);
         }
-        
+
         rio.set(rFd, ev::READ);
         wio.set(wFd, ev::WRITE);
         updateIos();
     }
 }
 
-SerializedMsg * MsgQueue::headMsg() const {
+SerializedMsg * MsgQueue::headMsg() const
+{
     if (msgq.empty()) return nullptr;
     return *(msgq.begin());
 }
 
-void MsgQueue::consumeHeadMsg() {
+void MsgQueue::consumeHeadMsg()
+{
     auto msg = headMsg();
     msgq.pop_front();
     msg->release(this);
@@ -3362,7 +3633,8 @@ void MsgQueue::consumeHeadMsg() {
     updateIos();
 }
 
-void MsgQueue::pushMsg(Msg * mp) {
+void MsgQueue::pushMsg(Msg * mp)
+{
     auto serialized = mp->serialize(this);
 
     msgq.push_back(serialized);
@@ -3372,30 +3644,40 @@ void MsgQueue::pushMsg(Msg * mp) {
     updateIos();
 }
 
-void MsgQueue::updateIos() {
-    if (wFd != -1) {
-        if (msgq.empty() || !msgq.front()->requestContent(nsent)) {
+void MsgQueue::updateIos()
+{
+    if (wFd != -1)
+    {
+        if (msgq.empty() || !msgq.front()->requestContent(nsent))
+        {
             wio.stop();
-        } else {
+        }
+        else
+        {
             wio.start();
         }
     }
-    if (rFd != -1) {
+    if (rFd != -1)
+    {
         rio.start();
     }
 }
 
-void MsgQueue::messageMayHaveProgressed(const SerializedMsg * msg) {
-    if ((!msgq.empty()) && (msgq.front() == msg)) {
+void MsgQueue::messageMayHaveProgressed(const SerializedMsg * msg)
+{
+    if ((!msgq.empty()) && (msgq.front() == msg))
+    {
         updateIos();
     }
 }
 
-void MsgQueue::clearMsgQueue() {
+void MsgQueue::clearMsgQueue()
+{
     nsent.reset();
 
     auto queueCopy = msgq;
-    for(auto mp : queueCopy) {
+    for(auto mp : queueCopy)
+    {
         mp->release(this);
     }
     msgq.clear();
@@ -3405,7 +3687,8 @@ void MsgQueue::clearMsgQueue() {
     wio.stop();
 }
 
-unsigned long MsgQueue::msgQSize() const {
+unsigned long MsgQueue::msgQSize() const
+{
     unsigned long l = 0;
 
     for (auto mp : msgq)
@@ -3419,13 +3702,16 @@ unsigned long MsgQueue::msgQSize() const {
 
 void MsgQueue::ioCb(ev::io &, int revents)
 {
-    if (EV_ERROR & revents) {
+    if (EV_ERROR & revents)
+    {
         int sockErrno = readFdError(this->rFd);
-        if ((!sockErrno) && this->wFd != this->rFd) {
+        if ((!sockErrno) && this->wFd != this->rFd)
+        {
             sockErrno = readFdError(this->wFd);
         }
 
-        if (sockErrno) {
+        if (sockErrno)
+        {
             log(fmt("Communication error: %s\n", strerror(sockErrno)));
             close();
             return;
@@ -3441,15 +3727,19 @@ void MsgQueue::ioCb(ev::io &, int revents)
 
 size_t MsgQueue::doRead(char * buf, size_t nr)
 {
-    if (!useSharedBuffer) {
+    if (!useSharedBuffer)
+    {
         /* read client - works for all kinds of fds incl pipe*/
         return read(rFd, buf, sizeof(buf));
-    } else {
+    }
+    else
+    {
         // Use recvmsg for ancillary data
         struct msghdr msgh;
         struct iovec iov;
 
-        union {
+        union
+        {
             struct cmsghdr cmsgh;
             /* Space large enough to hold an 'int' */
             char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
@@ -3473,25 +3763,32 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
         recvflag = 0;
 #endif
         int size = recvmsg(rFd, &msgh, recvflag);
-        if (size == -1) {
+        if (size == -1)
+        {
             return -1;
         }
 
-        for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
-            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+        for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+        {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            {
                 int fdCount = 0;
-                while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+                while(cmsg->cmsg_len >= CMSG_LEN((fdCount + 1) * sizeof(int)))
+                {
                     fdCount++;
                 }
                 log(fmt("Received %d fds\n", fdCount));
                 int * fds = (int*)CMSG_DATA(cmsg);
-                for(int i = 0; i < fdCount; ++i) {
+                for(int i = 0; i < fdCount; ++i)
+                {
 #ifndef __linux__
                     fcntl(fds[i], F_SETFD, FD_CLOEXEC);
 #endif
                     incomingSharedBuffers.push_back(fds[i]);
                 }
-            } else {
+            }
+            else
+            {
                 log(fmt("Ignoring ancillary data level %d, type %d\n", cmsg->cmsg_level, cmsg->cmsg_type));
             }
         }
@@ -3509,7 +3806,7 @@ void MsgQueue::readFromFd()
     if (nr <= 0)
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-        
+
         if (nr < 0)
             log(fmt("read: %s\n", strerror(errno)));
         else if (verbose > 0)
@@ -3536,7 +3833,8 @@ void MsgQueue::readFromFd()
     auto hb = heartBeat();
     while (root)
     {
-        if (hb.alive()) {
+        if (hb.alive())
+        {
             if (verbose > 2)
                 traceMsg("read ", root);
             else if (verbose > 1)
@@ -3546,7 +3844,9 @@ void MsgQueue::readFromFd()
             }
 
             onMessage(root, incomingSharedBuffers);
-        } else {
+        }
+        else
+        {
             // Otherwise, client got killed. Just release pending messages
             delXMLEle(root);
         }
@@ -3557,7 +3857,8 @@ void MsgQueue::readFromFd()
     free(nodes);
 }
 
-static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
+static std::vector<XMLEle *> findBlobElements(XMLEle * root)
+{
     std::vector<XMLEle *> result;
     for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
@@ -3569,40 +3870,45 @@ static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
     return result;
 }
 
-static void log(const std::string & log) {
+static void log(const std::string &log)
+{
     fprintf(stderr, "%s: ", indi_tstamp(NULL));
     fprintf(stderr, "%s", log.c_str());
 }
 
-static int readFdError(int fd) {
+static int readFdError(int fd)
+{
 #ifdef MSG_ERRQUEUE
-	char rcvbuf[128];  /* Buffer for normal data (not expected here...) */
+    char rcvbuf[128];  /* Buffer for normal data (not expected here...) */
     char cbuf[512];    /* Buffer for ancillary data (errors) */
     struct iovec  iov;
-	struct msghdr msg;
+    struct msghdr msg;
 
     iov.iov_base = &rcvbuf;
-	iov.iov_len = sizeof(rcvbuf);
+    iov.iov_len = sizeof(rcvbuf);
 
-	msg.msg_name = nullptr;
-	msg.msg_namelen = 0;
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_flags = 0;
-	msg.msg_control = cbuf;
-	msg.msg_controllen = sizeof(cbuf);
+    msg.msg_name = nullptr;
+    msg.msg_namelen = 0;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_flags = 0;
+    msg.msg_control = cbuf;
+    msg.msg_controllen = sizeof(cbuf);
 
-    int recv_bytes = recvmsg(fd, &msg, MSG_ERRQUEUE|MSG_DONTWAIT);
-    if (recv_bytes == -1) {
+    int recv_bytes = recvmsg(fd, &msg, MSG_ERRQUEUE | MSG_DONTWAIT);
+    if (recv_bytes == -1)
+    {
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
         return errno;
     }
 
     /* Receive auxiliary data in msgh */
-    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg))
+    {
         fprintf(stderr, "cmsg_len=%lu, cmsg_level=%u, cmsg_type=%u\n", cmsg->cmsg_len, cmsg->cmsg_level, cmsg->cmsg_type);
 
-        if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR) {
+        if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR)
+        {
             return ((struct sock_extended_err *)CMSG_DATA(cmsg))->ee_errno;
         }
     }
@@ -3614,17 +3920,19 @@ static int readFdError(int fd) {
     return EIO;
 }
 
-static void * attachSharedBuffer(int fd, size_t & size)
+static void * attachSharedBuffer(int fd, size_t &size)
 {
     struct stat sb;
-    if (fstat(fd, &sb) == -1) {
+    if (fstat(fd, &sb) == -1)
+    {
         perror("invalid shared buffer fd");
         Bye();
     }
     size = sb.st_size;
-    void * ret = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    void * ret = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if (ret == MAP_FAILED) {
+    if (ret == MAP_FAILED)
+    {
         perror("mmap");
         Bye();
     }
@@ -3635,7 +3943,8 @@ static void * attachSharedBuffer(int fd, size_t & size)
 static void dettachSharedBuffer(int fd, void * ptr, size_t size)
 {
     (void)fd;
-    if (munmap(ptr, size) == -1) {
+    if (munmap(ptr, size) == -1)
+    {
         perror("shared buffer munmap");
         Bye();
     }
@@ -3653,17 +3962,20 @@ static std::string fmt(const char *fmt, ...)
     size = vsnprintf(p, size, fmt, ap);
     va_end(ap);
 
-    if (size < 0) {
+    if (size < 0)
+    {
         perror("vnsprintf");
     }
 
-    if ((unsigned)size < sizeof(buffer)) {
+    if ((unsigned)size < sizeof(buffer))
+    {
         return std::string(buffer);
     }
 
     size++;             /* For '\0' */
     p = (char*)malloc(size);
-    if (p == NULL) {
+    if (p == NULL)
+    {
         perror("malloc");
         Bye();
     }
@@ -3672,7 +3984,8 @@ static std::string fmt(const char *fmt, ...)
     size = vsnprintf(p, size, fmt, ap);
     va_end(ap);
 
-    if (size < 0) {
+    if (size < 0)
+    {
         free(p);
         perror("vnsprintf");
     }

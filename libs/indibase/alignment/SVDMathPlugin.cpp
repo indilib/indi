@@ -14,28 +14,28 @@ namespace AlignmentSubsystem
 {
 // Standard functions required for all plugins
 extern "C" {
-SVDMathPlugin *Create()
-{
-    return new SVDMathPlugin;
-}
+    SVDMathPlugin *Create()
+    {
+        return new SVDMathPlugin;
+    }
 
-void Destroy(SVDMathPlugin *pPlugin)
-{
-    delete pPlugin;
-}
+    void Destroy(SVDMathPlugin *pPlugin)
+    {
+        delete pPlugin;
+    }
 
-const char *GetDisplayName()
-{
-    return "SVD Math Plugin";
-}
+    const char *GetDisplayName()
+    {
+        return "SVD Math Plugin";
+    }
 }
 void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1,
-                                               const TelescopeDirectionVector &Alpha2,
-                                               const TelescopeDirectionVector &Alpha3,
-                                               const TelescopeDirectionVector &Beta1,
-                                               const TelescopeDirectionVector &Beta2,
-                                               const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
-                                               gsl_matrix *pBetaToAlpha)
+        const TelescopeDirectionVector &Alpha2,
+        const TelescopeDirectionVector &Alpha3,
+        const TelescopeDirectionVector &Beta1,
+        const TelescopeDirectionVector &Beta2,
+        const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
+        gsl_matrix *pBetaToAlpha)
 {
     int GslRetcode;
 

@@ -59,7 +59,8 @@ namespace INDI
 {
 class StreamManager;
 
-struct pulse_t {
+struct pulse_t
+{
     timespec start;
     timespec duration;
 };
@@ -70,7 +71,7 @@ class Detector : public SensorInterface
 
         enum
         {
-            DETECTOR_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
+            DETECTOR_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY << 0, /*!< Can the Sensor Integration be aborted?  */
         } DetectorCapability;
 
         Detector();
@@ -82,7 +83,8 @@ class Detector : public SensorInterface
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n) override;
         bool ISSnoopDevice(XMLEle *root) override;
 
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
@@ -152,7 +154,7 @@ class Detector : public SensorInterface
          * client. If false, the element limits are updated without getting sent to the client.
          */
         virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                           bool sendToClient = true) override;
+                                   bool sendToClient = true) override;
 
         typedef enum
         {
@@ -161,7 +163,7 @@ class Detector : public SensorInterface
         } DETECTOR_INFO_INDEX;
         INumberVectorProperty DetectorSettingsNP;
 
-      private:
+    private:
         double TriggerLevel;
         double Resolution;
         INumber DetectorSettingsN[2];

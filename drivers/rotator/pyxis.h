@@ -25,64 +25,64 @@
 
 class Pyxis : public INDI::Rotator
 {
-  public:
+    public:
 
-    Pyxis();
-    virtual ~Pyxis() = default;
+        Pyxis();
+        virtual ~Pyxis() = default;
 
-    virtual bool Handshake() override;
-    const char * getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual bool Handshake() override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    // Rotator Overrides
-    virtual IPState HomeRotator() override;
-    virtual IPState MoveRotator(double angle) override;
-    virtual bool ReverseRotator(bool enabled) override;
+    protected:
+        // Rotator Overrides
+        virtual IPState HomeRotator() override;
+        virtual IPState MoveRotator(double angle) override;
+        virtual bool ReverseRotator(bool enabled) override;
 
-    // Misc.
-    virtual void TimerHit() override;
+        // Misc.
+        virtual void TimerHit() override;
 
-  private:    
-    // Check if connection is OK
-    bool Ack();
-    bool isMotionComplete();
-    bool getPA(uint16_t & PA);
-    int getReverseStatus();
-    bool setSteppingMode(uint8_t mode);
-    bool setRotationRate(uint8_t rate);
-    bool sleepController();
-    bool wakeupController();
-    std::string getVersion() ;
+    private:
+        // Check if connection is OK
+        bool Ack();
+        bool isMotionComplete();
+        bool getPA(uint16_t &PA);
+        int getReverseStatus();
+        bool setSteppingMode(uint8_t mode);
+        bool setRotationRate(uint8_t rate);
+        bool sleepController();
+        bool wakeupController();
+        std::string getVersion() ;
 
-    void queryParams();
+        void queryParams();
 
-    // Rotation Rate
-    INumber RotationRateN[1];
-    INumberVectorProperty RotationRateNP;
+        // Rotation Rate
+        INumber RotationRateN[1];
+        INumberVectorProperty RotationRateNP;
 
-    // Stepping
-    ISwitch SteppingS[2];
-    ISwitchVectorProperty SteppingSP;
-    enum { FULL_STEP, HALF_STEP};
+        // Stepping
+        ISwitch SteppingS[2];
+        ISwitchVectorProperty SteppingSP;
+        enum { FULL_STEP, HALF_STEP};
 
-    // Power
-    ISwitch PowerS[2];
-    ISwitchVectorProperty PowerSP;
-    enum { POWER_SLEEP, POWER_WAKEUP};
+        // Power
+        ISwitch PowerS[2];
+        ISwitchVectorProperty PowerSP;
+        enum { POWER_SLEEP, POWER_WAKEUP};
 
-    // Firmware version; tells us if 2 inch or 3 inch device
-    IText FirmwareT[1] {};
-    ITextVectorProperty FirmwareTP;
-    IText ModelT[1] {};
-    ITextVectorProperty ModelTP;
+        // Firmware version; tells us if 2 inch or 3 inch device
+        IText FirmwareT[1] {};
+        ITextVectorProperty FirmwareTP;
+        IText ModelT[1] {};
+        ITextVectorProperty ModelTP;
 
-    uint16_t targetPA = {0};
+        uint16_t targetPA = {0};
 
-    // Direction of rotation; 1->angle increasing; -1->angle decreasing
-    int direction = 1 ;
+        // Direction of rotation; 1->angle increasing; -1->angle decreasing
+        int direction = 1 ;
 };

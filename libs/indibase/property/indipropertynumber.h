@@ -26,21 +26,21 @@ namespace INDI
 class PropertyNumberPrivate;
 class PropertyNumber: public INDI::PropertyBasic<INumber>
 {
-    DECLARE_PRIVATE(PropertyNumber)
-public:
-    PropertyNumber(size_t count);
-    ~PropertyNumber();
+        DECLARE_PRIVATE(PropertyNumber)
+    public:
+        PropertyNumber(size_t count);
+        ~PropertyNumber();
 
-public:
-    bool update(const double values[], const char * const names[], int n);
+    public:
+        bool update(const double values[], const char * const names[], int n);
 
-    void fill(
-        const char *device, const char *name, const char *label, const char *group,
-        IPerm permission, double timeout, IPState state
-    );
+        void fill(
+            const char *device, const char *name, const char *label, const char *group,
+            IPerm permission, double timeout, IPState state
+        );
 
-public:
-    void updateMinMax();
+    public:
+        void updateMinMax();
 
 };
 

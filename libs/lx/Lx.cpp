@@ -398,7 +398,7 @@ int Lx::openserial(const char *devicename)
 
 int Lx::setRTS(int fd, int level)
 {
-//    int status;
+    //    int status;
     int mcr = 0;
     // does not work for RTS
     //if (ioctl(fd, TIOCMGET, &status) == -1) {
@@ -562,7 +562,7 @@ int Lx::stopLxSerial()
 
 INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
 {
-    for(auto &oneProperty: *dev->getProperties())
+    for(auto &oneProperty : *dev->getProperties())
         if (oneProperty->isLabelMatch(label))
             return oneProperty;
     return nullptr;

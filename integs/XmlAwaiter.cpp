@@ -21,23 +21,28 @@
 
 enum XmlStatus { PRE, WAIT_TAGNAME, TAGNAME, WAIT_ATTRIB, ATTRIB, QUOTE, WAIT_CLOSE };
 
-std::string parseXmlFragment(std::function<char()> readchar) {
+std::string parseXmlFragment(std::function<char()> readchar)
+{
 
     XmlStatus state = PRE;
     std::string received = "";
     std::string xmlFragment = "";
     char lastQuote = '\0';
-    while(true) {
+    while(true)
+    {
         char c = readchar();
         received += c;
 
-        bool isSpace = c == '\n' || c == '\r' || c== '\t' || c == ' ';
-        switch (state) {
+        bool isSpace = c == '\n' || c == '\r' || c == '\t' || c == ' ';
+        switch (state)
+        {
             case PRE:
-                if (isSpace) {
+                if (isSpace)
+                {
                     continue;
                 }
-                if (c == '<') {
+                if (c == '<')
+                {
                     xmlFragment += c;
                     state = WAIT_TAGNAME;
                     continue;
@@ -45,42 +50,50 @@ std::string parseXmlFragment(std::function<char()> readchar) {
                 throw std::runtime_error("Invalid xml fragment: " + received);
                 break;
             case WAIT_TAGNAME:
-                if (c == '/') {
+                if (c == '/')
+                {
                     xmlFragment += c;
                     continue;
                 }
-                if (isSpace) {
+                if (isSpace)
+                {
                     continue;
                 }
                 xmlFragment += c;
                 state = TAGNAME;
                 continue;
             case TAGNAME:
-                if (isSpace) {
+                if (isSpace)
+                {
                     state = WAIT_ATTRIB;
                     continue;
                 }
-                if (c == '/') {
+                if (c == '/')
+                {
                     state = WAIT_CLOSE;
                     xmlFragment += c;
                     continue;
                 }
-                if (c == '>') {
+                if (c == '>')
+                {
                     xmlFragment += c;
                     break;
                 }
                 xmlFragment += c;
                 continue;
             case WAIT_ATTRIB:
-                if (isSpace) {
+                if (isSpace)
+                {
                     continue;
                 }
-                if (c == '/') {
+                if (c == '/')
+                {
                     state = WAIT_CLOSE;
                     xmlFragment += c;
                     continue;
                 }
-                if (c == '>') {
+                if (c == '>')
+                {
                     xmlFragment += c;
                     break;
                 }
@@ -89,21 +102,25 @@ std::string parseXmlFragment(std::function<char()> readchar) {
                 state = ATTRIB;
                 continue;
             case ATTRIB:
-                if (isSpace) {
+                if (isSpace)
+                {
                     state = WAIT_ATTRIB;
                     continue;
                 }
-                if (c == '/') {
+                if (c == '/')
+                {
                     xmlFragment += "/";
                     state = WAIT_CLOSE;
                     continue;
                 }
-                if (c == '>') {
+                if (c == '>')
+                {
                     xmlFragment += '>';
                     break;
                 }
 
-                if (c == '"' || c=='\'') {
+                if (c == '"' || c == '\'')
+                {
                     lastQuote = c;
                     state = QUOTE;
                     xmlFragment += "'";
@@ -112,7 +129,8 @@ std::string parseXmlFragment(std::function<char()> readchar) {
                 xmlFragment += c;
                 continue;
             case QUOTE:
-                if (c == lastQuote) {
+                if (c == lastQuote)
+                {
                     xmlFragment += "'";
                     state = WAIT_ATTRIB;
                     continue;
@@ -120,7 +138,8 @@ std::string parseXmlFragment(std::function<char()> readchar) {
                 xmlFragment += c;
                 continue;
             case WAIT_CLOSE:
-                if (c == '>') {
+                if (c == '>')
+                {
                     xmlFragment += c;
                     break;
                 }

@@ -22,35 +22,35 @@
 
 class DomeScript : public INDI::Dome
 {
-  public:
-    DomeScript();
-    virtual ~DomeScript() = default;
+    public:
+        DomeScript();
+        virtual ~DomeScript() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    void ISGetProperties(const char *dev) override;
-    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    bool updateProperties() override;
+        void ISGetProperties(const char *dev) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool updateProperties() override;
 
-  protected:
-    void TimerHit() override;
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
-    virtual IPState MoveAbs(double az) override;
-    virtual IPState Park() override;
-    virtual IPState UnPark() override;
-    virtual IPState ControlShutter(ShutterOperation operation) override;
-    virtual bool Abort() override;
+    protected:
+        void TimerHit() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+        virtual IPState MoveAbs(double az) override;
+        virtual IPState Park() override;
+        virtual IPState UnPark() override;
+        virtual IPState ControlShutter(ShutterOperation operation) override;
+        virtual bool Abort() override;
 
-  private:
-    bool ReadDomeStatus();
-    bool RunScript(int script, ...);
+    private:
+        bool ReadDomeStatus();
+        bool RunScript(int script, ...);
 
-    ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15] {};
-    double TargetAz { 0 };
-    int TimeSinceUpdate { 0 };
+        ITextVectorProperty ScriptsTP;
+        IText ScriptsT[15] {};
+        double TargetAz { 0 };
+        int TimeSinceUpdate { 0 };
 };

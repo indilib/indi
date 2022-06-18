@@ -24,11 +24,15 @@ namespace INDI
 
 SingleThreadPoolPrivate::SingleThreadPoolPrivate()
 {
-    thread = std::thread([this]{
+    thread = std::thread([this]
+    {
         std::unique_lock<std::mutex> lock(runLock);
         for(;;)
         {
-            acquire.wait(lock, [&](){ return pendingFunction != nullptr || isThreadAboutToQuit; });
+            acquire.wait(lock, [&]()
+            {
+                return pendingFunction != nullptr || isThreadAboutToQuit;
+            });
             if (isThreadAboutToQuit)
                 break;
 
@@ -74,7 +78,7 @@ void SingleThreadPool::start(const std::function<void(const std::atomic_bool &is
 
     // wait for run
     if (std::this_thread::get_id() != d->thread.get_id())
-        d->relased.wait(lock, [&d]{ return d->pendingFunction == nullptr; });
+        d->relased.wait(lock, [&d] { return d->pendingFunction == nullptr; });
 }
 
 bool SingleThreadPool::tryStart(const std::function<void(const std::atomic_bool &)> &functionToRun)
@@ -90,7 +94,7 @@ bool SingleThreadPool::tryStart(const std::function<void(const std::atomic_bool 
 
     // wait for run
     if (std::this_thread::get_id() != d->thread.get_id())
-        d->relased.wait(lock, [&d]{ return d->pendingFunction == nullptr; });
+        d->relased.wait(lock, [&d] { return d->pendingFunction == nullptr; });
 
     return true;
 }

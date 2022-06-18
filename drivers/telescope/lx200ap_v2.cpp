@@ -580,7 +580,6 @@ bool LX200AstroPhysicsV2::ApInitialize()
     if ( (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
     {
         LOGF_ERROR("ApInitialize: Error setting tracking mode (%d).", err);
-        fprintf(stderr, "ApInitialize: Error setting tracking mode (%d).\n", err);
         return false;
     }
 
@@ -593,7 +592,6 @@ bool LX200AstroPhysicsV2::ApInitialize()
     if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
     {
         LOGF_ERROR("ApInitialize: Error setting move rate (%d).", err);
-        fprintf(stderr, "ApInitialize: Error setting move rate (%d).\n", err);
         return false;
     }
 
@@ -964,7 +962,6 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
         {
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
-            fprintf(stderr, "Slew is complete. Tracking...");
         }
 
         // Keep try of last values to determine if the mount settled.
@@ -1028,7 +1025,6 @@ bool LX200AstroPhysicsV2::parkInternal()
     if (APParkMount(PortFD) < 0)
     {
         LOG_ERROR("Parking Failed.");
-        fprintf(stderr, "Parking Failed.\n");
         return false;
     }
 
@@ -1603,7 +1599,6 @@ bool LX200AstroPhysicsV2::updateAPLocation(double latitude, double longitude, do
     if ((latitude == 0.) && (longitude == 0.))
     {
         LOG_DEBUG("updateLocation: latitude, longitude both zero");
-        fprintf(stderr, "UpdateLocation failed %d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", __LINE__);
         return false;
     }
 
@@ -1619,14 +1614,12 @@ bool LX200AstroPhysicsV2::updateAPLocation(double latitude, double longitude, do
     if (!isSimulation() && setAPSiteLongitude(PortFD, apLongitude) < 0)
     {
         LOG_ERROR("Error setting site longitude coordinates");
-        fprintf(stderr, "UpdateLocation failed %d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", __LINE__);
         return false;
     }
 
     if (!isSimulation() && setAPSiteLatitude(PortFD, latitude) < 0)
     {
         LOG_ERROR("Error setting site latitude coordinates");
-        fprintf(stderr, "UpdateLocation failed %d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", __LINE__);
         return false;
     }
 

@@ -53,7 +53,8 @@ static std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
 
 RoboFocus::RoboFocus()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_HAS_BACKLASH);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC |
+                      FOCUSER_HAS_BACKLASH);
 }
 
 bool RoboFocus::initProperties()

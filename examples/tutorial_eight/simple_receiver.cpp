@@ -110,7 +110,7 @@ bool SimpleReceiver::paramsUpdated(float sr, float freq, float bps, float bw, fl
     INDI_UNUSED(sr);
     INDI_UNUSED(bw);
     INDI_UNUSED(gain);
-	return true;
+    return true;
 }
 
 /**************************************************************************************
@@ -171,7 +171,10 @@ float SimpleReceiver::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
 
     gettimeofday(&now, nullptr);
 
@@ -260,8 +263,8 @@ void SimpleReceiver::grabFrame()
     // Set length of continuum
     int len  = getSampleRate() * getIntegrationTime() * getBPS() / 8;
     setBufferSize(len);
- 
-   // Let's get a pointer to the frame buffer
+
+    // Let's get a pointer to the frame buffer
     uint8_t *continuum = getBuffer();
 
     // Fill buffer with random pattern

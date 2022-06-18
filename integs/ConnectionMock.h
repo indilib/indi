@@ -27,31 +27,32 @@ class SharedBuffer;
 /**
  * Interface to a mocked connection
  */
-class ConnectionMock {
-    int fds[2];
-    std::list<int> receivedFds;
-    bool bufferReceiveAllowed;
-    ssize_t read(void * buff, size_t count);
-    char readChar(const std::string & expected);
+class ConnectionMock
+{
+        int fds[2];
+        std::list<int> receivedFds;
+        bool bufferReceiveAllowed;
+        ssize_t read(void * buff, size_t count);
+        char readChar(const std::string &expected);
 
-    void release();
-    std::string receiveMore();
+        void release();
+        std::string receiveMore();
 
-    // On error, contains data that were not returned
-    std::string pendingData;
-public:
-    ConnectionMock();
-    ~ConnectionMock();
-    void setFds(int rd, int wr);
+        // On error, contains data that were not returned
+        std::string pendingData;
+    public:
+        ConnectionMock();
+        ~ConnectionMock();
+        void setFds(int rd, int wr);
 
-    void expect(const std::string & content);
-    void expectXml(const std::string & xml);
-    void send(const std::string & content);
-    void send(const std::string & content, const SharedBuffer & buff);
-    void send(const std::string & content, const SharedBuffer ** buffers);
+        void expect(const std::string &content);
+        void expectXml(const std::string &xml);
+        void send(const std::string &content);
+        void send(const std::string &content, const SharedBuffer &buff);
+        void send(const std::string &content, const SharedBuffer ** buffers);
 
-    void allowBufferReceive(bool state);
-    void expectBuffer(SharedBuffer & fd);
+        void allowBufferReceive(bool state);
+        void expectBuffer(SharedBuffer &fd);
 };
 
 

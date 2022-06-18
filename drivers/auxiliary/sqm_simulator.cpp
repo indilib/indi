@@ -33,7 +33,8 @@ std::unique_ptr<SQMSimulator> sqmSimulator(new SQMSimulator());
 
 #define UNIT_TAB "Unit"
 
-enum {
+enum
+{
     READING_BRIGHTNESS_INDEX,
     READING_FREQUENCY_INDEX,
     READING_COUNTER_INDEX,
@@ -41,7 +42,8 @@ enum {
     READING_TEMPERATURE_INDEX
 };
 
-enum {
+enum
+{
     UNIT_PROTOCOL_INDEX,
     UNIT_MODEL_INDEX,
     UNIT_FEATURE_INDEX,
@@ -55,13 +57,13 @@ SQMSimulator::SQMSimulator()
 
 bool SQMSimulator::Connect()
 {
-  readingProperties.s = getReading() ? IPS_OK : IPS_ALERT;
-  IDSetNumber(&readingProperties, nullptr);
+    readingProperties.s = getReading() ? IPS_OK : IPS_ALERT;
+    IDSetNumber(&readingProperties, nullptr);
 
-  unitProperties.s = getUnit() ? IPS_OK : IPS_ALERT;
-  IDSetNumber(&unitProperties, nullptr);
+    unitProperties.s = getUnit() ? IPS_OK : IPS_ALERT;
+    IDSetNumber(&unitProperties, nullptr);
 
-  return true;
+    return true;
 }
 
 bool SQMSimulator::Disconnect()
@@ -79,14 +81,16 @@ bool SQMSimulator::initProperties()
     IUFillNumber(&readingValues[READING_COUNTER_INDEX], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
     IUFillNumber(&readingValues[READING_TIME_INDEX], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
     IUFillNumber(&readingValues[READING_TEMPERATURE_INDEX], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
-    IUFillNumberVector(&readingProperties, readingValues, READING_NUMBER_OF_VALUES, getDeviceName(), "SKY_QUALITY", "Readings", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&readingProperties, readingValues, READING_NUMBER_OF_VALUES, getDeviceName(), "SKY_QUALITY", "Readings",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Unit Info
     IUFillNumber(&unitValues[UNIT_PROTOCOL_INDEX], "Protocol", "", "%.f", 0, 1000000, 0, 0);
     IUFillNumber(&unitValues[UNIT_MODEL_INDEX], "Model", "", "%.f", 0, 1000000, 0, 0);
     IUFillNumber(&unitValues[UNIT_FEATURE_INDEX], "Feature", "", "%.f", 0, 1000000, 0, 0);
     IUFillNumber(&unitValues[UNIT_SERIAL_INDEX], "Serial", "", "%.f", 0, 1000000, 0, 0);
-    IUFillNumberVector(&unitProperties, unitValues, UNIT_NUMBER_OF_VALUES, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&unitProperties, unitValues, UNIT_NUMBER_OF_VALUES, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     addDebugControl();
 
@@ -121,15 +125,18 @@ bool SQMSimulator::getUnit()
 
 bool SQMSimulator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0) {
-        if (strcmp(name, readingProperties.name) == 0) {
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, readingProperties.name) == 0)
+        {
             IUUpdateNumber(&readingProperties, values, names, n);
             readingProperties.s = IPS_OK;
             IDSetNumber(&readingProperties, nullptr);
             return true;
         }
 
-        if (strcmp(name, unitProperties.name) == 0) {
+        if (strcmp(name, unitProperties.name) == 0)
+        {
             IUUpdateNumber(&unitProperties, values, names, n);
             unitProperties.s = IPS_OK;
             IDSetNumber(&unitProperties, nullptr);
@@ -144,10 +151,13 @@ bool SQMSimulator::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
-    if (isConnected()) {
+    if (isConnected())
+    {
         defineProperty(&readingProperties);
         defineProperty(&unitProperties);
-    } else {
+    }
+    else
+    {
         deleteProperty(readingProperties.name);
         deleteProperty(unitProperties.name);
     }

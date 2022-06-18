@@ -24,67 +24,70 @@
 
 class MoonLiteDRO : public INDI::Focuser
 {
-  public:
-    MoonLiteDRO(int ID);
+    public:
+        MoonLiteDRO(int ID);
 
-    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+        typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    void remoteDisconnect();
-    int getPortFD() { return PortFD; }
+        void remoteDisconnect();
+        int getPortFD()
+        {
+            return PortFD;
+        }
 
-protected:
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual bool Handshake() override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool SyncFocuser(uint32_t ticks) override;
+    protected:
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual bool Handshake() override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
 
-  private:
-    void GetFocusParams();
-    bool updateStepMode();
-    bool updateStepDelay();
-    bool updateTemperature();
-    bool updatePosition();
-    bool isMoving();
-    bool Ack();
+    private:
+        void GetFocusParams();
+        bool updateStepMode();
+        bool updateStepDelay();
+        bool updateTemperature();
+        bool updatePosition();
+        bool isMoving();
+        bool Ack();
 
-    bool gotoAbsPosition(uint32_t position);
-    bool setStepMode(FocusStepMode mode);
-    bool setStepDelay(uint8_t delay);
-    bool setTemperatureCalibration(double calibration);
-    bool setTemperatureCoefficient(double coefficient);
-    bool setTemperatureCompensation(bool enable);
+        bool gotoAbsPosition(uint32_t position);
+        bool setStepMode(FocusStepMode mode);
+        bool setStepDelay(uint8_t delay);
+        bool setTemperatureCalibration(double calibration);
+        bool setTemperatureCoefficient(double coefficient);
+        bool setTemperatureCompensation(bool enable);
 
-    double targetPos { 0 };
-    double lastPos { 0 };
-    double lastTemperature { 0 };
+        double targetPos { 0 };
+        double lastPos { 0 };
+        double lastTemperature { 0 };
 
-    ISwitch StepModeS[2];
-    ISwitchVectorProperty StepModeSP;
+        ISwitch StepModeS[2];
+        ISwitchVectorProperty StepModeSP;
 
-    INumber StepDelayN[1];
-    INumberVectorProperty StepDelayNP;
+        INumber StepDelayN[1];
+        INumberVectorProperty StepDelayNP;
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+        INumber TemperatureSettingN[2];
+        INumberVectorProperty TemperatureSettingNP;
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    const uint8_t m_ID;
-    static constexpr const uint8_t DRO_CMD = 16;
-    static constexpr const char *SETTINGS_TAB = "Settings";
+        const uint8_t m_ID;
+        static constexpr const uint8_t DRO_CMD = 16;
+        static constexpr const char *SETTINGS_TAB = "Settings";
 };

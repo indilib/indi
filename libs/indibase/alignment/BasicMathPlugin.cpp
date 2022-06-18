@@ -791,8 +791,8 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             ActualTelescopeDirectionVector.Normalise();
             if (ApproximateMountAlignment == ZENITH)
             {
-            AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-            HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+                AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
+                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
             }
             else
             {

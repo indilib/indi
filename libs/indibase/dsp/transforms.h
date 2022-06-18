@@ -29,51 +29,52 @@ namespace DSP
 {
 class FourierTransform : public Interface
 {
-public:
-    FourierTransform(INDI::DefaultDevice *dev);
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        FourierTransform(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~FourierTransform();
+    protected:
+        ~FourierTransform();
 };
 
 class InverseFourierTransform : public Interface
 {
-public:
-    InverseFourierTransform(INDI::DefaultDevice *dev);
-    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        InverseFourierTransform(INDI::DefaultDevice *dev);
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n) override;
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~InverseFourierTransform();
-    void Activated() override;
-    void Deactivated() override;
+    protected:
+        ~InverseFourierTransform();
+        void Activated() override;
+        void Deactivated() override;
 
-private:
-    IBLOBVectorProperty DownloadBP;
-    IBLOB DownloadB;
+    private:
+        IBLOBVectorProperty DownloadBP;
+        IBLOB DownloadB;
 
-    dsp_stream_p phase;
-    bool phase_loaded { false };
+        dsp_stream_p phase;
+        bool phase_loaded { false };
 };
 
 class Spectrum : public Interface
 {
-public:
-    Spectrum(INDI::DefaultDevice *dev);
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        Spectrum(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Spectrum();
+    protected:
+        ~Spectrum();
 };
 
 class Histogram : public Interface
 {
-public:
-    Histogram(INDI::DefaultDevice *dev);
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        Histogram(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Histogram();
+    protected:
+        ~Histogram();
 };
 }

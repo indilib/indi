@@ -113,168 +113,174 @@ namespace INDI
  */
 class Logger
 {
-    /** Type used for the configuration */
-    enum loggerConf_
-    {
-        L_nofile_   = 1 << 0,
-        L_file_     = 1 << 1,
-        L_noscreen_ = 1 << 2,
-        L_screen_   = 1 << 3
-    };
+        /** Type used for the configuration */
+        enum loggerConf_
+        {
+            L_nofile_   = 1 << 0,
+            L_file_     = 1 << 1,
+            L_noscreen_ = 1 << 2,
+            L_screen_   = 1 << 3
+        };
 
 #ifdef LOGGER_MULTITHREAD
-    /// Lock for mutual exclusion between different threads
-    static pthread_mutex_t lock_;
+        /// Lock for mutual exclusion between different threads
+        static pthread_mutex_t lock_;
 #endif
 
-    bool configured_ { false };
+        bool configured_ { false };
 
-    /** Pointer to the unique Logger (i.e., Singleton) */
-    static Logger *m_;
+        /** Pointer to the unique Logger (i.e., Singleton) */
+        static Logger *m_;
 
-    /**
-     * @brief Initial part of the name of the file used for Logging.
-     * Date and time are automatically appended.
-     */
-    static std::string logFile_;
+        /**
+         * @brief Initial part of the name of the file used for Logging.
+         * Date and time are automatically appended.
+         */
+        static std::string logFile_;
 
-    /**
-     * @brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
-     */
-    static std::string logDir_;
+        /**
+         * @brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
+         */
+        static std::string logDir_;
 
-    /**
-     * @brief Current configuration of the logger.
-     * Variable to know if logging on file and on screen are enabled. Note that if the log on
-     * file is enabled, it means that the logger has been already configured, therefore the
-     * stream is already open.
-     */
-    static loggerConf_ configuration_;
+        /**
+         * @brief Current configuration of the logger.
+         * Variable to know if logging on file and on screen are enabled. Note that if the log on
+         * file is enabled, it means that the logger has been already configured, therefore the
+         * stream is already open.
+         */
+        static loggerConf_ configuration_;
 
-    /// Stream used when logging on a file
-    std::ofstream out_;
-    /// Initial time (used to print relative times)
-    struct timeval initialTime_;
-    /// Verbosity threshold for files
-    static unsigned int fileVerbosityLevel_;
-    /// Verbosity threshold for screen
-    static unsigned int screenVerbosityLevel_;
-    static unsigned int rememberscreenlevel_;
+        /// Stream used when logging on a file
+        std::ofstream out_;
+        /// Initial time (used to print relative times)
+        struct timeval initialTime_;
+        /// Verbosity threshold for files
+        static unsigned int fileVerbosityLevel_;
+        /// Verbosity threshold for screen
+        static unsigned int screenVerbosityLevel_;
+        static unsigned int rememberscreenlevel_;
 
-    /**
-     * @brief Constructor.
-     * It is a private constructor, called only by getInstance() and only the
-     * first time. It is called inside a lock, so lock inside this method
-     * is not required.
-     * It only initializes the initial time. All configuration is done inside the
-     * configure() method.
-     */
-    Logger();
+        /**
+         * @brief Constructor.
+         * It is a private constructor, called only by getInstance() and only the
+         * first time. It is called inside a lock, so lock inside this method
+         * is not required.
+         * It only initializes the initial time. All configuration is done inside the
+         * configure() method.
+         */
+        Logger();
 
-    /**
-     * @brief Destructor.
-     * It only closes the file, if open, and cleans memory.
-     */
-    ~Logger();
+        /**
+         * @brief Destructor.
+         * It only closes the file, if open, and cleans memory.
+         */
+        ~Logger();
 
-    /** Method to lock in case of multithreading */
-    inline static void lock();
+        /** Method to lock in case of multithreading */
+        inline static void lock();
 
-    /** Method to unlock in case of multithreading */
-    inline static void unlock();
+        /** Method to unlock in case of multithreading */
+        inline static void unlock();
 
-    static INDI::DefaultDevice *parentDevice;
+        static INDI::DefaultDevice *parentDevice;
 
-  public:
-    enum VerbosityLevel
-    {
-        DBG_IGNORE  = 0x0,
-        DBG_ERROR   = 0x1,
-        DBG_WARNING = 0x2,
-        DBG_SESSION = 0x4,
-        DBG_DEBUG   = 0x8,
-        DBG_EXTRA_1 = 0x10,
-        DBG_EXTRA_2 = 0X20,
-        DBG_EXTRA_3 = 0x40,
-        DBG_EXTRA_4 = 0x80
-    };
+    public:
+        enum VerbosityLevel
+        {
+            DBG_IGNORE  = 0x0,
+            DBG_ERROR   = 0x1,
+            DBG_WARNING = 0x2,
+            DBG_SESSION = 0x4,
+            DBG_DEBUG   = 0x8,
+            DBG_EXTRA_1 = 0x10,
+            DBG_EXTRA_2 = 0X20,
+            DBG_EXTRA_3 = 0x40,
+            DBG_EXTRA_4 = 0x80
+        };
 
-    struct switchinit
-    {
-        char name[MAXINDINAME];
-        char label[MAXINDILABEL];
-        ISState state;
-        unsigned int levelmask;
-    };
+        struct switchinit
+        {
+            char name[MAXINDINAME];
+            char label[MAXINDILABEL];
+            ISState state;
+            unsigned int levelmask;
+        };
 
-    static const unsigned int defaultlevel = DBG_ERROR | DBG_WARNING | DBG_SESSION;
-    static const unsigned int nlevels      = 8;
-    static struct switchinit LoggingLevelSInit[nlevels];
-    static ISwitch LoggingLevelS[nlevels];
-    static ISwitchVectorProperty LoggingLevelSP;
-    static ISwitch ConfigurationS[2];
-    static ISwitchVectorProperty ConfigurationSP;
-    typedef loggerConf_ loggerConf;
-    static const loggerConf file_on    = L_nofile_;
-    static const loggerConf file_off   = L_file_;
-    static const loggerConf screen_on  = L_noscreen_;
-    static const loggerConf screen_off = L_screen_;
-    static unsigned int customLevel;
-    static unsigned int nDevices;
+        static const unsigned int defaultlevel = DBG_ERROR | DBG_WARNING | DBG_SESSION;
+        static const unsigned int nlevels      = 8;
+        static struct switchinit LoggingLevelSInit[nlevels];
+        static ISwitch LoggingLevelS[nlevels];
+        static ISwitchVectorProperty LoggingLevelSP;
+        static ISwitch ConfigurationS[2];
+        static ISwitchVectorProperty ConfigurationSP;
+        typedef loggerConf_ loggerConf;
+        static const loggerConf file_on    = L_nofile_;
+        static const loggerConf file_off   = L_file_;
+        static const loggerConf screen_on  = L_noscreen_;
+        static const loggerConf screen_off = L_screen_;
+        static unsigned int customLevel;
+        static unsigned int nDevices;
 
-    static std::string getLogFile() { return logFile_; }
-    static loggerConf_ getConfiguration() { return configuration_; }
+        static std::string getLogFile()
+        {
+            return logFile_;
+        }
+        static loggerConf_ getConfiguration()
+        {
+            return configuration_;
+        }
 
-    /**
-     * @brief Method to get a reference to the object (i.e., Singleton)
-     * It is a static method.
-     * @return Reference to the object.
-     */
-    static Logger &getInstance();
+        /**
+         * @brief Method to get a reference to the object (i.e., Singleton)
+         * It is a static method.
+         * @return Reference to the object.
+         */
+        static Logger &getInstance();
 
-    static bool saveConfigItems(FILE *fp);
+        static bool saveConfigItems(FILE *fp);
 
-    /**
-     * @brief Adds a new debugging level to the driver.
-     *
-     * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
-     * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
-     * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to
-     * record events to this debug level.
-     */
-    int addDebugLevel(const char *debugLevelName, const char *LoggingLevelName);
+        /**
+         * @brief Adds a new debugging level to the driver.
+         *
+         * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
+         * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
+         * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to
+         * record events to this debug level.
+         */
+        int addDebugLevel(const char *debugLevelName, const char *LoggingLevelName);
 
-    void print(const char *devicename, const unsigned int verbosityLevel, const std::string &sourceFile,
-               const int codeLine,
-               //const std::string& 	message,
-               const char *message, ...);
+        void print(const char *devicename, const unsigned int verbosityLevel, const std::string &sourceFile,
+                   const int codeLine,
+                   //const std::string& 	message,
+                   const char *message, ...);
 
-    /**
-     * @brief Method to configure the logger. Called by the DEBUG_CONF() macro. To make implementation
-     * easier, the old stream is always closed.
-     * Then, in case, it is open again in append mode.
-     * @param outputFile of the file used for logging
-     * @param configuration (i.e., log on file and on screen on or off)
-     * @param fileVerbosityLevel threshold for file
-     * @param screenVerbosityLevel threshold for screen
-     */
-    void configure(const std::string &outputFile, const loggerConf configuration, const int fileVerbosityLevel,
-                   const int screenVerbosityLevel);
+        /**
+         * @brief Method to configure the logger. Called by the DEBUG_CONF() macro. To make implementation
+         * easier, the old stream is always closed.
+         * Then, in case, it is open again in append mode.
+         * @param outputFile of the file used for logging
+         * @param configuration (i.e., log on file and on screen on or off)
+         * @param fileVerbosityLevel threshold for file
+         * @param screenVerbosityLevel threshold for screen
+         */
+        void configure(const std::string &outputFile, const loggerConf configuration, const int fileVerbosityLevel,
+                       const int screenVerbosityLevel);
 
-    static struct switchinit DebugLevelSInit[nlevels];
-    static ISwitch DebugLevelS[nlevels];
-    static ISwitchVectorProperty DebugLevelSP;
-    static bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    static bool initProperties(INDI::DefaultDevice *device);
-    static bool updateProperties(bool enable);
-    static char Tags[nlevels][MAXINDINAME];
+        static struct switchinit DebugLevelSInit[nlevels];
+        static ISwitch DebugLevelS[nlevels];
+        static ISwitchVectorProperty DebugLevelSP;
+        static bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        static bool initProperties(INDI::DefaultDevice *device);
+        static bool updateProperties(bool enable);
+        static char Tags[nlevels][MAXINDINAME];
 
-    /**
-     * @brief Method used to print message called by the DEBUG() macro.
-     * @param i which debugging to query its rank. The lower the rank, the more priority it is.
-     * @return rank of debugging level requested.
-     */
-    static unsigned int rank(unsigned int l);
+        /**
+         * @brief Method used to print message called by the DEBUG() macro.
+         * @param i which debugging to query its rank. The lower the rank, the more priority it is.
+         * @return rank of debugging level requested.
+         */
+        static unsigned int rank(unsigned int l);
 };
 
 inline Logger::loggerConf operator|(Logger::loggerConf __a, Logger::loggerConf __b)

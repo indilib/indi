@@ -23,39 +23,46 @@
 
 // Parser method definitions
 
-int ActiveFocuserUtils::Parser::Get32(const unsigned char *buffer, int position) {
+int ActiveFocuserUtils::Parser::Get32(const unsigned char *buffer, int position)
+{
 
     int num = 0;
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         num = num << 8 | buffer[position + i];
     }
     return num;
 
 }
 
-int ActiveFocuserUtils::Parser::Get16(const unsigned char *buffer, int position) {
+int ActiveFocuserUtils::Parser::Get16(const unsigned char *buffer, int position)
+{
 
     return buffer[position] << 8 | buffer[position + 1];
 
 }
 
-double ActiveFocuserUtils::Parser::TicksToMillimeters(int ticks) {
+double ActiveFocuserUtils::Parser::TicksToMillimeters(int ticks)
+{
 
     return ticks * SystemState::GetMmpp();
 
 }
 
-int ActiveFocuserUtils::Parser::MillimetersToTicks(double millimeters) {
+int ActiveFocuserUtils::Parser::MillimetersToTicks(double millimeters)
+{
 
     return (int)(millimeters / SystemState::GetMmpp());
 
 }
 
-void ActiveFocuserUtils::Parser::PrintFrame(const unsigned char *buffer) {
+void ActiveFocuserUtils::Parser::PrintFrame(const unsigned char *buffer)
+{
 
     std::stringstream outputStream;
 
-    for (int i = 0; i < (int) sizeof(buffer); i++) {
+    for (int i = 0; i < (int) sizeof(buffer); i++)
+    {
         outputStream << std::hex << (int)buffer[i];
     }
 
@@ -63,15 +70,18 @@ void ActiveFocuserUtils::Parser::PrintFrame(const unsigned char *buffer) {
 
 }
 
-void ActiveFocuserUtils::Parser::PrintBasicDeviceData(const unsigned char *buffer) {
+void ActiveFocuserUtils::Parser::PrintBasicDeviceData(const unsigned char *buffer)
+{
 
     std::stringstream sst;
 
     sst << "Current device (v " <<
-        std::to_string(ActiveFocuserUtils::Parser::Get16(buffer, 17) >> 8) << "." << std::to_string(ActiveFocuserUtils::Parser::Get16(buffer, 17) & 0xFF)
+        std::to_string(ActiveFocuserUtils::Parser::Get16(buffer,
+                       17) >> 8) << "." << std::to_string(ActiveFocuserUtils::Parser::Get16(buffer, 17) & 0xFF)
         << ") state : (fan=" << std::to_string((buffer[7] & 32) != 0) <<
         ", position=" << std::to_string(ActiveFocuserUtils::Parser::Get32(buffer, 2)) <<
-        ", position_mm=" << std::to_string(ActiveFocuserUtils::Parser::TicksToMillimeters(ActiveFocuserUtils::Parser::Get32(buffer, 2))) << ")";
+        ", position_mm=" << std::to_string(ActiveFocuserUtils::Parser::TicksToMillimeters(ActiveFocuserUtils::Parser::Get32(buffer,
+                                           2))) << ")";
 
     IDLog("%s\r\n", sst.str().c_str());
 
@@ -91,10 +101,12 @@ int poller_res;
 unsigned char poller_buffer[60];
 hid_device *device;
 
-ActiveFocuserUtils::Poller *ActiveFocuserUtils::Poller::GetInstance(hid_device &hid_handle) {
+ActiveFocuserUtils::Poller *ActiveFocuserUtils::Poller::GetInstance(hid_device &hid_handle)
+{
 
     std::lock_guard<std::mutex> lock(mutex_);
-    if (pinstance_ == nullptr) {
+    if (pinstance_ == nullptr)
+    {
         device = &hid_handle;
         pinstance_ = new ActiveFocuserUtils::Poller(hid_handle);
     }
@@ -102,9 +114,11 @@ ActiveFocuserUtils::Poller *ActiveFocuserUtils::Poller::GetInstance(hid_device &
 
 }
 
-void threaded_sender(std::future<void> futureObjSender) {
+void threaded_sender(std::future<void> futureObjSender)
+{
 
-    while (futureObjSender.wait_for(std::chrono::milliseconds(1000)) == std::future_status::timeout) {
+    while (futureObjSender.wait_for(std::chrono::milliseconds(1000)) == std::future_status::timeout)
+    {
 
         memset(poller_buffer, 0, sizeof(poller_buffer));
 
@@ -118,35 +132,42 @@ void threaded_sender(std::future<void> futureObjSender) {
 
 }
 
-void threaded_poller(std::future<void> futureObj) {
+void threaded_poller(std::future<void> futureObj)
+{
 
-    while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
+    while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
+    {
 
         unsigned char buf[256];
         int res = hid_read(device, buf, sizeof(buf));
 
-        if (res > 0) {
-            if (buf[0] == 0x3C) {
+        if (res > 0)
+        {
+            if (buf[0] == 0x3C)
+            {
 
                 ActiveFocuserUtils::SystemState::SetSpan(ActiveFocuserUtils::Parser::Get32(buf, 25));
                 ActiveFocuserUtils::SystemState::SetImmpp(ActiveFocuserUtils::Parser::Get16(buf, 23));
                 ActiveFocuserUtils::SystemState::SetMmpp(ActiveFocuserUtils::SystemState::GetImmpp() / 1000000.0);
                 std::stringstream ssVersion;
-                ssVersion << std::to_string(ActiveFocuserUtils::Parser::Get16(buf, 17) >> 8) + "." + std::to_string(ActiveFocuserUtils::Parser::Get16(buf, 17) & 0xFF);
+                ssVersion << std::to_string(ActiveFocuserUtils::Parser::Get16(buf,
+                                            17) >> 8) + "." + std::to_string(ActiveFocuserUtils::Parser::Get16(buf, 17) & 0xFF);
                 ActiveFocuserUtils::SystemState::SetHardwareRevision(const_cast<char *>(ssVersion.str().c_str()));
                 ActiveFocuserUtils::SystemState::SetIsOrigin((buf[7] & 128) != 0);
                 ActiveFocuserUtils::SystemState::SetIsMoving((buf[7] & 64) != 0);
                 ActiveFocuserUtils::SystemState::SetIsFanOn((buf[7] & 32) != 0);
                 ActiveFocuserUtils::SystemState::SetIsHold((buf[7] & 3) != 0);
                 ActiveFocuserUtils::SystemState::SetCurrentPositionStep(ActiveFocuserUtils::Parser::Get32(buf, 2));
-                ActiveFocuserUtils::SystemState::SetCurrentPosition(ActiveFocuserUtils::Parser::TicksToMillimeters(ActiveFocuserUtils::SystemState::GetCurrentPositionStep()));
+                ActiveFocuserUtils::SystemState::SetCurrentPosition(ActiveFocuserUtils::Parser::TicksToMillimeters(
+                            ActiveFocuserUtils::SystemState::GetCurrentPositionStep()));
                 ActiveFocuserUtils::SystemState::SetAirTemperature(ActiveFocuserUtils::Parser::Get32(buf, 45) / 10.0);
                 ActiveFocuserUtils::SystemState::SetTubeTemperature(ActiveFocuserUtils::Parser::Get32(buf, 49) / 10.0);
                 ActiveFocuserUtils::SystemState::SetMirrorTemperature(ActiveFocuserUtils::Parser::Get32(buf, 53) / 10.0);
 
             }
         }
-        if (res < 0) {
+        if (res < 0)
+        {
             IDLog("Unable to read \r\n");
         }
 
@@ -155,7 +176,8 @@ void threaded_poller(std::future<void> futureObj) {
 
 }
 
-bool ActiveFocuserUtils::Poller::Start() {
+bool ActiveFocuserUtils::Poller::Start()
+{
 
     th = std::thread(&threaded_poller, std::move(futureObj));
     thSender = std::thread(&threaded_sender, std::move(futureObjSender));
@@ -168,7 +190,8 @@ bool ActiveFocuserUtils::Poller::Start() {
 
 }
 
-bool ActiveFocuserUtils::Poller::Stop() {
+bool ActiveFocuserUtils::Poller::Stop()
+{
 
     exitSignal.set_value();
     exitSignalSender.set_value();
@@ -202,122 +225,148 @@ static double MirrorTemperature;
 
 // SystemState method definitions
 
-int ActiveFocuserUtils::SystemState::GetCurrentPositionStep() {
+int ActiveFocuserUtils::SystemState::GetCurrentPositionStep()
+{
     return CurrentPositionStep;
 }
 
-void ActiveFocuserUtils::SystemState::SetCurrentPositionStep(int currentPositionStep) {
+void ActiveFocuserUtils::SystemState::SetCurrentPositionStep(int currentPositionStep)
+{
     CurrentPositionStep = currentPositionStep;
 }
 
-double ActiveFocuserUtils::SystemState::GetCurrentPosition() {
+double ActiveFocuserUtils::SystemState::GetCurrentPosition()
+{
     return CurrentPosition;
 }
 
-void ActiveFocuserUtils::SystemState::SetCurrentPosition(double currentPosition) {
+void ActiveFocuserUtils::SystemState::SetCurrentPosition(double currentPosition)
+{
     CurrentPosition = currentPosition;
 }
 
-bool ActiveFocuserUtils::SystemState::GetIsOrigin() {
+bool ActiveFocuserUtils::SystemState::GetIsOrigin()
+{
     return IsOrigin;
 }
 
-void ActiveFocuserUtils::SystemState::SetIsOrigin(bool isOrigin) {
+void ActiveFocuserUtils::SystemState::SetIsOrigin(bool isOrigin)
+{
     IsOrigin = isOrigin;
 }
 
-bool ActiveFocuserUtils::SystemState::GetIsMoving() {
+bool ActiveFocuserUtils::SystemState::GetIsMoving()
+{
     return IsMoving;
 }
 
-void ActiveFocuserUtils::SystemState::SetIsMoving(bool isMoving) {
+void ActiveFocuserUtils::SystemState::SetIsMoving(bool isMoving)
+{
     IsMoving = isMoving;
 }
 
-bool ActiveFocuserUtils::SystemState::GetIsFanOn() {
+bool ActiveFocuserUtils::SystemState::GetIsFanOn()
+{
     return IsFanOn;
 }
 
-void ActiveFocuserUtils::SystemState::SetIsFanOn(bool isFanOn) {
-    IsFanOn= isFanOn;
+void ActiveFocuserUtils::SystemState::SetIsFanOn(bool isFanOn)
+{
+    IsFanOn = isFanOn;
 }
 
-bool ActiveFocuserUtils::SystemState::GetIsHold() {
+bool ActiveFocuserUtils::SystemState::GetIsHold()
+{
     return IsHold;
 }
 
-void ActiveFocuserUtils::SystemState::SetIsHold(bool isHold) {
+void ActiveFocuserUtils::SystemState::SetIsHold(bool isHold)
+{
     IsHold = isHold;
 }
 
-char *ActiveFocuserUtils::SystemState::GetHardwareRevision() {
+char *ActiveFocuserUtils::SystemState::GetHardwareRevision()
+{
     return HardwareRevision;
 }
 
-void ActiveFocuserUtils::SystemState::SetHardwareRevision(char *hardwareRevision) {
+void ActiveFocuserUtils::SystemState::SetHardwareRevision(char *hardwareRevision)
+{
     HardwareRevision = hardwareRevision;
 }
 
-int ActiveFocuserUtils::SystemState::GetImmpp() {
+int ActiveFocuserUtils::SystemState::GetImmpp()
+{
     return Immpp;
 }
 
-void ActiveFocuserUtils::SystemState::SetImmpp(int immpp) {
+void ActiveFocuserUtils::SystemState::SetImmpp(int immpp)
+{
     Immpp = immpp;
 }
 
-int ActiveFocuserUtils::SystemState::GetSpan() {
+int ActiveFocuserUtils::SystemState::GetSpan()
+{
     return Span;
 }
 
-void ActiveFocuserUtils::SystemState::SetSpan(int span) {
+void ActiveFocuserUtils::SystemState::SetSpan(int span)
+{
     Span = span;
 }
 
-double ActiveFocuserUtils::SystemState::GetMmpp() {
+double ActiveFocuserUtils::SystemState::GetMmpp()
+{
     return Mmpp;
 }
 
-void ActiveFocuserUtils::SystemState::SetMmpp(double mmpp) {
+void ActiveFocuserUtils::SystemState::SetMmpp(double mmpp)
+{
     Mmpp = mmpp;
 }
 
-double ActiveFocuserUtils::SystemState::GetAirTemperature() {
+double ActiveFocuserUtils::SystemState::GetAirTemperature()
+{
     return AirTemperature;
 }
 
-void ActiveFocuserUtils::SystemState::SetAirTemperature(double airTemperature) {
+void ActiveFocuserUtils::SystemState::SetAirTemperature(double airTemperature)
+{
     AirTemperature = airTemperature;
 }
 
-double ActiveFocuserUtils::SystemState::GetTubeTemperature() {
+double ActiveFocuserUtils::SystemState::GetTubeTemperature()
+{
     return TubeTemperature;
 }
 
-void ActiveFocuserUtils::SystemState::SetTubeTemperature(double tubeTemperature) {
+void ActiveFocuserUtils::SystemState::SetTubeTemperature(double tubeTemperature)
+{
     TubeTemperature = tubeTemperature;
 }
 
-double ActiveFocuserUtils::SystemState::GetMirrorTemperature() {
+double ActiveFocuserUtils::SystemState::GetMirrorTemperature()
+{
     return MirrorTemperature;
 }
 
-void ActiveFocuserUtils::SystemState::SetMirrorTemperature(double mirrorTemperature) {
+void ActiveFocuserUtils::SystemState::SetMirrorTemperature(double mirrorTemperature)
+{
     MirrorTemperature = mirrorTemperature;
 }
 
 // Commands enum map
 
 const std::map<ActiveFocuserUtils::Commands, unsigned char> ActiveFocuserUtils::CommandsMap =
-        {
-                {ActiveFocuserUtils::Commands::ZERO,              0x03},
-                {ActiveFocuserUtils::Commands::RELEASE,           0x04},
-                {ActiveFocuserUtils::Commands::FREE,              0x06},
-                {ActiveFocuserUtils::Commands::AUTO,              0x07},
-                {ActiveFocuserUtils::Commands::MOVE,              0x09},
-                {ActiveFocuserUtils::Commands::STOP,              0x0A},
-                {ActiveFocuserUtils::Commands::FAN_ON,            0x0B},
-                {ActiveFocuserUtils::Commands::FAN_OFF,           0x0C},
-                {ActiveFocuserUtils::Commands::RESET,             0x7E},
-                {ActiveFocuserUtils::Commands::DUMMY,             0xFF},
-        };
+{
+    {ActiveFocuserUtils::Commands::ZERO,              0x03},
+    {ActiveFocuserUtils::Commands::RELEASE,           0x04},
+    {ActiveFocuserUtils::Commands::FREE,              0x06},
+    {ActiveFocuserUtils::Commands::AUTO,              0x07},
+    {ActiveFocuserUtils::Commands::MOVE,              0x09},
+    {ActiveFocuserUtils::Commands::STOP,              0x0A},
+    {ActiveFocuserUtils::Commands::FAN_ON,            0x0B},
+    {ActiveFocuserUtils::Commands::FAN_OFF,           0x0C},
+    {ActiveFocuserUtils::Commands::RESET,             0x7E},
+    {ActiveFocuserUtils::Commands::DUMMY,             0xFF},
+};

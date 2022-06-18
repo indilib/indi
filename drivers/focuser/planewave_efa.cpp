@@ -186,7 +186,7 @@ bool EFA::Handshake()
     cmd[5] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -332,7 +332,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[8] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -358,7 +358,7 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
     cmd[8] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return IPS_ALERT;
+        return IPS_ALERT;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return IPS_ALERT;
@@ -509,7 +509,7 @@ bool EFA::SetFocuserMaxPosition(uint32_t ticks)
     cmd[8] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -599,72 +599,89 @@ int EFA::readPacket(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_r
 {
     int len = 0, rc = 0, read_bytes = *nbytes_read = 0;
 
-    if (nbytes < 6) { // smallest packet is 6 bytes
-	LOGF_ERROR("Read needs at least 6 bytes; exceeds supplied buffer size (%d)", nbytes);
-	return TTY_READ_ERROR;
+    if (nbytes < 6)   // smallest packet is 6 bytes
+    {
+        LOGF_ERROR("Read needs at least 6 bytes; exceeds supplied buffer size (%d)", nbytes);
+        return TTY_READ_ERROR;
     }
 
-    for (int i = 0; i < 10; i++) {
-	// look for SOM byte
-	rc = readByte(fd, &buf[0], timeout, &read_bytes);
-	if (rc == TTY_OK && read_bytes == 1) {
-	    if (buf[0] == DRIVER_SOM) {
-		break;
-	    } else {
-		LOGF_DEBUG("Looking for SOM (%02X); found %d byte (%02X)", DRIVER_SOM, read_bytes, buf[0]);
-	    }
-	} else {
-	    char errstr[MAXRBUF] = {0};
-	    tty_error_msg(rc, errstr, MAXRBUF);
-	    LOGF_DEBUG("Looking for SOM (%02X); found %s", DRIVER_SOM, errstr);
-	}
+    for (int i = 0; i < 10; i++)
+    {
+        // look for SOM byte
+        rc = readByte(fd, &buf[0], timeout, &read_bytes);
+        if (rc == TTY_OK && read_bytes == 1)
+        {
+            if (buf[0] == DRIVER_SOM)
+            {
+                break;
+            }
+            else
+            {
+                LOGF_DEBUG("Looking for SOM (%02X); found %d byte (%02X)", DRIVER_SOM, read_bytes, buf[0]);
+            }
+        }
+        else
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_DEBUG("Looking for SOM (%02X); found %s", DRIVER_SOM, errstr);
+        }
     }
-    if (rc != TTY_OK || read_bytes != 1 || buf[0] != DRIVER_SOM) {
-	LOGF_DEBUG("%s byte not encountered", "SOM");
-	if (rc == TTY_OK)
-	    return TTY_TIME_OUT;
-	return rc;
+    if (rc != TTY_OK || read_bytes != 1 || buf[0] != DRIVER_SOM)
+    {
+        LOGF_DEBUG("%s byte not encountered", "SOM");
+        if (rc == TTY_OK)
+            return TTY_TIME_OUT;
+        return rc;
     }
 
-    if ((rc = readByte(fd, &buf[1], timeout, &read_bytes)) != TTY_OK) {
-	LOGF_DEBUG("%s byte not encountered", "LEN");
-	return rc;
+    if ((rc = readByte(fd, &buf[1], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "LEN");
+        return rc;
     }
     len = buf[1];
 
     // read source
-    if ((rc = readByte(fd, &buf[2], timeout, &read_bytes)) != TTY_OK) {
-	LOGF_DEBUG("%s byte not encountered", "SRC");
-	return rc;
+    if ((rc = readByte(fd, &buf[2], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "SRC");
+        return rc;
     }
     // read receiver
-    if ((rc = readByte(fd, &buf[3], timeout, &read_bytes)) != TTY_OK) {
-	LOGF_DEBUG("%s byte not encountered", "RCV");
-	return rc;
+    if ((rc = readByte(fd, &buf[3], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "RCV");
+        return rc;
     }
     // read command
-    if ((rc = readByte(fd, &buf[4], timeout, &read_bytes)) != TTY_OK) {
-	LOGF_DEBUG("%s byte not encountered", "CMD");
-	return rc;
+    if ((rc = readByte(fd, &buf[4], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "CMD");
+        return rc;
     }
 
-    if ((len + 3) > nbytes) {
-	LOGF_ERROR("Read (%d) will exceed supplied buffer size (%d) for command %02X", (len + 3), nbytes, buf[4]);
-	return TTY_READ_ERROR;
+    if ((len + 3) > nbytes)
+    {
+        LOGF_ERROR("Read (%d) will exceed supplied buffer size (%d) for command %02X", (len + 3), nbytes, buf[4]);
+        return TTY_READ_ERROR;
     }
 
     // read data
     int n;
-    for (n = 0; n < (len - 3); ++n) {
-	if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK) {
-	    LOGF_DEBUG("%s byte not encountered", "DATA");
-	    return rc;
-	}
+    for (n = 0; n < (len - 3); ++n)
+    {
+        if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK)
+        {
+            LOGF_DEBUG("%s byte not encountered", "DATA");
+            return rc;
+        }
     }
     // read checksum
-    if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK) {
-	LOGF_DEBUG("%s byte not encountered", "DATA");
-	return rc;
+    if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "DATA");
+        return rc;
     }
 
     uint8_t chk = calculateCheckSum(buf, (len + 3));
@@ -674,7 +691,7 @@ int EFA::readPacket(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_r
         LOG_ERROR("Invalid checksum!");
         return TTY_OK; // not a tty error, nbytes_read is still zero and it is used to indicate there was this problem
     }
-    
+
     *nbytes_read = len + 3;
 
     return rc;
@@ -690,72 +707,79 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
 
     for (int j = 0; j < 3; usleep(100000), j++)
     {
-	// make sure RTS is lowered
-	bits = TIOCM_RTS;
-	(void) ioctl(PortFD, TIOCMBIC, &bits); 
-	bits = 0;
+        // make sure RTS is lowered
+        bits = TIOCM_RTS;
+        (void) ioctl(PortFD, TIOCMBIC, &bits);
+        bits = 0;
 
-	// Wait until CTS is cleared.
-	for (int i = 0; i < 10; i++)
-	{
-	    if ((rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
-		break;
-	    usleep(100000);
-	}
+        // Wait until CTS is cleared.
+        for (int i = 0; i < 10; i++)
+        {
+            if ((rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
+                break;
+            usleep(100000);
+        }
 
-	if (rc < 0 || (bits & TIOCM_CTS) != 0)
-	{
-	    LOGF_ERROR("CTS timed out: %s", strerror(errno));
-	    return false;
-	}
+        if (rc < 0 || (bits & TIOCM_CTS) != 0)
+        {
+            LOGF_ERROR("CTS timed out: %s", strerror(errno));
+            return false;
+        }
 
-	// Now raise RTS
-	bits = TIOCM_RTS;
-	ioctl(PortFD, TIOCMBIS, &bits); // was TIOCMSET
+        // Now raise RTS
+        bits = TIOCM_RTS;
+        ioctl(PortFD, TIOCMBIS, &bits); // was TIOCMSET
 
-	if (!IN_TIMER && efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL) {
-	    LOGF_DEBUG("CMD: %s", hexbuf);
-	}
-	rc = writeBytes(PortFD, cmd, cmd_len, &nbytes_written);
+        if (!IN_TIMER && efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL)
+        {
+            LOGF_DEBUG("CMD: %s", hexbuf);
+        }
+        rc = writeBytes(PortFD, cmd, cmd_len, &nbytes_written);
 
-	if (rc != TTY_OK)
-	{
-	    continue;
-	}
+        if (rc != TTY_OK)
+        {
+            continue;
+        }
 
-	rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+        rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
 
-	if (rc != TTY_OK || nbytes_read == 0)
-	{
-	    continue;
-	}
+        if (rc != TTY_OK || nbytes_read == 0)
+        {
+            continue;
+        }
 
-	if ((int)cmd_len == nbytes_read && memcmp(cmd, res, cmd_len) == 0) {
-	    // received an echo
+        if ((int)cmd_len == nbytes_read && memcmp(cmd, res, cmd_len) == 0)
+        {
+            // received an echo
 
-	    bits = TIOCM_RTS;
-	    ioctl(PortFD, TIOCMBIC, &bits);
+            bits = TIOCM_RTS;
+            ioctl(PortFD, TIOCMBIC, &bits);
 
-	    // Next read the actual response from EFA
-	    rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+            // Next read the actual response from EFA
+            rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
 
-	    if (rc != TTY_OK || nbytes_read == 0) {
-		continue;
-	    }
-	} else if (efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL) {
-	    // expected there to always be an echo, so note this occurence
-	    LOGF_DEBUG("no echo for command packet: %s", hexbuf);
-	}
+            if (rc != TTY_OK || nbytes_read == 0)
+            {
+                continue;
+            }
+        }
+        else if (efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL)
+        {
+            // expected there to always be an echo, so note this occurence
+            LOGF_DEBUG("no echo for command packet: %s", hexbuf);
+        }
 
-	if (!IN_TIMER && efaDump(hexbuf, hexbuflen, res, nbytes_read) != NULL) {
-	    LOGF_DEBUG("RESP: %s", hexbuf);
-	}
+        if (!IN_TIMER && efaDump(hexbuf, hexbuflen, res, nbytes_read) != NULL)
+        {
+            LOGF_DEBUG("RESP: %s", hexbuf);
+        }
 
-	if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4]) {
-	    LOGF_DEBUG("Send/Receive mismatch - %s!", "packet not for us");
-	    continue;
-	}
-	break;
+        if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4])
+        {
+            LOGF_DEBUG("Send/Receive mismatch - %s!", "packet not for us");
+            continue;
+        }
+        break;
     }
 
     // Extra lowering of RTS to make sure hand controller is made available
@@ -770,9 +794,10 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
         return false;
     }
 
-    if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4]) {
-	LOGF_ERROR("Send/Receive mismatch and %s", "timeout");
-	return false;
+    if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4])
+    {
+        LOGF_ERROR("Send/Receive mismatch and %s", "timeout");
+        return false;
     }
 
     return true;
@@ -793,7 +818,7 @@ bool EFA::readPosition()
     cmd[5] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -817,7 +842,7 @@ bool EFA::readMaxSlewLimit()
     cmd[5] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -848,7 +873,7 @@ bool EFA::isGOTOComplete()
     cmd[5] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -872,7 +897,7 @@ bool EFA::setFanEnabled(bool enabled)
     cmd[6] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -895,7 +920,7 @@ bool EFA::readFanState()
     cmd[5] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -925,7 +950,7 @@ bool EFA::setCalibrationEnabled(bool enabled)
     cmd[7] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -949,7 +974,7 @@ bool EFA::readCalibrationState()
     cmd[6] = calculateCheckSum(cmd, len);
 
     if (!validateLengths(cmd, len))
-	return false;
+        return false;
 
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
@@ -979,8 +1004,8 @@ bool EFA::readTemperature()
         cmd[5] = i;
         cmd[6] = calculateCheckSum(cmd, len);
 
-	if (!validateLengths(cmd, len))
-	    return false;
+        if (!validateLengths(cmd, len))
+            return false;
 
         if (!sendCommand(cmd, res, len, DRIVER_LEN))
             return false;
@@ -1015,27 +1040,35 @@ char * EFA::efaDump(char * buf, int buflen, const uint8_t * data, uint32_t size)
 
     needed = size * 3 + 4; // each byte goes to 2 chars plus 1 space (or trailing null char) plus 4 marker characters
 
-    if (needed > buflen) {
-	return NULL;
+    if (needed > buflen)
+    {
+        return NULL;
     }
 
-    for (uint32_t i = 0; i < size; i++) {
-	if (i == 4) {
-	    (void) sprintf(buf + idx, "<%02X> ", data[i]);
-	    idx += 5;
-	} else if (i == 5 && i < (size - 1)) {
-	    buf[idx++] = '[';
-	    for (uint32_t j = i, k = 3; j < (size - 1) && k < data[1]; j++, k++) {
-		(void) sprintf(buf + idx, "%02X ", data[j]);
-		idx += 3;
-		i = j;
-	    }
-	    buf[idx - 1] = ']';
-	    buf[idx++] = ' ';
-	} else {
-	    (void) sprintf(buf + idx, "%02X ", data[i]);
-	    idx += 3;
-	}
+    for (uint32_t i = 0; i < size; i++)
+    {
+        if (i == 4)
+        {
+            (void) sprintf(buf + idx, "<%02X> ", data[i]);
+            idx += 5;
+        }
+        else if (i == 5 && i < (size - 1))
+        {
+            buf[idx++] = '[';
+            for (uint32_t j = i, k = 3; j < (size - 1) && k < data[1]; j++, k++)
+            {
+                (void) sprintf(buf + idx, "%02X ", data[j]);
+                idx += 3;
+                i = j;
+            }
+            buf[idx - 1] = ']';
+            buf[idx++] = ' ';
+        }
+        else
+        {
+            (void) sprintf(buf + idx, "%02X ", data[i]);
+            idx += 3;
+        }
     }
 
     buf[idx - 1] = '\0';
@@ -1073,15 +1106,17 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::validateLengths(const uint8_t *cmd, uint32_t len)
 {
-    if (len < 6) {
-	LOGF_ERROR("packet length (%d) is too short for command %02X", len, cmd[4]);
-	return false;
+    if (len < 6)
+    {
+        LOGF_ERROR("packet length (%d) is too short for command %02X", len, cmd[4]);
+        return false;
     }
-    if (cmd[1] + 3 != (int)len) {
-	LOGF_ERROR("packet length (%d) and data length (%d) discrepancy for command %02X", len, cmd[1], cmd[4]);
-	return false;
+    if (cmd[1] + 3 != (int)len)
+    {
+        LOGF_ERROR("packet length (%d) and data length (%d) discrepancy for command %02X", len, cmd[1], cmd[4]);
+        return false;
     }
-	
+
     return true;
 }
 

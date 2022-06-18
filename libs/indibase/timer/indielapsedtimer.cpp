@@ -24,11 +24,15 @@ namespace INDI
 
 ElapsedTimer::ElapsedTimer()
     : d_ptr(new ElapsedTimerPrivate)
-{ start(); }
+{
+    start();
+}
 
 ElapsedTimer::ElapsedTimer(ElapsedTimerPrivate &dd)
     : d_ptr(&dd)
-{ start(); }
+{
+    start();
+}
 
 ElapsedTimer::~ElapsedTimer()
 { }

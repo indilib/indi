@@ -85,7 +85,10 @@ bool SnapCap::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
     return true;

@@ -95,63 +95,63 @@ class DefaultDevice;
 
 class StreamManager
 {
-    DECLARE_PRIVATE(StreamManager)
+        DECLARE_PRIVATE(StreamManager)
 
-public:
-    StreamManager(DefaultDevice *currentDevice);
-    virtual ~StreamManager();
+    public:
+        StreamManager(DefaultDevice *currentDevice);
+        virtual ~StreamManager();
 
-public:
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    public:
+        virtual void ISGetProperties(const char *dev);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool saveConfigItems(FILE *fp);
 
-public:
-    /**
-     * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
-     */
-    void newFrame(const uint8_t *buffer, uint32_t nbytes);
+    public:
+        /**
+         * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
+         */
+        void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
-    bool close();
+        bool close();
 
-public:
-    /**
-     * @brief setStreamingExposureEnabled Can stream exposure time be changed?
-     * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
-     */
-    void setStreamingExposureEnabled(bool enable);
+    public:
+        /**
+         * @brief setStreamingExposureEnabled Can stream exposure time be changed?
+         * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
+         */
+        void setStreamingExposureEnabled(bool enable);
 
-    /**
-     * @brief setStream Enables (starts) or disables (stops) streaming.
-     * @param enable True to enable, false to disable
-     * @return True if operation is successful, false otherwise.
-     */
-    bool setStream(bool enable);
-    void setSize(uint16_t width, uint16_t height = 1);
-    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
+        /**
+         * @brief setStream Enables (starts) or disables (stops) streaming.
+         * @param enable True to enable, false to disable
+         * @return True if operation is successful, false otherwise.
+         */
+        bool setStream(bool enable);
+        void setSize(uint16_t width, uint16_t height = 1);
+        bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
 
-public:
-    bool isDirectRecording() const;
-    bool isStreaming() const;
-    bool isRecording() const;
-    bool isBusy() const;
+    public:
+        bool isDirectRecording() const;
+        bool isStreaming() const;
+        bool isRecording() const;
+        bool isBusy() const;
 
-public:
-    double getTargetFPS() const;
-    double getTargetExposure() const;
+    public:
+        double getTargetFPS() const;
+        double getTargetExposure() const;
 
-    void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h) const;
-    RecorderInterface *getRecorder() const;
+        void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h) const;
+        RecorderInterface *getRecorder() const;
 
-    const char *getDeviceName() const;
+        const char *getDeviceName() const;
 
-protected:
-    std::shared_ptr<StreamManagerPrivate> d_ptr;
+    protected:
+        std::shared_ptr<StreamManagerPrivate> d_ptr;
 };
 
 }

@@ -26,9 +26,9 @@
 GammaLut16::GammaLut16(double gamma, double a, double b, double Ii)
 {
     mLookUpTable.resize(65536);
-    
+
     unsigned int i = 0;
-    for (auto &value: mLookUpTable)
+    for (auto &value : mLookUpTable)
     {
         double I = static_cast<double>(i++) / 65535.0;
         double p;

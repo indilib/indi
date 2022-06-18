@@ -95,10 +95,10 @@ bool StreamManagerPrivate::initProperties()
     StreamSP[1].fill("STREAM_OFF", "Stream Off", ISS_ON);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         StreamSP.fill(getDeviceName(), "SENSOR_DATA_STREAM", "Video Stream",
-                           STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                      STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
-                           STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                      STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
     StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
@@ -118,13 +118,13 @@ bool StreamManagerPrivate::initProperties()
     RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "indi_record__T_");
     RecordFileTP.fill(getDeviceName(), "RECORD_FILE", "Record File",
-                     STREAM_TAB, IP_RW, 0, IPS_IDLE);
+                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Record Options */
     RecordOptionsNP[0].fill("RECORD_DURATION",    "Duration (sec)", "%.3f", 0.001,    999999.0, 0.0,  1.0);
     RecordOptionsNP[1].fill("RECORD_FRAME_TOTAL", "Frames",          "%.f", 1.0,   999999999.0, 1.0, 30.0);
     RecordOptionsNP.fill(getDeviceName(), "RECORD_OPTIONS",
-                       "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+                         "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
     RecordStreamSP[RECORD_ON   ].fill("RECORD_ON",          "Record On",         ISS_OFF);
@@ -166,7 +166,7 @@ bool StreamManagerPrivate::initProperties()
 #endif
 
     // Limits
-    LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
+    LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024 * 64, 1, 512);
     LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
     LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
     return true;
@@ -292,7 +292,11 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
     {
         FpsNP[0].setValue(FPSFast.framesPerSecond());
         if (fastFPSUpdate.try_lock()) // don't block stream thread / record thread
-            std::thread([&](){ FpsNP.apply(); fastFPSUpdate.unlock(); }).detach();
+            std::thread([&]()
+        {
+            FpsNP.apply();
+            fastFPSUpdate.unlock();
+        }).detach();
     }
 
     if (isStreaming || (isRecording && !isRecordingAboutToClose))
@@ -358,16 +362,16 @@ StreamManagerPrivate::FrameInfo StreamManagerPrivate::updateSourceFrameInfo()
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         srcFrameInfo = FrameInfo(
-            dynamic_cast<const INDI::CCD*>(currentDevice)->PrimaryCCD,
-            components * bytesPerComponent
-        );
+                           dynamic_cast<const INDI::CCD*>(currentDevice)->PrimaryCCD,
+                           components * bytesPerComponent
+                       );
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
         srcFrameInfo = FrameInfo(
-            *dynamic_cast<const INDI::SensorInterface*>(currentDevice),
-            components * bytesPerComponent
-        );
+                           *dynamic_cast<const INDI::SensorInterface*>(currentDevice),
+                           components * bytesPerComponent
+                       );
     }
 
     // If stream frame was not yet initilized, let's do that now
@@ -479,7 +483,9 @@ void StreamManagerPrivate::asyncStreamThread()
             }
 
             //uploadStream(sourceBuffer->data(), sourceBuffer->size());
-            previewThreadPool.start(std::bind([this, &previewElapsed](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
+            previewThreadPool.start(std::bind([this, &previewElapsed](const std::atomic_bool & isAboutToQuit,
+                                              std::vector<uint8_t> frame)
+            {
                 INDI_UNUSED(isAboutToQuit);
                 previewElapsed.start();
                 uploadStream(frame.data(), frame.size());
@@ -599,7 +605,7 @@ std::string StreamManagerPrivate::expand(const std::string &fname, const std::ma
     extendedPatterns["_H_"] = format_time(tm, "%H-%M-%S");
     extendedPatterns["_T_"] = format_time(tm, "%Y-%m-%d" "@" "%H-%M-%S");
 
-    for(const auto &pattern: extendedPatterns)
+    for(const auto &pattern : extendedPatterns)
     {
         replace_all(result, pattern.first, pattern.second);
     }
@@ -1035,7 +1041,7 @@ bool StreamManagerPrivate::setStream(bool enable)
             FPSPreview.reset();
             FPSPreview.setTimeWindow(1000.0 / LimitsNP[LIMITS_PREVIEW_FPS].getValue());
             frameCountDivider = 0;
-            
+
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
                 if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
@@ -1225,7 +1231,8 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (encoder->upload(imageBP->at(0), buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
+        if (encoder->upload(imageBP->at(0), buffer, nbytes,
+                            false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             // Upload to client now
             imageBP->setState(IPS_OK);

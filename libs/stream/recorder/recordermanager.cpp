@@ -35,9 +35,9 @@ namespace INDI
 RecorderManager::RecorderManager()
 {
     recorder_list.push_back(new SER_Recorder());
-    #ifdef HAVE_THEORA
+#ifdef HAVE_THEORA
     recorder_list.push_back(new TheoraRecorder());
-    #endif
+#endif
     default_recorder = recorder_list.at(0);
 }
 

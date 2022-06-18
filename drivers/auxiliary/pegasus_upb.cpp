@@ -1344,7 +1344,8 @@ bool PegasusUPB::sensorUpdated(const std::vector<std::string> &result, uint8_t s
     if (lastSensorData.empty())
         return true;
 
-    for (uint8_t index = start; index <= end; index++){
+    for (uint8_t index = start; index <= end; index++)
+    {
         if (index >= lastSensorData.size() or result[index] != lastSensorData[index])
             return true;
     }

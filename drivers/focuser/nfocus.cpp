@@ -48,7 +48,8 @@ bool NFocus::initProperties()
     IUFillNumber(&SettingsN[SETTING_ON_TIME], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
     IUFillNumber(&SettingsN[SETTING_OFF_TIME], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
     IUFillNumber(&SettingsN[SETTING_MODE_DELAY], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     FocusRelPosN[0].min = 0;
     FocusRelPosN[0].max = 50000;

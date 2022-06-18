@@ -10,20 +10,20 @@ namespace AlignmentSubsystem
 {
 // Standard functions required for all plugins
 extern "C" {
-DummyMathPlugin *Create()
-{
-    return new DummyMathPlugin;
-}
+    DummyMathPlugin *Create()
+    {
+        return new DummyMathPlugin;
+    }
 
-void Destroy(DummyMathPlugin *pPlugin)
-{
-    delete pPlugin;
-}
+    void Destroy(DummyMathPlugin *pPlugin)
+    {
+        delete pPlugin;
+    }
 
-const char *GetDisplayName()
-{
-    return "Dummy Math Plugin";
-}
+    const char *GetDisplayName()
+    {
+        return "Dummy Math Plugin";
+    }
 }
 
 DummyMathPlugin::DummyMathPlugin()
@@ -45,14 +45,14 @@ bool DummyMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 }
 
 bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
-                                                    double JulianOffset,
-                                                    TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+        double JulianOffset,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     return false;
 }
 
 bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                                                    double &RightAscension, double &Declination)
+        double &RightAscension, double &Declination)
 {
     return false;
 }

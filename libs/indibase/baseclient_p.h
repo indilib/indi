@@ -61,7 +61,7 @@ class BaseClientPrivate
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
         void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
     private:
-        bool isDirectBlobAccess(const std::string & dev, const std::string & prop) const;
+        bool isDirectBlobAccess(const std::string &dev, const std::string &prop) const;
 
     public:
         /** @brief Dispatch command received from INDI server to respective devices handled by the client */
@@ -87,10 +87,10 @@ class BaseClientPrivate
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
         bool unixSocket {false};
 
-        bool establish(const std::string & target);
+        bool establish(const std::string &target);
 
         // Add an attribute for access to shared blobs
-        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> & blobs);
+        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> &blobs);
 
     public:
         BaseClient *parent;

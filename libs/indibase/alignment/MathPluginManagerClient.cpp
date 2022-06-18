@@ -55,7 +55,7 @@ void MathPluginManagerClient::Test()
     {
         cout << "Success - List of plugins follows\n";
         for (MathPluginsList::const_iterator iTr = AvailableMathPlugins.begin(); iTr != AvailableMathPlugins.end();
-             iTr++)
+                iTr++)
             cout << *iTr << '\n';
     }
     else

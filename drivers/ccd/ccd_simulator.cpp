@@ -825,8 +825,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                 glow = m_SkyGlow / 10;
             }
 
-            //fprintf(stderr,"Using glow %4.2f\n",glow);
-
             // Flux represents one second, scale up linearly for exposure time
             float const skyflux = flux(glow) * exposure_time;
 

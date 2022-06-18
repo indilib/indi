@@ -55,30 +55,34 @@ namespace INDI
  */
 class RecorderInterface
 {
-  public:
-    RecorderInterface() = default;
-    virtual ~RecorderInterface() = default;
+    public:
+        RecorderInterface() = default;
+        virtual ~RecorderInterface() = default;
 
-    virtual const char *getName();
-    virtual const char *getExtension() = 0;
-    // true when direct encoding of pixel format
-    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8) = 0;
-    // set full image size in pixels
-    virtual bool setSize(uint16_t width, uint16_t height) = 0;
-    // Set FPS
-    virtual bool setFPS(float FPS) { m_FPS = FPS; return true; }
-    virtual bool open(const char *filename, char *errmsg)                          = 0;
-    virtual bool close()                                                           = 0;
-    // when frame is in known encoding format
-    virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes) = 0;
-    // If streaming is enabled, then any subframing is already done by the stream recorder
-    // and no need to do any further subframing operations. Otherwise, subframing must be done.
-    // This is to reduce process time and save memory for a dedicated subframe buffer
-    virtual void setStreamEnabled(bool enable) = 0;
+        virtual const char *getName();
+        virtual const char *getExtension() = 0;
+        // true when direct encoding of pixel format
+        virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8) = 0;
+        // set full image size in pixels
+        virtual bool setSize(uint16_t width, uint16_t height) = 0;
+        // Set FPS
+        virtual bool setFPS(float FPS)
+        {
+            m_FPS = FPS;
+            return true;
+        }
+        virtual bool open(const char *filename, char *errmsg)                          = 0;
+        virtual bool close()                                                           = 0;
+        // when frame is in known encoding format
+        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes) = 0;
+        // If streaming is enabled, then any subframing is already done by the stream recorder
+        // and no need to do any further subframing operations. Otherwise, subframing must be done.
+        // This is to reduce process time and save memory for a dedicated subframe buffer
+        virtual void setStreamEnabled(bool enable) = 0;
 
-  protected:
-    const char *name;
-    float m_FPS = 1;
+    protected:
+        const char *name;
+        float m_FPS = 1;
 };
 
 }

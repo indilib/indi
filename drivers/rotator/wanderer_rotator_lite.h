@@ -61,7 +61,7 @@ class WandererRotatorLite : public INDI::Rotator
         int reversecoefficient;
         double backlash;
         double positionhistory;
-        double backlashcompensation;        
+        double backlashcompensation;
         int positioncount;
 };
 

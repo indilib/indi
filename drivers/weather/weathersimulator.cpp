@@ -43,7 +43,7 @@ const char *WeatherSimulator::getDefaultName()
 }
 
 bool WeatherSimulator::Connect()
-{    
+{
     return true;
 }
 
@@ -61,7 +61,8 @@ bool WeatherSimulator::initProperties()
     IUFillNumber(&ControlWeatherN[CONTROL_WIND], "Wind", "Wind", "%.2f", 0, 100, 5, 0);
     IUFillNumber(&ControlWeatherN[CONTROL_GUST], "Gust", "Gust", "%.2f", 0, 50, 5, 0);
     IUFillNumber(&ControlWeatherN[CONTROL_RAIN], "Precip", "Precip", "%.f", 0, 100, 10, 0);
-    IUFillNumberVector(&ControlWeatherNP, ControlWeatherN, 5, getDeviceName(), "WEATHER_CONTROL", "Control", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ControlWeatherNP, ControlWeatherN, 5, getDeviceName(), "WEATHER_CONTROL", "Control", MAIN_CONTROL_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 15);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);

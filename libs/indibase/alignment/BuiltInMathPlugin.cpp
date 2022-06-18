@@ -13,12 +13,12 @@ namespace AlignmentSubsystem
 // Private methods
 
 void BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1,
-                                                   const TelescopeDirectionVector &Alpha2,
-                                                   const TelescopeDirectionVector &Alpha3,
-                                                   const TelescopeDirectionVector &Beta1,
-                                                   const TelescopeDirectionVector &Beta2,
-                                                   const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
-                                                   gsl_matrix *pBetaToAlpha)
+        const TelescopeDirectionVector &Alpha2,
+        const TelescopeDirectionVector &Alpha3,
+        const TelescopeDirectionVector &Beta1,
+        const TelescopeDirectionVector &Beta2,
+        const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
+        gsl_matrix *pBetaToAlpha)
 {
     // Derive the Actual to Apparent transformation matrix
     gsl_matrix *pAlphaMatrix = gsl_matrix_alloc(3, 3);

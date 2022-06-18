@@ -70,25 +70,32 @@ bool WeatherSafetyProxy::initProperties()
     IUFillText(&keywordT[0], "WEATHER_CONDITION", "Weather Condition", "condition");
     IUFillTextVector(&keywordTP, keywordT, 1, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&ScriptsT[WSP_SCRIPT], "WEATHER_SAFETY_SCRIPT", "Weather safety script", "/usr/local/share/indi/scripts/weather_status.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, WSP_SCRIPT_COUNT, getDefaultName(), "WEATHER_SAFETY_SCRIPTS", "Script", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    IUFillText(&ScriptsT[WSP_SCRIPT], "WEATHER_SAFETY_SCRIPT", "Weather safety script",
+               "/usr/local/share/indi/scripts/weather_status.py");
+    IUFillTextVector(&ScriptsTP, ScriptsT, WSP_SCRIPT_COUNT, getDefaultName(), "WEATHER_SAFETY_SCRIPTS", "Script", OPTIONS_TAB,
+                     IP_RW, 100, IPS_IDLE);
 
     IUFillText(&UrlT[WSP_URL], "WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
-    IUFillTextVector(&UrlTP, UrlT, WSP_URL_COUNT, getDefaultName(), "WEATHER_SAFETY_URLS", "Url", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    IUFillTextVector(&UrlTP, UrlT, WSP_URL_COUNT, getDefaultName(), "WEATHER_SAFETY_URLS", "Url", OPTIONS_TAB, IP_RW, 100,
+                     IPS_IDLE);
 
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_SCRIPT], "Use script", "", ISS_ON);
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
-    IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url",
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 1.0, 30.0);
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minimum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
-    IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minimum soft error for recovery", "%g",
+                 0.0, 1000.0, 1.0, 7.0);
+    IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS",
+                       "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
     setCriticalParameter("WEATHER_SAFETY");
 
     IUFillText(&reasonsT[0], "Reasons", "", nullptr);
-    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 120, IPS_IDLE);
+    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons",
+                     MAIN_CONTROL_TAB, IP_RO, 120, IPS_IDLE);
 
     addDebugControl();
 
@@ -254,7 +261,7 @@ IPState WeatherSafetyProxy::executeScript()
 {
     const char *cmd = ScriptsT[WSP_SCRIPT].text;
 
-    if (access(cmd, F_OK|X_OK) == -1)
+    if (access(cmd, F_OK | X_OK) == -1)
     {
         LOGF_ERROR("Cannot use script [%s], check its existence and permissions", cmd);
         LastParseSuccess = false;

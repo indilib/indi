@@ -37,7 +37,7 @@ void DustCapInterface::initDustCapProperties(const char *deviceName, const char 
 }
 
 bool DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
-                                                  int n)
+        int n)
 {
     INDI_UNUSED(dev);
     // Park/UnPark Dust Cover

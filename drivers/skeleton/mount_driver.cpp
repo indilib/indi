@@ -38,8 +38,10 @@ MountDriver::MountDriver()
 
     // Set capabilities supported by the mount.
     // The last parameters is the number of slew rates available.
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_PIER_SIDE |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_HAS_TRACK_RATE,
                            4);
 
 }
@@ -161,15 +163,15 @@ bool MountDriver::ReadScopeStatus()
     // This is called every POLLMS milliseconds (default 1000, but our driver set the default to 500)
 
     // For example, it could be a command like this
-    char cmd[DRIVER_LEN]={0}, res[DRIVER_LEN]={0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     if (sendCommand("GetCoordinates", res) == false)
         return false;
 
-    double currentRA=0, currentDE=0;
+    double currentRA = 0, currentDE = 0;
     // Assuming we get response as RA:DEC (Hours:Degree) e.g. "12.4:-34.6"
     sscanf(res, "%lf:%lf", &currentRA, &currentDE);
 
-    char RAStr[DRIVER_LEN]={0}, DecStr[DRIVER_LEN]={0};
+    char RAStr[DRIVER_LEN] = {0}, DecStr[DRIVER_LEN] = {0};
     fs_sexa(RAStr, currentRA, 2, 3600);
     fs_sexa(DecStr, currentDE, 2, 3600);
     LOGF_DEBUG("Current RA: %s Current DEC: %s", RAStr, DecStr);
@@ -194,7 +196,7 @@ bool MountDriver::ReadScopeStatus()
 
 bool MountDriver::Goto(double RA, double DE)
 {
-    char cmd[DRIVER_LEN]={0}, res[DRIVER_LEN]={0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     // Assuming the command is in this format: sendCoords RA:DE
     snprintf(cmd, DRIVER_LEN, "sendCoords %g:%g", RA, DE);
@@ -207,7 +209,7 @@ bool MountDriver::Goto(double RA, double DE)
 
     TrackState = SCOPE_SLEWING;
 
-    char RAStr[DRIVER_LEN]={0}, DecStr[DRIVER_LEN]={0};
+    char RAStr[DRIVER_LEN] = {0}, DecStr[DRIVER_LEN] = {0};
     fs_sexa(RAStr, RA, 2, 3600);
     fs_sexa(DecStr, DE, 2, 3600);
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
@@ -216,7 +218,7 @@ bool MountDriver::Goto(double RA, double DE)
 
 bool MountDriver::Sync(double RA, double DE)
 {
-    char cmd[DRIVER_LEN]={0}, res[DRIVER_LEN]={0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     // Assuming the command is in this format: syncCoords RA:DE
     snprintf(cmd, DRIVER_LEN, "syncCoords %g:%g", RA, DE);
@@ -233,7 +235,7 @@ bool MountDriver::Sync(double RA, double DE)
 }
 
 bool MountDriver::Park()
-{    
+{
     // Send command for parking here
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking telescope in progress...");

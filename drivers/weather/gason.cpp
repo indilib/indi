@@ -35,7 +35,7 @@ const char *jsonStrError(int err)
 #define XX(no, str) \
     case JSON_##no: \
         return str;
-        JSON_ERRNO_MAP(XX)
+            JSON_ERRNO_MAP(XX)
 #undef XX
         default:
             return "unknown";
@@ -211,7 +211,7 @@ int jsonParse(char *s, char **endptr, JsonValue *value, JsonAllocator &allocator
                     *endptr = s;
                     return JSON_BAD_NUMBER;
                 }
-                /* Falls through. */
+            /* Falls through. */
             case '0':
             case '1':
             case '2':

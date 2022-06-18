@@ -29,27 +29,28 @@
  * to the test process.
  *
  */
-class DriverMock {
-    std::string abstractPath;
-    int serverConnection;
-    int driverConnection;
+class DriverMock
+{
+        std::string abstractPath;
+        int serverConnection;
+        int driverConnection;
 
-    int driverFds[2];
-public:
-    DriverMock();
-    virtual ~DriverMock();
+        int driverFds[2];
+    public:
+        DriverMock();
+        virtual ~DriverMock();
 
-    // Start the listening socket that will receive driver upon their starts
-    void setup();
-    void unsetup();
+        // Start the listening socket that will receive driver upon their starts
+        void setup();
+        void unsetup();
 
-    void waitEstablish();
+        void waitEstablish();
 
-    void terminateDriver();
+        void terminateDriver();
 
-    void ping();
+        void ping();
 
-    ConnectionMock cnx;
+        ConnectionMock cnx;
 };
 
 

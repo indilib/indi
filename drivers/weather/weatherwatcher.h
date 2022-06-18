@@ -30,38 +30,38 @@
 
 class WeatherWatcher : public INDI::Weather
 {
-  public:
-    WeatherWatcher();
+    public:
+        WeatherWatcher();
 
-    //  Generic indi device entries
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
+        //  Generic indi device entries
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-  protected:
-    virtual IPState updateWeather() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+    protected:
+        virtual IPState updateWeather() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    IText keywordT[8] {};
-    ITextVectorProperty keywordTP;
+        IText keywordT[8] {};
+        ITextVectorProperty keywordTP;
 
-    IText separatorT[1] {};
-    ITextVectorProperty separatorTP;
+        IText separatorT[1] {};
+        ITextVectorProperty separatorTP;
 
-  private:
-    std::map<std::string, std::string> createMap(std::string const& s);
-    bool readWatchFile();
-    bool createPropertiesFromMap();
+    private:
+        std::map<std::string, std::string> createMap(std::string const &s);
+        bool readWatchFile();
+        bool createPropertiesFromMap();
 
-    IText watchFileT[1] {};
-    ITextVectorProperty watchFileTP;
+        IText watchFileT[1] {};
+        ITextVectorProperty watchFileTP;
 
-    bool initialParse { false };
-    std::string readBuffer;
+        bool initialParse { false };
+        std::string readBuffer;
 
-    std::map<std::string,std::string> weatherMap;
+        std::map<std::string, std::string> weatherMap;
 };

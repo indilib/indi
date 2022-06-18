@@ -27,16 +27,17 @@
  *
  * Allows starting it, sending it signals and inspecting exit code
  */
-class IndiServerController {
+class IndiServerController
+{
 
-public:
-    // pid of the indiserver
-    pid_t indiServerPid;
+    public:
+        // pid of the indiserver
+        pid_t indiServerPid;
 
-    void start(const char ** args = nullptr);
+        void start(const char ** args = nullptr);
 
-    // Wait for process end, expecting the given exitcode
-    void waitProcessEnd(int exitCode);
+        // Wait for process end, expecting the given exitcode
+        void waitProcessEnd(int exitCode);
 };
 
 

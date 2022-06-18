@@ -69,70 +69,70 @@ namespace AlignmentSubsystem
  */
 class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
 {
-  public:
-    /// \brief Virtual destructor
-    virtual ~MapPropertiesToInMemoryDatabase() {}
+    public:
+        /// \brief Virtual destructor
+        virtual ~MapPropertiesToInMemoryDatabase() {}
 
-    // Public methods
+        // Public methods
 
-    /// \brief Initialize alignment database properties. It is recommended to call this function within initProperties()
-    /// of your primary device
-    /// \param[in] pTelescope Pointer to the child INDI::Telecope class
-    void InitProperties(Telescope *pTelescope);
+        /// \brief Initialize alignment database properties. It is recommended to call this function within initProperties()
+        /// of your primary device
+        /// \param[in] pTelescope Pointer to the child INDI::Telecope class
+        void InitProperties(Telescope *pTelescope);
 
-    /// \brief Call this function from within the ISNewBLOB processing path. The function will
-    /// handle any alignment database related properties.
-    /// \param[in] pTelescope Pointer to the child INDI::Telecope class
-    /// \param[in] name vector property name
-    /// \param[in] sizes
-    /// \param[in] blobsizes
-    /// \param[in] blobs
-    /// \param[in] formats
-    /// \param[in] names
-    /// \param[in] n
-    void ProcessBlobProperties(Telescope *pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                               char *formats[], char *names[], int n);
+        /// \brief Call this function from within the ISNewBLOB processing path. The function will
+        /// handle any alignment database related properties.
+        /// \param[in] pTelescope Pointer to the child INDI::Telecope class
+        /// \param[in] name vector property name
+        /// \param[in] sizes
+        /// \param[in] blobsizes
+        /// \param[in] blobs
+        /// \param[in] formats
+        /// \param[in] names
+        /// \param[in] n
+        void ProcessBlobProperties(Telescope *pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                   char *formats[], char *names[], int n);
 
-    /// \brief Call this function from within the ISNewNumber processing path. The function will
-    /// handle any alignment database related properties.
-    /// \param[in] pTelescope Pointer to the child INDI::Telecope class
-    /// \param[in] name vector property name
-    /// \param[in] values value as passed by the client
-    /// \param[in] names names as passed by the client
-    /// \param[in] n number of values and names pair to process.
-    void ProcessNumberProperties(Telescope *, const char *name, double values[], char *names[], int n);
+        /// \brief Call this function from within the ISNewNumber processing path. The function will
+        /// handle any alignment database related properties.
+        /// \param[in] pTelescope Pointer to the child INDI::Telecope class
+        /// \param[in] name vector property name
+        /// \param[in] values value as passed by the client
+        /// \param[in] names names as passed by the client
+        /// \param[in] n number of values and names pair to process.
+        void ProcessNumberProperties(Telescope *, const char *name, double values[], char *names[], int n);
 
-    /// \brief Call this function from within the ISNewSwitch processing path. The function will
-    /// handle any alignment database related properties.
-    /// \param[in] pTelescope Pointer to the child INDI::Telecope class
-    /// \param[in] name vector property name
-    /// \param[in] states states as passed by the client
-    /// \param[in] names names as passed by the client
-    /// \param[in] n number of values and names pair to process.
-    void ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states, char *names[], int n);
+        /// \brief Call this function from within the ISNewSwitch processing path. The function will
+        /// handle any alignment database related properties.
+        /// \param[in] pTelescope Pointer to the child INDI::Telecope class
+        /// \param[in] name vector property name
+        /// \param[in] states states as passed by the client
+        /// \param[in] names names as passed by the client
+        /// \param[in] n number of values and names pair to process.
+        void ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states, char *names[], int n);
 
-    /// \brief Call this function from within the updateLocation processing path
-    /// \param[in] latitude Site latitude in degrees.
-    /// \param[in] longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
-    /// \param[in] elevation Site elevation in meters.
-    void UpdateLocation(double latitude, double longitude, double elevation);
+        /// \brief Call this function from within the updateLocation processing path
+        /// \param[in] latitude Site latitude in degrees.
+        /// \param[in] longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+        /// \param[in] elevation Site elevation in meters.
+        void UpdateLocation(double latitude, double longitude, double elevation);
 
-    /// \brief Call this function when the number of entries in the database changes
-    void UpdateSize();
+        /// \brief Call this function when the number of entries in the database changes
+        void UpdateSize();
 
-  private:
-    INumber AlignmentPointSetEntry[6];
-    INumberVectorProperty AlignmentPointSetEntryV;
-    IBLOB AlignmentPointSetPrivateBinaryData;
-    IBLOBVectorProperty AlignmentPointSetPrivateBinaryDataV;
-    INumber AlignmentPointSetSize;
-    INumberVectorProperty AlignmentPointSetSizeV;
-    INumber AlignmentPointSetPointer;
-    INumberVectorProperty AlignmentPointSetPointerV;
-    ISwitch AlignmentPointSetAction[9];
-    ISwitchVectorProperty AlignmentPointSetActionV;
-    ISwitch AlignmentPointSetCommit;
-    ISwitchVectorProperty AlignmentPointSetCommitV;
+    private:
+        INumber AlignmentPointSetEntry[6];
+        INumberVectorProperty AlignmentPointSetEntryV;
+        IBLOB AlignmentPointSetPrivateBinaryData;
+        IBLOBVectorProperty AlignmentPointSetPrivateBinaryDataV;
+        INumber AlignmentPointSetSize;
+        INumberVectorProperty AlignmentPointSetSizeV;
+        INumber AlignmentPointSetPointer;
+        INumberVectorProperty AlignmentPointSetPointerV;
+        ISwitch AlignmentPointSetAction[9];
+        ISwitchVectorProperty AlignmentPointSetActionV;
+        ISwitch AlignmentPointSetCommit;
+        ISwitchVectorProperty AlignmentPointSetCommitV;
 };
 
 } // namespace AlignmentSubsystem

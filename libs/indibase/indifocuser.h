@@ -42,81 +42,84 @@ namespace INDI
 
 class Focuser : public DefaultDevice, public FocuserInterface
 {
-  public:
-    Focuser();
-    virtual ~Focuser();
+    public:
+        Focuser();
+        virtual ~Focuser();
 
-    /** \struct FocuserConnection
-            \brief Holds the connection mode of the Focuser.
-        */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-    } FocuserConnection;
+        /** \struct FocuserConnection
+                \brief Holds the connection mode of the Focuser.
+            */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } FocuserConnection;
 
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    /**
-         * @brief setConnection Set Focuser connection mode. Child class should call this in the constructor before Focuser registers
-         * any connection interfaces
-         * @param value ORed combination of FocuserConnection values.
+        /**
+             * @brief setConnection Set Focuser connection mode. Child class should call this in the constructor before Focuser registers
+             * any connection interfaces
+             * @param value ORed combination of FocuserConnection values.
+             */
+        void setSupportedConnections(const uint8_t &value);
+
+        /**
+             * @return Get current Focuser connection mode
+             */
+        uint8_t getSupportedConnections() const
+        {
+            return focuserConnection;
+        }
+
+        static void buttonHelper(const char *button_n, ISState state, void *context);
+
+    protected:
+        /**
+             * @brief saveConfigItems Saves the Device Port and Focuser Presets in the configuration file
+             * @param fp pointer to configuration file
+             * @return true if successful, false otherwise.
+             */
+        virtual bool saveConfigItems(FILE *fp) override;
+
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
+
+        /**
+         * @brief SetFocuserMaxPosition Update focuser maximum position. It only updates the PresetNP property limits.
+         * @param ticks maximum ticks
+         * @return True
          */
-    void setSupportedConnections(const uint8_t &value);
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
-    /**
-         * @return Get current Focuser connection mode
+        /**
+         * @brief syncPresets Updates the min/max/step range of the preset as per the maximum name of Absolute Focus Travel
          */
-    uint8_t getSupportedConnections() const { return focuserConnection;}
+        virtual void SyncPresets(uint32_t ticks);
 
-    static void buttonHelper(const char *button_n, ISState state, void *context);
+        INumber PresetN[3];
+        INumberVectorProperty PresetNP;
+        ISwitch PresetGotoS[3];
+        ISwitchVectorProperty PresetGotoSP;
 
-  protected:
-    /**
-         * @brief saveConfigItems Saves the Device Port and Focuser Presets in the configuration file
-         * @param fp pointer to configuration file
-         * @return true if successful, false otherwise.
-         */
-    virtual bool saveConfigItems(FILE *fp) override;
+        void processButton(const char *button_n, ISState state);
 
-    /** \brief perform handshake with device to check communication */
-    virtual bool Handshake();
+        Controller *controller;
 
-    /**
-     * @brief SetFocuserMaxPosition Update focuser maximum position. It only updates the PresetNP property limits.
-     * @param ticks maximum ticks
-     * @return True
-     */
-    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        Connection::Serial *serialConnection = nullptr;
+        Connection::TCP *tcpConnection       = nullptr;
 
-    /**
-     * @brief syncPresets Updates the min/max/step range of the preset as per the maximum name of Absolute Focus Travel
-     */
-    virtual void SyncPresets(uint32_t ticks);
+        int PortFD = -1;
 
-    INumber PresetN[3];
-    INumberVectorProperty PresetNP;
-    ISwitch PresetGotoS[3];
-    ISwitchVectorProperty PresetGotoSP;
-
-    void processButton(const char *button_n, ISState state);
-
-    Controller *controller;
-
-    Connection::Serial *serialConnection = nullptr;
-    Connection::TCP *tcpConnection       = nullptr;
-
-    int PortFD = -1;
-
-  private:
-    bool callHandshake();
-    uint8_t focuserConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+    private:
+        bool callHandshake();
+        uint8_t focuserConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
 }
