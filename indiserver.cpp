@@ -556,6 +556,10 @@ class MsgQueue: public Collectable
 
         /* Close the connection. (May be restarted later depending on driver logic) */
         virtual void close() = 0;
+
+        /* Close the writing part of the connection. By default, shutdown the write part, but keep on reading. May delete this */
+        virtual void closeWritePart();
+
         /* Handle a message. root will be freed by caller. fds of buffers will be closed, unless set to -1 */
         virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers) = 0;
 
@@ -695,6 +699,10 @@ class DvrInfo: public MsgQueue
         /* send message to each interested client
          */
         virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers);
+
+        /* override to kill driver that are not reachable anymore */
+        virtual void closeWritePart();
+
 
         /* Construct an instance that will start the same driver */
         DvrInfo(const DvrInfo &model);
@@ -1979,6 +1987,11 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     mp->queuingDone();
 }
 
+void DvrInfo::closeWritePart() {
+    // Don't want any half-dead drivers
+    close();
+}
+
 void ClInfo::close()
 {
     if (verbose > 0)
@@ -2404,7 +2417,9 @@ void MsgQueue::writeToFd()
             log("write returned 0\n");
         else
             log(fmt("write: %s\n", strerror(errno)));
-        close();
+
+        // Keep the read part open
+        closeWritePart();
         return;
     }
 
@@ -3586,6 +3601,33 @@ MsgQueue::~MsgQueue()
     }
 }
 
+void MsgQueue::closeWritePart() {
+    if (wFd == -1) {
+        // Already closed
+        return;
+    }
+
+    int oldWFd = wFd;
+
+    wFd = -1;
+    // Clear the queue and stop the io slot
+    clearMsgQueue();
+
+    if (oldWFd == rFd) {
+        if (shutdown(oldWFd, SHUT_WR) == -1) {
+            if (errno != ENOTCONN) {
+                log(fmt("socket shutdown failed: %s\n", strerror(errno)));
+                close();
+            }
+        }
+    } else {
+        if (::close(oldWFd) == -1) {
+            log(fmt("socket close failed: %s\n", strerror(errno)));
+            close();
+        }
+    }
+}
+
 void MsgQueue::setFds(int rFd, int wFd)
 {
     if (this->rFd != -1)
@@ -3635,6 +3677,11 @@ void MsgQueue::consumeHeadMsg()
 
 void MsgQueue::pushMsg(Msg * mp)
 {
+    // Don't write messages to client that have been disconnected
+    if (wFd == -1) {
+        return;
+    }
+
     auto serialized = mp->serialize(this);
 
     msgq.push_back(serialized);
