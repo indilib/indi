@@ -280,6 +280,23 @@ void ConnectionMock::send(const std::string &str)
     }
 }
 
+void ConnectionMock::shutdown(bool rd, bool wr)
+{
+    if (fds[0] != fds[1]) {
+        if (rd && fds[0] != -1) {
+            ::shutdown(fds[0], SHUT_RD);
+        }
+        if (wr && fds[1] != -1) {
+            ::shutdown(fds[1], SHUT_WR);
+        }
+    } else {
+        if (!(rd || wr)) return;
+
+        int how = (rd && wr) ? SHUT_RDWR : rd ? SHUT_RD : SHUT_WR;
+        ::shutdown(fds[0], how);
+    }
+}
+
 void ConnectionMock::send(const std::string &str, const SharedBuffer ** buffers)
 {
     int fdCount = 0;

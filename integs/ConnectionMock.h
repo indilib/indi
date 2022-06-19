@@ -44,6 +44,8 @@ class ConnectionMock
         ConnectionMock();
         ~ConnectionMock();
         void setFds(int rd, int wr);
+        // shutdown part of the socket
+        void shutdown(bool rd, bool wr);
 
         void expect(const std::string &content);
         void expectXml(const std::string &xml);
