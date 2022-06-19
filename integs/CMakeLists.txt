@@ -22,11 +22,21 @@ add_executable(XmlAwaiterTest XmlAwaiterTest.cpp XmlAwaiter.cpp)
 target_link_libraries(XmlAwaiterTest ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 gtest_discover_tests(XmlAwaiterTest PROPERTIES TIMEOUT 5)
 
-add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp ServerMock.cpp)
+set(TestCommonSources DriverMock.cpp ConnectionMock.cpp ProcessController.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp ServerMock.cpp)
+
+add_executable(TestIndiserverSingleDriver TestIndiserverSingleDriver.cpp ${TestCommonSources})
 target_link_libraries(TestIndiserverSingleDriver ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 gtest_discover_tests(TestIndiserverSingleDriver PROPERTIES TIMEOUT 5)
 
-add_executable(TestIndiClient TestIndiClient.cpp DriverMock.cpp ConnectionMock.cpp IndiClientMock.cpp IndiServerController.cpp utils.cpp XmlAwaiter.cpp SharedBuffer.cpp ServerMock.cpp)
+add_executable(TestClientQueries TestClientQueries.cpp ${TestCommonSources})
+target_link_libraries(TestClientQueries ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+gtest_discover_tests(TestClientQueries PROPERTIES TIMEOUT 5)
+
+add_executable(TestIndiSetProp TestIndiSetProp.cpp ${TestCommonSources})
+target_link_libraries(TestIndiSetProp ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+gtest_discover_tests(TestIndiSetProp PROPERTIES TIMEOUT 10)
+
+add_executable(TestIndiClient TestIndiClient.cpp ${TestCommonSources})
 target_link_libraries(TestIndiClient indiclient ${GTEST_BOTH_LIBRARIES} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 gtest_discover_tests(TestIndiClient PROPERTIES TIMEOUT 5)
 

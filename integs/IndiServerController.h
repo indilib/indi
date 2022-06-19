@@ -22,22 +22,18 @@
 #include <string>
 #include <unistd.h>
 
+#include "ProcessController.h"
+
 /**
  * Interface to the indiserver process.
  *
  * Allows starting it, sending it signals and inspecting exit code
  */
-class IndiServerController
+class IndiServerController : public ProcessController
 {
 
     public:
-        // pid of the indiserver
-        pid_t indiServerPid;
-
-        void start(const char ** args = nullptr);
-
-        // Wait for process end, expecting the given exitcode
-        void waitProcessEnd(int exitCode);
+        void start(const std::vector<std::string> args);
 };
 
 

@@ -47,8 +47,7 @@ TEST(IndiserverSingleDriver, MissingDriver)
     std::string fakeDriverPath = getTestExePath("fakedriver-not-existing");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     // Exit code 1 is expected when driver stopped
@@ -67,8 +66,7 @@ TEST(IndiserverSingleDriver, ReplyToPing)
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -110,8 +108,7 @@ void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();

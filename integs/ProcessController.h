@@ -16,12 +16,36 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <system_error>
-#include <sys/wait.h>
+#ifndef PROCESS_CONTROLLER_H_
+#define PROCESS_CONTROLLER_H_ 1
 
-#include "utils.h"
-#include "IndiServerController.h"
+#include <string>
+#include <vector>
+#include <list>
 
-void IndiServerController::start(const std::vector<std::string> args) {
-    ProcessController::start("../indiserver", args);
-}
+
+/**
+ * Interface to a mocked connection
+ */
+class ProcessController {
+    pid_t pid;
+    int status;
+    std::string cmd;
+
+    void finish();
+public:
+    ProcessController();
+    ~ProcessController();
+
+    void start(const std::string & path, const std::vector<std::string>  & args);
+
+    void expectDone();
+    void expectAlive();
+    void expectExitCode(int e);
+    void join();
+
+    void waitProcessEnd(int expectedExitCode);
+};
+
+
+#endif // PROCESS_CONTROLLER_H_
