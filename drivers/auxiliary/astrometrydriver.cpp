@@ -298,7 +298,7 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
         if (destLen != size)
         {
             LOGF_WARN("Discrepency between uncompressed data size %ld and expected size %ld",
-                   size, destLen);
+                      size, destLen);
         }
 
         processedData = dataBuffer;
@@ -352,7 +352,7 @@ void *AstrometryDriver::runSolverHelper(void *context)
 
 void AstrometryDriver::runSolver()
 {
-    char cmd[MAXRBUF]={0}, line[256]={0}, parity_str[8]={0};
+    char cmd[MAXRBUF] = {0}, line[256] = {0}, parity_str[8] = {0};
     float ra = -1000, dec = -1000, angle = -1000, pixscale = -1000, parity = 0;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",
              SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);

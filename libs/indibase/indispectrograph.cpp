@@ -53,12 +53,16 @@ Spectrograph::~Spectrograph()
 bool Spectrograph::initProperties()
 {
     // PrimarySpectrograph Info
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_LOWFREQ], "SPECTROGRAPH_LOW_CUT_FREQUENCY", "Low cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_HIGHFREQ], "SPECTROGRAPH_HIGH_CUT_FREQUENCY", "High cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
+    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f",
+                 -64, 64, 8, 8);
+    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_LOWFREQ], "SPECTROGRAPH_LOW_CUT_FREQUENCY", "Low cut frequency (Hz)",
+                 "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
+    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_HIGHFREQ], "SPECTROGRAPH_HIGH_CUT_FREQUENCY", "High cut frequency (Hz)",
+                 "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_GAIN], "SPECTROGRAPH_GAIN", "Gain", "%3.2f", 0.01, 255.0, 0.01, 1.0);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_ANTENNA], "SPECTROGRAPH_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 6, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 6, getDeviceName(), "SPECTROGRAPH_SETTINGS",
+                       "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(SPECTROGRAPH_INTERFACE);
 
@@ -101,7 +105,8 @@ bool Spectrograph::ISNewText(const char *dev, const char *name, char *values[], 
 
 bool Spectrograph::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name))
+    {
         IDSetNumber(&SpectrographSettingsNP, nullptr);
     }
     return processNumber(dev, name, values, names, n);
@@ -113,7 +118,7 @@ bool Spectrograph::ISNewSwitch(const char *dev, const char *name, ISState *value
 }
 
 bool Spectrograph::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-           char *formats[], char *names[], int n)
+                             char *formats[], char *names[], int n)
 {
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -159,7 +164,7 @@ bool Spectrograph::StartIntegration(double duration)
 }
 
 void Spectrograph::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                                   bool sendToClient)
+                                 bool sendToClient)
 {
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
     INumberVectorProperty *nvp = nullptr;
@@ -190,10 +195,10 @@ void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     sprintf(fitsString, "%d", getBPS());
     fits_update_key_s(fptr, TSTRING, "BPS", fitsString, "Bits per sample", &status);
 
-    sprintf(fitsString, "%lf", getHighCutFrequency()-getLowCutFrequency());
+    sprintf(fitsString, "%lf", getHighCutFrequency() - getLowCutFrequency());
     fits_update_key_s(fptr, TSTRING, "BANDWIDT", fitsString, "Bandwidth", &status);
 
-    sprintf(fitsString, "%lf", getLowCutFrequency()+(getHighCutFrequency()-getLowCutFrequency())/2.0);
+    sprintf(fitsString, "%lf", getLowCutFrequency() + (getHighCutFrequency() - getLowCutFrequency()) / 2.0);
     fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
 
     sprintf(fitsString, "%lf", getGain());

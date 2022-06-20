@@ -32,17 +32,17 @@ namespace INDI
  */
 class EncoderManager
 {
-  public:
-    EncoderManager();
-    ~EncoderManager();
-    std::vector<EncoderInterface *> getEncoderList();
-    EncoderInterface *getEncoder();
-    EncoderInterface *getDefaultEncoder();
-    void setEncoder(EncoderInterface *encoder);
+    public:
+        EncoderManager();
+        ~EncoderManager();
+        std::vector<EncoderInterface *> getEncoderList();
+        EncoderInterface *getEncoder();
+        EncoderInterface *getDefaultEncoder();
+        void setEncoder(EncoderInterface *encoder);
 
-  protected:
-    std::vector<EncoderInterface *> encoder_list;
-    EncoderInterface *current_encoder;
-    EncoderInterface *default_encoder;
+    protected:
+        std::vector<EncoderInterface *> encoder_list;
+        EncoderInterface *current_encoder;
+        EncoderInterface *default_encoder;
 };
 }

@@ -38,20 +38,23 @@ enum
 
 class GPUSBDriver : public INDI::USBDevice
 {
-  public:
-    GPUSBDriver();
-    virtual ~GPUSBDriver();
+    public:
+        GPUSBDriver();
+        virtual ~GPUSBDriver();
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
 
-    bool startPulse(int direction);
-    bool stopPulse(int direction);
+        bool startPulse(int direction);
+        bool stopPulse(int direction);
 
-    void setDebug(bool enable) { debug = enable; }
+        void setDebug(bool enable)
+        {
+            debug = enable;
+        }
 
-  private:
-    char guideCMD[1];
-    bool debug;
+    private:
+        char guideCMD[1];
+        bool debug;
 };

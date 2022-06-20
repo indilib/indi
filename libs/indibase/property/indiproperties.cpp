@@ -196,7 +196,7 @@ Properties::operator std::vector<INDI::Property *> *()
     D_PTR(Properties);
     d->propertiesBC.resize(0);
     d->propertiesBC.reserve(d->properties.size());
-    for (auto &it: d->properties)
+    for (auto &it : d->properties)
         d->propertiesBC.push_back(&it);
 
     return &d->propertiesBC;
@@ -207,7 +207,7 @@ Properties::operator const std::vector<INDI::Property *> *() const
     D_PTR(const Properties);
     d->propertiesBC.resize(0);
     d->propertiesBC.reserve(d->properties.size());
-    for (auto &it: d->properties)
+    for (auto &it : d->properties)
         d->propertiesBC.push_back(const_cast<INDI::Property *>(&it));
 
     return &d->propertiesBC;

@@ -42,47 +42,60 @@
 
 class MyClient : public INDI::BaseClient
 {
-   std::string dev, prop;
- public:
-    MyClient(const std::string & dev, const std::string & prop) : dev(dev), prop(prop) {}
-    virtual ~MyClient() {}
-protected:
-    virtual void newDevice(INDI::BaseDevice *) {
-        std::cerr << "new device\n";
-    }
-    virtual void removeDevice(INDI::BaseDevice *) {
-        std::cerr << "remove device\n";
-    }
-    virtual void newProperty(INDI::Property *) {
-    };
-    virtual void removeProperty(INDI::Property *) {
-    }
-    virtual void newBLOB(IBLOB *bp) {
-        std::cerr << "new blob: " << bp->format << "\n";
+        std::string dev, prop;
+    public:
+        MyClient(const std::string &dev, const std::string &prop) : dev(dev), prop(prop) {}
+        virtual ~MyClient() {}
+    protected:
+        virtual void newDevice(INDI::BaseDevice *)
+        {
+            std::cerr << "new device\n";
+        }
+        virtual void removeDevice(INDI::BaseDevice *)
+        {
+            std::cerr << "remove device\n";
+        }
+        virtual void newProperty(INDI::Property *)
+        {
+        };
+        virtual void removeProperty(INDI::Property *)
+        {
+        }
+        virtual void newBLOB(IBLOB *bp)
+        {
+            std::cerr << "new blob: " << bp->format << "\n";
 
-    }
+        }
 
-    virtual void newSwitch(ISwitchVectorProperty *) {
-    }
+        virtual void newSwitch(ISwitchVectorProperty *)
+        {
+        }
 
-    virtual void newNumber(INumberVectorProperty *) {
-    }
+        virtual void newNumber(INumberVectorProperty *)
+        {
+        }
 
-    virtual void newMessage(INDI::BaseDevice *, int) {
-    }
-    virtual void newText(ITextVectorProperty *) {
-    }
-    virtual void newLight(ILightVectorProperty *) {
-    }
-    virtual void serverConnected() {
-        std::cerr << "server connected\n";
-    }
-    virtual void serverDisconnected(int) {
-        std::cerr << "server disconnected\n";
-    }
+        virtual void newMessage(INDI::BaseDevice *, int)
+        {
+        }
+        virtual void newText(ITextVectorProperty *)
+        {
+        }
+        virtual void newLight(ILightVectorProperty *)
+        {
+        }
+        virtual void serverConnected()
+        {
+            std::cerr << "server connected\n";
+        }
+        virtual void serverDisconnected(int)
+        {
+            std::cerr << "server disconnected\n";
+        }
 };
 
-TEST(IndiclientTcpConnect, ClientConnect) {
+TEST(IndiclientTcpConnect, ClientConnect)
+{
     ServerMock fakeServer;
     IndiClientMock indiServerCnx;
 
@@ -97,7 +110,8 @@ TEST(IndiclientTcpConnect, ClientConnect) {
 
     // FIXME : async
     // auto wait = runAsync([&fakeServer]=>{
-    std::thread t1([&fakeServer, &indiServerCnx]() {
+    std::thread t1([&fakeServer, &indiServerCnx]()
+    {
         fakeServer.accept(indiServerCnx);
         indiServerCnx.cnx.expectXml("<getProperties version='1.7'/>");
     });

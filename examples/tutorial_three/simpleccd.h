@@ -27,34 +27,34 @@
 
 class SimpleCCD : public INDI::CCD
 {
-public:
-    SimpleCCD() = default;
+    public:
+        SimpleCCD() = default;
 
-protected:
-    // General device functions
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
-    bool initProperties() override;
-    bool updateProperties() override;
+    protected:
+        // General device functions
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    // CCD specific functions
-    bool StartExposure(float duration) override;
-    bool AbortExposure() override;
-    int SetTemperature(double temperature) override;
-    void TimerHit() override;
+        // CCD specific functions
+        bool StartExposure(float duration) override;
+        bool AbortExposure() override;
+        int SetTemperature(double temperature) override;
+        void TimerHit() override;
 
-private:
-    // Utility functions
-    float CalcTimeLeft();
-    void setupParams();
-    void grabImage();
+    private:
+        // Utility functions
+        float CalcTimeLeft();
+        void setupParams();
+        void grabImage();
 
-    // Are we exposing?
-    bool InExposure { false };
+        // Are we exposing?
+        bool InExposure { false };
 
-    INDI::ElapsedTimer ExposureTimer;
+        INDI::ElapsedTimer ExposureTimer;
 
-    float ExposureRequest { 0 };
-    float TemperatureRequest { 0 };
+        float ExposureRequest { 0 };
+        float TemperatureRequest { 0 };
 };

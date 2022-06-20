@@ -28,31 +28,31 @@ namespace INDI
 template <typename T>
 static inline std::shared_ptr<T> make_shared_weak(T *object)
 {
-    return std::shared_ptr<T>(object, [](T*){});
+    return std::shared_ptr<T>(object, [](T*) {});
 }
 #endif
 
 class BaseDevice;
 class PropertyPrivate
 {
-public:
-    void *property = nullptr;
-    BaseDevice *baseDevice = nullptr;
-    INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
-    bool registered = false;
-    bool dynamic = false;
+    public:
+        void *property = nullptr;
+        BaseDevice *baseDevice = nullptr;
+        INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
+        bool registered = false;
+        bool dynamic = false;
 
-    PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
-    PropertyPrivate(ITextVectorProperty *property);
-    PropertyPrivate(INumberVectorProperty *property);
-    PropertyPrivate(ISwitchVectorProperty *property);
-    PropertyPrivate(ILightVectorProperty *property);
-    PropertyPrivate(IBLOBVectorProperty *property);
+        PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
+        PropertyPrivate(ITextVectorProperty *property);
+        PropertyPrivate(INumberVectorProperty *property);
+        PropertyPrivate(ISwitchVectorProperty *property);
+        PropertyPrivate(ILightVectorProperty *property);
+        PropertyPrivate(IBLOBVectorProperty *property);
 
-    virtual ~PropertyPrivate();
+        virtual ~PropertyPrivate();
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-    Property self {make_shared_weak(this)};
+        Property self {make_shared_weak(this)};
 #endif
 };
 

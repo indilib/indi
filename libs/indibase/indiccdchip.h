@@ -22,6 +22,7 @@
 
 #include <sys/time.h>
 #include <stdint.h>
+#include <fitsio.h>
 
 namespace INDI
 {
@@ -391,6 +392,21 @@ class CCDChip
          */
         void binBayerFrame();
 
+        fitsfile **fitsFilePointer()
+        {
+            return &m_FITSFilePointer;
+        }
+
+        size_t * fitsMemorySizePointer()
+        {
+            return &m_FITSMemorySize;
+        }
+
+        void ** fitsMemoryBlockPointer()
+        {
+            return &m_FITSMemoryBlock;
+        }
+
     private:
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Chip Variables
@@ -437,6 +453,9 @@ class CCDChip
         timeval StartExposureTime;
         // Image extension type (e.g. jpg)
         char ImageExtention[MAXINDIBLOBFMT];
+        void * m_FITSMemoryBlock {nullptr};
+        size_t m_FITSMemorySize {100000};
+        fitsfile * m_FITSFilePointer {nullptr};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Chip Properties

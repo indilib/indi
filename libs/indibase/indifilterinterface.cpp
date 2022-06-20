@@ -39,7 +39,8 @@ FilterInterface::~FilterInterface()
 void FilterInterface::initProperties(const char *groupName)
 {
     IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
+    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName,
+                       IP_RW, 60,
                        IPS_IDLE);
 
     loadFilterNames();
@@ -81,7 +82,8 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
         if (!np)
         {
             FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.",
+                         names[0], FilterSlotNP.name);
             IDSetNumber(&FilterSlotNP, nullptr);
             return false;
         }
@@ -89,7 +91,8 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
         if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
         {
             FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g",
+                         FilterSlotN[0].min, FilterSlotN[0].max);
             IDSetNumber(&FilterSlotNP, nullptr);
             return false;
         }
@@ -139,7 +142,8 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
                 IUFillText(&FilterNameT[i], filterName, filterLabel, texts[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                             FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
             m_defaultDevice->defineProperty(FilterNameTP);
             return true;
         }
@@ -209,7 +213,8 @@ void FilterInterface::generateSampleFilters()
         IUFillText(&FilterNameT[i], filterName, filterLabel, i < 8 ? filterDesignation[i] : filterLabel);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                     FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
 }
 
 bool FilterInterface::GetFilterNames()
@@ -302,7 +307,8 @@ bool FilterInterface::loadFilterNames()
         }
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                     FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
 
     fclose(fp);
     delXMLEle(fproot);

@@ -34,35 +34,35 @@ class ElapsedTimerPrivate;
  */
 class ElapsedTimer
 {
-    DECLARE_PRIVATE(ElapsedTimer)
-public:
-    ElapsedTimer();
-    virtual ~ElapsedTimer();
+        DECLARE_PRIVATE(ElapsedTimer)
+    public:
+        ElapsedTimer();
+        virtual ~ElapsedTimer();
 
-public:
-    /** @brief Starts this timer. Once started, a timer value can be checked with elapsed(). */
-    void start();
+    public:
+        /** @brief Starts this timer. Once started, a timer value can be checked with elapsed(). */
+        void start();
 
-    /** @brief Restarts the timer and returns the number of milliseconds elapsed since the previous start. */
-    int64_t restart();
+        /** @brief Restarts the timer and returns the number of milliseconds elapsed since the previous start. */
+        int64_t restart();
 
-public:
-    /** @brief Returns the number of milliseconds since this ElapsedTimer was last started. */
-    int64_t elapsed() const;
+    public:
+        /** @brief Returns the number of milliseconds since this ElapsedTimer was last started. */
+        int64_t elapsed() const;
 
-    /** @brief Returns the number of nanoseconds since this ElapsedTimer was last started. */
-    int64_t nsecsElapsed() const;
+        /** @brief Returns the number of nanoseconds since this ElapsedTimer was last started. */
+        int64_t nsecsElapsed() const;
 
-    /** @brief Returns true if this ElapsedTimer has already expired by timeout milliseconds. */
-    bool hasExpired(int64_t timeout) const;
+        /** @brief Returns true if this ElapsedTimer has already expired by timeout milliseconds. */
+        bool hasExpired(int64_t timeout) const;
 
-public:
-    /** @brief Rewind elapsed time of nsec nanoseconds */
-    void nsecsRewind(int64_t nsecs);
+    public:
+        /** @brief Rewind elapsed time of nsec nanoseconds */
+        void nsecsRewind(int64_t nsecs);
 
-protected:
-    std::unique_ptr<ElapsedTimerPrivate> d_ptr;
-    ElapsedTimer(ElapsedTimerPrivate &dd);
+    protected:
+        std::unique_ptr<ElapsedTimerPrivate> d_ptr;
+        ElapsedTimer(ElapsedTimerPrivate &dd);
 };
 
 }

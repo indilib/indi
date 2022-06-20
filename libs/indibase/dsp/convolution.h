@@ -30,43 +30,44 @@ namespace DSP
 {
 class Convolution : public Interface
 {
-public:
-    Convolution(INDI::DefaultDevice *dev);
-    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        Convolution(INDI::DefaultDevice *dev);
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n) override;
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Convolution();
-    void Activated() override;
-    void Deactivated() override;
+    protected:
+        ~Convolution();
+        void Activated() override;
+        void Deactivated() override;
 
-private:
-    IBLOBVectorProperty DownloadBP;
-    IBLOB DownloadB;
+    private:
+        IBLOBVectorProperty DownloadBP;
+        IBLOB DownloadB;
 
-    dsp_stream_p matrix;
-    bool matrix_loaded { false };
+        dsp_stream_p matrix;
+        bool matrix_loaded { false };
 };
 
 class Wavelets : public Interface
 {
-public:
-    Wavelets(INDI::DefaultDevice *dev);
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    public:
+        Wavelets(INDI::DefaultDevice *dev);
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Wavelets();
-    void Activated() override;
-    void Deactivated() override;
+    protected:
+        ~Wavelets();
+        void Activated() override;
+        void Deactivated() override;
 
-private:
-    dsp_stream_p matrix;
+    private:
+        dsp_stream_p matrix;
 
-    INumberVectorProperty WaveletsNP;
-    INumber WaveletsN[N_WAVELETS];
+        INumberVectorProperty WaveletsNP;
+        INumber WaveletsN[N_WAVELETS];
 
-    bool matrix_loaded { false };
-    void Convolute();
+        bool matrix_loaded { false };
+        void Convolute();
 };
 }

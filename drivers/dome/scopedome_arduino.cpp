@@ -629,10 +629,10 @@ void ScopeDomeArduino::controlShutter(ShutterOperation operation)
 void ScopeDomeArduino::resetCounter()
 {
     // Doesn't seem to be needed as the counter resets by itself when passing home
-//    std::string res;
-//    char cmd[32] = {0};
-//    snprintf(cmd, 31, "setEncoderA=%d", encoderBaseValue);
-//    performCommand(cmd, res);
+    //    std::string res;
+    //    char cmd[32] = {0};
+    //    snprintf(cmd, 31, "setEncoderA=%d", encoderBaseValue);
+    //    performCommand(cmd, res);
 }
 
 void ScopeDomeArduino::move(int steps)

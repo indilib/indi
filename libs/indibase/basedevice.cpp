@@ -729,21 +729,26 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 blobEL->size    = blobSize;
 
                 XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
-                if (attachementId != nullptr) {
+                if (attachementId != nullptr)
+                {
                     // Client mark blob that can be attached directly
                     XMLAtt * directAttachment = findXMLAtt(ep, "attachment-direct");
                     bool directBlobAccess = directAttachment != nullptr;
                     // FIXME: Where is the blob data buffer freed at the end ?
                     // FIXME: blobSize is not buffer size here. Must pass it all the way through
                     // (while compressing shared buffer is useless)
-                    if (directBlobAccess) {
-                        if (blobEL->blob) {
+                    if (directBlobAccess)
+                    {
+                        if (blobEL->blob)
+                        {
                             IDSharedBlobFree(blobEL->blob);
                             blobEL->blob = nullptr;
                             blobEL->bloblen = 0;
                         }
                         blobEL->blob = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
-                    } else {
+                    }
+                    else
+                    {
                         // For compatibility, copy to a modifiable memory area
                         blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobSize));
                         void * tmp = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
@@ -751,7 +756,9 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                         IDSharedBlobFree(tmp);
                     }
                     blobEL->bloblen = blobSize;
-                } else {
+                }
+                else
+                {
                     uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
                     uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
                     blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));

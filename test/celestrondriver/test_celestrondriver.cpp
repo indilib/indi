@@ -14,14 +14,17 @@ using ::testing::StrEq;
 
 
 // Define a new matcher that compares two byte arrays
-MATCHER_P2(MemEq, buf, n, "") {
+MATCHER_P2(MemEq, buf, n, "")
+{
     uint8_t *b1 = (uint8_t *)buf;
     uint8_t *b2 = (uint8_t *)arg;
 
-    for (int i=0; i<n; i++) {
-        if (b1[i] != b2[i]) {
+    for (int i = 0; i < n; i++)
+    {
+        if (b1[i] != b2[i])
+        {
             *result_listener << "byte number " << i + 1 << " do not mach: " \
-                << (int)b1[i] << " != " << (int)b2[i];
+                             << (int)b1[i] << " != " << (int)b2[i];
             return false;
         }
     }
@@ -29,11 +32,17 @@ MATCHER_P2(MemEq, buf, n, "") {
 }
 
 
-class MockCelestronDriver : public CelestronDriver {
+class MockCelestronDriver : public CelestronDriver
+{
     public:
-        MockCelestronDriver() { fd = 1; simulation = false; }
+        MockCelestronDriver()
+        {
+            fd = 1;
+            simulation = false;
+        }
 
-        void set_response(const char *fmt, ...) {
+        void set_response(const char *fmt, ...)
+        {
             // simulate the response for the next command
             va_list args;
             va_start(args, fmt);
@@ -44,7 +53,8 @@ class MockCelestronDriver : public CelestronDriver {
         MOCK_METHOD3(serial_write, int (const char *cmd, int nbytes, int *nbytes_written));
         MOCK_METHOD2(serial_read, int (int nbytes, int *nbytes_read));
 
-        int serial_read_section(char stop_char, int *nbytes_read) {
+        int serial_read_section(char stop_char, int *nbytes_read)
+        {
             INDI_UNUSED(stop_char);
             INDI_UNUSED(nbytes_read);
             return 0;
@@ -52,7 +62,8 @@ class MockCelestronDriver : public CelestronDriver {
 };
 
 
-TEST(CelestronDriverTest, set_simulation) {
+TEST(CelestronDriverTest, set_simulation)
+{
     MockCelestronDriver driver;
     driver.set_simulation(true);
 
@@ -61,7 +72,8 @@ TEST(CelestronDriverTest, set_simulation) {
     EXPECT_TRUE(driver.echo());
 }
 
-TEST(CelestronDriverTest, echoCommand) {
+TEST(CelestronDriverTest, echoCommand)
+{
     MockCelestronDriver driver;
     driver.set_response("x#");
 
@@ -69,7 +81,8 @@ TEST(CelestronDriverTest, echoCommand) {
     EXPECT_TRUE(driver.echo());
 }
 
-TEST(CelestronDriverTest, syncCommand) {
+TEST(CelestronDriverTest, syncCommand)
+{
     MockCelestronDriver driver;
     driver.set_response("#");
 
@@ -80,7 +93,8 @@ TEST(CelestronDriverTest, syncCommand) {
     EXPECT_TRUE(driver.sync(3.0, 45.0, true));
 }
 
-TEST(CelestronDriverTest, gotoCommands) {
+TEST(CelestronDriverTest, gotoCommands)
+{
     MockCelestronDriver driver;
     driver.set_response("#");
 
@@ -97,7 +111,8 @@ TEST(CelestronDriverTest, gotoCommands) {
     EXPECT_TRUE(driver.slew_azalt(45.0, 45.0, true));
 }
 
-TEST(CelestronDriverTest, getCoordsCommands) {
+TEST(CelestronDriverTest, getCoordsCommands)
+{
     double ra, dec, az, alt;
     MockCelestronDriver driver;
 
@@ -126,12 +141,14 @@ TEST(CelestronDriverTest, getCoordsCommands) {
     ASSERT_FLOAT_EQ(45.0, alt);
 }
 
-TEST(CelestronDriverTest, slewingCommands) {
+TEST(CelestronDriverTest, slewingCommands)
+{
     MockCelestronDriver driver;
     driver.set_response("#");
 }
 
-TEST(CelestronDriverTest, getVersionCommands) {
+TEST(CelestronDriverTest, getVersionCommands)
+{
     char version[8];
     MockCelestronDriver driver;
 
@@ -156,7 +173,8 @@ TEST(CelestronDriverTest, getVersionCommands) {
     ASSERT_STREQ(version, "3.38");
 }
 
-TEST(CelestronDriverTest, setDateTime) {
+TEST(CelestronDriverTest, setDateTime)
+{
     MockCelestronDriver driver;
 
     struct ln_date utc;
@@ -173,7 +191,8 @@ TEST(CelestronDriverTest, setDateTime) {
     EXPECT_TRUE(driver.set_datetime(&utc, -2.0));
 }
 
-TEST(CelestronDriverTest, setLocation) {
+TEST(CelestronDriverTest, setLocation)
+{
     MockCelestronDriver driver;
 
     driver.set_response("#");
@@ -182,7 +201,8 @@ TEST(CelestronDriverTest, setLocation) {
     EXPECT_TRUE(driver.set_location(-3.7003, 40.4167));
 }
 
-TEST(CelestronDriverTest, hibernate) {
+TEST(CelestronDriverTest, hibernate)
+{
     MockCelestronDriver driver;
 
     EXPECT_CALL(driver, serial_write(StrEq("x"), 1, _));
@@ -203,7 +223,8 @@ TEST(CelestronDriverTest, getLocation) {
 }
 */
 
-TEST(CelestronDriverTest, trimDecAngle) {
+TEST(CelestronDriverTest, trimDecAngle)
+{
     ASSERT_FLOAT_EQ(0, trimDecAngle(0));
     ASSERT_FLOAT_EQ(0, trimDecAngle(180));
     ASSERT_FLOAT_EQ(0, trimDecAngle(360));
@@ -224,7 +245,8 @@ TEST(CelestronDriverTest, trimDecAngle) {
     ASSERT_FLOAT_EQ(-5, trimDecAngle(355 + 360));
 }
 
-TEST(CelestronDriverTest, dd2nex) {
+TEST(CelestronDriverTest, dd2nex)
+{
     ASSERT_EQ(0x0000U, dd2nex(0.0));
     ASSERT_EQ(0x2000U, dd2nex(45.0));
     ASSERT_EQ(0xc000U, dd2nex(270.0));
@@ -235,7 +257,8 @@ TEST(CelestronDriverTest, dd2nex) {
     ASSERT_EQ(0xc000U, dd2nex(-90.0));
 }
 
-TEST(CelestronDriverTest, dd2pnex) {
+TEST(CelestronDriverTest, dd2pnex)
+{
     ASSERT_EQ(0x00000000U, dd2pnex(0.0));
     ASSERT_EQ(0x20000000U, dd2pnex(45.0));
     ASSERT_EQ(0xc0000000U, dd2pnex(270.0));
@@ -246,7 +269,8 @@ TEST(CelestronDriverTest, dd2pnex) {
     ASSERT_EQ(0xc0000000U, dd2pnex(-90.0));
 }
 
-TEST(CelestronDriverTest, nex2dd) {
+TEST(CelestronDriverTest, nex2dd)
+{
     ASSERT_FLOAT_EQ(0.0, nex2dd(0x0000));
     ASSERT_FLOAT_EQ(45.0, nex2dd(0x2000));
     ASSERT_FLOAT_EQ(270.0, nex2dd(0xc000));
@@ -254,7 +278,8 @@ TEST(CelestronDriverTest, nex2dd) {
     ASSERT_FLOAT_EQ(26.4441, nex2dd(0x12ce));
 }
 
-TEST(CelestronDriverTest, pnex2dd) {
+TEST(CelestronDriverTest, pnex2dd)
+{
     ASSERT_FLOAT_EQ(0.0, pnex2dd(0x00000000));
     ASSERT_FLOAT_EQ(45.0, pnex2dd(0x20000000));
     ASSERT_FLOAT_EQ(270.0, pnex2dd(0xc0000000));
@@ -266,7 +291,7 @@ TEST(CelestronDriverTest, pnex2dd) {
 int main(int argc, char **argv)
 {
     INDI::Logger::getInstance().configure("", INDI::Logger::file_off,
-            INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
+                                          INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
 
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::InitGoogleMock(&argc, argv);

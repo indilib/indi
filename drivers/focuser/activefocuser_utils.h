@@ -33,96 +33,101 @@
 #include <indifocuser.h>
 #include "activefocuser.h"
 
-class ActiveFocuserUtils{
+class ActiveFocuserUtils
+{
 
-public :
-
-    typedef enum {
-        ZERO,
-        RELEASE,
-        FREE,
-        AUTO,
-        MOVE,
-        STOP,
-        FAN_ON,
-        FAN_OFF,
-        RESET,
-        DUMMY
-    } Commands;
-
-    static const std::map<Commands, unsigned char> CommandsMap;
-
-    class Parser {
     public :
-        static int Get32(const unsigned char *buffer, int position);
-        static int Get16(const unsigned char *buffer, int position);
-        static double TicksToMillimeters(int ticks);
-        static int MillimetersToTicks(double millimeters);
-        static void PrintFrame(const unsigned char *buffer);
-        static void PrintBasicDeviceData(const unsigned char *buffer);
+
+        typedef enum
+        {
+            ZERO,
+            RELEASE,
+            FREE,
+            AUTO,
+            MOVE,
+            STOP,
+            FAN_ON,
+            FAN_OFF,
+            RESET,
+            DUMMY
+        } Commands;
+
+        static const std::map<Commands, unsigned char> CommandsMap;
+
+        class Parser
+        {
+            public :
+                static int Get32(const unsigned char *buffer, int position);
+                static int Get16(const unsigned char *buffer, int position);
+                static double TicksToMillimeters(int ticks);
+                static int MillimetersToTicks(double millimeters);
+                static void PrintFrame(const unsigned char *buffer);
+                static void PrintBasicDeviceData(const unsigned char *buffer);
+            private:
+                Parser() = delete;
+                ~Parser() = delete;
+                void operator=(const Parser &) = delete;
+
+        };
+
+        class Poller
+        {
+            public:
+                static Poller *GetInstance(hid_device &hid_handle);
+                bool IsRunning;
+                bool Start();
+                bool Stop();
+            protected:
+                Poller(hid_device &hid_handle) : hid_handle_(hid_handle) {}
+                ~Poller() {}
+                hid_device &hid_handle_;
+            private:
+                Poller(Poller &other) = delete;
+                void operator=(const Poller &) = delete;
+                static Poller *pinstance_;
+                static std::mutex mutex_;
+        };
+
+        class SystemState
+        {
+
+            public:
+                static int GetCurrentPositionStep();
+                static void SetCurrentPositionStep(int currentPositionStep);
+                static double GetCurrentPosition();
+                static void SetCurrentPosition(double currentPosition);
+                static void SetIsOrigin(bool isOrigin);
+                static bool GetIsMoving();
+                static void SetIsMoving(bool isMoving);
+                static bool GetIsFanOn();
+                static void SetIsFanOn(bool isFanOn);
+                static bool GetIsHold();
+                static void SetIsHold(bool isHold);
+                static char * GetHardwareRevision();
+                static void SetHardwareRevision(char * hardwareRevision);
+                static int GetImmpp();
+                static void SetImmpp(int immpp);
+                static int GetSpan();
+                static void SetSpan(int span);
+                static double GetMmpp();
+                static void SetMmpp(double mmpp);
+                static double GetAirTemperature();
+                static void SetAirTemperature(double airTemperature);
+                static double GetTubeTemperature();
+                static void SetTubeTemperature(double tubeTemperature);
+                static double GetMirrorTemperature();
+                static void SetMirrorTemperature(double mirrorTemperature);
+            private:
+                SystemState() = delete;
+                ~SystemState() = delete;
+                void operator=(const SystemState &) = delete;
+
+                bool GetIsOrigin();
+        };
+
     private:
-        Parser() = delete;
-        ~Parser() = delete;
-        void operator=(const Parser &) = delete;
-
-    };
-
-    class Poller {
-    public:
-        static Poller *GetInstance(hid_device &hid_handle);
-        bool IsRunning;
-        bool Start();
-        bool Stop();
-    protected:
-        Poller(hid_device &hid_handle) : hid_handle_(hid_handle) {}
-        ~Poller() {}
-        hid_device &hid_handle_;
-    private:
-        Poller(Poller &other) = delete;
-        void operator=(const Poller &) = delete;
-        static Poller *pinstance_;
-        static std::mutex mutex_;
-    };
-
-    class SystemState {
-
-    public:
-        static int GetCurrentPositionStep();
-        static void SetCurrentPositionStep(int currentPositionStep);
-        static double GetCurrentPosition();
-        static void SetCurrentPosition(double currentPosition);
-        static void SetIsOrigin(bool isOrigin);
-        static bool GetIsMoving();
-        static void SetIsMoving(bool isMoving);
-        static bool GetIsFanOn();
-        static void SetIsFanOn(bool isFanOn);
-        static bool GetIsHold();
-        static void SetIsHold(bool isHold);
-        static char * GetHardwareRevision();
-        static void SetHardwareRevision(char * hardwareRevision);
-        static int GetImmpp();
-        static void SetImmpp(int immpp);
-        static int GetSpan();
-        static void SetSpan(int span);
-        static double GetMmpp();
-        static void SetMmpp(double mmpp);
-        static double GetAirTemperature();
-        static void SetAirTemperature(double airTemperature);
-        static double GetTubeTemperature();
-        static void SetTubeTemperature(double tubeTemperature);
-        static double GetMirrorTemperature();
-        static void SetMirrorTemperature(double mirrorTemperature);
-    private:
-        SystemState() = delete;
-        ~SystemState() = delete;
-        void operator=(const SystemState &) = delete;
-
-        bool GetIsOrigin();
-    };
-
-private:
-    ActiveFocuserUtils() = delete;
-    ~ActiveFocuserUtils() = delete;
-    void operator=(const ActiveFocuserUtils &) = delete;
+        ActiveFocuserUtils() = delete;
+        ~ActiveFocuserUtils() = delete;
+        void operator=(const ActiveFocuserUtils &) = delete;
 
 };

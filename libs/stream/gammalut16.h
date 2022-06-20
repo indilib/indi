@@ -28,13 +28,13 @@
 
 class GammaLut16
 {
-public:
-    GammaLut16(double gamma = 2.4, double a = 12.92, double b = 0.055, double Ii = 0.00304);
+    public:
+        GammaLut16(double gamma = 2.4, double a = 12.92, double b = 0.055, double Ii = 0.00304);
 
-public:
-    void apply(const uint16_t *source, size_t count, uint8_t *destination) const;
-    void apply(const uint16_t *first, const uint16_t *last, uint8_t *destination) const;
+    public:
+        void apply(const uint16_t *source, size_t count, uint8_t *destination) const;
+        void apply(const uint16_t *first, const uint16_t *last, uint8_t *destination) const;
 
-protected:
-    std::vector<uint16_t> mLookUpTable;
+    protected:
+        std::vector<uint16_t> mLookUpTable;
 };

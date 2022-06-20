@@ -26,11 +26,11 @@ namespace INDI
 
 class PropertyTextPrivate: public PropertyBasicPrivateTemplate<IText>
 {
-public:
-    PropertyTextPrivate(size_t count);
-    virtual ~PropertyTextPrivate();
+    public:
+        PropertyTextPrivate(size_t count);
+        virtual ~PropertyTextPrivate();
 
-public:
+    public:
 
 };
 

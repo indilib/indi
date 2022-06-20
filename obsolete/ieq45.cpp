@@ -52,13 +52,13 @@ static void retry_connection(void *);
 
 static class Loader
 {
-    std::unique_ptr<IEQ45Basic> telescope;
-public:
-    Loader()
-    {
-        telescope.reset(new IEQ45Basic());
-        IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
-    }
+        std::unique_ptr<IEQ45Basic> telescope;
+    public:
+        Loader()
+        {
+            telescope.reset(new IEQ45Basic());
+            IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
+        }
 } loader;
 
 /**************************************************************************************
@@ -240,7 +240,7 @@ void IEQ45Basic::ISNewNumber(const char *dev, const char *name, double values[],
 #endif
 
             if (!simulation &&
-                ((error_code = setObjectRA(fd, newRA)) < 0 || (error_code = setObjectDEC(fd, newDEC)) < 0))
+                    ((error_code = setObjectRA(fd, newRA)) < 0 || (error_code = setObjectDEC(fd, newDEC)) < 0))
             {
                 handle_error(&EquatorialCoordsRNP, error_code, "Setting RA/DEC");
                 return;

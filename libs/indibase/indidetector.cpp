@@ -54,9 +54,12 @@ Detector::~Detector()
 bool Detector::initProperties()
 {
     // PrimaryDetector Info
-    IUFillNumber(&DetectorSettingsN[DETECTOR_RESOLUTION], "DETECTOR_RESOLUTION", "Resolution (ns)", "%16.3f", 0.01, 1.0e+8, 0.01, 1.0e+6);
-    IUFillNumber(&DetectorSettingsN[DETECTOR_TRIGGER], "DETECTOR_TRIGGER", "Trigger pulse (%)", "%3.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
-    IUFillNumberVector(&DetectorSettingsNP, DetectorSettingsN, 2, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&DetectorSettingsN[DETECTOR_RESOLUTION], "DETECTOR_RESOLUTION", "Resolution (ns)", "%16.3f", 0.01, 1.0e+8,
+                 0.01, 1.0e+6);
+    IUFillNumber(&DetectorSettingsN[DETECTOR_TRIGGER], "DETECTOR_TRIGGER", "Trigger pulse (%)", "%3.2f", 0.01, 1.0e+15, 0.01,
+                 1.42e+9);
+    IUFillNumberVector(&DetectorSettingsNP, DetectorSettingsN, 2, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(DETECTOR_INTERFACE);
 
@@ -99,7 +102,8 @@ bool Detector::ISNewText(const char *dev, const char *name, char *values[], char
 
 bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, DetectorSettingsNP.name)) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, DetectorSettingsNP.name))
+    {
         IDSetNumber(&DetectorSettingsNP, nullptr);
     }
     return processNumber(dev, name, values, names, n);
@@ -111,7 +115,7 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *values, c
 }
 
 bool Detector::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-           char *formats[], char *names[], int n)
+                         char *formats[], char *names[], int n)
 {
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -148,7 +152,7 @@ bool Detector::StartIntegration(double duration)
 }
 
 void Detector::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                                   bool sendToClient)
+                             bool sendToClient)
 {
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
     INumberVectorProperty *nvp = nullptr;

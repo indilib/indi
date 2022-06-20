@@ -388,7 +388,6 @@ bool SynscanLegacyDriver::ReadScopeStatus()
 
         if(HasFailed) {
             int v1,v2;
-        //fprintf(stderr,"Calling passthru command to get motor firmware versions\n");
             v1=PassthruCommand(0xfe,0x11,1,0,2);
             v2=PassthruCommand(0xfe,0x10,1,0,2);
             fprintf(stderr,"Motor firmware versions %d %d\n",v1,v2);

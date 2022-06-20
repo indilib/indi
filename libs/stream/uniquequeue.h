@@ -24,7 +24,7 @@
 /**
  * \class UniqueQueue template
  * \brief The UniqueQueue class is a thread-safe FIFO container adapter.
- * 
+ *
  * Data is move to the queue, which ensures high efficiency when collecting data, e.g. for processing.
  * This class ensures that threads are wake up waiting for data.
  * It also provides a convenient "abort" method to wake up those waiting if there is no more data to process.
@@ -34,67 +34,67 @@
 template <typename T>
 class UniqueQueue
 {
-public:
-    /**
-     * @brief Move data to queue
-     * @param data the data will be moved using std::move
-     */
-    void push(T && data);
-    
-    /**
-     * @brief Pop data from queue
-     * @param dest the data will be swapped and destroyed
-     * @return returns false if the abort function was called while waiting for data
-     */
-    bool pop(T & dest);
+    public:
+        /**
+         * @brief Move data to queue
+         * @param data the data will be moved using std::move
+         */
+        void push(T &&data);
 
-    /**
-     * @brief Pop data from queue
-     * @param dest the data will be swapped and destroyed
-     * @param msecs timeout in milliseconds
-     * @return returns false if timeout or the abort function was called while waiting for data
-     */
-    bool pop(T & dest, uint32_t msecs);
-    
-    /**
-     * @brief Wait for an empty queue
-     */
-    void waitForEmpty() const;
+        /**
+         * @brief Pop data from queue
+         * @param dest the data will be swapped and destroyed
+         * @return returns false if the abort function was called while waiting for data
+         */
+        bool pop(T &dest);
 
-    /**
-     * @brief Wait for an empty queue
-     * @param msecs timeout in milliseconds
-     * @return returns false if timeout
-     */
-    bool waitForEmpty(uint32_t msecs) const;
-    
-    /**
-     * @brief Clear queue
-     */
-    void clear();
+        /**
+         * @brief Pop data from queue
+         * @param dest the data will be swapped and destroyed
+         * @param msecs timeout in milliseconds
+         * @return returns false if timeout or the abort function was called while waiting for data
+         */
+        bool pop(T &dest, uint32_t msecs);
 
-    /**
-     * @brief Clear queue and exit pop methods with false return
-     */
-    void abort();
+        /**
+         * @brief Wait for an empty queue
+         */
+        void waitForEmpty() const;
 
-    /**
-     * @brief Return the number of items in the queue
-     * @return count of elements
-     */
-    size_t size() const;
+        /**
+         * @brief Wait for an empty queue
+         * @param msecs timeout in milliseconds
+         * @return returns false if timeout
+         */
+        bool waitForEmpty(uint32_t msecs) const;
 
-protected:
-    std::queue<T>      queue;
-    mutable std::mutex mutex;
+        /**
+         * @brief Clear queue
+         */
+        void clear();
 
-    mutable std::condition_variable decrease;
-    mutable std::condition_variable increase;  
+        /**
+         * @brief Clear queue and exit pop methods with false return
+         */
+        void abort();
+
+        /**
+         * @brief Return the number of items in the queue
+         * @return count of elements
+         */
+        size_t size() const;
+
+    protected:
+        std::queue<T>      queue;
+        mutable std::mutex mutex;
+
+        mutable std::condition_variable decrease;
+        mutable std::condition_variable increase;
 };
 
 // implementation
 template <typename T>
-inline void UniqueQueue<T>::push(T && data)
+inline void UniqueQueue<T>::push(T &&data)
 {
     std::lock_guard<std::mutex> lock(mutex);
     queue.push(std::move(data));
@@ -102,7 +102,7 @@ inline void UniqueQueue<T>::push(T && data)
 }
 
 template <typename T>
-inline bool UniqueQueue<T>::pop(T & dest)
+inline bool UniqueQueue<T>::pop(T &dest)
 {
     std::unique_lock<std::mutex> lock(mutex);
     if (queue.empty())
@@ -118,7 +118,7 @@ inline bool UniqueQueue<T>::pop(T & dest)
 }
 
 template <typename T>
-inline bool UniqueQueue<T>::pop(T & dest, uint32_t msecs)
+inline bool UniqueQueue<T>::pop(T &dest, uint32_t msecs)
 {
     std::unique_lock<std::mutex> lock(mutex);
 
@@ -154,14 +154,20 @@ template <typename T>
 inline void UniqueQueue<T>::waitForEmpty() const
 {
     std::unique_lock<std::mutex> lock(mutex);
-    decrease.wait(lock, [this](){ return queue.empty(); });
+    decrease.wait(lock, [this]()
+    {
+        return queue.empty();
+    });
 }
 
 template <typename T>
 inline bool UniqueQueue<T>::waitForEmpty(uint32_t msecs) const
 {
     std::unique_lock<std::mutex> lock(mutex);
-    return decrease.wait_for(lock, std::chrono::milliseconds(msecs), [this](){ return queue.empty(); });
+    return decrease.wait_for(lock, std::chrono::milliseconds(msecs), [this]()
+    {
+        return queue.empty();
+    });
 }
 
 template <typename T>

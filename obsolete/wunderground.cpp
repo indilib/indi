@@ -65,7 +65,7 @@ bool WunderGround::Connect()
     if (wunderAPIKeyT[0].text == nullptr)
     {
         LOG_ERROR("Weather Underground API Key is not available. Please register your API key at "
-                                       "www.wunderground.com and save it under Options.");
+                  "www.wunderground.com and save it under Options.");
         return false;
     }
 

@@ -82,7 +82,7 @@ bool RainDetector::updateProperties()
         defineProperty(&RainSP);
     }
     else
-    // We're disconnected
+        // We're disconnected
     {
         deleteProperty(RainLP.name);
         deleteProperty(RainSP.name);

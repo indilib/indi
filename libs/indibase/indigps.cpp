@@ -34,7 +34,8 @@ bool GPS::initProperties()
     DefaultDevice::initProperties();
 
     IUFillNumber(&PeriodN[0], "PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
-    IUFillNumberVector(&PeriodNP, PeriodN, 1, getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&PeriodNP, PeriodN, 1, getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&RefreshS[0], "REFRESH", "GPS", ISS_OFF);
     IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "Refresh", MAIN_CONTROL_TAB, IP_RW,
@@ -119,19 +120,19 @@ void GPS::TimerHit()
     switch (state)
     {
         // Ok
-        case IPS_OK:        
+        case IPS_OK:
             IDSetNumber(&LocationNP, nullptr);
             IDSetText(&TimeTP, nullptr);
             // We got data OK, but if we are required to update once in a while, we'll call it.
             if (PeriodN[0].value > 0)
-                timerID = SetTimer(PeriodN[0].value*1000);
+                timerID = SetTimer(PeriodN[0].value * 1000);
             return;
             break;
 
         // GPS fix is in progress or alert
         case IPS_ALERT:
             IDSetNumber(&LocationNP, nullptr);
-            IDSetText(&TimeTP, nullptr);            
+            IDSetText(&TimeTP, nullptr);
             break;
 
         default:
@@ -144,7 +145,7 @@ void GPS::TimerHit()
 IPState GPS::updateGPS()
 {
     DEBUG(Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
-                                   "GEOGRAPHIC_COORD properties.");
+          "GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
@@ -187,7 +188,7 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
             }
             else
             {
-                timerID = SetTimer(PeriodN[0].value*1000);
+                timerID = SetTimer(PeriodN[0].value * 1000);
                 if (prevPeriod == 0)
                     DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled.");
             }

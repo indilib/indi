@@ -26,37 +26,65 @@ char _me[] = "MockEQ500XDriver";
 char *me = _me;
 class MockEQ500XDriver : public EQ500X
 {
-public:
-    MockEQ500XDriver() : EQ500X()
-    {
-        resetSimulation();
-        ISGetProperties("");
-        setSimulation(true);
-        //setDebug(true);
-        //char * names[] = {"DBG_DEBUG"};
-        //ISState states[] = {ISS_ON};
-        //ISNewSwitch(getDeviceName(),"DEBUG_LEVEL",states,names,1);
-        if (checkConnection())
-            setConnected(true);
-    }
-public:
-    // Default LST for this driver is 6 - RA is east when starting up
-    double LST { 6 };
-    double getLST() { return LST; }
-    bool getCurrentMechanicalPosition(MechanicalPoint &p) { return EQ500X::getCurrentMechanicalPosition(p); }
-    TelescopeStatus getTrackState() const { return TrackState; }
-    long getReadScopeStatusInterval() const { return getCurrentPollingPeriod(); }
-    int getSlewRateIndex() const { return IUFindOnSwitchIndex(&SlewRateSP); }
-public:
-    void setLongitude(double lng) {
-        /* Say it's 0h on Greenwich meridian (GHA=0) - express LST as hours */
-        LST = 0.0 + lng/15.0;
-        updateLocation(0,lng,0);
-    }
-    bool executeReadScopeStatus() { return ReadScopeStatus(); }
-    bool executeGotoOffset(double ra_offset, double dec_offset) { return Goto(std::fmod(currentRA+ra_offset,24.0),currentDEC+dec_offset); }
-    bool executeAbort() { return Abort(); }
-    bool executeSync(double ra, double dec) { return Sync(ra,dec); }
+    public:
+        MockEQ500XDriver() : EQ500X()
+        {
+            resetSimulation();
+            ISGetProperties("");
+            setSimulation(true);
+            //setDebug(true);
+            //char * names[] = {"DBG_DEBUG"};
+            //ISState states[] = {ISS_ON};
+            //ISNewSwitch(getDeviceName(),"DEBUG_LEVEL",states,names,1);
+            if (checkConnection())
+                setConnected(true);
+        }
+    public:
+        // Default LST for this driver is 6 - RA is east when starting up
+        double LST { 6 };
+        double getLST()
+        {
+            return LST;
+        }
+        bool getCurrentMechanicalPosition(MechanicalPoint &p)
+        {
+            return EQ500X::getCurrentMechanicalPosition(p);
+        }
+        TelescopeStatus getTrackState() const
+        {
+            return TrackState;
+        }
+        long getReadScopeStatusInterval() const
+        {
+            return getCurrentPollingPeriod();
+        }
+        int getSlewRateIndex() const
+        {
+            return IUFindOnSwitchIndex(&SlewRateSP);
+        }
+    public:
+        void setLongitude(double lng)
+        {
+            /* Say it's 0h on Greenwich meridian (GHA=0) - express LST as hours */
+            LST = 0.0 + lng / 15.0;
+            updateLocation(0, lng, 0);
+        }
+        bool executeReadScopeStatus()
+        {
+            return ReadScopeStatus();
+        }
+        bool executeGotoOffset(double ra_offset, double dec_offset)
+        {
+            return Goto(std::fmod(currentRA + ra_offset, 24.0), currentDEC + dec_offset);
+        }
+        bool executeAbort()
+        {
+            return Abort();
+        }
+        bool executeSync(double ra, double dec)
+        {
+            return Sync(ra, dec);
+        }
 };
 
 
@@ -90,17 +118,17 @@ TEST(EQ500XDriverTest, test_LSTSync)
 
     EQ500X::MechanicalPoint p;
     // Assign a longitude that makes the RA of the scope point east - default position is 90° east
-    d.setLongitude(6*15);
+    d.setLongitude(6 * 15);
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  +0.0, p.RAsky());
     ASSERT_DOUBLE_EQ( +90.0, p.DECsky());
     // Assign a new longitude
-    d.setLongitude(5*15);
+    d.setLongitude(5 * 15);
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  23.0, p.RAsky());
     ASSERT_DOUBLE_EQ( +90.0, p.DECsky());
     // Assign a new longitude - but this time the mount is not considered "parked" east/pole and does not sync
-    d.setLongitude(7*15);
+    d.setLongitude(7 * 15);
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  23.0, p.RAsky());  // Expected 1h - not possible to assign longitude without restarting the mount
     ASSERT_DOUBLE_EQ( +90.0, p.DECsky());
@@ -122,16 +150,16 @@ TEST(EQ500XDriverTest, test_MechanicalPoint_Equality)
     ASSERT_FALSE(p == q);
     ASSERT_TRUE(p != q);
     q.setPointingState(EQ500X::MechanicalPoint::POINTING_NORMAL);
-    q.RAm(q.RAm()+15.0/3600.0);
+    q.RAm(q.RAm() + 15.0 / 3600.0);
     ASSERT_FALSE(p == q);
     ASSERT_TRUE(p != q);
-    q.RAm(q.RAm()-15.0/3600.0);
+    q.RAm(q.RAm() - 15.0 / 3600.0);
     ASSERT_TRUE(p == q);
     ASSERT_FALSE(p != q);
-    q.DECm(q.DECm()+1.0/3600.0);
+    q.DECm(q.DECm() + 1.0 / 3600.0);
     ASSERT_FALSE(p == q);
     ASSERT_TRUE(p != q);
-    q.DECm(q.DECm()-1.0/3600.0);
+    q.DECm(q.DECm() - 1.0 / 3600.0);
     ASSERT_TRUE(p == q);
     ASSERT_FALSE(p != q);
 }
@@ -142,24 +170,24 @@ TEST(EQ500XDriverTest, test_MechanicalPoint_RA_distance)
 
     ASSERT_EQ(     0.0, p.RAsky(0.0));
     ASSERT_EQ(     1.0, q.RAsky(1.0));
-    ASSERT_EQ(  1.0*15, p.RA_degrees_to(q));
-    ASSERT_EQ( -1.0*15, q.RA_degrees_to(p));
+    ASSERT_EQ(  1.0 * 15, p.RA_degrees_to(q));
+    ASSERT_EQ( -1.0 * 15, q.RA_degrees_to(p));
 
     ASSERT_EQ(     2.0, q.RAsky(2.0));
-    ASSERT_EQ(  2.0*15, p.RA_degrees_to(q));
-    ASSERT_EQ( -2.0*15, q.RA_degrees_to(p));
+    ASSERT_EQ(  2.0 * 15, p.RA_degrees_to(q));
+    ASSERT_EQ( -2.0 * 15, q.RA_degrees_to(p));
 
     ASSERT_EQ(     8.0, q.RAsky(8.0));
-    ASSERT_EQ(  8.0*15, p.RA_degrees_to(q));
-    ASSERT_EQ( -8.0*15, q.RA_degrees_to(p));
+    ASSERT_EQ(  8.0 * 15, p.RA_degrees_to(q));
+    ASSERT_EQ( -8.0 * 15, q.RA_degrees_to(p));
 
     ASSERT_EQ(    12.0, q.RAsky(12.0));
-    ASSERT_EQ( 12.0*15, p.RA_degrees_to(q));
-    ASSERT_EQ(-12.0*15, q.RA_degrees_to(p));
+    ASSERT_EQ( 12.0 * 15, p.RA_degrees_to(q));
+    ASSERT_EQ(-12.0 * 15, q.RA_degrees_to(p));
 
     ASSERT_EQ(    18.0, q.RAsky(18.0));
-    ASSERT_EQ( -6.0*15, p.RA_degrees_to(q));
-    ASSERT_EQ( +6.0*15, q.RA_degrees_to(p));
+    ASSERT_EQ( -6.0 * 15, p.RA_degrees_to(q));
+    ASSERT_EQ( +6.0 * 15, q.RA_degrees_to(p));
 }
 
 TEST(EQ500XDriverTest, test_MechanicalPoint_PierFlip)
@@ -173,41 +201,41 @@ TEST(EQ500XDriverTest, test_MechanicalPoint_PierFlip)
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.setPointingState(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+90.0, p.DECsky(+90.0));
-    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC(b, 64), 64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.setPointingState(EQ500X::MechanicalPoint::POINTING_NORMAL));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+90.0, p.DECsky(+90.0));
-    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC(b, 64), 64));
 
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.setPointingState(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+80.0, p.DECsky(+80.0));
-    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("-10:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("-10:00:00", p.toStringDEC(b, 64), 64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.setPointingState(EQ500X::MechanicalPoint::POINTING_NORMAL));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+80.0, p.DECsky(+80.0));
-    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("+10:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("+10:00:00", p.toStringDEC(b, 64), 64));
 
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.setPointingState(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+70.0, p.DECsky(+70.0));
-    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("-20:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "12:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("-20:00:00", p.toStringDEC(b, 64), 64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.setPointingState(EQ500X::MechanicalPoint::POINTING_NORMAL));
     ASSERT_DOUBLE_EQ(  0.0, p.RAsky ( +0.0));
     ASSERT_DOUBLE_EQ(+70.0, p.DECsky(+70.0));
-    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b,64),64));
-    ASSERT_FALSE(strncmp("+20:00:00", p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b, 64), 64));
+    ASSERT_FALSE(strncmp("+20:00:00", p.toStringDEC(b, 64), 64));
 }
 
 TEST(EQ500XDriverTest, test_Stability_RA_Conversions)
 {
     EQ500X::MechanicalPoint::PointingState const sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL, EQ500X::MechanicalPoint::POINTING_BEYOND_POLE};
-    for (size_t ps = 0; ps < sizeof(sides)/sizeof(sides[0]); ps++)
+    for (size_t ps = 0; ps < sizeof(sides) / sizeof(sides[0]); ps++)
     {
         for (int s = 0; s < 60; s++)
         {
@@ -225,7 +253,7 @@ TEST(EQ500XDriverTest, test_Stability_RA_Conversions)
                     p.parseStringRA(b, sizeof(b));
                     p.toStringRA(c, sizeof(c));
 
-                    ASSERT_FALSE(strncmp(b,c,sizeof(b)));
+                    ASSERT_FALSE(strncmp(b, c, sizeof(b)));
                 }
             }
         }
@@ -236,7 +264,7 @@ TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
 {
     // Doesn't test outside of -90,+90 but another test does roughly
     EQ500X::MechanicalPoint::PointingState const sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL, EQ500X::MechanicalPoint::POINTING_BEYOND_POLE};
-    for (size_t ps = 0; ps < sizeof(sides)/sizeof(sides[0]); ps++)
+    for (size_t ps = 0; ps < sizeof(sides) / sizeof(sides[0]); ps++)
     {
         for (int s = 0; s < 60; s++)
         {
@@ -255,13 +283,13 @@ TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
                     p.toStringDEC(c, sizeof(c));
 
                     // Debug test with this block
-                    if (strncmp(b,c,sizeof(b)))
+                    if (strncmp(b, c, sizeof(b)))
                     {
                         p.parseStringDEC(b, sizeof(b));
                         p.toStringDEC(c, sizeof(c));
                     }
 
-                    ASSERT_FALSE(strncmp(b,c,sizeof(b)));
+                    ASSERT_FALSE(strncmp(b, c, sizeof(b)));
                 }
             }
         }
@@ -271,65 +299,65 @@ TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
 TEST(EQ500XDriverTest, test_NormalPointing_RA_Conversions)
 {
     EQ500X::MechanicalPoint p;
-    char b[64]= {0};
+    char b[64] = {0};
 
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.setPointingState(EQ500X::MechanicalPoint::POINTING_NORMAL));
 
-    ASSERT_FALSE(p.parseStringRA("00:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("00:00:00", 8));
     ASSERT_DOUBLE_EQ( +0.0, p.RAsky());
-    ASSERT_FALSE(strncmp("00:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("00:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("06:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("06:00:00", 8));
     ASSERT_DOUBLE_EQ( +6.0, p.RAsky());
-    ASSERT_FALSE(strncmp("06:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("06:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("12:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("12:00:00", 8));
     ASSERT_DOUBLE_EQ(+12.0, p.RAsky());
-    ASSERT_FALSE(strncmp("12:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("12:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("18:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("18:00:00", 8));
     ASSERT_DOUBLE_EQ(+18.0, p.RAsky());
-    ASSERT_FALSE(strncmp("18:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("18:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("24:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("24:00:00", 8));
     ASSERT_DOUBLE_EQ( +0.0, p.RAsky());
-    ASSERT_FALSE(strncmp("00:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("00:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("00:00:01",8));
-    ASSERT_NEAR(1/3600.0, p.RAsky(), 1/3600.0);
-    ASSERT_FALSE(strncmp("00:00:01",p.toStringRA(b,64),64));
+    ASSERT_FALSE(p.parseStringRA("00:00:01", 8));
+    ASSERT_NEAR(1 / 3600.0, p.RAsky(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("00:00:01", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("00:01:00",8));
-    ASSERT_NEAR(1/60.0, p.RAsky(), 1/3600.0);
-    ASSERT_FALSE(strncmp("00:01:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(p.parseStringRA("00:01:00", 8));
+    ASSERT_NEAR(1 / 60.0, p.RAsky(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("00:01:00", p.toStringRA(b, 64), 64));
 }
 
 TEST(EQ500XDriverTest, test_BeyondPolePointing_RA_Conversions)
 {
     EQ500X::MechanicalPoint p;
-    char b[64]= {0};
+    char b[64] = {0};
 
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.setPointingState(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE));
 
-    ASSERT_FALSE(p.parseStringRA("00:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("00:00:00", 8));
     ASSERT_EQ(+12.0, p.RAsky());
-    ASSERT_FALSE(strncmp("00:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("00:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("06:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("06:00:00", 8));
     ASSERT_EQ(+18.0, p.RAsky());
-    ASSERT_FALSE(strncmp("06:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("06:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("12:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("12:00:00", 8));
     ASSERT_EQ( +0.0, p.RAsky());
-    ASSERT_FALSE(strncmp("12:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("12:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("18:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("18:00:00", 8));
     ASSERT_EQ( +6.0, p.RAsky());
-    ASSERT_FALSE(strncmp("18:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("18:00:00", p.toStringRA(b, 64), 64));
 
-    ASSERT_FALSE(p.parseStringRA("24:00:00",8));
+    ASSERT_FALSE(p.parseStringRA("24:00:00", 8));
     ASSERT_EQ(+12.0, p.RAsky());
-    ASSERT_FALSE(strncmp("00:00:00",p.toStringRA(b,64),64));
+    ASSERT_FALSE(strncmp("00:00:00", p.toStringRA(b, 64), 64));
 }
 
 // Declination goes from -255:59:59 to +255:59:59
@@ -445,111 +473,111 @@ TEST(EQ500XDriverTest, test_MechanicalPoint_Sky_DEC_Conversion)
 TEST(EQ500XDriverTest, test_DEC_Conversions)
 {
     EQ500X::MechanicalPoint p;
-    char b[64]= {0};
+    char b[64] = {0};
 
-    ASSERT_FALSE(p.parseStringDEC("-I5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-I5:00:00", 9));
     ASSERT_EQ(-255.0, p.DECm());
-    ASSERT_FALSE(strncmp("-I5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-255:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("-I5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-255:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-F5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-F5:00:00", 9));
     ASSERT_EQ(-225.0, p.DECm());
-    ASSERT_FALSE(strncmp("-F5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-225:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("-F5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-225:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-B0:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-B0:00:00", 9));
     ASSERT_EQ(-180.0, p.DECm());
-    ASSERT_FALSE(strncmp("-B0:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-180:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("-B0:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-180:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-=5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-=5:00:00", 9));
     ASSERT_EQ(-135.0, p.DECm());
-    ASSERT_FALSE(strncmp("-=5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-135:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(strncmp("-=5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-135:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-90:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-90:00:00", 9));
     ASSERT_EQ( -90.0, p.DECm());
-    ASSERT_FALSE(strncmp("-90:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-90:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(strncmp("-90:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-90:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-45:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("-45:00:00", 9));
     ASSERT_EQ( -45.0, p.DECm());
-    ASSERT_FALSE(strncmp("-45:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("-45:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(strncmp("-45:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("-45:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+00:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+00:00:00", 9));
     ASSERT_EQ(  +0.0, p.DECm());
-    ASSERT_FALSE(strncmp("+00:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+00:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+00:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+45:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+45:00:00", 9));
     ASSERT_EQ( +45.0, p.DECm());
-    ASSERT_FALSE(strncmp("+45:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+45:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("+45:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+45:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+90:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+90:00:00", 9));
     ASSERT_EQ( +90.0, p.DECm());
-    ASSERT_FALSE(strncmp("+90:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+90:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("+90:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+90:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+=5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+=5:00:00", 9));
     ASSERT_EQ(+135.0, p.DECm());
-    ASSERT_FALSE(strncmp("+=5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+135:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("+=5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+135:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+B0:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+B0:00:00", 9));
     ASSERT_EQ(+180.0, p.DECm());
-    ASSERT_FALSE(strncmp("+B0:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+180:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(strncmp("+B0:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+180:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+F5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+F5:00:00", 9));
     ASSERT_EQ(+225.0, p.DECm());
-    ASSERT_FALSE(strncmp("+F5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+225:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(strncmp("+F5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+225:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+I5:00:00",9));
+    ASSERT_FALSE(p.parseStringDEC("+I5:00:00", 9));
     ASSERT_EQ(+255.0, p.DECm());
-    ASSERT_FALSE(strncmp("+I5:00:00",p.toStringDEC_Sim(b,64),64));
-    ASSERT_FALSE(strncmp("+255:00:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(strncmp("+I5:00:00", p.toStringDEC_Sim(b, 64), 64));
+    ASSERT_FALSE(strncmp("+255:00:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("+00:00:01",9));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
-    ASSERT_NEAR(+1/3600.0, p.DECm(), 1/3600.0);
-    ASSERT_FALSE(strncmp("+00:00:01",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
-    ASSERT_FALSE(p.parseStringDEC("+00:01:00",9));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
-    ASSERT_NEAR(+1/60.0, p.DECm(), 1/3600.0);
-    ASSERT_FALSE(strncmp("+00:01:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
+    ASSERT_FALSE(p.parseStringDEC("+00:00:01", 9));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
+    ASSERT_NEAR(+1 / 3600.0, p.DECm(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("+00:00:01", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
+    ASSERT_FALSE(p.parseStringDEC("+00:01:00", 9));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
+    ASSERT_NEAR(+1 / 60.0, p.DECm(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("+00:01:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_FALSE(p.parseStringDEC("-00:00:01",9));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
-    ASSERT_NEAR(-1/3600.0, p.DECm(), 1/3600.0);
-    ASSERT_FALSE(strncmp("+00:00:01",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
-    ASSERT_FALSE(p.parseStringDEC("-00:01:00",9));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
-    ASSERT_NEAR(-1/60.0, p.DECm(), 1/3600.0);
-    ASSERT_FALSE(strncmp("+00:01:00",p.toStringDEC(b,64),64));
-    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
+    ASSERT_FALSE(p.parseStringDEC("-00:00:01", 9));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
+    ASSERT_NEAR(-1 / 3600.0, p.DECm(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("+00:00:01", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
+    ASSERT_FALSE(p.parseStringDEC("-00:01:00", 9));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
+    ASSERT_NEAR(-1 / 60.0, p.DECm(), 1 / 3600.0);
+    ASSERT_FALSE(strncmp("+00:01:00", p.toStringDEC(b, 64), 64));
+    ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE, p.getPointingState());
 
     // Negative tests
-    ASSERT_TRUE(p.parseStringDEC("+J0:00:00",9));
-    ASSERT_TRUE(p.parseStringDEC("-J0:00:00",9));
+    ASSERT_TRUE(p.parseStringDEC("+J0:00:00", 9));
+    ASSERT_TRUE(p.parseStringDEC("-J0:00:00", 9));
 }
 
 TEST(EQ500XDriverTest, test_Sync)
@@ -566,7 +594,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(90.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(0,0));
+    ASSERT_TRUE(d.executeSync(0, 0));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(0.0, p.RAm());
     ASSERT_EQ(90.0, p.DECm());
@@ -574,7 +602,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(0.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(10,0));
+    ASSERT_TRUE(d.executeSync(10, 0));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(10.0, p.RAm());
     ASSERT_EQ(90.0, p.DECm());
@@ -582,7 +610,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(0.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(14,0));
+    ASSERT_TRUE(d.executeSync(14, 0));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(14.0, p.RAm());
     ASSERT_EQ(90.0, p.DECm());
@@ -590,7 +618,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(0.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(0,10));
+    ASSERT_TRUE(d.executeSync(0, 10));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(0.0, p.RAm());
     ASSERT_EQ(80.0, p.DECm());
@@ -598,7 +626,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(10.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(0,-10));
+    ASSERT_TRUE(d.executeSync(0, -10));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(0.0, p.RAm());
     ASSERT_EQ(100.0, p.DECm());
@@ -606,7 +634,7 @@ TEST(EQ500XDriverTest, test_Sync)
     ASSERT_EQ(-10.0, p.DECsky());
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL, p.getPointingState());
 
-    ASSERT_TRUE(d.executeSync(14,-10));
+    ASSERT_TRUE(d.executeSync(14, -10));
     ASSERT_FALSE(d.getCurrentMechanicalPosition(p));
     ASSERT_EQ(14.0, p.RAm());
     ASSERT_EQ(100.0, p.DECm());
@@ -618,12 +646,12 @@ TEST(EQ500XDriverTest, test_Sync)
 TEST(EQ500XDriverTest, test_Goto_NoMovement)
 {
     MockEQ500XDriver d;
-    struct timespec timeout = {0,100000000L};
+    struct timespec timeout = {0, 100000000L};
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
-    ASSERT_TRUE(d.executeGotoOffset(0,0));
+    ASSERT_TRUE(d.executeGotoOffset(0, 0));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 10; i++)
     {
@@ -642,12 +670,12 @@ TEST(EQ500XDriverTest, test_Goto_AbortMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeGotoOffset(-1,-10));
+    ASSERT_TRUE(d.executeGotoOffset(-1, -10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 4; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
@@ -665,12 +693,12 @@ TEST(EQ500XDriverTest, test_Goto_SouthMovement)
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
-    ASSERT_TRUE(d.executeGotoOffset(0,-10));
+    ASSERT_TRUE(d.executeGotoOffset(0, -10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
@@ -687,12 +715,12 @@ TEST(EQ500XDriverTest, test_Goto_NorthMovement)
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
-    ASSERT_TRUE(d.executeGotoOffset(0,+10));
+    ASSERT_TRUE(d.executeGotoOffset(0, +10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
@@ -709,12 +737,12 @@ TEST(EQ500XDriverTest, test_Goto_EastMovement)
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
-    ASSERT_TRUE(d.executeGotoOffset(+1,0));
+    ASSERT_TRUE(d.executeGotoOffset(+1, 0));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
@@ -731,12 +759,12 @@ TEST(EQ500XDriverTest, test_Goto_WestMovement)
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
-    ASSERT_TRUE(d.executeGotoOffset(-1,0));
+    ASSERT_TRUE(d.executeGotoOffset(-1, 0));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
@@ -752,17 +780,17 @@ TEST(EQ500XDriverTest, test_RestoreSlewRateOnAbort)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
-    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1, -1));
     ASSERT_TRUE(d.executeReadScopeStatus());
-    long seconds = d.getReadScopeStatusInterval()/1000;
-    struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+    long seconds = d.getReadScopeStatusInterval() / 1000;
+    struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
     nanosleep(&timeout, nullptr);
     ASSERT_TRUE(d.executeReadScopeStatus());
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     ASSERT_TRUE(d.executeAbort());
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
-    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+    ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
 }
 
 TEST(EQ500XDriverTest, test_RestoreSlewRateAfterGoto)
@@ -771,18 +799,18 @@ TEST(EQ500XDriverTest, test_RestoreSlewRateAfterGoto)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
-    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1, -1));
     ASSERT_TRUE(d.executeReadScopeStatus());
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState())
         {
-            ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+            ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
             return;
         }
     }
@@ -795,27 +823,27 @@ TEST(EQ500XDriverTest, test_RestoreSlewRateAfterInterruptingGoto)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
-    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1, -1));
     ASSERT_TRUE(d.executeReadScopeStatus());
     for(int i = 0; i < 30; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
     }
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_TRUE(d.executeGotoOffset(1, -1));
     for(int i = 0; i < 150; i++)
     {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        long seconds = d.getReadScopeStatusInterval() / 1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval() - seconds * 1000) * 1000000L};
         nanosleep(&timeout, nullptr);
         ASSERT_TRUE(d.executeReadScopeStatus());
         if (EQ500X::SCOPE_TRACKING == d.getTrackState())
         {
-            ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+            ASSERT_EQ(EQ500X::SLEW_FIND, d.getSlewRateIndex());
             return;
         }
     }
@@ -825,7 +853,7 @@ TEST(EQ500XDriverTest, test_RestoreSlewRateAfterInterruptingGoto)
 int main(int argc, char **argv)
 {
     INDI::Logger::getInstance().configure("", INDI::Logger::file_off,
-            INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
+                                          INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
 
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::InitGoogleMock(&argc, argv);

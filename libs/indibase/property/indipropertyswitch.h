@@ -26,30 +26,30 @@ namespace INDI
 class PropertySwitchPrivate;
 class PropertySwitch: public INDI::PropertyBasic<ISwitch>
 {
-    DECLARE_PRIVATE(PropertySwitch)
-public:
-    PropertySwitch(size_t count);
-    ~PropertySwitch();
+        DECLARE_PRIVATE(PropertySwitch)
+    public:
+        PropertySwitch(size_t count);
+        ~PropertySwitch();
 
-public:
-    bool update(const ISState states[], const char * const names[], int n);
+    public:
+        bool update(const ISState states[], const char * const names[], int n);
 
-    void fill(
-        const char *device, const char *name, const char *label, const char *group,
-        IPerm permission, ISRule rule, double timeout, IPState state
-    );
+        void fill(
+            const char *device, const char *name, const char *label, const char *group,
+            IPerm permission, ISRule rule, double timeout, IPState state
+        );
 
-public:
-    void reset();
-    int findOnSwitchIndex() const;
-    INDI::WidgetView<ISwitch> *findOnSwitch() const;
+    public:
+        void reset();
+        int findOnSwitchIndex() const;
+        INDI::WidgetView<ISwitch> *findOnSwitch() const;
 
-public:
-    void setRule(ISRule rule);
+    public:
+        void setRule(ISRule rule);
 
-public:
-    ISRule getRule() const;
-    const char * getRuleAsString() const;
+    public:
+        ISRule getRule() const;
+        const char * getRuleAsString() const;
 };
 
 }

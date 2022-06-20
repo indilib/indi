@@ -69,19 +69,19 @@ FocusLynxBase::FocusLynxBase()
     // https://www.indilib.org/forum/focusers-filter-wheels/5739-starlight-instruments-focuser-boss-ii-hsm20.html
     // DVN 2021-11-15: Covered by the generic Device Type FA and FB.
     // Continued: duplicating device types can result in the wrong type being displayed in the selection box
-    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA"; 
+    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
     // lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
-    
+
     // FE is deprecated, future firmwares will automatically switch to generic device type FD
-    lynxModels["FeatherTouch Motor PDMS"] = "FE"; 
+    lynxModels["FeatherTouch Motor PDMS"] = "FE";
 
     lynxModels["FeatherTouch Microtouch MSM Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Microtouch MSM Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
-    
+
     //TA is deprecated, future firmwares will automatically switch to generic device type FA
-    lynxModels["Televue Focuser"] = "TA"; 
-    
+    lynxModels["Televue Focuser"] = "TA";
+
     lynxModels["Unipolar motor (Robo-Focus)"] = "RA";
 
     ModelS = nullptr;
@@ -860,13 +860,13 @@ bool FocusLynxBase::getFocusConfig()
             if(canHome)
             {
                 //Homing focusers can not sync
-                deleteProperty(FocusSyncNP.name); 
+                deleteProperty(FocusSyncNP.name);
                 GotoSP.nsp = 2;
             }
             else
             {
                 //Non-Homing focusers can sync
-                defineProperty(&FocusSyncNP); 
+                defineProperty(&FocusSyncNP);
                 GotoSP.nsp = 1;
             }
 

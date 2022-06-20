@@ -398,7 +398,9 @@ bool nFrameRotator::AbortRotator()
 {
     if(m_TargetDiff > 0)
     {
-	 m_TargetDiff = 1; wantAbort = true;  return false;
+        m_TargetDiff = 1;
+        wantAbort = true;
+        return false;
     }
     return true;
 }
@@ -414,15 +416,15 @@ void nFrameRotator::TimerHit()
     // and if we STOPPED, then let's take the next action
     if ( ((RotatorAbsPosNP.s == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY) && isMoving() == false) || wantAbort == true)
     {
-	LOGF_DEBUG("wantAbort = %d, diff = %d",wantAbort,m_TargetDiff);
+        LOGF_DEBUG("wantAbort = %d, diff = %d", wantAbort, m_TargetDiff);
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
-	    LOGF_DEBUG("HIT reqAngle=%f diff=%d",requestedAngle,m_TargetDiff);
+            LOGF_DEBUG("HIT reqAngle=%f diff=%d", requestedAngle, m_TargetDiff);
             IDSetNumber(&RotatorAbsPosNP, nullptr);
-	    wantAbort = false;
+            wantAbort = false;
         }
         else
         {
@@ -449,12 +451,12 @@ void nFrameRotator::TimerHit()
                 }
             }
             else
-	    {
+            {
                 // Reduce target diff depending on the motion direction
                 // Negative targetDiff increases eventually to zero
                 // Positive targetDiff decreases eventually to zero
                 m_TargetDiff = m_TargetDiff + (nextMotion * ((direction == ROTATE_INWARD) ? 1 : -1));
-	    }
+            }
         }
         // Check if can update the absolute position in case it changed.
     }
@@ -496,10 +498,10 @@ bool nFrameRotator::readPosition()
     //    LOGF_DEBUG("readPosFBPNB=< %d >", pos);
 
     RotatorAbsPosN[0].value = pos;
-//    if(m_TargetDiff != 0) 
-      GotoRotatorN[0].value = calculateAngle(RotatorAbsPosN[0].value );
-      IDSetNumber(&RotatorAbsPosNP, nullptr);
-      IDSetNumber(&GotoRotatorNP, nullptr);
+    //    if(m_TargetDiff != 0)
+    GotoRotatorN[0].value = calculateAngle(RotatorAbsPosN[0].value );
+    IDSetNumber(&RotatorAbsPosNP, nullptr);
+    IDSetNumber(&GotoRotatorNP, nullptr);
 
     return true;
 }
@@ -645,9 +647,9 @@ double nFrameRotator::calculateAngle(uint32_t steps)
 {
     int diff = (static_cast<int32_t>(steps) - m_ZeroPosition) *
                (IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1);
-//    LOGF_DEBUG("RANGE=%f",(int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.);
-    return range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value);
-//   return (int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.;
+    //    LOGF_DEBUG("RANGE=%f",(int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.);
+    return range360((float(diff) + 0.5) / SettingN[PARAM_STEPS_DEGREE].value);
+    //   return (int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.;
 }
 
 /*

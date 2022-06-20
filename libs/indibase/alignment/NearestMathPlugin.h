@@ -38,10 +38,10 @@ struct ExtendedAlignmentDatabaseEntry : public AlignmentDatabaseEntry
     /// \brief Default constructor
     ExtendedAlignmentDatabaseEntry()
         : AlignmentDatabaseEntry(),
-        CelestialAzimuth(0),
-        CelestialAltitude(0),
-        TelescopeAzimuth(0),
-        TelescopeAltitude(0) {}
+          CelestialAzimuth(0),
+          CelestialAltitude(0),
+          TelescopeAzimuth(0),
+          TelescopeAltitude(0) {}
 
     /// \brief Copy constructor
     ExtendedAlignmentDatabaseEntry(const ExtendedAlignmentDatabaseEntry &Source)
@@ -96,42 +96,42 @@ struct ExtendedAlignmentDatabaseEntry : public AlignmentDatabaseEntry
 
 class NearestMathPlugin : public AlignmentSubsystemForMathPlugins
 {
-  public:
-    NearestMathPlugin();
-    virtual ~NearestMathPlugin();
+    public:
+        NearestMathPlugin();
+        virtual ~NearestMathPlugin();
 
-    virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
+        virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
-    virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
-                                               double JulianOffset,
-                                               TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+        virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                double JulianOffset,
+                TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
-    virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                                               double &RightAscension, double &Declination);
+        virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                double &RightAscension, double &Declination);
 
-private:
+    private:
 
-    std::vector<ExtendedAlignmentDatabaseEntry> ExtendedAlignmentPoints;
+        std::vector<ExtendedAlignmentDatabaseEntry> ExtendedAlignmentPoints;
 
-    /**
-     * @brief SphereUnitDistance Get distance between two points on a sphere.
-     * @param theta1 latitudal angle of object 1
-     * @param theta2 latitudal angle of object 2
-     * @param phi1 longitudal angle of object 1
-     * @param phi2 longitudal angle of object 2
-     * @return disatnce in degrees.
-     */
-    double SphereUnitDistance(double theta1, double theta2, double phi1, double phi2);
+        /**
+         * @brief SphereUnitDistance Get distance between two points on a sphere.
+         * @param theta1 latitudal angle of object 1
+         * @param theta2 latitudal angle of object 2
+         * @param phi1 longitudal angle of object 1
+         * @param phi2 longitudal angle of object 2
+         * @return disatnce in degrees.
+         */
+        double SphereUnitDistance(double theta1, double theta2, double phi1, double phi2);
 
-    /**
-     * @brief GetNearestPoint Traverses the ExtendedAlignmentPoints to find the closest point in horizontal coordinates on
-     * a sphere.
-     * @param Azimuth Object azimuth in degrees.
-     * @param Altitude Object altitude in degrees.
-     * @param isCelestial If true, compute difference between Celestial coords, otherwise compute using Telescope coords.
-     * @return Closest point in data set.
-     */
-    ExtendedAlignmentDatabaseEntry GetNearestPoint(const double Azimuth, const double Altitude, bool isCelestial);
+        /**
+         * @brief GetNearestPoint Traverses the ExtendedAlignmentPoints to find the closest point in horizontal coordinates on
+         * a sphere.
+         * @param Azimuth Object azimuth in degrees.
+         * @param Altitude Object altitude in degrees.
+         * @param isCelestial If true, compute difference between Celestial coords, otherwise compute using Telescope coords.
+         * @return Closest point in data set.
+         */
+        ExtendedAlignmentDatabaseEntry GetNearestPoint(const double Azimuth, const double Altitude, bool isCelestial);
 };
 
 } // namespace AlignmentSubsystem

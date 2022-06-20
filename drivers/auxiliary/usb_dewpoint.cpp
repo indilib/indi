@@ -115,7 +115,10 @@ bool USBDewpoint::initProperties()
     // No simulation control for now
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
 
     return true;
@@ -249,7 +252,8 @@ bool USBDewpoint::Handshake()
             return true;
         }
         LOG_INFO("Error retrieving data from USB_Dewpoint, trying resync...");
-    } while (--tries > 0 && Resync());
+    }
+    while (--tries > 0 && Resync());
 
     LOG_INFO("Error retrieving data from USB_Dewpoint, please ensure controller "
              "is powered and the port is correct.");

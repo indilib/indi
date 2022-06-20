@@ -76,7 +76,7 @@ bool SimpleSkeleton::initProperties()
 
     // Let's print a list of all device properties
     int i = 0;
-    for(const auto &oneProperty: *getProperties())
+    for(const auto &oneProperty : *getProperties())
         IDLog("Property #%d: %s\n", i++, oneProperty->getName());
 
     return true;

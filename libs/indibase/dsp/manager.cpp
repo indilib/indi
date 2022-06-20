@@ -104,7 +104,7 @@ bool Manager::ISNewNumber(const char *dev, const char *name, double values[], ch
 }
 
 bool Manager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int num)
+                        char *names[], int num)
 {
     bool r = false;
     r |= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);

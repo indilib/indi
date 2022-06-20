@@ -26,18 +26,18 @@ namespace INDI
 class PropertyLightPrivate;
 class PropertyLight: public INDI::PropertyBasic<ILight>
 {
-    DECLARE_PRIVATE(PropertyLight)
-public:
-    PropertyLight(size_t count);
-    ~PropertyLight();
+        DECLARE_PRIVATE(PropertyLight)
+    public:
+        PropertyLight(size_t count);
+        ~PropertyLight();
 
-public:
-    // bool update(..., const char * const names[], int n);
+    public:
+        // bool update(..., const char * const names[], int n);
 
-    void fill(
-        const char *device, const char *name, const char *label, const char *group,
-        IPState state
-    );
+        void fill(
+            const char *device, const char *name, const char *label, const char *group,
+            IPState state
+        );
 };
 
 }

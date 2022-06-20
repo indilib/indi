@@ -69,7 +69,8 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
  * @param h height image in pixels
  * @return 0 if decoding sucseeds, -1 otherwise.
  */
-int decode_jpeg_rgb(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h);
+int decode_jpeg_rgb(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w,
+                    int *h);
 /**
  * @short decode JPEG raw gray buffer
  */

@@ -32,40 +32,40 @@
 
 class Magellan1
 {
-  public:
-    Magellan1();
-    virtual ~Magellan1();
+    public:
+        Magellan1();
+        virtual ~Magellan1();
 
-    virtual void ISGetProperties(const char *dev);
-    virtual void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual void ISSnoopDevice(XMLEle *root);
-    virtual void ISPoll();
-    virtual void getBasicData();
+        virtual void ISGetProperties(const char *dev);
+        virtual void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual void ISSnoopDevice(XMLEle *root);
+        virtual void ISPoll();
+        virtual void getBasicData();
 
-    void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
-    void handleError(INumberVectorProperty *nvp, int err, const char *msg);
-    void handleError(ITextVectorProperty *tvp, int err, const char *msg);
-    bool isTelescopeOn();
-    void connectTelescope();
-    void setCurrentDeviceName(const char *devName);
-    void correctFault();
+        void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
+        void handleError(INumberVectorProperty *nvp, int err, const char *msg);
+        void handleError(ITextVectorProperty *tvp, int err, const char *msg);
+        bool isTelescopeOn();
+        void connectTelescope();
+        void setCurrentDeviceName(const char *devName);
+        void correctFault();
 
-    int fd;
+        int fd;
 
-  protected:
-    int timeFormat;
-    int currentSiteNum;
-    int trackingMode;
+    protected:
+        int timeFormat;
+        int currentSiteNum;
+        int trackingMode;
 
-    double JD;
-    double lastRA;
-    double lastDEC;
-    bool fault;
-    bool simulation;
-    char thisDevice[64];
-    int currentSet;
-    int lastSet;
-    double targetRA, targetDEC;
+        double JD;
+        double lastRA;
+        double lastDEC;
+        bool fault;
+        bool simulation;
+        char thisDevice[64];
+        int currentSet;
+        int lastSet;
+        double targetRA, targetDEC;
 };

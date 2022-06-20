@@ -26,11 +26,11 @@ namespace INDI
 
 class PropertyLightPrivate: public PropertyBasicPrivateTemplate<ILight>
 {
-public:
-    PropertyLightPrivate(size_t count);
-    virtual ~PropertyLightPrivate();
+    public:
+        PropertyLightPrivate(size_t count);
+        virtual ~PropertyLightPrivate();
 
-public:
+    public:
 
 };
 

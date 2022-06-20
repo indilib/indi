@@ -27,23 +27,23 @@ namespace INDI
 class Timer;
 class TimerPrivate
 {
-public:
-    TimerPrivate(Timer *p);
-    virtual ~TimerPrivate();
+    public:
+        TimerPrivate(Timer *p);
+        virtual ~TimerPrivate();
 
-public:
-    void start();
-    void stop();
+    public:
+        void start();
+        void stop();
 
-public:
-    Timer *p;
-    int interval {1000};
+    public:
+        Timer *p;
+        int interval {1000};
 
-    std::atomic<int> timerId {-1};
-    bool singleShot {false};
-    bool active {false};
+        std::atomic<int> timerId {-1};
+        bool singleShot {false};
+        bool active {false};
 
-    std::function<void()> callback;
+        std::function<void()> callback;
 };
 
 }

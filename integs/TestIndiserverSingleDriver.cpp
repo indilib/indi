@@ -37,7 +37,8 @@
 #define TO_STRING(x) STRINGIFY_TOK(x)
 
 
-TEST(IndiserverSingleDriver, MissingDriver) {
+TEST(IndiserverSingleDriver, MissingDriver)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -46,15 +47,15 @@ TEST(IndiserverSingleDriver, MissingDriver) {
     std::string fakeDriverPath = getTestExePath("fakedriver-not-existing");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverSingleDriver, ReplyToPing) {
+TEST(IndiserverSingleDriver, ReplyToPing)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -65,8 +66,7 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -99,7 +99,8 @@ TEST(IndiserverSingleDriver, ReplyToPing) {
 }
 
 
-void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
+void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
+{
     setupSigPipe();
 
     fakeDriver.setup();
@@ -107,8 +108,7 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    const char * args[] = { "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str(), nullptr };
-    indiServer.start(args);
+    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -123,7 +123,8 @@ void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
     fakeDriver.cnx.send("</defBLOBVector>\n");
 }
 
-void connectFakeDev1Client(IndiServerController &, DriverMock & fakeDriver, IndiClientMock & indiClient) {
+void connectFakeDev1Client(IndiServerController &, DriverMock &fakeDriver, IndiClientMock &indiClient)
+{
     fprintf(stderr, "Client asks properties\n");
     indiClient.cnx.send("<getProperties version='1.7'/>\n");
     fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
@@ -139,7 +140,8 @@ void connectFakeDev1Client(IndiServerController &, DriverMock & fakeDriver, Indi
     indiClient.cnx.expectXml("</defBLOBVector>");
 }
 
-TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient) {
+TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -167,7 +169,8 @@ TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient) {
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient) {
+TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -200,7 +203,8 @@ TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient) {
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
+TEST(IndiserverSingleDriver, ForwardBlobValueToClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -241,7 +245,8 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient) {
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverAttachedBlob, DropMisbehavingDriver) {
+TEST(IndiserverAttachedBlob, DropMisbehavingDriver)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -267,7 +272,8 @@ TEST(IndiserverAttachedBlob, DropMisbehavingDriver) {
 
 #define DUMMY_BLOB_SIZE 64
 
-void driverSendAttachedBlob(DriverMock & fakeDriver, ssize_t size) {
+void driverSendAttachedBlob(DriverMock &fakeDriver, ssize_t size)
+{
     fprintf(stderr, "Driver send new blob value - without actual attachment\n");
 
     // The attachment must be done before EOF
@@ -275,7 +281,8 @@ void driverSendAttachedBlob(DriverMock & fakeDriver, ssize_t size) {
     fd.allocate(size);
 
     char * buffer = (char*)malloc(size);
-    for(auto i = 0; i < size; ++i) {
+    for(auto i = 0; i < size; ++i)
+    {
         buffer[i] = {(char)('0' + (i % 10))};
     }
     fd.write(buffer, 0, size);
@@ -290,7 +297,8 @@ void driverSendAttachedBlob(DriverMock & fakeDriver, ssize_t size) {
     fakeDriver.ping();
 }
 
-TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient) {
+TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -329,7 +337,8 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient) {
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient) {
+TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 

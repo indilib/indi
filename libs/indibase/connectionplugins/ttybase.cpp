@@ -137,7 +137,7 @@ TTYBase::TTY_RESPONSE TTYBase::write(const uint8_t *buffer, uint32_t nbytes, uin
         if (bytes_w < 0)
             return TTY_WRITE_ERROR;
 
-        for (uint32_t i = *nbytes_written; i < bytes_w+*nbytes_written; i++)
+        for (uint32_t i = *nbytes_written; i < bytes_w + *nbytes_written; i++)
             DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: buffer[%d]=%#X (%c)", __FUNCTION__, i, buffer[i], buffer[i]);
 
         *nbytes_written += bytes_w;
@@ -172,7 +172,8 @@ TTYBase::TTY_RESPONSE TTYBase::read(uint8_t *buffer, uint32_t nbytes, uint8_t ti
     if (nbytes <= 0)
         return TTY_PARAM_ERROR;
 
-    DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: Request to read %d bytes with %d timeout for m_PortFD %d", __FUNCTION__, nbytes, timeout, m_PortFD);
+    DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: Request to read %d bytes with %d timeout for m_PortFD %d", __FUNCTION__,
+                 nbytes, timeout, m_PortFD);
 
     while (numBytesToRead > 0)
     {
@@ -184,7 +185,8 @@ TTYBase::TTY_RESPONSE TTYBase::read(uint8_t *buffer, uint32_t nbytes, uint8_t ti
         if (bytesRead < 0)
             return TTY_READ_ERROR;
 
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%d bytes read and %d bytes remaining...", bytesRead, numBytesToRead - bytesRead);
+        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%d bytes read and %d bytes remaining...", bytesRead,
+                     numBytesToRead - bytesRead);
         for (uint32_t i = *nbytes_read; i < (*nbytes_read + bytesRead); i++)
             DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: buffer[%d]=%#X (%c)", __FUNCTION__, i, buffer[i], buffer[i]);
 
@@ -197,7 +199,8 @@ TTYBase::TTY_RESPONSE TTYBase::read(uint8_t *buffer, uint32_t nbytes, uint8_t ti
 #endif
 }
 
-TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint8_t stop_byte, uint8_t timeout, uint32_t *nbytes_read)
+TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint8_t stop_byte, uint8_t timeout,
+        uint32_t *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -213,7 +216,8 @@ TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint
 
     uint8_t *read_char = nullptr;
 
-    DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: Request to read until stop char '%#02X' with %d timeout for m_PortFD %d", __FUNCTION__, stop_byte, timeout, m_PortFD);
+    DEBUGFDEVICE(m_DriverName, m_DebugChannel, "%s: Request to read until stop char '%#02X' with %d timeout for m_PortFD %d",
+                 __FUNCTION__, stop_byte, timeout, m_PortFD);
 
     for (;;)
     {
@@ -241,7 +245,8 @@ TTYBase::TTY_RESPONSE TTYBase::readSection(uint8_t *buffer, uint32_t nsize, uint
 
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
-TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, uint8_t word_size, uint8_t parity, uint8_t stop_bits)
+TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, uint8_t word_size, uint8_t parity,
+                                       uint8_t stop_bits)
 {
     int t_fd = -1;
     int bps;
@@ -282,7 +287,7 @@ TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, ui
     // Get the current options and save them so we can restore the default settings later.
     if (tcgetattr(t_fd, &tty_setting) == -1)
     {
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel,"Error getting tty attributes %s - %s(%d).", device, strerror(errno), errno);
+        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "Error getting tty attributes %s - %s(%d).", device, strerror(errno), errno);
         goto error;
     }
 
@@ -297,116 +302,116 @@ TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, ui
     // The baud rate, word length, and handshake options can be set as follows:
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid bit rate.", bit_rate);
-        return TTY_PARAM_ERROR;
+        case 0:
+            bps = B0;
+            break;
+        case 50:
+            bps = B50;
+            break;
+        case 75:
+            bps = B75;
+            break;
+        case 110:
+            bps = B110;
+            break;
+        case 134:
+            bps = B134;
+            break;
+        case 150:
+            bps = B150;
+            break;
+        case 200:
+            bps = B200;
+            break;
+        case 300:
+            bps = B300;
+            break;
+        case 600:
+            bps = B600;
+            break;
+        case 1200:
+            bps = B1200;
+            break;
+        case 1800:
+            bps = B1800;
+            break;
+        case 2400:
+            bps = B2400;
+            break;
+        case 4800:
+            bps = B4800;
+            break;
+        case 9600:
+            bps = B9600;
+            break;
+        case 19200:
+            bps = B19200;
+            break;
+        case 38400:
+            bps = B38400;
+            break;
+        case 57600:
+            bps = B57600;
+            break;
+        case 115200:
+            bps = B115200;
+            break;
+        case 230400:
+            bps = B230400;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid bit rate.", bit_rate);
+            return TTY_PARAM_ERROR;
     }
 
     cfsetspeed(&tty_setting, bps); // Set baud rate
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid data bit count.", word_size);
-        return TTY_PARAM_ERROR;
+        case 5:
+            tty_setting.c_cflag |= CS5;
+            break;
+        case 6:
+            tty_setting.c_cflag |= CS6;
+            break;
+        case 7:
+            tty_setting.c_cflag |= CS7;
+            break;
+        case 8:
+            tty_setting.c_cflag |= CS8;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid data bit count.", word_size);
+            return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-    case PARITY_NONE:
-        break;
-    case PARITY_EVEN:
-        tty_setting.c_cflag |= PARENB;
-        break;
-    case PARITY_ODD:
-        tty_setting.c_cflag |= PARENB | PARODD;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid parity selection value.", parity);
-        return TTY_PARAM_ERROR;
+        case PARITY_NONE:
+            break;
+        case PARITY_EVEN:
+            tty_setting.c_cflag |= PARENB;
+            break;
+        case PARITY_ODD:
+            tty_setting.c_cflag |= PARENB | PARODD;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid parity selection value.", parity);
+            return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-    case 1:
-        break;
-    case 2:
-        tty_setting.c_cflag |= CSTOPB;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid stop bit count.", stop_bits);
-        return TTY_PARAM_ERROR;
+        case 1:
+            break;
+        case 2:
+            tty_setting.c_cflag |= CSTOPB;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid stop bit count.", stop_bits);
+            return TTY_PARAM_ERROR;
     }
 
 #if defined(MAC_OS_X_VERSION_10_4) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_4)
@@ -453,7 +458,7 @@ TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, ui
     // See tty(4) ("man 4 tty") and ioctl(2) ("man 2 ioctl") for details.
 
     if (ioctl(t_fd, TIOCMGET, &handshake) == -1)
-    // Store the state of the modem lines in handshake
+        // Store the state of the modem lines in handshake
     {
         DEBUGFDEVICE(m_DriverName, m_DebugChannel, "Error getting handshake lines %s - %s(%d).", device, strerror(errno), errno);
     }
@@ -492,7 +497,8 @@ error:
     return TTY_PORT_FAILURE;
 }
 #else
-TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, uint8_t word_size, uint8_t parity, uint8_t stop_bits)
+TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, uint8_t word_size, uint8_t parity,
+                                       uint8_t stop_bits)
 {
 #ifdef _WIN32
     return TTY_PORT_FAILURE;
@@ -520,66 +526,66 @@ TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, ui
     Set bps rate */
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid bit rate.", bit_rate);
-        return TTY_PARAM_ERROR;
+        case 0:
+            bps = B0;
+            break;
+        case 50:
+            bps = B50;
+            break;
+        case 75:
+            bps = B75;
+            break;
+        case 110:
+            bps = B110;
+            break;
+        case 134:
+            bps = B134;
+            break;
+        case 150:
+            bps = B150;
+            break;
+        case 200:
+            bps = B200;
+            break;
+        case 300:
+            bps = B300;
+            break;
+        case 600:
+            bps = B600;
+            break;
+        case 1200:
+            bps = B1200;
+            break;
+        case 1800:
+            bps = B1800;
+            break;
+        case 2400:
+            bps = B2400;
+            break;
+        case 4800:
+            bps = B4800;
+            break;
+        case 9600:
+            bps = B9600;
+            break;
+        case 19200:
+            bps = B19200;
+            break;
+        case 38400:
+            bps = B38400;
+            break;
+        case 57600:
+            bps = B57600;
+            break;
+        case 115200:
+            bps = B115200;
+            break;
+        case 230400:
+            bps = B230400;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid bit rate.", bit_rate);
+            return TTY_PARAM_ERROR;
     }
     if ((cfsetispeed(&tty_setting, bps) < 0) || (cfsetospeed(&tty_setting, bps) < 0))
     {
@@ -597,50 +603,50 @@ TTYBase::TTY_RESPONSE TTYBase::connect(const char *device, uint32_t bit_rate, ui
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid data bit count.", word_size);
-        return TTY_PARAM_ERROR;
+        case 5:
+            tty_setting.c_cflag |= CS5;
+            break;
+        case 6:
+            tty_setting.c_cflag |= CS6;
+            break;
+        case 7:
+            tty_setting.c_cflag |= CS7;
+            break;
+        case 8:
+            tty_setting.c_cflag |= CS8;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid data bit count.", word_size);
+            return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-    case PARITY_NONE:
-        break;
-    case PARITY_EVEN:
-        tty_setting.c_cflag |= PARENB;
-        break;
-    case PARITY_ODD:
-        tty_setting.c_cflag |= PARENB | PARODD;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid parity selection value.", parity);
-        return TTY_PARAM_ERROR;
+        case PARITY_NONE:
+            break;
+        case PARITY_EVEN:
+            tty_setting.c_cflag |= PARENB;
+            break;
+        case PARITY_ODD:
+            tty_setting.c_cflag |= PARENB | PARODD;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid parity selection value.", parity);
+            return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-    case 1:
-        break;
-    case 2:
-        tty_setting.c_cflag |= CSTOPB;
-        break;
-    default:
-        DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid stop bit count.", stop_bits);
-        return TTY_PARAM_ERROR;
+        case 1:
+            break;
+        case 2:
+            tty_setting.c_cflag |= CSTOPB;
+            break;
+        default:
+            DEBUGFDEVICE(m_DriverName, m_DebugChannel, "connect: %d is not a valid stop bit count.", stop_bits);
+            return TTY_PARAM_ERROR;
     }
     /* Control Modes complete */
 
@@ -699,49 +705,49 @@ TTYBase::TTY_RESPONSE TTYBase::disconnect()
 
 const std::string TTYBase::error(TTY_RESPONSE code) const
 {
-    char error_string[512]={0};
+    char error_string[512] = {0};
 
     switch (code)
     {
-    case TTY_OK:
-        return "No Error";
+        case TTY_OK:
+            return "No Error";
 
-    case TTY_READ_ERROR:
-        snprintf(error_string, 512, "Read Error: %s", strerror(errno));
-        return error_string;
+        case TTY_READ_ERROR:
+            snprintf(error_string, 512, "Read Error: %s", strerror(errno));
+            return error_string;
 
-    case TTY_WRITE_ERROR:
-        snprintf(error_string, 512, "Write Error: %s", strerror(errno));
-        return error_string;
+        case TTY_WRITE_ERROR:
+            snprintf(error_string, 512, "Write Error: %s", strerror(errno));
+            return error_string;
 
-    case TTY_SELECT_ERROR:
-        snprintf(error_string, 512, "Select Error: %s", strerror(errno));
-        return error_string;
+        case TTY_SELECT_ERROR:
+            snprintf(error_string, 512, "Select Error: %s", strerror(errno));
+            return error_string;
 
-    case TTY_TIME_OUT:
-        return "Timeout error";
+        case TTY_TIME_OUT:
+            return "Timeout error";
 
-    case TTY_PORT_FAILURE:
-        if (errno == EACCES)
-            snprintf(error_string, 512,
-                     "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
-                     "$USER dialout)",
-                     strerror(errno));
-        else
-            snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
-                     strerror(errno));
-        return error_string;
+        case TTY_PORT_FAILURE:
+            if (errno == EACCES)
+                snprintf(error_string, 512,
+                         "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
+                         "$USER dialout)",
+                         strerror(errno));
+            else
+                snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
+                         strerror(errno));
+            return error_string;
 
-    case TTY_PARAM_ERROR:
-        return "Parameter error";
+        case TTY_PARAM_ERROR:
+            return "Parameter error";
 
 
-    case TTY_ERRNO:
-        snprintf(error_string, 512, "%s", strerror(errno));
-        return error_string;
+        case TTY_ERRNO:
+            snprintf(error_string, 512, "%s", strerror(errno));
+            return error_string;
 
-    case TTY_OVERFLOW:
-        return "Read overflow";
+        case TTY_OVERFLOW:
+            return "Read overflow";
     }
 
     return "Error: unrecognized error code";

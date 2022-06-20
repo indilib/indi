@@ -119,8 +119,8 @@ bool LX200_TeenAstro::initProperties()
     // ============== GUIDE_TAB
     // Motion speed of axis when guiding
     IUFillNumber(&GuideRateN[0], "Guide Rate", "value", "%.2f", 0.0, 1.0, 0.1, INITIAL_GUIDE_RATE);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate", 
-                        GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate",
+                       GUIDE_TAB, IP_RW, 0, IPS_IDLE);
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
 
     // ============== OPTIONS_TAB
@@ -901,7 +901,7 @@ bool LX200_TeenAstro::sendScopeTime()
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
-    
+
     memset(&ltm, 0, sizeof(ltm));
     memset(&utm, 0, sizeof(utm));
 
@@ -1138,7 +1138,7 @@ bool LX200_TeenAstro::SetGuideRate(float guideRate)
 {
     char cmdString[20];
 
-    snprintf (cmdString, sizeof(cmdString), guideSpeedCommand, (int) (guideRate * 100)); 
+    snprintf (cmdString, sizeof(cmdString), guideSpeedCommand, (int) (guideRate * 100));
     sendCommand(cmdString);
 
     return true;

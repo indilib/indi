@@ -35,7 +35,7 @@
 static int ilog(unsigned _v)
 {
     int ret;
-    for(ret=0;_v;ret++)_v>>=1;
+    for(ret = 0; _v; ret++)_v >>= 1;
     return ret;
 }
 
@@ -140,28 +140,28 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
 
     if(soft_target)
     {
-        if(video_rate<=0)
+        if(video_rate <= 0)
         {
             snprintf(errmsg, ERRMSGSIZ, "Soft rate target requested without a bitrate.");
             return false;
         }
 
-        if(video_quality==-1)
-            video_quality=0;
+        if(video_quality == -1)
+            video_quality = 0;
     }
     else
     {
-        if(video_rate>0)
-            video_quality=0;
-        if(video_quality==-1)
-            video_quality=48;
+        if(video_rate > 0)
+            video_quality = 0;
+        if(video_quality == -1)
+            video_quality = 48;
     }
 
-    if(keyframe_frequency<=0)
+    if(keyframe_frequency <= 0)
     {
         /*Use a default keyframe frequency of 64 for 1-pass (streaming) mode, and
          256 for two-pass mode.*/
-        keyframe_frequency=twopass?256:64;
+        keyframe_frequency = twopass ? 256 : 64;
     }
 
     ogg_fp = fopen(filename, "wb");
@@ -179,8 +179,8 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     }
 
     th_info_init(&ti);
-    ti.frame_width = ((rawWidth + 15) >>4)<<4;
-    ti.frame_height = ((rawHeight + 15)>>4)<<4;
+    ti.frame_width = ((rawWidth + 15) >> 4) << 4;
+    ti.frame_height = ((rawHeight + 15) >> 4) << 4;
     ti.pic_width = rawWidth;
     ti.pic_height = rawHeight;
     ti.pic_x = 0;
@@ -194,22 +194,22 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     ti.pixel_fmt = static_cast<th_pixel_fmt>(chroma_format);
     ti.target_bitrate = video_rate;
     ti.quality = video_quality;
-    ti.keyframe_granule_shift=ilog(keyframe_frequency-1);
+    ti.keyframe_granule_shift = ilog(keyframe_frequency - 1);
 
-    td=th_encode_alloc(&ti);
+    td = th_encode_alloc(&ti);
     th_info_clear(&ti);
     /* setting just the granule shift only allows power-of-two keyframe
        spacing.  Set the actual requested spacing. */
-    int ret=th_encode_ctl(td,TH_ENCCTL_SET_KEYFRAME_FREQUENCY_FORCE, &keyframe_frequency,sizeof(keyframe_frequency-1));
-    if(ret<0)
+    int ret = th_encode_ctl(td, TH_ENCCTL_SET_KEYFRAME_FREQUENCY_FORCE, &keyframe_frequency, sizeof(keyframe_frequency - 1));
+    if(ret < 0)
     {
-        snprintf(errmsg, ERRMSGSIZ, "Could not set keyframe interval to %d.",(int)keyframe_frequency);
+        snprintf(errmsg, ERRMSGSIZ, "Could not set keyframe interval to %d.", (int)keyframe_frequency);
     }
 
     if(vp3_compatible)
     {
-        ret=th_encode_ctl(td,TH_ENCCTL_SET_VP3_COMPATIBLE,&vp3_compatible,  sizeof(vp3_compatible));
-        if(ret<0||!vp3_compatible)
+        ret = th_encode_ctl(td, TH_ENCCTL_SET_VP3_COMPATIBLE, &vp3_compatible,  sizeof(vp3_compatible));
+        if(ret < 0 || !vp3_compatible)
         {
             snprintf(errmsg, ERRMSGSIZ, "Could not enable strict VP3 compatibility.");
         }
@@ -219,29 +219,29 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     {
         /* reverse the rate control flags to favor a 'long time' strategy */
         int arg = TH_RATECTL_CAP_UNDERFLOW;
-        ret=th_encode_ctl(td,TH_ENCCTL_SET_RATE_FLAGS,&arg,sizeof(arg));
-        if(ret<0)
+        ret = th_encode_ctl(td, TH_ENCCTL_SET_RATE_FLAGS, &arg, sizeof(arg));
+        if(ret < 0)
             snprintf(errmsg, ERRMSGSIZ, "Could not set encoder flags for soft-target");
         /* Default buffer control is overridden on two-pass */
-        if(!twopass&&buf_delay<0)
+        if(!twopass && buf_delay < 0)
         {
-            if((keyframe_frequency*7>>1) > 5*video_fps_numerator/video_fps_denominator)
-                arg=keyframe_frequency*7>>1;
+            if((keyframe_frequency * 7 >> 1) > 5 * video_fps_numerator / video_fps_denominator)
+                arg = keyframe_frequency * 7 >> 1;
             else
-                arg=5*video_fps_numerator/video_fps_denominator;
-            ret=th_encode_ctl(td,TH_ENCCTL_SET_RATE_BUFFER,&arg,sizeof(arg));
-            if(ret<0)
+                arg = 5 * video_fps_numerator / video_fps_denominator;
+            ret = th_encode_ctl(td, TH_ENCCTL_SET_RATE_BUFFER, &arg, sizeof(arg));
+            if(ret < 0)
                 snprintf(errmsg, ERRMSGSIZ, "Could not set rate control buffer for soft-target");
         }
     }
 
     /* set up two-pass if needed */
-    if(passno==1)
+    if(passno == 1)
     {
         unsigned char *buffer;
         int bytes;
-        bytes=th_encode_ctl(td,TH_ENCCTL_2PASS_OUT,&buffer,sizeof(buffer));
-        if(bytes<0)
+        bytes = th_encode_ctl(td, TH_ENCCTL_2PASS_OUT, &buffer, sizeof(buffer));
+        if(bytes < 0)
         {
             //IDLog("Could not set up the first pass of two-pass mode.");
             //IDLog("Did you remember to specify an estimated bitrate?");
@@ -251,13 +251,13 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
         /*Perform a seek test to ensure we can overwrite this placeholder data at
          the end; this is better than letting the user sit through a whole
          encode only to find out their pass 1 file is useless at the end.*/
-        if(fseek(twopass_file,0,SEEK_SET)<0)
+        if(fseek(twopass_file, 0, SEEK_SET) < 0)
         {
             //IDLog("Unable to seek in two-pass data file.");
             //exit(1);
             return false;
         }
-        if(fwrite(buffer,1,bytes,twopass_file)< static_cast<size_t>(bytes))
+        if(fwrite(buffer, 1, bytes, twopass_file) < static_cast<size_t>(bytes))
         {
             IDLog("Unable to write to two-pass data file.");
             return false;
@@ -265,21 +265,22 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
         }
         fflush(twopass_file);
     }
-    if(passno==2){
+    if(passno == 2)
+    {
         /*Enable the second pass here.
         We make this call just to set the encoder into 2-pass mode, because
          by default enabling two-pass sets the buffer delay to the whole file
          (because there's no way to explicitly request that behavior).
         If we waited until we were actually encoding, it would overwite our
          settings.*/
-        if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,nullptr,0)<0)
+        if(th_encode_ctl(td, TH_ENCCTL_2PASS_IN, nullptr, 0) < 0)
         {
             snprintf(errmsg, ERRMSGSIZ, "Could not set up the second pass of two-pass mode.");
             return false;
         }
-        if(twopass==3)
+        if(twopass == 3)
         {
-            if(fseek(twopass_file,0,SEEK_SET)<0)
+            if(fseek(twopass_file, 0, SEEK_SET) < 0)
             {
                 snprintf(errmsg, ERRMSGSIZ, "Unable to seek in two-pass data file.");
                 return false;
@@ -288,10 +289,10 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     }
     /*Now we can set the buffer delay if the user requested a non-default one
        (this has to be done after two-pass is enabled).*/
-    if(passno!=1&&buf_delay>=0)
+    if(passno != 1 && buf_delay >= 0)
     {
-        ret=th_encode_ctl(td,TH_ENCCTL_SET_RATE_BUFFER,   &buf_delay,sizeof(buf_delay));
-        if(ret<0)
+        ret = th_encode_ctl(td, TH_ENCCTL_SET_RATE_BUFFER,   &buf_delay, sizeof(buf_delay));
+        if(ret < 0)
         {
             snprintf(errmsg, ERRMSGSIZ, "Warning: could not set desired buffer delay.");
         }
@@ -300,58 +301,58 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     /* write the bitstream header packets with proper page interleave */
     th_comment_init(&tc);
     /* first packet will get its own page automatically */
-    if(th_encode_flushheader(td,&tc,&op)<=0)
+    if(th_encode_flushheader(td, &tc, &op) <= 0)
     {
         snprintf(errmsg, ERRMSGSIZ, "Internal Theora library error.");
         return false;
     }
 
     th_comment_clear(&tc);
-    if(passno!=1)
+    if(passno != 1)
     {
-        ogg_stream_packetin(&ogg_os,&op);
-        if(ogg_stream_pageout(&ogg_os,&og)!=1)
+        ogg_stream_packetin(&ogg_os, &op);
+        if(ogg_stream_pageout(&ogg_os, &og) != 1)
         {
             snprintf(errmsg, ERRMSGSIZ, "Internal Ogg library error.");
             return false;
         }
 
-        fwrite(og.header,1,og.header_len,ogg_fp);
-        fwrite(og.body,1,og.body_len,ogg_fp);
+        fwrite(og.header, 1, og.header_len, ogg_fp);
+        fwrite(og.body, 1, og.body_len, ogg_fp);
     }
 
     /* create the remaining theora headers */
     for(;;)
     {
-        ret=th_encode_flushheader(td,&tc,&op);
-        if(ret<0)
+        ret = th_encode_flushheader(td, &tc, &op);
+        if(ret < 0)
         {
-            snprintf(errmsg, ERRMSGSIZ,"Internal Theora library error.");
+            snprintf(errmsg, ERRMSGSIZ, "Internal Theora library error.");
             return false;
         }
         else if(!ret)
             break;
-        if(passno!=1)
-            ogg_stream_packetin(&ogg_os,&op);
+        if(passno != 1)
+            ogg_stream_packetin(&ogg_os, &op);
     }
     /* Flush the rest of our headers. This ensures
            the actual data in each stream will start
            on a new page, as per spec. */
-    if(passno!=1)
+    if(passno != 1)
     {
         for(;;)
         {
-            int result = ogg_stream_flush(&ogg_os,&og);
-            if(result<0)
+            int result = ogg_stream_flush(&ogg_os, &og);
+            if(result < 0)
             {
                 /* can't get here */
-                snprintf(errmsg, ERRMSGSIZ,"Internal Ogg library error.");
+                snprintf(errmsg, ERRMSGSIZ, "Internal Ogg library error.");
                 return false;
             }
-            if(result==0)
+            if(result == 0)
                 break;
-            fwrite(og.header,1,og.header_len,ogg_fp);
-            fwrite(og.body,1,og.body_len,ogg_fp);
+            fwrite(og.header, 1, og.header_len, ogg_fp);
+            fwrite(og.body, 1, og.body_len, ogg_fp);
         }
     }
 
@@ -364,23 +365,23 @@ bool TheoraRecorder::close()
 {
     theora_write_frame(1);
 
-    if(passno==1)
+    if(passno == 1)
     {
         /* need to read the final (summary) packet */
         unsigned char *buffer;
         int bytes = th_encode_ctl(td, TH_ENCCTL_2PASS_OUT, &buffer, sizeof(buffer));
-        if(bytes<0)
+        if(bytes < 0)
         {
             IDLog("Could not read two-pass summary data from encoder.");
             return false;
         }
-        if(fseek(twopass_file,0,SEEK_SET)<0)
+        if(fseek(twopass_file, 0, SEEK_SET) < 0)
         {
             IDLog("Unable to seek in two-pass data file.");
             return false;
         }
 
-        if(fwrite(buffer,1,bytes,twopass_file)< static_cast<size_t>(bytes))
+        if(fwrite(buffer, 1, bytes, twopass_file) < static_cast<size_t>(bytes))
         {
             IDLog("Unable to write to two-pass data file.");
             return false;
@@ -432,7 +433,8 @@ bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
     }
     else if (m_PixelFormat == INDI_JPG)
     {
-        decode_jpeg_raw((const_cast<uint8_t *>(frame)), nbytes, 0, 0, rawWidth, rawHeight, ycbcr[0].data, ycbcr[1].data, ycbcr[2].data );
+        decode_jpeg_raw((const_cast<uint8_t *>(frame)), nbytes, 0, 0, rawWidth, rawHeight, ycbcr[0].data, ycbcr[1].data,
+                        ycbcr[2].data );
     }
     else
         return false;
@@ -494,45 +496,45 @@ int TheoraRecorder::theora_write_frame(int last)
 
     if( (rc = th_encode_ycbcr_in(td, ycbcr)) )
     {
-      IDLog("error: could not encode frame %d", rc);
-      return rc;
+        IDLog("error: could not encode frame %d", rc);
+        return rc;
     }
 
     /* in two-pass mode's first pass we need to extract and save the pass data */
-    if(passno==1)
+    if(passno == 1)
     {
-      unsigned char *buffer;
-      int bytes = th_encode_ctl(td, TH_ENCCTL_2PASS_OUT, &buffer, sizeof(buffer));
+        unsigned char *buffer;
+        int bytes = th_encode_ctl(td, TH_ENCCTL_2PASS_OUT, &buffer, sizeof(buffer));
 
-      if(bytes<0)
-      {
-        IDLog("Could not read two-pass data from encoder.");
-        return 1;
-      }
+        if(bytes < 0)
+        {
+            IDLog("Could not read two-pass data from encoder.");
+            return 1;
+        }
 
-      if(fwrite(buffer,1,bytes,twopass_file) < static_cast<size_t>(bytes))
-      {
-        IDLog("Unable to write to two-pass data file.");
-        return 1;
-      }
+        if(fwrite(buffer, 1, bytes, twopass_file) < static_cast<size_t>(bytes))
+        {
+            IDLog("Unable to write to two-pass data file.");
+            return 1;
+        }
 
-      fflush(twopass_file);
+        fflush(twopass_file);
     }
 
     if(!th_encode_packetout(td, last, &op))
     {
-      IDLog("error: could not read packets");
-      return 1;
+        IDLog("error: could not read packets");
+        return 1;
     }
 
-    if (passno!=1)
+    if (passno != 1)
     {
-      ogg_stream_packetin(&ogg_os, &op);
-      while(ogg_stream_pageout(&ogg_os, &og))
-      {
-        fwrite(og.header, og.header_len, 1, ogg_fp);
-        fwrite(og.body, og.body_len, 1, ogg_fp);
-      }
+        ogg_stream_packetin(&ogg_os, &op);
+        while(ogg_stream_pageout(&ogg_os, &og))
+        {
+            fwrite(og.header, og.header_len, 1, ogg_fp);
+            fwrite(og.body, og.body_len, 1, ogg_fp);
+        }
     }
 
     return 0;
@@ -583,11 +585,11 @@ bool TheoraRecorder::frac(double fps, uint32_t &num, uint32_t &den)
         t = m[1][0] * ai + m[1][1];
         m[1][1] = m[1][0];
         m[1][0] = t;
-            if(x==(double)ai)
-                break;     // AF: division by zero
-        x = 1/(x - (double) ai);
-            if(x>(double)0x7FFFFFFF)
-                break;  // AF: representation failure
+        if(x == (double)ai)
+            break;     // AF: division by zero
+        x = 1 / (x - (double) ai);
+        if(x > (double)0x7FFFFFFF)
+            break;  // AF: representation failure
     }
 
     num = m[0][0];

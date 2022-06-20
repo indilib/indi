@@ -149,15 +149,24 @@ void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     bool r = false;
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name)) {
-        for(int i = 0; i < n; i++) {
-            if (!strcmp(names[i], "RECEIVER_GAIN")) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name))
+    {
+        for(int i = 0; i < n; i++)
+        {
+            if (!strcmp(names[i], "RECEIVER_GAIN"))
+            {
                 setupParams(getSampleRate(), getFrequency(), getBandwidth(), values[i]);
-            } else if (!strcmp(names[i], "RECEIVER_BANDWIDTH")) {
+            }
+            else if (!strcmp(names[i], "RECEIVER_BANDWIDTH"))
+            {
                 setupParams(getSampleRate(), getFrequency(), values[i], getGain());
-            } else if (!strcmp(names[i], "RECEIVER_FREQUENCY")) {
+            }
+            else if (!strcmp(names[i], "RECEIVER_FREQUENCY"))
+            {
                 setupParams(getSampleRate(), values[i], getBandwidth(), getGain());
-            } else if (!strcmp(names[i], "RECEIVER_SAMPLERATE")) {
+            }
+            else if (!strcmp(names[i], "RECEIVER_SAMPLERATE"))
+            {
                 setupParams(values[i], getFrequency(), getBandwidth(), getGain());
             }
         }
@@ -182,7 +191,8 @@ bool RadioSim::StartIntegration(double duration)
     InIntegration = true;
 
     gettimeofday(&CapStart, nullptr);
-    if(HasStreaming()) {
+    if(HasStreaming())
+    {
         Streamer->setPixelFormat(INDI_MONO, getBPS());
         Streamer->setSize(getBufferSize() * 8 / abs(getBPS()), 1);
     }
@@ -196,7 +206,8 @@ bool RadioSim::StartIntegration(double duration)
 ***************************************************************************************/
 bool RadioSim::AbortIntegration()
 {
-    if(InIntegration) {
+    if(InIntegration)
+    {
         InIntegration = false;
     }
     return true;
@@ -254,7 +265,8 @@ void RadioSim::TimerHit()
 ***************************************************************************************/
 void RadioSim::grabData()
 {
-    if(InIntegration) {
+    if(InIntegration)
+    {
 
         LOG_INFO("Downloading...");
         InIntegration = false;

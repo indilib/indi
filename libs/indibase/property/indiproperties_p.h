@@ -26,22 +26,22 @@ namespace INDI
 template <typename T>
 static inline std::shared_ptr<T> make_shared_weak(T *object)
 {
-    return std::shared_ptr<T>(object, [](T*){});
+    return std::shared_ptr<T>(object, [](T*) {});
 }
 #endif
 
 class PropertiesPrivate
 {
-public:
-    PropertiesPrivate();
-    virtual ~PropertiesPrivate();
+    public:
+        PropertiesPrivate();
+        virtual ~PropertiesPrivate();
 
-public:
-    std::deque<INDI::Property> properties;
+    public:
+        std::deque<INDI::Property> properties;
 #ifdef INDI_PROPERTIES_BACKWARD_COMPATIBILE
-    mutable std::vector<INDI::Property *> propertiesBC;
-    Properties self {make_shared_weak(this)};
-#endif    
+        mutable std::vector<INDI::Property *> propertiesBC;
+        Properties self {make_shared_weak(this)};
+#endif
 };
 
 }

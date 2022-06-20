@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #endif
 
 /* A driverio struct is valid only for sending one xml message */
-typedef struct driverio{
+typedef struct driverio
+{
     struct userio userio;
     void * user;
     void ** joins;

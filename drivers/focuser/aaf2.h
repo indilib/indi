@@ -83,7 +83,7 @@ class AAF2 : public INDI::Focuser
         // Read Version
         bool readVersion();
         // Are we moving?
-        bool isMoving();        
+        bool isMoving();
 
         // Read Only Temperature Reporting
         INumber TemperatureN[1];

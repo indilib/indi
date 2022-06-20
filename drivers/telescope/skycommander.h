@@ -24,12 +24,12 @@
 
 class SkyCommander : public INDI::Telescope
 {
-  public:
-    SkyCommander();
-    virtual ~SkyCommander() = default;
+    public:
+        SkyCommander();
+        virtual ~SkyCommander() = default;
 
-  protected:
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
+    protected:
+        virtual const char *getDefaultName();
+        virtual bool Handshake();
+        virtual bool ReadScopeStatus();
 };

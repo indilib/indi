@@ -21,7 +21,8 @@
 #include "DriverMock.h"
 #include "utils.h"
 
-void DriverMock::setup() {
+void DriverMock::setup()
+{
     // Create a socket that will not have the clo on exec flag ?
     abstractPath = "/tmp/fakedriver-test";
     setenv("FAKEDRIVER_ADDRESS", abstractPath.c_str(), 1);
@@ -29,13 +30,15 @@ void DriverMock::setup() {
     serverConnection = unixSocketListen(abstractPath);
 }
 
-void DriverMock::waitEstablish() {
+void DriverMock::waitEstablish()
+{
     driverConnection = socketAccept(serverConnection);
     unixSocketRecvFds(driverConnection, 2, driverFds);
     cnx.setFds(driverFds[0], driverFds[1]);
 }
 
-void DriverMock::terminateDriver() {
+void DriverMock::terminateDriver()
+{
     cnx.setFds(-1, -1);
     if (driverConnection != -1) close(driverConnection);
     if (driverFds[0] != -1) close(driverFds[0]);
@@ -46,27 +49,32 @@ void DriverMock::terminateDriver() {
 }
 
 
-void DriverMock::ping() {
+void DriverMock::ping()
+{
     cnx.send("<pingRequest uid='flush'/>\n");
     cnx.expectXml("<pingReply uid=\"flush\"/>");
 }
 
 
-void DriverMock::unsetup() {
-    if (serverConnection != -1) {
+void DriverMock::unsetup()
+{
+    if (serverConnection != -1)
+    {
         close(serverConnection);
         serverConnection = -1;
     }
 }
 
-DriverMock::DriverMock() {
+DriverMock::DriverMock()
+{
     serverConnection = -1;
     driverConnection = -1;
     driverFds[0] = -1;
     driverFds[1] = -1;
 }
 
-DriverMock::~DriverMock() {
+DriverMock::~DriverMock()
+{
     terminateDriver();
     unsetup();
 }

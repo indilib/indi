@@ -438,7 +438,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         PESpot = PESpot * 2.0 * 3.14159;
 
         PEOffset = PEMax * std::sin(PESpot);
-        //fprintf(stderr,"PEOffset = %4.2f arcseconds timesince %4.2f\n",PEOffset,timesince);
         PEOffset = PEOffset / 3600; //  convert to degrees
         //PeOffset=PeOffset/15;       //  ra is in h:mm
 
@@ -532,7 +531,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         // Add declination drift, if any.
         decr += decDrift / 3600.0 * 0.0174532925;
 
-        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,decr);
         //  now lets calculate the radius we need to fetch
         float radius;
 
@@ -696,13 +694,11 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                     int rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
                                     &band, &c, plate, ob, &dist, &dir);
-                    //fprintf(stderr,"Parsed %d items\n",rc);
                     if (rc == 12)
                     {
                         lines++;
                         //if(c==0) {
                         stars++;
-                        //fprintf(stderr,"%s %8.4f %8.4f %5.2f %5.2f %d\n",id,ra,dec,mag,dist,dir);
 
                         //  Convert the ra/dec to standard co-ordinates
                         double sx;    //  standard co-ords
@@ -711,9 +707,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         double sdecr; //  star dec in radians;
                         double ccdx;
                         double ccdy;
-
-                        //fprintf(stderr,"line %s",line);
-                        //fprintf(stderr,"parsed %6.5f %6.5f\n",ra,dec);
 
                         srar  = ra * 0.0174532925;
                         sdecr = dec * 0.0174532925;
@@ -1309,10 +1302,10 @@ void * GuideSim::streamVideo()
     return nullptr;
 }
 
-void GuideSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip)
 {
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
+    INDI::CCD::addFITSKeywords(targetChip);
 
     int status = 0;
-    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
+    fits_update_key_dbl(*targetChip->fitsFilePointer(), "Gain", GainN[0].value, 3, "Gain", &status);
 }

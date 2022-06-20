@@ -28,56 +28,59 @@ namespace AlignmentSubsystem
  */
 class MathPlugin
 {
-  public:
-    /// \brief Default constructor
-    MathPlugin(MountAlignment_t ApproximateAlignment = ZENITH)
-        : ApproximateMountAlignment(ApproximateAlignment), pInMemoryDatabase(NULL)
-    {
-    }
+    public:
+        /// \brief Default constructor
+        MathPlugin(MountAlignment_t ApproximateAlignment = ZENITH)
+            : ApproximateMountAlignment(ApproximateAlignment), pInMemoryDatabase(NULL)
+        {
+        }
 
-    /// \brief Virtual destructor
-    virtual ~MathPlugin() {}
+        /// \brief Virtual destructor
+        virtual ~MathPlugin() {}
 
-    // Public methods
-    /// \brief Get the approximate alognment of the mount
-    /// \return the approximate alignment
-    virtual MountAlignment_t GetApproximateMountAlignment() { return ApproximateMountAlignment; }
+        // Public methods
+        /// \brief Get the approximate alognment of the mount
+        /// \return the approximate alignment
+        virtual MountAlignment_t GetApproximateMountAlignment()
+        {
+            return ApproximateMountAlignment;
+        }
 
-    /// \brief Initialise or re-initialise the math plugin. Re-reading the in memory database as necessary.
-    /// \return True if successful
-    virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
+        /// \brief Initialise or re-initialise the math plugin. Re-reading the in memory database as necessary.
+        /// \return True if successful
+        virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
-    /// \brief Set the approximate alognment of the mount
-    /// \param[in] ApproximateAlignment - the approximate alignment of the mount
-    virtual void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment)
-    {
-        ApproximateMountAlignment = ApproximateAlignment;
-    }
+        /// \brief Set the approximate alognment of the mount
+        /// \param[in] ApproximateAlignment - the approximate alignment of the mount
+        virtual void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment)
+        {
+            ApproximateMountAlignment = ApproximateAlignment;
+        }
 
-    /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
-    /// \param[in] RightAscension Right Ascension (Decimal Hours).
-    /// \param[in] Declination Declination (Decimal Degrees).
-    /// \param[in] JulianOffset to be applied to the current julian date.
-    /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
-    /// \return True if successful
-    virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
-                                               double JulianOffset,
-                                               TelescopeDirectionVector &ApparentTelescopeDirectionVector) = 0;
+        /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
+        /// \param[in] RightAscension Right Ascension (Decimal Hours).
+        /// \param[in] Declination Declination (Decimal Degrees).
+        /// \param[in] JulianOffset to be applied to the current julian date.
+        /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
+        /// \return True if successful
+        virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                double JulianOffset,
+                TelescopeDirectionVector &ApparentTelescopeDirectionVector) = 0;
 
-    /// \brief Get the true celestial coordinates for the supplied telescope pointing direction
-    /// \param[in] ApparentTelescopeDirectionVector the telescope direction
-    /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
-    /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
-    /// \return True if successful
-    virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
-                                               double &RightAscension, double &Declination) = 0;
+        /// \brief Get the true celestial coordinates for the supplied telescope pointing direction
+        /// \param[in] ApparentTelescopeDirectionVector the telescope direction
+        /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
+        /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
+        /// \return True if successful
+        virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                double &RightAscension, double &Declination) = 0;
 
-  protected:
-    // Protected properties
-    /// \brief Describe the approximate alignment of the mount. This information is normally used in a one star alignment
-    /// calculation.
-    MountAlignment_t ApproximateMountAlignment;
-    InMemoryDatabase *pInMemoryDatabase;
+    protected:
+        // Protected properties
+        /// \brief Describe the approximate alignment of the mount. This information is normally used in a one star alignment
+        /// calculation.
+        MountAlignment_t ApproximateMountAlignment;
+        InMemoryDatabase *pInMemoryDatabase;
 };
 
 } // namespace AlignmentSubsystem

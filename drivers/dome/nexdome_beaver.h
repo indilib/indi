@@ -148,7 +148,7 @@ class Beaver : public INDI::Dome
         INDI::PropertySwitch GotoHomeSP {1};
         // Shutter voltage
         INDI::PropertyNumber ShutterVoltsNP {1};
-        // Rotator Status        
+        // Rotator Status
         INDI::PropertyText RotatorStatusTP {1};
         // Shutter Status
         INDI::PropertyText ShutterStatusTP {1};
@@ -193,7 +193,7 @@ class Beaver : public INDI::Dome
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////        
+        /////////////////////////////////////////////////////////////////////////////
         static constexpr const char * ROTATOR_TAB = "Rotator";
         static constexpr const char * SHUTTER_TAB = "Shutter";
         // '#' is the stop char

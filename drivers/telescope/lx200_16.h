@@ -24,34 +24,34 @@
 
 class LX200_16 : public LX200GPS
 {
-  public:
-    LX200_16();
-    ~LX200_16() {}
+    public:
+        LX200_16();
+        ~LX200_16() {}
 
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
-    void ISGetProperties(const char *dev);
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ReadScopeStatus();
-    void getBasicData();
-    bool handleAltAzSlew();
+        const char *getDefaultName();
+        bool initProperties();
+        bool updateProperties();
+        void ISGetProperties(const char *dev);
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool ReadScopeStatus();
+        void getBasicData();
+        bool handleAltAzSlew();
 
-  protected:
-    ISwitchVectorProperty FieldDeRotatorSP;
-    ISwitch FieldDeRotatorS[2];
+    protected:
+        ISwitchVectorProperty FieldDeRotatorSP;
+        ISwitch FieldDeRotatorS[2];
 
-    ISwitchVectorProperty HomeSearchSP;
-    ISwitch HomeSearchS[2];
+        ISwitchVectorProperty HomeSearchSP;
+        ISwitch HomeSearchS[2];
 
-    ISwitchVectorProperty FanStatusSP;
-    ISwitch FanStatusS[2];
+        ISwitchVectorProperty FanStatusSP;
+        ISwitch FanStatusS[2];
 
-    INumberVectorProperty HorizontalCoordsNP;
-    INumber HorizontalCoordsN[2];
+        INumberVectorProperty HorizontalCoordsNP;
+        INumber HorizontalCoordsN[2];
 
-  private:
-    double targetAZ, targetALT;
-    double currentAZ, currentALT;
+    private:
+        double targetAZ, targetALT;
+        double currentAZ, currentALT;
 };

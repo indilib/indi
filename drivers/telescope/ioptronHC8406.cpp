@@ -1155,7 +1155,7 @@ bool ioptronHC8406::sendScopeTime()
     int day, month, year, result;
     struct tm ltm;
     struct tm utm;
-    
+
     memset(&ltm, 0, sizeof(ltm));
     memset(&utm, 0, sizeof(utm));
 

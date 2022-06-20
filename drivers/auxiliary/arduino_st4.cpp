@@ -56,7 +56,10 @@ bool ArduinoST4::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
     // Arduino default port
     serialConnection->setDefaultPort("/dev/ttyACM0");
@@ -96,7 +99,7 @@ bool ArduinoST4::Handshake()
         return true;
     }
 
-    PortFD = serialConnection->getPortFD();    
+    PortFD = serialConnection->getPortFD();
 
     return true;
 }
@@ -252,7 +255,7 @@ void ArduinoST4::guideTimeout(ARDUINO_DIRECTION direction)
 
 bool ArduinoST4::sendCommand(const char *cmd)
 {
-    int nbytes_read=0, nbytes_written=0, tty_rc = 0;
+    int nbytes_read = 0, nbytes_written = 0, tty_rc = 0;
     char res[8] = {0};
     LOGF_DEBUG("CMD <%s>", cmd);
 

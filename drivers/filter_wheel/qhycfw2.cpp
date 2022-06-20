@@ -68,7 +68,8 @@ void QHYCFW2::ISGetProperties(const char *dev)
                 snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
             }
-            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                             FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
         }
     }
     defineProperty(&MaxFilterNP);
@@ -79,7 +80,8 @@ bool QHYCFW2::initProperties()
     INDI::FilterWheel::initProperties();
 
     IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
-    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     CurrentFilter      = 1;
     FilterSlotN[0].min = 1;

@@ -126,7 +126,7 @@ void BaseClientPrivate::clear()
 
 #ifndef _WINDOWS
 
-static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un & serv_addr_un, socklen_t & addrlen, bool bind)
+static void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
 {
     memset(&serv_addr_un, 0, sizeof(serv_addr_un));
     serv_addr_un.sun_family = AF_UNIX;
@@ -146,7 +146,8 @@ static void initUnixSocketAddr(const std::string & unixAddr, struct sockaddr_un 
 
     int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
 
-    if (bind) {
+    if (bind)
+    {
         unlink(unixAddr.c_str());
     }
 #endif
@@ -160,7 +161,8 @@ static const char * unixDomainPrefix = "localhost:";
 
 static const char * unixDefaultPath = "/tmp/indiserver";
 
-bool BaseClientPrivate::establish(const std::string & cServer) {
+bool BaseClientPrivate::establish(const std::string &cServer)
+{
     struct sockaddr_un serv_addr_un;
     struct sockaddr_in serv_addr_in;
     const struct sockaddr *sockaddr;
@@ -176,13 +178,16 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
     // pos=0 limits the search to the prefix
     unixSocket = cServer.rfind(unixDomainPrefix, 0) == 0;
     std::string unixAddr;
-    if (unixSocket) {
+    if (unixSocket)
+    {
         unixAddr = cServer.substr(strlen(unixDomainPrefix));
     }
 
-    if (unixSocket) {
+    if (unixSocket)
+    {
 #ifndef _WINDOWS
-        if (unixAddr.empty()) {
+        if (unixAddr.empty())
+        {
             unixAddr = unixDefaultPath;
         }
 
@@ -199,7 +204,9 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
         IDLog("local domain not supported on windows");
         return false;
 #endif
-    } else {
+    }
+    else
+    {
         struct hostent *hp;
 
         /* lookup host address */
@@ -247,12 +254,14 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
     }
 #else
     int flags = 0;
-    if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0) {
+    if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
+    {
         net_close(sockfd);
         return false;
     }
 
-    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
         net_close(sockfd);
         return false;
     }
@@ -283,7 +292,8 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
     if (ret != 0)
     {
         //we are waiting for connect to complete now
-        if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0) {
+        if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
+        {
             net_close(sockfd);
             return false;
         }
@@ -315,7 +325,8 @@ bool BaseClientPrivate::establish(const std::string & cServer) {
             return false;
         }
     }
-    else {
+    else
+    {
         net_close(sockfd);
         return false;
     }
@@ -356,10 +367,13 @@ bool BaseClientPrivate::connect()
 
 #ifndef _WINDOWS
         // System with unix support automatically connect over unix domain
-        if (cServer == "localhost") {
+        if (cServer == "localhost")
+        {
             if (!(establish(unixDomainPrefix) || establish(cServer)))
                 return false;
-        } else {
+        }
+        else
+        {
             if (!establish(cServer))
                 return false;
         }
@@ -395,7 +409,8 @@ bool BaseClientPrivate::connect()
 
 bool BaseClientPrivate::disconnect(int exit_code)
 {
-    for(int fd : this->incomingSharedBuffers) {
+    for(int fd : this->incomingSharedBuffers)
+    {
         close(fd);
     }
     this->incomingSharedBuffers.clear();
@@ -517,7 +532,8 @@ void BaseClientPrivate::listenINDI()
             struct msghdr msgh;
             struct iovec iov;
 
-            union {
+            union
+            {
                 struct cmsghdr cmsgh;
                 /* Space large enough to hold an 'int' */
                 char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
@@ -540,16 +556,21 @@ void BaseClientPrivate::listenINDI()
 #endif
             n = recvmsg(sockfd, &msgh, recvflag);
 
-            if (n >= 0) {
-                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
-                    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+            if (n >= 0)
+            {
+                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+                {
+                    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+                    {
                         int fdCount = 0;
-                        while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+                        while(cmsg->cmsg_len >= CMSG_LEN((fdCount + 1) * sizeof(int)))
+                        {
                             fdCount++;
                         }
                         IDLog("Received %d fds\n", fdCount);
                         int * fds = (int*)CMSG_DATA(cmsg);
-                        for(int i = 0; i < fdCount; ++i) {
+                        for(int i = 0; i < fdCount; ++i)
+                        {
                             int fd = fds[i];
                             IDLog("Received fd %d\n", fd);
 #ifndef __linux__
@@ -557,7 +578,9 @@ void BaseClientPrivate::listenINDI()
 #endif
                             incomingSharedBuffers.push_back(fd);
                         }
-                    } else {
+                    }
+                    else
+                    {
                         IDLog("Ignoring ancillary data level %d, type %d\n", cmsg->cmsg_level, cmsg->cmsg_type);
                     }
                 }
@@ -592,15 +615,19 @@ void BaseClientPrivate::listenINDI()
 
                 std::vector<std::string> blobs;
 
-                if (!parseAttachedBlobs(root, blobs)) {
+                if (!parseAttachedBlobs(root, blobs))
+                {
                     IDLog("Missing attachment from %s/%d\n", cServer.c_str(), cPort);
                     clientFatalError = true;
                     break;
                 }
                 int err_code;
-                try {
+                try
+                {
                     err_code = dispatchCommand(root, msg);
-                } catch(...) {
+                }
+                catch(...)
+                {
                     releaseBlobUids(blobs);
                     throw;
                 }
@@ -623,7 +650,8 @@ void BaseClientPrivate::listenINDI()
             free(nodes);
             inode = 0;
 
-            if (clientFatalError) {
+            if (clientFatalError)
+            {
                 break;
             }
         }
@@ -659,7 +687,8 @@ void BaseClientPrivate::listenINDI()
     }
 }
 
-static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
+static std::vector<XMLEle *> findBlobElements(XMLEle * root)
+{
     std::vector<XMLEle *> result;
     for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
@@ -671,22 +700,25 @@ static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
     return result;
 }
 
-bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> & blobs)
+bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> &blobs)
 {
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
-    for(auto blobContent : findBlobElements(root)) {
+    for(auto blobContent : findBlobElements(root))
+    {
         std::string attached = findXMLAttValu(blobContent, "attached");
 
-        if (attached == "true") {
+        if (attached == "true")
+        {
             std::string device = findXMLAttValu(root, "dev");
             std::string name = findXMLAttValu(root, "name");
 
             rmXMLAtt(blobContent, "attached");
             rmXMLAtt(blobContent, "enclen");
 
-            if (incomingSharedBuffers.empty()) {
+            if (incomingSharedBuffers.empty())
+            {
                 return false;
             }
             int fd = *incomingSharedBuffers.begin();
@@ -700,7 +732,8 @@ bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string
             rmXMLAtt(blobContent, "attachment-direct");
 
             addXMLAtt(blobContent, "attached-data-id", id.c_str());
-            if (isDirectBlobAccess(device, name)) {
+            if (isDirectBlobAccess(device, name))
+            {
                 // If client support read-only shared blob, mark it here
                 addXMLAtt(blobContent, "attachment-direct",  "true");
             }
@@ -745,7 +778,8 @@ int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 {
     const char *tag = tagXMLEle(root);
 
-    if (!strcmp(tagXMLEle(root), "pingRequest")) {
+    if (!strcmp(tagXMLEle(root), "pingRequest"))
+    {
         const char *uid = findXMLAttValu(root, "uid");
         if (!uid)
             uid = "";
@@ -754,7 +788,8 @@ int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
         return 0;
     }
 
-    if (!strcmp(tagXMLEle(root), "pingReply")) {
+    if (!strcmp(tagXMLEle(root), "pingReply"))
+    {
         const char * uid = findXMLAttValu(root, "uid");
         parent->newPingReply(uid);
     }
@@ -1007,31 +1042,37 @@ int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
 
 void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * prop)
 {
-    if (dev == nullptr || !dev[0]) {
+    if (dev == nullptr || !dev[0])
+    {
         directBlobAccess[""].insert("");
         return;
     }
-    if (prop == nullptr || !prop[0]) {
+    if (prop == nullptr || !prop[0])
+    {
         directBlobAccess[dev].insert("");
-    } else {
+    }
+    else
+    {
         directBlobAccess[dev].insert(prop);
     }
 }
 
-static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> & directBlobAccess, const std::string & dev, const std::string & prop)
+static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
+                                     const std::string &dev, const std::string &prop)
 {
     auto devAccess = directBlobAccess.find(dev) ;
-    if (devAccess == directBlobAccess.end()) {
+    if (devAccess == directBlobAccess.end())
+    {
         return false;
     }
     return devAccess->second.find(prop) != devAccess->second.end();
 }
 
-bool BaseClientPrivate::isDirectBlobAccess(const std::string & dev, const std::string & prop) const
+bool BaseClientPrivate::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
 {
     return hasDirectBlobAccessEntry(directBlobAccess, "", "")
-            || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
-            || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
 }
 
 BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const std::string &property)
@@ -1274,12 +1315,14 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
     sendNewNumber(nvp);
 }
 
-void INDI::BaseClient::sendPingReply(const char * uuid) {
+void INDI::BaseClient::sendPingReply(const char * uuid)
+{
     D_PTR(BaseClient);
     IUUserIOPingReply(&io, d, uuid);
 }
 
-void INDI::BaseClient::sendPingRequest(const char * uuid) {
+void INDI::BaseClient::sendPingRequest(const char * uuid)
+{
     D_PTR(BaseClient);
     IUUserIOPingRequest(&io, d, uuid);
 }

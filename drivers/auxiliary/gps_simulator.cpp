@@ -53,7 +53,7 @@ bool GPSSimulator::Disconnect()
 
 IPState GPSSimulator::updateGPS()
 {
-    static char ts[32]={0};
+    static char ts[32] = {0};
     struct tm *utc, *local;
 
     time_t raw_time;

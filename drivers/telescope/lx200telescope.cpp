@@ -1314,10 +1314,10 @@ bool LX200Telescope::sendScopeTime()
     char ctime[MAXINDINAME] = {0};
     struct tm ltm;
     struct tm utm;
-    
+
     memset(&ltm, 0, sizeof(ltm));
     memset(&utm, 0, sizeof(utm));
-    
+
     time_t time_epoch;
 
     double offset = 0;

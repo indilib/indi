@@ -28,26 +28,26 @@ namespace INDI
 class SingleThreadPoolPrivate;
 class SingleThreadPool
 {
-    DECLARE_PRIVATE(SingleThreadPool)
-public:
-    SingleThreadPool();
-    ~SingleThreadPool();
+        DECLARE_PRIVATE(SingleThreadPool)
+    public:
+        SingleThreadPool();
+        ~SingleThreadPool();
 
-public:
-    /** @brief Reserves a thread and uses it to run functionToRun.
-     *  A running function can check the 'isAboutToClose' flag and decide whether to end the work and give the thread. */
-    void start(const std::function<void(const std::atomic_bool &isAboutToClose)> &functionToRun);
+    public:
+        /** @brief Reserves a thread and uses it to run functionToRun.
+         *  A running function can check the 'isAboutToClose' flag and decide whether to end the work and give the thread. */
+        void start(const std::function<void(const std::atomic_bool &isAboutToClose)> &functionToRun);
 
-    /** @brief If thread isn't available at the time of calling, then this function does nothing and returns false.
-     *  Otherwise, functionToRun is run immediately using thread and this function returns true. */
-    bool tryStart(const std::function<void(const std::atomic_bool &isAboutToClose)> &functionToRun);
+        /** @brief If thread isn't available at the time of calling, then this function does nothing and returns false.
+         *  Otherwise, functionToRun is run immediately using thread and this function returns true. */
+        bool tryStart(const std::function<void(const std::atomic_bool &isAboutToClose)> &functionToRun);
 
-public:
-    /** @brief Sets the 'isAboutToClose' flag to 'true' and waits for the end of running function. */
-    void quit();
+    public:
+        /** @brief Sets the 'isAboutToClose' flag to 'true' and waits for the end of running function. */
+        void quit();
 
-protected:
-    std::shared_ptr<SingleThreadPoolPrivate> d_ptr;
+    protected:
+        std::shared_ptr<SingleThreadPoolPrivate> d_ptr;
 };
 
 }

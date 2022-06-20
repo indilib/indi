@@ -192,24 +192,24 @@ bool SestoSenso2::initProperties()
 
     INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
-   // Rotator Position
+    // Rotator Position
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Angle", "%f", 0., 360., .0001, 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
                        0, IPS_IDLE );
 
-    
- 
 
 
-// Rotator calibration
-//    IUFillText(&RotCalibrationMessageT[0], "Cal Arco", "Arco Cal Stage", "Press START to calibrate Arco.");
-//    IUFillTextVector(&RotCalibrationMessageTP, RotCalibrationMessageT, 1, getDeviceName(), "ROT_CALIBRATION_MESSAGE", "Cal Arco",
- //                    ROTATOR_TAB, IP_RO, 0, IPS_IDLE);
+
+
+    // Rotator calibration
+    //    IUFillText(&RotCalibrationMessageT[0], "Cal Arco", "Arco Cal Stage", "Press START to calibrate Arco.");
+    //    IUFillTextVector(&RotCalibrationMessageTP, RotCalibrationMessageT, 1, getDeviceName(), "ROT_CALIBRATION_MESSAGE", "Cal Arco",
+    //                    ROTATOR_TAB, IP_RO, 0, IPS_IDLE);
 
 
     // Rotator Calibration
     IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
- //   IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
+    //   IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&RotCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Cal Arco", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
@@ -231,11 +231,11 @@ bool SestoSenso2::initProperties()
     PresetN[0].max = FocusMaxPosN[0].value;
     PresetN[1].max = FocusMaxPosN[0].value;
     PresetN[2].max = FocusMaxPosN[0].value;
-   
-    RotatorAbsPosN[0].min=0.000;
-    RotatorAbsPosN[0].max=360.;
-    RotatorAbsPosN[0].value=0.000;
-    RotatorAbsPosN[0].step=0.0001;
+
+    RotatorAbsPosN[0].min = 0.000;
+    RotatorAbsPosN[0].max = 360.;
+    RotatorAbsPosN[0].value = 0.000;
+    RotatorAbsPosN[0].step = 0.0001;
 
     addAuxControls();
 
@@ -257,7 +257,7 @@ bool SestoSenso2::updateProperties()
 
     //Focuser
     INDI::Focuser::updateProperties();
-    
+
 
     if (isConnected())
     {
@@ -306,7 +306,7 @@ bool SestoSenso2::updateProperties()
         deleteProperty(MotorApplyUserPresetSP.name);
         deleteProperty(MotorSaveUserPresetSP.name);
 
-       // Rotator
+        // Rotator
         INDI::RotatorInterface::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
         deleteProperty(RotCalibrationSP.name);
@@ -317,7 +317,7 @@ bool SestoSenso2::updateProperties()
     return true;
 }
 
-  
+
 
 
 
@@ -330,12 +330,12 @@ bool SestoSenso2::Handshake()
     if (Ack())
     {
         LOGF_INFO("%s is online. Getting focus parameters...", getDeviceName());
-		//if (command->getArcoAbsPos() == true)
-		//	{
-			//LOGF_INFO("ARCO is offline. %f", );
-		//	}
-       ArcoPos = command->getArcoAbsPos();
-       LOGF_INFO("ARCO POSITION %f",ArcoPos);
+        //if (command->getArcoAbsPos() == true)
+        //	{
+        //LOGF_INFO("ARCO is offline. %f", );
+        //	}
+        ArcoPos = command->getArcoAbsPos();
+        LOGF_INFO("ARCO POSITION %f", ArcoPos);
         return true;
     }
 
@@ -481,50 +481,50 @@ bool SestoSenso2::updatePosition()
         FocusAbsPosNP.s = IPS_OK;
 
 
-//Update Rotator Position
+        //Update Rotator Position
         RotatorAbsPosN[0].value = command->getArcoAbsPos();
 
         if(command->getArcoPosition() >= 0 )
         {
-		GotoRotatorN[0].value = command->getArcoPosition();
+            GotoRotatorN[0].value = command->getArcoPosition();
         }
         else
         {
-  		GotoRotatorN[0].value = 360.0+command->getArcoPosition();
+            GotoRotatorN[0].value = 360.0 + command->getArcoPosition();
         }
 
-	if(!command -> isArcoBusy())
-	{
-        RotatorAbsPosNP.s = IPS_OK;
-        GotoRotatorNP.s=IPS_OK;
-	}
-	if(command -> isArcoCalibrating())
-	{
-        RotatorAbsPosNP.s = IPS_BUSY;
-        GotoRotatorNP.s=IPS_BUSY;
-	RotCalibrationSP.s = IPS_BUSY;
-	IDSetSwitch(&RotCalibrationSP, nullptr);	
-	}
-	else
-	{
-	if(RotCalibrationSP.s == IPS_BUSY)
-	{
-	RotCalibrationSP.s = IPS_IDLE;
-	IDSetSwitch(&RotCalibrationSP, nullptr);
-	LOG_INFO("Arco calibration complete.");
-	if(command -> syncArco(0))
-	{
-	LOG_INFO("Arco synced to zero");
-	}
-	}
+        if(!command -> isArcoBusy())
+        {
+            RotatorAbsPosNP.s = IPS_OK;
+            GotoRotatorNP.s = IPS_OK;
+        }
+        if(command -> isArcoCalibrating())
+        {
+            RotatorAbsPosNP.s = IPS_BUSY;
+            GotoRotatorNP.s = IPS_BUSY;
+            RotCalibrationSP.s = IPS_BUSY;
+            IDSetSwitch(&RotCalibrationSP, nullptr);
+        }
+        else
+        {
+            if(RotCalibrationSP.s == IPS_BUSY)
+            {
+                RotCalibrationSP.s = IPS_IDLE;
+                IDSetSwitch(&RotCalibrationSP, nullptr);
+                LOG_INFO("Arco calibration complete.");
+                if(command -> syncArco(0))
+                {
+                    LOG_INFO("Arco synced to zero");
+                }
+            }
 
-	}
+        }
 
         if(GotoRotatorNP.s == IPS_BUSY) RotatorAbsPosNP.s = IPS_BUSY;
         //LOGF_INFO("RotatorAbsPos: %f",RotatorAbsPosN[0].value);
         IDSetNumber(&RotatorAbsPosNP, nullptr);
         IDSetNumber(&GotoRotatorNP, nullptr);
-//End Update Rotator Position
+        //End Update Rotator Position
 
         return true;
     }
@@ -641,9 +641,9 @@ bool SestoSenso2::AbortRotator()
 }
 
 bool SestoSenso2::SyncRotator(double angle)
-{	
-	GotoRotatorN[0].value = angle;
-	return command -> syncArco(angle);
+{
+    GotoRotatorN[0].value = angle;
+    return command -> syncArco(angle);
 }
 
 
@@ -1172,21 +1172,21 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&MotorSaveUserPresetSP, nullptr);
             return true;
         }
-	else if (!strcmp(name,RotCalibrationSP.name))        
-	{
-		if(command -> calArco())
-		{
-		LOG_INFO("Calibrating Arco. Please wait.");
-		RotCalibrationSP.s = IPS_BUSY;
-		IDSetSwitch(&RotCalibrationSP, nullptr);
-		}
-	return true;
-	}
+        else if (!strcmp(name, RotCalibrationSP.name))
+        {
+            if(command -> calArco())
+            {
+                LOG_INFO("Calibrating Arco. Please wait.");
+                RotCalibrationSP.s = IPS_BUSY;
+                IDSetSwitch(&RotCalibrationSP, nullptr);
+            }
+            return true;
+        }
 
-	else if (strstr(name, "ROTATOR"))
+        else if (strstr(name, "ROTATOR"))
         {
             if (INDI::RotatorInterface::processSwitch(dev, name, states, names, n))
-        return true;
+                return true;
         }
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -1214,31 +1214,31 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
         return true;
     }
 
-else if (strcmp(name, RotatorAbsPosNP.name) == 0)
+    else if (strcmp(name, RotatorAbsPosNP.name) == 0)
+    {
+        char res[SESTO_LEN] = {0};
+        bool rc = command->setArcoAbsPos(values[0], res);
+        if(rc == true)
         {
-	    char res[SESTO_LEN] = {0};
-	    bool rc = command->setArcoAbsPos(values[0], res);
-	    if(rc == true)
-             {
-		RotatorAbsPosNP.s = IPS_BUSY;
-	     }
-	    else
-		{
-		RotatorAbsPosNP.s = IPS_ALERT;
-		}
-            GotoRotatorNP.s = RotatorAbsPosNP.s;
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            //IUUpdateNumber(&RotatorAbsPosNP,values,names,n);
-            if (RotatorAbsPosNP.s == IPS_BUSY)
-                LOGF_INFO("Rotator moving to %f degrees...", values[0]);
+            RotatorAbsPosNP.s = IPS_BUSY;
+        }
+        else
+        {
+            RotatorAbsPosNP.s = IPS_ALERT;
+        }
+        GotoRotatorNP.s = RotatorAbsPosNP.s;
+        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        IDSetNumber(&GotoRotatorNP, nullptr);
+        //IUUpdateNumber(&RotatorAbsPosNP,values,names,n);
+        if (RotatorAbsPosNP.s == IPS_BUSY)
+            LOGF_INFO("Rotator moving to %f degrees...", values[0]);
+        return true;
+    }
+    else if (strstr(name, "ROTATOR"))
+    {
+        if (INDI::RotatorInterface::processNumber(dev, name, values, names, n))
             return true;
-        }
-        else if (strstr(name, "ROTATOR"))
-        {
-            if (INDI::RotatorInterface::processNumber(dev, name, values, names, n))
-                return true;
-        }
+    }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
@@ -1273,20 +1273,20 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 //Move Rotator to Gotposition corrected for Sync-Angle
 IPState SestoSenso2::MoveRotator(double angle)
 {
-     char res[SESTO_LEN] = {0};
-	//Calc sync angle (could also be received from Arco (CORRECTION_POS)
-     double PosCor = RotatorAbsPosN[0].value-GotoRotatorN[0].value;
-     if(PosCor-360.0<0.0001) PosCor=0.0;
-     angle +=PosCor;
-     if(angle>360.0) angle -=360.0;
-     if(command->setArcoAbsPos(angle, res) == false)
-{
-      LOGF_INFO("ARCO won't move. %s", res);
-      return IPS_ALERT;
-}
-   LOGF_INFO("Reply: %s",res);
-   //m_MotionProgressTimer.start(10);
-   return IPS_BUSY;
+    char res[SESTO_LEN] = {0};
+    //Calc sync angle (could also be received from Arco (CORRECTION_POS)
+    double PosCor = RotatorAbsPosN[0].value - GotoRotatorN[0].value;
+    if(PosCor - 360.0 < 0.0001) PosCor = 0.0;
+    angle += PosCor;
+    if(angle > 360.0) angle -= 360.0;
+    if(command->setArcoAbsPos(angle, res) == false)
+    {
+        LOGF_INFO("ARCO won't move. %s", res);
+        return IPS_ALERT;
+    }
+    LOGF_INFO("Reply: %s", res);
+    //m_MotionProgressTimer.start(10);
+    return IPS_BUSY;
 }
 
 
@@ -1931,7 +1931,7 @@ bool CommandSet::getARCO(char *res)
 
 //bool CommandSet::getArcoAbsPos(char *res)
 //{
-    
+
 //return sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}","ABS_POS", res);
 
 //}
@@ -1939,32 +1939,32 @@ bool CommandSet::getARCO(char *res)
 double CommandSet::getArcoAbsPos()
 {
 
-  char res[SESTO_LEN] = {0};
-  std::string buf;
-  bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}","ABS_POS", res);
-  if(rc == true)
-{
-   std::string my_string(res);
-   buf = my_string.substr(0,my_string.length()-5);
-      
-}
-  return std::stof(buf);
+    char res[SESTO_LEN] = {0};
+    std::string buf;
+    bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}", "ABS_POS", res);
+    if(rc == true)
+    {
+        std::string my_string(res);
+        buf = my_string.substr(0, my_string.length() - 5);
+
+    }
+    return std::stof(buf);
 }
 
 
 double CommandSet::getArcoPosition()
 {
 
-  char res[SESTO_LEN] = {0};
-  std::string buf;
-  bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"POSITION\":\"DEG\"}}}}","POSITION", res);
-  if(rc == true)
-{
-   std::string my_string(res);
-   buf = my_string.substr(0,my_string.length()-5);
-      
-}
-  return std::stof(buf);
+    char res[SESTO_LEN] = {0};
+    std::string buf;
+    bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"POSITION\":\"DEG\"}}}}", "POSITION", res);
+    if(rc == true)
+    {
+        std::string my_string(res);
+        buf = my_string.substr(0, my_string.length() - 5);
+
+    }
+    return std::stof(buf);
 }
 
 
@@ -1972,64 +1972,67 @@ double CommandSet::getArcoPosition()
 bool CommandSet::setArcoAbsPos(double targetAngle, char *res)
 {
     char cmd[SESTO_LEN] = {0};
-     LOGF_INFO("Angle recieved: %f",targetAngle);
-    if(targetAngle>getArcoAbsPos()+180.) {targetAngle -= 360.0;}    
-     
+    LOGF_INFO("Angle recieved: %f", targetAngle);
+    if(targetAngle > getArcoAbsPos() + 180.)
+    {
+        targetAngle -= 360.0;
+    }
+
     snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"GOTO\":{\"DEG\":%f}}}}}", targetAngle);
-    
-     //LOG_INFO("Hallo");
-     LOGF_INFO("Command sent: %s",cmd);
-     LOGF_INFO("Rotator moving to: %f",targetAngle);
+
+    //LOG_INFO("Hallo");
+    LOGF_INFO("Command sent: %s", cmd);
+    LOGF_INFO("Rotator moving to: %f", targetAngle);
     return sendCmd(cmd, "DEG", res);
 }
 
 bool CommandSet::isArcoBusy()
 {
-     char res[SESTO_LEN] = {0};
-     
-     if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":\"\"}}}", "BUSY", res))
-	{
-		LOG_INFO("Could not check if Arco is busy.");
-		return true;
-	}
+    char res[SESTO_LEN] = {0};
 
-	int busy = std::stoi(res);
-	if(!(busy==0)) return true;
-	
-  return false;
+    if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":\"\"}}}", "BUSY", res))
+    {
+        LOG_INFO("Could not check if Arco is busy.");
+        return true;
+    }
+
+    int busy = std::stoi(res);
+    if(!(busy == 0)) return true;
+
+    return false;
 }
 
 bool CommandSet::stopArco()
 {
-   char res[SESTO_LEN] = {0};
-   return sendCmd("{\"req\":{\"cmd\":{\"MOT2\":{\"MOT_STOP\":\"\"}}}}", "MOT_STOP", res);
+    char res[SESTO_LEN] = {0};
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT2\":{\"MOT_STOP\":\"\"}}}}", "MOT_STOP", res);
 }
 
 
 bool CommandSet::syncArco(double angle)
 {
-   char res[SESTO_LEN] = {0};
-   char cmd[SESTO_LEN] = {0};
-   snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"SYNC_POS\":{\"DEG\":%f}}}}}", angle);
-   return sendCmd(cmd, "DEG", res);
+    char res[SESTO_LEN] = {0};
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"SYNC_POS\":{\"DEG\":%f}}}}}", angle);
+    return sendCmd(cmd, "DEG", res);
 }
 
 bool CommandSet::calArco()
 {
-   char res[SESTO_LEN] = {0};
-   return sendCmd("{\"req\":{\"set\":{\"MOT2\":{\"CAL_STATUS\":\"exec\"}}}}", "CAL_STATUS", res);
+    char res[SESTO_LEN] = {0};
+    return sendCmd("{\"req\":{\"set\":{\"MOT2\":{\"CAL_STATUS\":\"exec\"}}}}", "CAL_STATUS", res);
 }
 
 bool CommandSet::isArcoCalibrating()
 {
-   char res[SESTO_LEN] = {0};
-   if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"CAL_STATUS\":\"\"}}}}", "CAL_STATUS", res))
-	{
-		LOG_INFO("Could not check if Arco is Calibrating.");
-		return true;
-	}
-   std::string result(res);
-   if(result == "exec") return true;
-   return false;
+    char res[SESTO_LEN] = {0};
+    if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"CAL_STATUS\":\"\"}}}}", "CAL_STATUS", res))
+    {
+        LOG_INFO("Could not check if Arco is Calibrating.");
+        return true;
+    }
+    std::string result(res);
+    if(result == "exec") return true;
+    return false;
 
 }

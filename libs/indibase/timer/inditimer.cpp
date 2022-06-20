@@ -38,13 +38,17 @@ void TimerPrivate::start()
 {
     if (singleShot)
     {
-        timerId = addTimer(interval, [](void *arg){
+        timerId = addTimer(interval, [](void *arg)
+        {
             TimerPrivate *d = static_cast<TimerPrivate*>(arg);
             d->timerId = -1;
             d->p->timeout();
         }, this);
-    } else {
-        timerId = addPeriodicTimer(interval, [](void *arg){
+    }
+    else
+    {
+        timerId = addPeriodicTimer(interval, [](void *arg)
+        {
             TimerPrivate *d = static_cast<TimerPrivate*>(arg);
             d->p->timeout();
         }, this);
@@ -144,7 +148,8 @@ void Timer::singleShot(int msec, const std::function<void()> &callback)
     Timer *timer = new Timer();
     timer->setSingleShot(true);
     timer->setInterval(msec);
-    timer->callOnTimeout([callback, timer](){
+    timer->callOnTimeout([callback, timer]()
+    {
         callback();
         delete timer;
     });

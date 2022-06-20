@@ -26,36 +26,39 @@
 
 class SimpleReceiver : public INDI::Receiver
 {
-public:
-    SimpleReceiver() = default;
+    public:
+        SimpleReceiver() = default;
 
-protected:
-    // General device functions
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
-    bool initProperties() override;
-    bool updateProperties() override;
+    protected:
+        // General device functions
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    // Receiver specific functions
-    bool StartIntegration(double duration) override;
-    bool AbortIntegration() override;
-    int SetTemperature(double temperature) override;
-    void TimerHit() override;
+        // Receiver specific functions
+        bool StartIntegration(double duration) override;
+        bool AbortIntegration() override;
+        int SetTemperature(double temperature) override;
+        void TimerHit() override;
 
-    bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
+        bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
 
-private:
-    // Utility functions
-    float CalcTimeLeft();
-    void setupParams();
-    void grabFrame();
+    private:
+        // Utility functions
+        float CalcTimeLeft();
+        void setupParams();
+        void grabFrame();
 
-    // Are we exposing?
-    bool InIntegration { false };
-    // Struct to keep timing
-    struct timeval CapStart { 0, 0 };
+        // Are we exposing?
+        bool InIntegration { false };
+        // Struct to keep timing
+        struct timeval CapStart
+        {
+            0, 0
+        };
 
-    double IntegrationRequest { 0 };
-    double TemperatureRequest { 0 };
+        double IntegrationRequest { 0 };
+        double TemperatureRequest { 0 };
 };

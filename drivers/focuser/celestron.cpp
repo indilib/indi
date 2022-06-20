@@ -34,11 +34,11 @@
 static std::unique_ptr<CelestronSCT> celestronSCT(new CelestronSCT());
 
 CelestronSCT::CelestronSCT() :
-  backlashMove(false),
-  finalPosition(0),
-  calibrateInProgress(false),
-  calibrateState(0),
-  focuserIsCalibrated(false)
+    backlashMove(false),
+    finalPosition(0),
+    calibrateInProgress(false),
+    calibrateState(0),
+    focuserIsCalibrated(false)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     // CR variable speed and sync removed

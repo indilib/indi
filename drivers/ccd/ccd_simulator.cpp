@@ -825,8 +825,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                 glow = m_SkyGlow / 10;
             }
 
-            //fprintf(stderr,"Using glow %4.2f\n",glow);
-
             // Flux represents one second, scale up linearly for exposure time
             float const skyflux = flux(glow) * exposure_time;
 
@@ -1493,9 +1491,11 @@ void * CCDSim::streamVideo()
     return nullptr;
 }
 
-void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip)
 {
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
+    INDI::CCD::addFITSKeywords(targetChip);
+
+    auto fptr = *targetChip->fitsFilePointer();
 
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);

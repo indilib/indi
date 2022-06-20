@@ -70,13 +70,13 @@ std::string format_time(const std::tm &tm, const char *format)
     return std::string(cstr, size);
 }
 
-void replace_all(std::string &subject, const std::string& search, const std::string& replace)
+void replace_all(std::string &subject, const std::string &search, const std::string &replace)
 {
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::string::npos)
     {
-         subject.replace(pos, search.length(), replace);
-         pos += replace.length();
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
     }
 }
 

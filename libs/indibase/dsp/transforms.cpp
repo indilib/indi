@@ -87,18 +87,23 @@ bool InverseFourierTransform::processBLOB(uint8_t *buf, uint32_t dims, int *size
     return Interface::processBLOB(getStream(), stream->dims, stream->sizes, bits_per_sample);
 }
 
-bool InverseFourierTransform::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool InverseFourierTransform::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                        char *formats[], char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName())) {
-        if(!strcmp(name, DownloadBP.name)) {
+    if(!strcmp(dev, getDeviceName()))
+    {
+        if(!strcmp(name, DownloadBP.name))
+        {
             IUUpdateBLOB(&DownloadBP, sizes, blobsizes, blobs, formats, names, n);
             LOGF_INFO("Received phase BLOB for %s", getDeviceName());
-            if(phase != nullptr) {
+            if(phase != nullptr)
+            {
                 dsp_stream_free_buffer(phase);
                 dsp_stream_free(phase);
             }
             phase = loadFITS(blobs[0], sizes[0]);
-            if (phase != nullptr) {
+            if (phase != nullptr)
+            {
                 LOGF_INFO("Phase for %s loaded", getDeviceName());
                 phase_loaded = true;
                 return true;

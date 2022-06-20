@@ -29,40 +29,40 @@
 
 class WeatherMeta : public INDI::DefaultDevice
 {
-  public:
-    WeatherMeta();
-    virtual ~WeatherMeta() = default;
+    public:
+        WeatherMeta();
+        virtual ~WeatherMeta() = default;
 
-    //  Generic indi device entries
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
+        //  Generic indi device entries
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
 
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-  protected:
-    virtual bool saveConfigItems(FILE *fp) override;
+    protected:
+        virtual bool saveConfigItems(FILE *fp) override;
 
-  private:
-    void updateOverallState();
-    void updateUpdatePeriod();
+    private:
+        void updateOverallState();
+        void updateUpdatePeriod();
 
-    // Active stations
-    IText ActiveDeviceT[4] {};
-    ITextVectorProperty ActiveDeviceTP;
+        // Active stations
+        IText ActiveDeviceT[4] {};
+        ITextVectorProperty ActiveDeviceTP;
 
-    // Stations status
-    ILight StationL[4];
-    ILightVectorProperty StationLP;
+        // Stations status
+        ILight StationL[4];
+        ILightVectorProperty StationLP;
 
-    // Update Period
-    INumber UpdatePeriodN[1];
-    INumberVectorProperty UpdatePeriodNP;
+        // Update Period
+        INumber UpdatePeriodN[1];
+        INumberVectorProperty UpdatePeriodNP;
 
-    double updatePeriods[4];
+        double updatePeriods[4];
 };

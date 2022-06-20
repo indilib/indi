@@ -146,7 +146,7 @@ int USBDevice::FindEndpoints()
         return rc;
     }
 
-    interface = (struct libusb_interface_descriptor *)&(config->interface[0].altsetting[0]);
+    interface = (struct libusb_interface_descriptor *) & (config->interface[0].altsetting[0]);
     for (int i = 0; i < interface->bNumEndpoints; i++)
     {
         fprintf(stderr, "Endpoint %04x %04x\n", interface->endpoint[i].bEndpointAddress,
@@ -213,7 +213,7 @@ int USBDevice::WriteBulk(unsigned char *buf, int count, int timeout)
 }
 
 int USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value,
-                                    unsigned int index, unsigned char *data, unsigned char len)
+                              unsigned int index, unsigned char *data, unsigned char len)
 {
     int rc = libusb_control_transfer(usb_handle, request_type, request, value, index, data, len, 5000);
     if (rc < 0)

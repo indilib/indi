@@ -31,66 +31,87 @@
 
 class SkySafariClient : public INDI::BaseClient
 {
-  public:
-    typedef enum { SLEW, TRACK, SYNC } GotoMode;
+    public:
+        typedef enum { SLEW, TRACK, SYNC } GotoMode;
 
-    SkySafariClient();
-    ~SkySafariClient();
+        SkySafariClient();
+        ~SkySafariClient();
 
-    bool isConnected() { return isReady; }
+        bool isConnected()
+        {
+            return isReady;
+        }
 
-    void setMount(const std::string &value);
+        void setMount(const std::string &value);
 
-    INumberVectorProperty *getEquatorialCoords() { return eqCoordsNP; }
-    bool sendEquatorialCoords();
+        INumberVectorProperty *getEquatorialCoords()
+        {
+            return eqCoordsNP;
+        }
+        bool sendEquatorialCoords();
 
-    INumberVectorProperty *getGeographiCoords() { return geoCoordsNP; }
-    bool sendGeographicCoords();
+        INumberVectorProperty *getGeographiCoords()
+        {
+            return geoCoordsNP;
+        }
+        bool sendGeographicCoords();
 
-    ISwitchVectorProperty *getGotoMode() { return gotoModeSP; }
-    bool sendGotoMode();
+        ISwitchVectorProperty *getGotoMode()
+        {
+            return gotoModeSP;
+        }
+        bool sendGotoMode();
 
-    ISwitchVectorProperty *getMotionNS() { return motionNSSP; }
-    bool setMotionNS();
+        ISwitchVectorProperty *getMotionNS()
+        {
+            return motionNSSP;
+        }
+        bool setMotionNS();
 
-    ISwitchVectorProperty *getMotionWE() { return motionWESP; }
-    bool setMotionWE();
+        ISwitchVectorProperty *getMotionWE()
+        {
+            return motionWESP;
+        }
+        bool setMotionWE();
 
-    bool parkMount();
-    IPState getMountParkState();
+        bool parkMount();
+        IPState getMountParkState();
 
-    bool setSlewRate(int slewRate);
+        bool setSlewRate(int slewRate);
 
-    bool abort();
+        bool abort();
 
-    ITextVectorProperty *getTimeUTC() { return timeUTC; }
-    bool setTimeUTC();
+        ITextVectorProperty *getTimeUTC()
+        {
+            return timeUTC;
+        }
+        bool setTimeUTC();
 
-  protected:
-    virtual void newDevice(INDI::BaseDevice *dp);
-    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
-    virtual void newProperty(INDI::Property *property);
-    virtual void removeProperty(INDI::Property */*property*/) {}
-    virtual void newBLOB(IBLOB */*bp*/) {}
-    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
-    virtual void newNumber(INumberVectorProperty */*nvp*/) {}
-    virtual void newMessage(INDI::BaseDevice */*dp*/, int /*messageID*/) {}
-    virtual void newText(ITextVectorProperty */*tvp*/) {}
-    virtual void newLight(ILightVectorProperty */*lvp*/) {}
-    virtual void serverConnected() {}
-    virtual void serverDisconnected(int /*exit_code*/) {}
+    protected:
+        virtual void newDevice(INDI::BaseDevice *dp);
+        virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
+        virtual void newProperty(INDI::Property *property);
+        virtual void removeProperty(INDI::Property */*property*/) {}
+        virtual void newBLOB(IBLOB */*bp*/) {}
+        virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
+        virtual void newNumber(INumberVectorProperty */*nvp*/) {}
+        virtual void newMessage(INDI::BaseDevice */*dp*/, int /*messageID*/) {}
+        virtual void newText(ITextVectorProperty */*tvp*/) {}
+        virtual void newLight(ILightVectorProperty */*lvp*/) {}
+        virtual void serverConnected() {}
+        virtual void serverDisconnected(int /*exit_code*/) {}
 
-  private:
-    std::string mount;
-    bool isReady, mountOnline;
+    private:
+        std::string mount;
+        bool isReady, mountOnline;
 
-    ISwitchVectorProperty *mountParkSP = nullptr;
-    ISwitchVectorProperty *gotoModeSP  = nullptr;
-    INumberVectorProperty *eqCoordsNP  = nullptr;
-    INumberVectorProperty *geoCoordsNP = nullptr;
-    ISwitchVectorProperty *abortSP     = nullptr;
-    ISwitchVectorProperty *slewRateSP  = nullptr;
-    ISwitchVectorProperty *motionNSSP  = nullptr;
-    ISwitchVectorProperty *motionWESP  = nullptr;
-    ITextVectorProperty *timeUTC       = nullptr;
+        ISwitchVectorProperty *mountParkSP = nullptr;
+        ISwitchVectorProperty *gotoModeSP  = nullptr;
+        INumberVectorProperty *eqCoordsNP  = nullptr;
+        INumberVectorProperty *geoCoordsNP = nullptr;
+        ISwitchVectorProperty *abortSP     = nullptr;
+        ISwitchVectorProperty *slewRateSP  = nullptr;
+        ISwitchVectorProperty *motionNSSP  = nullptr;
+        ISwitchVectorProperty *motionWESP  = nullptr;
+        ITextVectorProperty *timeUTC       = nullptr;
 };

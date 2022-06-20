@@ -42,47 +42,49 @@ namespace DSP
 extern const char *DSP_TAB;
 class Interface
 {
-    /**
-     * @brief The Interface class is the base class for the DSP plugins of INDI.
-     *
-     * The plugins must implement the Callback, which will be called by the DSP::Manager class. All the DSP
-     * plugins work multidimensionally, so even for single dimensional streams the meaning is to add a single dimension.
-     * Initially classes calls set dimensions and sizes the same as the original picture or frame, later or during processing
-     * into the Callback functions the plugins can alter or set dimensions arbitrarily.
-     * The plugins return an array which can be of various depths and a BLOB will be generated and sent to the client with the
-     * result.
-     * The DSP, when enabled by the property xxx_HAS_DSP, will generate properties for activation of the single plugins, and
-     * after activation or deactivation, Activate() and Deactivate() methods will be called permitting further properties etc.
-     * getSizes()/setSizes() will help within Callback to alter dimensions and sizes, getBPS/setBPS will change color depth or
-     * sample size.
-     * Classes that use the Interface class children should call processBLOB to propagate until children's Callback methods and
-     * generate BLOBs.
-     *
-     * @see DSP::Convolution
-     * @see DSP::Transforms
-     * @see DSP::Manager
-     * @see INDI::CCD and INDI::SensorInterface utilize the DSP Namespace.
-     */
+        /**
+         * @brief The Interface class is the base class for the DSP plugins of INDI.
+         *
+         * The plugins must implement the Callback, which will be called by the DSP::Manager class. All the DSP
+         * plugins work multidimensionally, so even for single dimensional streams the meaning is to add a single dimension.
+         * Initially classes calls set dimensions and sizes the same as the original picture or frame, later or during processing
+         * into the Callback functions the plugins can alter or set dimensions arbitrarily.
+         * The plugins return an array which can be of various depths and a BLOB will be generated and sent to the client with the
+         * result.
+         * The DSP, when enabled by the property xxx_HAS_DSP, will generate properties for activation of the single plugins, and
+         * after activation or deactivation, Activate() and Deactivate() methods will be called permitting further properties etc.
+         * getSizes()/setSizes() will help within Callback to alter dimensions and sizes, getBPS/setBPS will change color depth or
+         * sample size.
+         * Classes that use the Interface class children should call processBLOB to propagate until children's Callback methods and
+         * generate BLOBs.
+         *
+         * @see DSP::Convolution
+         * @see DSP::Transforms
+         * @see DSP::Manager
+         * @see INDI::CCD and INDI::SensorInterface utilize the DSP Namespace.
+         */
     public:
         /**
          * \struct Type
          * \brief Holds the process type
          */
-        typedef enum  {
-        DSP_NONE = 0,
-        DSP_DFT,
-        DSP_IDFT,
-        DSP_CONVOLUTION,
-        DSP_WAVELETS,
-        DSP_SPECTRUM,
-        DSP_HISTOGRAM,
+        typedef enum
+        {
+            DSP_NONE = 0,
+            DSP_DFT,
+            DSP_IDFT,
+            DSP_CONVOLUTION,
+            DSP_WAVELETS,
+            DSP_SPECTRUM,
+            DSP_HISTOGRAM,
         } Type;
 
         virtual void ISGetProperties(const char *dev);
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                               char *names[], int n);
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
@@ -101,26 +103,40 @@ class Interface
          * @param num Number of dimensions.
          * @param sizes Sizes of the dimensions.
          */
-        void setSizes(uint32_t num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        void setSizes(uint32_t num, int* sizes)
+        {
+            BufferSizes = sizes;
+            BufferSizesQty = num;
+        }
 
         /**
          * @brief getSizes Get the returned file dimensions and corresponding sizes.
          * @param num Number of dimensions.
          * @param sizes Sizes of the dimensions.
          */
-        void getSizes(uint32_t *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        void getSizes(uint32_t *num, int** sizes)
+        {
+            *sizes = BufferSizes;
+            *num = BufferSizesQty;
+        }
 
         /**
          * @brief setBPS Set the returned file bit depth/sample size.
          * @param bps Bit depth / sample size.
          */
-        void setBPS(int bps) { BPS = bps; }
+        void setBPS(int bps)
+        {
+            BPS = bps;
+        }
 
         /**
          * @brief getBPS Get the returned file bit depth/sample size.
          * @return Bit depth / sample size.
          */
-        int getBPS() { return BPS; }
+        int getBPS()
+        {
+            return BPS;
+        }
 
         /**
          * @brief setIntegrationFileExtension Set the returned file extension.
@@ -173,7 +189,8 @@ class Interface
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[4] {};
 
-        Interface(INDI::DefaultDevice *dev, Type type = DSP_NONE, const char *name = "DSP_PLUGIN", const char *label = "DSP Plugin");
+        Interface(INDI::DefaultDevice *dev, Type type = DSP_NONE, const char *name = "DSP_PLUGIN",
+                  const char *label = "DSP Plugin");
         virtual ~Interface();
 
         const char *getDeviceName();

@@ -53,7 +53,8 @@ bool DeepSkyDadFP1::initProperties()
     IUFillSwitch(&HeaterModeS[Off], "OFF", "Off", ISS_OFF);
     IUFillSwitch(&HeaterModeS[On], "ON", "On", ISS_OFF);
     IUFillSwitch(&HeaterModeS[OnIfFlapOpenOrLedActive], "ON2", "On if flap open/LED active", ISS_OFF);
-    IUFillSwitchVector(&HeaterModeSP, HeaterModeS, 3, getDeviceName(), "Heater mode", "Heater mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&HeaterModeSP, HeaterModeS, 3, getDeviceName(), "Heater mode", "Heater mode", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Status
     IUFillText(&StatusT[0], "Cover", "Cover", nullptr);
@@ -78,7 +79,10 @@ bool DeepSkyDadFP1::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     return true;
@@ -98,7 +102,7 @@ bool DeepSkyDadFP1::updateProperties()
 
     if (isConnected())
     {
-		defineProperty(&ParkCapSP);
+        defineProperty(&ParkCapSP);
         defineProperty(&LightSP);
         defineProperty(&LightIntensityNP);
         defineProperty(&HeaterModeSP);
@@ -111,7 +115,7 @@ bool DeepSkyDadFP1::updateProperties()
     }
     else
     {
-		deleteProperty(ParkCapSP.name);
+        deleteProperty(ParkCapSP.name);
         deleteProperty(LightSP.name);
         deleteProperty(LightIntensityNP.name);
         deleteProperty(HeaterModeSP.name);
@@ -137,9 +141,9 @@ bool DeepSkyDadFP1::Handshake()
         LOG_ERROR("Device ping failed.");
         return false;
     }
-	
-	setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-	syncDriverInfo();
+
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+    syncDriverInfo();
 
     return true;
 }
@@ -274,7 +278,7 @@ IPState DeepSkyDadFP1::ParkCap()
 
 IPState DeepSkyDadFP1::UnParkCap()
 {
-	char response[FLAT_RES];
+    char response[FLAT_RES];
     if (!sendCommand("[STRG0]", response) || !sendCommand("[SMOV]", response))
         return IPS_ALERT;
 
@@ -311,26 +315,26 @@ bool DeepSkyDadFP1::getStatus()
 {
     char response[FLAT_RES];
 
-	int motorStatus;
+    int motorStatus;
     int lightStatus;
     int coverStatus;
     int heaterTemperature;
     int heaterMode;
-	
-	if (!sendCommand("[GMOV]", response))
-		return false;
-	else
-		sscanf(response, "(%d)", &motorStatus);
-	
-	if (!sendCommand("[GLON]", response))
-		return false;
-	else
-		sscanf(response, "(%d)", &lightStatus);
-	
-	if (!sendCommand("[GPOS]", response))
-		return false;
-	else
-		sscanf(response, "(%d)", &coverStatus);
+
+    if (!sendCommand("[GMOV]", response))
+        return false;
+    else
+        sscanf(response, "(%d)", &motorStatus);
+
+    if (!sendCommand("[GLON]", response))
+        return false;
+    else
+        sscanf(response, "(%d)", &lightStatus);
+
+    if (!sendCommand("[GPOS]", response))
+        return false;
+    else
+        sscanf(response, "(%d)", &coverStatus);
 
     if (!sendCommand("[GHTT]", response))
         return false;
@@ -347,20 +351,29 @@ bool DeepSkyDadFP1::getStatus()
 
     if (coverStatus != prevCoverStatus)
     {
-        if(motorStatus == 1) {
-            if(coverStatus == 0) {
+        if(motorStatus == 1)
+        {
+            if(coverStatus == 0)
+            {
                 IUSaveText(&StatusT[0], "Open");
-            } else if(coverStatus == 270) {
+            }
+            else if(coverStatus == 270)
+            {
                 IUSaveText(&StatusT[0], "Closed");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&StatusT[0], "Not open/closed");
             }
-        } else {
+        }
+        else
+        {
             prevCoverStatus = coverStatus;
 
             statusUpdated = true;
 
-            if(coverStatus == 0) {
+            if(coverStatus == 0)
+            {
                 IUSaveText(&StatusT[0], "Open");
                 if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
                 {
@@ -371,7 +384,9 @@ bool DeepSkyDadFP1::getStatus()
                     LOG_INFO("Cover open.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
-            } else if(coverStatus == 270) {
+            }
+            else if(coverStatus == 270)
+            {
                 IUSaveText(&StatusT[0], "Closed");
                 if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
                 {
@@ -382,13 +397,16 @@ bool DeepSkyDadFP1::getStatus()
                     LOG_INFO("Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
-            } else {
+            }
+            else
+            {
                 IUSaveText(&StatusT[0], "Not open/closed");
             }
         }
     }
 
-    if(motorStatus == 1) {
+    if(motorStatus == 1)
+    {
         IUSaveText(&StatusT[0], "Moving");
     }
 
@@ -408,7 +426,7 @@ bool DeepSkyDadFP1::getStatus()
                 break;
 
             case 1:
-            IUSaveText(&StatusT[1], "On");
+                IUSaveText(&StatusT[1], "On");
                 LightS[0].s = ISS_ON;
                 LightS[1].s = ISS_OFF;
                 IDSetSwitch(&LightSP, nullptr);
@@ -438,25 +456,35 @@ bool DeepSkyDadFP1::getStatus()
         IDSetText(&StatusTP, nullptr);
 
     int heaterConnected = heaterTemperature > -40;
-    if(heaterConnected != prevHeaterConnected) {
+    if(heaterConnected != prevHeaterConnected)
+    {
         prevHeaterConnected = heaterConnected;
-        if(heaterConnected == 1) {
+        if(heaterConnected == 1)
+        {
             IUSaveText(&StatusT[3], "Connected");
             HeaterModeSP.s   = IPS_OK;
-        } else {
+        }
+        else
+        {
             HeaterModeSP.s   = IPS_IDLE;
             IUSaveText(&StatusT[3], "Disconnected");
         }
     }
 
-    if(heaterMode != prevHeaterMode) {
+    if(heaterMode != prevHeaterMode)
+    {
         prevHeaterMode = heaterMode;
         IUResetSwitch(&HeaterModeSP);
-        if(heaterMode == 0) {
-           HeaterModeS[0].s = ISS_ON;
-        } else if(heaterMode == 1) {
+        if(heaterMode == 0)
+        {
+            HeaterModeS[0].s = ISS_ON;
+        }
+        else if(heaterMode == 1)
+        {
             HeaterModeS[1].s = ISS_ON;
-        } else if(heaterMode == 2) {
+        }
+        else if(heaterMode == 2)
+        {
             HeaterModeS[2].s = ISS_ON;
         }
         IDSetSwitch(&HeaterModeSP, nullptr);
@@ -508,7 +536,7 @@ bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
 {
     char command[FLAT_CMD] = {0};
     char response[FLAT_RES] = {0};
-	snprintf(command, FLAT_CMD, "[SLBR%04d]", value);
+    snprintf(command, FLAT_CMD, "[SLBR%04d]", value);
 
     if (!sendCommand(command, response))
         return false;

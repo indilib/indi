@@ -71,8 +71,10 @@ void IUUserIODefBLOBVA(const userio *io, void *user, const struct _IBLOBVectorPr
 
 // Setup
 void IUUserIOSetTextVA(const userio *io, void *user, const struct _ITextVectorProperty *tvp, const char *fmt, va_list ap);
-void IUUserIOSetNumberVA(const userio *io, void *user, const struct _INumberVectorProperty *nvp, const char *fmt, va_list ap);
-void IUUserIOSetSwitchVA(const userio *io, void *user, const struct _ISwitchVectorProperty *svp, const char *fmt, va_list ap);
+void IUUserIOSetNumberVA(const userio *io, void *user, const struct _INumberVectorProperty *nvp, const char *fmt,
+                         va_list ap);
+void IUUserIOSetSwitchVA(const userio *io, void *user, const struct _ISwitchVectorProperty *svp, const char *fmt,
+                         va_list ap);
 void IUUserIOSetLightVA(const userio *io, void *user, const struct _ILightVectorProperty *lvp, const char *fmt, va_list ap);
 void IUUserIOSetBLOBVA(const userio *io, void *user, const struct _IBLOBVectorProperty *bvp, const char *fmt, va_list ap);
 

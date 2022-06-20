@@ -28,7 +28,7 @@
 
 class PegasusScopsOAG : public INDI::Focuser
 {
-       public:
+    public:
         PegasusScopsOAG();
         virtual ~PegasusScopsOAG() override = default;
 
@@ -62,7 +62,7 @@ class PegasusScopsOAG : public INDI::Focuser
         // LED
         ISwitch LEDS[2];
         ISwitchVectorProperty LEDSP;
-        enum { LED_OFF, LED_ON };       
+        enum { LED_OFF, LED_ON };
 
         // Firmware Version
         IText FirmwareVersionT[1] {};

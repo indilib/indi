@@ -26,61 +26,61 @@ namespace INDI
 {
 class FPSMeter
 {
-public:
-    FPSMeter(double timeWindow = 1000);
+    public:
+        FPSMeter(double timeWindow = 1000);
 
-public:
-    /**
-     * @brief Reset all frame information
-     */
-    void reset();
+    public:
+        /**
+         * @brief Reset all frame information
+         */
+        void reset();
 
-    /**
-     * @brief When you get a frame, call the function to count
-     * @return returns true if the time window has been reached
-     */
-    bool newFrame();
+        /**
+         * @brief When you get a frame, call the function to count
+         * @return returns true if the time window has been reached
+         */
+        bool newFrame();
 
-    /**
-     * @brief Time window setup
-     * @param timeWindow Time window in milliseconds over which the frames are counted
-     */
-    void setTimeWindow(double timeWindow);
+        /**
+         * @brief Time window setup
+         * @param timeWindow Time window in milliseconds over which the frames are counted
+         */
+        void setTimeWindow(double timeWindow);
 
-public:
-    /**
-     * @brief Number of frames per second counted in the time window
-     */
-    double framesPerSecond() const;
-    /**
-     * @brief Time in milliseconds between last frames
-     */
-    double deltaTime() const;
+    public:
+        /**
+         * @brief Number of frames per second counted in the time window
+         */
+        double framesPerSecond() const;
+        /**
+         * @brief Time in milliseconds between last frames
+         */
+        double deltaTime() const;
 
-    /**
-     * @brief Total frames
-     * @return Number of frames counted
-     */
-    uint64_t totalFrames() const;
+        /**
+         * @brief Total frames
+         * @return Number of frames counted
+         */
+        uint64_t totalFrames() const;
 
-    /**
-     * @brief Total time
-     * @return Total time of counted frames
-     */
-    double totalTime() const;
+        /**
+         * @brief Total time
+         * @return Total time of counted frames
+         */
+        double totalTime() const;
 
-private:
-    uint64_t mFramesPerElapsedTime = 0;
-    double mElapsedTime = 0;
-    double mTimeWindow = 1000;
+    private:
+        uint64_t mFramesPerElapsedTime = 0;
+        double mElapsedTime = 0;
+        double mTimeWindow = 1000;
 
-    std::chrono::steady_clock::time_point mFrameTime1;
-    std::chrono::steady_clock::time_point mFrameTime2;
-    
-    double mFramesPerSecond = 0;
+        std::chrono::steady_clock::time_point mFrameTime1;
+        std::chrono::steady_clock::time_point mFrameTime2;
 
-    double mTotalTime = 0;
-    uint64_t mTotalFrames = 0;
+        double mFramesPerSecond = 0;
+
+        double mTotalTime = 0;
+        uint64_t mTotalFrames = 0;
 
 };
 }

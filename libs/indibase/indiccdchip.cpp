@@ -28,12 +28,14 @@ namespace INDI
 CCDChip::CCDChip()
 {
     strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
+    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
 }
 
 CCDChip::~CCDChip()
 {
     delete [] RawFrame;
     delete[] BinFrame;
+    IDSharedBlobFree(m_FITSMemoryBlock);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -338,29 +340,29 @@ void CCDChip::binBayerFrame()
         {
             uint32_t BinFrameOffset;
             uint32_t val;
-            uint32_t BinW=SubW/BinX;
-            uint8_t BinFactor=BinX*BinY;
-            uint32_t RawOffset=0;
+            uint32_t BinW = SubW / BinX;
+            uint8_t BinFactor = BinX * BinY;
+            uint32_t RawOffset = 0;
             uint32_t BinOffsetH;
 
             // for each raw frame row
             for (uint32_t i = 0; i < SubH; i++)
             {
                 // find the binned frame row
-                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
                 // for each raw column
                 for (uint32_t j = 0; j < SubW; j++)
                 {
                     // find the proper position in the binned frame
-                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    BinFrameOffset = BinOffsetH + ((j / BinX) & 0xFFFFFFFE) + (j & 0x00000001);
                     // get the existing value in the binned frame
-                    val=BinFrame[BinFrameOffset];
+                    val = BinFrame[BinFrameOffset];
                     // add the new value, averaged and caped
-                    val+=RawFrame[RawOffset]/BinFactor;
-                    if(val>UINT8_MAX)
-                        val=UINT8_MAX;
+                    val += RawFrame[RawOffset] / BinFactor;
+                    if(val > UINT8_MAX)
+                        val = UINT8_MAX;
                     // write back into the binned frame
-                    BinFrame[BinFrameOffset]=(uint8_t)val;
+                    BinFrame[BinFrameOffset] = (uint8_t)val;
                     // next binned frame pixel
                     RawOffset++;
                 }
@@ -378,21 +380,21 @@ void CCDChip::binBayerFrame()
 
             uint32_t BinFrameOffset;
             uint32_t val;
-            uint32_t BinW=SubW/BinX;
-            uint32_t RawOffset=0;
+            uint32_t BinW = SubW / BinX;
+            uint32_t RawOffset = 0;
             uint32_t BinOffsetH;
 
             for (uint32_t i = 0; i < SubH; i++)
             {
-                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
                 for (uint32_t j = 0; j < SubW; j++)
                 {
-                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
-                    val=BinFrame16[BinFrameOffset];
-                    val+=RawFrame16[RawOffset];
-                    if(val>UINT16_MAX)
-                        val=UINT16_MAX;
-                    BinFrame16[BinFrameOffset]=(uint16_t)val;
+                    BinFrameOffset = BinOffsetH + ((j / BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    val = BinFrame16[BinFrameOffset];
+                    val += RawFrame16[RawOffset];
+                    if(val > UINT16_MAX)
+                        val = UINT16_MAX;
+                    BinFrame16[BinFrameOffset] = (uint16_t)val;
                     RawOffset++;
                 }
             }

@@ -38,11 +38,11 @@ TEST(CORE_BASE64, Test_to64frombits)
     size_t res_len = 0;
 
     res_len = to64frombits_s(
-        reinterpret_cast<unsigned char *>(res_msg),
-        reinterpret_cast<const unsigned char *>(inp_msg),
-        inp_len,
-        out_len
-    );
+                  reinterpret_cast<unsigned char *>(res_msg),
+                  reinterpret_cast<const unsigned char *>(inp_msg),
+                  inp_len,
+                  out_len
+              );
     ASSERT_EQ(out_len, res_len);
     ASSERT_STREQ(out_msg, res_msg);
 }
@@ -92,8 +92,9 @@ TEST(CORE_BASE64, Test_from64tobits_fast_time)
 
     int i, iterations = 1000 * 1000 * 10;
 
-    for (i=0; i<iterations; i++) {
-       res_len = from64tobits_fast(res_msg, inp_msg, inp_len);
+    for (i = 0; i < iterations; i++)
+    {
+        res_len = from64tobits_fast(res_msg, inp_msg, inp_len);
     }
 }
 
@@ -110,8 +111,9 @@ TEST(CORE_BASE64, Test_from64tobits_fast_with_bug_time)
 
     int i, iterations = 1000 * 1000 * 10;
 
-    for (i=0; i<iterations; i++) {
-       res_len = from64tobits_fast_with_bug(res_msg, inp_msg, inp_len);
+    for (i = 0; i < iterations; i++)
+    {
+        res_len = from64tobits_fast_with_bug(res_msg, inp_msg, inp_len);
     }
 }
 

@@ -28,20 +28,20 @@
 
 class Vantage : public INDI::Weather
 {
-  public:
-    Vantage();
-    virtual ~Vantage() = default;
+    public:
+        Vantage();
+        virtual ~Vantage() = default;
 
-    //  Generic indi device entries
-    virtual bool Handshake() override;
-    virtual const char *getDefaultName() override;
+        //  Generic indi device entries
+        virtual bool Handshake() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
+        virtual bool initProperties() override;
 
-  protected:
-    virtual IPState updateWeather() override;
+    protected:
+        virtual IPState updateWeather() override;
 
-  private:
-    bool ack();
-    bool wakeup();
+    private:
+        bool ack();
+        bool wakeup();
 };
