@@ -45,6 +45,11 @@ public:
     void join();
 
     void waitProcessEnd(int expectedExitCode);
+
+    // Returns 0 on some system. Use checkOpenFdCount for actual verification
+    int getOpenFdCount();
+
+    void checkOpenFdCount(int expected, const std::string & msg);
 };
 
 
