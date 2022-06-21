@@ -3634,11 +3634,14 @@ void MsgQueue::setFds(int rFd, int wFd)
     {
         rio.stop();
         wio.stop();
-        ::close(rFd);
-        if (rFd != wFd)
+        ::close(this->rFd);
+        if (this->rFd != this->wFd)
         {
-            ::close(wFd);
+            ::close(this->wFd);
         }
+    } else if (this->wFd != -1) {
+        wio.stop();
+        ::close(this->wFd);
     }
 
     this->rFd = rFd;

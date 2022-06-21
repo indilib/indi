@@ -246,6 +246,18 @@ void CCDChip::binFrame()
 
     memset(BinFrame, 0, RawFrameSize);
 
+    // JM 2022.06.21: Must invalidate the Shared BLOB memory when binning.
+    // Otherwise, FITS file would be sent with full-sized m_FITSMemorySize
+    if (m_FITSFilePointer != nullptr)
+    {
+        IDSharedBlobFree(m_FITSMemoryBlock);
+        m_FITSMemorySize = 2880;
+        m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
+        int status = 0;
+        fits_close_file(m_FITSFilePointer, &status);
+        m_FITSFilePointer = nullptr;
+    }
+
     switch (getBPP())
     {
         case 8:
