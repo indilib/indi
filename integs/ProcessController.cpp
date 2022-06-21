@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <dirent.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,6 +20,45 @@ ProcessController::ProcessController() {
 ProcessController::~ProcessController() {
 }
 
+
+int ProcessController::getOpenFdCount() {
+    if (pid == -1) {
+        throw std::runtime_error(cmd + " is done - cannot check open fd count");
+    }
+#ifdef __linux__
+    std::string path = "/proc/" + std::to_string(pid) + "/fd";
+
+    int count = 0;
+    auto dirp = opendir(path.c_str());
+    if (dirp == nullptr) {
+        throw std::system_error(errno, std::generic_category(), "opendir error: " + path);
+    }
+
+    for(auto dp = readdir(dirp); dp != nullptr; dp = readdir(dirp)) {
+        std::string name = dp->d_name;
+        if (name.length() == 0 || name[0] == '.') {
+            continue;
+        }
+        count++;
+    }
+    closedir(dirp);
+    return count;
+#else
+    return 0;
+#endif
+}
+
+void ProcessController::checkOpenFdCount(int expected, const std::string & msg) {
+#ifdef __linux__
+    int count = getOpenFdCount();
+    if (count != expected) {
+        throw std::runtime_error(msg + " " + cmd + " open file count is " + std::to_string(count) + " - expected: " + std::to_string(expected));
+    }
+#else
+    (void)expected;
+    (void)msg;
+#endif
+}
 
 void ProcessController::start(const std::string & path, const std::vector<std::string>  & args)
 {

@@ -140,6 +140,53 @@ void connectFakeDev1Client(IndiServerController &, DriverMock &fakeDriver, IndiC
     indiClient.cnx.expectXml("</defBLOBVector>");
 }
 
+TEST(IndiserverSingleDriver, DontLeakFds)
+{
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+
+    startFakeDev1(indiServer, fakeDriver);
+
+    IndiClientMock indiClient;
+
+    fakeDriver.ping();
+    int fdCountIdle = indiServer.getOpenFdCount();
+
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle + 1, "First unix connection");
+    indiClient.close();
+
+    // Make sur the server processed the close as well.
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle, "First unix connection released");
+
+    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle + 1, "Second unix connection");
+    indiClient.close();
+
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle, "Second unix connection released");
+
+    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle + 1, "First tcp connection");
+    indiClient.close();
+
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle, "First tcp connection released");
+
+    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle + 1, "Second tcp connection");
+    indiClient.close();
+
+    fakeDriver.ping();
+    indiServer.checkOpenFdCount(fdCountIdle, "First tcp connection released");
+}
+
+
 TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient)
 {
     DriverMock fakeDriver;
