@@ -2260,7 +2260,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
 
-            fits_flush_file(fptr, &status);
+            //fits_flush_file(fptr, &status);
 
             bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
                                  saveImage);

@@ -454,7 +454,7 @@ class CCDChip
         // Image extension type (e.g. jpg)
         char ImageExtention[MAXINDIBLOBFMT];
         void * m_FITSMemoryBlock {nullptr};
-        size_t m_FITSMemorySize {100000};
+        size_t m_FITSMemorySize {2880};
         fitsfile * m_FITSFilePointer {nullptr};
 
         /////////////////////////////////////////////////////////////////////////////////////////
