@@ -53,6 +53,7 @@ Horizon check during slewing functions :ho# and :hq#
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
+#include <regex>
 
 // PEC Recording values
 enum APPECRecordingState
@@ -406,31 +407,26 @@ bool LX200AstroPhysicsV2::getPECState(const char *statusString)
     return true;
 }
 
+// The version string should be formatted as VCP4-$MAJOR-$MINOR.
+// Could be VCP5 as well. For instance: VCP4-P02-12
 void LX200AstroPhysicsV2::setMajorMinorVersions(char *version)
 {
     *majorVersion = 0;
     *minorVersion = 0;
 
-    char *start1 = strstr(version, "-");
-    if (start1)
-    {
-        char *end1 = strstr(start1 + 1, "-");
-        if (end1)
-        {
-            size_t length1 = (end1 - start1) - 1;
-            if (length1 < sizeof(majorVersion))
-            {
-                strncpy(majorVersion, start1 + 1, sizeof(majorVersion));
-                majorVersion[length1] = 0;
+    const std::string v = version;
+    std::regex rgx(".*-(\\w+)-(\\w+)");
+    std::smatch match;
 
-                char *start2 = end1 + 1;
-                if (*start2 != '\0')
-                {
-                    if (strlen(start2) < sizeof(minorVersion))
-                        strncpy(minorVersion, start2, sizeof(minorVersion));
-                }
-            }
-        }
+    if (std::regex_search(v.begin(), v.end(), match, rgx))
+    {
+      std::string major = match.str(1);
+      std::string minor = match.str(2);
+
+      if (major.size() < sizeof(majorVersion)-1)
+        strncpy(majorVersion, major.c_str(), sizeof(majorVersion));
+      if (minor.size() < sizeof(minorVersion)-1)
+        strncpy(minorVersion, minor.c_str(), sizeof(minorVersion));
     }
 }
 
