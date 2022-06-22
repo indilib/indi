@@ -1987,7 +1987,8 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     mp->queuingDone();
 }
 
-void DvrInfo::closeWritePart() {
+void DvrInfo::closeWritePart()
+{
     // Don't want any half-dead drivers
     close();
 }
@@ -3189,7 +3190,7 @@ bool Msg::fetchBlobs(std::list<int> &incomingSharedBuffers)
             }
 
             queueSize += blobSize;
-            log("Found one fd !\n");
+            //log("Found one fd !\n");
             int fd = *incomingSharedBuffers.begin();
             incomingSharedBuffers.pop_front();
 
@@ -3601,8 +3602,10 @@ MsgQueue::~MsgQueue()
     }
 }
 
-void MsgQueue::closeWritePart() {
-    if (wFd == -1) {
+void MsgQueue::closeWritePart()
+{
+    if (wFd == -1)
+    {
         // Already closed
         return;
     }
@@ -3613,15 +3616,21 @@ void MsgQueue::closeWritePart() {
     // Clear the queue and stop the io slot
     clearMsgQueue();
 
-    if (oldWFd == rFd) {
-        if (shutdown(oldWFd, SHUT_WR) == -1) {
-            if (errno != ENOTCONN) {
+    if (oldWFd == rFd)
+    {
+        if (shutdown(oldWFd, SHUT_WR) == -1)
+        {
+            if (errno != ENOTCONN)
+            {
                 log(fmt("socket shutdown failed: %s\n", strerror(errno)));
                 close();
             }
         }
-    } else {
-        if (::close(oldWFd) == -1) {
+    }
+    else
+    {
+        if (::close(oldWFd) == -1)
+        {
             log(fmt("socket close failed: %s\n", strerror(errno)));
             close();
         }
@@ -3639,7 +3648,9 @@ void MsgQueue::setFds(int rFd, int wFd)
         {
             ::close(this->wFd);
         }
-    } else if (this->wFd != -1) {
+    }
+    else if (this->wFd != -1)
+    {
         wio.stop();
         ::close(this->wFd);
     }
@@ -3681,7 +3692,8 @@ void MsgQueue::consumeHeadMsg()
 void MsgQueue::pushMsg(Msg * mp)
 {
     // Don't write messages to client that have been disconnected
-    if (wFd == -1) {
+    if (wFd == -1)
+    {
         return;
     }
 
