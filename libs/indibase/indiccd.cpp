@@ -2222,13 +2222,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             std::unique_lock<std::mutex> guard(ccdBufferLock);
 
-            //  Now we have to send fits format data to the client
-
-            // Reuse memory if possible
-            fits_create_memfile(targetChip->fitsFilePointer(), targetChip->fitsMemoryBlockPointer(),
-                                targetChip->fitsMemorySizePointer(), 2880, IDSharedBlobRealloc, &status);
-
-            if (status)
+            //  Initialize FITS file.
+            if (targetChip->openFITSFile(status) == false)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
@@ -2265,7 +2260,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
                                  saveImage);
 
-            fits_close_file(fptr, &status);
+            targetChip->closeFITSFile();
 
             guard.unlock();
 
