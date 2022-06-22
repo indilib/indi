@@ -28,7 +28,6 @@ namespace INDI
 CCDChip::CCDChip()
 {
     strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
-    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
 }
 
 CCDChip::~CCDChip()
@@ -36,6 +35,31 @@ CCDChip::~CCDChip()
     delete [] RawFrame;
     delete[] BinFrame;
     IDSharedBlobFree(m_FITSMemoryBlock);
+}
+
+bool CCDChip::openFITSFile(int &status)
+{
+    IDSharedBlobFree(m_FITSMemoryBlock);
+    m_FITSMemorySize = 2880;
+    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
+    if (m_FITSMemoryBlock == nullptr)
+    {
+        IDLog("Failed to allocate memory for FITS file.");
+        status = MEMORY_ALLOCATION;
+        return false;
+    }
+
+    fits_create_memfile(&m_FITSFilePointer, &m_FITSMemoryBlock, &m_FITSMemorySize, 2880, IDSharedBlobRealloc, &status);
+
+    return (status == 0);
+}
+
+bool CCDChip::closeFITSFile()
+{
+    int status = 0;
+    fits_close_file(m_FITSFilePointer, &status);
+    m_FITSFilePointer = nullptr;
+    return (status == 0);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -245,18 +269,6 @@ void CCDChip::binFrame()
         BinFrame = new uint8_t[RawFrameSize];
 
     memset(BinFrame, 0, RawFrameSize);
-
-    // JM 2022.06.21: Must invalidate the Shared BLOB memory when binning.
-    // Otherwise, FITS file would be sent with full-sized m_FITSMemorySize
-    if (m_FITSFilePointer != nullptr)
-    {
-        IDSharedBlobFree(m_FITSMemoryBlock);
-        m_FITSMemorySize = 2880;
-        m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
-        int status = 0;
-        fits_close_file(m_FITSFilePointer, &status);
-        m_FITSFilePointer = nullptr;
-    }
 
     switch (getBPP())
     {
