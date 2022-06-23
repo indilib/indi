@@ -428,6 +428,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
                                      mountModelN[2].value, mountModelN[3].value,
                                      mountModelN[4].value, mountModelN[5].value);
 
+            saveConfig(true, mountModelNP.name);
             return true;
         }
 
