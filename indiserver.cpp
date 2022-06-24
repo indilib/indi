@@ -3117,7 +3117,9 @@ void Msg::releaseSharedBuffers(const std::set<int> &keep)
         auto fd = sharedBuffers[i];
         if (fd != -1 && keep.find(fd) == keep.end())
         {
-            close(fd);
+            if (close(fd) == -1) {
+                perror("Releasing shared buffer");
+            }
             sharedBuffers[i] = -1;
         }
     }
@@ -3393,6 +3395,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
         std::vector<int> fds(cdata.size());
         std::vector<void*> blobs(cdata.size());
         std::vector<size_t> sizes(cdata.size());
+        std::vector<size_t> attachedSizes(cdata.size());
 
         // Attach all blobs
         for(std::size_t i = 0; i < cdata.size(); ++i)
@@ -3403,6 +3406,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
                 size_t dataSize;
                 blobs[i] = attachSharedBuffer(fds[i], dataSize);
+                attachedSizes[i] = dataSize;
 
                 // check dataSize is compatible with the blob element's size
                 // It's mandatory for attached blob to give their size
@@ -3459,7 +3463,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
 
                 // Dettach blobs ASAP
-                dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
+                dettachSharedBuffer(fds[i], blobs[i], attachedSizes[i]);
 
                 // requirements.sharedBuffers.erase(fds[i]);
             }
