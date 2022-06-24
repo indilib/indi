@@ -37,6 +37,9 @@
 #define TO_STRING(x) STRINGIFY_TOK(x)
 
 
+// Repeat blob operation for more stress
+#define BLOB_REPEAT_COUNT 5
+
 TEST(IndiserverSingleDriver, MissingDriver)
 {
     DriverMock fakeDriver;
@@ -323,16 +326,22 @@ void driverSendAttachedBlob(DriverMock &fakeDriver, ssize_t size)
 {
     fprintf(stderr, "Driver send new blob value - without actual attachment\n");
 
+    // Allocate more memory than asked (simulate kernel BSD kernel rounding up)
+    ssize_t physical_size=0x10000;
+    if (physical_size < size) {
+        physical_size = size;
+    }
+
     // The attachment must be done before EOF
     SharedBuffer fd;
-    fd.allocate(size);
+    fd.allocate(physical_size);
 
-    char * buffer = (char*)malloc(size);
-    for(auto i = 0; i < size; ++i)
+    char * buffer = (char*)malloc(physical_size);
+    for(auto i = 0; i < physical_size; ++i)
     {
         buffer[i] = {(char)('0' + (i % 10))};
     }
-    fd.write(buffer, 0, size);
+    fd.write(buffer, 0, physical_size);
     free(buffer);
 
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
@@ -360,24 +369,27 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient)
     fprintf(stderr, "Client ask blobs\n");
     indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
     // This ping ensures enableBLOB is handled before the blob is received
-    indiClient.ping();
+
+    for(int i = 0; i < BLOB_REPEAT_COUNT; ++i) {
+        indiClient.ping();
 
 
-    ssize_t size = 32;
-    driverSendAttachedBlob(fakeDriver, size);
+        ssize_t size = 32;
+        driverSendAttachedBlob(fakeDriver, size);
 
-    // Now receive on client side
-    fprintf(stderr, "Client receive blob\n");
-    indiClient.cnx.allowBufferReceive(true);
-    indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits' attached='true'/>");
-    indiClient.cnx.expectXml("</setBLOBVector>");
+        // Now receive on client side
+        fprintf(stderr, "Client receive blob\n");
+        indiClient.cnx.allowBufferReceive(true);
+        indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+        indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits' attached='true'/>");
+        indiClient.cnx.expectXml("</setBLOBVector>");
 
-    SharedBuffer receivedFd;
-    indiClient.cnx.expectBuffer(receivedFd);
-    indiClient.cnx.allowBufferReceive(false);
+        SharedBuffer receivedFd;
+        indiClient.cnx.expectBuffer(receivedFd);
+        indiClient.cnx.allowBufferReceive(false);
 
-    EXPECT_GE( receivedFd.getSize(), size);
+        EXPECT_GE( receivedFd.getSize(), size);
+    }
 
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped
@@ -399,20 +411,22 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient)
 
     fprintf(stderr, "Client ask blobs\n");
     indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
-    indiClient.ping();
 
-    ssize_t size = 32;
-    driverSendAttachedBlob(fakeDriver, size);
+    for(int i = 0; i < BLOB_REPEAT_COUNT; ++i) {
+        indiClient.ping();
 
-    // Now receive on client side
-    fprintf(stderr, "Client receive blob\n");
-    indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>");
-    // FIXME: get this from size
-    indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
-    indiClient.cnx.expectXml("</oneBLOB>");
-    indiClient.cnx.expectXml("</setBLOBVector>");
+        ssize_t size = 32;
+        driverSendAttachedBlob(fakeDriver, size);
 
+        // Now receive on client side
+        fprintf(stderr, "Client receive blob\n");
+        indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+        indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>");
+        // FIXME: get this from size
+        indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
+        indiClient.cnx.expectXml("</oneBLOB>");
+        indiClient.cnx.expectXml("</setBLOBVector>");
+    }
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
