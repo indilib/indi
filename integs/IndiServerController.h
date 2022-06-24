@@ -33,7 +33,12 @@ class IndiServerController : public ProcessController
 {
 
     public:
-        void start(const std::vector<std::string> args);
+        void start(const std::vector<std::string> & args);
+
+        void startDriver(const std::string & driver);
+
+        std::string getUnixSocketPath() const;
+        int getTcpPort() const;
 };
 
 

@@ -22,6 +22,32 @@
 #include "utils.h"
 #include "IndiServerController.h"
 
-void IndiServerController::start(const std::vector<std::string> args) {
+
+#define TEST_TCP_PORT 17624
+#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
+#define STRINGIFY_TOK(x) #x
+#define TO_STRING(x) STRINGIFY_TOK(x)
+
+void IndiServerController::start(const std::vector<std::string> & args) {
     ProcessController::start("../indiserver", args);
 }
+
+void IndiServerController::startDriver(const std::string & path) {
+    std::vector<std::string> args = { "-p", TO_STRING(TEST_TCP_PORT), "-r", "0", "-vvv" };
+#ifdef ENABLE_INDI_SHARED_MEMORY
+    args.push_back("-u");
+    args.push_back(TEST_UNIX_SOCKET);
+#endif
+    args.push_back(path);
+
+    start(args);
+}
+
+std::string IndiServerController::getUnixSocketPath() const {
+    return TEST_UNIX_SOCKET;
+}
+
+int IndiServerController::getTcpPort() const {
+  return TEST_TCP_PORT;
+}
+
