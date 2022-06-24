@@ -39,7 +39,6 @@ CCDChip::~CCDChip()
 
 bool CCDChip::openFITSFile(int &status)
 {
-    IDSharedBlobFree(m_FITSMemoryBlock);
     m_FITSMemorySize = 2880;
     m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
     if (m_FITSMemoryBlock == nullptr)
@@ -59,6 +58,8 @@ bool CCDChip::closeFITSFile()
     int status = 0;
     fits_close_file(m_FITSFilePointer, &status);
     m_FITSFilePointer = nullptr;
+    IDSharedBlobFree(m_FITSMemoryBlock);
+    m_FITSMemoryBlock = nullptr;
     return (status == 0);
 }
 
