@@ -31,11 +31,6 @@
 #include "IndiServerController.h"
 #include "IndiClientMock.h"
 
-#define TEST_TCP_PORT 17624
-#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define STRINGIFY_TOK(x) #x
-#define TO_STRING(x) STRINGIFY_TOK(x)
-
 #define PROP_COUNT 5
 
 static void driverSendsProps(DriverMock & fakeDriver) {
@@ -67,7 +62,7 @@ static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDr
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -99,7 +94,7 @@ TEST(TestClientQueries, ServerForwardRequest) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -127,7 +122,7 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 

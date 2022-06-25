@@ -23,6 +23,8 @@
 
 #include "ConnectionMock.h"
 
+class IndiServerController;
+
 /**
  * Interface to a mocked connection to indi server
  */
@@ -33,6 +35,11 @@ class IndiClientMock
         ConnectionMock cnx;
         IndiClientMock();
         virtual ~IndiClientMock();
+
+        void connect(const IndiServerController & server);
+        void connectUnix(const IndiServerController & server);
+        void connectTcp(const IndiServerController & server);
+
         void connectUnix(const std::string &path = "/tmp/indiserver");
         void connectTcp(const std::string &host = "127.0.0.1", int port = 7624);
         void associate(int fd);

@@ -834,6 +834,8 @@ class TcpServer
         void listen();
 };
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
 class UnixServer
 {
         std::string path;
@@ -851,8 +853,13 @@ class UnixServer
          * exit on failure
          */
         void listen();
+
+        static std::string unixSocketPath;
 };
 
+std::string UnixServer::unixSocketPath = INDIUNIXSOCK;
+
+#endif
 
 static void log(const std::string &log);
 /* Turn a printf format into std::string */
@@ -862,7 +869,6 @@ static char *indi_tstamp(char *s);
 
 static const char *me;                                 /* our name */
 static int port = INDIPORT;                            /* public INDI port */
-static std::string unixSocketPath = INDIUNIXSOCK;
 static int verbose;                                    /* chattiness */
 static char *ldir;                                     /* where to log driver messages */
 static unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
@@ -949,15 +955,17 @@ int main(int ac, char *av[])
                     maxstreamsiz = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
+#ifdef ENABLE_INDI_SHARED_MEMORY
                 case 'u':
                     if (ac < 2)
                     {
-                        fprintf(stderr, "-f requires local socket path\n");
+                        fprintf(stderr, "-u requires local socket path\n");
                         usage();
                     }
-                    unixSocketPath = *++av;
+                    UnixServer::unixSocketPath = *++av;
                     ac--;
                     break;
+#endif // ENABLE_INDI_SHARED_MEMORY
                 case 'f':
                     if (ac < 2)
                     {
@@ -1014,9 +1022,10 @@ int main(int ac, char *av[])
     /* announce we are online */
     (new TcpServer(port))->listen();
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
     /* create a new unix server */
-    (new UnixServer(unixSocketPath))->listen();
-
+    (new UnixServer(UnixServer::unixSocketPath))->listen();
+#endif
     /* Load up FIFO, if available */
     if (fifo) fifo->listen();
 
@@ -1054,7 +1063,9 @@ static void usage(void)
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
             DEFMAXSSIZ);
+#ifdef ENABLE_INDI_SHARED_MEMORY
     fprintf(stderr, " -u path  : Path for the local connection socket (abstract), default %s\n", INDIUNIXSOCK);
+#endif
     fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
     fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
@@ -1356,6 +1367,8 @@ int RemoteDvrInfo::openINDIServer()
     return (sockfd);
 }
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
 UnixServer::UnixServer(const std::string &path): path(path)
 {
     sfdev.set<UnixServer, &UnixServer::ioCb>(this);
@@ -1499,6 +1512,8 @@ void UnixServer::accept()
     fflush(stderr);
 #endif
 }
+
+#endif // ENABLE_INDI_SHARED_MEMORY
 
 TcpServer::TcpServer(int port): port(port)
 {

@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "IndiClientMock.h"
+#include "IndiServerController.h"
 #include "utils.h"
 
 IndiClientMock::IndiClientMock()
@@ -36,6 +37,25 @@ void IndiClientMock::close()
 {
     if (fd != -1) ::close(fd);
     cnx.setFds(-1, -1);
+}
+
+void IndiClientMock::connect(const IndiServerController & server)
+{
+#ifdef ENABLE_INDI_SHARED_MEMORY
+    connectUnix(server);
+#else
+    connectTcp(server);
+#endif
+}
+
+void IndiClientMock::connectUnix(const IndiServerController & server)
+{
+    connectUnix(server.getUnixSocketPath());
+}
+
+void IndiClientMock::connectTcp(const IndiServerController & server)
+{
+    connectTcp("127.0.0.1", server.getTcpPort());
 }
 
 void IndiClientMock::connectUnix(const std::string &path)
