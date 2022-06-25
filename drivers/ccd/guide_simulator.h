@@ -81,7 +81,7 @@ class GuideSim : public INDI::CCD
         virtual IPState GuideWest(uint32_t) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
-        virtual void addFITSKeywords(INDI::CCDChip *targetChip) override;
+        virtual void addFITSKeywords(INDI::CCDChip *targetChip, INDI::CCDChip::FitsFile * targetFile) override;
         virtual void activeDevicesUpdated() override;
         virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;

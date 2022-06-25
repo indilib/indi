@@ -50,20 +50,6 @@ class CCDChip
         } CCD_INFO_INDEX;
 
         /**
-         * @brief openFITSFile Allocate memory buffer for internal FITS file structure and open
-         * @param FITS error code in case an error happens.
-         * an in-memory FITS file as a Shared BLOB.
-         * @return True if successful, false otherwise.
-         */
-        bool openFITSFile(uint32_t size, int &status);
-
-        /**
-         * @brief closeFITSFile Close the in-memory FITS File.
-         * @return True if successful, false otherwise.
-         */
-        bool closeFITSFile();
-
-        /**
          * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.
          * @return the horizontal resolution of the CCD Chip.
          */
@@ -406,20 +392,45 @@ class CCDChip
          */
         void binBayerFrame();
 
-        fitsfile **fitsFilePointer()
+        class FitsFile
         {
-            return &m_FITSFilePointer;
-        }
+            private:
+                void * m_FITSMemoryBlock {nullptr};
+                size_t m_FITSMemorySize {2880};
+                fitsfile * m_FITSFilePointer {nullptr};
 
-        size_t * fitsMemorySizePointer()
-        {
-            return &m_FITSMemorySize;
-        }
+            public:
+                FitsFile();
+                ~FitsFile();
 
-        void ** fitsMemoryBlockPointer()
-        {
-            return &m_FITSMemoryBlock;
-        }
+                fitsfile *fitsFile()
+                {
+                    return m_FITSFilePointer;
+                }
+
+                size_t fitsMemorySize()
+                {
+                    return m_FITSMemorySize;
+                }
+
+                void * fitsMemoryBlock()
+                {
+                    return m_FITSMemoryBlock;
+                }
+
+                /**
+                 * @brief open Allocate memory buffer for internal FITS file structure and open
+                 * @param FITS error code in case an error happens.
+                 * an in-memory FITS file as a Shared BLOB.
+                 * @return True if successful, false otherwise.
+                 */
+                bool open(size_t size, int &status);
+
+                /**
+                 * @brief close Close the in-memory FITS File.
+                 */
+                bool close();
+        };
 
     private:
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -467,9 +478,6 @@ class CCDChip
         timeval StartExposureTime;
         // Image extension type (e.g. jpg)
         char ImageExtention[MAXINDIBLOBFMT];
-        void * m_FITSMemoryBlock {nullptr};
-        size_t m_FITSMemorySize {2880};
-        fitsfile * m_FITSFilePointer {nullptr};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Chip Properties

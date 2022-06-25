@@ -1825,14 +1825,14 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-void CCD::addFITSKeywords(CCDChip * targetChip)
+void CCD::addFITSKeywords(CCDChip * targetChip, INDI::CCDChip::FitsFile * targetFile)
 {
     int status = 0;
     char dev_name[MAXINDINAME] = {0};
     double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
-    auto fptr = *targetChip->fitsFilePointer();
+    auto fptr = targetFile->fitsFile();
 
     AutoCNumeric locale;
     fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
@@ -2223,8 +2223,11 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             std::unique_lock<std::mutex> guard(ccdBufferLock);
 
             uint32_t size = 65536 + nelements * (targetChip->getBPP() / 8);
+
+            CCDChip::FitsFile fitsFile;
+
             //  Initialize FITS file.
-            if (targetChip->openFITSFile(size, status) == false)
+            if (fitsFile.open(size, status) == false)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
@@ -2232,38 +2235,34 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
 
-            auto fptr = *targetChip->fitsFilePointer();
-
-            fits_create_img(fptr, img_type, naxis, naxes, &status);
+            fits_create_img(fitsFile.fitsFile(), img_type, naxis, naxes, &status);
 
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
                 LOGF_ERROR("FITS Error: %s", error_status);
-                targetChip->closeFITSFile();
                 return false;
             }
 
-            addFITSKeywords(targetChip);
+            addFITSKeywords(targetChip, &fitsFile);
 
-            fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
+            fits_write_img(fitsFile.fitsFile(), byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
 
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
                 LOGF_ERROR("FITS Error: %s", error_status);
-                targetChip->closeFITSFile();
                 return false;
             }
 
             //fits_flush_file(fptr, &status);
 
-            bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
+            bool rc = uploadFile(targetChip, fitsFile.fitsMemoryBlock(), fitsFile.fitsMemorySize(), sendImage,
                                  saveImage);
 
-            targetChip->closeFITSFile();
+            fitsFile.close();
 
             guard.unlock();
 

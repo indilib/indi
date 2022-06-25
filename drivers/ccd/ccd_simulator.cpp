@@ -1491,11 +1491,11 @@ void * CCDSim::streamVideo()
     return nullptr;
 }
 
-void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip)
+void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip, INDI::CCDChip::FitsFile * targetFile)
 {
-    INDI::CCD::addFITSKeywords(targetChip);
+    INDI::CCD::addFITSKeywords(targetChip, targetFile);
 
-    auto fptr = *targetChip->fitsFilePointer();
+    auto fptr = targetFile->fitsFile();
 
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);

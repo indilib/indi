@@ -505,7 +505,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip, INDI::CCDChip::FitsFile * targetFile);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);

@@ -25,20 +25,18 @@
 namespace INDI
 {
 
-CCDChip::CCDChip()
+CCDChip::FitsFile::FitsFile()
 {
-    strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
 }
 
-CCDChip::~CCDChip()
+CCDChip::FitsFile::~FitsFile()
 {
-    delete [] RawFrame;
-    delete[] BinFrame;
-    IDSharedBlobFree(m_FITSMemoryBlock);
+    close();
 }
 
-bool CCDChip::openFITSFile(uint32_t size, int &status)
+bool CCDChip::FitsFile::open(size_t size, int & status)
 {
+    close();
     m_FITSMemorySize = size;
     m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
     if (m_FITSMemoryBlock == nullptr)
@@ -53,14 +51,26 @@ bool CCDChip::openFITSFile(uint32_t size, int &status)
     return (status == 0);
 }
 
-bool CCDChip::closeFITSFile()
-{
+bool CCDChip::FitsFile::close() {
     int status = 0;
     fits_close_file(m_FITSFilePointer, &status);
-    m_FITSFilePointer = nullptr;
+
     IDSharedBlobFree(m_FITSMemoryBlock);
     m_FITSMemoryBlock = nullptr;
+    m_FITSMemorySize = 0;
+
     return (status == 0);
+}
+
+CCDChip::CCDChip()
+{
+    strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
+}
+
+CCDChip::~CCDChip()
+{
+    delete [] RawFrame;
+    delete[] BinFrame;
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)

@@ -1302,10 +1302,10 @@ void * GuideSim::streamVideo()
     return nullptr;
 }
 
-void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip)
+void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip, INDI::CCDChip::FitsFile * targetFile)
 {
-    INDI::CCD::addFITSKeywords(targetChip);
+    INDI::CCD::addFITSKeywords(targetChip, targetFile);
 
     int status = 0;
-    fits_update_key_dbl(*targetChip->fitsFilePointer(), "Gain", GainN[0].value, 3, "Gain", &status);
+    fits_update_key_dbl(targetFile->fitsFile(), "Gain", GainN[0].value, 3, "Gain", &status);
 }
