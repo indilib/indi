@@ -55,7 +55,7 @@ class CCDChip
          * an in-memory FITS file as a Shared BLOB.
          * @return True if successful, false otherwise.
          */
-        bool openFITSFile(int &status);
+        bool openFITSFile(uint32_t size, int &status);
 
         /**
          * @brief closeFITSFile Close the in-memory FITS File.

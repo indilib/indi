@@ -49,9 +49,13 @@
 
 #include <assert.h>
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
 // Load shm_open_anon but force it to have static symbol only
 static int shm_open_anon(void);
 #include "shm_open_anon.c"
+
+#endif
 
 // A shared buffer will be allocated by chunk of at least 1M (must be ^ 2)
 #define BLOB_SIZE_UNIT 0x100000
@@ -81,6 +85,7 @@ static shared_buffer * sharedBufferFind(void * mapstart);
 
 
 void * IDSharedBlobAlloc(size_t size) {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb = (shared_buffer*)malloc(sizeof(shared_buffer));
     if (sb == NULL) goto ERROR;
 
@@ -108,6 +113,9 @@ ERROR:
         errno = e;
     }
     return NULL;
+#else
+    return malloc(size);
+#endif
 }
 
 void * IDSharedBlobAttach(int fd, size_t size) {
@@ -137,7 +145,7 @@ ERROR:
 void IDSharedBlobFree(void * ptr) {
     shared_buffer * sb = sharedBufferRemove(ptr);
     if (sb == NULL) {
-        // Error ?
+        // Not a memory attached to a blob
         free(ptr);
         return;
     }
@@ -155,7 +163,7 @@ void IDSharedBlobFree(void * ptr) {
 void IDSharedBlobDettach(void * ptr) {
     shared_buffer * sb = sharedBufferRemove(ptr);
     if (sb == NULL) {
-        // Error ?
+        // Not a memory attached to a blob
         free(ptr);
         return;
     }

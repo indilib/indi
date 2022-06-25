@@ -31,11 +31,8 @@
 #include "IndiServerController.h"
 #include "IndiClientMock.h"
 
-#define TEST_TCP_PORT 17624
-#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define STRINGIFY_TOK(x) #x
-#define TO_STRING(x) STRINGIFY_TOK(x)
-
+// Repeat blob operation for more stress
+#define BLOB_REPEAT_COUNT 5
 
 TEST(IndiserverSingleDriver, MissingDriver)
 {
@@ -47,7 +44,7 @@ TEST(IndiserverSingleDriver, MissingDriver)
     std::string fakeDriverPath = getTestExePath("fakedriver-not-existing");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     // Exit code 1 is expected when driver stopped
@@ -66,7 +63,7 @@ TEST(IndiserverSingleDriver, ReplyToPing)
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -77,7 +74,7 @@ TEST(IndiserverSingleDriver, ReplyToPing)
 
     // Establish a client & send ping
     IndiClientMock client;
-    client.connectUnix(TEST_UNIX_SOCKET);
+    client.connect(indiServer);
 
     // Send ping from driver
     fakeDriver.cnx.send("<pingRequest uid='1'/>\n");
@@ -108,7 +105,7 @@ void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -151,8 +148,8 @@ TEST(IndiserverSingleDriver, DontLeakFds)
 
     fakeDriver.ping();
     int fdCountIdle = indiServer.getOpenFdCount();
-
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+#ifdef ENABLE_INDI_SHARED_MEMORY
+    indiClient.connectUnix(indiServer.getUnixSocketPath());
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle + 1, "First unix connection");
     indiClient.close();
@@ -161,7 +158,7 @@ TEST(IndiserverSingleDriver, DontLeakFds)
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle, "First unix connection released");
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connectUnix(indiServer.getUnixSocketPath());
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle + 1, "Second unix connection");
     indiClient.close();
@@ -169,7 +166,9 @@ TEST(IndiserverSingleDriver, DontLeakFds)
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle, "Second unix connection released");
 
-    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
+#endif // ENABLE_INDI_SHARED_MEMORY
+
+    indiClient.connectTcp("127.0.0.1", indiServer.getTcpPort());
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle + 1, "First tcp connection");
     indiClient.close();
@@ -177,7 +176,7 @@ TEST(IndiserverSingleDriver, DontLeakFds)
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle, "First tcp connection released");
 
-    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
+    indiClient.connectTcp("127.0.0.1", indiServer.getTcpPort());
     fakeDriver.ping();
     indiServer.checkOpenFdCount(fdCountIdle + 1, "Second tcp connection");
     indiClient.close();
@@ -196,7 +195,7 @@ TEST(IndiserverSingleDriver, DontForwardUnaskedBlobDefToClient)
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -225,7 +224,7 @@ TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient)
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -250,7 +249,7 @@ TEST(IndiserverSingleDriver, DontForwardOtherBlobDefToClient)
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverSingleDriver, ForwardBlobValueToClient)
+TEST(IndiserverSingleDriver, DropMisbehavingDriver)
 {
     DriverMock fakeDriver;
     IndiServerController indiServer;
@@ -259,7 +258,77 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient)
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
+
+    connectFakeDev1Client(indiServer, fakeDriver, indiClient);
+
+    fprintf(stderr, "Client ask blobs\n");
+    indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
+    indiClient.ping();
+
+    fprintf(stderr, "Driver send new blob value - without actual attachment\n");
+    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='21' format='.fits' attached='true'/>\n");
+    fakeDriver.cnx.send("</setBLOBVector>\n");
+
+    indiServer.waitProcessEnd(1);
+}
+
+TEST(IndiserverSingleDriver, ForwardBase64BlobToIPClient)
+{
+    // This tests decoding of base64 by driver
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+
+    startFakeDev1(indiServer, fakeDriver);
+
+    IndiClientMock indiClient;
+
+    indiClient.connectTcp(indiServer);
+
+    connectFakeDev1Client(indiServer, fakeDriver, indiClient);
+
+    fprintf(stderr, "Client ask blobs\n");
+    indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
+    indiClient.ping();
+
+    fprintf(stderr, "Driver send new blob value\n");
+    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='20' format='.fits' enclen='29'>\n");
+    fakeDriver.cnx.send("MDEyMzQ1Njc4OTAxMjM0NTY3ODkK\n");
+    fakeDriver.cnx.send("</oneBLOB>\n");
+    fakeDriver.cnx.send("</setBLOBVector>\n");
+    fakeDriver.ping();
+
+    fprintf(stderr, "Client receive blob\n");
+    indiClient.cnx.allowBufferReceive(true);
+    indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+    indiClient.cnx.expectXml("<oneBLOB name='content' size='20' format='.fits' enclen='29'>");
+    indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkK");
+    indiClient.cnx.expectXml("</oneBLOB>\n");
+    indiClient.cnx.expectXml("</setBLOBVector>");
+
+    fakeDriver.terminateDriver();
+    // Exit code 1 is expected when driver stopped
+    indiServer.waitProcessEnd(1);
+}
+
+
+#define DUMMY_BLOB_SIZE 64
+
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
+TEST(IndiserverSingleDriver, ForwardBase64BlobToUnixClient)
+{
+    // This tests decoding of base64 by driver
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+
+    startFakeDev1(indiServer, fakeDriver);
+
+    IndiClientMock indiClient;
+
+    indiClient.connectUnix(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -292,47 +361,26 @@ TEST(IndiserverSingleDriver, ForwardBlobValueToClient)
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverAttachedBlob, DropMisbehavingDriver)
-{
-    DriverMock fakeDriver;
-    IndiServerController indiServer;
-
-    startFakeDev1(indiServer, fakeDriver);
-
-    IndiClientMock indiClient;
-
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
-
-    connectFakeDev1Client(indiServer, fakeDriver, indiClient);
-
-    fprintf(stderr, "Client ask blobs\n");
-    indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
-    indiClient.ping();
-
-    fprintf(stderr, "Driver send new blob value - without actual attachment\n");
-    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
-    fakeDriver.cnx.send("<oneBLOB name='content' size='21' format='.fits' attached='true'/>\n");
-    fakeDriver.cnx.send("</setBLOBVector>\n");
-
-    indiServer.waitProcessEnd(1);
-}
-
-#define DUMMY_BLOB_SIZE 64
-
 void driverSendAttachedBlob(DriverMock &fakeDriver, ssize_t size)
 {
     fprintf(stderr, "Driver send new blob value - without actual attachment\n");
 
+    // Allocate more memory than asked (simulate kernel BSD kernel rounding up)
+    ssize_t physical_size=0x10000;
+    if (physical_size < size) {
+        physical_size = size;
+    }
+
     // The attachment must be done before EOF
     SharedBuffer fd;
-    fd.allocate(size);
+    fd.allocate(physical_size);
 
-    char * buffer = (char*)malloc(size);
-    for(auto i = 0; i < size; ++i)
+    char * buffer = (char*)malloc(physical_size);
+    for(auto i = 0; i < physical_size; ++i)
     {
         buffer[i] = {(char)('0' + (i % 10))};
     }
-    fd.write(buffer, 0, size);
+    fd.write(buffer, 0, physical_size);
     free(buffer);
 
     fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
@@ -341,11 +389,21 @@ void driverSendAttachedBlob(DriverMock &fakeDriver, ssize_t size)
 
     fd.release();
 
+/*#else
+    fakeDriver.cnx.send("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>\n");
+    fakeDriver.cnx.send("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>\n");
+    fakeDriver.cnx.send("MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=\n");
+    fakeDriver.cnx.send("</oneBLOB>\n");
+    fakeDriver.cnx.send("</setBLOBVector>");
+#endif
+*/
+
     fakeDriver.ping();
 }
 
-TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient)
+TEST(IndiserverSingleDriver, ForwardAttachedBlobToUnixClient)
 {
+    // This tests attached blob pass through
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -353,39 +411,43 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToUnixClient)
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connectUnix(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
     fprintf(stderr, "Client ask blobs\n");
     indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
     // This ping ensures enableBLOB is handled before the blob is received
-    indiClient.ping();
+
+    for(int i = 0; i < BLOB_REPEAT_COUNT; ++i) {
+        indiClient.ping();
 
 
-    ssize_t size = 32;
-    driverSendAttachedBlob(fakeDriver, size);
+        ssize_t size = 32;
+        driverSendAttachedBlob(fakeDriver, size);
 
-    // Now receive on client side
-    fprintf(stderr, "Client receive blob\n");
-    indiClient.cnx.allowBufferReceive(true);
-    indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits' attached='true'/>");
-    indiClient.cnx.expectXml("</setBLOBVector>");
+        // Now receive on client side
+        fprintf(stderr, "Client receive blob\n");
+        indiClient.cnx.allowBufferReceive(true);
+        indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+        indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits' attached='true'/>");
+        indiClient.cnx.expectXml("</setBLOBVector>");
 
-    SharedBuffer receivedFd;
-    indiClient.cnx.expectBuffer(receivedFd);
-    indiClient.cnx.allowBufferReceive(false);
+        SharedBuffer receivedFd;
+        indiClient.cnx.expectBuffer(receivedFd);
+        indiClient.cnx.allowBufferReceive(false);
 
-    EXPECT_GE( receivedFd.getSize(), size);
+        EXPECT_GE( receivedFd.getSize(), size);
+    }
 
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
 }
 
-TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient)
+TEST(IndiserverSingleDriver, ForwardAttachedBlobToIPClient)
 {
+    // This tests base64 encoding by server
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -393,29 +455,31 @@ TEST(IndiserverAttachedBlob, ForwardAttachedBlobToIPClient)
 
     IndiClientMock indiClient;
 
-    indiClient.connectTcp("127.0.0.1", TEST_TCP_PORT);
+    indiClient.connectTcp(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
     fprintf(stderr, "Client ask blobs\n");
     indiClient.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
-    indiClient.ping();
 
-    ssize_t size = 32;
-    driverSendAttachedBlob(fakeDriver, size);
+    for(int i = 0; i < BLOB_REPEAT_COUNT; ++i) {
+        indiClient.ping();
 
-    // Now receive on client side
-    fprintf(stderr, "Client receive blob\n");
-    indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>");
-    // FIXME: get this from size
-    indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
-    indiClient.cnx.expectXml("</oneBLOB>");
-    indiClient.cnx.expectXml("</setBLOBVector>");
+        ssize_t size = 32;
+        driverSendAttachedBlob(fakeDriver, size);
 
+        // Now receive on client side
+        fprintf(stderr, "Client receive blob\n");
+        indiClient.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+        indiClient.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>");
+        // FIXME: get this from size
+        indiClient.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
+        indiClient.cnx.expectXml("</oneBLOB>");
+        indiClient.cnx.expectXml("</setBLOBVector>");
+    }
     fakeDriver.terminateDriver();
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
 }
 
-
+#endif
