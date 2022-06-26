@@ -48,7 +48,7 @@ void GammaLut16::apply(const uint16_t *source, size_t count, uint8_t *destinatio
 
 void GammaLut16::apply(const uint16_t *first, const uint16_t *last, uint8_t *destination) const
 {
-    const uint16_t *lookUpTable = mLookUpTable.data();
+    const uint8_t *lookUpTable = mLookUpTable.data();
 
     while (first != last)
         *destination++ = lookUpTable[*first++];
