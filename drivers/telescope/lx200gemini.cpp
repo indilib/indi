@@ -406,13 +406,11 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 	        {
   		    char valueString[16] = {0};
 		    setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
-	     	    LOG_INFO("PEC ON Pressed ");
 	        }
 	        if (!strcmp(names[i], PECStateS[PEC_OFF].name))
 	        {
   		    char valueString[16] = {0};
 		    setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
-	     	    LOG_INFO("PEC OFF Pressed ");
 	        }
 	    }
 	}
