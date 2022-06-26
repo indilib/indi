@@ -65,7 +65,7 @@ LX200Gemini::LX200Gemini()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC,
 			   4);
 }
 
@@ -146,9 +146,7 @@ bool LX200Gemini::initProperties()
     //PEC 
     IUFillSwitch(&PECControlS[PEC_START_TRAINING], "PEC_START_TRAINING", "Start Training", ISS_OFF);
     IUFillSwitch(&PECControlS[PEC_ABORT_TRAINING], "PEC_ABORT_TRAINING", "Abort Training", ISS_OFF);
-    IUFillSwitch(&PECControlS[PEC_REPLAY_ON], "PEC_REPLAY_ON", "Replay On", ISS_OFF);
-    IUFillSwitch(&PECControlS[PEC_REPLAY_OFF], "PEC_REPLAY_OFF", "Replay Off", ISS_ON);
-    IUFillSwitchVector(&PECControlSP, PECControlS, 4, getDeviceName(), "PEC_COMMANDS", "PEC Commands",
+    IUFillSwitchVector(&PECControlSP, PECControlS, 2, getDeviceName(), "PEC_COMMANDS", "PEC Commands",
                        MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillText(&PECStateT[PEC_STATUS_ACTIVE], "PEC_STATUS_ACTIVE", "PEC active", "");
@@ -198,8 +196,14 @@ void LX200Gemini::syncPec(){
 	    sscanf(value, "%u", &pec_status);
 	    if(pec_status & 1){ // PEC_ACTIVE
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+              setPECState(PEC_ON);
+	      PECStateSP.s         = IPS_OK;
+	      IDSetSwitch(&PECStateSP, nullptr);
 	    } else {
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+              setPECState(PEC_OFF);
+	      PECStateSP.s         = IPS_IDLE;
+	      IDSetSwitch(&PECStateSP, nullptr);
 	    }
     	    if(pec_status & 2){ // Freshly_Trained
 	      IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
@@ -242,37 +246,6 @@ bool LX200Gemini::updateProperties()
         char value[MAX_VALUE_LENGTH] = {0};
         defineProperty(&ParkSettingsSP);
 	
-        if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
-        {
-            sscanf(value, "%u", &speed);
-            ManualSlewingSpeedN[0].value = speed;
-            defineProperty(&ManualSlewingSpeedNP);
-        }
-        if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
-        {
-            sscanf(value, "%u", &speed);
-            GotoSlewingSpeedN[0].value = speed;
-            defineProperty(&GotoSlewingSpeedNP);
-        }
-        if (getGeminiProperty(MOVE_SPEED_ID, value))
-        {
-            sscanf(value, "%u", &speed);
-            MoveSpeedN[0].value = speed;
-            defineProperty(&MoveSpeedNP);
-        }
-        if (getGeminiProperty(GUIDING_SPEED_ID, value))
-        {
-            float guidingSpeed = 0.0;
-            sscanf(value, "%f", &guidingSpeed);
-            GuidingSpeedN[0].value = guidingSpeed;
-            defineProperty(&GuidingSpeedNP);
-        }
-        if (getGeminiProperty(CENTERING_SPEED_ID, value))
-        {
-            sscanf(value, "%u", &speed);
-            CenteringSpeedN[0].value = speed;
-            defineProperty(&CenteringSpeedNP);
-        }
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
   	    float max_value;
@@ -288,6 +261,7 @@ bool LX200Gemini::updateProperties()
 	    sscanf(value, "%u", &pec_counter);
 	    snprintf(valueString, 32, "%i", pec_counter);
 
+	    PECControlSP.s = IPS_OK;
 	    IUSaveText(&PECCounterT[0], valueString);
 	    defineProperty(&PECCounterTP);
 	}
@@ -329,6 +303,37 @@ bool LX200Gemini::updateProperties()
 	    }
 
 	    defineProperty(&PECStateTP);
+        }
+        if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
+        {
+            sscanf(value, "%u", &speed);
+            ManualSlewingSpeedN[0].value = speed;
+            defineProperty(&ManualSlewingSpeedNP);
+        }
+        if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
+        {
+            sscanf(value, "%u", &speed);
+            GotoSlewingSpeedN[0].value = speed;
+            defineProperty(&GotoSlewingSpeedNP);
+        }
+        if (getGeminiProperty(MOVE_SPEED_ID, value))
+        {
+            sscanf(value, "%u", &speed);
+            MoveSpeedN[0].value = speed;
+            defineProperty(&MoveSpeedNP);
+        }
+        if (getGeminiProperty(GUIDING_SPEED_ID, value))
+        {
+            float guidingSpeed = 0.0;
+            sscanf(value, "%f", &guidingSpeed);
+            GuidingSpeedN[0].value = guidingSpeed;
+            defineProperty(&GuidingSpeedNP);
+        }
+        if (getGeminiProperty(CENTERING_SPEED_ID, value))
+        {
+            sscanf(value, "%u", &speed);
+            CenteringSpeedN[0].value = speed;
+            defineProperty(&CenteringSpeedNP);
         }
 
         updateParkingState();
@@ -394,30 +399,40 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             return true;
         }
 
+        if (!strcmp(name, PECStateSP.name))
+        {
+	    for(int i = 0; i<n; ++i){
+	        if (!strcmp(names[i], PECStateS[PEC_ON].name))
+	        {
+  		    char valueString[16] = {0};
+		    setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
+	     	    LOG_INFO("PEC ON Pressed ");
+	        }
+	        if (!strcmp(names[i], PECStateS[PEC_OFF].name))
+	        {
+  		    char valueString[16] = {0};
+		    setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
+	     	    LOG_INFO("PEC OFF Pressed ");
+	        }
+	    }
+	}
+
         if (!strcmp(name, PECControlSP.name))
         {
 	    for(int i = 0; i<n; ++i){
-	      if (!strcmp(names[i], PECControlS[PEC_START_TRAINING].name))
-	      {
-		char valueString[16] = {0};
-		setGeminiProperty(PEC_START_TRAINING_ID, valueString);
-	      } else if (!strcmp(names[i], PECControlS[PEC_ABORT_TRAINING].name))
-	      {
-		char valueString[16] = {0};
-		setGeminiProperty(PEC_ABORT_TRAINING_ID, valueString);
-	      } else if (!strcmp(names[i], PECControlS[PEC_REPLAY_ON].name))
-	      {
-		char valueString[16] = {0};
-		setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
-	      } else if (!strcmp(names[i], PECControlS[PEC_REPLAY_OFF].name))
-	      {
-		char valueString[16] = {0};
-		setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
-	      }
+	        if (!strcmp(names[i], PECControlS[PEC_START_TRAINING].name))
+	        {
+		    char valueString[16] = {0};
+		    setGeminiProperty(PEC_START_TRAINING_ID, valueString);
+	        } else if (!strcmp(names[i], PECControlS[PEC_ABORT_TRAINING].name))
+	        {
+		    char valueString[16] = {0};
+		    setGeminiProperty(PEC_ABORT_TRAINING_ID, valueString);
+	        }
 
 	    }
 	    IUUpdateSwitch(&PECControlSP, states, names, n);
-	    PECControlSP.s = IPS_BUSY;
+	    PECControlSP.s = IPS_OK;
 	    IDSetSwitch(&PECControlSP, nullptr);
             return true;
         }

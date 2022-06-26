@@ -111,9 +111,7 @@ class LX200Gemini : public LX200Generic
           enum
         {
             PEC_START_TRAINING,
-            PEC_ABORT_TRAINING,
-            PEC_REPLAY_ON,
-            PEC_REPLAY_OFF
+            PEC_ABORT_TRAINING
         };
 
           enum
