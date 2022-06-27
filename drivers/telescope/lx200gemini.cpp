@@ -47,6 +47,7 @@
 #define MOVE_SPEED_ID 145
 #define GUIDING_SPEED_ID 150
 #define CENTERING_SPEED_ID 170
+#define SERVO_POINTING_PRECISION 401
 #define PEC_MAX_STEPS_ID 27
 #define PEC_COUNTER_ID 501
 #define PEC_STATUS_ID 509
@@ -164,6 +165,12 @@ bool LX200Gemini::initProperties()
     IUFillNumber(&PECMaxStepsN[0], "PEC_MAX_STEPS", "PEC MaxSteps", "%f", 0, 4294967296, 1, 0);
     IUFillNumberVector(&PECMaxStepsNP, PECMaxStepsN, 1, getDeviceName(), "PEC_MAX_STEPS",
                        "PEC_MAX_STEPS", MOTION_TAB, IP_RO, 0, IPS_IDLE);
+
+    IUFillNumber(&ServoPrecisionN[SERVO_RA], "SERVO_RA", "4x RA Precision", "%f", 0, 1, 1, 0);
+    IUFillNumber(&ServoPrecisionN[SERVO_DEC], "SERVO_DEC", "4x DEC Precision", "%f", 0, 1, 1, 0);
+    IUFillNumberVector(&ServoPrecisionNP, ServoPrecisionN, 2, getDeviceName(), "SERVO",
+                       "Servo Precision", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    
     return true;
 }
 
@@ -171,6 +178,15 @@ void LX200Gemini::syncPec(){
         const int MAX_VALUE_LENGTH = 32;
         char value[MAX_VALUE_LENGTH] = {0};
 
+        if (getGeminiProperty(SERVO_POINTING_PRECISION, value))
+        {
+	    uint8_t servo_value;
+            sscanf(value, "%c", &servo_value);
+            ServoPrecisionN[SERVO_RA].value = servo_value & 1;
+            ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
+	    IDSetNumber(&ServoPrecisionNP, nullptr);
+
+        }
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
 	    float max_value;
@@ -245,7 +261,15 @@ bool LX200Gemini::updateProperties()
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
         defineProperty(&ParkSettingsSP);
-	
+
+        if (getGeminiProperty(SERVO_POINTING_PRECISION, value))
+        {
+	    uint8_t servo_value;
+            sscanf(value, "%c", &servo_value);
+            ServoPrecisionN[SERVO_RA].value = servo_value & 1;
+            ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
+            defineProperty(&ServoPrecisionNP);
+        }
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
   	    float max_value;
@@ -352,6 +376,7 @@ bool LX200Gemini::updateProperties()
 	deleteProperty(PECStateTP.name);
 	deleteProperty(PECCounterTP.name);
         deleteProperty(PECMaxStepsNP.name);
+        deleteProperty(ServoPrecisionNP.name);
     }
 
     return true;
@@ -541,6 +566,39 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             PECMaxStepsNP.s       = IPS_OK;
             PECMaxStepsN[0].value = values[0];
             IDSetNumber(&PECMaxStepsNP, "Max steps set to %f", values[0]);
+            return true;
+        }
+        if (!strcmp(name, ServoPrecisionNP.name))
+        {
+
+	    for(int i = 0; i<n; ++i){
+	        if (!strcmp(names[i], ServoPrecisionN[SERVO_RA].name))
+		{
+		    uint8_t servo_value = static_cast<uint8_t>(values[i]);
+		    ServoPrecisionN[SERVO_RA].value = (float)(servo_value & 1);
+		}
+	        if (!strcmp(names[i], ServoPrecisionN[SERVO_DEC].name))
+		{
+		    uint8_t servo_value = static_cast<uint8_t>(values[i]);
+		    ServoPrecisionN[SERVO_DEC].value = (float)((servo_value));
+		}
+	    }
+
+	    uint8_t pointingValue;
+	    pointingValue  = static_cast<uint8_t>(ServoPrecisionN[SERVO_RA].value);
+	    pointingValue |= static_cast<uint8_t>(ServoPrecisionN[SERVO_DEC].value) << 1;
+
+            snprintf(valueString, 16, "%u", pointingValue);
+
+	    if (!isSimulation() && !setGeminiProperty(SERVO_POINTING_PRECISION, valueString))
+            {
+                ServoPrecisionNP.s = IPS_ALERT;
+                IDSetNumber(&ServoPrecisionNP, "Error setting centering speed");
+                return false;
+            }
+            ServoPrecisionNP.s       = IPS_OK;
+            ServoPrecisionN[0].value = values[0];
+            IDSetNumber(&ServoPrecisionNP, "Servo Precision %f", values[0]);
             return true;
         }
     }
