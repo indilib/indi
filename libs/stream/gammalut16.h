@@ -36,5 +36,5 @@ class GammaLut16
         void apply(const uint16_t *first, const uint16_t *last, uint8_t *destination) const;
 
     protected:
-        std::vector<uint16_t> mLookUpTable;
+        std::vector<uint8_t> mLookUpTable;
 };

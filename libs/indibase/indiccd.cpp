@@ -2222,7 +2222,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             std::unique_lock<std::mutex> guard(ccdBufferLock);
 
-            uint32_t size = 65536 + nelements * (targetChip->getBPP() / 8);
+            // 8640 = 2880 * 3 which is sufficient for most cases.
+            uint32_t size = 8640 + nelements * (targetChip->getBPP() / 8);
             //  Initialize FITS file.
             if (targetChip->openFITSFile(size, status) == false)
             {
