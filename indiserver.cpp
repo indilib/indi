@@ -4010,7 +4010,7 @@ static void * attachSharedBuffer(int fd, size_t &size)
         Bye();
     }
     size = sb.st_size;
-    void * ret = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    void * ret = mmap(0, size, PROT_READ, MAP_SHARED, fd, 0);
 
     if (ret == MAP_FAILED)
     {
