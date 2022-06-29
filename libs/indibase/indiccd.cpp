@@ -2249,6 +2249,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             addFITSKeywords(targetChip);
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
+            fits_flush_file(fptr, &status);
 
             if (status)
             {
@@ -2259,7 +2260,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
 
-            //fits_flush_file(fptr, &status);
 
             bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
                                  saveImage);

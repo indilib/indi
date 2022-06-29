@@ -126,7 +126,7 @@ void * IDSharedBlobAttach(int fd, size_t size) {
     sb->allocated = size;
     sb->sealed = 1;
 
-    sb->mapstart = mmap(0, sb->allocated, PROT_READ|PROT_WRITE, MAP_PRIVATE, sb->fd, 0);
+    sb->mapstart = mmap(0, sb->allocated, PROT_READ, MAP_SHARED, sb->fd, 0);
     if (sb->mapstart == MAP_FAILED) goto ERROR;
 
     sharedBufferAdd(sb);
@@ -175,11 +175,21 @@ void IDSharedBlobDettach(void * ptr) {
 }
 
 void * IDSharedBlobRealloc(void * ptr, size_t size) {
+    if (ptr == NULL) {
+        return IDSharedBlobAlloc(size);
+    }
+
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
 
     if (sb == NULL) {
         return realloc(ptr, size);
+    }
+
+    if (sb->sealed) {
+        IDSharedBlobFree(ptr);
+        errno = EROFS;
+        return NULL;
     }
 
     if (sb->size >= size) {
@@ -217,6 +227,15 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
     return remaped;
 }
 
+static void seal(shared_buffer * sb)
+{
+    void * ret = mmap(sb->mapstart, sb->allocated, PROT_READ, MAP_SHARED|MAP_FIXED, sb->fd, 0);
+    if (ret == MAP_FAILED) {
+        perror("remap readonly failed");
+    }
+    sb->sealed = 1;
+}
+
 int IDSharedBlobGetFd(void * ptr) {
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
@@ -224,6 +243,10 @@ int IDSharedBlobGetFd(void * ptr) {
         errno = EINVAL;
         return -1;
     }
+
+    // Make sure a shared blob is not modified after sharing
+    seal(sb);
+
     return sb->fd;
 }
 
@@ -231,12 +254,7 @@ void IDSharedBlobSeal(void * ptr) {
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
     if (sb->sealed) return;
-    void * ret = mmap(sb->mapstart, sb->allocated, PROT_READ, MAP_SHARED|MAP_FIXED, sb->fd, 0);
-    if (ret == MAP_FAILED) {
-        perror("remap readonly failed");
-    } else {
-        sb->sealed = 1;
-    }
+    seal(sb);
 }
 
 static shared_buffer * first = NULL, *last = NULL;
