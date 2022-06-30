@@ -93,7 +93,7 @@ OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 if (UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
-elseif (UNIX)
+else()
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory (require shm specific settings)" OFF)
 endif()
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
@@ -115,11 +115,12 @@ ENDIF(INDI_FAST_BLOB)
 ###################################################################################################
 ####################################  UNIX protocol / SHM  ########################################
 ###################################################################################################
-IF (INDI_SHARED_MEMORY)
-if (APPLE)
-    message(WARNING "Shared memory protocol require specific shared memory settings")
-endif()
-    add_definitions(-DENABLE_INDI_SHARED_MEMORY)
+if (INDI_SHARED_MEMORY)
+    if (APPLE)
+        message(WARNING "Shared memory protocol require specific shared memory settings")
+    else()
+        add_definitions(-DENABLE_INDI_SHARED_MEMORY)
+    endif()
 endif()
 
 ###################################################################################################
