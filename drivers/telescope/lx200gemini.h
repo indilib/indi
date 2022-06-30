@@ -104,6 +104,12 @@ class LX200Gemini : public LX200Generic
   
         INumber ServoPrecisionN[2];
         INumberVectorProperty ServoPrecisionNP;
+
+        INumber PECEnableAtBootN[1];
+        INumberVectorProperty PECEnableAtBootNP;
+
+        INumber PECGuidingSpeedN[1];
+        INumberVectorProperty PECGuidingSpeedNP;
         enum
         {
             PARK_HOME,
