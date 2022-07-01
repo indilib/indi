@@ -81,7 +81,10 @@ class LX200Gemini : public LX200Generic
         INumber MoveSpeedN[1];
         INumberVectorProperty MoveSpeedNP;
 
-        INumber GuidingSpeedN[1];
+        INumber GuidingSpeedBothN[1];
+        INumberVectorProperty GuidingSpeedBothNP;
+
+        INumber GuidingSpeedN[2];
         INumberVectorProperty GuidingSpeedNP;
 
         INumber CenteringSpeedN[1];
@@ -115,6 +118,17 @@ class LX200Gemini : public LX200Generic
             PARK_HOME,
             PARK_STARTUP,
             PARK_ZENITH
+        };
+
+        enum
+        {
+            GUIDING_BOTH,
+        };
+
+        enum
+        {
+            GUIDING_WE,
+            GUIDING_NS
         };
 
         enum
