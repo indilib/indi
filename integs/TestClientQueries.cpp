@@ -123,7 +123,7 @@ TEST(TestClientQueries, ServerForwardRequest)
 
 }
 
-#if !defined(APPLE)
+#if !defined(__APPLE__)
 TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
 {
     DriverMock fakeDriver;
