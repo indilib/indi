@@ -142,8 +142,6 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
 
     driverSendsProps(fakeDriver);
 
-    // client writes before receiving any data
-    indiClient.cnx.shutdown(true, false);
 
     // Make sure the server sees the client shutdown. Get a full interaction with it
     fakeDriver.cnx.send("<pingRequest uid='1'/>\n");
@@ -153,6 +151,8 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
     indiClient.cnx.send("<oneNumber name='content' > 51 </oneNumber>");
     indiClient.cnx.send("</newNumberVector>");
 
+    // client writes before receiving any data
+    indiClient.cnx.shutdown(false, true);
 
     fakeDriver.cnx.expectXml("<newNumberVector device='fakedev1' name='testnumber' timestamp='2018-01-01T00:00:00'>");
     fakeDriver.cnx.expectXml("<oneNumber name='content'>");
