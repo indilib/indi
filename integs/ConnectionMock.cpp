@@ -284,16 +284,28 @@ void ConnectionMock::shutdown(bool rd, bool wr)
 {
     if (fds[0] != fds[1]) {
         if (rd && fds[0] != -1) {
-            ::shutdown(fds[0], SHUT_RD);
+            if (::shutdown(fds[0], SHUT_RD) == -1) {
+                perror("shutdown read fd");
+            }
         }
         if (wr && fds[1] != -1) {
-            ::shutdown(fds[1], SHUT_WR);
+            if (::shutdown(fds[1], SHUT_WR) == -1) {
+                perror("shutdown write fd");
+            }
         }
     } else {
         if (!(rd || wr)) return;
 
         int how = (rd && wr) ? SHUT_RDWR : rd ? SHUT_RD : SHUT_WR;
-        ::shutdown(fds[0], how);
+        if (::shutdown(fds[0], how) == -1) {
+            if (rd && wr) {
+                perror("shutdown rdwr");
+            } else if (rd) {
+                perror("shutdown rd");
+            } else {
+                perror("shutdown wr");
+            }
+        }
     }
 }
 
