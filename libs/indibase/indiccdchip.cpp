@@ -182,15 +182,10 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    //    delete [] RawFrame;
-    //    RawFrame = new uint8_t[nbuf];
-    if (RawFrame)
-        IDSharedBlobRealloc(RawFrame, RawFrameSize);
-    else
-        RawFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    RawFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(RawFrame, RawFrameSize));
 
     if (BinFrame)
-        IDSharedBlobRealloc(BinFrame, RawFrameSize);
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
 }
 
 void CCDChip::setExposureLeft(double duration)

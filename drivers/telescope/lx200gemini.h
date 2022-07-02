@@ -94,13 +94,22 @@ class LX200Gemini : public LX200Generic
         IText PECCounterT[1];
 
         ISwitchVectorProperty PECControlSP;
-        ISwitch PECControlS[4];
+        ISwitch PECControlS[2];
 
         ITextVectorProperty PECStateTP;
         IText PECStateT[6] {};
   
         INumber PECMaxStepsN[1];
         INumberVectorProperty PECMaxStepsNP;
+  
+        INumber ServoPrecisionN[2];
+        INumberVectorProperty ServoPrecisionNP;
+
+        INumber PECEnableAtBootN[1];
+        INumberVectorProperty PECEnableAtBootNP;
+
+        INumber PECGuidingSpeedN[1];
+        INumberVectorProperty PECGuidingSpeedNP;
         enum
         {
             PARK_HOME,
@@ -108,13 +117,13 @@ class LX200Gemini : public LX200Generic
             PARK_ZENITH
         };
 
-          enum
+        enum
         {
             PEC_START_TRAINING,
             PEC_ABORT_TRAINING
         };
 
-          enum
+        enum
 	{
 	    PEC_STATUS_ACTIVE,
 	    PEC_STATUS_FRESH_TRAINED,
@@ -124,6 +133,11 @@ class LX200Gemini : public LX200Generic
 	    PEC_STATUS_DATA_AVAILABLE
 	};
 
+        enum
+        {
+            SERVO_RA,
+            SERVO_DEC,
+        };
 
         ISwitch StartupModeS[3];
         ISwitchVectorProperty StartupModeSP;

@@ -45,6 +45,7 @@ sudo apt-get install -y \
   dkms \
   cmake \
   fxload \
+  libev-dev \
   libgps-dev \
   libgsl-dev \
   libraw-dev \

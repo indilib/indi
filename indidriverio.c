@@ -54,17 +54,21 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
 static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Return the buffer size required for storage (rounded to next OUTPUTBUFF_ALLOC) */
-static unsigned int outBuffRequired(unsigned int storage) {
+static unsigned int outBuffRequired(unsigned int storage)
+{
     return (storage + OUTPUTBUFF_ALLOC - 1) & ~(OUTPUTBUFF_ALLOC - 1);
 }
 
-static int outBuffAllocated(struct driverio * dio) {
+static int outBuffAllocated(struct driverio * dio)
+{
     return outBuffRequired(dio->outPos);
 }
 
-static void outBuffGrow(struct driverio * dio, int required) {
+static void outBuffGrow(struct driverio * dio, int required)
+{
     dio->outBuff = realloc(dio->outBuff, required);
-    if (dio->outBuff == NULL) {
+    if (dio->outBuff == NULL)
+    {
         perror("malloc");
         _exit(1);
     }
@@ -74,12 +78,16 @@ static size_t driverio_write(void *user, const void * ptr, size_t count)
 {
     struct driverio * dio = (struct driverio*) user;
 
-    if (dio->outPos + count > OUTPUTBUFF_FLUSH_THRESOLD) {
+    if (dio->outPos + count > OUTPUTBUFF_FLUSH_THRESOLD)
+    {
         driverio_flush(dio, ptr, count);
-    } else {
+    }
+    else
+    {
         unsigned int allocated = outBuffAllocated(dio);
         unsigned int required = outBuffRequired(dio->outPos + count);
-        if (required != allocated) {
+        if (required != allocated)
+        {
             outBuffGrow(dio, required);
         }
         memcpy(dio->outBuff + dio->outPos, ptr, count);
@@ -96,7 +104,8 @@ static int driverio_vprintf(void *user, const char * fmt, va_list arg)
     int size = 0;
 
     unsigned int allocated = outBuffAllocated(dio);
-    while(1) {
+    while(1)
+    {
         available = allocated - dio->outPos;
         /* Determine required size */
         size = vsnprintf(dio->outBuff + dio->outPos, available, fmt, arg);
@@ -104,7 +113,8 @@ static int driverio_vprintf(void *user, const char * fmt, va_list arg)
         if (size < 0)
             return size;
 
-        if (size < available) {
+        if (size < available)
+        {
             break;
         }
         allocated = outBuffRequired(available + size + 1);
@@ -128,19 +138,23 @@ static void driverio_join(void * user, const char * xml, void * blob, size_t blo
 }
 
 
-static void driverio_flush(driverio * dio, const void * additional, size_t add_size) {
+static void driverio_flush(driverio * dio, const void * additional, size_t add_size)
+{
     struct msghdr msgh;
     struct iovec iov[2];
     int cmsghdrlength;
     struct cmsghdr * cmsgh;
 
-    if (dio->outPos + add_size) {
+    if (dio->outPos + add_size)
+    {
         int ret = -1;
         void ** temporaryBuffers = NULL;
         int fdCount = dio->joinCount;
-        if (fdCount > 0) {
+        if (fdCount > 0)
+        {
 
-            if (dio->joinCount > MAXFD_PER_MESSAGE) {
+            if (dio->joinCount > MAXFD_PER_MESSAGE)
+            {
                 errno = EMSGSIZE;
                 perror("sendmsg");
                 exit(1);
@@ -157,23 +171,29 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
             cmsgh->cmsg_type = SCM_RIGHTS;
             msgh.msg_control = cmsgh;
             msgh.msg_controllen = cmsghdrlength;
-            for(int i = 0; i < fdCount; ++i) {
+            for(int i = 0; i < fdCount; ++i)
+            {
                 void * blob = dio->joins[i];
                 size_t size = dio->joinSizes[i];
 
                 int fd = IDSharedBlobGetFd(blob);
-                if (fd == -1) {
+                if (fd == -1)
+                {
                     // Can't avoid a copy here. Update the driver to change that
                     temporaryBuffers[i] = IDSharedBlobAlloc(size);
                     memcpy(temporaryBuffers[i], blob, size);
                     fd = IDSharedBlobGetFd(temporaryBuffers[i]);
-                } else {
+                }
+                else
+                {
                     temporaryBuffers[i] = NULL;
                 }
 
                 ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fd;
             }
-        } else {
+        }
+        else
+        {
             cmsgh = NULL;
             cmsghdrlength = 0;
             msgh.msg_control = cmsgh;
@@ -182,7 +202,8 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
 
         iov[0].iov_base = dio->outBuff;
         iov[0].iov_len = dio->outPos;
-        if (add_size) {
+        if (add_size)
+        {
             iov[1].iov_base = (void*)additional;
             iov[1].iov_len = add_size;
         }
@@ -193,25 +214,32 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
         msgh.msg_iov = iov;
         msgh.msg_iovlen = add_size ? 2 : 1;
 
-        if (!dio->locked) {
+        if (!dio->locked)
+        {
             pthread_mutex_lock(&stdout_mutex);
             dio->locked = 1;
         }
 
         ret = sendmsg(1, &msgh, 0);
-        if (ret == -1) {
+        if (ret == -1)
+        {
             perror("sendmsg");
             // FIXME: exiting the driver seems abrupt. Is this the right thing to do ? what about cleanup ?
             exit(1);
-        } else if ((unsigned)ret != dio->outPos + add_size) {
+        }
+        else if ((unsigned)ret != dio->outPos + add_size)
+        {
             // This is not expected on blocking socket
             fprintf(stderr, "short write\n");
             exit(1);
         }
 
-        if (fdCount > 0) {
-            for(int i = 0; i < fdCount; ++i) {
-                if (temporaryBuffers[i] != NULL) {
+        if (fdCount > 0)
+        {
+            for(int i = 0; i < fdCount; ++i)
+            {
+                if (temporaryBuffers[i] != NULL)
+                {
                     IDSharedBlobFree(temporaryBuffers[i]);
                 }
             }
@@ -220,17 +248,20 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
         }
     }
 
-    if (dio->joins != NULL) {
+    if (dio->joins != NULL)
+    {
         free(dio->joins);
     }
     dio->joins = NULL;
 
-    if (dio->joinSizes != NULL) {
+    if (dio->joinSizes != NULL)
+    {
         free(dio->joinSizes);
     }
     dio->joinSizes = NULL;
 
-    if (dio->outBuff != NULL) {
+    if (dio->outBuff != NULL)
+    {
         free(dio->outBuff);
     }
     dio->outPos = 0;
@@ -240,8 +271,13 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
 
 static int driverio_is_unix = -1;
 
-static int is_unix_io() {
-    if (driverio_is_unix != -1) {
+static int is_unix_io()
+{
+#ifndef ENABLE_INDI_SHARED_MEMORY
+    return 0;
+#endif
+    if (driverio_is_unix != -1)
+    {
         return driverio_is_unix;
     }
 
@@ -249,22 +285,32 @@ static int is_unix_io() {
     int domain;
     socklen_t result = sizeof(domain);
 
-    if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1) {
+    if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1)
+    {
         driverio_is_unix = 0;
-    } else if (result != sizeof(domain) || domain != AF_UNIX) {
+    }
+    else if (result != sizeof(domain) || domain != AF_UNIX)
+    {
         driverio_is_unix = 0;
-    } else {
+    }
+    else
+    {
         driverio_is_unix = 1;
     }
 #else
     struct sockaddr_un sockName;
     socklen_t sockNameLen = sizeof(sockName);
 
-    if (getsockname(1, (struct sockaddr*)&sockName, &sockNameLen) == -1) {
+    if (getsockname(1, (struct sockaddr*)&sockName, &sockNameLen) == -1)
+    {
         driverio_is_unix = 0;
-    } else if (sockName.sun_family == AF_UNIX) {
+    }
+    else if (sockName.sun_family == AF_UNIX)
+    {
         driverio_is_unix = 1;
-    } else {
+    }
+    else
+    {
         driverio_is_unix = 0;
     }
 #endif
@@ -272,7 +318,8 @@ static int is_unix_io() {
 }
 
 /* Unix io allow attaching buffer in ancillary data. */
-static void driverio_init_unix(driverio * dio) {
+static void driverio_init_unix(driverio * dio)
+{
     dio->userio.vprintf = &driverio_vprintf;
     dio->userio.write = &driverio_write;
     dio->userio.joinbuff = &driverio_join;
@@ -285,21 +332,25 @@ static void driverio_init_unix(driverio * dio) {
     dio->outPos = 0;
 }
 
-static void driverio_finish_unix(driverio * dio) {
+static void driverio_finish_unix(driverio * dio)
+{
     driverio_flush(dio, NULL, 0);
-    if (dio->locked) {
+    if (dio->locked)
+    {
         pthread_mutex_unlock(&stdout_mutex);
         dio->locked = 0;
     }
 }
 
-static void driverio_init_stdout(driverio * dio) {
+static void driverio_init_stdout(driverio * dio)
+{
     dio->userio = *userio_file();
     dio->user = stdout;
     pthread_mutex_lock(&stdout_mutex);
 }
 
-static void driverio_finish_stdout(driverio * dio) {
+static void driverio_finish_stdout(driverio * dio)
+{
     (void)dio;
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
@@ -307,18 +358,24 @@ static void driverio_finish_stdout(driverio * dio) {
 
 void driverio_init(driverio * dio)
 {
-    if (is_unix_io()) {
+    if (is_unix_io())
+    {
         driverio_init_unix(dio);
-    } else {
+    }
+    else
+    {
         driverio_init_stdout(dio);
     }
 }
 
 void driverio_finish(driverio * dio)
 {
-    if (is_unix_io()) {
+    if (is_unix_io())
+    {
         driverio_finish_unix(dio);
-    } else {
+    }
+    else
+    {
         driverio_finish_stdout(dio);
     }
 }
