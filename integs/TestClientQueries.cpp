@@ -123,7 +123,6 @@ TEST(TestClientQueries, ServerForwardRequest)
 
 }
 
-#if !defined(__APPLE__)
 TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
 {
     DriverMock fakeDriver;
@@ -142,10 +141,7 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
 
     driverSendsProps(fakeDriver);
 
-    // client writes before receiving any data
-    indiClient.cnx.shutdown(true, false);
-
-    // Make sure the server sees the client shutdown. Get a full interaction with it
+    // Make sure the server is sync with the client before shutdown. Get a full interaction with it
     fakeDriver.cnx.send("<pingRequest uid='1'/>\n");
     fakeDriver.cnx.expectXml("<pingReply uid='1'/>");
 
@@ -153,6 +149,8 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
     indiClient.cnx.send("<oneNumber name='content' > 51 </oneNumber>");
     indiClient.cnx.send("</newNumberVector>");
 
+    // Client is done writing.
+    indiClient.cnx.shutdown(false, true);
 
     fakeDriver.cnx.expectXml("<newNumberVector device='fakedev1' name='testnumber' timestamp='2018-01-01T00:00:00'>");
     fakeDriver.cnx.expectXml("<oneNumber name='content'>");
@@ -166,4 +164,3 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
 }
-#endif
