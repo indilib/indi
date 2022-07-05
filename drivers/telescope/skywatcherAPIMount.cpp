@@ -59,7 +59,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
                            TELESCOPE_CAN_CONTROL_TRACK,
                            SLEWMODES);
 
-    setVersion(1, 6);
+    setVersion(1, 7);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
