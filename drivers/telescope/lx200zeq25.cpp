@@ -36,12 +36,18 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 4);
+    setVersion(1, 6);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
+    SetTelescopeCapability(TELESCOPE_CAN_PARK |
+                           TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_HAS_PIER_SIDE,
                            9);
 }
 
@@ -71,7 +77,7 @@ bool LX200ZEQ25::initProperties()
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -99,7 +105,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return static_cast<const char *>("ZEQ25");
+    return "ZEQ25";
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -391,11 +397,16 @@ void LX200ZEQ25::getBasicData()
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
     }
+
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
+        sendScopeLocation();
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
+        sendScopeTime();
 }
 
 bool LX200ZEQ25::Sync(double ra, double dec)
 {
-    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (!isSimulation() && (setObjectRA(PortFD, ra, true) < 0 || (setObjectDEC(PortFD, dec, true)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
@@ -464,7 +475,7 @@ bool LX200ZEQ25::Goto(double r, double d)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error setting RA/DEC.");
@@ -621,7 +632,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds, true) < 0)
     {
         LOG_ERROR("Error setting local time.");
         return false;
@@ -1187,6 +1198,12 @@ bool LX200ZEQ25::ReadScopeStatus()
         return false;
     }
 
+    // Get Pier side
+
+    TelescopePierSide side = PIER_UNKNOWN;
+    if (getZEQ25PierSide(side))
+        setPierSide(side);
+
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -1258,6 +1275,10 @@ void LX200ZEQ25::mountSim()
         default:
             break;
     }
+
+    TelescopePierSide side = PIER_UNKNOWN;
+    if (getZEQ25PierSide(side))
+        setPierSide(side);
 
     NewRaDec(currentRA, currentDEC);
 }
@@ -1400,4 +1421,64 @@ int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 
     tcflush(PortFD, TCIFLUSH);
     return TTY_OK;
+}
+
+bool LX200ZEQ25::getZEQ25PierSide(TelescopePierSide &side)
+{
+    int nbytes_written = 0;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8] = {0};
+    int nbytes_read    = 0;
+
+    if (isSimulation())
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write_string(PortFD, ":pS#", &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        if ( response[0] == '0')
+            side = PIER_EAST;
+        else if ( response[0] == '1')
+            side = PIER_WEST;
+        else
+            side = PIER_UNKNOWN;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool LX200ZEQ25::setUTCOffset(double offset)
+{
+    int h, m, s;
+    char command[64] = {0};
+    getSexComponents(offset, &h, &m, &s);
+
+    snprintf(command, 64, ":SG %c%02d:%02d#", offset >= 0 ? '+' : '-', h, m);
+    return setZEQ25StandardProcedure(PortFD, command);
 }

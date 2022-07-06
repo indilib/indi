@@ -42,7 +42,7 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 ConvexHull::ConvexHull() : vertices(nullptr), edges(nullptr), faces(nullptr), debug(false), check(false),
-    ScaleFactor(SAFE-1)
+    ScaleFactor(SAFE - 1)
 {
 }
 
@@ -72,7 +72,8 @@ bool ConvexHull::AddOne(tVertex p)
             vis        = true;
         }
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 
     /* If no faces are visible from p, then p is inside the hull. */
     if (!vis)
@@ -94,7 +95,8 @@ bool ConvexHull::AddOne(tVertex p)
             /* e border: make a new face. */
             e->newface = MakeConeFace(e, p);
         e = temp;
-    } while (e != edges);
+    }
+    while (e != edges);
     return true;
 }
 
@@ -125,7 +127,8 @@ void ConvexHull::CheckEndpts()
                 }
             }
             faces = faces->next;
-        } while (faces != fstart);
+        }
+        while (faces != fstart);
 
     if (error)
         std::cerr << "Checks: ERROR found and reported above.\n";
@@ -169,20 +172,23 @@ void ConvexHull::Checks()
             if (v->mark)
                 V++;
             v = v->next;
-        } while (v != vertices);
+        }
+        while (v != vertices);
 
     if ((e = edges) != nullptr)
         do
         {
             E++;
             e = e->next;
-        } while (e != edges);
+        }
+        while (e != edges);
     if ((f = faces) != nullptr)
         do
         {
             F++;
             f = f->next;
-        } while (f != faces);
+        }
+        while (f != faces);
     CheckEuler(V, E, F);
     CheckEndpts();
 }
@@ -206,7 +212,8 @@ void ConvexHull::CleanEdges()
             e->newface = nullptr;
         }
         e = e->next;
-    } while (e != edges);
+    }
+    while (e != edges);
 
     /* Delete any edges marked for deletion. */
     while (edges && edges->delete_it)
@@ -225,7 +232,8 @@ void ConvexHull::CleanEdges()
         }
         else
             e = e->next;
-    } while (e != edges);
+    }
+    while (e != edges);
 }
 
 void ConvexHull::CleanFaces()
@@ -249,7 +257,8 @@ void ConvexHull::CleanFaces()
         }
         else
             f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 }
 
 void ConvexHull::CleanUp(tVertex *pvnext)
@@ -270,7 +279,8 @@ void ConvexHull::CleanVertices(tVertex *pvnext)
     {
         e->endpts[0]->onhull = e->endpts[1]->onhull = ONHULL;
         e                                           = e->next;
-    } while (e != edges);
+    }
+    while (e != edges);
 
     /* Delete all vertices that have been processed but
     are not on the hull. */
@@ -295,7 +305,8 @@ void ConvexHull::CleanVertices(tVertex *pvnext)
         }
         else
             v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 
     /* Reset flags. */
     v = vertices;
@@ -304,7 +315,8 @@ void ConvexHull::CleanVertices(tVertex *pvnext)
         v->duplicate = nullptr;
         v->onhull    = !ONHULL;
         v            = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 }
 
 bool ConvexHull::Collinear(tVertex a, tVertex b, tVertex c)
@@ -333,10 +345,11 @@ void ConvexHull::Consistency()
 
         /* check if the endpoints occur in opposite order */
         if (!(e->adjface[0]->vertex[(i + 1) % 3] == e->adjface[1]->vertex[(j + 2) % 3] ||
-              e->adjface[0]->vertex[(i + 2) % 3] == e->adjface[1]->vertex[(j + 1) % 3]))
+                e->adjface[0]->vertex[(i + 2) % 3] == e->adjface[1]->vertex[(j + 1) % 3]))
             break;
         e = e->next;
-    } while (e != edges);
+    }
+    while (e != edges);
 
     if (e != edges)
         std::cerr << "Checks: edges are NOT consistent.\n";
@@ -367,7 +380,8 @@ void ConvexHull::ConstructHull()
             //                PrintOut( v );
         }
         v = vnext;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 }
 
 void ConvexHull::Convexity()
@@ -390,11 +404,13 @@ void ConvexHull::Convexity()
                     break;
             }
             v = v->next;
-        } while (v != vertices);
+        }
+        while (v != vertices);
 
         f = f->next;
 
-    } while (f != faces);
+    }
+    while (f != faces);
 
     if (f != faces)
         std::cerr << "Checks: NOT convex.\n";
@@ -469,15 +485,15 @@ void ConvexHull::EdgeOrderOnFaces()
         for (i = 0; i < 3; i++)
         {
             if (!(((f->edge[i]->endpts[0] == f->vertex[i]) && (f->edge[i]->endpts[1] == f->vertex[(i + 1) % 3])) ||
-                  ((f->edge[i]->endpts[1] == f->vertex[i]) && (f->edge[i]->endpts[0] == f->vertex[(i + 1) % 3]))))
+                    ((f->edge[i]->endpts[1] == f->vertex[i]) && (f->edge[i]->endpts[0] == f->vertex[(i + 1) % 3]))))
             {
                 /* Change the order of the edges on the face: */
                 for (j = 0; j < 3; j++)
                 {
                     /* find the edge that should be there */
                     if (((f->edge[j]->endpts[0] == f->vertex[i]) &&
-                         (f->edge[j]->endpts[1] == f->vertex[(i + 1) % 3])) ||
-                        ((f->edge[j]->endpts[1] == f->vertex[i]) && (f->edge[j]->endpts[0] == f->vertex[(i + 1) % 3])))
+                            (f->edge[j]->endpts[1] == f->vertex[(i + 1) % 3])) ||
+                            ((f->edge[j]->endpts[1] == f->vertex[i]) && (f->edge[j]->endpts[0] == f->vertex[(i + 1) % 3])))
                     {
                         /* Swap it with the one erroneously put into its place: */
                         if (debug)
@@ -492,7 +508,8 @@ void ConvexHull::EdgeOrderOnFaces()
             }
         }
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 }
 
 void ConvexHull::MakeCcw(tFace f, tEdge e, tVertex p)
@@ -685,7 +702,8 @@ void ConvexHull::Print()
         else if (v->v[X] < xmin)
             xmin = v->v[X];
         v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 
     /*-- find Y min & max --*/
     v    = vertices;
@@ -697,7 +715,8 @@ void ConvexHull::Print()
         else if (v->v[Y] < ymin)
             ymin = v->v[Y];
         v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 
     /* PostScript header */
     std::cout << "%!PS\n";
@@ -713,14 +732,16 @@ void ConvexHull::Print()
         if (v->mark)
             V++;
         v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
     std::cout << "\n%% Vertices:\tV = " << V << '\n';
     std::cout << "%% index:\t\tx\ty\tz\n";
     do
     {
         std::cout << "%% " << v->vnum << ":\t" << v->v[X] << '\t' << v->v[Y] << '\t' << v->v[Z] << '\n';
         v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 
     /* Faces. */
     /* visible faces are printed as PS output */
@@ -729,7 +750,8 @@ void ConvexHull::Print()
     {
         ++F;
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
     std::cout << "\n%% Faces:\tF = " << F << '\n';
     std::cout << "%% Visible faces only: \n";
     do
@@ -750,7 +772,8 @@ void ConvexHull::Print()
             std::cout << "closepath stroke\n\n";
         }
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 
     /* prints a list of all faces */
     std::cout << "%% List of all faces: \n";
@@ -759,7 +782,8 @@ void ConvexHull::Print()
     {
         std::cout << "%%\t" << f->vertex[0]->vnum << '\t' << f->vertex[1]->vnum << '\t' << f->vertex[2]->vnum << '\n';
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 
     /* Edges. */
     e = edges;
@@ -767,7 +791,8 @@ void ConvexHull::Print()
     {
         E++;
         e = e->next;
-    } while (e != edges);
+    }
+    while (e != edges);
     std::cout << "\n%% Edges:\tE = " << E << '\n';
     /* Edges not printed out (but easily added). */
 
@@ -796,7 +821,8 @@ void ConvexHull::PrintEdges(std::ofstream &Ofile)
                 Ofile << edges->endpts[i]->vnum << ' ';
             Ofile << "  del:" << edges->delete_it << '\n';
             edges = edges->next;
-        } while (edges != temp);
+        }
+        while (edges != temp);
 }
 
 void ConvexHull::PrintFaces(std::ofstream &Ofile)
@@ -818,7 +844,8 @@ void ConvexHull::PrintFaces(std::ofstream &Ofile)
                 Ofile << ' ' << faces->vertex[i]->vnum;
             Ofile << "  vis: " << faces->visible << '\n';
             faces = faces->next;
-        } while (faces != temp);
+        }
+        while (faces != temp);
 }
 
 void ConvexHull::PrintObj(const char *FileName)
@@ -849,7 +876,8 @@ void ConvexHull::PrintObj(const char *FileName)
         Ofile << "v " << v->v[X] << ' ' << v->v[Y] << ' ' << v->v[Z] << '\n';
         Offset++;
         v = v->next;
-    } while (v != vertices);
+    }
+    while (v != vertices);
 
     // normals
     f = faces;
@@ -870,7 +898,8 @@ void ConvexHull::PrintObj(const char *FileName)
         c[2]   = c[2] / length;
         Ofile << "vn " << c[0] << ' ' << c[1] << ' ' << c[2] << '\n';
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 
     // Faces
     int i = 1;
@@ -881,7 +910,8 @@ void ConvexHull::PrintObj(const char *FileName)
               << "//" << i << ' ' << vnumToOffsetMap[f->vertex[2]->vnum] << "//" << i << '\n';
         i++;
         f = f->next;
-    } while (f != faces);
+    }
+    while (f != faces);
 
     Ofile.close();
 
@@ -933,7 +963,8 @@ void ConvexHull::PrintVertices(std::ofstream &Ofile)
             Ofile << "  dup:" << std::hex << vertices->duplicate;
             Ofile << "  mark:" << std::dec << vertices->mark << '\n';
             vertices = vertices->next;
-        } while (vertices != temp);
+        }
+        while (vertices != temp);
 }
 
 void ConvexHull::ReadVertices()
@@ -971,7 +1002,8 @@ void ConvexHull::Reset()
             tVertex TempVertex = CurrentVertex;
             CurrentVertex      = CurrentVertex->next;
             delete TempVertex;
-        } while (CurrentVertex != vertices);
+        }
+        while (CurrentVertex != vertices);
         vertices = nullptr;
     }
 
@@ -982,7 +1014,8 @@ void ConvexHull::Reset()
             tEdge TempEdge = CurrentEdge;
             CurrentEdge    = CurrentEdge->next;
             delete TempEdge;
-        } while (CurrentEdge != edges);
+        }
+        while (CurrentEdge != edges);
         edges = nullptr;
     }
 
@@ -993,7 +1026,8 @@ void ConvexHull::Reset()
             tFace TempFace = CurrentFace;
             CurrentFace    = CurrentFace->next;
             delete TempFace;
-        } while (CurrentFace != faces);
+        }
+        while (CurrentFace != faces);
         faces = nullptr;
     }
 

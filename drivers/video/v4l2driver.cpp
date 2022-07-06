@@ -30,8 +30,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx/Lx.h"
 
 // Pixel size info for different cameras
-typedef struct
+typedef struct PixelSizeInfo
 {
+    const char * deviceLabel; // Device label used by INDI
     const char * deviceName; // device name reported by V4L
     const char * commonName; // if null, use device name
     float pixelSizeX;
@@ -39,28 +40,66 @@ typedef struct
     bool tested; //if False print please report message
 } PixelSizeInfo;
 
-static const PixelSizeInfo pixelSizeInfo[] =
+static const PixelSizeInfo CameraDatabase[] =
 {
-    { "NexImage 5", nullptr, 2.2f, -1, true },
-    { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, true },
-    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, true },
-    { "SVBONY SV205: SVBONY SV205", "SVBONY SV205", 4.0f, -1, true },
-    { "NexImage 10", nullptr, 1.67f, -1, true },
-    { "NexImage Burst Color", nullptr, 3.75f, -1, false },
-    { "NexImage Burst Mono", nullptr, 3.75f, -1, false },
-    { "Skyris 132C", nullptr, 3.75f, -1, false },
-    { "Skyris 132M", nullptr, 3.75f, -1, false },
-    { "Skyris 236C", nullptr, 2.8f, -1, false },
-    { "Skyris 236M", nullptr, 2.8f, -1, false },
-    { "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
-    { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
-    { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
-    { "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
-    { "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
-    { "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
-    { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
+    { "NexImage 5", "NexImage 5", nullptr, 2.2f, -1, true },
+    { "Logitech Webcam Pro 9000", "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, true },
+    { "SVBONY SV105", "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, true },
+    { "SVBONY SV205", "SVBONY SV205: SVBONY SV205", "SVBONY SV205", 4.0f, -1, true },
+    { "NexImage 10", "NexImage 10", nullptr, 1.67f, -1, true },
+    { "NexImage Burst Color", "NexImage Burst Color", nullptr, 3.75f, -1, false },
+    { "NexImage Burst Mono", "NexImage Burst Mono", nullptr, 3.75f, -1, false },
+    { "Skyris 132C", "Skyris 132C", nullptr, 3.75f, -1, false },
+    { "Skyris 132M", "Skyris 132M", nullptr, 3.75f, -1, false },
+    { "Skyris 236C", "Skyris 236C", nullptr, 2.8f, -1, false },
+    { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, false },
+    { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
+    { "iOptron iPolar", "iOptron iPolar", nullptr, 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider 1", nullptr, 3.75f, -1, true },
+    { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
+    { "Logitech HD C270", "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
+    { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
+    { "IMX290 H264 Camera", "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
+    { "Microsoft LifeCam Cinema", "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
+    { "OpenAstroGuider", "OpenAstroGuider IMX290", nullptr, 2.9f, -1, false },
+    { nullptr, nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
+
+V4L2_Driver::V4L2_Driver(std::string label, std::string path)
+{
+    setDeviceName(label.c_str());
+    strncpy(defaultVideoPort, path.c_str(), 256);
+    strncpy(configPort, path.c_str(), 256);
+
+    setVersion(1, 0);
+
+    allocateBuffers();
+
+    divider = 128.;
+
+    is_capturing = false;
+    non_capture_frames = 0;
+
+    Options          = nullptr;
+    v4loptions       = 0;
+    AbsExposureN     = nullptr;
+    ManualExposureSP = nullptr;
+    CaptureSizesSP.sp = nullptr;
+    CaptureSizesNP.np = nullptr;
+    FrameRatesSP.sp = nullptr;
+
+    frame_received.tv_sec = 0;
+    frame_received.tv_usec = 0;
+
+    v4l_capture_started = false;
+
+    stackMode = STACK_NONE;
+
+    lx       = new Lx();
+    lxtimer  = -1;
+    stdtimer = -1;
+}
 
 V4L2_Driver::V4L2_Driver()
 {
@@ -100,9 +139,8 @@ V4L2_Driver::~V4L2_Driver()
 
 void V4L2_Driver::updateFrameSize()
 {
-    if (ISS_ON == ImageColorS[IMAGE_GRAYSCALE].s)
-        frameBytes =
-            PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0));
+    if (CaptureFormatSP.findOnSwitchIndex() == IMAGE_MONO)
+        frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0));
     else
         frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() *
                      (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0)) * 3;
@@ -117,19 +155,26 @@ bool V4L2_Driver::initProperties()
     addDebugControl();
 
     /* Port */
-    char configPort[256] = {0};
-    if (IUGetConfigText(getDeviceName(), PortTP.name, PortT[0].name, configPort, 256) == 0)
+    // Only load config port if it was empty. If it was already initialized, then we have an explicitly defined device
+    // with defaultVideoPort and we shouldn't mess this up.
+    if (configPort[0] == 0 && IUGetConfigText(getDeviceName(), PortTP.name, PortT[0].name, configPort, 256) == 0)
         IUFillText(&PortT[0], "PORT", "Port", configPort);
     else
-        IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
+        IUFillText(&PortT[0], "PORT", "Port", defaultVideoPort);
     IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
-    /* Color space */
-    IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", ISS_ON);
-    IUFillSwitch(&ImageColorS[1], "CCD_COLOR_RGB", "Color", ISS_OFF);
-    IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE",
-                       "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Capture format.
+    CaptureFormat mono = {"INDI_MONO", "Mono", 8};
+    CaptureFormat color = {"INDI_RGB", "RGB", 8, true};
+    addCaptureFormat(mono);
+    addCaptureFormat(color);
+    if (CaptureFormatSP[IMAGE_RGB].getState() == ISS_ON)
+    {
+        PrimaryCCD.setNAxis(3);
+        updateFrameSize();
+    }
 
     /* Image depth */
     IUFillSwitch(&ImageDepthS[0], "8 bits", "", ISS_ON);
@@ -223,7 +268,6 @@ void V4L2_Driver::ISGetProperties(const char * dev)
     {
         defineProperty(&camNameTP);
 
-        defineProperty(&ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -252,19 +296,9 @@ bool V4L2_Driver::updateProperties()
 
     if (isConnected())
     {
-        //ExposeTimeNP=getNumber("CCD_EXPOSURE");
-        //ExposeTimeN=ExposeTimeNP->np;
-
-        CompressSP = getSwitch("CCD_COMPRESSION");
-        CompressS  = CompressSP->sp;
-
-        FrameNP = getNumber("CCD_FRAME");
-        FrameN  = FrameNP->np;
-
         defineProperty(&camNameTP);
         getBasicData();
 
-        defineProperty(&ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -286,7 +320,7 @@ bool V4L2_Driver::updateProperties()
 #endif
 
         // Check if we have pixel size info
-        const PixelSizeInfo * info = pixelSizeInfo;
+        const PixelSizeInfo * info = CameraDatabase;
         std::string deviceName = std::string(v4l_base->getDeviceName());
         // to lower case.
         std::transform(deviceName.begin(), deviceName.end(), deviceName.begin(), ::tolower);
@@ -294,9 +328,11 @@ bool V4L2_Driver::updateProperties()
         {
             std::string infoDeviceName = std::string(info->deviceName);
             std::transform(infoDeviceName.begin(), infoDeviceName.end(), infoDeviceName.begin(), ::tolower);
+            std::string infoDeviceLabel = std::string(info->deviceLabel);
+            std::transform(infoDeviceLabel.begin(), infoDeviceLabel.end(), infoDeviceLabel.begin(), ::tolower);
 
             // Case insensitive comparision
-            if (infoDeviceName == deviceName)
+            if (infoDeviceName == deviceName || infoDeviceLabel == deviceName)
                 break;
             ++info;
         }
@@ -342,7 +378,6 @@ bool V4L2_Driver::updateProperties()
 
         deleteProperty(camNameTP.name);
 
-        deleteProperty(ImageColorSP.name);
         deleteProperty(InputsSP.name);
         deleteProperty(CaptureFormatsSP.name);
 
@@ -574,44 +609,6 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         return true;
     }
 
-    /* Image Type */
-    if (strcmp(name, ImageColorSP.name) == 0)
-    {
-        if (Streamer->isRecording())
-        {
-            LOG_WARN("Can not set Image type (GRAY/COLOR) while recording.");
-            return false;
-        }
-
-        IUResetSwitch(&ImageColorSP);
-        IUUpdateSwitch(&ImageColorSP, states, names, n);
-        ImageColorSP.s = IPS_OK;
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        {
-            //PrimaryCCD.setBPP(8);
-            PrimaryCCD.setNAxis(2);
-        }
-        else
-        {
-            //PrimaryCCD.setBPP(32);
-            //PrimaryCCD.setBPP(8);
-            PrimaryCCD.setNAxis(3);
-        }
-
-        updateFrameSize();
-#if 0
-        INDI_PIXEL_FORMAT pixelFormat;
-        uint8_t pixelDepth = 8;
-        if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
-            Streamer->setPixelFormat(pixelFormat, pixelDepth);
-#endif
-        Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
-        IDSetSwitch(&ImageColorSP, nullptr);
-
-        saveConfig(true, ImageColorSP.name);
-        return true;
-    }
-
     /* Image Depth */
     if (strcmp(name, ImageDepthSP.name) == 0)
     {
@@ -702,7 +699,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     /* ColorProcessing */
     if (strcmp(name, ColorProcessingSP.name) == 0)
     {
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             IUUpdateSwitch(&ColorProcessingSP, states, names, n);
             v4l_base->setColorProcessing(ColorProcessingS[0].s == ISS_ON, ColorProcessingS[1].s == ISS_ON,
@@ -938,7 +935,9 @@ bool V4L2_Driver::setShutter(double duration)
         frameCount    = 0;
         subframeCount = 0;
 
-        LOGF_INFO("Started %.3f-second manual exposure.", duration);
+        // Do not spam log for short exposures.
+        if (duration >= 3)
+            LOGF_INFO("Started %.3f-second manual exposure.", duration);
         return true;
     }
     else
@@ -964,7 +963,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     if (nullptr == AbsExposureN)
     {
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             //use frame interval as frame duration instead of max exposure time.
             if(FrameRatesSP.sp != nullptr)
@@ -998,7 +997,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     /* Then if we have an exposure control, check the requested exposure duration */
     else if (AbsExposureN->max < ticks)
     {
-        if( ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode == STACK_NONE )
+        if( CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode == STACK_NONE )
         {
             LOG_WARN("Requested manual exposure is out of device bounds auto set stackMode to ADDITIVE" );
             stackMode = STACK_ADDITIVE;
@@ -1008,7 +1007,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         }
 
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             if( AbsExposureN->value != AbsExposureN->max )
             {
@@ -1232,7 +1231,7 @@ void V4L2_Driver::lxtimerCallback(void * userpointer)
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
-    if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
+    if (CaptureFormatSP[IMAGE_RGB].getState() == ISS_ON)
     {
         if (hor == 1 && ver == 1)
         {
@@ -1365,7 +1364,7 @@ void V4L2_Driver::newFrame()
         unsigned char * buffer = nullptr;
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
             totalBytes  = width * height * (dbpp / 8);
@@ -1463,20 +1462,20 @@ void V4L2_Driver::newFrame()
         PrimaryCCD.setExposureLeft(remaining);
 
         // Stack Mono frames
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
+        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             stackFrame();
         }
 
         /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
+        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON &&
                 (timercmp(&elapsed_exposure, &exposure_duration, < )))
             return; // go on stacking
 
         struct timeval const current_exposure = getElapsedExposure();
 
         //IDLog("Copying frame.\n");
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             if (!stackMode)
             {
@@ -1629,7 +1628,8 @@ void V4L2_Driver::newFrame()
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
-            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
+            if (PrimaryCCD.getExposureDuration() >= 3)
+                LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
         else
@@ -1641,10 +1641,12 @@ void V4L2_Driver::newFrame()
                 is_capturing = false;
             }
             else
-                IDLog("%s: streamer is busy, continue capturing\n", __FUNCTION__);
+                LOGF_DEBUG("%s: streamer is busy, continue capturing\n", __FUNCTION__);
 
-            LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",
-                      subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
+
+            if (PrimaryCCD.getExposureDuration() >= 3)
+                LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",  subframeCount, current_exposure.tv_sec,
+                          current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
     }
@@ -1688,15 +1690,18 @@ bool V4L2_Driver::Connect()
     {
         if (v4l_base->connectCam(PortT[0].text, errmsg) < 0)
         {
-            LOGF_ERROR("Error: unable to open device. %s", errmsg);
+            LOGF_ERROR("Error: unable to open device %s: %s", PortT[0].text, errmsg);
             return false;
         }
 
         /* Sucess! */
-        LOG_INFO("V4L2 CCD Device is online. Initializing properties.");
+        LOGF_INFO("%s is online.", getDeviceName());
+
+        // If port not stored in config already then save it.
+        if (strcmp(PortT[0].text, configPort))
+            saveConfig(true, PortTP.name);
 
         v4l_base->registerCallback(newFrame, this);
-
         lx->setCamerafd(v4l_base->fd);
 
         if (!(strcmp((const char *)v4l_base->cap.driver, "pwc")))
@@ -1896,6 +1901,7 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     INDI::CCD::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigSwitch(fp, &StackModeSP);
 
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
@@ -2024,4 +2030,16 @@ bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT &pixelFo
     }
 }
 
+bool V4L2_Driver::SetCaptureFormat(uint8_t index)
+{
+    if (Streamer->isRecording())
+    {
+        LOG_WARN("Can not set Image type (GRAY/COLOR) while recording.");
+        return false;
+    }
 
+    PrimaryCCD.setNAxis(index == IMAGE_MONO ? 2 : 3);
+    updateFrameSize();
+    Streamer->setPixelFormat(index == 0 ? INDI_MONO : INDI_RGB, 8);
+    return true;
+}

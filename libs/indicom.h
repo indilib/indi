@@ -127,12 +127,43 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
     \param fd file descriptor
     \param buf pointer to store data. Must be initilized and big enough to hold data.
     \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+    \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued.
+
+    (Total time = timeout_seconds + timeout_microseconds)
+    \param timeout_microseconds number of microseconds to wait for terminal before a timeout error is issued.
+
+    (Total time = timeout_seconds + timeout_microseconds)
+    \param nbytes_read the number of bytes read.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+*/
+int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
+
+/** \brief read buffer from terminal with a delimiter
+    \param fd file descriptor
+    \param buf pointer to store data. Must be initilized and big enough to hold data.
+    \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
     \param timeout number of seconds to wait for terminal before a timeout error is issued.
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
+
+/** \brief read buffer from terminal with a delimiter
+    \param fd file descriptor
+    \param buf pointer to store data. Must be initilized and big enough to hold data.
+    \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+    \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
+    \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued.
+
+    (Total Timeout is timeout_seconds + timeout_microseconds)
+    \param timeout_microseconds number of microseconds to wait for terminal before a timeout error is issued.
+
+    (Total Timeout  is timeout_seconds + timeout_microseconds)
+    \param nbytes_read the number of bytes read.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+*/
+int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds,
+                              int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -143,7 +174,6 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-
 int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
 
 /** \brief Writes a buffer to fd.
@@ -173,7 +203,6 @@ int tty_write_string(int fd, const char *buffer, int *nbytes_written);
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
     \author Wildi Markus
 */
-
 int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd);
 
 /** \brief Closes a tty connection and flushes the bus.
@@ -199,6 +228,9 @@ void tty_set_generic_udp_format(int enabled);
 void tty_clr_trailing_read_lf(int enabled);
 
 int tty_timeout(int fd, int timeout);
+/*@}*/
+
+int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
 /*@}*/
 
 /**

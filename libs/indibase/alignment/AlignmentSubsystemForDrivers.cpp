@@ -73,10 +73,9 @@ bool AlignmentSubsystemForDrivers::AddAlignmentEntryEquatorial(double actualRA, 
         return false;
     }
 
-    double LST = get_local_sidereal_time(location.longitude);
-    INDI::IEquatorialCoordinates RaDec {range24(LST - mountRA), mountDec};
+    INDI::IEquatorialCoordinates RaDec {mountRA, mountDec};
     AlignmentDatabaseEntry NewEntry;
-    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
 
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.RightAscension = actualRA;
@@ -118,13 +117,10 @@ bool AlignmentSubsystemForDrivers::SkyToTelescopeEquatorial(double actualRA, dou
     {
         if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
         {
-            LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
-
+            EquatorialCoordinatesFromTelescopeDirectionVector(TDV, eq);
             //  and now we have to convert from lha back to RA
-            double LST = get_local_sidereal_time(location.longitude);
-            mountRA = range24(LST - eq.rightascension);
+            mountRA = eq.rightascension;
             mountDec = eq.declination;
-
             return true;
         }
     }
@@ -150,13 +146,10 @@ bool AlignmentSubsystemForDrivers::TelescopeEquatorialToSky(double mountRA, doub
     if (GetAlignmentDatabase().size() > 1)
     {
         TelescopeDirectionVector TDV;
-
-        double lst = get_local_sidereal_time(location.longitude);
-        double lha = get_local_hour_angle(lst, mountRA);
-        eq.rightascension = lha;
+        eq.rightascension = mountRA;
         eq.declination = mountDec;
 
-        TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+        TDV = TelescopeDirectionVectorFromEquatorialCoordinates(eq);
         return TransformTelescopeToCelestial(TDV, actualRA, actualDec);
     }
 

@@ -103,8 +103,13 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
+        //bool readResponse(uint8_t * res, uint32_t res_len, int *nbytes_read);
+        int readByte(int fd, uint8_t *buf, int timeout, int *nbytes_read);
+        int readBytes(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_read);
+        int writeBytes(int fd, const uint8_t *buf, int nbytes, int *nbytes_written);
+        int readPacket(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_read);
         bool sendCommand(const uint8_t * cmd, uint8_t * res, uint32_t cmd_len, uint32_t res_len);
-        void hexDump(char * buf, const uint8_t * data, uint32_t size);
+        char * efaDump(char * buf, int buflen, const uint8_t * data, uint32_t size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
         ///////////////////////////////////////////////////////////////////////////////////
@@ -112,6 +117,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
         double calculateTemperature(uint8_t byte2, uint8_t byte3);
+        bool validateLengths(const uint8_t *cmd, uint32_t len);
         uint8_t calculateCheckSum(const uint8_t *cmd, uint32_t len);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
@@ -189,11 +195,13 @@ class EFA : public INDI::Focuser
         double m_LastTemperature[2];
         double m_LastPosition {0};
 
+        bool IN_TIMER = false;
+
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
-        static const char DRIVER_SOM { 0x3B };
+        static const uint8_t DRIVER_SOM { 0x3B };
         // Temperature Reporting threshold
         static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
 

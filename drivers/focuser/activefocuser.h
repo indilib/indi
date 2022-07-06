@@ -23,68 +23,69 @@
 #include "hidapi.h"
 #include "indifocuser.h"
 
-class ActiveFocuser : public INDI::Focuser {
-public:
+class ActiveFocuser : public INDI::Focuser
+{
+    public:
 
-    ActiveFocuser();
+        ActiveFocuser();
 
-    ~ActiveFocuser();
+        ~ActiveFocuser();
 
-    const char *getDefaultName() override;
+        const char *getDefaultName() override;
 
-    void ISGetProperties(const char *dev) override;
+        void ISGetProperties(const char *dev) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    void TimerHit() override;
+        void TimerHit() override;
 
-protected:
+    protected:
 
-    bool initProperties() override;
+        bool initProperties() override;
 
-    bool updateProperties() override;
+        bool updateProperties() override;
 
-    bool Connect() override;
+        bool Connect() override;
 
-    bool Disconnect() override;
+        bool Disconnect() override;
 
-    bool AbortFocuser() override;
+        bool AbortFocuser() override;
 
-    IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
-    IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-private:
+    private:
 
-    hid_device *hid_handle;
+        hid_device *hid_handle;
 
-    double internalTicks{0};
-    // double initTicks{0}; // #PS: unused
+        double internalTicks{0};
+        // double initTicks{0}; // #PS: unused
 
-    // Hardware version display
-    ITextVectorProperty HardwareVersionNP;
-    IText HardwareVersionN[1];
+        // Hardware version display
+        ITextVectorProperty HardwareVersionNP;
+        IText HardwareVersionN[1];
 
-    // Software version display
-    ITextVectorProperty SoftwareVersionNP;
-    IText SoftwareVersionN[1];
+        // Software version display
+        ITextVectorProperty SoftwareVersionNP;
+        IText SoftwareVersionN[1];
 
-    // Air Temperature in celsius degrees
-    INumberVectorProperty AirTemperatureNP;
-    INumber AirTemperatureN[1];
+        // Air Temperature in celsius degrees
+        INumberVectorProperty AirTemperatureNP;
+        INumber AirTemperatureN[1];
 
-    // Mirror Temperature in celsius degrees
-    INumberVectorProperty MirrorTemperatureNP;
-    INumber MirrorTemperatureN[1];
+        // Mirror Temperature in celsius degrees
+        INumberVectorProperty MirrorTemperatureNP;
+        INumber MirrorTemperatureN[1];
 
-    // Tube Temperature in celsius degrees
-    INumberVectorProperty TubeTemperatureNP;
-    INumber TubeTemperatureN[1];
+        // Tube Temperature in celsius degrees
+        INumberVectorProperty TubeTemperatureNP;
+        INumber TubeTemperatureN[1];
 
-    // Fan State switch
-    ISwitch FanS[2];
-    ISwitchVectorProperty FanSP;
+        // Fan State switch
+        ISwitch FanS[2];
+        ISwitchVectorProperty FanSP;
 
 };

@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
+                  2022 by Ludovic Pollet
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,6 +34,9 @@ typedef struct userio
 {
     size_t (*write)(void *user, const void * ptr, size_t count);
     int (*vprintf)(void *user, const char * format, va_list arg);
+
+    // join the given shared buffer as ancillary data. xml must be at least one char - optional
+    void (*joinbuff)(void * user, const char * xml, void * buffer, size_t bloblen);
 } userio;
 
 const struct userio *userio_file();

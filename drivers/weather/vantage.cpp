@@ -35,7 +35,8 @@
 #define VANTAGE_RES     128
 #define VANTAGE_TIMEOUT 2
 
-static uint16_t crc_table[] = {
+static uint16_t crc_table[] =
+{
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad,
     0xe1ce, 0xf1ef, 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6, 0x9339, 0x8318, 0xb37b, 0xa35a,
     0xd3bd, 0xc39c, 0xf3ff, 0xe3de, 0x2462, 0x3443, 0x0420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485, 0xa56a, 0xb54b,
@@ -229,11 +230,11 @@ IPState Vantage::updateWeather()
 
     LOGF_DEBUG("Raw Temperature (%d) [%#4X %#4X]", temperatureValue, loopData[9], loopData[10]);
 
-    // Inside Humidity 
+    // Inside Humidity
     uint8_t humidityValue = loopData[11];
 
     setParameterValue("WEATHER_HUMIDITY", humidityValue );
-    
+
     LOGF_DEBUG("Raw Inside Humidity (%d) [%#X4]", humidityValue, loopData[11]);
 
     // Barometer

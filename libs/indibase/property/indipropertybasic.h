@@ -36,102 +36,106 @@ class PropertyBasicPrivateTemplate;
 template <typename T>
 class PropertyBasic : public INDI::Property
 {
-    using PropertyBasicPrivate = PropertyBasicPrivateTemplate<T>;
-    DECLARE_PRIVATE(PropertyBasic)
-public:
-    ~PropertyBasic();
+        using PropertyBasicPrivate = PropertyBasicPrivateTemplate<T>;
+        DECLARE_PRIVATE(PropertyBasic)
+    public:
+        ~PropertyBasic();
 
-public:
-    void setName(const char *name);
-    void setName(const std::string &name);
+    public:
+        void setName(const char *name);
+        void setName(const std::string &name);
 
-    void setLabel(const char *label);
-    void setLabel(const std::string &label);
+        void setLabel(const char *label);
+        void setLabel(const std::string &label);
 
-    void setGroupName(const char *name);
-    void setGroupName(const std::string &name);
+        void setGroupName(const char *name);
+        void setGroupName(const std::string &name);
 
-    void setPermission(IPerm permission);
-    void setTimeout(double timeout);
-    void setState(IPState state);
+        void setPermission(IPerm permission);
+        void setTimeout(double timeout);
+        void setState(IPState state);
 
-    void setTimestamp(const char *timestamp);
-    void setTimestamp(const std::string &timestamp);
+        void setTimestamp(const char *timestamp);
+        void setTimestamp(const std::string &timestamp);
 
-public:
-    const char *getName()               const;
-    const char *getLabel()              const;
-    const char *getGroupName()          const;
+    public:
+        const char *getName()               const;
+        const char *getLabel()              const;
+        const char *getGroupName()          const;
 
-    IPerm       getPermission()         const;
-    const char *getPermissionAsString() const;
+        IPerm       getPermission()         const;
+        const char *getPermissionAsString() const;
 
-    double      getTimeout()            const;
-    IPState     getState()              const;
-    const char *getStateAsString()      const;
+        double      getTimeout()            const;
+        IPState     getState()              const;
+        const char *getStateAsString()      const;
 
-    const char *getTimestamp()          const;
+        const char *getTimestamp()          const;
 
-public:
-    bool isEmpty() const;
+    public:
+        bool isEmpty() const;
 
-    bool isNameMatch(const char *otherName) const;
-    bool isNameMatch(const std::string &otherName) const;
+        bool isNameMatch(const char *otherName) const;
+        bool isNameMatch(const std::string &otherName) const;
 
-    bool isLabelMatch(const char *otherLabel) const;
-    bool isLabelMatch(const std::string &otherLabel) const;
+        bool isLabelMatch(const char *otherLabel) const;
+        bool isLabelMatch(const std::string &otherLabel) const;
 
-public:
-    void save(FILE *f) const;
+    public:
+        void save(FILE *f) const;
 
-    void vapply(const char *format, va_list args) const;
-    void vdefine(const char *format, va_list args) const;
+        void vapply(const char *format, va_list args) const;
+        void vdefine(const char *format, va_list args) const;
 
-    void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
-    void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+        void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+        void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
-    void apply() const;
-    void define() const;
+        void apply() const;
+        void define() const;
 
-public:
-    PropertyView<T> * operator &();
+    public:
+        PropertyView<T> * operator &();
 
-public:
-    size_t size() const;
+    public:
+        size_t size() const;
 
-public:
-    void reserve(size_t size);
-    void resize(size_t size);
+    public:
+        void reserve(size_t size);
+        void resize(size_t size);
 
-    void shrink_to_fit();
+        void shrink_to_fit();
 
-    void push(WidgetView<T> &&item);
-    void push(const WidgetView<T> &item);
+        void push(WidgetView<T> &&item);
+        void push(const WidgetView<T> &item);
 
-    const WidgetView<T> *at(size_t index) const;
+        const WidgetView<T> *at(size_t index) const;
 
-    WidgetView<T> &operator[](size_t index) const;
+        WidgetView<T> &operator[](size_t index) const;
 
-public: // STL-style iterators
-    WidgetView<T> *begin();
-    WidgetView<T> *end();
-    const WidgetView<T> *begin() const;
-    const WidgetView<T> *end() const;
+    public: // STL-style iterators
+        WidgetView<T> *begin();
+        WidgetView<T> *end();
+        const WidgetView<T> *begin() const;
+        const WidgetView<T> *end() const;
 
-    template <typename Predicate>
-    WidgetView<T> *find_if(Predicate pred)
-    { return std::find_if(begin(), end(), pred); }
+        template <typename Predicate>
+        WidgetView<T> *find_if(Predicate pred)
+        {
+            return std::find_if(begin(), end(), pred);
+        }
 
-    template <typename Predicate>
-    const WidgetView<T> *find_if(Predicate pred) const
-    { return std::find_if(begin(), end(), pred); }
+        template <typename Predicate>
+        const WidgetView<T> *find_if(Predicate pred) const
+        {
+            return std::find_if(begin(), end(), pred);
+        }
 
-public:
-    WidgetView<T> *findWidgetByName(const char *name) const;
-    int findWidgetIndexByName(const char *name) const;
+    public:
+        WidgetView<T> *findWidgetByName(const char *name) const;
+        int findWidgetIndexByName(const char *name) const;
 
-protected:
-    PropertyBasic(PropertyBasicPrivate &dd);
+    protected:
+        PropertyBasic(PropertyBasicPrivate &dd);
 };
 
 }

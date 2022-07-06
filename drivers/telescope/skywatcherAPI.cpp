@@ -2,11 +2,16 @@
  * \file skywatcherAPI.cpp
  *
  * \author Roger James
+ * \author Jasem Mutlaq
  * \author Gerry Rozema
  * \author Jean-Luc Geehalel
  * \date 13th November 2013
  *
  * Updated on 2020-12-01 by Jasem Mutlaq
+ * Updated on 2021-11-20 by Jasem Mutlaq:
+ *  + Fixed tracking.
+ *  + Added iterative GOTO.
+ *  + Simplified driver and logging.
  *
  * This file contains an implementation in C++ of the Skywatcher API.
  * It is based on work from four sources.
@@ -23,6 +28,7 @@
 #include <iomanip>
 #include <memory>
 #include <thread>
+#include <termios.h>
 
 void AXISSTATUS::SetFullStop()
 {
@@ -46,6 +52,61 @@ void AXISSTATUS::SetSlewingTo(bool forward, bool highspeed)
 
     SlewingForward = forward;
     HighSpeed      = highspeed;
+}
+
+const std::map<int, std::string> SkywatcherAPI::errorCodes
+{
+    {0, "Unknown command"},
+    {1, "Command length error"},
+    {2, "Motor not stopped"},
+    {3, "Invalid character"},
+    {4, "Not initialized"},
+    {5, "Driver sleeping"}
+};
+
+const char *SkywatcherAPI::mountTypeToString(uint8_t type)
+{
+    switch(type)
+    {
+        case EQ6:
+            return "EQ6";
+        case HEQ5:
+            return "HEQ5";
+        case EQ5:
+            return "EQ5";
+        case EQ3:
+            return "EQ3";
+        case EQ8:
+            return "EQ8";
+        case AZEQ6:
+            return "AZ-EQ6";
+        case AZEQ5:
+            return "AZ-EQ5";
+        case STAR_ADVENTURER:
+            return "Star Adventurer";
+        case EQ8R_PRO:
+            return "EQ8R Pro";
+        case AZEQ6_PRO:
+            return "AZ-EQ6 Pro";
+        case EQ6_PRO:
+            return "EQ6 Pro";
+        case EQ5_PRO:
+            return "EQ5 Pro";
+        case GT:
+            return "GT";
+        case MF:
+            return "MF";
+        case _114GT:
+            return "114 GT";
+        case DOB:
+            return "Dob";
+        case AZGTE:
+            return "AZ-GTe";
+        case AZGTI:
+            return "AZ-GTi";
+        default:
+            return "Uknown";
+    }
 }
 
 SkywatcherAPI::SkywatcherAPI()
@@ -169,9 +230,10 @@ bool SkywatcherAPI::GetEncoder(AXISID Axis)
     if (!TalkWithAxis(Axis, 'j', Parameters, Response))
         return false;
 
-    long Microsteps            = BCDstr2long(Response);
-    CurrentEncoders[(int)Axis] = Microsteps;
-
+    long Microsteps = BCDstr2long(Response);
+    // Only accept valid data
+    if (Microsteps > 0)
+        CurrentEncoders[Axis] = Microsteps;
     return true;
 }
 
@@ -184,7 +246,14 @@ bool SkywatcherAPI::GetHighSpeedRatio(AXISID Axis)
         return false;
 
     unsigned long highSpeedRatio = Highstr2long(Response);
-    HighSpeedRatio[(int)Axis]    = highSpeedRatio;
+
+    if (highSpeedRatio == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR, "Invalid highspeed ratio value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
+    HighSpeedRatio[Axis]    = highSpeedRatio;
 
     return true;
 }
@@ -199,11 +268,12 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
 
     long tmpMicrostepsPerRevolution = BCDstr2long(Response);
 
-    // There is a bug in the earlier version firmware(Before 2.00) of motor controller MC001.
-    // Overwrite the MicrostepsPerRevolution reported by the MC for 80GT mount and 114GT mount.
-    // kecsap: The Merlin mounts use the same mount code and it brakes the operation.
-    //    if (MountCode == GT)
-    //        tmpMicrostepsPerRevolution = 0x162B97; // for 80GT mount
+    if (tmpMicrostepsPerRevolution == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR, "Invalid microstep value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
     if (MountCode == _114GT)
         tmpMicrostepsPerRevolution = 0x205318; // for 114GT mount
 
@@ -231,14 +301,18 @@ bool SkywatcherAPI::GetMicrostepsPerWormRevolution(AXISID Axis)
     if (!TalkWithAxis(Axis, 's', Parameters, Response))
         return false;
 
-    MicrostepsPerWormRevolution[(int)Axis] = BCDstr2long(Response);
+    uint32_t value = BCDstr2long(Response);
+    if (value == 0)
+        MYDEBUGF(INDI::Logger::DBG_WARNING, "Zero Microsteps per worm revolution for Axis %d. Possible corrupted data.", Axis);
+
+    MicrostepsPerWormRevolution[Axis] = value;
 
     return true;
 }
 
 bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
 {
-    //    MYDEBUG(DBG_SCOPE, "GetMotorBoardVersion");
+    MYDEBUG(DBG_SCOPE, "GetMotorBoardVersion");
     std::string Parameters, Response;
 
     if (!TalkWithAxis(Axis, 'e', Parameters, Response))
@@ -247,6 +321,9 @@ bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
     unsigned long tmpMCVersion = BCDstr2long(Response);
 
     MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
+
+    MYDEBUGF(INDI::Logger::DBG_DEBUG, "Motor Board Version: %#X", MCVersion);
+
     return true;
 }
 
@@ -267,7 +344,16 @@ bool SkywatcherAPI::GetStepperClockFrequency(AXISID Axis)
     if (!TalkWithAxis(Axis, 'b', Parameters, Response))
         return false;
 
-    StepperClockFrequency[(int)Axis] = BCDstr2long(Response);
+    uint32_t value = BCDstr2long(Response);
+
+    if (value == 0)
+    {
+        MYDEBUG(INDI::Logger::DBG_ERROR,
+                "Invalid Stepper Clock Frequency value from mount. Cycle power and reconnect again.");
+        return false;
+    }
+
+    StepperClockFrequency[Axis] = value;
 
     return true;
 }
@@ -348,7 +434,7 @@ bool SkywatcherAPI::InitializeMC()
 
 bool SkywatcherAPI::InitMount()
 {
-    MYDEBUG(DBG_SCOPE, "InitMount");
+    //MYDEBUG(DBG_SCOPE, "InitMount");
 
     if (!CheckIfDCMotor())
         return false;
@@ -358,9 +444,11 @@ bool SkywatcherAPI::InitMount()
 
     MountCode = MCVersion & 0xFF;
 
+    MYDEBUGF(DBG_SCOPE, "Mount Code: %d (%s)", MountCode, mountTypeToString(MountCode));
+
     // Disable EQ mounts
     // 0x22 is code for AZEQ6 which is added as an exception as proposed by Dirk Tetzlaff
-    if (MountCode < 0x80 && MountCode != AZEQ6)
+    if (MountCode < 0x80 && MountCode != AZEQ6 && MountCode != AZEQ5 && MountCode != AZEQ6_PRO)
     {
         MYDEBUGF(DBG_SCOPE, "Mount type not supported. %d", MountCode);
         return false;
@@ -559,7 +647,7 @@ bool SkywatcherAPI::SetMotionMode(AXISID Axis, char Func, char Direction)
 
 bool SkywatcherAPI::SetClockTicksPerMicrostep(AXISID Axis, long ClockTicksPerMicrostep)
 {
-    MYDEBUG(DBG_SCOPE, "SetClockTicksPerMicrostep");
+    //MYDEBUG(DBG_SCOPE, "SetClockTicksPerMicrostep");
     std::string Parameters, Response;
 
     Long2BCDstr(ClockTicksPerMicrostep, Parameters);
@@ -651,41 +739,29 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool Ignor
 
 void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
 {
-    if (verbose)
-    {
-        MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
-    }
+    // Nothing to do
     if (0 == OffsetInMicrosteps)
-        // Nothing to do
         return;
 
     // Debugging
     LastSlewToTarget[Axis] = CurrentEncoders[Axis] + OffsetInMicrosteps;
     if (verbose)
     {
-        MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
+        MYDEBUGF(INDI::Logger::DBG_DEBUG, "SlewTo Axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
                  OffsetInMicrosteps, CurrentEncoders[Axis], LastSlewToTarget[Axis]);
     }
 
-    char Direction;
-    bool Forward;
+    char Direction = '0';
+    bool Forward = true;
 
-    if (OffsetInMicrosteps > 0)
-    {
-        Forward   = true;
-        Direction = '0';
-    }
-    else
+    if (OffsetInMicrosteps < 0)
     {
         Forward            = false;
         Direction          = '1';
         OffsetInMicrosteps = -OffsetInMicrosteps;
     }
 
-    bool HighSpeed = false;
-
-    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode)
-        HighSpeed = true;
+    bool HighSpeed = (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode);
 
     if (!GetStatus(Axis))
         return;
@@ -734,7 +810,6 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose)
 bool SkywatcherAPI::SlowStop(AXISID Axis)
 {
     // Request a slow stop
-    //    MYDEBUG(DBG_SCOPE, "SlowStop");
     std::string Parameters, Response;
 
     return TalkWithAxis(Axis, 'K', Parameters, Response);
@@ -742,7 +817,6 @@ bool SkywatcherAPI::SlowStop(AXISID Axis)
 
 bool SkywatcherAPI::StartMotion(AXISID Axis)
 {
-    //    MYDEBUG(DBG_SCOPE, "StartMotion");
     std::string Parameters, Response;
 
     return TalkWithAxis(Axis, 'J', Parameters, Response);
@@ -750,58 +824,80 @@ bool SkywatcherAPI::StartMotion(AXISID Axis)
 
 bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdDataStr, std::string &responseStr)
 {
-    //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis Axis %s Command %c Data (%s)", Axis == AXIS1 ? "AXIS1" : "AXIS2", Command,
-    //             cmdDataStr.c_str());
+    int bytesWritten = 0;
+    int bytesRead = 0;
+    int errorCode = 0;
+    char command[SKYWATCHER_MAX_CMD] = {0};
+    char response[SKYWATCHER_MAX_CMD] = {0};
 
-    std::string SendBuffer;
-    int bytesWritten;
-    int bytesRead;
-    bool StartReading   = false;
-    bool EndReading     = false;
-    bool mount_response = false;
-    char response[257];
+    snprintf(command, SKYWATCHER_MAX_CMD, ":%c%c%s", Command, Axis == AXIS1 ? '1' : '2', cmdDataStr.c_str());
 
-    SendBuffer.push_back(':');
-    SendBuffer.push_back(Command);
-    SendBuffer.push_back(Axis == AXIS1 ? '1' : '2');
-    SendBuffer.append(cmdDataStr);
-    SendBuffer.push_back('\r');
-    tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
+    MYDEBUGF(DBG_SCOPE, "CMD <%s>", command + 1);
 
+    // Now add the trailing 0xD
+    command[strlen(command)] = 0xD;
 
-    while (!EndReading)
+    for (int retries = 0; retries < SKYWATCHER_MAX_RETRTY; retries++)
     {
-        char c;
-        int rc;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-        response[0] = '\0';
-        rc = tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
-        if (rc != TTY_OK)
-            return false;
-        for (int i = 0; i < bytesRead && !EndReading; i++)
+        tcflush(MyPortFD, TCIOFLUSH);
+        if ( (errorCode = tty_write_string(MyPortFD, command, &bytesWritten)) != TTY_OK)
         {
-            c = response[i];
-
-            if ((c == '=') || (c == '!'))
+            if (retries == SKYWATCHER_MAX_RETRTY - 1)
             {
-                mount_response = (c == '=');
-                StartReading = true;
+                char errorMessage[MAXRBUF] = {0};
+                tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
+                return false;
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
-
-            if ((c == '\r') && StartReading)
-            {
-                EndReading = true;
-                continue;
-            }
-
-            if (StartReading)
-                responseStr.push_back(c);
         }
+
+        // If we get less than 2 bytes then it must be an error (=\r is a valid response).
+        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
+                || bytesRead < 2)
+        {
+            if (retries == SKYWATCHER_MAX_RETRTY - 1)
+            {
+                char errorMessage[MAXRBUF] = {0};
+                tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                if (bytesRead < 2)
+                    return false;
+                else
+                    MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
+                return false;
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+        }
+        else
+            break;
     }
-    //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis - %s Response (%s)", mount_response ? "Good" : "Bad", responseStr.c_str());
+
+    // Remove CR (0x0D)
+    response[bytesRead - 1] = 0;
+    // If it is not empty, log it.
+    if (response[1] != 0)
+        MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);
+    // Skip first = or !
+    responseStr = response + 1;
+
+    if (response[0] == '!')
+    {
+        // char to int
+        uint8_t code = response[1] - 0x30;
+        if (errorCodes.count(code) > 0)
+            MYDEBUGF(INDI::Logger::DBG_ERROR, "Mount error: %s", errorCodes.at(code).c_str());
+        return false;
+    }
+
+    // Response starting to ! is abnormal response, while = is OK.
     return true;
 }
 

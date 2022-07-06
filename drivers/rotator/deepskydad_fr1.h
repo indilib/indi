@@ -32,8 +32,8 @@ class DeepSkyDadFR1 : public INDI::Rotator
     public:
         DeepSkyDadFR1();
 
-		typedef enum { Slow, Fast } SpeedMode;
-		typedef enum { One, Two, Four, Eight } StepSize;
+        typedef enum { Slow, Fast } SpeedMode;
+        typedef enum { One, Two, Four, Eight } StepSize;
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -74,11 +74,11 @@ class DeepSkyDadFR1 : public INDI::Rotator
         // Firmware version
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
-		
+
         // Speed mode
         ISwitch SpeedModeS[2];
         ISwitchVectorProperty SpeedModeSP;
-		// Step size
+        // Step size
         ISwitch StepSizeS[4];
         ISwitchVectorProperty StepSizeSP;
 };

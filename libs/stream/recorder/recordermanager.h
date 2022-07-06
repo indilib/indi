@@ -33,17 +33,17 @@ namespace INDI
  */
 class RecorderManager
 {
-  public:
-    RecorderManager();
-    ~RecorderManager();
-    std::vector<RecorderInterface *> getRecorderList();
-    RecorderInterface *getRecorder();
-    RecorderInterface *getDefaultRecorder();
-    void setRecorder(RecorderInterface *recorder);
+    public:
+        RecorderManager();
+        ~RecorderManager();
+        std::vector<RecorderInterface *> getRecorderList();
+        RecorderInterface *getRecorder();
+        RecorderInterface *getDefaultRecorder();
+        void setRecorder(RecorderInterface *recorder);
 
-  protected:
-    std::vector<RecorderInterface *> recorder_list;
-    RecorderInterface *current_recorder;
-    RecorderInterface *default_recorder;
+    protected:
+        std::vector<RecorderInterface *> recorder_list;
+        RecorderInterface *current_recorder;
+        RecorderInterface *default_recorder;
 };
 }

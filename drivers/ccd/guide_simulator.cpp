@@ -117,6 +117,9 @@ bool GuideSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
+    CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
+    addCaptureFormat(format);
+
     IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
     IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
     IUFillNumber(&SimulatorSettingsN[2], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
@@ -137,16 +140,13 @@ bool GuideSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
+                       "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
     IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
@@ -159,17 +159,19 @@ bool GuideSim::initProperties()
 
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                        IPS_IDLE);
+
+    // Timeout
+    ToggleTimeoutSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    ToggleTimeoutSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    ToggleTimeoutSP.fill(getDeviceName(), "CCD_TIMEOUT", "Timeout", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
 #endif
-
-
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
 
     uint32_t cap = 0;
 
@@ -223,6 +225,7 @@ void GuideSim::ISGetProperties(const char * dev)
     defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
+    defineProperty(&ToggleTimeoutSP);
 }
 
 bool GuideSim::updateProperties()
@@ -243,7 +246,6 @@ bool GuideSim::updateProperties()
             SetGuiderParams(500, 290, 16, 9.8, 12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
-
     }
     else
     {
@@ -297,17 +299,6 @@ bool GuideSim::StartExposure(float duration)
     return true;
 }
 
-bool GuideSim::StartGuideExposure(float n)
-{
-    GuideExposureRequest = n;
-    AbortGuideFrame      = false;
-    GuideCCD.setExposureDuration(n);
-    DrawCcdFrame(&GuideCCD);
-    gettimeofday(&GuideExpStart, nullptr);
-    InGuideExposure = true;
-    return true;
-}
-
 bool GuideSim::AbortExposure()
 {
     if (!InExposure)
@@ -315,15 +306,6 @@ bool GuideSim::AbortExposure()
 
     AbortPrimaryFrame = true;
 
-    return true;
-}
-
-bool GuideSim::AbortGuideExposure()
-{
-    //IDLog("Enter AbortGuideExposure\n");
-    if (!InGuideExposure)
-        return true; //  no need to abort if we aren't doing one
-    AbortGuideFrame = true;
     return true;
 }
 
@@ -352,7 +334,7 @@ void GuideSim::TimerHit()
     if (!isConnected())
         return;
 
-    if (InExposure)
+    if (InExposure && ToggleTimeoutSP.findOnSwitchIndex() == INDI_DISABLED)
     {
         if (AbortPrimaryFrame)
         {
@@ -383,52 +365,6 @@ void GuideSim::TimerHit()
                     //  set a shorter timer
                     nextTimer = timeleft * 1000;
                 }
-            }
-        }
-    }
-
-    if (InGuideExposure)
-    {
-        float timeleft;
-        timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
-
-        //IDLog("GUIDE Exposure left: %g - Requset: %g\n", timeleft, GuideExposureRequest);
-
-        if (timeleft < 0)
-            timeleft = 0;
-
-        //ImageExposureN[0].value = timeleft;
-        //IDSetNumber(ImageExposureNP, nullptr);
-        GuideCCD.setExposureLeft(timeleft);
-
-        if (timeleft < 1.0)
-        {
-            if (timeleft <= 0.001)
-            {
-                InGuideExposure = false;
-                if (!AbortGuideFrame)
-                {
-                    GuideCCD.binFrame();
-                    ExposureComplete(&GuideCCD);
-                    if (InGuideExposure)
-                    {
-                        //  the call to complete triggered another exposure
-                        timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
-                        if (timeleft < 1.0)
-                        {
-                            nextTimer = timeleft * 1000;
-                        }
-                    }
-                }
-                else
-                {
-                    //IDLog("Not sending guide frame cuz of abort\n");
-                }
-                AbortGuideFrame = false;
-            }
-            else
-            {
-                nextTimer = timeleft * 1000; //  set a shorter timer
             }
         }
     }
@@ -465,9 +401,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
-    if (targetChip->getXRes() == 500)
-        exposure_time = GuideExposureRequest * 4;
-    else if (Streamer->isStreaming())
+    if (Streamer->isStreaming())
         exposure_time = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
         exposure_time = ExposureRequest;
@@ -504,7 +438,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         PESpot = PESpot * 2.0 * 3.14159;
 
         PEOffset = PEMax * std::sin(PESpot);
-        //fprintf(stderr,"PEOffset = %4.2f arcseconds timesince %4.2f\n",PEOffset,timesince);
         PEOffset = PEOffset / 3600; //  convert to degrees
         //PeOffset=PeOffset/15;       //  ra is in h:mm
 
@@ -598,7 +531,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         // Add declination drift, if any.
         decr += decDrift / 3600.0 * 0.0174532925;
 
-        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,decr);
         //  now lets calculate the radius we need to fetch
         float radius;
 
@@ -762,13 +694,11 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                     int rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
                                     &band, &c, plate, ob, &dist, &dir);
-                    //fprintf(stderr,"Parsed %d items\n",rc);
                     if (rc == 12)
                     {
                         lines++;
                         //if(c==0) {
                         stars++;
-                        //fprintf(stderr,"%s %8.4f %8.4f %5.2f %5.2f %d\n",id,ra,dec,mag,dist,dir);
 
                         //  Convert the ra/dec to standard co-ordinates
                         double sx;    //  standard co-ords
@@ -777,9 +707,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         double sdecr; //  star dec in radians;
                         double ccdx;
                         double ccdy;
-
-                        //fprintf(stderr,"line %s",line);
-                        //fprintf(stderr,"parsed %6.5f %6.5f\n",ra,dec);
 
                         srar  = ra * 0.0174532925;
                         sdecr = dec * 0.0174532925;
@@ -1188,6 +1115,14 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
 
             return true;
         }
+
+        if (ToggleTimeoutSP.isNameMatch(name))
+        {
+            ToggleTimeoutSP.update(states, names, n);
+            ToggleTimeoutSP.setState(IPS_OK);
+            ToggleTimeoutSP.apply();
+            return true;
+        }
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -1201,19 +1136,10 @@ void GuideSim::activeDevicesUpdated()
 #else
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
 #endif
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
-
-    strncpy(FWHMNP.device, ActiveDeviceT[ACTIVE_FOCUSER].text, MAXINDIDEVICE);
 }
 
 bool GuideSim::ISSnoopDevice(XMLEle * root)
 {
-    if (IUSnoopNumber(root, &FWHMNP) == 0)
-    {
-        seeing = FWHMNP.np[0].value;
-        return true;
-    }
-
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
@@ -1376,10 +1302,10 @@ void * GuideSim::streamVideo()
     return nullptr;
 }
 
-void GuideSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip)
 {
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
+    INDI::CCD::addFITSKeywords(targetChip);
 
     int status = 0;
-    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
+    fits_update_key_dbl(*targetChip->fitsFilePointer(), "Gain", GainN[0].value, 3, "Gain", &status);
 }

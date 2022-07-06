@@ -316,7 +316,7 @@ void PropertyBasic<T>::shrink_to_fit()
 {
     D_PTR(PropertyBasic);
     d->widgets.shrink_to_fit();
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());    
+    d->property.setWidgets(d->widgets.data(), d->widgets.size());
 }
 
 template <typename T>

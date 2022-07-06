@@ -36,31 +36,53 @@ FocusLynxBase::FocusLynxBase()
 
     lynxModels["Optec TCF-Lynx 2"] = "OA";
     lynxModels["Optec TCF-Lynx 3"] = "OB";
-    lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
+
+    // "OC" is now reserved, it is hard coded into focusers that use it
+    // Allthough it can be selected it should not be
+    // lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
-    lynxModels["Optec TCF-S Classic converted"] = "OE";
-    lynxModels["Optec TCF-S3 Classic converted"] = "OF";
-    //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
+
+    // "OE" and "OF" are reserved, no models that are not "OA" or "OB" have been deployed
+    // lynxModels["Optec TCF-S Classic converted"] = "OE";
+    // lynxModels["Optec TCF-S3 Classic converted"] = "OF";
+
+    // "OG" Gemini is reserved. It is used to identify the Optec Gemini
+    // lynxModels["Optec Gemini (reserved for future use)"] = "OG";
+
     lynxModels["Optec Leo"] = "OI";
     lynxModels["Optec Leo High-Torque"] = "OJ";
     lynxModels["Optec Sagitta"] = "OK";
-    lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
-    lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
+    lynxModels["Optec Sagitta 2"] = "OL";
 
-    //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
-    lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
-    lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
-    lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
+    // These are generic for all Optec QuickSync and FeatherTouch HSM models
+    lynxModels["QuickSync / HSM Hi-Torque"] = "FA";
+    lynxModels["QuickSync / HSM Hi-Speed"] = "FB";
+
+    // "FC" is reserved, it has not been deployed and is covered by "FA" and "FB"
+    // lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
+
+    // These are generic for all Optec DirectSync and FeatherTouch PDMS models
+    lynxModels["DirectSync / PDMS Hi-Torque"] = "FD";
+    lynxModels["DirectSync / PDMS Hi-Speed"] = "FF";
 
     // JM 2019-09-27: This was added after the discussion here
     // https://www.indilib.org/forum/focusers-filter-wheels/5739-starlight-instruments-focuser-boss-ii-hsm20.html
-    lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
-    lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
+    // DVN 2021-11-15: Covered by the generic Device Type FA and FB.
+    // Continued: duplicating device types can result in the wrong type being displayed in the selection box
+    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
+    // lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
+
+    // FE is deprecated, future firmwares will automatically switch to generic device type FD
     lynxModels["FeatherTouch Motor PDMS"] = "FE";
-    lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
-    lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
+
+    lynxModels["FeatherTouch Microtouch MSM Hi-Speed"] = "SO";
+    lynxModels["FeatherTouch Microtouch MSM Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
+
+    //TA is deprecated, future firmwares will automatically switch to generic device type FA
     lynxModels["Televue Focuser"] = "TA";
+
+    lynxModels["Unipolar motor (Robo-Focus)"] = "RA";
 
     ModelS = nullptr;
 
@@ -75,8 +97,7 @@ FocusLynxBase::FocusLynxBase()
                       FOCUSER_CAN_REVERSE  |
                       FOCUSER_HAS_BACKLASH);
 
-    isAbsolute = false;
-    isSynced   = false;
+    canHome = false;
     isHoming   = false;
 
     simStatus[STATUS_MOVING]   = ISS_OFF;
@@ -128,14 +149,10 @@ bool FocusLynxBase::initProperties()
     IUFillNumberVector(&TemperatureParamNP, TemperatureParamN, 2, getDeviceName(), "T. PARAMETERS", "Mode Parameters",
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Enable/Disable Sync Mandatory for relative focuser
-    IUFillSwitch(&SyncMandatoryS[INDI_ENABLED], "INDI_ENABLED", "Enabled", isSynced == false ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&SyncMandatoryS[INDI_DISABLED], "INDI_DISABLED", "Disabled", isSynced == true ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&SyncMandatorySP, SyncMandatoryS, 2, getDeviceName(), "SYNC MANDATORY", "Sync Mandatory",
-                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     // Focuser Step Size
-    IUFillNumber(&StepSizeN[0], "10000*microns/step", "", "%.f", 0, 65535, 0., 0);
+    // An early command doc listed this as 10000 instead of the correct 1000. Because this is informational only (not used within the controller)
+    // fixing it should have no consequences.
+    IUFillNumber(&StepSizeN[0], "1000*microns/step", "", "%.f", 0, 65535, 0., 0);
     IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -219,11 +236,16 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 * ***********************************************************************************/
 bool FocusLynxBase::updateProperties()
 {
-    // For absolute focusers the vector is set to RO, as we get value from the HUB
-    if (isAbsolute == false)
-        FocusMaxPosNP.p = IP_RW;
-    else
+    // For homing focusers the vector is set to RO, as we get value from the HUB
+
+    if(canHome)
+    {
         FocusMaxPosNP.p = IP_RO;
+    }
+    else
+    {
+        FocusMaxPosNP.p = IP_RW;
+    }
 
     INDI::Focuser::updateProperties();
 
@@ -327,8 +349,6 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
             else
                 LOG_INFO("Focuser model set. Please connect now...");
 
-            // Check if we have absolute or relative focusers
-            checkIfAbsoluteFocuser();
             //Read the config for this new model form the HUB
             getFocusConfig();
 
@@ -467,19 +487,6 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
         //            return true;
         //        }
 
-        // Sync Mandatory
-        if (!strcmp(SyncMandatorySP.name, name))
-        {
-            IUUpdateSwitch(&SyncMandatorySP, states, names, n);
-
-            if (SyncMandatory(SyncMandatoryS[0].s == ISS_ON))
-                SyncMandatorySP.s = IPS_OK;
-            else
-                SyncMandatorySP.s = IPS_ALERT;
-
-            IDSetSwitch(&SyncMandatorySP, nullptr);
-            return true;
-        }
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
@@ -772,12 +779,8 @@ bool FocusLynxBase::getFocusConfig()
     // Get Max Position
     if (isSimulation())
     {
-        if (isAbsolute == false)
-            // Value with high limit to give freedom to user of emulation range
-            snprintf(response, 32, "Max Pos = %06d\n", 100000);
-        else
-            // Value from the TCF-S absolute focuser
-            snprintf(response, 32, "Max Pos = %06d\n", 7000);
+        // Default value from non-homing focusers
+        snprintf(response, 32, "Max Pos = %06d\n", 65535);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -849,6 +852,27 @@ bool FocusLynxBase::getFocusConfig()
         //As "ZZ" is not exist in lynxModel, not need interator, 'No focuser' is known as first in ModelS
         if(tmpString != "ZZ")
         {
+            //Reset the Home / Center function
+            deleteProperty(GotoSP.name);
+            //All models that can home have the first character of the device type as the letter 'O'
+            canHome = tmpString[0] == 'O';
+
+            if(canHome)
+            {
+                //Homing focusers can not sync
+                deleteProperty(FocusSyncNP.name);
+                GotoSP.nsp = 2;
+            }
+            else
+            {
+                //Non-Homing focusers can sync
+                defineProperty(&FocusSyncNP);
+                GotoSP.nsp = 1;
+            }
+
+            //Reactivate the Home / Center Property
+            defineProperty(&GotoSP);
+
             // If not 'No Focuser' then do iterator
             // iterate throught all elements in std::map<std::string, std::string> and search the index from the code.
             std::map<std::string, std::string>::iterator it = lynxModels.begin();
@@ -866,9 +890,6 @@ bool FocusLynxBase::getFocusConfig()
         IUResetSwitch(&ModelSP);
         ModelS[count].s = ISS_ON;
         IDSetSwitch(&ModelSP, nullptr);
-
-        // If focuser is relative, we only exposure "Center" command as it cannot home
-        checkIfAbsoluteFocuser();
 
         LOGF_DEBUG("Index focuser : %d", count);
     } // end if (!isSimulation)
@@ -1029,7 +1050,7 @@ bool FocusLynxBase::getFocusConfig()
         return false;
     }
     // If END, then ignore
-    else if (strcmp(response, "END"))
+    else if (strncmp(response, "END", 3))
     {
         int homeOnStart;
         rc = sscanf(response, "%16[^=]=%d", key, &homeOnStart);
@@ -1040,7 +1061,7 @@ bool FocusLynxBase::getFocusConfig()
     }
 
     // If last response was END, then ignore
-    if (strcmp(response, "END"))
+    if (strncmp(response, "END", 3))
     {
         // END is reached
         memset(response, 0, sizeof(response));
@@ -1260,8 +1281,8 @@ bool FocusLynxBase::getFocusStatus()
             return false;
 
         StatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
-        // For relative focusers home is not applicable.
-        if (isAbsolute == false)
+        // For syncing only focusers home is not applicable.
+        if (canHome == false)
             StatusL[STATUS_HOMING].s = IPS_IDLE;
 
         // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
@@ -1291,7 +1312,7 @@ bool FocusLynxBase::getFocusStatus()
 
         StatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
         // For relative focusers home is not applicable.
-        if (isAbsolute == false)
+        if (canHome == false)
             StatusL[STATUS_HOMED].s = IPS_IDLE;
 
         // #4 FF Detected?
@@ -2182,7 +2203,7 @@ bool FocusLynxBase::home()
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
         isHoming = true;
-        LOG_INFO("Focuser moving to home position...");
+        LOG_INFO("Focuser is homing...");
 
         tcflush(PortFD, TCIFLUSH);
 
@@ -2203,9 +2224,6 @@ bool FocusLynxBase::center()
     char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
-
-    if (isAbsolute == false)
-        return (MoveAbsFocuser(FocusAbsPosN[0].max / 2) != IPS_ALERT);
 
     memset(response, 0, sizeof(response));
 
@@ -2792,7 +2810,6 @@ bool FocusLynxBase::SyncFocuser(uint32_t ticks)
         if (!strcmp(response, "SET"))
         {
             LOGF_INFO("Setting current position to %d", ticks);
-            isSynced = true;
             return true;
         }
         else
@@ -2804,7 +2821,7 @@ bool FocusLynxBase::SyncFocuser(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-//bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+//bool FocusLynxBase::setMaxTravel(uint16_t travel)
 bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 {
     char cmd[LYNX_MAX] = {0};
@@ -2869,7 +2886,7 @@ bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setStepSize(u_int16_t stepsize)
+bool FocusLynxBase::setStepSize(uint16_t stepsize)
 {
     char cmd[LYNX_MAX] = {0};
     int errcode = 0;
@@ -3057,13 +3074,6 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    // Relative focusers must be synced initially.
-    if (isAbsolute == false && isSynced == false)
-    {
-        LOG_ERROR("Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
-
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "<%sM%cR%c>", getFocusTarget(), (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
@@ -3132,13 +3142,6 @@ IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    // Relative focusers must be synced initially.
-    if (isAbsolute == false && isSynced == false)
-    {
-        LOG_ERROR("Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
-
     targetPosition = targetTicks;
 
     memset(response, 0, sizeof(response));
@@ -3196,13 +3199,6 @@ IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
 IPState FocusLynxBase::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t newPosition = 0;
-
-    // Relative focusers must be synced initially.
-    if (isAbsolute == false && isSynced == false)
-    {
-        LOG_DEBUG("Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -3280,7 +3276,7 @@ void FocusLynxBase::TimerHit()
             IDSetSwitch(&GotoSP, nullptr);
             FocusAbsPosNP.s = IPS_OK;
             IDSetNumber(&FocusRelPosNP, nullptr);
-            LOG_INFO("Focuser reached home position.");
+            LOG_INFO("Focuser completed home.");
             if (isSimulation())
                 center();
         }
@@ -3428,11 +3424,7 @@ bool FocusLynxBase::saveConfigItems(FILE *fp)
     //IUSaveConfigSwitch(fp, &FocusBacklashSP);
     //IUSaveConfigNumber(fp, &FocusBacklashNP);
     IUSaveConfigNumber(fp, &StepSizeNP);
-    if (isAbsolute == false)
-    {
-        //IUSaveConfigNumber(fp, &MaxTravelNP);
-        IUSaveConfigSwitch(fp, &SyncMandatorySP);
-    }
+
     return true;
 }
 
@@ -3446,7 +3438,6 @@ bool FocusLynxBase::loadConfig(bool silent, const char *property)
     if (property == nullptr)
     {
         // Need to know the user choice for this option not store in HUB
-        result = INDI::DefaultDevice::loadConfig(silent, "SYNC MANDATORY");
         result = INDI::DefaultDevice::loadConfig(silent, "Presets") && result;
         if (isSimulation())
         {
@@ -3520,61 +3511,4 @@ int FocusLynxBase::getVersion(int *major, int *minor, int *sub)
     if (rc == 3)
         return *major;
     return 0;  // 0 Means error in this case
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool FocusLynxBase::checkIfAbsoluteFocuser()
-{
-    const char *focusName = IUFindOnSwitch(&ModelSP)->label;
-    deleteProperty(GotoSP.name);
-    deleteProperty(SyncMandatorySP.name);
-
-    // Check if we have absolute or relative focusers
-    if (strstr(focusName, "TCF") ||
-            strstr(focusName, "Leo") ||
-            !strcmp(focusName, "FastFocus") ||
-            !strcmp(focusName, "FeatherTouch Motor Hi-Speed") ||
-            !strcmp(focusName, "FeatureTouch HSM Hi-Speed"))
-    {
-        LOG_DEBUG("Absolute focuser detected.");
-        GotoSP.nsp = 2;
-        isAbsolute = true;
-    }
-    else
-    {
-        LOG_DEBUG("Relative focuser detected.");
-        GotoSP.nsp = 1;
-
-        SyncMandatoryS[0].s = ISS_OFF;
-        SyncMandatoryS[1].s = ISS_ON;
-        defineProperty(&SyncMandatorySP);
-
-        ISState syncEnabled = ISS_OFF;
-        if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
-        {
-            SyncMandatoryS[0].s = syncEnabled;
-            SyncMandatoryS[1].s = syncEnabled == ISS_ON ? ISS_OFF : ISS_ON;
-        }
-
-        if (SyncMandatoryS[0].s == ISS_ON)
-            isSynced = false;
-        else
-            isSynced = true;
-
-        isAbsolute = false;
-    }
-
-    defineProperty(&GotoSP);
-    return isAbsolute;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool FocusLynxBase::SyncMandatory(bool enable)
-{
-    isSynced = !enable;
-    return true;
 }

@@ -42,7 +42,8 @@ namespace DSP
 Convolution::Convolution(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "CONVOLUTION", "Convolution")
 {
     IUFillBLOB(&DownloadB, "CONVOLUTION_DOWNLOAD", "Convolution Matrix", "");
-    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Matrix Data", DSP_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Matrix Data", DSP_TAB, IP_RW, 60,
+                     IPS_IDLE);
 }
 
 Convolution::~Convolution()
@@ -61,49 +62,55 @@ void Convolution::Deactivated()
     Interface::Deactivated();
 }
 
-bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                            char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName())) {
-        if(!strcmp(name, DownloadBP.name)) {
+    if(!strcmp(dev, getDeviceName()))
+    {
+        if(!strcmp(name, DownloadBP.name))
+        {
             IUUpdateBLOB(&DownloadBP, sizes, blobsizes, blobs, formats, names, n);
-            LOGF_INFO("Received convolution matrix BLOB for %s", getDeviceName());
-            if(matrix)
+            LOGF_INFO("Received matrix BLOB for %s", getDeviceName());
+            if(matrix != nullptr)
+            {
                 dsp_stream_free_buffer(matrix);
-            dsp_stream_free(matrix);
+                dsp_stream_free(matrix);
+            }
             matrix = loadFITS(blobs[0], sizes[0]);
-            if(matrix != nullptr) {
-                LOGF_INFO("Convolution matrix for %s loaded", getDeviceName());
+            if (matrix != nullptr)
+            {
+                LOGF_INFO("Matrix for %s loaded", getDeviceName());
                 matrix_loaded = true;
-                IDSetBLOB(&DownloadBP, nullptr);
+                return true;
             }
         }
     }
-    return true;
+    return false;
 }
 
-uint8_t* Convolution::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool Convolution::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
+    if(!PluginActive) return false;
+    if(!matrix_loaded) return false;
     setStream(buf, dims, sizes, bits_per_sample);
-    Convolute();
-    return getStream();
+    dsp_fourier_dft(stream, 1);
+    dsp_fourier_dft(matrix, 1);
+    dsp_convolution_convolution(stream, matrix);
+    return Interface::processBLOB(getStream(), stream->dims, stream->sizes, bits_per_sample);
 }
 
-void Convolution::Convolute()
+Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_WAVELETS, "WAVELETS", "Wavelets")
 {
-    if(matrix_loaded)
-        dsp_convolution_convolution(stream, matrix);
-}
-
-Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "WAVELETS", "Wavelets")
-{
-    for(int i = 0; i < N_WAVELETS; i++) {
+    for(int i = 0; i < N_WAVELETS; i++)
+    {
         char strname[MAXINDINAME];
         char strlabel[MAXINDILABEL];
-        sprintf(strname, "WAVELET%0d", i);
-        sprintf(strlabel, "%d pixels Gaussian Wavelet", (i+1)*3);
+        sprintf(strname, "WAVELET_%0d", i);
+        sprintf(strlabel, "%d pixels Gaussian Wavelet", (i + 1) * 3);
         IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);
     }
-    IUFillNumberVector(&WaveletsNP, WaveletsN, N_WAVELETS, m_Device->getDeviceName(), "WAVELET", "Wavelets", DSP_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&WaveletsNP, WaveletsN, N_WAVELETS, m_Device->getDeviceName(), "WAVELETS", "Wavelets", DSP_TAB, IP_RW,
+                       60, IPS_IDLE);
 }
 
 Wavelets::~Wavelets()
@@ -124,34 +131,42 @@ void Wavelets::Deactivated()
 
 bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()) && !strcmp(name, WaveletsNP.name)) {
+    if (!strcmp(dev, getDeviceName()) && !strcmp(name, WaveletsNP.name))
+    {
         IUUpdateNumber(&WaveletsNP, values, names, n);
         IDSetNumber(&WaveletsNP, nullptr);
     }
     return true;
 }
 
-uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool Wavelets::processBLOB(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
+    if(!PluginActive) return false;
     setStream(buf, dims, sizes, bits_per_sample);
     double min = dsp_stats_min(stream->buf, stream->len);
     double max = dsp_stats_max(stream->buf, stream->len);
     dsp_stream_p out = dsp_stream_copy(stream);
-    for (int i = 0; i < WaveletsNP.nnp; i++) {
-        int size = (i+1)*3;
+    for (int i = 0; i < WaveletsNP.nnp; i++)
+    {
+        int size = (i + 1) * 3;
         dsp_stream_p tmp = dsp_stream_copy(stream);
         dsp_stream_p matrix = dsp_stream_new();
         dsp_stream_add_dim(matrix, size);
         dsp_stream_add_dim(matrix, size);
         dsp_stream_alloc_buffer(matrix, matrix->len);
-        for(int y = 0; y < size; y++) {
-            for(int x = 0; x < size; x++) {
-                matrix->buf[x + y * size] = sin(static_cast<double>(x)*M_PI/static_cast<double>(size))*sin(static_cast<double>(y)*M_PI/static_cast<double>(size));
+        for(int y = 0; y < size; y++)
+        {
+            for(int x = 0; x < size; x++)
+            {
+                matrix->buf[x + y * size] = sin(static_cast<double>(x) * M_PI / static_cast<double>(size)) * sin(static_cast<double>
+                                            (y) * M_PI / static_cast<double>(size));
             }
         }
+        dsp_fourier_dft(tmp, 1);
+        dsp_fourier_dft(matrix, 1);
         dsp_convolution_convolution(tmp, matrix);
         dsp_buffer_sub(tmp, matrix->buf, matrix->len);
-        dsp_buffer_mul1(tmp, WaveletsNP.np[i].value/8.0);
+        dsp_buffer_mul1(tmp, WaveletsNP.np[i].value / 8.0);
         dsp_buffer_sum(out, tmp->buf, tmp->len);
         dsp_buffer_normalize(tmp->buf, min, max, tmp->len);
         dsp_stream_free_buffer(matrix);
@@ -162,6 +177,6 @@ uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_pe
     dsp_stream_free_buffer(stream);
     dsp_stream_free(stream);
     stream = dsp_stream_copy(out);
-    return getStream();
+    return Interface::processBLOB(getStream(), stream->dims, stream->sizes, bits_per_sample);
 }
 }

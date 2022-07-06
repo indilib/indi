@@ -18,6 +18,7 @@
 #include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
 #include "indielapsedtimer.h"
+#include "indipropertynumber.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -66,6 +67,7 @@ class SkywatcherAPIMount :
         virtual bool Goto(double ra, double dec) override;
         virtual bool Sync(double ra, double dec) override;
         virtual bool Abort() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Misc.
@@ -114,15 +116,16 @@ class SkywatcherAPIMount :
         /////////////////////////////////////////////////////////////////////////////////////
         /// Misc
         /////////////////////////////////////////////////////////////////////////////////////
-        void UpdateScopeConfigSwitch();
         void UpdateDetailedMountInformation(bool InformClient);
         bool getCurrentAltAz(INDI::IHorizontalCoordinates &altaz);
         bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
+        // Reset tracking timer to account for drift compensation
+        void resetTracking();
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Properties
         /////////////////////////////////////////////////////////////////////////////////////
-        static constexpr const char *DetailedMountInfoPage { "Detailed Mount Information" };
+        static constexpr const char *MountInfoTab { "Mount Info" };
         IText BasicMountInfoT[4] {};
         ITextVectorProperty BasicMountInfoTP;
         enum
@@ -198,26 +201,28 @@ class SkywatcherAPIMount :
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
+        INDI::PropertyNumber TrackFactorNP {2};
+
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Private Variables
         /////////////////////////////////////////////////////////////////////////////////////
         // Tracking
-        INDI::IEquatorialCoordinates CurrentTrackingTarget { 0, 0 };
-        INDI::IHorizontalCoordinates CurrentAltAz {0, 0};
-        INDI::IHorizontalCoordinates TrackedAltAz {0, 0};
+        INDI::IEquatorialCoordinates m_SkyTrackingTarget { 0, 0 };
+        INDI::IEquatorialCoordinates m_SkyCurrentRADE {0, 0};
+        INDI::IHorizontalCoordinates m_MountAltAz {0, 0};
+        // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
+        static constexpr double MAX_TRACKING_DELTA {5};
 
         long OldTrackingTarget[2] { 0, 0 };
-        bool ResetTrackingSeconds { false };
-        INDI::ElapsedTimer m_TrackingElapsedTimer;
+        INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
-        double m_AzimuthRateScale {1.0};
-        double m_AltitudeRateScale {2.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;
         std::vector<GuidingPulse> GuidingPulses;
 
         bool m_ManualMotionActive { false };
+        bool m_IterativeGOTOPending {false};
 };

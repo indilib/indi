@@ -32,7 +32,7 @@ bool FPSMeter::newFrame()
 {
     mFrameTime2 = mFrameTime1;
     mFrameTime1 = std::chrono::steady_clock::now();
-    
+
     ++mTotalFrames;
     ++mFramesPerElapsedTime;
 
@@ -42,7 +42,7 @@ bool FPSMeter::newFrame()
     mTotalTime   += dt;
 
     if (mElapsedTime >= mTimeWindow)
-    {            
+    {
         mFramesPerSecond = mFramesPerElapsedTime / mElapsedTime * 1000;
         mElapsedTime = 0;
         mFramesPerElapsedTime = 0;

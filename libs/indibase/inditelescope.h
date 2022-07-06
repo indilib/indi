@@ -20,6 +20,7 @@
 
 #include "defaultdevice.h"
 #include "libastro.h"
+#include "indipropertyswitch.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -340,7 +341,7 @@ class Telescope : public DefaultDevice
          * ~/.indi/ParkData.xml) is updated in the process.
          * @param isparked set to true if parked, false otherwise.
          */
-        void SetParked(bool isparked);
+        virtual void SetParked(bool isparked);
 
         /**
          * @return Get current RA/AZ parking position.
@@ -606,6 +607,13 @@ class Telescope : public DefaultDevice
          */
         virtual bool SetDefaultPark();
 
+
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked);
+
         /**
          * @brief SetSlewRate Set desired slew rate index.
          * @param index Index of slew rate where 0 is slowest rate and capability.nSlewRate-1 is maximum rate.
@@ -737,6 +745,14 @@ class Telescope : public DefaultDevice
         // A switch for West/East motion
         ISwitch MovementWES[2];
         ISwitchVectorProperty MovementWESP;
+
+        // Reverse NS or WE
+        INDI::PropertySwitch ReverseMovementSP {2};
+        enum
+        {
+            REVERSE_NS,
+            REVERSE_WE
+        };
 
         // Slew Rate
         ISwitchVectorProperty SlewRateSP;
@@ -888,15 +904,13 @@ class Telescope : public DefaultDevice
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
+        bool IsParked {false};
+        TelescopeParkData parkDataType {PARK_NONE};
+
     private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);
-        /**
-         * @brief SyncParkStatus Update the state and switches for parking
-         * @param isparked True if parked, false otherwise.
-         */
-        void SyncParkStatus(bool isparked);
 
         /**
          * @brief LoadParkXML Read and process park XML data.
@@ -904,9 +918,7 @@ class Telescope : public DefaultDevice
          */
         const char *LoadParkXML();
 
-        TelescopeParkData parkDataType {PARK_NONE};
         bool IsLocked {true};
-        bool IsParked {false};
         const char *ParkDeviceName {nullptr};
         const std::string ParkDataFileName;
         XMLEle *ParkdataXmlRoot {nullptr}, *ParkdeviceXml {nullptr}, *ParkstatusXml {nullptr}, *ParkpositionXml {nullptr},
@@ -928,6 +940,9 @@ class Telescope : public DefaultDevice
         float motionDirWEValue {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
+
+        // 100 millisecond of arc or time.
+        static constexpr double EQ_NOTIFY_THRESHOLD {1.0 / (60 * 60 * 10)};
 };
 
 }

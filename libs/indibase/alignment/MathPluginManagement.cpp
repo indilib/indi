@@ -38,10 +38,38 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
         IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(),
                      MathPluginDisplayNames[i].c_str(), ISS_OFF);
     }
+
     IUFillSwitchVector(&AlignmentSubsystemMathPluginsV, AlignmentSubsystemMathPlugins.get(),
                        MathPluginDisplayNames.size() + 1, ChildTelescope->getDeviceName(),
                        "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
+
+    int configPlugin = -1;
+    IUGetConfigOnSwitchIndex(ChildTelescope->getDeviceName(),  "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", &configPlugin);
+    if (configPlugin > 0 && configPlugin < AlignmentSubsystemMathPluginsV.nsp)
+    {
+        IUResetSwitch(&AlignmentSubsystemMathPluginsV);
+        AlignmentSubsystemMathPluginsV.sp[configPlugin].s = ISS_ON;
+        HandlePluginLoading(ChildTelescope, 0, configPlugin);
+    }
+    // Select nearest if available
+    else
+    {
+        ISwitch *sp = IUFindSwitch(&AlignmentSubsystemMathPluginsV, "Nearest Math Plugin");
+        if (sp)
+        {
+            IUResetSwitch(&AlignmentSubsystemMathPluginsV);
+            for (int i = 0; i < AlignmentSubsystemMathPluginsV.nsp; i++)
+            {
+                if (!strcmp(AlignmentSubsystemMathPluginsV.sp[i].name, sp->name))
+                {
+                    sp->s = ISS_ON;
+                    HandlePluginLoading(ChildTelescope, 0, i);
+                    break;
+                }
+            }
+        }
+    }
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentSubsystemMathPluginInitialise, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "OK", ISS_OFF);
@@ -193,71 +221,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
         int CurrentPlugin = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
         IUUpdateSwitch(&AlignmentSubsystemMathPluginsV, states, names, n);
         AlignmentSubsystemMathPluginsV.s = IPS_OK; // Assume OK for the time being
-        int NewPlugin                    = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
-        if (NewPlugin != CurrentPlugin)
-        {
-            // New plugin requested
-            // Unload old plugin if required
-            if (0 != CurrentPlugin)
-            {
-                typedef void Destroy_t(MathPlugin *);
-                Destroy_t *Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
-                if (nullptr != Destroy)
-                {
-                    Destroy(pLoadedMathPlugin);
-                    pLoadedMathPlugin = nullptr;
-                    if (0 == dlclose(LoadedMathPluginHandle))
-                    {
-                        LoadedMathPluginHandle = nullptr;
-                    }
-                    else
-                    {
-                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
-                                     "MathPluginManagement - dlclose failed on loaded plugin - %s", dlerror());
-                        AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
-                    }
-                }
-                else
-                {
-                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
-                                 "MathPluginManagement - cannot get Destroy function - %s", dlerror());
-                    AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
-                }
-            }
-            // Load the requested plugin if required
-            if (0 != NewPlugin)
-            {
-                std::string PluginPath(MathPluginFiles[NewPlugin - 1]);
-                if (nullptr != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
-                {
-                    typedef MathPlugin *Create_t();
-                    Create_t *Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
-                    if (nullptr != Create)
-                    {
-                        pLoadedMathPlugin = Create();
-                        IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
-                    }
-                    else
-                    {
-                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot get Create function - %s",
-                                     dlerror());
-                        AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
-                    }
-                }
-                else
-                {
-                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot load plugin %s error %s",
-                                 PluginPath.c_str(), dlerror());
-                    AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
-                }
-            }
-            else
-            {
-                // It is in built plugin just set up the pointers
-                pLoadedMathPlugin = &BuiltInPlugin;
-            }
-        }
-
+        int NewPlugin = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+        HandlePluginLoading(pTelescope, CurrentPlugin, NewPlugin);
         //  Update client
         IDSetSwitch(&AlignmentSubsystemMathPluginsV, nullptr);
     }
@@ -280,6 +245,76 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
     }
 }
 
+void MathPluginManagement::HandlePluginLoading(Telescope *pTelescope, int CurrentPlugin, int NewPlugin)
+{
+    if (NewPlugin != CurrentPlugin)
+    {
+        MountAlignment_t currentMountAlignment = GetApproximateMountAlignment();
+        // New plugin requested
+        // Unload old plugin if required
+        if (0 != CurrentPlugin)
+        {
+            typedef void Destroy_t(MathPlugin *);
+            Destroy_t *Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
+            if (nullptr != Destroy)
+            {
+                Destroy(pLoadedMathPlugin);
+                pLoadedMathPlugin = nullptr;
+                if (0 == dlclose(LoadedMathPluginHandle))
+                {
+                    LoadedMathPluginHandle = nullptr;
+                }
+                else
+                {
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                 "MathPluginManagement - dlclose failed on loaded plugin - %s", dlerror());
+                    AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
+                }
+            }
+            else
+            {
+                DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                             "MathPluginManagement - cannot get Destroy function - %s", dlerror());
+                AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
+            }
+        }
+        // Load the requested plugin if required
+        if (0 != NewPlugin)
+        {
+            std::string PluginPath(MathPluginFiles[NewPlugin - 1]);
+            if (nullptr != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
+            {
+                typedef MathPlugin *Create_t();
+                Create_t *Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
+                if (nullptr != Create)
+                {
+                    pLoadedMathPlugin = Create();
+                    SetApproximateMountAlignment(currentMountAlignment);
+                    Initialise(CurrentInMemoryDatabase);
+                    IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
+                }
+                else
+                {
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot get Create function - %s",
+                                 dlerror());
+                    AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
+                }
+            }
+            else
+            {
+                DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot load plugin %s error %s",
+                             PluginPath.c_str(), dlerror());
+                AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
+            }
+        }
+        else
+        {
+            // It is in built plugin just set up the pointers
+            pLoadedMathPlugin = &BuiltInPlugin;
+        }
+    }
+}
+
 void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
 {
     AlignmentSubsystemActive.s  = enable ? ISS_ON : ISS_OFF;
@@ -290,6 +325,7 @@ void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
 void MathPluginManagement::SaveConfigProperties(FILE *fp)
 {
     IUSaveConfigText(fp, &AlignmentSubsystemCurrentMathPluginV);
+    IUSaveConfigSwitch(fp, &AlignmentSubsystemMathPluginsV);
     IUSaveConfigSwitch(fp, &AlignmentSubsystemActiveV);
 }
 
@@ -305,8 +341,9 @@ void MathPluginManagement::SetApproximateMountAlignmentFromMountType(MountType_t
             else
                 SetApproximateMountAlignment(SOUTH_CELESTIAL_POLE);
         }
-        //else
-        // TODO some kind of error!!!
+        // If no position found, assume northern hemisphere.
+        else
+            SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
     }
     else
         SetApproximateMountAlignment(ZENITH);

@@ -11,7 +11,7 @@ jobs:
         container: ["ubuntu", "debian", "fedora"]
 
     container:
-      image: ghcr.io/indilib/${{ matrix.container }}
+      image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
 
     steps:
       - name: Get INDI Sources

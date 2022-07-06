@@ -75,57 +75,57 @@
 *******************************************************************************/
 class FilterIFW : public INDI::FilterWheel
 {
-  private:
-  public:
-    FilterIFW();
-    virtual ~FilterIFW() = default;
+    private:
+    public:
+        FilterIFW();
+        virtual ~FilterIFW() = default;
 
-    virtual bool initProperties() override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual bool updateProperties() override;
-    virtual bool Handshake() override;
-    virtual bool Disconnect() override;
-    bool WriteTTY(char *command);
-    bool ReadTTY(char *resp, char *simulation, int timeout);
-    virtual const char *getDefaultName() override;
-    bool moveHome();
-    virtual bool SelectFilter(int) override;
-    virtual void TimerHit() override;
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual void simulationTriggered(bool enable) override;
-    virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
-    virtual bool SetFilterNames() override;
-    virtual bool GetFilterNames() override;
-    bool GetWheelID();
-    int GetFilterPos();
-    bool GetFirmware();
+    protected:
+        virtual bool updateProperties() override;
+        virtual bool Handshake() override;
+        virtual bool Disconnect() override;
+        bool WriteTTY(char *command);
+        bool ReadTTY(char *resp, char *simulation, int timeout);
+        virtual const char *getDefaultName() override;
+        bool moveHome();
+        virtual bool SelectFilter(int) override;
+        virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void simulationTriggered(bool enable) override;
+        virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
+        virtual bool SetFilterNames() override;
+        virtual bool GetFilterNames() override;
+        bool GetWheelID();
+        int GetFilterPos();
+        bool GetFirmware();
 
-    // Filter Wheel ID
-    ITextVectorProperty WheelIDTP;
-    IText WheelIDT[1] {};
+        // Filter Wheel ID
+        ITextVectorProperty WheelIDTP;
+        IText WheelIDT[1] {};
 
-    // Home function
-    ISwitchVectorProperty HomeSP;
-    ISwitch HomeS[1];
+        // Home function
+        ISwitchVectorProperty HomeSP;
+        ISwitch HomeS[1];
 
-    //Simulation, number of filter function
-    ISwitchVectorProperty FilterNbrSP;
-    ISwitch FilterNbrS[4];
+        //Simulation, number of filter function
+        ISwitchVectorProperty FilterNbrSP;
+        ISwitch FilterNbrS[4];
 
-    // CharSet unrestricted for FilterNames
-    ISwitchVectorProperty CharSetSP;
-    ISwitch CharSetS[2];
+        // CharSet unrestricted for FilterNames
+        ISwitchVectorProperty CharSetSP;
+        ISwitch CharSetS[2];
 
-    // Firmware of teh IFW
-    ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1] {};
+        // Firmware of teh IFW
+        ITextVectorProperty FirmwareTP;
+        IText FirmwareT[1] {};
 
-    //Filter position in simulation mode
-    int actualSimFilter { 1 };
+        //Filter position in simulation mode
+        int actualSimFilter { 1 };
 
-    // Filter name list for simulation
-    char filterSim[OPTEC_MAXLEN_NAMES + 1];
+        // Filter name list for simulation
+        char filterSim[OPTEC_MAXLEN_NAMES + 1];
 };

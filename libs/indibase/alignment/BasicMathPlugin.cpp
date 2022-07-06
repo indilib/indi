@@ -789,8 +789,15 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             ActualTelescopeDirectionVector.y = gsl_vector_get(pGSLActualVector, 1);
             ActualTelescopeDirectionVector.z = gsl_vector_get(pGSLActualVector, 2);
             ActualTelescopeDirectionVector.Normalise();
-            AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
-            HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+            if (ApproximateMountAlignment == ZENITH)
+            {
+                AltitudeAzimuthFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualAltAz);
+                HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+            }
+            else
+            {
+                EquatorialCoordinatesFromTelescopeDirectionVector(ActualTelescopeDirectionVector, ActualRaDec);
+            }
             // libnova works in decimal degrees so conversion is needed here
             RightAscension = ActualRaDec.rightascension;
             Declination    = ActualRaDec.declination;

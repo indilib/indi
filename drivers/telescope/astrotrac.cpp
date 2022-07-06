@@ -260,10 +260,10 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
         {
             std::string velocity = std::regex_replace(
                                        response,
-                                       std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                       std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
                                        std::string("$1"));
 
-            TrackRateN[axis].value = std::stod(velocity);
+            TrackRateN[axis].value = std::stod(velocity) * (m_Location.latitude >= 0 ? 1 : -1);
             return true;
         }
         catch(...)
@@ -282,9 +282,10 @@ bool AstroTrac::setVelocity(INDI_EQ_AXIS axis, double value)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
 
-    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value);
+    // Reverse value depending on hemisphere
+    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value  * (m_Location.latitude >= 0 ? 1 : -1));
     if (sendCommand(command, response))
-        return response[3] == '#';
+        return response[4] == '#';
 
     return false;
 
@@ -357,20 +358,34 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, "<%dp?>", axis + 1);
-    for (int i = 0; i < 3; i++)
+    if (sendCommand(command, response))
     {
-        if (sendCommand(command, response))
+        try
+        {
+            char regex_str[64] = {0};
+            snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
+            std::string position = std::regex_replace(
+                                       response,
+                                       std::regex(regex_str),
+                                       std::string("$1"));
+
+            EncoderNP[axis].setValue(std::stod(position));
+            return true;
+        }
+        catch(...)
         {
             try
             {
+                // Check if the response for the other axis
+                INDI_EQ_AXIS other = (axis == AXIS_RA) ? AXIS_DE : AXIS_RA;
                 char regex_str[64] = {0};
-                snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
+                snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", other + 1);
                 std::string position = std::regex_replace(
                                            response,
                                            std::regex(regex_str),
                                            std::string("$1"));
 
-                EncoderNP[axis].setValue(std::stod(position));
+                EncoderNP[other].setValue(std::stod(position));
                 return true;
             }
             catch(...)
@@ -392,7 +407,15 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de)
 {
+    static const double jitter = 0.0005;
     double ha = 0;
+
+    // Take care of jitter
+    if (haEncoder > jitter * -1 && haEncoder < jitter)
+        haEncoder = 0;
+    if (deEncoder > jitter * -1 && deEncoder < jitter)
+        deEncoder = 0;
+
     // Northern Hemisphere
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
@@ -412,7 +435,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     else
     {
         // East
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder <= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
@@ -427,6 +450,12 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     ra = range24(lst - ha);
+
+    char RAStr[32] = {0}, DecStr[32] = {0};
+    fs_sexa(RAStr, ra, 2, 3600);
+    fs_sexa(DecStr, de, 2, 3600);
+    LOGF_DEBUG("Encoders HA: %.4f DE: %.4f Processed: HA: %.4f DE: %.4f (%s) LST: %.4f RA: %.4f (%s)",
+               haEncoder, deEncoder, ha, de, DecStr, lst, ra, RAStr);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -478,36 +507,32 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 bool AstroTrac::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    INDI::IEquatorialCoordinates RaDec {EqN[AXIS_RA].value, EqN[AXIS_DE].value};
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     // Actual Celestial Coordinates
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
     // Apparent Telescope Coordinates
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     NewEntry.PrivateDataSize = 0;
 
-    LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-
-    if (!CheckForDuplicateSyncPoint(NewEntry))
+    if (!CheckForDuplicateSyncPoint(NewEntry, 0.001))
     {
         GetAlignmentDatabase().push_back(NewEntry);
 
         // Tell the client about size change
         UpdateSize();
 
-        // equatorial/telescope conversions needs more than 1 sync point
-        //        if (GetAlignmentDatabase().size() < 2)
-        //            LOG_WARN("Equatorial mounts need two SYNC points at least.");
-
-        // Tell the math plugin to reinitialise
+        // Tell the math plugin to reinitiali
         Initialise(this);
-        LOGF_DEBUG("Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
 
-        // update tracking target
-        ReadScopeStatus();
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        LOGF_INFO("Syncing to JNOW RA %s - DEC %s", RAStr, DecStr);
+
         return true;
     }
+
     LOGF_DEBUG("Sync - duplicate entry RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
     return false;
 }
@@ -521,6 +546,14 @@ bool AstroTrac::Goto(double ra, double dec)
     INDI::IEquatorialCoordinates telescopeCoordinates;
     if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
     {
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, telescopeCoordinates.rightascension, 2, 3600);
+        fs_sexa(mountDEString, telescopeCoordinates.declination, 2, 3600);
+        fs_sexa(skyRAString, ra, 2, 3600);
+        fs_sexa(skyDEString, dec, 2, 3600);
+
+        LOGF_DEBUG("GOTO Sky RA: %s DE: %s ---> Mount RA: %s DE: %s", skyRAString, skyDEString, mountRAString, mountDEString);
+
         getEncodersFromRADE(telescopeCoordinates.rightascension, telescopeCoordinates.declination, haEncoder, deEncoder);
 
         // Account for acceletaion, max speed, and deceleration by the time we get there.
@@ -528,6 +561,8 @@ bool AstroTrac::Goto(double ra, double dec)
         double tHA = calculateSlewTime(haEncoder - EncoderNP[AXIS_RA].getValue());
         // Adjust for hemisphere. Convert time to delta degrees
         tHA = tHA * (m_Location.latitude >= 0 ? 1 : -1) * TRACKRATE_SIDEREAL / 3600;
+
+        LOGF_DEBUG("GOTO Encoders HA: %.4f (%.4f + %.4f) DE: %.4f", haEncoder + tHA, haEncoder, tHA, deEncoder);
 
         // Now go to each encoder
         bool rc1 = slewEncoder(AXIS_RA, haEncoder + tHA);
@@ -538,8 +573,8 @@ bool AstroTrac::Goto(double ra, double dec)
             TrackState = SCOPE_SLEWING;
 
             char RAStr[32], DecStr[32];
-            fs_sexa(RAStr, telescopeCoordinates.rightascension, 2, 3600);
-            fs_sexa(DecStr, telescopeCoordinates.declination, 2, 3600);
+            fs_sexa(RAStr, ra, 2, 3600);
+            fs_sexa(DecStr, dec, 2, 3600);
             LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
             return true;
         }
@@ -564,12 +599,12 @@ double AstroTrac::calculateSlewTime(double distance)
     // If distance less than this, then calulate using accleration forumlae:
     if (distance < accelerate_decelerate)
     {
-        return (2 * sqrt(accelerate_decelerate / AccelerationNP[AXIS_RA].getValue()));
+        return (2 * sqrt(distance / AccelerationNP[AXIS_RA].getValue()));
     }
     else
     {
         // Time is equal to twice the time required to accelerate or decelerate, plus the remaining distance at max slew speed
-        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (accelerate_decelerate - accelerate_decelerate) /
+        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (distance - accelerate_decelerate) /
                 MAX_SLEW_VELOCITY);
     }
 }
@@ -608,23 +643,35 @@ bool AstroTrac::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
             }
             // Parking
             else
             {
+                SetTrackEnabled(false);
                 SetParked(true);
             }
         }
     }
 
-    INDI::IEquatorialCoordinates RaDec {ra, de};
-    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    m_MountInternalCoordinates.rightascension = ra;
+    m_MountInternalCoordinates.declination = de;
+    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
         double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         double dHA = rangeHA(lst - skyRA);
         setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
+
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, ra, 2, 3600);
+        fs_sexa(mountDEString, de, 2, 3600);
+        fs_sexa(skyRAString, skyRA, 2, 3600);
+        fs_sexa(skyDEString, skyDE, 2, 3600);
+
+        LOGF_DEBUG("Mount RA: %s DE: %s ---> Sky RA: %s DE: %s", mountRAString, mountDEString, skyRAString, skyDEString);
+
         NewRaDec(skyRA, skyDE);
         return true;
     }
@@ -788,8 +835,8 @@ bool AstroTrac::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Abort()
 {
-    bool rc1 = stopMotion(AXIS_RA);
-    bool rc2 = stopMotion(AXIS_DE);
+    bool rc1 = setVelocity(AXIS_RA, 0) && stopMotion(AXIS_RA);
+    bool rc2 = setVelocity(AXIS_DE, 0) && stopMotion(AXIS_DE);
 
     return rc1 && rc2;
 }
@@ -1041,48 +1088,78 @@ void AstroTrac::simulateMount()
         return;
     }
 
-    switch (TrackState)
+    if (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY)
     {
-        case SCOPE_IDLE:
-        case SCOPE_PARKED:
+        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                            * (IUFindOnSwitchIndex(&MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                            * (IUFindOnSwitchIndex(&MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+
+        haVelocity *= MovementWESP.s == IPS_BUSY ? 1 : 0;
+        deVelocity *= MovementNSSP.s == IPS_BUSY ? 1 : 0;
+
+        // In degrees
+        double elapsedDistanceHA = (elapsed / 1000.0 * haVelocity) / 3600.0;
+        double elapsedDistanceDE = (elapsed / 1000.0 * deVelocity) / 3600.0;
+
+        // Hour Angle
+        SimData.currentMechanicalHA += elapsedDistanceHA;
+        if (SimData.currentMechanicalHA > 180)
+            SimData.currentMechanicalHA -= 360;
+        else if (SimData.currentMechanicalHA < -180)
+            SimData.currentMechanicalHA += 360;
+
+        SimData.currentMechanicalDE += elapsedDistanceDE;
+        if (SimData.currentMechanicalDE > 180)
+            SimData.currentMechanicalDE -= 360;
+        else if (SimData.currentMechanicalDE < -180)
+            SimData.currentMechanicalDE += 360;
+    }
+    else
+    {
+        switch (TrackState)
+        {
+            case SCOPE_IDLE:
+            case SCOPE_PARKED:
+                break;
+
+            case SCOPE_SLEWING:
+            case SCOPE_PARKING:
+            {
+                // In degrees
+                double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
+
+                // Hour Angle
+                double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
+                if (std::abs(dHA) <= elapsedDistance)
+                    SimData.currentMechanicalHA = SimData.targetMechanicalHA;
+                else if (dHA > 0)
+                    SimData.currentMechanicalHA += elapsedDistance;
+                else
+                    SimData.currentMechanicalHA -= elapsedDistance;
+
+                // Declination
+                double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
+                if (std::abs(dDE) <= elapsedDistance)
+                    SimData.currentMechanicalDE = SimData.targetMechanicalDE;
+                else if (dDE > 0)
+                    SimData.currentMechanicalDE += elapsedDistance;
+                else
+                    SimData.currentMechanicalDE -= elapsedDistance;
+            }
             break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-        {
-            // In degrees
-            double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
-
-            // Hour Angle
-            double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
-            if (std::abs(dHA) <= elapsedDistance)
-                SimData.currentMechanicalHA = SimData.targetMechanicalHA;
-            else if (dHA > 0)
-                SimData.currentMechanicalHA += elapsedDistance;
-            else
-                SimData.currentMechanicalHA -= elapsedDistance;
-
-            // Declination
-            double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
-            if (std::abs(dDE) <= elapsedDistance)
-                SimData.currentMechanicalDE = SimData.targetMechanicalDE;
-            else if (dDE > 0)
-                SimData.currentMechanicalDE += elapsedDistance;
-            else
-                SimData.currentMechanicalDE -= elapsedDistance;
+            case SCOPE_TRACKING:
+            {
+                // Increase HA axis at selected tracking rate (arcsec/s).
+                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+                if (SimData.currentMechanicalHA > 180)
+                    SimData.currentMechanicalHA = 180;
+                else if (SimData.currentMechanicalHA < -180)
+                    SimData.currentMechanicalHA = -180;
+            }
+            break;
         }
-        break;
-
-        case SCOPE_TRACKING:
-        {
-            // Increase HA axis at selected tracking rate (arcsec/s).
-            SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
-            if (SimData.currentMechanicalHA > 180)
-                SimData.currentMechanicalHA = 180;
-            else if (SimData.currentMechanicalHA < -180)
-                SimData.currentMechanicalHA = -180;
-        }
-        break;
     }
 
     m_SimulationTimer.restart();

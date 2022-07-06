@@ -177,8 +177,8 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
         if (Correct_Positions)
         {
             const int error = MotionErrorN[0].value; // The NGF-S overshoots motions by 3 steps.
-            if (destination > position) destination -= error, destination = std::max(position,destination);
-            if (destination < position) destination += error, destination = std::min(position,destination);
+            if (destination > position) destination -= error, destination = std::max(position, destination);
+            if (destination < position) destination += error, destination = std::min(position, destination);
         }
         if (destination != position)
         {
@@ -196,7 +196,7 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
                     LOGF_DEBUG("MoveAbsFocuser received echo: %c", respons);
                     if (respons != goto_position)
                         LOGF_ERROR("MoveAbsFocuser received unexpected respons: %c (0x02x)", respons,
-                               respons);
+                                   respons);
                     else
                     {
                         state  = MovingTo;
@@ -204,8 +204,8 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
                     }
                 }
             }
-         }
-         else
+        }
+        else
             result = IPS_OK;
     }
     return result;
@@ -218,28 +218,28 @@ IPState SmartFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 class NonBlockingIO
 {
-  public:
-    NonBlockingIO(const char *_device, const int _fd) : device(_device), fd(_fd), flags(fcntl(_fd, F_GETFL, 0))
-    {
-        if (flags == -1)
-            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "NonBlockingIO::NonBlockingIO() fcntl get error: errno=%d",
-                         errno);
-        else if (fcntl(fd, F_SETFL, (flags | O_NONBLOCK)) == -1)
-            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "NonBlockingIO::NonBlockingIO() fcntl set error: errno=%d",
-                         errno);
-    }
+    public:
+        NonBlockingIO(const char *_device, const int _fd) : device(_device), fd(_fd), flags(fcntl(_fd, F_GETFL, 0))
+        {
+            if (flags == -1)
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "NonBlockingIO::NonBlockingIO() fcntl get error: errno=%d",
+                             errno);
+            else if (fcntl(fd, F_SETFL, (flags | O_NONBLOCK)) == -1)
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "NonBlockingIO::NonBlockingIO() fcntl set error: errno=%d",
+                             errno);
+        }
 
-    ~NonBlockingIO()
-    {
-        if (flags != -1 && fcntl(fd, F_SETFL, flags) == -1)
-            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
-                         "NonBlockinIO::~NonBlockingIO() fcntl set error: errno=%d", errno);
-    }
+        ~NonBlockingIO()
+        {
+            if (flags != -1 && fcntl(fd, F_SETFL, flags) == -1)
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
+                             "NonBlockinIO::~NonBlockingIO() fcntl set error: errno=%d", errno);
+        }
 
-  private:
-    const char *device;
-    const int fd;
-    const int flags;
+    private:
+        const char *device;
+        const int fd;
+        const int flags;
 };
 
 void SmartFocus::TimerHit()
@@ -261,7 +261,7 @@ void SmartFocus::TimerHit()
             LOGF_DEBUG("TimerHit() received character: %c (0x%02x)", respons, respons);
             if (respons != motion_complete && respons != motion_error && respons != motion_stopped)
                 LOGF_ERROR("TimerHit() received unexpected character: %c (0x%02x)", respons,
-                       respons);
+                           respons);
             state = Idle;
         }
     }
@@ -294,7 +294,7 @@ bool SmartFocus::SFacknowledge()
                 success = (respons[0] == read_id_register && respons[1] == read_id_respons);
                 if (!success)
                     LOGF_ERROR("SFacknowledge received unexpected respons: %c%c (0x02 0x02x)",
-                           respons[0], respons[1], respons[0], respons[1]);
+                               respons[0], respons[1], respons[0], respons[1]);
             }
         }
     }
@@ -322,7 +322,7 @@ SmartFocus::Position SmartFocus::SFgetPosition()
                 }
                 else
                     LOGF_ERROR("SFgetPosition received unexpected respons: %c (0x02x)", respons[0],
-                           respons[0]);
+                               respons[0]);
             }
         }
     }
@@ -347,7 +347,7 @@ SmartFocus::Flags SmartFocus::SFgetFlags()
                 }
                 else
                     LOGF_ERROR("SFgetFlags received unexpected respons: %c (0x02x)", respons[0],
-                           respons[0]);
+                               respons[0]);
             }
         }
     }

@@ -103,10 +103,23 @@ extern const char *DEVICE_PORT;
  * the underlying device.
  * Name | Type | Member | Default | Description
  * ---- | ---- | ------ | ------- | -----------
- * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
- * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
+ * DEVICE_AUTO_SEARCH | SWITCH | INDI_ENABLED | ON | Auto Search ON
+ * DEVICE_AUTO_SEARCH | SWITCH | INDI_DISABLED | OFF | Auto Search OFF
  */
 extern const char *DEVICE_AUTO_SEARCH;
+
+/**
+ * @brief Toggle device LAN search.
+ * If the initial handshake with the specified hostname and port number fails, then scan the local
+ * network using all available interfaces for any hosts that accepts connection on the specified port.
+ * If connection is established, attempt a handshake. On handshake failure, iterate to the next host detected
+ * in the local network and try again.
+ * Name | Type | Member | Default | Description
+ * ---- | ---- | ------ | ------- | -----------
+ * DEVICE_LAN_SEARCH | SWITCH | INDI_ENABLED | OFF | LAN Search ON
+ * DEVICE_LAN_SEARCH | SWITCH | INDI_DISABLED | ON | LAN Search OFF
+ */
+extern const char *DEVICE_LAN_SEARCH;
 
 /**
  * @brief Set device baud rate

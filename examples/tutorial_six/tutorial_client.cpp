@@ -60,6 +60,8 @@ int main(int /*argc*/, char **/*argv*/)
 
     camera_client->setBLOBMode(B_ALSO, MYCCD, nullptr);
 
+    camera_client->enableDirectBlobAccess(MYCCD, nullptr);
+
     std::cout << "Press any key to terminate the client.\n";
     std::string term;
     std::cin >> term;

@@ -191,6 +191,8 @@ class AstroTrac :
         // Process basic commands.
         bool handleSimulationCommand(const char * cmd, char * res, int cmd_len, int res_len);
 
+        /// Mount internal coordinates
+        INDI::IEquatorialCoordinates m_MountInternalCoordinates;
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Static Constants
         ///////////////////////////////////////////////////////////////////////////////////////////////

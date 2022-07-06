@@ -29,13 +29,13 @@ namespace INDI
 template <typename T>
 class PropertyBasicPrivateTemplate: public PropertyPrivate
 {
-public:
-    PropertyBasicPrivateTemplate(size_t count);
-    virtual ~PropertyBasicPrivateTemplate();
+    public:
+        PropertyBasicPrivateTemplate(size_t count);
+        virtual ~PropertyBasicPrivateTemplate();
 
-public:
-    std::vector<WidgetView<T>>  widgets;
-    PropertyView<T>             property;
+    public:
+        std::vector<WidgetView<T>>  widgets;
+        PropertyView<T>             property;
 };
 
 }

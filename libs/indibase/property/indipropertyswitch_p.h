@@ -26,11 +26,11 @@ namespace INDI
 
 class PropertySwitchPrivate: public PropertyBasicPrivateTemplate<ISwitch>
 {
-public:
-    PropertySwitchPrivate(size_t count);
-    virtual ~PropertySwitchPrivate();
+    public:
+        PropertySwitchPrivate(size_t count);
+        virtual ~PropertySwitchPrivate();
 
-public:
+    public:
 
 };
 

@@ -44,7 +44,7 @@ Imager::Imager()
 {
     setVersion(1, 2);
     groups.resize(MAX_GROUP_COUNT);
-    int i=0;
+    int i = 0;
     std::generate(groups.begin(), groups.end(), [this, &i] { return std::make_shared<Group>(i++, this); });
 }
 
@@ -63,19 +63,22 @@ bool Imager::isFilterConnected()
     return StatusL[1].s == IPS_OK;
 }
 
-std::shared_ptr<Group> Imager::getGroup(int index) const {
+std::shared_ptr<Group> Imager::getGroup(int index) const
+{
     if(index > -1 && index <= maxGroup)
         return groups[index];
     return {};
 }
 
-std::shared_ptr<Group> Imager::currentGroup() const {
-    return getGroup(group - 1); 
+std::shared_ptr<Group> Imager::currentGroup() const
+{
+    return getGroup(group - 1);
 }
 
 
 
-std::shared_ptr<Group> Imager::nextGroup() const {
+std::shared_ptr<Group> Imager::nextGroup() const
+{
     return getGroup(group);
 }
 
@@ -106,7 +109,7 @@ void Imager::initiateNextFilter()
             FilterSlotN[0].value = filterSlot;
             sendNewNumber(&FilterSlotNP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
-                   group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+                       group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
         }
         else
         {
@@ -137,8 +140,8 @@ void Imager::initiateNextCapture()
             sendNewSwitch(&CCDUploadSP);
             sendNewText(&CCDUploadSettingsTP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
-                   maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
-                   CCDImageExposureNP.device);
+                       maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
+                       CCDImageExposureNP.device);
         }
     }
 }
@@ -170,7 +173,7 @@ void Imager::initiateDownload()
 {
     int group = (int)DownloadN[0].value;
     int image = (int)DownloadN[1].value;
-    char name[128]={0};
+    char name[128] = {0};
     std::ifstream file;
 
     if (group == 0 || image == 0)
@@ -521,7 +524,7 @@ void Imager::newBLOB(IBLOB *bp)
 {
     if (ProgressNP.s == IPS_BUSY)
     {
-        char name[128]={0};
+        char name[128] = {0};
         std::ofstream file;
 
         strncpy(format, bp->format, 16);
@@ -530,7 +533,7 @@ void Imager::newBLOB(IBLOB *bp)
         file.write(static_cast<char *>(bp->blob), bp->bloblen);
         file.close();
         LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
-               name);
+                   name);
         if (image == maxImage)
         {
             if (group == maxGroup)
@@ -619,13 +622,13 @@ void Imager::newText(ITextVectorProperty *tvp)
     {
         if (strcmp(tvp->name, "CCD_FILE_PATH") == 0)
         {
-            char name[128]={0};
+            char name[128] = {0};
 
             strncpy(format, strrchr(tvp->tp[0].text, '.'), sizeof(format));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
             rename(tvp->tp[0].text, name);
             LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
-                   maxImage, name);
+                       maxImage, name);
             if (image == maxImage)
             {
                 if (group == maxGroup)

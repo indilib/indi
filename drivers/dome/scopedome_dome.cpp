@@ -261,7 +261,7 @@ bool ScopeDome::Handshake()
                 interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(this, PortFD)));
                 break;
             case SCOPEDOME_ARDUINO:
-            interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
+                interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
                 break;
         }
     }

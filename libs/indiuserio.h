@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
+                  2022 by Ludovic Pollet
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,8 +71,10 @@ void IUUserIODefBLOBVA(const userio *io, void *user, const struct _IBLOBVectorPr
 
 // Setup
 void IUUserIOSetTextVA(const userio *io, void *user, const struct _ITextVectorProperty *tvp, const char *fmt, va_list ap);
-void IUUserIOSetNumberVA(const userio *io, void *user, const struct _INumberVectorProperty *nvp, const char *fmt, va_list ap);
-void IUUserIOSetSwitchVA(const userio *io, void *user, const struct _ISwitchVectorProperty *svp, const char *fmt, va_list ap);
+void IUUserIOSetNumberVA(const userio *io, void *user, const struct _INumberVectorProperty *nvp, const char *fmt,
+                         va_list ap);
+void IUUserIOSetSwitchVA(const userio *io, void *user, const struct _ISwitchVectorProperty *svp, const char *fmt,
+                         va_list ap);
 void IUUserIOSetLightVA(const userio *io, void *user, const struct _ILightVectorProperty *lvp, const char *fmt, va_list ap);
 void IUUserIOSetBLOBVA(const userio *io, void *user, const struct _IBLOBVectorProperty *bvp, const char *fmt, va_list ap);
 
@@ -85,6 +88,9 @@ void IDUserIOMessage(const userio *io, void *user, const char *dev, const char *
 void IDUserIOMessageVA(const userio *io, void *user, const char *dev, const char *fmt, va_list ap);
 
 void IUUserIOConfigTag(const userio *io, void *user, int ctag);
+
+void IUUserIOPingRequest(const userio * io, void *user, const char * pingUid);
+void IUUserIOPingReply(const userio * io, void *user, const char * pingUid);
 
 #ifdef __cplusplus
 }

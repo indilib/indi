@@ -33,7 +33,12 @@
 
 static std::unique_ptr<CelestronSCT> celestronSCT(new CelestronSCT());
 
-CelestronSCT::CelestronSCT()
+CelestronSCT::CelestronSCT() :
+    backlashMove(false),
+    finalPosition(0),
+    calibrateInProgress(false),
+    calibrateState(0),
+    focuserIsCalibrated(false)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     // CR variable speed and sync removed
@@ -448,7 +453,6 @@ void CelestronSCT::TimerHit()
             calibrateInProgress = false;
             CalibrateS[1].s = ISS_OFF;
             CalibrateSP.s = IPS_OK;
-            //CalibrateStateT[0].text = (char *)msg;
             IUSaveText(&CalibrateStateT[0], msg);
             IDSetSwitch(&CalibrateSP, nullptr);
             IDSetText(&CalibrateStateTP, nullptr);
@@ -467,7 +471,7 @@ void CelestronSCT::TimerHit()
                 calibrateState = state;
                 char str[20];
                 snprintf(str, 20, "Calibrate state %i", state);
-                CalibrateStateT[0].text = str;
+                IUSaveText(&CalibrateStateT[0], str);
                 IDSetText(&CalibrateStateTP, nullptr);
             }
         }

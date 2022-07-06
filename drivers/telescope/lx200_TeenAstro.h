@@ -1,5 +1,5 @@
 /*
-    LX200_TeenAstro 
+    LX200_TeenAstro
 
     Based on LX200_OnStep and others
     François Desvallées https://github.com/fdesvallees
@@ -30,6 +30,7 @@
 #include "indicom.h"
 
 #define RB_MAX_LEN 64
+#define INITIAL_GUIDE_RATE 0.50
 
 class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -48,7 +49,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
- 
+
     protected:
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
@@ -70,14 +71,14 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         virtual IPState GuideWest(uint32_t ms) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
-        
+
     private:
         bool Move(TDirection dir, TelescopeMotionCommand command);
         bool selectSlewRate(int index);
         bool isSlewComplete();
         void slewError(int slewCode);
         void mountSim();
-        bool SetGuideRate(int);
+        bool SetGuideRate(float);
 
         bool getLocalDate(char *dateString);
         bool setLocalDate(uint8_t days, uint8_t months, uint16_t years);
@@ -96,12 +97,13 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         // Return UTC Offset from mount in hours.
         bool setUTCOffset(double offset);
         bool getUTFOffset(double * offset);
-        
+
         void handleStatusChange(void);
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
         void sendCommand(const char *cmd);
         void updateMountStatus(char);
-   
+        void updateSlewRate(void);
+
         // Send Mount time and location settings to client
         bool sendScopeTime();
         bool sendScopeLocation();
@@ -112,8 +114,8 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         INumberVectorProperty SlewAccuracyNP;
 
         ISwitchVectorProperty HomePauseSP;
-        ISwitch HomePauseS[3];    
-        
+        ISwitch HomePauseS[3];
+
         ISwitchVectorProperty SetHomeSP;
         ISwitch SetHomeS[2];
 
@@ -123,13 +125,13 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch SlewRateS[5];
         ISwitchVectorProperty SlewRateSP;
 
-        ISwitch GuideRateS[3];
-        ISwitchVectorProperty GuideRateSP;
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
 
         ISwitch TATrackModeS[3];
         ISwitchVectorProperty TATrackModeSP;
 
-        // Site Management 
+        // Site Management
         ISwitchVectorProperty SiteSP;
         ISwitch SiteS[4];
         int currentSiteNum {0}; // on TeenAstro, sites are numbered 0 to 3, not 1 to 4 like on the Meade standard
@@ -148,6 +150,6 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         char OSStat[RB_MAX_LEN];
         char OldOSStat[RB_MAX_LEN];
         const char *statusCommand;           // :GU# for version 1.1, :GXI# for 1.2 and later
-        const char *guideSpeedCommand;       // :SX90# or SXR0
+        const char *guideSpeedCommand;       // :SXR0
 
 };

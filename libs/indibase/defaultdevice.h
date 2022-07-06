@@ -512,6 +512,13 @@ class DefaultDevice : public BaseDevice
          */
         bool isConfigLoading() const;
 
+        /**
+         * @brief isInitializationComplete Check if driver initialization is complete.
+         * @return True if driver is initialized. It is initialized after initProperties() is completed and
+         *  after the first ISGetProperties() is executed.
+         */
+        bool isInitializationComplete() const;
+
         /** @brief syncDriverInfo sends the current driver information to the client. */
         void syncDriverInfo();
 
@@ -524,10 +531,10 @@ class DefaultDevice : public BaseDevice
         friend class Connection::Serial;
         friend class Connection::TCP;
         friend class FilterInterface;
+        friend class FocuserInterface;
 
     protected:
         DefaultDevice(DefaultDevicePrivate &dd);
-
 };
 
 }

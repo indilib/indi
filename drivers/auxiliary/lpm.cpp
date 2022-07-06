@@ -46,7 +46,8 @@ LPM::LPM()
 
 LPM::~LPM()
 {
-    if (fp) {
+    if (fp)
+    {
         fclose(fp);
     }
 }
@@ -91,7 +92,10 @@ bool LPM::initProperties()
     if (lpmConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return getDeviceInfo();
+        });
         serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
         registerConnection(serialConnection);
     }
@@ -169,24 +173,31 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             sumSQ = 0;
             count = 0;
             return true;
-        } else if (!strcmp(name, SaveBP.name))
+        }
+        else if (!strcmp(name, SaveBP.name))
         {
             IUUpdateSwitch(&SaveBP, states, names, n);
 
             if (SaveB[SAVE_READINGS].s == ISS_ON)
             {
                 LOGF_INFO("Save readings to %s", filename);
-                if (fp == nullptr) {
+                if (fp == nullptr)
+                {
                     openFilePtr();
                 }
                 SaveBP.s = IPS_OK;
-            } else {
+            }
+            else
+            {
                 LOG_INFO("Discard readings");
-                if (fp != nullptr) {
+                if (fp != nullptr)
+                {
                     LOG_DEBUG("close file pointer");
                     fclose(fp);
                     fp = nullptr;
-                } else {
+                }
+                else
+                {
                     LOG_WARN("no file open!");
                 }
                 SaveBP.s = IPS_IDLE;
@@ -204,7 +215,7 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 void LPM::openFilePtr()
 {
     LOG_DEBUG("open file pointer");
-    mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(RecordFileT[0].text, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     fp = fopen(filename, "a");
 }
 
@@ -226,9 +237,11 @@ bool LPM::getReadings()
         {
             LOGF_ERROR("Failed to parse input %s", res);
             return false;
-        } else 
+        }
+        else
         {
-            if (fp != nullptr) {
+            if (fp != nullptr)
+            {
                 LOG_DEBUG("save reading...");
                 fprintf(fp, "%f\t%s\n", mpsas, timestamp());
                 fflush(fp);
@@ -242,18 +255,22 @@ bool LPM::getReadings()
         if (count > 1)
         {
             AverageReadingN[1].value = sumSQ / count;
-            if (mpsas < AverageReadingN[2].value) {
+            if (mpsas < AverageReadingN[2].value)
+            {
                 AverageReadingN[2].value = mpsas;
             }
-            if (mpsas > AverageReadingN[3].value) {
+            if (mpsas > AverageReadingN[3].value)
+            {
                 AverageReadingN[3].value = mpsas;
             }
-        } else {
+        }
+        else
+        {
             AverageReadingN[2].value = mpsas;
             AverageReadingN[3].value = mpsas;
         }
         //NELM (see http://unihedron.com/projects/darksky/NELM2BCalc.html)
-        AverageReadingN[4].value = 7.93-5*log(pow(10,(4.316-(mpsas/5)))+1)/log(10);
+        AverageReadingN[4].value = 7.93 - 5 * log(pow(10, (4.316 - (mpsas / 5))) + 1) / log(10);
     }
     return true;
 }
@@ -266,9 +283,10 @@ const char *LPM::getDefaultName()
 bool LPM::getDeviceInfo()
 {
     const char *cmd = "C#";
-    char buffer[5]={0};
+    char buffer[5] = {0};
 
-    if (getActiveConnection() == serialConnection) {
+    if (getActiveConnection() == serialConnection)
+    {
         PortFD = serialConnection->getPortFD();
     }
 

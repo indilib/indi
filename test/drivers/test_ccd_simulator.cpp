@@ -85,7 +85,7 @@ class MockCCDSimDriver: public CCDSim
         {
             int const xres = 65;
             int const yres = 65;
-            int const maxval = pow(2, 8)-1;
+            int const maxval = pow(2, 8) - 1;
 
             // Setup a 65x65, 16-bit depth, 4.6u square pixel sensor
             INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
@@ -143,29 +143,30 @@ class MockCCDSimDriver: public CCDSim
             int const center = xres / 2 + 1 + (yres / 2 + 1) * xres;
 
             // The choice of the gaussian of unitary integral makes the center less than maximum
-            double const sigma = 1.0 / (2 * sqrt(2*log(2)));
-            double const fa0 = 1.0 / (sigma * sqrt(2*3.1416));
+            double const sigma = 1.0 / (2 * sqrt(2 * log(2)));
+            double const fa0 = 1.0 / (sigma * sqrt(2 * 3.1416));
 
             // Center photosite
             uint16_t const ADU_at_center = static_cast<uint16_t>(fa0 * maxval);
-            EXPECT_EQ(fb[center], ADU_at_center) << "Recorded flux of magnitude 0.0 for 1 second at center is " << ADU_at_center << " ADUs";
+            EXPECT_EQ(fb[center], ADU_at_center) << "Recorded flux of magnitude 0.0 for 1 second at center is " << ADU_at_center <<
+                                                 " ADUs";
 
             // Up, left, right and bottom photosites at one pixel
-            uint16_t const ADU_at_1pix = static_cast<uint16_t>(fa0 * maxval * exp(-(1*1+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_1pix = static_cast<uint16_t>(fa0 * maxval * exp(-(1 * 1 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres], ADU_at_1pix);
             EXPECT_EQ(fb[center - 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + xres], ADU_at_1pix);
 
             // Up, left, right and bottom photosites at two pixels
-            uint16_t const ADU_at_2pix = static_cast<uint16_t>(fa0 * maxval * exp(-(2*2+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_2pix = static_cast<uint16_t>(fa0 * maxval * exp(-(2 * 2 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center - 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + xres * 2], ADU_at_2pix);
 
             // Up, left, right and bottom photosite neighbors at three pixels
-            uint16_t const ADU_at_3pix = static_cast<uint16_t>(fa0 * maxval * exp(-(3*3+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_3pix = static_cast<uint16_t>(fa0 * maxval * exp(-(3 * 3 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center - 1 * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center + 1 * 3], ADU_at_3pix);

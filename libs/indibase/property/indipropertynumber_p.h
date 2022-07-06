@@ -26,11 +26,11 @@ namespace INDI
 
 class PropertyNumberPrivate: public PropertyBasicPrivateTemplate<INumber>
 {
-public:
-    PropertyNumberPrivate(size_t count);
-    virtual ~PropertyNumberPrivate();
+    public:
+        PropertyNumberPrivate(size_t count);
+        virtual ~PropertyNumberPrivate();
 
-public:
+    public:
 
 };
 

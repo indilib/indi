@@ -204,6 +204,7 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
         {
             FocusSpeedN[0].value = current_speed;
             FocusSpeedNP.s       = IPS_ALERT;
+            m_defaultDevice->saveConfig(true, FocusSpeedNP.name);
         }
 
         //  Update client display
@@ -235,6 +236,8 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
             IUUpdateMinMax(&FocusAbsPosNP);
             IUUpdateMinMax(&FocusRelPosNP);
             IUUpdateMinMax(&FocusSyncNP);
+
+            m_defaultDevice->saveConfig(true, FocusMaxPosNP.name);
 
             FocusMaxPosNP.s = IPS_OK;
         }
@@ -282,6 +285,7 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
             {
                 FocusBacklashN[0].value = values[0];
                 FocusBacklashNP.s = IPS_OK;
+                m_defaultDevice->saveConfig(true, FocusBacklashNP.name);
             }
             else
                 FocusBacklashNP.s = IPS_ALERT;
@@ -450,6 +454,7 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
         {
             IUUpdateSwitch(&FocusBacklashSP, states, names, n);
             FocusBacklashSP.s = IPS_OK;
+            m_defaultDevice->saveConfig(true, FocusBacklashSP.name);
         }
         else
         {
@@ -497,6 +502,7 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
         if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
         {
             FocusReverseSP.s = IPS_OK;
+            m_defaultDevice->saveConfig(true, FocusReverseSP.name);
         }
         else
         {

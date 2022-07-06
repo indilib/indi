@@ -45,17 +45,34 @@ class Manager
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                               char *names[], int n);
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
         bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
-        inline void setSizes(uint32_t num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        inline void getSizes(uint32_t *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        inline void setSizes(uint32_t num, int* sizes)
+        {
+            BufferSizes = sizes;
+            BufferSizesQty = num;
+        }
+        inline void getSizes(uint32_t *num, int** sizes)
+        {
+            *sizes = BufferSizes;
+            *num = BufferSizesQty;
+        }
 
-        inline void setBPS(int bps) { BPS = bps; }
-        inline int getBPS() { return BPS; }
+        inline void setBPS(int bps)
+        {
+            BPS = bps;
+        }
+        inline int getBPS()
+        {
+            return BPS;
+        }
+
+        void setCaptureFileExtension(const char *ext);
 
     private:
         Convolution *convolution;

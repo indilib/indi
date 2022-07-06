@@ -24,6 +24,7 @@
 #include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
+#include "sharedblob_parse.h"
 #include "locale_compat.h"
 
 #include <cerrno>
@@ -52,7 +53,9 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
+#include <signal.h>
 #define net_read read
 #define net_write write
 #define net_close close
@@ -64,6 +67,7 @@
 
 #define MAXINDIBUF 49152
 #define DISCONNECTION_DELAY_US 500000
+#define MAXFD_PER_MESSAGE 16 /* No more than 16 buffer attached to a message */
 
 static userio io;
 
@@ -105,18 +109,6 @@ BaseClientPrivate::~BaseClientPrivate()
     if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this] { return sConnected == false; }))
     {
         IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
-        /* #PS:
-         * KStars bug - suspicion
-         *   The function thread 'BaseClient::listenINDI' could not be terminated
-         *   because the 'dispatchCommand' function is in progress.
-         *
-         *   The function 'dispatchCommand' cannot be completed
-         *   because it is related to the function call 'ClientManager::newProperty'.
-         *
-         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
-         *   destroying the BaseClient object.
-         *
-         */
     }
 }
 
@@ -129,7 +121,226 @@ void BaseClientPrivate::clear()
     }
     cDevices.clear();
     blobModes.clear();
-    // cDeviceNames.clear(); // #PS: missing?
+    directBlobAccess.clear();
+}
+
+#ifndef _WINDOWS
+
+static void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
+{
+    memset(&serv_addr_un, 0, sizeof(serv_addr_un));
+    serv_addr_un.sun_family = AF_UNIX;
+
+#ifdef __linux__
+    (void) bind;
+
+    // Using abstract socket path to avoid filesystem boilerplate
+    strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
+
+    addrlen = len;
+#else
+    // Using filesystem socket path
+    strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+
+    int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size();
+
+    if (bind)
+    {
+        unlink(unixAddr.c_str());
+    }
+#endif
+    addrlen = len;
+}
+
+#endif
+
+// Using this prefix for name allow specifying the unix socket path
+static const char * unixDomainPrefix = "localhost:";
+
+static const char * unixDefaultPath = "/tmp/indiserver";
+
+bool BaseClientPrivate::establish(const std::string &cServer)
+{
+    struct sockaddr_un serv_addr_un;
+    struct sockaddr_in serv_addr_in;
+    const struct sockaddr *sockaddr;
+    socklen_t addrlen;
+
+    struct timeval ts;
+    ts.tv_sec  = timeout_sec;
+    ts.tv_usec = timeout_us;
+
+    int ret;
+
+    // Special handling for localhost: addresses
+    // pos=0 limits the search to the prefix
+    unixSocket = cServer.rfind(unixDomainPrefix, 0) == 0;
+    std::string unixAddr;
+    if (unixSocket)
+    {
+        unixAddr = cServer.substr(strlen(unixDomainPrefix));
+    }
+
+    if (unixSocket)
+    {
+#ifndef _WINDOWS
+        if (unixAddr.empty())
+        {
+            unixAddr = unixDefaultPath;
+        }
+
+        initUnixSocketAddr(unixAddr, serv_addr_un, addrlen, false);
+
+        sockaddr = (struct sockaddr *)&serv_addr_un;
+
+        if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+        {
+            perror("socket");
+            return false;
+        }
+#else
+        IDLog("local domain not supported on windows");
+        return false;
+#endif
+    }
+    else
+    {
+        struct hostent *hp;
+
+        /* lookup host address */
+        hp = gethostbyname(cServer.c_str());
+        if (!hp)
+        {
+            perror("gethostbyname");
+            return false;
+        }
+
+        /* create a socket to the INDI server */
+        (void)memset((char *)&serv_addr_in, 0, sizeof(serv_addr_in));
+        serv_addr_in.sin_family      = AF_INET;
+        serv_addr_in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr_in.sin_port        = htons(cPort);
+
+        sockaddr = (struct sockaddr *)&serv_addr_in;
+        addrlen = sizeof(serv_addr_in);
+#ifdef _WINDOWS
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
+        {
+            IDLog("Socket error: %d\n", WSAGetLastError());
+            WSACleanup();
+            return false;
+        }
+#else
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            perror("socket");
+            return false;
+        }
+#endif
+    }
+
+    /* set the socket in non-blocking */
+    //set socket nonblocking flag
+#ifdef _WINDOWS
+    u_long iMode = 0;
+    iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
+    if (iResult != NO_ERROR)
+    {
+        IDLog("ioctlsocket failed with error: %ld\n", iResult);
+        net_close(sockfd);
+        return false;
+    }
+#else
+    int flags = 0;
+    if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
+    {
+        net_close(sockfd);
+        return false;
+    }
+
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
+        net_close(sockfd);
+        return false;
+    }
+
+    // Handle SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
+#endif
+
+    //clear out descriptor sets for select
+    //add socket to the descriptor sets
+    fd_set rset, wset;
+    FD_ZERO(&rset);
+    FD_SET(sockfd, &rset);
+    wset = rset; //structure assignment okok
+
+    /* connect */
+    if ((ret = ::connect(sockfd, sockaddr, addrlen)) < 0)
+    {
+        if (errno != EINPROGRESS)
+        {
+            perror("connect");
+            net_close(sockfd);
+            return false;
+        }
+    }
+
+    /* If it is connected, continue, otherwise wait */
+    if (ret != 0)
+    {
+        //we are waiting for connect to complete now
+        if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
+        {
+            net_close(sockfd);
+            return false;
+        }
+        //we had a timeout
+        if (ret == 0)
+        {
+#ifdef _WINDOWS
+            IDLog("select timeout\n");
+#else
+            net_close(sockfd);
+
+            errno = ETIMEDOUT;
+            perror("select timeout");
+#endif
+            return false;
+        }
+    }
+
+    /* we had a positivite return so a descriptor is ready */
+#ifndef _WINDOWS
+    int error     = 0;
+    socklen_t len = sizeof(error);
+    if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
+    {
+        if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+        {
+            perror("getsockopt");
+            net_close(sockfd);
+            return false;
+        }
+    }
+    else
+    {
+        net_close(sockfd);
+        return false;
+    }
+
+    /* check if we had a socket error */
+    if (error)
+    {
+        errno = error;
+        perror("socket");
+        net_close(sockfd);
+        return false;
+    }
+#endif
+    return true;
 }
 
 bool BaseClientPrivate::connect()
@@ -154,124 +365,26 @@ bool BaseClientPrivate::connect()
         }
 #endif
 
-        struct timeval ts;
-        ts.tv_sec  = timeout_sec;
-        ts.tv_usec = timeout_us;
-
-        struct sockaddr_in serv_addr;
-        struct hostent *hp;
-        int ret = 0;
-
-        /* lookup host address */
-        hp = gethostbyname(cServer.c_str());
-        if (!hp)
-        {
-            perror("gethostbyname");
-            return false;
-        }
-
-        /* create a socket to the INDI server */
-        (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family      = AF_INET;
-        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-        serv_addr.sin_port        = htons(cPort);
-#ifdef _WINDOWS
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
-        {
-            IDLog("Socket error: %d\n", WSAGetLastError());
-            WSACleanup();
-            return false;
-        }
-#else
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
-            perror("socket");
-            return false;
-        }
-#endif
-
-        /* set the socket in non-blocking */
-        //set socket nonblocking flag
-#ifdef _WINDOWS
-        u_long iMode = 0;
-        iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
-        if (iResult != NO_ERROR)
-        {
-            IDLog("ioctlsocket failed with error: %ld\n", iResult);
-            return false;
-        }
-#else
-        int flags = 0;
-        if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
-            return false;
-
-        if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
-            return false;
-#endif
-
-        //clear out descriptor sets for select
-        //add socket to the descriptor sets
-        fd_set rset, wset;
-        FD_ZERO(&rset);
-        FD_SET(sockfd, &rset);
-        wset = rset; //structure assignment okok
-
-        /* connect */
-        if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
-        {
-            if (errno != EINPROGRESS)
-            {
-                perror("connect");
-                net_close(sockfd);
-                return false;
-            }
-        }
-
-        /* If it is connected, continue, otherwise wait */
-        if (ret != 0)
-        {
-            //we are waiting for connect to complete now
-            if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
-                return false;
-            //we had a timeout
-            if (ret == 0)
-            {
-#ifdef _WINDOWS
-                IDLog("select timeout\n");
-#else
-                errno = ETIMEDOUT;
-                perror("select timeout");
-#endif
-                return false;
-            }
-        }
-
-        /* we had a positivite return so a descriptor is ready */
 #ifndef _WINDOWS
-        int error     = 0;
-        socklen_t len = sizeof(error);
-        if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
+        // System with unix support automatically connect over unix domain
+        if (cServer == "localhost")
         {
-            if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-            {
-                perror("getsockopt");
+            if (!(establish(unixDomainPrefix) || establish(cServer)))
                 return false;
-            }
         }
         else
-            return false;
-
-        /* check if we had a socket error */
-        if (error)
         {
-            errno = error;
-            perror("socket");
-            return false;
+            if (!establish(cServer))
+                return false;
         }
+#else
+        if (!establish(cServer))
+            return false;
 #endif
 
 #ifndef _WINDOWS
         int pipefd[2];
+        int ret;
         ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
         if (ret < 0)
@@ -296,6 +409,12 @@ bool BaseClientPrivate::connect()
 
 bool BaseClientPrivate::disconnect(int exit_code)
 {
+    for(int fd : this->incomingSharedBuffers)
+    {
+        close(fd);
+    }
+    this->incomingSharedBuffers.clear();
+
     //IDLog("Server disconnected called\n");
     std::lock_guard<std::mutex> locker(sSocketBusy);
     if (sConnected == false)
@@ -380,9 +499,10 @@ void BaseClientPrivate::listenINDI()
 
     clear();
     LilXML *lillp = newLilXML();
+    bool clientFatalError = false;
 
     /* read from server, exit if find all requested properties */
-    while (!sAboutToClose)
+    while ((!sAboutToClose) && (!clientFatalError))
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
@@ -408,7 +528,63 @@ void BaseClientPrivate::listenINDI()
 #ifdef _WINDOWS
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
-            n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
+            // Use recvmsg for ancillary data
+            struct msghdr msgh;
+            struct iovec iov;
+
+            union
+            {
+                struct cmsghdr cmsgh;
+                /* Space large enough to hold an 'int' */
+                char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
+            } control_un;
+
+            iov.iov_base = buffer;
+            iov.iov_len = MAXINDIBUF;
+
+            msgh.msg_name = NULL;
+            msgh.msg_namelen = 0;
+            msgh.msg_iov = &iov;
+            msgh.msg_iovlen = 1;
+            msgh.msg_flags = 0;
+            msgh.msg_control = control_un.control;
+            msgh.msg_controllen = sizeof(control_un.control);
+
+            int recvflag = MSG_DONTWAIT;
+#ifdef __linux__
+            recvflag |= MSG_CMSG_CLOEXEC;
+#endif
+            n = recvmsg(sockfd, &msgh, recvflag);
+
+            if (n >= 0)
+            {
+                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+                {
+                    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+                    {
+                        int fdCount = 0;
+                        while(cmsg->cmsg_len >= CMSG_LEN((fdCount + 1) * sizeof(int)))
+                        {
+                            fdCount++;
+                        }
+                        //IDLog("Received %d fds\n", fdCount);
+                        int * fds = reinterpret_cast<int*>(CMSG_DATA(cmsg));
+                        for(int i = 0; i < fdCount; ++i)
+                        {
+                            int fd = fds[i];
+                            //IDLog("Received fd %d\n", fd);
+#ifndef __linux__
+                            fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+#endif
+                            incomingSharedBuffers.push_back(fd);
+                        }
+                    }
+                    else
+                    {
+                        IDLog("Ignoring ancillary data level %d, type %d\n", cmsg->cmsg_level, cmsg->cmsg_type);
+                    }
+                }
+            }
 #endif
             if (n < 0)
             {
@@ -437,7 +613,25 @@ void BaseClientPrivate::listenINDI()
                 if (verbose)
                     prXMLEle(stderr, root, 0);
 
-                int err_code = dispatchCommand(root, msg);
+                std::vector<std::string> blobs;
+
+                if (!parseAttachedBlobs(root, blobs))
+                {
+                    IDLog("Missing attachment from %s/%d\n", cServer.c_str(), cPort);
+                    clientFatalError = true;
+                    break;
+                }
+                int err_code;
+                try
+                {
+                    err_code = dispatchCommand(root, msg);
+                }
+                catch(...)
+                {
+                    releaseBlobUids(blobs);
+                    throw;
+                }
+                releaseBlobUids(blobs);
 
                 if (err_code < 0)
                 {
@@ -455,6 +649,11 @@ void BaseClientPrivate::listenINDI()
             }
             free(nodes);
             inode = 0;
+
+            if (clientFatalError)
+            {
+                break;
+            }
         }
     }
 
@@ -479,12 +678,68 @@ void BaseClientPrivate::listenINDI()
 
         exit_code = sAboutToClose ? sExitCode : -1;
         sConnected = false;
+        // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
+        parent->serverDisconnected(exit_code);
 
         clear();
         cDeviceNames.clear();
         sSocketChanged.notify_all();
     }
-    parent->serverDisconnected(exit_code);
+}
+
+static std::vector<XMLEle *> findBlobElements(XMLEle * root)
+{
+    std::vector<XMLEle *> result;
+    for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    {
+        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            result.push_back(ep);
+        }
+    }
+    return result;
+}
+
+bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> &blobs)
+{
+    // parse all elements in root that are attached.
+    // Create for each a new GUID and associate it in a global map
+    // modify the xml to add an attribute with the guid
+    for(auto blobContent : findBlobElements(root))
+    {
+        std::string attached = findXMLAttValu(blobContent, "attached");
+
+        if (attached == "true")
+        {
+            std::string device = findXMLAttValu(root, "dev");
+            std::string name = findXMLAttValu(root, "name");
+
+            rmXMLAtt(blobContent, "attached");
+            rmXMLAtt(blobContent, "enclen");
+
+            if (incomingSharedBuffers.empty())
+            {
+                return false;
+            }
+            int fd = *incomingSharedBuffers.begin();
+            incomingSharedBuffers.pop_front();
+
+            auto id = allocateBlobUid(fd);
+            blobs.push_back(id);
+
+            // Put something here for later replacement
+            rmXMLAtt(blobContent, "attached-data-id");
+            rmXMLAtt(blobContent, "attachment-direct");
+
+            addXMLAtt(blobContent, "attached-data-id", id.c_str());
+            if (isDirectBlobAccess(device, name))
+            {
+                // If client support read-only shared blob, mark it here
+                addXMLAtt(blobContent, "attachment-direct",  "true");
+            }
+        }
+    }
+    return true;
 }
 
 size_t BaseClientPrivate::sendData(const void *data, size_t size)
@@ -522,6 +777,22 @@ void BaseClientPrivate::sendString(const char *fmt, ...)
 int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 {
     const char *tag = tagXMLEle(root);
+
+    if (!strcmp(tagXMLEle(root), "pingRequest"))
+    {
+        const char *uid = findXMLAttValu(root, "uid");
+        if (!uid)
+            uid = "";
+
+        parent->sendPingReply(uid);
+        return 0;
+    }
+
+    if (!strcmp(tagXMLEle(root), "pingReply"))
+    {
+        const char * uid = findXMLAttValu(root, "uid");
+        parent->newPingReply(uid);
+    }
 
     if (!strcmp(tag, "message"))
         return messageCmd(root, errmsg);
@@ -769,6 +1040,40 @@ int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
     return (0);
 }
 
+void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    if (dev == nullptr || !dev[0])
+    {
+        directBlobAccess[""].insert("");
+        return;
+    }
+    if (prop == nullptr || !prop[0])
+    {
+        directBlobAccess[dev].insert("");
+    }
+    else
+    {
+        directBlobAccess[dev].insert(prop);
+    }
+}
+
+static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
+                                     const std::string &dev, const std::string &prop)
+{
+    auto devAccess = directBlobAccess.find(dev) ;
+    if (devAccess == directBlobAccess.end())
+    {
+        return false;
+    }
+    return devAccess->second.find(prop) != devAccess->second.end();
+}
+
+bool BaseClientPrivate::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
+{
+    return hasDirectBlobAccessEntry(directBlobAccess, "", "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+}
 
 BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const std::string &property)
 {
@@ -945,6 +1250,11 @@ void INDI::BaseClient::newUniversalMessage(std::string message)
     IDLog("%s\n", message.c_str());
 }
 
+void INDI::BaseClient::newPingReply(std::string uid)
+{
+    IDLog("Ping reply %s\n", uid.c_str());
+}
+
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     D_PTR(BaseClient);
@@ -1003,6 +1313,18 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
     np->setValue(value);
 
     sendNewNumber(nvp);
+}
+
+void INDI::BaseClient::sendPingReply(const char * uuid)
+{
+    D_PTR(BaseClient);
+    IUUserIOPingReply(&io, d, uuid);
+}
+
+void INDI::BaseClient::sendPingRequest(const char * uuid)
+{
+    D_PTR(BaseClient);
+    IUUserIOPingRequest(&io, d, uuid);
 }
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
@@ -1091,6 +1413,12 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     }
 
     IUUserIOEnableBLOB(&io, d, dev, prop, blobH);
+}
+
+void INDI::BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    D_PTR(BaseClient);
+    d->enableDirectBlobAccess(dev, prop);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)

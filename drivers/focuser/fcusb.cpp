@@ -27,10 +27,16 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 
 static std::unique_ptr<FCUSB> fcusb(new FCUSB());
+static const std::multimap<uint16_t, uint16_t> USBIDs =
+{
+    {0x134A, 0x9023},
+    {0x134A, 0x9024},
+    {0x134A, 0x903F},
+};
 
 FCUSB::FCUSB()
 {
-    setVersion(0, 2);
+    setVersion(0, 3);
 
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
     setSupportedConnections(CONNECTION_NONE);
@@ -44,18 +50,19 @@ bool FCUSB::Connect()
         return true;
     }
 
-    handle = hid_open(0x134A, 0x9023, nullptr);
+    // Iterate until the correct VID:PID is found.
+    for (const auto &oneID : USBIDs)
+    {
+        if ( (handle = hid_open(oneID.first, oneID.second, nullptr)) != nullptr)
+            break;
+    }
 
     if (handle == nullptr)
     {
-        handle = hid_open(0x134A, 0x9024, nullptr);
-
-        if (handle == nullptr)
-        {
-            LOG_ERROR("No FCUSB focuser found.");
-            return false;
-        }
+        LOG_ERROR("No FCUSB focuser found.");
+        return false;
     }
+
     else
     {
         SetTimer(getCurrentPollingPeriod());
@@ -91,7 +98,8 @@ bool FCUSB::initProperties()
     IUFillSwitch(&PWMScalerS[0], "PWM_1_1", "1:1", ISS_ON);
     IUFillSwitch(&PWMScalerS[1], "PWM_1_4", "1:4", ISS_OFF);
     IUFillSwitch(&PWMScalerS[2], "PWM_1_16", "1:16", ISS_OFF);
-    IUFillSwitchVector(&PWMScalerSP, PWMScalerS, 3, getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PWMScalerSP, PWMScalerS, 3, getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
     addSimulationControl();
 

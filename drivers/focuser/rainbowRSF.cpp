@@ -23,7 +23,7 @@ This is the Rainbow API. A pdf is in the driver docs folder.
 
 Command              Send      Receive     Comment
 
-Get Position         :Fp#      :FPsDD.DDD# s is + or -, 
+Get Position         :Fp#      :FPsDD.DDD# s is + or -,
                                            sDD.DDD is a float number
                                            range: -08.000 to +08.000
                                            unit millimeters
@@ -100,6 +100,8 @@ bool RainbowRSF::initProperties()
     addSimulationControl();
     addDebugControl();
 
+    m_MovementTimerActive = false;
+
     return true;
 }
 
@@ -167,23 +169,24 @@ bool RainbowRSF::Handshake()
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-namespace {
+namespace
+{
 bool parsePosition(char *result, int *pos)
 {
-  const int length = strlen(result);
-  if (length < 6) return false;
-  // Check for a decimal/period
-  char *period = strchr(result+3, '.');
-  if (period == nullptr) return false;
+    const int length = strlen(result);
+    if (length < 6) return false;
+    // Check for a decimal/period
+    char *period = strchr(result + 3, '.');
+    if (period == nullptr) return false;
 
-  float position;
-  if (sscanf(result, ":FP%f#", &position) == 1)
-  {
-      // position is a float number between -8 and +8 that needs to be multiplied by 1000.
-      *pos = position * 1000;
-      return true;
-  }
-  return false;
+    float position;
+    if (sscanf(result, ":FP%f#", &position) == 1)
+    {
+        // position is a float number between -8 and +8 that needs to be multiplied by 1000.
+        *pos = position * 1000;
+        return true;
+    }
+    return false;
 }
 }  // namespace
 
@@ -246,13 +249,42 @@ bool RainbowRSF::updatePosition()
 
     int newPosition { 0 };
     bool ok = parsePosition(res, &newPosition);
-    if (ok) {
+    if (ok)
+    {
         FocusAbsPosN[0].value = newPosition + 8000;
 
-        const int offset = FocusAbsPosN[0].value - m_TargetPosition;
         constexpr int TOLERANCE = 1;  // Off-by-one position is ok given the resolution of the response.
-        if (std::abs(offset) <= TOLERANCE)
+        const int offset = std::abs(static_cast<int>(FocusAbsPosN[0].value - m_TargetPosition));
+        bool focuserDone = offset <= TOLERANCE;
+
+        // Try to hit the target position, but if it has been close for a while
+        // then we believe the focuser movement is done. This is needed because it
+        // sometimes stops 1 position away from the target, and occasionally 2 or 3.
+        if (!focuserDone && ((GoHomeSP.s == IPS_BUSY) || (FocusAbsPosNP.s == IPS_BUSY)))
         {
+            if (!m_MovementTimerActive)
+            {
+                // Waiting for motion completion. Initialize the start time for timeouts.
+                m_MovementTimer.start();
+                m_MovementTimerActive = true;
+            }
+            else
+            {
+                const double elapsedSeconds = m_MovementTimer.elapsed() / 1000.0;
+                if ((elapsedSeconds > 5 && offset < 3) ||
+                        (elapsedSeconds > 10 && offset < 6) ||
+                        (elapsedSeconds > 60))
+                {
+                    focuserDone = true;
+                    LOGF_INFO("Rainbow focuser timed out: %.1f seconds, offset %d (target %d, position %d)",
+                              elapsedSeconds, offset, m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
+                }
+            }
+        }
+
+        if (focuserDone)
+        {
+            m_MovementTimerActive = false;
             if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
@@ -276,7 +308,8 @@ bool RainbowRSF::updatePosition()
                 FocusRelPosNP.s = IPS_OK;
 
                 IDSetNumber(&FocusRelPosNP, nullptr);
-                LOG_INFO("Focuser reached target position.");
+                LOGF_INFO("Focuser reached target position %d at %d.",
+                          m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
             }
         }
         return true;
@@ -321,6 +354,7 @@ bool RainbowRSF::updateTemperature()
 /////////////////////////////////////////////////////////////////////////////////////
 IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 {
+    m_MovementTimerActive = false;
     m_TargetPosition = targetTicks;
 
     char cmd[DRIVER_LEN] = {0};
@@ -331,14 +365,15 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
-      if (sendCommand(cmd, res, DRIVER_LEN) == false)
-          return IPS_ALERT;
+        if (sendCommand(cmd, res, DRIVER_LEN) == false)
+            return IPS_ALERT;
     }
     return IPS_BUSY;
 }
 
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
+    m_MovementTimerActive = false;
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosN[0].value + relativeTicks;
@@ -361,6 +396,7 @@ bool RainbowRSF::findHome()
     }
     else
     {
+        m_MovementTimerActive = false;
         m_TargetPosition = homePosition;
         FocusAbsPosNP.s = IPS_BUSY;
         char res[DRIVER_LEN] = {0};
@@ -416,10 +452,10 @@ void RainbowRSF::TimerHit()
 bool RainbowRSF::sendCommand(const char * cmd, char * res, int res_len)
 {
     if (cmd == nullptr || res == nullptr || res_len <= 0)
-      return false;
+        return false;
     const int cmd_len = strlen(cmd);
     if (cmd_len <= 0)
-      return false;
+        return false;
 
     tcflush(PortFD, TCIOFLUSH);
 

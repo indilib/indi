@@ -1377,7 +1377,7 @@ bool TitanTCS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         sprintf(szCommand, ":Q%c#", chDir);
     }
 
-    TrackState = SCOPE_SLEWING;
+    //TrackState = SCOPE_SLEWING;
     LOGF_INFO("Moving command:%s", szCommand);
     return SendCommand(szCommand);
 }
@@ -1410,7 +1410,7 @@ bool TitanTCS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         sprintf(szCommand, ":Q%c#", chDir);
     }
 
-    TrackState = SCOPE_SLEWING;
+    //TrackState = SCOPE_SLEWING;
     LOGF_INFO("Moving command:%s", szCommand);
     return SendCommand(szCommand);
 }

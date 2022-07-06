@@ -72,7 +72,7 @@ bool QFW::Handshake()
     }
     // read description
     char cmd[10] = {"SN\r\n"};
-    char resp[255]={0};
+    char resp[255] = {0};
     if (send_command(PortFD, cmd, resp) < 2)
         return false;
 
@@ -150,8 +150,8 @@ bool QFW::SelectFilter(int position)
     }
 
     // goto
-    char targetpos[255]={0};
-    char curpos[255]={0};
+    char targetpos[255] = {0};
+    char curpos[255] = {0};
     char dmp[255];
     int err;
     int nbytes;
@@ -193,7 +193,8 @@ bool QFW::SelectFilter(int position)
         curpos[nbytes] = 0;
         dump(dmp, curpos);
         LOGF_DEBUG("REP: %s", dmp);
-    } while (strncmp(targetpos, curpos, 2) != 0);
+    }
+    while (strncmp(targetpos, curpos, 2) != 0);
 
     // return current position to indi
     CurrentFilter = position + 1;
@@ -217,7 +218,7 @@ void QFW::dump(char *buf, const char *data)
         else
         {
             sprintf(buf + n, "[%02X]", data[i]);
-            n+=4;
+            n += 4;
         }
         i++;
     }

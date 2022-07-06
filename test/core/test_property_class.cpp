@@ -56,7 +56,8 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
 {
     INDI::Property p;
 
-    INumberVectorProperty nvp {
+    INumberVectorProperty nvp
+    {
         "device field",
         "name field",
         "label field",
@@ -79,7 +80,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
     ASSERT_EQ(p.getDeviceName(), nullptr);
     ASSERT_EQ(p.getTimestamp(), nullptr);
 
-     // Other fields remain unchanged
+    // Other fields remain unchanged
     ASSERT_EQ(p.getRegistered(), true);
     ASSERT_EQ(p.isDynamic(), false);
     ASSERT_EQ(p.getBaseDevice(), nullptr);
@@ -136,7 +137,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
     ASSERT_EQ(p.getState(), IPS_ALERT);
     ASSERT_EQ(p.getPermission(), IP_RO);
 
-     // Again, conversions return nothing
+    // Again, conversions return nothing
     ASSERT_EQ(p.getNumber(), nullptr);
     ASSERT_EQ(p.getText(), nullptr);
     ASSERT_EQ(p.getSwitch(), nullptr);

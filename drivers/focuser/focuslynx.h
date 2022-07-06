@@ -26,52 +26,52 @@
 
 class FocusLynxF1 : public FocusLynxBase
 {
-  public:
-    explicit FocusLynxF1(const char *target);
-    ~FocusLynxF1();
+    public:
+        explicit FocusLynxF1(const char *target);
+        ~FocusLynxF1();
 
-    const char *getDefaultName() override;
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual bool updateProperties() override;
-    virtual bool initProperties() override;
-//    virtual void ISGetProperties(const char *dev) override;
-    int getPortFD();
+        const char *getDefaultName() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        //    virtual void ISGetProperties(const char *dev) override;
+        int getPortFD();
 
-    virtual void simulationTriggered(bool enable) override;
-    virtual void setDebug(bool enable);
-    virtual void debugTriggered(bool enable) override;
+        virtual void simulationTriggered(bool enable) override;
+        virtual void setDebug(bool enable);
+        virtual void debugTriggered(bool enable) override;
 
-  private:
-    // Get functions
-    bool getHubConfig();
+    private:
+        // Get functions
+        bool getHubConfig();
 
-    // HUB Main Parameter
-    IText HubT[2] {};
-    ITextVectorProperty HubTP;
+        // HUB Main Parameter
+        IText HubT[2] {};
+        ITextVectorProperty HubTP;
 
-    // Network Wired Info
-    IText WiredT[2] {};
-    ITextVectorProperty WiredTP;
+        // Network Wired Info
+        IText WiredT[2] {};
+        ITextVectorProperty WiredTP;
 
-    //Network WIFI Info
-    IText WifiT[9] {};
-    ITextVectorProperty WifiTP;
+        //Network WIFI Info
+        IText WifiT[9] {};
+        ITextVectorProperty WifiTP;
 };
 
 class FocusLynxF2 : public FocusLynxBase
 {
-  public:
-    explicit FocusLynxF2(const char *target);
-    ~FocusLynxF2();
+    public:
+        explicit FocusLynxF2(const char *target);
+        ~FocusLynxF2();
 
-    const char *getDefaultName() override;
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual bool RemoteDisconnect();
-    virtual bool initProperties() override;
-    virtual void setSimulation(bool enable);
-    virtual void setDebug(bool enable);
-    virtual void debugTriggered(bool enable) override;
+        const char *getDefaultName() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual bool RemoteDisconnect();
+        virtual bool initProperties() override;
+        virtual void setSimulation(bool enable);
+        virtual void setDebug(bool enable);
+        virtual void debugTriggered(bool enable) override;
 };
 

@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2017 Ralph Rogge. All rights reserved.
 
-  INDI Sky Quality Meter Simulator 
+  INDI Sky Quality Meter Simulator
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -28,31 +28,31 @@
 
 class SQMSimulator : public INDI::DefaultDevice
 {
-  public:
-    SQMSimulator();
-    virtual ~SQMSimulator() = default;
+    public:
+        SQMSimulator();
+        virtual ~SQMSimulator() = default;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-  protected:
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
+    protected:
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
 
-  private:
-    bool getReading();
-    bool getUnit();
+    private:
+        bool getReading();
+        bool getUnit();
 
-    // Reading
-    static const int READING_NUMBER_OF_VALUES = 5;
-    INumberVectorProperty readingProperties;
-    INumber readingValues[READING_NUMBER_OF_VALUES];
+        // Reading
+        static const int READING_NUMBER_OF_VALUES = 5;
+        INumberVectorProperty readingProperties;
+        INumber readingValues[READING_NUMBER_OF_VALUES];
 
-    // Unit
-    static const int UNIT_NUMBER_OF_VALUES = 4;
-    INumberVectorProperty unitProperties;
-    INumber unitValues[UNIT_NUMBER_OF_VALUES];
+        // Unit
+        static const int UNIT_NUMBER_OF_VALUES = 4;
+        INumberVectorProperty unitProperties;
+        INumber unitValues[UNIT_NUMBER_OF_VALUES];
 };

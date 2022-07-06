@@ -26,7 +26,7 @@ namespace INDI
 template <typename>
 struct WidgetTraits;
 
-template<> struct WidgetTraits<IText>  
+template<> struct WidgetTraits<IText>
 {
     using PropertyType = ITextVectorProperty;
     struct UpdateArgs
@@ -59,7 +59,7 @@ template<> struct WidgetTraits<ISwitch>
     };
 };
 
-template<> struct WidgetTraits<ILight> 
+template<> struct WidgetTraits<ILight>
 {
     using PropertyType = ILightVectorProperty;
     struct UpdateArgs
@@ -68,7 +68,7 @@ template<> struct WidgetTraits<ILight>
     };
 };
 
-template<> struct WidgetTraits<IBLOB>  
+template<> struct WidgetTraits<IBLOB>
 {
     using PropertyType = IBLOBVectorProperty;
     struct UpdateArgs

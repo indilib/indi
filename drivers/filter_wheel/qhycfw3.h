@@ -24,13 +24,13 @@
 
 class QHYCFW3 : public INDI::FilterWheel
 {
-  public:
-    QHYCFW3();
+    public:
+        QHYCFW3();
 
-  protected:
-    const char *getDefaultName() override;
-    bool initProperties() override;
+    protected:
+        const char *getDefaultName() override;
+        bool initProperties() override;
 
-    bool Handshake() override;
-    bool SelectFilter(int) override;
+        bool Handshake() override;
+        bool SelectFilter(int) override;
 };

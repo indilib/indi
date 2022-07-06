@@ -688,7 +688,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         // USB Hub Control v2
         if (!strcmp(name, USBControlV2SP.name))
         {
-            bool rc[6] = {true};
+            bool rc[6] = {false};
+            std::fill_n(rc, 6, true);
             ISState ports[6] = {ISS_ON};
 
             for (int i = 0; i < USBControlV2SP.nsp; i++)
@@ -714,7 +715,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
                 USBControlV2SP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&USBControlSP, nullptr);
+            IDSetSwitch(&USBControlV2SP, nullptr);
+
             return true;
         }
 
@@ -1339,11 +1341,27 @@ bool PegasusUPB::sendFirmware()
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end)
 {
+    if (lastSensorData.empty())
+        return true;
+
     for (uint8_t index = start; index <= end; index++)
-        if (result[index] != lastSensorData[index])
+    {
+        if (index >= lastSensorData.size() or result[index] != lastSensorData[index])
             return true;
+    }
 
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusUPB::stepperUpdated(const std::vector<std::string> &result, u_int8_t index)
+{
+    if (lastStepperData.empty())
+        return true;
+
+    return index >= lastStepperData.size() or result[index] != lastSensorData[index];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1447,7 +1465,7 @@ bool PegasusUPB::getSensorData()
 
         index = (version == UPB_V1) ? 11 : 12;
 
-        const double ampDivision = (version == UPB_V1) ? 400.0 : 300.0;
+        const double ampDivision = (version == UPB_V1) ? 400.0 : 480.0;
 
         // Current draw
         PowerCurrentN[0].value = std::stod(result[index]) / ampDivision;
@@ -1466,7 +1484,7 @@ bool PegasusUPB::getSensorData()
         DewCurrentDrawN[DEW_PWM_A].value = std::stod(result[index]) / ampDivision;
         DewCurrentDrawN[DEW_PWM_B].value = std::stod(result[index + 1]) / ampDivision;
         if (version == UPB_V2)
-            DewCurrentDrawN[DEW_PWM_C].value = std::stod(result[index + 2]) / (ampDivision * 2);
+            DewCurrentDrawN[DEW_PWM_C].value = std::stod(result[index + 2]) / 700;
         //        if (lastSensorData[index] != result[index] ||
         //                lastSensorData[index + 1] != result[index + 1] ||
         //                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
@@ -1639,13 +1657,13 @@ bool PegasusUPB::getStepperData()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
-        else if (result[0] != lastStepperData[0])
+        else if (stepperUpdated(result, 0))
             IDSetNumber(&FocusAbsPosNP, nullptr);
 
         FocusReverseS[INDI_ENABLED].s = (std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF;
         FocusReverseS[INDI_DISABLED].s = (std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON;
 
-        if (result[2] != lastStepperData[2])
+        if (stepperUpdated(result, 1))
             IDSetSwitch(&FocusReverseSP, nullptr);
 
         uint16_t backlash = std::stoi(result[3]);
@@ -1654,7 +1672,7 @@ bool PegasusUPB::getStepperData()
             FocusBacklashN[0].value = backlash;
             FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
             FocusBacklashS[INDI_DISABLED].s = ISS_ON;
-            if (result[3] != lastStepperData[3])
+            if (stepperUpdated(result, 3))
             {
                 IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);
@@ -1665,7 +1683,7 @@ bool PegasusUPB::getStepperData()
             FocusBacklashS[INDI_ENABLED].s = ISS_ON;
             FocusBacklashS[INDI_DISABLED].s = ISS_OFF;
             FocusBacklashN[0].value = backlash;
-            if (result[3] != lastStepperData[3])
+            if (stepperUpdated(result, 3))
             {
                 IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);

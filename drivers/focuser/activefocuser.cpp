@@ -34,7 +34,8 @@ static std::unique_ptr<ActiveFocuser> activeFocuser(new ActiveFocuser());
 
 int MAX_TICKS = 192307;
 
-ActiveFocuser::ActiveFocuser() {
+ActiveFocuser::ActiveFocuser()
+{
 
     hid_handle = nullptr;
     setSupportedConnections(CONNECTION_NONE);
@@ -42,12 +43,15 @@ ActiveFocuser::ActiveFocuser() {
 
 }
 
-ActiveFocuser::~ActiveFocuser() {
+ActiveFocuser::~ActiveFocuser()
+{
 
-    if (hid_handle) {
+    if (hid_handle)
+    {
 
         ActiveFocuserUtils::Poller *poller = ActiveFocuserUtils::Poller::GetInstance(*hid_handle);
-        if(poller->IsRunning){
+        if(poller->IsRunning)
+        {
             poller->Stop() ;
         }
 
@@ -59,24 +63,30 @@ ActiveFocuser::~ActiveFocuser() {
 
 }
 
-bool ActiveFocuser::Connect() {
+bool ActiveFocuser::Connect()
+{
 
-    if (!hid_handle) {
+    if (!hid_handle)
+    {
 
         hid_handle = hid_open(VENDOR_ID, PRODUCT_ID, nullptr);
 
-        if (hid_handle) {
+        if (hid_handle)
+        {
 
             hid_set_nonblocking(hid_handle, 1);
 
             ActiveFocuserUtils::Poller *poller = ActiveFocuserUtils::Poller::GetInstance(*hid_handle);
-            if (!poller->IsRunning) {
+            if (!poller->IsRunning)
+            {
                 poller->Start();
             }
 
             return true;
 
-        } else {
+        }
+        else
+        {
 
             return false;
 
@@ -88,12 +98,15 @@ bool ActiveFocuser::Connect() {
 
 }
 
-bool ActiveFocuser::Disconnect() {
+bool ActiveFocuser::Disconnect()
+{
 
-    if (hid_handle) {
+    if (hid_handle)
+    {
 
         ActiveFocuserUtils::Poller *poller = ActiveFocuserUtils::Poller::GetInstance(*hid_handle);
-        if (poller->IsRunning) {
+        if (poller->IsRunning)
+        {
             poller->Stop();
         }
 
@@ -108,13 +121,15 @@ bool ActiveFocuser::Disconnect() {
 
 }
 
-const char *ActiveFocuser::getDefaultName() {
+const char *ActiveFocuser::getDefaultName()
+{
 
     return DRIVER_NAME;
 
 }
 
-void ActiveFocuser::ISGetProperties(const char *dev) {
+void ActiveFocuser::ISGetProperties(const char *dev)
+{
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
@@ -123,7 +138,8 @@ void ActiveFocuser::ISGetProperties(const char *dev) {
 
 }
 
-bool ActiveFocuser::initProperties() {
+bool ActiveFocuser::initProperties()
+{
 
     INDI::Focuser::initProperties();
 
@@ -208,11 +224,13 @@ bool ActiveFocuser::initProperties() {
 
 }
 
-bool ActiveFocuser::updateProperties() {
+bool ActiveFocuser::updateProperties()
+{
 
     INDI::Focuser::updateProperties();
 
-    if (hid_handle) {
+    if (hid_handle)
+    {
 
         defineProperty(&HardwareVersionNP);
         defineProperty(&SoftwareVersionNP);
@@ -221,7 +239,9 @@ bool ActiveFocuser::updateProperties() {
         defineProperty(&MirrorTemperatureNP);
         defineProperty(&FanSP);
 
-    } else {
+    }
+    else
+    {
 
         deleteProperty(HardwareVersionNP.name);
         deleteProperty(SoftwareVersionNP.name);
@@ -236,37 +256,51 @@ bool ActiveFocuser::updateProperties() {
 
 }
 
-bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
+bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
 
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0) {
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
 
-        if (strcmp(FanSP.name, name) == 0) {
+        if (strcmp(FanSP.name, name) == 0)
+        {
 
             IUUpdateSwitch(&FanSP, states, names, n);
 
-            if (FanS[0].s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn()) {
+            if (FanS[0].s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn())
+            {
 
-                if (hid_handle) {
+                if (hid_handle)
+                {
 
                     const unsigned char data[3] = {0x01,
-                                                   ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_ON)};
+                                                   ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_ON)
+                                                  };
                     hid_write(hid_handle, data, sizeof(data));
 
-                }else{
+                }
+                else
+                {
 
                     IDLog("Connection failed");
 
                 }
 
-            } else if (FanS[0].s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn()) {
+            }
+            else if (FanS[0].s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn())
+            {
 
-                if (hid_handle) {
+                if (hid_handle)
+                {
 
                     const unsigned char data[3] = {0x01,
-                                                   ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_OFF)};
+                                                   ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_OFF)
+                                                  };
                     hid_write(hid_handle, data, sizeof(data));
 
-                }else{
+                }
+                else
+                {
 
                     IDLog("Connection failed");
 
@@ -288,33 +322,42 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 }
 
-bool ActiveFocuser::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
+bool ActiveFocuser::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
 
-    if(dev != nullptr && strcmp(dev, getDeviceName()) == 0){
+    if(dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
 }
 
-bool ActiveFocuser::AbortFocuser() {
+bool ActiveFocuser::AbortFocuser()
+{
 
-    if (hid_handle) {
+    if (hid_handle)
+    {
 
-        if(ActiveFocuserUtils::SystemState::GetIsMoving()){
+        if(ActiveFocuserUtils::SystemState::GetIsMoving())
+        {
 
             const unsigned char data[3] = {0x01, ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::STOP)}; // STOP
             hid_write(hid_handle, data, sizeof(data));
 
             return true;
 
-        }else{
+        }
+        else
+        {
 
             return false;
 
         }
 
-    } else {
+    }
+    else
+    {
 
         IDLog("Connection failed");
 
@@ -324,38 +367,49 @@ bool ActiveFocuser::AbortFocuser() {
 
 }
 
-IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks) {
+IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks)
+{
 
     internalTicks = targetTicks;
 
-    if (targetTicks > (uint32_t)MAX_TICKS) {
+    if (targetTicks > (uint32_t)MAX_TICKS)
+    {
 
         return IPS_ALERT;
 
-    } else {
+    }
+    else
+    {
 
-        if(ActiveFocuserUtils::SystemState::GetIsHold() && !ActiveFocuserUtils::SystemState::GetIsMoving()){
+        if(ActiveFocuserUtils::SystemState::GetIsHold() && !ActiveFocuserUtils::SystemState::GetIsMoving())
+        {
 
-            if(hid_handle){
+            if(hid_handle)
+            {
 
                 unsigned char data[8] = {0x00, 0x05, ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::MOVE), 0x00, 0x00, 0x00, 0x00, 0x00};
 
-                for (int i = 0; i < 4; ++i) {
-                    auto num = (targetTicks >> 8 * (3-i) & 255);
-                    data[3+i] = num;
+                for (int i = 0; i < 4; ++i)
+                {
+                    auto num = (targetTicks >> 8 * (3 - i) & 255);
+                    data[3 + i] = num;
                 }
 
                 hid_write(hid_handle, data, sizeof(data));
 
                 return IPS_OK;
 
-            }else{
+            }
+            else
+            {
 
                 return IPS_ALERT;
 
             }
 
-        }else{
+        }
+        else
+        {
 
             return IPS_BUSY;
 
@@ -365,7 +419,8 @@ IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks) {
 
 }
 
-IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks) {
+IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks)
+{
 
     FocusRelPosN[0].value = ticks;
     IDSetNumber(&FocusRelPosNP, nullptr);
@@ -378,13 +433,17 @@ IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir
 
 }
 
-void ActiveFocuser::TimerHit() {
+void ActiveFocuser::TimerHit()
+{
 
-    if(!hid_handle){
+    if(!hid_handle)
+    {
 
         SetTimer(getCurrentPollingPeriod());
 
-    }else{
+    }
+    else
+    {
 
         MAX_TICKS = ActiveFocuserUtils::SystemState::GetSpan();
         FocusMaxPosN[0].value = MAX_TICKS;
@@ -409,18 +468,24 @@ void ActiveFocuser::TimerHit() {
         MirrorTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetMirrorTemperature();
         IDSetNumber(&MirrorTemperatureNP, nullptr);
 
-        if(ActiveFocuserUtils::SystemState::GetIsFanOn()){
+        if(ActiveFocuserUtils::SystemState::GetIsFanOn())
+        {
             FanS[0].s = ISS_ON;
             IDSetSwitch(&FanSP, nullptr);
-        }else{
+        }
+        else
+        {
             FanS[0].s = ISS_OFF;
             IDSetSwitch(&FanSP, nullptr);
         }
 
-        if(ActiveFocuserUtils::SystemState::GetIsMoving()){
+        if(ActiveFocuserUtils::SystemState::GetIsMoving())
+        {
             FocusAbsPosNP.s = IPS_BUSY;
             FocusRelPosNP.s = IPS_BUSY;
-        }else{
+        }
+        else
+        {
             FocusAbsPosNP.s = IPS_IDLE;
             FocusRelPosNP.s = IPS_IDLE;
         }

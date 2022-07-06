@@ -22,37 +22,40 @@
 
 class RollOff : public INDI::Dome
 {
-  public:
-    RollOff();
-    virtual ~RollOff() = default;
+    public:
+        RollOff();
+        virtual ~RollOff() = default;
 
-    virtual bool initProperties() override;
-    const char *getDefaultName() override;
-    bool updateProperties() override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool initProperties() override;
+        const char *getDefaultName() override;
+        bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-  protected:
-    bool Connect() override;
-    bool Disconnect() override;
+    protected:
+        bool Connect() override;
+        bool Disconnect() override;
 
-    void TimerHit() override;
+        void TimerHit() override;
 
-    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
-    virtual IPState Park() override;
-    virtual IPState UnPark() override;
-    virtual bool Abort() override;
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+        virtual IPState Park() override;
+        virtual IPState UnPark() override;
+        virtual bool Abort() override;
 
-    virtual bool getFullOpenedLimitSwitch();
-    virtual bool getFullClosedLimitSwitch();
+        virtual bool getFullOpenedLimitSwitch();
+        virtual bool getFullClosedLimitSwitch();
 
-  private:
-    bool SetupParms();
-    float CalcTimeLeft(timeval);
+    private:
+        bool SetupParms();
+        float CalcTimeLeft(timeval);
 
-    ISState fullOpenLimitSwitch { ISS_ON };
-    ISState fullClosedLimitSwitch { ISS_OFF };
-    double MotionRequest { 0 };
-    struct timeval MotionStart { 0, 0 };
+        ISState fullOpenLimitSwitch { ISS_ON };
+        ISState fullClosedLimitSwitch { ISS_OFF };
+        double MotionRequest { 0 };
+        struct timeval MotionStart
+        {
+            0, 0
+        };
 };

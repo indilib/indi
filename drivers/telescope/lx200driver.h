@@ -144,10 +144,6 @@ enum TFreq
 #define setFocuserSpeed(fd, x)          setCommandInt(fd, x, ":F")
 #define setSlewSpeed(fd, x)             setCommandInt(fd, x, ":Sw")
 
-/* Set X:Y:Z */
-#define setLocalTime(fd, x, y, z) setCommandXYZ(fd, x, y, z, ":SL")
-#define setSDTime(fd, x, y, z)    setCommandXYZ(fd, x, y, z, ":SS")
-
 /* GPS Specefic */
 #define turnGPSOn(fd)                   write(fd, ":g+#", 4)
 #define turnGPSOff(fd)                  write(fd, ":g-#", 4)
@@ -237,7 +233,7 @@ int updateIntelliscopeCoord(int fd, double *ra, double *dec);
 /* Set Int */
 int setCommandInt(int fd, int data, const char *cmd);
 /* Set Sexigesimal */
-int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
+int setCommandXYZ(int fd, int x, int y, int z, const char *cmd, bool addSpace = false);
 /* Common routine for Set commands */
 int setStandardProcedure(int fd, const char *writeData);
 /* Set Slew Mode */
@@ -245,11 +241,11 @@ int setSlewMode(int fd, int slewMode);
 /* Set Alignment mode */
 int setAlignmentMode(int fd, unsigned int alignMode);
 /* Set Object RA */
-int setObjectRA(int fd, double ra);
+int setObjectRA(int fd, double ra, bool addSpace = false);
 /* set Object DEC */
-int setObjectDEC(int fd, double dec);
+int setObjectDEC(int fd, double dec, bool addSpace = false);
 /* Set Calender date */
-int setCalenderDate(int fd, int dd, int mm, int yy);
+int setCalenderDate(int fd, int dd, int mm, int yy, bool addSpace = false);
 /* Set UTC offset */
 int setUTCOffset(int fd, double hours);
 /* Set Track Freq */
@@ -257,9 +253,9 @@ int setTrackFreq(int fd, double trackF);
 /* Replacement, for the above offering more precision, controlled by LX200_HAS_PRECISE_TRACKING_FREQ will work on OnStep (and AutoStar II) */
 int setPreciseTrackFreq(int fd, double trackF);
 /* Set current site longitude */
-int setSiteLongitude(int fd, double Long);
+int setSiteLongitude(int fd, double Long, bool addSpace = false);
 /* Set current site latitude */
-int setSiteLatitude(int fd, double Lat);
+int setSiteLatitude(int fd, double Lat, bool addSpace = false);
 /* Set Object Azimuth */
 int setObjAz(int fd, double az);
 /* Set Object Altitude */
@@ -278,6 +274,11 @@ int setFocuserSpeedMode(int fd, int speedMode);
 int setMinElevationLimit(int fd, int min);
 /* Set maximum elevation limit */
 int setMaxElevationLimit(int fd, int max);
+
+/* Set X:Y:Z */
+int setLocalTime(int fd, int x, int y, int z, bool addSpace = false);
+int setSDTime(int fd, int x, int y, int z, bool addSpace = false);
+
 
 /**************************************************************************
  Motion Commands

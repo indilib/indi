@@ -1,4 +1,6 @@
 /**
+ * Copyright 2021 Jasem Mutlaq <mutlaqja@ikarustech.com>
+ * Copyright (c) 2020 Philip Salmony
  * Copyright 2019 Bradley J. Snyder <snyder.bradleyj@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,8 +22,7 @@
  * THE SOFTWARE.
  */
 
-#ifndef _PID_H_
-#define _PID_H_
+#pragma once
 
 class PIDImpl;
 class PID
@@ -35,12 +36,16 @@ class PID
         // min - minimum value of manipulated variable
         PID( double dt, double max, double min, double Kp, double Kd, double Ki );
 
+        void setIntegratorLimits(double min, double max);
+        void setTau(double value);
+
         // Returns the manipulated variable given a setpoint and current process value
         double calculate( double setpoint, double pv );
+        double propotionalTerm() const;
+        double integralTerm() const;
+        double derivativeTerm() const;
         ~PID();
 
     private:
         PIDImpl *pimpl;
 };
-
-#endif

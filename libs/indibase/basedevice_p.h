@@ -31,17 +31,17 @@ namespace INDI
 
 class BaseDevicePrivate
 {
-public:
-    BaseDevicePrivate();
-    virtual ~BaseDevicePrivate();
+    public:
+        BaseDevicePrivate();
+        virtual ~BaseDevicePrivate();
 
-public:
-    std::string deviceName;
-    BaseDevice::Properties pAll;
-    LilXML *lp {nullptr};
-    INDI::BaseMediator *mediator {nullptr};
-    std::deque<std::string> messageLog;
-    mutable std::mutex m_Lock;
+    public:
+        std::string deviceName;
+        BaseDevice::Properties pAll;
+        LilXML *lp {nullptr};
+        INDI::BaseMediator *mediator {nullptr};
+        std::deque<std::string> messageLog;
+        mutable std::mutex m_Lock;
 };
 
 }

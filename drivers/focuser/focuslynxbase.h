@@ -28,6 +28,7 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include <map>
+#include <stdint.h>
 #include <termios.h>
 #include <unistd.h>
 #include <memory>
@@ -45,7 +46,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              44
+#define SUBVERSION              46
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -101,8 +102,6 @@ class FocusLynxBase : public INDI::Focuser
 
         void setFocusTarget(const char *target);
         const char *getFocusTarget();
-        bool checkIfAbsoluteFocuser();
-        bool SyncMandatory(bool enable);
         virtual void debugTriggered(bool enable) override;
 
         // Device
@@ -156,7 +155,7 @@ class FocusLynxBase : public INDI::Focuser
         // Set functions
 
         // Position
-        bool setStepSize(u_int16_t stepsize);
+        bool setStepSize(uint16_t stepsize);
 
         // Temperature
         bool setTemperatureCompensation(bool enable);
@@ -226,12 +225,7 @@ class FocusLynxBase : public INDI::Focuser
         IText HFocusNameT[1] {};
         ITextVectorProperty HFocusNameTP;
 
-        // Request mandatory action of sync from user
-        ISwitch SyncMandatoryS[2];
-        ISwitchVectorProperty SyncMandatorySP;
-
-        bool isAbsolute;
-        bool isSynced;
+        bool canHome;
         bool isHoming;
         // TODO add property for this.
         bool m_HomeOnStart {false};

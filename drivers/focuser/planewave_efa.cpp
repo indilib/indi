@@ -40,7 +40,7 @@ static std::unique_ptr<EFA> steelDrive(new EFA());
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     // Focuser Capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
@@ -113,6 +113,10 @@ bool EFA::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
 
+    // Lower RTS so serial port not monopolized and hand controller can work
+    int bits = TIOCM_RTS;
+    (void) ioctl(PortFD, TIOCMBIC, &bits);
+
     return true;
 }
 
@@ -172,16 +176,19 @@ bool EFA::Handshake()
 {
     std::string version;
 
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = GET_VERSION;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 8))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     version = std::to_string(res[5]) + "." + std::to_string(res[6]);
@@ -312,7 +319,7 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SyncFocuser(uint32_t ticks)
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 9;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -322,9 +329,12 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd, 9);
+    cmd[8] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 9, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     return (res[5] == 1);
@@ -335,7 +345,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 9;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -345,9 +355,12 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
     cmd[5] = (targetTicks >> 16) & 0xFF;
     cmd[6] = (targetTicks >>  8) & 0xFF;
     cmd[7] = (targetTicks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd, 9);
+    cmd[8] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 9, 7))
+    if (!validateLengths(cmd, len))
+        return IPS_ALERT;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return IPS_ALERT;
 
     return (res[5] == 1) ? IPS_BUSY : IPS_ALERT;
@@ -376,6 +389,8 @@ void EFA::TimerHit()
 {
     if (!isConnected())
         return;
+
+    IN_TIMER = true;
 
     readPosition();
 
@@ -462,6 +477,8 @@ void EFA::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
+    IN_TIMER = false;
+
     SetTimer(getCurrentPollingPeriod());
 }
 
@@ -479,7 +496,7 @@ bool EFA::AbortFocuser()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 9;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -489,9 +506,12 @@ bool EFA::SetFocuserMaxPosition(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd, 9);
+    cmd[8] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 9, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     return (res[5] == 1);
@@ -549,24 +569,158 @@ void EFA::getStartupValues()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Read Byte (wrapper for tty_read)
+/////////////////////////////////////////////////////////////////////////////
+inline int EFA::readByte(int fd, uint8_t *buf, int timeout, int *nbytes_read)
+{
+    return tty_read(fd, (char *)buf, 1, timeout, nbytes_read);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// Read Bytes (wrapper for tty_read)
+///////////////////////////////////////////////////////////////////////////////
+inline int EFA::readBytes(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    return tty_read(fd, (char *)buf, nbytes, timeout, nbytes_read);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Write Bytes (wrapper for tty_write)
+/////////////////////////////////////////////////////////////////////////////
+inline int EFA::writeBytes(int fd, const uint8_t *buf, int nbytes, int *nbytes_written)
+{
+    return tty_write(fd, (const char *)buf, nbytes, nbytes_written);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Packet
+/////////////////////////////////////////////////////////////////////////////
+int EFA::readPacket(int fd, uint8_t *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    int len = 0, rc = 0, read_bytes = *nbytes_read = 0;
+
+    if (nbytes < 6)   // smallest packet is 6 bytes
+    {
+        LOGF_ERROR("Read needs at least 6 bytes; exceeds supplied buffer size (%d)", nbytes);
+        return TTY_READ_ERROR;
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        // look for SOM byte
+        rc = readByte(fd, &buf[0], timeout, &read_bytes);
+        if (rc == TTY_OK && read_bytes == 1)
+        {
+            if (buf[0] == DRIVER_SOM)
+            {
+                break;
+            }
+            else
+            {
+                LOGF_DEBUG("Looking for SOM (%02X); found %d byte (%02X)", DRIVER_SOM, read_bytes, buf[0]);
+            }
+        }
+        else
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_DEBUG("Looking for SOM (%02X); found %s", DRIVER_SOM, errstr);
+        }
+    }
+    if (rc != TTY_OK || read_bytes != 1 || buf[0] != DRIVER_SOM)
+    {
+        LOGF_DEBUG("%s byte not encountered", "SOM");
+        if (rc == TTY_OK)
+            return TTY_TIME_OUT;
+        return rc;
+    }
+
+    if ((rc = readByte(fd, &buf[1], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "LEN");
+        return rc;
+    }
+    len = buf[1];
+
+    // read source
+    if ((rc = readByte(fd, &buf[2], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "SRC");
+        return rc;
+    }
+    // read receiver
+    if ((rc = readByte(fd, &buf[3], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "RCV");
+        return rc;
+    }
+    // read command
+    if ((rc = readByte(fd, &buf[4], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "CMD");
+        return rc;
+    }
+
+    if ((len + 3) > nbytes)
+    {
+        LOGF_ERROR("Read (%d) will exceed supplied buffer size (%d) for command %02X", (len + 3), nbytes, buf[4]);
+        return TTY_READ_ERROR;
+    }
+
+    // read data
+    int n;
+    for (n = 0; n < (len - 3); ++n)
+    {
+        if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK)
+        {
+            LOGF_DEBUG("%s byte not encountered", "DATA");
+            return rc;
+        }
+    }
+    // read checksum
+    if ((rc = readByte(fd, &buf[5 + n], timeout, &read_bytes)) != TTY_OK)
+    {
+        LOGF_DEBUG("%s byte not encountered", "DATA");
+        return rc;
+    }
+
+    uint8_t chk = calculateCheckSum(buf, (len + 3));
+
+    if (chk != buf[len + 2])
+    {
+        LOG_ERROR("Invalid checksum!");
+        return TTY_OK; // not a tty error, nbytes_read is still zero and it is used to indicate there was this problem
+    }
+
+    *nbytes_read = len + 3;
+
+    return rc;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint32_t res_len)
 {
-    int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
-    char echo[DRIVER_LEN] = {0};
+    int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0, hexbuflen = (DRIVER_LEN * 3 + 4);
+    char hexbuf[DRIVER_LEN * 3 + 4];
 
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < 3; usleep(100000), j++)
     {
+        // make sure RTS is lowered
+        bits = TIOCM_RTS;
+        (void) ioctl(PortFD, TIOCMBIC, &bits);
+        bits = 0;
+
         // Wait until CTS is cleared.
         for (int i = 0; i < 10; i++)
         {
-            if ( (rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
+            if ((rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
                 break;
             usleep(100000);
         }
 
-        if (rc < 0)
+        if (rc < 0 || (bits & TIOCM_CTS) != 0)
         {
             LOGF_ERROR("CTS timed out: %s", strerror(errno));
             return false;
@@ -574,55 +728,77 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
 
         // Now raise RTS
         bits = TIOCM_RTS;
-        ioctl(PortFD, TIOCMSET, &bits);
+        ioctl(PortFD, TIOCMBIS, &bits); // was TIOCMSET
 
-        char hex_cmd[DRIVER_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, reinterpret_cast<const char *>(cmd), cmd_len, &nbytes_written);
+        if (!IN_TIMER && efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL)
+        {
+            LOGF_DEBUG("CMD: %s", hexbuf);
+        }
+        rc = writeBytes(PortFD, cmd, cmd_len, &nbytes_written);
 
         if (rc != TTY_OK)
         {
-            char errstr[MAXRBUF] = {0};
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Serial write error: %s.", errstr);
-            return false;
+            continue;
         }
 
-        // Read back the echo
-        tty_read(PortFD, echo, cmd_len, DRIVER_TIMEOUT, &nbytes_read);
+        rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
 
-        // Now lower RTS
-        ioctl(PortFD, TIOCMBIC, &bits);
+        if (rc != TTY_OK || nbytes_read == 0)
+        {
+            continue;
+        }
 
-        // Next read the actual response from EFA
-        rc = tty_read(PortFD, reinterpret_cast<char *>(res), res_len, DRIVER_TIMEOUT, &nbytes_read);
+        if ((int)cmd_len == nbytes_read && memcmp(cmd, res, cmd_len) == 0)
+        {
+            // received an echo
 
-        if (rc == TTY_OK)
-            break;
+            bits = TIOCM_RTS;
+            ioctl(PortFD, TIOCMBIC, &bits);
 
-        usleep(100000);
+            // Next read the actual response from EFA
+            rc = readPacket(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+
+            if (rc != TTY_OK || nbytes_read == 0)
+            {
+                continue;
+            }
+        }
+        else if (efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL)
+        {
+            // expected there to always be an echo, so note this occurence
+            LOGF_DEBUG("no echo for command packet: %s", hexbuf);
+        }
+
+        if (!IN_TIMER && efaDump(hexbuf, hexbuflen, res, nbytes_read) != NULL)
+        {
+            LOGF_DEBUG("RESP: %s", hexbuf);
+        }
+
+        if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4])
+        {
+            LOGF_DEBUG("Send/Receive mismatch - %s!", "packet not for us");
+            continue;
+        }
+        break;
     }
+
+    // Extra lowering of RTS to make sure hand controller is made available
+    bits = TIOCM_RTS;
+    ioctl(PortFD, TIOCMBIC, &bits);
 
     if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("Serial I/O error: %s.", errstr);
         return false;
     }
 
-    uint8_t chk = calculateCheckSum(res, res_len);
-
-    if (chk != res[res_len - 1])
+    if (cmd[2] != res[3] || cmd[3] != res[2] || cmd[4] != res[4])
     {
-        LOG_ERROR("Invalid checksum!");
+        LOGF_ERROR("Send/Receive mismatch and %s", "timeout");
         return false;
     }
-
-    char hex_res[DRIVER_LEN * 3] = {0};
-    hexDump(hex_res, res, res_len);
-    LOGF_DEBUG("RES <%s>", hex_res);
 
     return true;
 }
@@ -632,16 +808,19 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readPosition()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_POS;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 9))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     FocusAbsPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
@@ -653,16 +832,19 @@ bool EFA::readPosition()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readMaxSlewLimit()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_SLEWLIMITGETMAX;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 9))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     uint32_t limit = res[5] << 16 | res[6] << 8 | res[7];
@@ -681,16 +863,19 @@ bool EFA::readMaxSlewLimit()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::isGOTOComplete()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GOTO_OVER;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     return (res[5] != 0);
@@ -701,7 +886,7 @@ bool EFA::isGOTOComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setFanEnabled(bool enabled)
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -709,9 +894,12 @@ bool EFA::setFanEnabled(bool enabled)
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_SET;
     cmd[5] = enabled ? 1 : 0;
-    cmd[6] = calculateCheckSum(cmd, 7);
+    cmd[6] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 7, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     return (res[5] == 1);
@@ -722,16 +910,19 @@ bool EFA::setFanEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readFanState()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 6;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_GET;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     bool enabled = (res[5] == 0);
@@ -747,7 +938,7 @@ bool EFA::readFanState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setCalibrationEnabled(bool enabled)
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 8;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x05;
@@ -756,9 +947,12 @@ bool EFA::setCalibrationEnabled(bool enabled)
     cmd[4] = MTR_SET_CALIBRATION_STATE;
     cmd[5] = 0x40;
     cmd[6] = enabled ? 1 : 0;
-    cmd[7] = calculateCheckSum(cmd, 8);
+    cmd[7] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 8, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     return (res[5] == 1);
@@ -769,16 +963,20 @@ bool EFA::setCalibrationEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readCalibrationState()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_CALIBRATION_STATE;
-    cmd[5] = calculateCheckSum(cmd, 6);
+    cmd[5] = 0x40;
+    cmd[6] = calculateCheckSum(cmd, len);
 
-    if (!sendCommand(cmd, res, 6, 7))
+    if (!validateLengths(cmd, len))
+        return false;
+
+    if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
     bool enabled = (res[5] == 1);
@@ -794,7 +992,7 @@ bool EFA::readCalibrationState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readTemperature()
 {
-    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0}, len = 7;
 
     for (uint8_t i = 0; i < 2; i++)
     {
@@ -804,9 +1002,12 @@ bool EFA::readTemperature()
         cmd[3] = DEVICE_TEMP;
         cmd[4] = TEMP_GET;
         cmd[5] = i;
-        cmd[6] = calculateCheckSum(cmd, 7);
+        cmd[6] = calculateCheckSum(cmd, len);
 
-        if (!sendCommand(cmd, res, 7, 8))
+        if (!validateLengths(cmd, len))
+            return false;
+
+        if (!sendCommand(cmd, res, len, DRIVER_LEN))
             return false;
 
         TemperatureN[i].value = calculateTemperature(res[5], res[6]);
@@ -833,13 +1034,46 @@ double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void EFA::hexDump(char * buf, const uint8_t * data, uint32_t size)
+char * EFA::efaDump(char * buf, int buflen, const uint8_t * data, uint32_t size)
 {
-    for (uint32_t i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", data[i]);
+    int needed = 0, idx = 0;
 
-    if (size > 0)
-        buf[3 * size - 1] = '\0';
+    needed = size * 3 + 4; // each byte goes to 2 chars plus 1 space (or trailing null char) plus 4 marker characters
+
+    if (needed > buflen)
+    {
+        return NULL;
+    }
+
+    for (uint32_t i = 0; i < size; i++)
+    {
+        if (i == 4)
+        {
+            (void) sprintf(buf + idx, "<%02X> ", data[i]);
+            idx += 5;
+        }
+        else if (i == 5 && i < (size - 1))
+        {
+            buf[idx++] = '[';
+            for (uint32_t j = i, k = 3; j < (size - 1) && k < data[1]; j++, k++)
+            {
+                (void) sprintf(buf + idx, "%02X ", data[j]);
+                idx += 3;
+                i = j;
+            }
+            buf[idx - 1] = ']';
+            buf[idx++] = ' ';
+        }
+        else
+        {
+            (void) sprintf(buf + idx, "%02X ", data[i]);
+            idx += 3;
+        }
+    }
+
+    buf[idx - 1] = '\0';
+
+    return buf;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -868,12 +1102,33 @@ std::string EFA::to_string(const T a_value, const int n)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Validate Lengths (simple sanity check, mainly for developer)
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::validateLengths(const uint8_t *cmd, uint32_t len)
+{
+    if (len < 6)
+    {
+        LOGF_ERROR("packet length (%d) is too short for command %02X", len, cmd[4]);
+        return false;
+    }
+    if (cmd[1] + 3 != (int)len)
+    {
+        LOGF_ERROR("packet length (%d) and data length (%d) discrepancy for command %02X", len, cmd[1], cmd[4]);
+        return false;
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Calculate Checksum
 /////////////////////////////////////////////////////////////////////////////
 uint8_t EFA::calculateCheckSum(const uint8_t *cmd, uint32_t len)
 {
     int32_t sum = 0;
+
     for (uint32_t i = 1; i < len - 1; i++)
         sum += cmd[i];
-    return (sum & 0xFF);
+
+    return ((-sum) & 0xFF);
 }

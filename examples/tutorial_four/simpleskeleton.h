@@ -34,20 +34,20 @@
 
 class SimpleSkeleton : public INDI::DefaultDevice
 {
-public:
-    SimpleSkeleton() = default;
-    ~SimpleSkeleton() = default;
+    public:
+        SimpleSkeleton() = default;
+        ~SimpleSkeleton() = default;
 
-protected:
-    void ISGetProperties(const char *dev) override;
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                           char *formats[], char *names[], int n) override;
+    protected:
+        void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                       char *formats[], char *names[], int n) override;
 
-    const char *getDefaultName() override;
-    bool initProperties() override;
-    bool Connect() override;
-    bool Disconnect() override;
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool Connect() override;
+        bool Disconnect() override;
 };

@@ -60,8 +60,14 @@
 #include <mach/mach.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif
+
 #if defined(BSD) && !defined(__GNU__)
+#ifdef __APPLE__
 #include <IOKit/serial/ioss.h>
+#endif
 #include <sys/ioctl.h>
 #endif
 
@@ -365,29 +371,35 @@ void tty_clr_trailing_read_lf(int enabled)
 
 int tty_timeout(int fd, int timeout)
 {
-#if defined(_WIN32) || defined(ANDROID)
-    INDI_UNUSED(fd);
-    INDI_UNUSED(timeout);
-    return TTY_ERRNO;
-#else
+    return tty_timeout_microseconds(fd, timeout, 0);
+}
 
+int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds)
+{
+    #if defined(_WIN32) || defined(ANDROID)
+    INDI_UNUSED(fd);
+    INDI_UNUSED(timeout_seconds);
+    INDI_UNUSED(timeout_microseconds);
+    return TTY_ERRNO;
+    #else
+    
     if (fd == -1)
         return TTY_ERRNO;
-
+    
     struct timeval tv;
     fd_set readout;
     int retval;
-
+    
     FD_ZERO(&readout);
     FD_SET(fd, &readout);
-
-    /* wait for 'timeout' seconds */
-    tv.tv_sec  = timeout;
-    tv.tv_usec = 0;
-
+    
+    /* wait for 'timeout' seconds + microseconds */
+    tv.tv_sec  = timeout_seconds;
+    tv.tv_usec = timeout_microseconds;
+    
     /* Wait till we have a change in the fd status */
     retval = select(fd + 1, &readout, NULL, NULL, &tv);
-
+    
     /* Return 0 on successful fd change */
     if (retval > 0)
         return TTY_OK;
@@ -397,8 +409,8 @@ int tty_timeout(int fd, int timeout)
     /* Return -2 if time expires before anything interesting happens */
     else
         return TTY_TIME_OUT;
-
-#endif
+    
+    #endif
 }
 
 int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
@@ -459,7 +471,12 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
     return tty_write(fd, buf, nbytes, nbytes_written);
 }
 
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) 
+{
+    return tty_read_expanded(fd, buf, nbytes, timeout, 0, nbytes_read);
+}
+
+int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -477,7 +494,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         return TTY_PARAM_ERROR;
 
     if (tty_debug)
-        IDLog("%s: Request to read %d bytes with %d timeout for fd %d\n", __FUNCTION__, nbytes, timeout, fd);
+        IDLog("%s: Request to read %d bytes with %ld s, %ld us timeout for fd %d\n", __FUNCTION__, nbytes, timeout_seconds, timeout_microseconds, fd);
 
     char geminiBuffer[257]={0};
     char* buffer = buf;
@@ -490,7 +507,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 
     while (numBytesToRead > 0)
     {
-        if ((err = tty_timeout(fd, timeout)))
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
             return err;
 
         bytesRead = read(fd, buffer + (*nbytes_read), ((uint32_t)numBytesToRead));
@@ -526,7 +543,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
-            return tty_read(fd, buf, nbytes, timeout, nbytes_read);
+            return tty_read_expanded(fd, buf, nbytes, timeout_seconds, timeout_microseconds, nbytes_read);
         }
 
         *nbytes_read -= 8;
@@ -539,6 +556,11 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 }
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    return tty_read_section_expanded(fd, buf, stop_char, (long) timeout, (long) 0, nbytes_read);
+}
+
+int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -556,7 +578,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %ld s %ld us timeout for fd %d\n", __FUNCTION__, stop_char, timeout_seconds, timeout_microseconds, fd);
 
     if (tty_gemini_udp_format)
     {
@@ -569,7 +591,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
         if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
-            return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+            return tty_read_section_expanded(fd, buf, stop_char, timeout_seconds, timeout_microseconds, nbytes_read);
         }
 
         for (int index = 8; index < bytesRead; index++)
@@ -603,7 +625,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     {
         for (;;)
         {
-            if ((err = tty_timeout(fd, timeout)))
+            if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
                 return err;
 
             read_char = (uint8_t*)(buf + *nbytes_read);
@@ -763,7 +785,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 57600:  bps = B57600;  break;
     case 115200: bps = B115200; break;
     case 230400: bps = B230400; break;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
     case 460800: bps = B460800; break;
     case 576000: bps = B576000; break;
     case 921600: bps = B921600; break;

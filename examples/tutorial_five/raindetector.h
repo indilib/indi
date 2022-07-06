@@ -24,22 +24,22 @@
 
 class RainDetector : public INDI::DefaultDevice
 {
-public:
-    RainDetector() = default;
+    public:
+        RainDetector() = default;
 
-protected:
-    // General device functions
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    bool Connect() override;
-    bool Disconnect() override;
-    const char *getDefaultName() override;
-    bool initProperties() override;
-    bool updateProperties() override;
+    protected:
+        // General device functions
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-private:
-    ILight RainL[1];
-    ILightVectorProperty RainLP;
+    private:
+        ILight RainL[1];
+        ILightVectorProperty RainLP;
 
-    ISwitch RainS[2];
-    ISwitchVectorProperty RainSP;
+        ISwitch RainS[2];
+        ISwitchVectorProperty RainSP;
 };

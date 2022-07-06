@@ -86,7 +86,6 @@ bool PegasusFocusCube::initProperties()
     FocusRelPosN[0].step  = 1000;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
@@ -95,6 +94,10 @@ bool PegasusFocusCube::initProperties()
     FocusBacklashN[0].max   = 1000;
     FocusBacklashN[0].value = 1;
     FocusBacklashN[0].step  = 1;
+
+    FocusMaxPosN[0].max = 1317500;
+    FocusMaxPosN[0].value = 1317500;
+    FocusAbsPosN[0].max = 1317500;
 
     //LED Default ON
     LEDS[LED_ON].s = ISS_ON;

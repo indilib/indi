@@ -174,11 +174,4 @@ workflows:
       - build_centos:
           requires:
             - build_fedora
-#      - build_trusty:
-#          requires:
-#            - build_bionic
 
-#      - build_clang4
-#      - build_clang5:
-#          requires:
-#            - build_clang4

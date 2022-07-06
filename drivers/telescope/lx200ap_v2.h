@@ -22,21 +22,30 @@
 
 #pragma once
 
+/***********************************************************************
+ * This file was copied an modified from lx200ap.h in Jan 2022.
+ *
+ * This is an update of the Wildi and Fulbright A-P drivers.
+ * It is currently being tested.
+ * You should not use this unless part of the test group.
+***********************************************************************/
+
 #include "lx200generic.h"
 #define MOUNTNOTINITIALIZED 0
 #define MOUNTINITIALIZED    1
 
-class LX200AstroPhysicsExperimental : public LX200Generic
+class LX200AstroPhysicsV2 : public LX200Generic
 {
     public:
-        LX200AstroPhysicsExperimental();
+        LX200AstroPhysicsV2();
 
         typedef enum { MCV_D, MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
                        MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
                        MCV_T, MCV_U, MCV_V, MCV_UNKNOWN
                      } ControllerVersion;
-        typedef enum { GTOCP1 = 1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
-        typedef enum { PARK_LAST = 0, PARK_CUSTOM = 0, PARK_PARK1 = 1, PARK_PARK2 = 2, PARK_PARK3 = 3, PARK_PARK4 = 4} ParkPosition;
+        typedef enum { GTOCP1 = 1, GTOCP2, GTOCP3, GTOCP4, GTOCP5, GTOCP_UNKNOWN} ServoVersion;
+        // This is shared by ParkFrom and ParkTo, and should be coordinated with those.
+        typedef enum { PARK_LAST = 0, PARK_CUSTOM = 0, PARK_PARK1 = 1, PARK_PARK2 = 2, PARK_PARK3 = 3, PARK_PARK4 = 4, PARK_CURRENT = 5} ParkPosition;
         enum APTelescopeSlewRate {AP_SLEW_GUIDE, AP_SLEW_12X, AP_SLEW_64X, AP_SLEW_600X, AP_SLEW_1200X};
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -64,7 +73,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool SetSlewRate(int index) override;
-        bool updateAPSlewRate(int index);
 
         // Guide Commands
         virtual IPState GuideNorth(uint32_t ms) override;
@@ -126,7 +134,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
         ISwitch UnparkFromS[5];
         ISwitchVectorProperty UnparkFromSP;
 
-        ISwitch ParkToS[5];
+        ISwitch ParkToS[6];
         ISwitchVectorProperty ParkToSP;
 
         INumberVectorProperty APUTCOffsetNP;
@@ -135,35 +143,59 @@ class LX200AstroPhysicsExperimental : public LX200Generic
         IText VersionT[1] {};
         ITextVectorProperty VersionTP;
 
+        ISwitchVectorProperty ManualSetParkedSP;
+        ISwitch ManualSetParkedS[1];
+
+        ISwitchVectorProperty HomeAndReSyncSP;
+        ISwitch HomeAndReSyncS[1];
+        bool homeAndReSyncEnabled { false };
+
+        INumber APWormPositionN[1];
+        INumberVectorProperty APWormPositionNP;
+
+        IText APPECStateT[1] {};
+        ITextVectorProperty APPECStateTP;
+
+        IText APMountStatusT[1] {};
+        ITextVectorProperty APMountStatusTP;
+
+        ISwitchVectorProperty APPECRecordSP;
+        ISwitch APPECRecordS[2];
+
     private:
-#ifdef no
-        bool initMount();
-#endif
+        bool ApInitialize();
+        bool updateAPLocation(double latitude, double longitude, double elevation);
+        bool parkInternal();
+        bool isAPReady();
+        void setMajorMinorVersions(char *version);
 
         // Side of pier
         void syncSideOfPier();
-#ifdef no
-        bool IsMountInitialized(bool *initialized);
-#endif
+
         bool IsMountParked(bool *isParked);
-        bool getMountStatus(bool *isParked);
         bool getFirmwareVersion(void);
         bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
         void disclaimerMessage(void);
+        bool getWormPosition(void);
+        bool getPECState(const char *statusString);
+        void processMountStatus(const char *statusString);
+        bool APSync(double ra, double dec, bool recalibrate = true);
 
-        //bool timeUpdated=false, locationUpdated=false;
         ControllerVersion firmwareVersion = MCV_UNKNOWN;
         ServoVersion servoType = GTOCP_UNKNOWN;
+        char majorVersion[32];
+        char minorVersion[32];
+
 
         double currentAlt = 0, currentAz = 0;
         double lastRA = 0, lastDE = 0;
         double lastAZ = 0, lastAL = 0;
 
-        //int GuideNSTID;
-        //int GuideWETID;
-
-        //bool motionCommanded=false; // 2020-05-24, wildi, never reset
-        //bool mountInitialized=false;
         int rememberSlewRate = { -1 };
-        uint8_t initStatus = MOUNTNOTINITIALIZED;
+
+        bool apIsInitialized = false;
+        bool apLocationInitialized = false;
+        bool apTimeInitialized = false;
+        bool apInitializationChecked = false;
+
 };

@@ -68,6 +68,10 @@ bool RigelDome::initProperties()
     IUFillText(&InfoT[INFO_BATTERY], "BATTERY", "Battery", "NA");
     IUFillTextVector(&InfoTP, InfoT, 4, getDeviceName(), "FIRMWARE_INFO", "Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
+    IUFillNumber(&HomePositionN[AXIS_AZ], "HOME_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    IUFillNumberVector(&HomePositionNP, HomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION", "Home Position",
+                       SITE_TAB, IP_RW, 60, IPS_IDLE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     SetParkDataType(PARK_AZ);
@@ -95,6 +99,9 @@ bool RigelDome::getStartupValues()
     if (readShutterStatus())
         IDSetSwitch(&DomeShutterSP, nullptr);
 
+    if (readHomePosition())
+        IDSetNumber(&HomePositionNP, nullptr);
+
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
@@ -115,6 +122,9 @@ bool RigelDome::getStartupValues()
 * ***********************************************************************************/
 bool RigelDome::Handshake()
 {
+    char res[DRIVER_LEN] = {0};
+    sendCommand("PULSAR", res); // send dummy command to flush serial line
+
     bool rc = readShutterStatus();
     if (rc)
     {
@@ -144,6 +154,7 @@ bool RigelDome::updateProperties()
     {
         defineProperty(&OperationSP);
         defineProperty(&InfoTP);
+        defineProperty(&HomePositionNP);
 
         getStartupValues();
     }
@@ -151,6 +162,7 @@ bool RigelDome::updateProperties()
     {
         deleteProperty(OperationSP.name);
         deleteProperty(InfoTP.name);
+        deleteProperty(HomePositionNP.name);
     }
 
     return true;
@@ -203,6 +215,28 @@ bool RigelDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     }
 
     return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool RigelDome::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, HomePositionNP.name) == 0)
+        {
+            IUUpdateNumber(&HomePositionNP, values, names, n);
+            HomePositionNP.s = IPS_OK;
+            float homeAz = HomePositionN[AXIS_AZ].value;
+            setHome(homeAz);
+            LOGF_INFO("Setting home position to %3.1f", homeAz);
+            IDSetNumber(&HomePositionNP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
 }
 
 /************************************************************************************
@@ -360,6 +394,20 @@ bool RigelDome::calibrate()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+bool RigelDome::setHome(double az)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    snprintf(cmd, DRIVER_LEN, "HOME %3.1f", az);
+    if (sendCommand(cmd, res) == false)
+        return false;
+
+    return (res[0] == 'A');
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 IPState RigelDome::UnPark()
 {
     return IPS_OK;
@@ -503,6 +551,17 @@ bool RigelDome::readPosition()
         return false;
 
     DomeAbsPosN[0].value = std::stod(res);
+    return true;
+}
+
+bool RigelDome::readHomePosition()
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (sendCommand("HOME", res) == false)
+        return false;
+
+    HomePositionN[0].value = std::stod(res);
     return true;
 }
 

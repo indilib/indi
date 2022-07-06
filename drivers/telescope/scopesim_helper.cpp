@@ -1,24 +1,24 @@
 /*
  * scopesim_helper.cpp
- * 
+ *
  * Copyright 2020 Chris Rowland <chris.rowland@cherryfield.me.uk>
- * 
+ *
  * implementation of telescope simulator helper classes Angle, Axis and Alignment
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA. 
+ * MA 02110-1301, USA.
  */
 
 #include "scopesim_helper.h"
@@ -45,14 +45,17 @@ Angle::Angle(double value, ANGLE_UNITS type)
     }
 }
 
-double Angle::radians() { return this->angle * M_PI / 180.0; }
+double Angle::radians()
+{
+    return this->angle * M_PI / 180.0;
+}
 
-bool Angle::operator== (const Angle& a)
+bool Angle::operator== (const Angle &a)
 {
     return std::abs(difference(a)) < 10E-6;
 }
 
-bool Angle::operator!= (const Angle& a)
+bool Angle::operator!= (const Angle &a)
 {
     return std::abs(difference(a)) >= 10E-6;
 }
@@ -123,7 +126,10 @@ void Axis::StartGuide(double rate, uint32_t durationMs)
 
 void Axis::update()         // called about once a second to update the position and mode
 {
-    struct timeval currentTime { 0, 0 };
+    struct timeval currentTime
+    {
+        0, 0
+    };
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&currentTime, nullptr);
@@ -254,7 +260,8 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
         Vector haDec = Vector(prio, seco).rotateY(rot);
         *apparentHa = haDec.primary();
         *apparentDec = haDec.secondary();
-        LOGF_EXTRA1("m2a Azm Alt %f, %f  Ha Dec %f, %f  rot %f", prio.Degrees(), seco.Degrees(), apparentHa->Degrees(), apparentDec->Degrees(), rot.Degrees());
+        LOGF_EXTRA1("m2a Azm Alt %f, %f  Ha Dec %f, %f  rot %f", prio.Degrees(), seco.Degrees(), apparentHa->Degrees(),
+                    apparentDec->Degrees(), rot.Degrees());
     }
 }
 
@@ -263,7 +270,8 @@ void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * app
     Angle ha;
     mountToApparentHaDec(primary, secondary, &ha, apparentDec);
     *apparentRa = lst() - ha;
-    LOGF_EXTRA1("mountToApparentRaDec %f, %f to ha %f, ra %f, %f", primary.Degrees(), secondary.Degrees(), ha.Degrees(), apparentRa->Degrees(), apparentDec->Degrees());
+    LOGF_EXTRA1("mountToApparentRaDec %f, %f to ha %f, ra %f, %f", primary.Degrees(), secondary.Degrees(), ha.Degrees(),
+                apparentRa->Degrees(), apparentDec->Degrees());
 }
 
 void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle* primary, Angle* secondary)
@@ -278,7 +286,8 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         // this all leaves me wondering if the GEM corrections should be done before the mount model
         *primary = altAzm.primary();
         *secondary = altAzm.secondary();
-        LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees() );
+        LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
+                    secondary->Degrees() );
     }
     // ignore diurnal abberations and refractions to get observed ha, dec
     // apply telescope pointing to get instrument
@@ -313,7 +322,8 @@ void Alignment::apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle*
 {
     Angle ha = lst() - apparentRa;
     apparentHaDecToMount(ha, apparentDec, primary, secondary);
-    LOGF_EXTRA1("apparentRaDecToMount ra %f, ha %f, %f to %f, %f", apparentRa.Degrees(), ha.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees());
+    LOGF_EXTRA1("apparentRaDecToMount ra %f, ha %f, %f to %f, %f", apparentRa.Degrees(), ha.Degrees(), apparentDec.Degrees(),
+                primary->Degrees(), secondary->Degrees());
 }
 
 #define NEW
@@ -384,31 +394,31 @@ void Alignment::observedToInstrument(Angle observedHa, Angle observedDec, Angle 
     *instrumentHa = observedHa - correctionHa;
     *instrumentDec = observedDec - correctionDec;
 
-    static const Angle minDelta(1.0/3600.0);     // 1.0 arc seconds
+    static const Angle minDelta(1.0 / 3600.0);   // 1.0 arc seconds
     Angle dHa(180);
     Angle dDec(180);
     int num = 0;
     while ( num < 10)
     {
-            // use the previously calculated instrument to get a new position
-            Angle newHa, newDec;
-            correction(*instrumentHa, *instrumentDec, &correctionHa, &correctionDec);
-            newHa = *instrumentHa + correctionHa;
-            newDec = *instrumentDec + correctionDec;
-            // get the deltas
-            dHa = observedHa - newHa;
-            dDec = observedDec - newDec;
-//            LOGF_DEBUG("observedToInstrument %i: observed %f, %f, new %f, %f, delta %f, %f", num,
-//                       observedHa.Degrees(), observedDec.Degrees(),
-//                       newHa.Degrees(), newDec.Degrees(), dHa.Degrees(), dDec.Degrees());
-            if (Angle(fabs(dHa.Degrees())) < minDelta && Angle(fabs(dDec.Degrees())) < minDelta)
-            {
-                return;
-            }
-            // apply the delta
-            *instrumentHa += dHa;
-            *instrumentDec += dDec;
-            num++;
+        // use the previously calculated instrument to get a new position
+        Angle newHa, newDec;
+        correction(*instrumentHa, *instrumentDec, &correctionHa, &correctionDec);
+        newHa = *instrumentHa + correctionHa;
+        newDec = *instrumentDec + correctionDec;
+        // get the deltas
+        dHa = observedHa - newHa;
+        dDec = observedDec - newDec;
+        //            LOGF_DEBUG("observedToInstrument %i: observed %f, %f, new %f, %f, delta %f, %f", num,
+        //                       observedHa.Degrees(), observedDec.Degrees(),
+        //                       newHa.Degrees(), newDec.Degrees(), dHa.Degrees(), dDec.Degrees());
+        if (Angle(fabs(dHa.Degrees())) < minDelta && Angle(fabs(dDec.Degrees())) < minDelta)
+        {
+            return;
+        }
+        // apply the delta
+        *instrumentHa += dHa;
+        *instrumentDec += dDec;
+        num++;
     }
     LOGF_DEBUG("mountToObserved iterations %i, delta %f, %f", num, dHa.Degrees(), dDec.Degrees());
 #endif

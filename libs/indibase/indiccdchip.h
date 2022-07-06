@@ -22,6 +22,7 @@
 
 #include <sys/time.h>
 #include <stdint.h>
+#include <fitsio.h>
 
 namespace INDI
 {
@@ -47,6 +48,20 @@ class CCDChip
             CCD_PIXEL_SIZE_Y,
             CCD_BITSPERPIXEL
         } CCD_INFO_INDEX;
+
+        /**
+         * @brief openFITSFile Allocate memory buffer for internal FITS file structure and open
+         * @param FITS error code in case an error happens.
+         * an in-memory FITS file as a Shared BLOB.
+         * @return True if successful, false otherwise.
+         */
+        bool openFITSFile(uint32_t size, int &status);
+
+        /**
+         * @brief closeFITSFile Close the in-memory FITS File.
+         * @return True if successful, false otherwise.
+         */
+        bool closeFITSFile();
 
         /**
          * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.
@@ -337,6 +352,11 @@ class CCDChip
         void setExposureLeft(double duration);
 
         /**
+         * @brief setExposureComplete Mark exposure as complete by setting ImageExposure property to IPS_OK
+         */
+        void setExposureComplete();
+
+        /**
          * @brief setExposureFailed Alert the client that the exposure failed.
          */
         void setExposureFailed();
@@ -375,10 +395,31 @@ class CCDChip
         }
 
         /**
-         * @brief binFrame Perform softwre binning on the CCD frame. Only use this function if hardware
+         * @brief binFrame Perform software binning on the CCD frame. Only use this function if hardware
          * binning is not supported.
          */
         void binFrame();
+
+        /**
+         * @brief binBayerFrame Perform software binning on a 2x2 Bayer matrix CCD frame. Only use this function if hardware
+         * binning is not supported.
+         */
+        void binBayerFrame();
+
+        fitsfile **fitsFilePointer()
+        {
+            return &m_FITSFilePointer;
+        }
+
+        size_t * fitsMemorySizePointer()
+        {
+            return &m_FITSMemorySize;
+        }
+
+        void ** fitsMemoryBlockPointer()
+        {
+            return &m_FITSMemoryBlock;
+        }
 
     private:
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -426,6 +467,9 @@ class CCDChip
         timeval StartExposureTime;
         // Image extension type (e.g. jpg)
         char ImageExtention[MAXINDIBLOBFMT];
+        void * m_FITSMemoryBlock {nullptr};
+        size_t m_FITSMemorySize {2880};
+        fitsfile * m_FITSFilePointer {nullptr};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Chip Properties

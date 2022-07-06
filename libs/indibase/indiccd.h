@@ -30,6 +30,7 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 #include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "inditimer.h"
 #include "indielapsedtimer.h"
 #include "dsp/manager.h"
@@ -41,15 +42,12 @@
 
 #include <fitsio.h>
 
-#include <memory>
+#include <map>
 #include <cstring>
 #include <chrono>
 #include <stdint.h>
 #include <mutex>
 #include <thread>
-
-//JM 2019-01-17: Disabled until further notice
-//#define WITH_EXPOSURE_LOOPING
 
 extern const char * IMAGE_SETTINGS_TAB;
 extern const char * IMAGE_INFO_TAB;
@@ -134,6 +132,15 @@ class CCD : public DefaultDevice, GuiderInterface
         } CCDCapability;
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
+
+        typedef struct CaptureFormat
+        {
+            std::string name;
+            std::string label;
+            uint8_t bitsPerPixel {8};
+            bool isDefault {false};
+            bool isLittleEndian {true};
+        } CaptureFormat;
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -471,8 +478,14 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool StopStreaming();
 
         /**
+         * @brief SetCaptureFormat Set Active Capture format.
+         * @param index Index of capture format from CaptureFormatSP property.
+         * @return True if change is successful, false otherwise.
+         */
+        virtual bool SetCaptureFormat(uint8_t index);
+
+        /**
          * \brief Add FITS keywords to a fits file
-         * \param fptr pointer to a valid FITS file.
          * \param targetChip The target chip to extract the keywords from.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
@@ -492,7 +505,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(fitsfile * fptr, CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);
@@ -523,6 +536,23 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         virtual void checkTemperatureTarget();
 
+        /**
+         * @brief processFastExposure After an exposure is complete, check if fast
+         * exposure was enabled. If it is, then immediately start the next exposure
+         * if possible and decrement the counter.
+         * @param targetChip Active fast exposure chip.
+         * @return True if next fast exposure is started, false otherwise.
+         */
+        virtual bool processFastExposure(CCDChip * targetChip);
+
+        /**
+         * @brief addCaptureFormat Add a supported camera native capture format (e.g. Mono, Bayer8..etc)
+         * @param name Name of format (e.g. FORMAT_MONO)
+         * @param label Label of format (e.g. Mono)
+         * @param isDefault If true, it would be set as the default format if there is config file does not specify one.
+         * Config file override default format.
+         */
+        virtual void addCaptureFormat(const CaptureFormat &format);
 
         // Epoch Position
         double RA, Dec;
@@ -533,6 +563,11 @@ class CCD : public DefaultDevice, GuiderInterface
         // J2000 Position
         double J2000RA;
         double J2000DE;
+        bool J2000Valid;
+
+        // exposure information
+        char exposureStartTime[MAXINDINAME];
+        double exposureDuration;
 
         double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
         bool InExposure;
@@ -578,6 +613,8 @@ class CCD : public DefaultDevice, GuiderInterface
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot {-1};
 
+        std::vector<CaptureFormat> m_CaptureFormats;
+
         std::unique_ptr<StreamManager> Streamer;
         std::unique_ptr<DSP::Manager> DSP;
         CCDChip PrimaryCCD;
@@ -595,6 +632,14 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         INumberVectorProperty EqNP;
         INumber EqN[2];
+
+        /**
+         * @brief J200EqNP Snoop property to read the equatorial J2000 coordinates of the mount.
+         * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
+         * by the mount driver if specified. It is important to generate a proper FITS header.
+         */
+        INumberVectorProperty J2000EqNP;
+        INumber J2000EqN[2];
 
         /**
          * @brief ActiveDeviceTP defines 4 devices the camera driver can listen to (snoop) for
@@ -647,6 +692,17 @@ class CCD : public DefaultDevice, GuiderInterface
         ITextVectorProperty FileNameTP;
         IText FileNameT[1] {};
 
+        /// Specifies Camera NATIVE capture format (e.g. Mono, RGB, RAW8..etc).
+        INDI::PropertySwitch CaptureFormatSP {0};
+
+        /// Specifies Driver image encoding format (FITS, Native, JPG, ..etc)
+        INDI::PropertySwitch EncodeFormatSP {2};
+        enum
+        {
+            FORMAT_FITS,     /*!< Save Image as FITS format  */
+            FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+        };
+
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;
 
@@ -692,22 +748,15 @@ class CCD : public DefaultDevice, GuiderInterface
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
 
-#ifdef WITH_EXPOSURE_LOOPING
-        // Exposure Looping
-        ISwitch ExposureLoopS[2];
-        ISwitchVectorProperty ExposureLoopSP;
-        enum
-        {
-            EXPOSURE_LOOP_ON,
-            EXPOSURE_LOOP_OFF
-        };
+        // Fast Exposure Toggle
+        ISwitch FastExposureToggleS[2];
+        ISwitchVectorProperty FastExposureToggleSP;
 
-        // Exposure Looping Count
-        INumber ExposureLoopCountN[1];
-        INumberVectorProperty ExposureLoopCountNP;
-        double uploadTime = { 0 };
-        std::chrono::system_clock::time_point exposureLoopStartup;
-#endif
+        // Fast Exposure Frame Count
+        INumber FastExposureCountN[1];
+        INumberVectorProperty FastExposureCountNP;
+        double m_UploadTime = { 0 };
+        std::chrono::system_clock::time_point FastExposureToggleStartup;
 
         // FITS Header
         IText FITSHeaderT[2] {};
@@ -721,7 +770,10 @@ class CCD : public DefaultDevice, GuiderInterface
     private:
         uint32_t capability;
 
-        bool m_ValidCCDRotation;
+        bool m_ValidCCDRotation {false};
+        std::string m_ConfigCaptureFormatLabel;
+        int m_ConfigEncodeFormatIndex {-1};
+        int m_ConfigFastExposureIndex {INDI_DISABLED};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions

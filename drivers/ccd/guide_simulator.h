@@ -20,6 +20,7 @@
 
 #include "indiccd.h"
 #include "indifilterinterface.h"
+#include "indipropertyswitch.h"
 
 /**
  * @brief The GuideSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
@@ -64,10 +65,8 @@ class GuideSim : public INDI::CCD
         bool Disconnect() override;
 
         bool StartExposure(float duration) override;
-        bool StartGuideExposure(float) override;
 
         bool AbortExposure() override;
-        bool AbortGuideExposure() override;
 
         void TimerHit() override;
 
@@ -82,7 +81,7 @@ class GuideSim : public INDI::CCD
         virtual IPState GuideWest(uint32_t) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
-        virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
+        virtual void addFITSKeywords(INDI::CCDChip *targetChip) override;
         virtual void activeDevicesUpdated() override;
         virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
@@ -107,11 +106,6 @@ class GuideSim : public INDI::CCD
             0, 0
         };
 
-        float GuideExposureRequest { 0 };
-        struct timeval GuideExpStart
-        {
-            0, 0
-        };
 
         int testvalue { 0 };
         bool ShowStarField { true };
@@ -137,7 +131,6 @@ class GuideSim : public INDI::CCD
         float k { 0 };
         float z { 0 };
 
-        bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
 
         /// Guide rate is 7 arcseconds per second
@@ -172,10 +165,6 @@ class GuideSim : public INDI::CCD
         ISwitchVectorProperty SimulateRgbSP;
         ISwitch SimulateRgbS[2];
 
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
-
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
 
@@ -184,4 +173,8 @@ class GuideSim : public INDI::CCD
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        INDI::PropertySwitch ToggleTimeoutSP {2};
+
+        static constexpr const char *SIMULATOR_TAB {"Simulator Settings"};
 };

@@ -512,22 +512,22 @@ void SensorInterface::SetCapability(uint32_t cap)
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                                     bool sendToClient)
 {
-    INumberVectorProperty *vp = nullptr;
+    INumberVectorProperty *nvp = nullptr;
 
     if (!strcmp(property, FramedIntegrationNP.name))
+        nvp = &FramedIntegrationNP;
+    else
+        return;
+
+    INumber *np = IUFindNumber(nvp, element);
+    if (np)
     {
-        vp = &FramedIntegrationNP;
+        np->min  = min;
+        np->max  = max;
+        np->step = step;
 
-        INumber *np = IUFindNumber(vp, element);
-        if (np)
-        {
-            np->min  = min;
-            np->max  = max;
-            np->step = step;
-
-            if (sendToClient)
-                IUUpdateMinMax(vp);
-        }
+        if (sendToClient)
+            IUUpdateMinMax(nvp);
     }
 }
 
@@ -539,8 +539,11 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
     BufferSize = nbuf;
 
     // Reset size
-    if (HasStreaming())
-        Streamer->setSize(BufferSize * 8 / getBPS());
+    if(HasStreaming())
+    {
+        Streamer->setPixelFormat(INDI_MONO, getBPS());
+        Streamer->setSize(getBufferSize() * 8 / abs(getBPS()), 1);
+    }
 
     // DSP
     if (HasDSP())
@@ -577,15 +580,13 @@ void SensorInterface::setIntegrationTime(double duration)
 
 const char *SensorInterface::getIntegrationStartTime()
 {
-    static char ts[32];
-
-    char iso8601[32];
+    static char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startIntegrationTime;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    return (ts);
+    return iso8601;
 }
 
 void SensorInterface::setIntegrationFailed()
@@ -607,6 +608,8 @@ void SensorInterface::setNAxis(int value)
 void SensorInterface::setIntegrationFileExtension(const char *ext)
 {
     strncpy(integrationExtention, ext, MAXINDIBLOBFMT);
+    if(HasDSP())
+        DSP->setCaptureFileExtension(ext);
 }
 
 
@@ -671,6 +674,9 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     }
 #endif
 
+    if (primaryAperture != -1)
+        fits_update_key_s(fptr, TDOUBLE, "APTDIA", &primaryAperture, "Diameter (mm)", &status);
+
     if (primaryFocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &primaryFocalLength, "Focal Length (mm)", &status);
 
@@ -685,11 +691,11 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         char lon_str[MAXINDIFORMAT];
         char el_str[MAXINDIFORMAT];
         fs_sexa(lat_str, Latitude, 2, 360000);
-        fs_sexa(lat_str, Longitude, 2, 360000);
+        fs_sexa(lon_str, Longitude, 2, 360000);
         snprintf(el_str, MAXINDIFORMAT, "%lf", Elevation);
-        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
-        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
-        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+        fits_update_key_s(fptr, TSTRING, "SITELAT", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "SITELONG", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "SITEELEV", el_str, "Location Elevation", &status);
     }
     if (RA != -1000 && Dec != -1000)
     {
@@ -731,7 +737,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
-    fits_update_key_s(fptr, TSTRING, "TIMESTAMP", timestamp, "Timestamp of start of integration", &status);
+    fits_update_key_s(fptr, TSTRING, "EPOCH", timestamp, "Unix Epoch of start of integration", &status);
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 

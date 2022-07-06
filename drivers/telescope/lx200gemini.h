@@ -37,6 +37,7 @@ class LX200Gemini : public LX200Generic
         virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char **texts, char **names, int n) override;
 
     protected:
         virtual const char *getDefaultName() override;
@@ -60,12 +61,13 @@ class LX200Gemini : public LX200Generic
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
+        void syncPec();
         void syncSideOfPier();
         bool sleepMount();
         bool wakeupMount();
 
-        bool getGeminiProperty(uint8_t propertyNumber, char* value);
-        bool setGeminiProperty(uint8_t propertyNumber, char* value);
+        bool getGeminiProperty(uint32_t propertyNumber, char* value);
+        bool setGeminiProperty(uint32_t propertyNumber, char* value);
 
         // Checksum for private commands
         uint8_t calculateChecksum(char *cmd);
@@ -87,11 +89,54 @@ class LX200Gemini : public LX200Generic
 
         ISwitch ParkSettingsS[3];
         ISwitchVectorProperty ParkSettingsSP;
+
+        ITextVectorProperty PECCounterTP;
+        IText PECCounterT[1];
+
+        ISwitchVectorProperty PECControlSP;
+        ISwitch PECControlS[2];
+
+        ITextVectorProperty PECStateTP;
+        IText PECStateT[6] {};
+  
+        INumber PECMaxStepsN[1];
+        INumberVectorProperty PECMaxStepsNP;
+  
+        INumber ServoPrecisionN[2];
+        INumberVectorProperty ServoPrecisionNP;
+
+        INumber PECEnableAtBootN[1];
+        INumberVectorProperty PECEnableAtBootNP;
+
+        INumber PECGuidingSpeedN[1];
+        INumberVectorProperty PECGuidingSpeedNP;
         enum
         {
             PARK_HOME,
             PARK_STARTUP,
             PARK_ZENITH
+        };
+
+        enum
+        {
+            PEC_START_TRAINING,
+            PEC_ABORT_TRAINING
+        };
+
+        enum
+	{
+	    PEC_STATUS_ACTIVE,
+	    PEC_STATUS_FRESH_TRAINED,
+	    PEC_STATUS_TRAINING_IN_PROGRESS,
+	    PEC_STATUS_TRAINING_COMPLETED,
+	    PEC_STATUS_WILL_TRAIN,
+	    PEC_STATUS_DATA_AVAILABLE
+	};
+
+        enum
+        {
+            SERVO_RA,
+            SERVO_DEC,
         };
 
         ISwitch StartupModeS[3];

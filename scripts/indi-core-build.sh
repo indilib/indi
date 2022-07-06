@@ -21,6 +21,7 @@ cmake \
     -DFIX_WARNINGS=ON \
     -DCMAKE_BUILD_TYPE=$1 \
     -DINDI_BUILD_UNITTESTS=ON \
+    -DINDI_BUILD_INTEGTESTS=ON \
     . $SRCS
 
 make -j$(($(nproc)+1))

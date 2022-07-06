@@ -41,7 +41,7 @@ FocusMaster::FocusMaster()
 }
 
 bool FocusMaster::Connect()
-{    
+{
     handle = hid_open(0x134A, 0x9030, nullptr);
 
     if (handle == nullptr)
@@ -86,7 +86,8 @@ bool FocusMaster::initProperties()
     // Full Forward/Reverse Motion
     IUFillSwitch(&FullMotionS[FOCUS_INWARD], "FULL_INWARD", "Full Inward", ISS_OFF);
     IUFillSwitch(&FullMotionS[FOCUS_OUTWARD], "FULL_OUTWARD", "Full Outward", ISS_OFF);
-    IUFillSwitchVector(&FullMotionSP, FullMotionS, 2, getDeviceName(), "FULL_MOTION", "Full Motion", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&FullMotionSP, FullMotionS, 2, getDeviceName(), "FULL_MOTION", "Full Motion", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     FocusAbsPosN[0].min = SyncN[0].min = 0;
     FocusAbsPosN[0].max = SyncN[0].max;
@@ -147,7 +148,7 @@ void FocusMaster::TimerHit()
     bool rc = getPosition(&currentTicks);
 
     if (rc)
-        FocusAbsPosN[0].value = currentTicks;    
+        FocusAbsPosN[0].value = currentTicks;
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
@@ -327,7 +328,10 @@ float FocusMaster::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);

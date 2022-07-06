@@ -26,18 +26,18 @@ namespace INDI
 class PropertyTextPrivate;
 class PropertyText: public INDI::PropertyBasic<IText>
 {
-    DECLARE_PRIVATE(PropertyText)
-public:
-    PropertyText(size_t count);
-    ~PropertyText();
+        DECLARE_PRIVATE(PropertyText)
+    public:
+        PropertyText(size_t count);
+        ~PropertyText();
 
-public:
-    bool update(const char * const texts[], const char * const names[], int n);
+    public:
+        bool update(const char * const texts[], const char * const names[], int n);
 
-    void fill(
-        const char *device, const char *name, const char *label, const char *group,
-        IPerm permission, double timeout, IPState state
-    );
+        void fill(
+            const char *device, const char *name, const char *label, const char *group,
+            IPerm permission, double timeout, IPState state
+        );
 };
 
 }

@@ -46,7 +46,7 @@ static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 3);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -317,21 +317,24 @@ bool NightCrawler::getFocuserType()
 
     if (strcmp(resp, "2.5 NC") == 0)
     {
-        RotatorAbsPosN[0].min = -NC_25_STEPS;
+        RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = NC_25_STEPS;
+        m_RotatorStepsPerRevolution = NC_25_STEPS;
     }
     else if (strcmp(resp, "3.0 NC") == 0)
     {
-        RotatorAbsPosN[0].min = -NC_30_STEPS;
+        RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = NC_30_STEPS;
+        m_RotatorStepsPerRevolution = NC_30_STEPS;
     }
     else
     {
-        RotatorAbsPosN[0].min = -NC_35_STEPS;
+        RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = NC_35_STEPS;
+        m_RotatorStepsPerRevolution = NC_35_STEPS;
     }
 
-    ticksPerDegree = RotatorAbsPosN[0].max / 360.0;
+    m_RotatorTicksPerDegree = static_cast<uint32_t>(floor(RotatorAbsPosN[0].max / 360.0));
 
     return true;
 }
@@ -702,7 +705,7 @@ void NightCrawler::TimerHit()
 
     // #2 Get Temperature
     rc = getTemperature();
-    if (rc && fabs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
     {
         lastTemperature = TemperatureN[0].value;
         IDSetNumber(&TemperatureNP, nullptr);
@@ -710,7 +713,7 @@ void NightCrawler::TimerHit()
 
     // #3 Get Voltage
     rc = getVoltage();
-    if (rc && fabs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
     {
         lastVoltage = VoltageN[0].value;
         IDSetNumber(&VoltageNP, nullptr);
@@ -745,7 +748,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_FOCUS);
-    if (rc && FocusAbsPosN[0].value != lastFocuserPosition)
+    if (rc && std::abs(FocusAbsPosN[0].value - lastFocuserPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastFocuserPosition = FocusAbsPosN[0].value;
         absFocusUpdated = true;
@@ -768,10 +771,20 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
-    if (rc && RotatorAbsPosN[0].value != lastRotatorPosition)
+    // Sometimes Rotator motor returns negative result, we must sync it.
+    if (RotatorAbsPosN[0].value < 0 || RotatorAbsPosN[0].value > m_RotatorStepsPerRevolution)
+    {
+        // 180 degress so that we can move right or left
+        // at 0 we'd be forced to make 360 degrees rotation to reach 1 degree CW of zero position.
+        const auto newOffset = static_cast<uint32_t>(RotatorAbsPosN[0].value) % m_RotatorStepsPerRevolution;
+        syncMotor(MOTOR_ROTATOR, newOffset);
+        LOGF_WARN("Bogus motor position received: %d. Syncing rotator to %d", RotatorAbsPosN[0].value, newOffset);
+        rc = getPosition(MOTOR_ROTATOR);
+    }
+    if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosN[0].value;
-        GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / ticksPerDegree);
+        GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
@@ -794,7 +807,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_AUX);
-    if (rc && GotoAuxN[0].value != lastAuxPosition)
+    if (rc && std::abs(GotoAuxN[0].value - lastAuxPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastAuxPosition = GotoAuxN[0].value;
         absAuxUpdated = true;
@@ -1361,7 +1374,7 @@ IPState NightCrawler::MoveRotator(double angle)
 
     r *= sign;
 
-    double newTarget = (r + b) * ticksPerDegree;
+    double newTarget = (r + b) * m_RotatorTicksPerDegree;
 
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget -= RotatorAbsPosN[0].min;
@@ -1391,7 +1404,7 @@ bool NightCrawler::SyncRotator(double angle)
 
     r *= sign;
 
-    double newTarget = (r + b) * ticksPerDegree;
+    double newTarget = (r + b) * m_RotatorTicksPerDegree;
 
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget -= RotatorAbsPosN[0].min;

@@ -102,7 +102,6 @@ extern "C"
 
 void timerfunc(void *t)
 {
-    //fprintf(stderr,"Got a timer hit with %x\n",t);
     INDI::DefaultDevice *devPtr = static_cast<INDI::DefaultDevice *>(t);
     if (devPtr != nullptr)
     {
@@ -1258,6 +1257,12 @@ bool DefaultDevice::isConfigLoading() const
 {
     D_PTR(const DefaultDevice);
     return d->isConfigLoading;
+}
+
+bool DefaultDevice::isInitializationComplete() const
+{
+    D_PTR(const DefaultDevice);
+    return d->isInit;
 }
 
 }

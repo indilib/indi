@@ -31,18 +31,21 @@
 namespace INDI
 {
 char Logger::Tags[Logger::nlevels][MAXINDINAME] = { "ERROR",       "WARNING",     "INFO",        "DEBUG",
-                                                    "DBG_EXTRA_1", "DBG_EXTRA_2", "DBG_EXTRA_3", "DBG_EXTRA_4" };
+                                                    "DBG_EXTRA_1", "DBG_EXTRA_2", "DBG_EXTRA_3", "DBG_EXTRA_4"
+                                                  };
 
 struct Logger::switchinit Logger::DebugLevelSInit[] = { { "DBG_ERROR", "Errors", ISS_ON, DBG_ERROR },
-                                                        { "DBG_WARNING", "Warnings", ISS_ON, DBG_WARNING },
-                                                        { "DBG_SESSION", "Messages", ISS_ON, DBG_SESSION },
-                                                        { "DBG_DEBUG", "Driver Debug", ISS_OFF, DBG_DEBUG },
-                                                        { "DBG_EXTRA_1", "Debug Extra 1", ISS_OFF, DBG_EXTRA_1 },
-                                                        { "DBG_EXTRA_2", "Debug Extra 2", ISS_OFF, DBG_EXTRA_2 },
-                                                        { "DBG_EXTRA_3", "Debug Extra 3", ISS_OFF, DBG_EXTRA_3 },
-                                                        { "DBG_EXTRA_4", "Debug Extra 4", ISS_OFF, DBG_EXTRA_4 } };
+    { "DBG_WARNING", "Warnings", ISS_ON, DBG_WARNING },
+    { "DBG_SESSION", "Messages", ISS_ON, DBG_SESSION },
+    { "DBG_DEBUG", "Driver Debug", ISS_OFF, DBG_DEBUG },
+    { "DBG_EXTRA_1", "Debug Extra 1", ISS_OFF, DBG_EXTRA_1 },
+    { "DBG_EXTRA_2", "Debug Extra 2", ISS_OFF, DBG_EXTRA_2 },
+    { "DBG_EXTRA_3", "Debug Extra 3", ISS_OFF, DBG_EXTRA_3 },
+    { "DBG_EXTRA_4", "Debug Extra 4", ISS_OFF, DBG_EXTRA_4 }
+};
 
-struct Logger::switchinit Logger::LoggingLevelSInit[] = {
+struct Logger::switchinit Logger::LoggingLevelSInit[] =
+{
     { "LOG_ERROR", "Errors", ISS_ON, DBG_ERROR },           { "LOG_WARNING", "Warnings", ISS_ON, DBG_WARNING },
     { "LOG_SESSION", "Messages", ISS_ON, DBG_SESSION },     { "LOG_DEBUG", "Driver Debug", ISS_OFF, DBG_DEBUG },
     { "LOG_EXTRA_1", "Log Extra 1", ISS_OFF, DBG_EXTRA_1 }, { "LOG_EXTRA_2", "Log Extra 2", ISS_OFF, DBG_EXTRA_2 },

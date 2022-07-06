@@ -33,15 +33,15 @@ namespace INDI
  */
 class RawEncoder : public EncoderInterface
 {
-public:
-    RawEncoder();
-    ~RawEncoder();
+    public:
+        RawEncoder();
+        ~RawEncoder();
 
-    virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) override;
+        virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) override;
 
-private:
-    const char *getDeviceName();
-    std::vector<uint8_t> compressedFrame;
+    private:
+        const char *getDeviceName();
+        std::vector<uint8_t> compressedFrame;
 
 };
 

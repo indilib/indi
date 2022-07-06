@@ -24,43 +24,43 @@
 
 class LX200SS2000PC : public LX200Generic
 {
-  public:
-    LX200SS2000PC(void);
+    public:
+        LX200SS2000PC(void);
 
-    virtual const char *getDefaultName(void) override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual const char *getDefaultName(void) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    virtual void getBasicData(void) override;
-    virtual bool isSlewComplete(void) override;
+    protected:
+        virtual void getBasicData(void) override;
+        virtual bool isSlewComplete(void) override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool setUTCOffset(double offset) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool setUTCOffset(double offset) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-  private:
-    bool getCalendarDate(int &year, int &month, int &day);
-    bool setCalenderDate(int year, int month, int day);
+    private:
+        bool getCalendarDate(int &year, int &month, int &day);
+        bool setCalenderDate(int year, int month, int day);
 
-    int setSiteLongitude(int fd, double Long);
-    int setSiteLatitude(int fd, double Long);
+        int setSiteLongitude(int fd, double Long);
+        int setSiteLatitude(int fd, double Long);
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
 
-    static const int ShortTimeOut;
-    static const int LongTimeOut;
+        static const int ShortTimeOut;
+        static const int LongTimeOut;
 };
 

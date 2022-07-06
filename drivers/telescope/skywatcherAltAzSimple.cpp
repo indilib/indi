@@ -271,7 +271,7 @@ bool SkywatcherAltAzSimple::initProperties()
                  0xFFFFFF, 1, 0);
     IUFillNumber(&AxisTwoInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
     IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
-                 "Mictosteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
+                 "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
 
     IUFillNumberVector(&AxisTwoInfoNP, AxisTwoInfoN, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);

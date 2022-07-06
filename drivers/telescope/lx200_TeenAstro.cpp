@@ -58,7 +58,7 @@ extern std::mutex lx200CommsLock;
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(1, 2);           // don't forget to update drivers.xml
+    setVersion(1, 3);           // don't forget to update drivers.xml
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -118,11 +118,9 @@ bool LX200_TeenAstro::initProperties()
 
     // ============== GUIDE_TAB
     // Motion speed of axis when guiding
-    IUFillSwitch(&GuideRateS[0], "25", "0.25x", ISS_OFF);
-    IUFillSwitch(&GuideRateS[1], "50", "0.5x", ISS_ON);
-    IUFillSwitch(&GuideRateS[2], "100", "1.0x", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate", GUIDE_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillNumber(&GuideRateN[0], "Guide Rate", "value", "%.2f", 0.0, 1.0, 0.1, INITIAL_GUIDE_RATE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate",
+                       GUIDE_TAB, IP_RW, 0, IPS_IDLE);
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
 
     // ============== OPTIONS_TAB
@@ -181,7 +179,7 @@ bool LX200_TeenAstro::updateProperties()
         // Options
         // Motion Control
         defineProperty(&SlewRateSP);
-        defineProperty(&GuideRateSP);
+        defineProperty(&GuideRateNP);
 
         // Site Management
         defineProperty(&ParkOptionSP);
@@ -207,7 +205,7 @@ bool LX200_TeenAstro::updateProperties()
         // Options
         // Motion Control
         deleteProperty(SlewRateSP.name);
-        deleteProperty(GuideRateSP.name);
+        deleteProperty(GuideRateNP.name);
         deleteProperty(SiteSP.name);
         deleteProperty(SiteNameTP.name);
 
@@ -286,6 +284,19 @@ bool LX200_TeenAstro::ReadScopeStatus()
         handleStatusChange();
         snprintf(OldOSStat, sizeof(OldOSStat), "%s", OSStat);
     }
+#if 0
+    // HACK: simulate small change in RA to force update of hour angle (EKOS bug)
+    static bool incRa;
+    if (incRa)
+    {
+        currentRA += 0.000001;   // 0.02 arc sec
+        incRa = false;
+    }
+    else
+    {
+        incRa = true;
+    }
+#endif
 
     NewRaDec(currentRA, currentDEC);
 
@@ -330,6 +341,13 @@ void LX200_TeenAstro::handleStatusChange(void)
             //            SetTrackEnabled(false);     //disable since TeenAstro enables it by default
         }
     }
+    // Byte 4 is current slew rate
+    if (OSStat[4] != OldOSStat[4])
+    {
+        updateSlewRate();
+    }
+
+
     // Byte 13 is pier side
     if (OSStat[13] != OldOSStat[13])
     {
@@ -587,12 +605,32 @@ bool LX200_TeenAstro::updateLocation(double latitude, double longitude, double e
     return true;
 }
 
+void LX200_TeenAstro::updateSlewRate()
+{
+    int slewRateIndex;
+
+    // get current slew rate
+    if (getSlewRate(&slewRateIndex))
+    {
+        LOGF_INFO("current slew rate : %d", slewRateIndex);
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[slewRateIndex].s = ISS_ON;
+        SlewRateSP.s = IPS_OK;
+        IDSetSwitch(&SlewRateSP, nullptr);
+    }
+    else
+    {
+        LOG_ERROR("Error reading current slew rate");
+    }
+}
+
+
 /*
  *  getBasicData: standard LX200 commands
  */
 void LX200_TeenAstro::getBasicData()
 {
-    int currentSiteIndex, slewRateIndex;
+    int currentSiteIndex;
 
     if (!isSimulation())
     {
@@ -604,7 +642,7 @@ void LX200_TeenAstro::getBasicData()
         IUSaveText(&VersionT[1], buffer);
         getVersionNumber(PortFD, buffer);
         statusCommand = ":GXI#";
-        guideSpeedCommand = ":SXR0:%s#";
+        guideSpeedCommand = ":SXR0:%02d#";
         IUSaveText(&VersionT[2], buffer);
         getProductName(PortFD, buffer);
         IUSaveText(&VersionT[3], buffer);
@@ -630,6 +668,7 @@ void LX200_TeenAstro::getBasicData()
             LOG_ERROR("Error reading current site number");
         }
 
+
         // Get initial state and set switches
         for (unsigned i = 0; i < sizeof(OldOSStat); i++)
             OldOSStat[i] = 'x';                         // reset old OS stat to force re-evaluation
@@ -637,18 +676,8 @@ void LX200_TeenAstro::getBasicData()
         handleStatusChange();
         LOGF_INFO("Initial Status: %s", OSStat);
 
-        // get current slew rate
-        if (getSlewRate(&slewRateIndex))
-        {
-            LOGF_INFO("current slew rate : %d", slewRateIndex);
-            SlewRateS[slewRateIndex].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
-        }
-        else
-        {
-            LOG_ERROR("Error reading current slew rate");
-        }
+        updateSlewRate();
+        SetGuideRate(INITIAL_GUIDE_RATE);
 
         // Turn off tracking. (too much interaction with telescope.cpp if we try to keep the mount's current track state)
         if (TrackState != SCOPE_TRACKING)
@@ -693,6 +722,14 @@ bool LX200_TeenAstro::ISNewNumber(const char *dev, const char *name, double valu
             IDSetNumber(&SlewAccuracyNP, nullptr);
             return true;
         }
+        if (!strcmp(name, GuideRateNP.name))
+        {
+            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.s = IPS_OK;
+            IDSetNumber(&GuideRateNP, nullptr);
+            float guideRate = GuideRateN[0].value;
+            SetGuideRate(guideRate);
+        }
 
         // GUIDE process Guider properties.
         processGuiderProperties(name, values, names, n);
@@ -731,14 +768,6 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
-        if (!strcmp(name, GuideRateSP.name))
-        {
-            IUUpdateSwitch(&GuideRateSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&GuideRateSP);
-            GuideRateSP.s = IPS_OK;
-            SetGuideRate(index);
-            IDSetSwitch(&GuideRateSP, nullptr);
-        }
         // Sites
         if (!strcmp(name, SiteSP.name))
         {
@@ -873,6 +902,9 @@ bool LX200_TeenAstro::sendScopeTime()
     struct tm utm;
     time_t time_epoch;
 
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
+
     double offset = 0;
 
     if (getUTFOffset(&offset))
@@ -910,6 +942,7 @@ bool LX200_TeenAstro::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
@@ -1021,8 +1054,8 @@ bool LX200_TeenAstro::getSiteIndex(int *ndxP)
  */
 bool LX200_TeenAstro::getSlewRate(int *ndxP)
 {
-    if (getCommandInt(PortFD, ndxP, ":GXRD#") != 0)
-        return false;
+    unsigned char rate = (OSStat[4] - '0');
+    *ndxP = (int) rate;
     return true;
 }
 
@@ -1101,11 +1134,11 @@ bool LX200_TeenAstro::getLocation()
 /*
  * Set Guide Rate -  :SXR0:dddd# (v1.2 and above) where ddd is guide rate * 100
  */
-bool LX200_TeenAstro::SetGuideRate(int index)
+bool LX200_TeenAstro::SetGuideRate(float guideRate)
 {
     char cmdString[20];
 
-    snprintf (cmdString, sizeof(cmdString), guideSpeedCommand, GuideRateS[index].name);  // GuideRateS is {25,50,100}
+    snprintf (cmdString, sizeof(cmdString), guideSpeedCommand, (int) (guideRate * 100));
     sendCommand(cmdString);
 
     return true;
@@ -1205,7 +1238,7 @@ bool LX200_TeenAstro::Move(TDirection dir, TelescopeMotionCommand cmd)
 bool LX200_TeenAstro::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &SlewRateSP);
-    IUSaveConfigSwitch(fp, &GuideRateSP);
+    IUSaveConfigNumber(fp, &GuideRateNP);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
@@ -1316,7 +1349,7 @@ bool LX200_TeenAstro::selectSlewRate(int index)
 {
     char cmd[20];
 
-    snprintf(cmd, sizeof(cmd), ":SXRD:%d#", index);
+    snprintf(cmd, sizeof(cmd), ":R%d#", index);
     sendCommand(cmd);
     return true;
 }

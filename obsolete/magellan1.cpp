@@ -54,7 +54,8 @@ static void retryConnection(void *);
 *********************************************/
 static ISwitch ConnectS[] = { { "CONNECT", "Connect", ISS_OFF, 0, 0 }, { "DISCONNECT", "Disconnect", ISS_ON, 0, 0 } };
 ISwitchVectorProperty ConnectSP = { mydev, "CONNECTION", "Connection", COMM_GROUP,       IP_RW, ISR_1OFMANY,
-                                    0,     IPS_IDLE,     ConnectS,     NARRAY(ConnectS), "",    0 };
+                                    0,     IPS_IDLE,     ConnectS,     NARRAY(ConnectS), "",    0
+                                  };
 
 /********************************************
  Property: Device Port
@@ -62,7 +63,8 @@ ISwitchVectorProperty ConnectSP = { mydev, "CONNECTION", "Connection", COMM_GROU
 /*wildi removed static */
 static IText PortT[]       = { { "PORT", "Port", 0, 0, 0, 0 } };
 ITextVectorProperty PortTP = { mydev,    "DEVICE_PORT", "Ports",       COMM_GROUP, IP_RW, 0,
-                               IPS_IDLE, PortT,         NARRAY(PortT), "",         0 };
+                               IPS_IDLE, PortT,         NARRAY(PortT), "",         0
+                             };
 
 /**********************************************************************************************/
 /************************************ GROUP: Position Display**********************************/
@@ -73,8 +75,10 @@ ITextVectorProperty PortTP = { mydev,    "DEVICE_PORT", "Ports",       COMM_GROU
  Perm: RO
 *********************************************/
 INumber EquatorialCoordsRN[]              = { { "RA", "RA  H:M:S", "%10.6m", 0., 24., 0., 0., 0, 0, 0 },
-                                 { "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0 } };
-INumberVectorProperty EquatorialCoordsRNP = {
+    { "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0 }
+};
+INumberVectorProperty EquatorialCoordsRNP =
+{
     mydev,    "EQUATORIAL_EOD_COORD", "Equatorial JNow",          BASIC_GROUP, IP_RO, 120,
     IPS_IDLE, EquatorialCoordsRN,     NARRAY(EquatorialCoordsRN), "",          0
 };
@@ -85,16 +89,16 @@ INumberVectorProperty EquatorialCoordsRNP = {
 
 static class Loader
 {
-    Magellan1 *telescope = nullptr;
-    std::unique_ptr<Magellan1> telescope;
-public:
-    Loader()
-    {
-        IUSaveText(&PortT[0], "/dev/ttyS0");
-        telescope.reset(new Magellan1());
-        telescope->setCurrentDeviceName(mydev);
-        IEAddTimer(POLLMS, ISPoll, nullptr);
-    }
+        Magellan1 *telescope = nullptr;
+        std::unique_ptr<Magellan1> telescope;
+    public:
+        Loader()
+        {
+            IUSaveText(&PortT[0], "/dev/ttyS0");
+            telescope.reset(new Magellan1());
+            telescope->setCurrentDeviceName(mydev);
+            IEAddTimer(POLLMS, ISPoll, nullptr);
+        }
 } loader;
 
 /**************************************************

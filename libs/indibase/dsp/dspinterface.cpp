@@ -63,9 +63,9 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     char activatestrname[MAXINDINAME];
     char activatestrlabel[MAXINDILABEL];
     sprintf(activatestrname, "DSP_ACTIVATE_%s", m_Name);
-    sprintf(activatestrlabel, "Activate %s", m_Label);
-    IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
-    IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
+    sprintf(activatestrlabel, "%s", m_Label);
+    IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "On", ISState::ISS_OFF);
+    IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Off", ISState::ISS_ON);
     IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -73,11 +73,23 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
     BufferSizes = nullptr;
     BufferSizesQty = 0;
-    strncpy (FitsB.format, ".fits", MAXINDIFORMAT);
+    setCaptureFileExtension("fits");
+    //Create the dsp stream
+    stream = dsp_stream_new();
+    stream->magnitude = dsp_stream_new();
+    stream->phase = dsp_stream_new();
+    buffer = malloc(1);
 }
 
 Interface::~Interface()
 {
+    if(buffer != nullptr)
+        free(buffer);
+    if(stream != nullptr)
+    {
+        dsp_stream_free_buffer(stream);
+        dsp_stream_free(stream);
+    }
 }
 
 const char *Interface::getDeviceName()
@@ -179,8 +191,9 @@ uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_p
     return nullptr;
 }
 
-bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
+bool Interface::processBLOB(uint8_t* buffer, uint32_t ndims, int* dims, int bits_per_sample)
 {
+    bool success = false;
     if(PluginActive)
     {
         bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON
@@ -190,32 +203,29 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
 
         if (sendCapture || saveCapture)
         {
-            setSizes(ndims, dims);
-            setBPS(bits_per_sample);
-            uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
             if (buffer)
             {
-                LOGF_INFO("%s processing done. Creating file..", m_Label);
-                if (!strcmp(FitsB.format, ".fits"))
+                setSizes(ndims, dims);
+                setBPS(bits_per_sample);
+                LOGF_INFO("%s processing done.", m_Label);
+
+                long len = 1;
+                uint32_t i;
+                for (len = 1, i = 0; i < BufferSizesQty; len *= BufferSizes[i++]);
+                len *= getBPS() / 8;
+
+                if (!strcmp(captureExtention, "fits"))
                 {
-                    sendFITS(buffer, sendCapture, saveCapture);
+                    success = sendFITS(buffer, sendCapture, saveCapture);
                 }
                 else
                 {
-                    long len = 1;
-                    uint32_t i;
-                    for (len = 1, i = 0; i < BufferSizesQty; len *= BufferSizes[i++]);
-                    len *= getBPS() / 8;
-                    uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
+                    success = uploadFile(buffer, len, sendCapture, saveCapture, captureExtention);
                 }
-
-                if (sendCapture)
-                    IDSetBLOB(&FitsBP, nullptr);
             }
-            free(buffer);
         }
     }
-    return true;
+    return success;
 }
 
 void Interface::Activated()
@@ -266,7 +276,7 @@ void Interface::addFITSKeywords(fitsfile *fptr)
         char lon_str[MAXINDIFORMAT];
         char el_str[MAXINDIFORMAT];
         fs_sexa(lat_str, Lat, 2, 360000);
-        fs_sexa(lat_str, Lon, 2, 360000);
+        fs_sexa(lon_str, Lon, 2, 360000);
         snprintf(el_str, MAXINDIFORMAT, "%lf", El);
         fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
         fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
@@ -332,84 +342,30 @@ void Interface::fits_update_key_s(fitsfile *fptr, int type, std::string name, vo
 
 dsp_stream_p Interface::loadFITS(char* buffer, int len)
 {
-    dsp_stream_p loaded_stream = dsp_stream_new();
-    long ndims;
-    long bits_per_sample;
-    int status;
-    off_t offset;
-    off_t head;
-    off_t end;
-    fitsfile *fptr;
-    void* buf;
-    char error_status[MAXINDINAME];
-    char comment[MAXINDINAME];
-    char filename[MAXINDIMESSAGE];
-    sprintf(filename, "/tmp/%s_%s_%08X.fits", m_Label, getDeviceName(), rand());
-    int fd = creat(filename, 0600);
-    if(fd >= 0)
+    dsp_stream_p loaded_stream = nullptr;
+    char filename[MAXINDINAME];
+    sprintf(filename, "INDI_DSP_INTERFACE_XXXXXX");
+    int fd = mkstemp(filename);
+    if(fd > 0)
     {
         int written = write(fd, buffer, len);
         if(written != len)
             return nullptr;
         close(fd);
+        int channels = 0;
+        dsp_stream_p *stream_arr = dsp_file_read_fits(filename, &channels, false);
+        if (channels > 0)
+        {
+            loaded_stream = stream_arr[channels];
+            for (int c = 0; c < channels; c++)
+            {
+                dsp_stream_free_buffer(stream_arr[c]);
+                dsp_stream_free(stream_arr[c]);
+            }
+            free(stream_arr);
+        }
+        unlink(filename);
     }
-    fits_open_file(&fptr, filename, 0, &status);
-    if(status != 0)
-        goto load_err;
-    fits_read_key_lng(fptr, "BITPIX", &bits_per_sample, comment, &status);
-    if(status != 0)
-        goto load_err;
-    fits_read_key_lng(fptr, "NAXIS", &ndims, comment, &status);
-    if(status != 0)
-        goto load_err;
-    for (int d = 1; d <= ndims; d++)
-    {
-        char query[MAXINDINAME];
-        long value;
-        sprintf(query, "NAXIS%d", d);
-        fits_read_key_lng(fptr, query, &value, comment, &status);
-        if(status != 0)
-            goto load_err;
-        dsp_stream_add_dim(loaded_stream, value);
-    }
-    dsp_stream_alloc_buffer(loaded_stream, loaded_stream->len);
-    fits_get_hduoff(fptr, &head, &offset, &end, &status);
-    buf = static_cast<void*>(&buffer[offset]);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto err_free;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto err_free;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto err_free;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto err_free;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto err_free;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), loaded_stream->buf, loaded_stream->len);
-            goto dsp_err;
-        default:
-            break;
-    }
-load_err:
-    fits_report_error(stderr, status); /* print out any error messages */
-    fits_get_errstatus(status, error_status);
-    LOGF_ERROR("FITS Error: %s", error_status);
-dsp_err:
-    //Destroy the dsp stream
-    dsp_stream_free_buffer(loaded_stream);
-    dsp_stream_free(loaded_stream);
-    return nullptr;
-err_free:
-    fits_close_file(fptr, &status);
-    unlink(filename);
     return loaded_stream;
 }
 
@@ -429,18 +385,18 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
         case 16:
             byte_type = TUSHORT;
             img_type  = USHORT_IMG;
-            bit_depth = "16 bits per sample";
+            bit_depth = "16 bits per pixel";
             break;
 
         case 32:
-            byte_type = TULONG;
+            byte_type = TUINT;
             img_type  = ULONG_IMG;
             bit_depth = "32 bits per sample";
             break;
 
         case 64:
-            byte_type = TLONGLONG;
-            img_type  = LONGLONG_IMG;
+            byte_type = TLONG;
+            img_type  = ULONG_IMG;
             bit_depth = "64 bits double per sample";
             break;
 
@@ -519,10 +475,10 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
         LOGF_ERROR("FITS Error: %s", error_status);
         return false;
     }
-
     fits_close_file(fptr, &status);
 
-    uploadFile(memptr, memsize, sendCapture, saveCapture, "fits");
+    uploadFile(memptr, memsize, sendCapture, saveCapture, captureExtention);
+
     free(memptr);
     return true;
 }
@@ -533,8 +489,13 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
     DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendCapture? %s, saveCapture? %s",
            format, totalBytes, sendCapture ? "Yes" : "No", saveCapture ? "Yes" : "No");
 
-    FitsB.blob    = const_cast<void *>(fitsData);
+    FitsB.blob = const_cast<void*>(fitsData);
     FitsB.bloblen = static_cast<int>(totalBytes);
+    FitsB.size = totalBytes;
+    FitsBP.s   = IPS_BUSY;
+
+    snprintf(FitsB.format, MAXINDIBLOBFMT, ".%s", captureExtention);
+
     if (saveCapture)
     {
 
@@ -570,6 +531,8 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
+        char processedFileName[MAXINDINAME];
+
         snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
                  m_Name, format);
 
@@ -580,16 +543,13 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             return false;
         }
 
-        size_t n = 0;
-        for (size_t nr = 0; nr < static_cast<size_t>(FitsB.bloblen); nr += n)
-            n = fwrite((static_cast<char *>(FitsB.blob) + nr), 1, static_cast<size_t>(FitsB.bloblen - nr), fp);
+        int n = 0;
+        for (int nr = 0; nr < static_cast<int>(FitsB.bloblen); nr += n)
+            n = fwrite((static_cast<char *>(FitsB.blob) + nr), 1, FitsB.bloblen - nr, fp);
 
         fclose(fp);
         LOGF_INFO("File saved in %s.", processedFileName);
     }
-
-    FitsB.size = totalBytes;
-    FitsBP.s   = IPS_OK;
 
     if (sendCapture)
     {
@@ -601,6 +561,7 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
         LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
     }
 
+    FitsBP.s   = IPS_OK;
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
@@ -662,9 +623,13 @@ int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext
     return (maxIndex + 1);
 }
 
-void Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
+bool Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
-    //Create the dsp stream
+    stream->sizes = (int*)realloc(stream->sizes, sizeof(int));
+    stream->dims = 0;
+    stream->len = 1;
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
     stream = dsp_stream_new();
     for(uint32_t dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
@@ -691,14 +656,166 @@ void Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sam
             break;
         default:
             dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
             dsp_stream_free(stream);
+            return false;
     }
+    return true;
+}
+
+bool Interface::setMagnitude(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    if(stream == nullptr) return false;
+    if(dims != (uint32_t)stream->dims) return false;
+    for(uint32_t d = 0; d < dims; d++)
+        if(sizes[d] != stream->sizes[d]) return false;
+    dsp_stream_free_buffer(stream->magnitude);
+    dsp_stream_free(stream->magnitude);
+    stream->magnitude = dsp_stream_copy(stream);
+    dsp_buffer_set(stream->magnitude->buf, stream->len, 0);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        default:
+            dsp_stream_free_buffer(stream->magnitude);
+            dsp_stream_free(stream->magnitude);
+            return false;
+    }
+    return true;
+}
+
+bool Interface::setPhase(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    if(stream == nullptr) return false;
+    if(dims != (uint32_t)stream->dims) return false;
+    for(uint32_t d = 0; d < dims; d++)
+        if(sizes[d] != stream->sizes[d]) return false;
+    dsp_stream_free_buffer(stream->magnitude);
+    dsp_stream_free(stream->magnitude);
+    stream->magnitude = dsp_stream_copy(stream);
+    dsp_buffer_set(stream->magnitude->buf, stream->len, 0);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->magnitude->buf, stream->len);
+            break;
+        default:
+            dsp_stream_free_buffer(stream->magnitude);
+            dsp_stream_free(stream->magnitude);
+            return false;
+    }
+    return true;
+}
+
+bool Interface::setReal(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    if(stream == nullptr) return false;
+    if(dims != (uint32_t)stream->dims) return false;
+    for(uint32_t d = 0; d < dims; d++)
+        if(sizes[d] != stream->sizes[d]) return false;
+    if(stream->dft.buf == nullptr)
+        stream->dft.buf = (double*)malloc(sizeof(double) * stream->len * 2);
+    else
+        stream->dft.buf = (double*)realloc(stream->dft.buf, sizeof(double) * stream->len * 2);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy_stepping((static_cast<uint8_t *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        case 16:
+            dsp_buffer_copy_stepping((static_cast<uint16_t *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        case 32:
+            dsp_buffer_copy_stepping((static_cast<uint32_t *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        case 64:
+            dsp_buffer_copy_stepping((static_cast<unsigned long *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        case -32:
+            dsp_buffer_copy_stepping((static_cast<float *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        case -64:
+            dsp_buffer_copy_stepping((static_cast<double *>(buf)), stream->dft.buf, stream->len, stream->len * 2, 1, 2);
+            break;
+        default:
+            return false;
+    }
+    return true;
+}
+
+bool Interface::setImaginary(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    if(stream == nullptr) return false;
+    if(dims != (uint32_t)stream->dims) return false;
+    for(uint32_t d = 0; d < dims; d++)
+        if(sizes[d] != stream->sizes[d]) return false;
+    if(stream->dft.buf == nullptr)
+        stream->dft.buf = (double*)malloc(sizeof(double) * stream->len * 2);
+    else
+        stream->dft.buf = (double*)realloc(stream->dft.buf, sizeof(double) * stream->len * 2);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy_stepping((static_cast<uint8_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            break;
+        case 16:
+            dsp_buffer_copy_stepping((static_cast<uint16_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1,
+                                     2);
+            break;
+        case 32:
+            dsp_buffer_copy_stepping((static_cast<uint32_t *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1,
+                                     2);
+            break;
+        case 64:
+            dsp_buffer_copy_stepping((static_cast<unsigned long *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2,
+                                     1, 2);
+            break;
+        case -32:
+            dsp_buffer_copy_stepping((static_cast<float *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            break;
+        case -64:
+            dsp_buffer_copy_stepping((static_cast<double *>(buf)), ((double*)&stream->dft.buf[1]), stream->len, stream->len * 2, 1, 2);
+            break;
+        default:
+            return false;
+    }
+    return true;
 }
 
 uint8_t* Interface::getStream()
 {
-    void *buffer = malloc(stream->len * getBPS() / 8);
+    buffer = realloc(buffer, stream->len * getBPS() / 8);
     switch (getBPS())
     {
         case 8:
@@ -723,9 +840,75 @@ uint8_t* Interface::getStream()
             free (buffer);
             break;
     }
-    //Destroy the dsp stream
-    dsp_stream_free_buffer(stream);
-    dsp_stream_free(stream);
     return static_cast<uint8_t *>(buffer);
+}
+
+uint8_t* Interface::getMagnitude()
+{
+    buffer = malloc(stream->len * getBPS() / 8);
+    switch (getBPS())
+    {
+        case 8:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<uint8_t *>(buffer)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<uint16_t *>(buffer)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<uint32_t *>(buffer)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<unsigned long *>(buffer)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<float *>(buffer)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->magnitude->buf, (static_cast<double *>(buffer)), stream->len);
+            break;
+        default:
+            free (buffer);
+            break;
+    }
+    return static_cast<uint8_t *>(buffer);
+}
+
+uint8_t* Interface::getBuffer(dsp_stream_p in, uint32_t *dims, int **sizes)
+{
+    void *buffer = malloc(in->len * getBPS() / 8);
+    switch (getBPS())
+    {
+        case 8:
+            dsp_buffer_copy(in->buf, (static_cast<uint8_t *>(buffer)), in->len);
+            break;
+        case 16:
+            dsp_buffer_copy(in->buf, (static_cast<uint16_t *>(buffer)), in->len);
+            break;
+        case 32:
+            dsp_buffer_copy(in->buf, (static_cast<uint32_t *>(buffer)), in->len);
+            break;
+        case 64:
+            dsp_buffer_copy(in->buf, (static_cast<unsigned long *>(buffer)), in->len);
+            break;
+        case -32:
+            dsp_buffer_copy(in->buf, (static_cast<float *>(buffer)), in->len);
+            break;
+        case -64:
+            dsp_buffer_copy(in->buf, (static_cast<double *>(buffer)), in->len);
+            break;
+        default:
+            free (buffer);
+            break;
+    }
+    *dims = in->dims;
+    *sizes = (int*)malloc(sizeof(int) * in->dims);
+    for(int d = 0; d < in->dims; d++)
+        *sizes[d] = in->sizes[d];
+    return static_cast<uint8_t *>(buffer);
+}
+
+void Interface::setCaptureFileExtension(const char *ext)
+{
+    snprintf(captureExtention, MAXINDIBLOBFMT, "%s", ext);
 }
 }

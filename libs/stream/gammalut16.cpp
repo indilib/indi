@@ -26,9 +26,9 @@
 GammaLut16::GammaLut16(double gamma, double a, double b, double Ii)
 {
     mLookUpTable.resize(65536);
-    
+
     unsigned int i = 0;
-    for (auto &value: mLookUpTable)
+    for (auto &value : mLookUpTable)
     {
         double I = static_cast<double>(i++) / 65535.0;
         double p;
@@ -48,7 +48,7 @@ void GammaLut16::apply(const uint16_t *source, size_t count, uint8_t *destinatio
 
 void GammaLut16::apply(const uint16_t *first, const uint16_t *last, uint8_t *destination) const
 {
-    const uint16_t *lookUpTable = mLookUpTable.data();
+    const uint8_t *lookUpTable = mLookUpTable.data();
 
     while (first != last)
         *destination++ = lookUpTable[*first++];

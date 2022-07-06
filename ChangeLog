@@ -1,3 +1,274 @@
++ From 1.9.5 to 1.9.6
+
+    63d41777 2022-05-20 Michal Jamry         Fix pyindi pipeline (#1660)
+    f477093d 2022-05-20 Jasem Mutlaq         Fix MacOS error
+    c0021969 2022-05-07 WandererAstro        Driver for WandererRotatorLite added (#1657)
+    f5bac914 2022-05-05 François Desvallées  Allow any guide rate between 0.1x and 1x (#1656)
+    d719724c 2022-04-12 Jasem Mutlaq         Add native support for reversing Motion NS and WE directional keys
+    8ae25029 2022-04-08 murveit              Remove user choice for CM/CMR. (#1654)
+    13906846 2022-04-07 murveit              Add mount status. Start CP5 (#1653)
+    19956ec4 2022-04-03 Alain                UTC uninitialized structure fix by Norikyu (#1652)
+    e947175a 2022-04-03 Jasem Mutlaq         Make tracking factor configurable
+    4aa5f0eb 2022-03-31 murveit              fix issue reading worm position (#1651)
+    aca6a902 2022-03-31 murveit              Terminate commands missing #, introduce PEC recording and status, rem… (#1648)
+    b3c9e1eb 2022-03-31 Jim                  1.9.6_spec: update spec to build 1.9.6git (#1650)
+    5fc42420 2022-03-31 Jasem Mutlaq         Fix few issues related to commands needing space in lx200 ZEQ driver
+    1d453be5 2022-03-26 Jasem Mutlaq         Flush IO before sending command
+    e04bf987 2022-03-24 Jasem Mutlaq         use capture format
+    e0158b46 2022-03-21 Jasem Mutlaq         INDI v1.9.6 development cycle
+    fd391d51 2022-03-21 Alain                Fixing UTC Offset format allowing :SGHH:MM# where MM can be 00, 30 and 45 (#1644)
+    658ed77c 2022-03-13 murveit              Change driver name. Allow ParkTo & UnparkFrom to be visible before co… (#1642)
+    78196d41 2022-03-13 Jasem Mutlaq         Bump version
+    3f66b577 2022-03-12 murveit              add lastparked logic (#1639)
+    1ea97f03 2022-03-11 Jasem Mutlaq         Call handshake on simulation
+    8beeeb9c 2022-03-10 Jasem Mutlaq         Some mounts like iOptron require space in Sr and Sd commands otherwise it would not work
+    dfcd2922 2022-03-10 Jasem Mutlaq         Previous one did not work
+    74532f9c 2022-03-10 Jasem Mutlaq         Add endianess test for Windows
+    604776da 2022-03-10 Jasem Mutlaq         Fix compile on Windows
+    679d6a80 2022-03-08 Jasem Mutlaq         INDI v1.9.5 change log
+    fc5f5dc6 2022-03-08 Sophie Taylor        Remove incorrect documentation (#1637)
+
++ From 1.9.4 to 1.9.5
+
+    4f9db311 2022-03-05 Jasem Mutlaq         Fix typo
+    5404ea48 2022-03-03 ChristianHen         Add Driver for Esatto with Arco (goto, abort, sync, cal) (#1634)
+    0d60077b 2022-03-03 Sophie Taylor        Add CEM70(G)-EC identifier and a deprecation note (#1632)
+    ec1e0f2a 2022-02-27 Jasem Mutlaq         Fix LAN search
+    be7df23b 2022-02-24 Patrick Chevalley    Update driver interface when the LX200 support a focuser (#1631)
+    26bbbc0c 2022-02-21 Jasem Mutlaq         Do not add duplicates
+    5098be43 2022-02-21 Jasem Mutlaq         Save config state after update
+    d521e0ab 2022-02-21 Jasem Mutlaq         Simplify labels
+    e5e0c46d 2022-02-20 Mattia Procopio      Add libtheora-dev to pre-requisites (#1627)
+    738b078c 2022-02-20 Jasem Mutlaq         Initial implementation for capture format and encode format (#1630)
+    45abfcba 2022-02-19 Jasem Mutlaq         Add OpenAstroGuider
+    0afce1ce 2022-02-19 Jasem Mutlaq         Introduce 100 milli-arc-seconds threshold for sending updated coordinates to clients. This is safer than double comparisions
+    6fa57512 2022-02-16 murveit              Fix similar negative sign bug in AP driver (#1626)
+    f479114a 2022-02-15 murveit              Fix but setting AP UTC (#1625)
+    76bcbcdc 2022-02-11 Lauren Glina         Fix Celestron focuser crash after calibration (#1622)
+    37577745 2022-02-07 murveit              Updated version of the AstroPhysics driver--for testing (#1620)
+    7df8ca6d 2022-02-06 Sam James            Use <stdint.h> for uint* types (fix build on musl) (#1618)
+    505ba932 2022-02-03 naheedsa             Add Pier Side Status for lx200zeq25 (#1612)
+    5fc82166 2022-02-03 d33psky              Add and apply Meade Protocol spec definitions (#1609)
+    29056dfe 2022-01-30 rlancasteAstro       Fixing a build error on Older MacOS (#1611)
+    c5b45c7a 2022-01-30 Sifan                Adding new NexDome Beaver INDI driver (#1607)
+    18689217 2022-01-30 Alain                Allow Minutes Past Meridia +/- 180° (#1606)
+    f11f4a5d 2022-01-26 d33psky              Fix setObjectRA and setObjectDEC for short and long format and longer format for issue #1604 (#1605)
+    72b9b6a7 2022-01-25 Jasem Mutlaq         libindi v1.9.5 cycle
+    7bfb6b4b 2022-01-25 Jasem Mutlaq         Increase range for temperature settings
+    ae510cc4 2022-01-23 Jasem Mutlaq         Do not use focuser in guide simulator
+    de4f4b6e 2022-01-23 Michal Jamry         Pyindi - run actual tests (#1602)
+    ecdfb6b7 2022-01-22 Jasem Mutlaq         Use INDI functions to parse the coordinate set
+    d15412cd 2022-01-21 Jasem Mutlaq         Using network connection, setting default hostname and port should not override config values
+    41f3306b 2022-01-19 Jim                  spec-195: update the spec file for 1.9.5 builds (#1601)
+    4afd3c7c 2022-01-18 Paolo Stivanin       Add missing find_package for Qt5Core (#1599)
+    1d4deda0 2022-01-17 Jasem Mutlaq         Make INDI compile on 18.04
+    a7649451 2022-01-17 François Desvallées  Fixed updating of slew rate (#1598)
+
++ From 1.9.3 to 1.9.4
+
+    6e82671c 2022-01-17 nouspiro             Send command at start to flush serial line for Pulsar/Rigel dome (#1596)
+    237397fe 2022-01-15 Jasem Mutlaq         Experimental support for Lunar and Solar tracking in Alt-Az skywatcher
+    4e21b464 2022-01-15 Thorsten Alteholz    fix for bug 1359 (#1593)
+    5ed21bda 2022-01-14 rlancasteAstro       "Updating CURL to solve linking problem in Craft" (#1594)
+    8d1fc0ae 2022-01-12 Jasem Mutlaq         On bogus results, reset to 180 degrees instead of 0
+    221c10c2 2022-01-12 Jasem Mutlaq         Explicitly call SetTrackEnabled(true) as the mount apparently sometimes does not engage tracking after slew is complete
+    5bd64eaf 2022-01-12 Jasem Mutlaq         Add warning message
+    15534d58 2022-01-11 Jasem Mutlaq         Sync rotator motor on bogus position
+    bade6566 2022-01-11 astrogene1000        Add driver for Rigelsys/Astrogene1000 nFrame rotator - Take 2 after Jasem comments (#1590)
+    8520be2a 2022-01-10 murveit              Add timeouts to rainbow focuser (#1589)
+    f47a0107 2022-01-10 Jim                  spec_autosetup: switch from setup to autosetup in the spec file (#1591)
+    5ee49f3d 2022-01-10 Jasem Mutlaq         Do not set SCOPE_SLEWING in manual motion
+    dc20c108 2022-01-09 Jasem Mutlaq         Simplify name and remove wifi since that is covered under EQMod driver
+    bbfefbe4 2022-01-08 Jasem Mutlaq         Reset fast exposure count and upload time on disable
+    ee2bfb57 2022-01-08 Jasem Mutlaq         If fast exposure is disabled while we are exposring then abort capture
+    bfa0ea2c 2022-01-07 thx8411              Proposal for Bayer frames software binning (#1586)
+    78244936 2022-01-05 Jasem Mutlaq         Make sure GotoRotator is set to busy when changing presets
+    85fd5bba 2022-01-05 Jasem Mutlaq         Fix bug as reported by Gene
+    4536f7b3 2022-01-04 Jasem Mutlaq         Code cleanup. Do not save or send an empty image.
+    3bddbf7a 2022-01-04 Jasem Mutlaq         Add entry for ZWO AM5 as LX200 Autostar compatible mount. This is a guess at this point, it could require tweaking
+    cecb9ba4 2022-01-04 Chris Kuethe         Fix "mictosteps" typo (#1585)
+    7631749f 2022-01-03 Jasem Mutlaq         Prefer matching subnet over others
+    8e0bb260 2022-01-03 Jasem Mutlaq         Limit search to the source subnet
+    ffee42b0 2022-01-03 Jasem Mutlaq         Make timeout shorter when scanning
+    6dab56c2 2022-01-03 Jasem Mutlaq         Add an optional brute force subnet search for network connection. This could be useful for some drivers where the device exact IP address on the LAN..
+    15500f7b 2021-12-31 Jasem Mutlaq         Prepare for v1.9.4
+    03e588ef 2021-12-30 Jasem Mutlaq         Fix TrackState not set in Park. Fixes #1582
+    d319ddaa 2021-12-27 Jasem Mutlaq         Fix image color not saved in config
+    eacd21f0 2021-12-27 gnthibault           Trying to fix https://github.com/indilib/indi/issues/1580 (#1581)
+    a407e851 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    3d3067b7 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    5efaa3f8 2021-12-26 Jasem Mutlaq         Fix MacOS compile error
+    ce741633 2021-12-20 Jasem Mutlaq         Increase range to 1
+    6d99a1f8 2021-12-19 Jasem Mutlaq         Improve the PID controller
+    ce6f6a85 2021-12-16 sywong2000           Fix a problem on the Serial Number and Firmware display
+    4e882ea2 2021-12-07 Jasem Mutlaq         Put the properties in settings tab to separate them from common driver options
+    4110ab42 2021-12-07 Jasem Mutlaq         Fix property names and save to config
+    cf97d472 2021-12-05 Jasem Mutlaq         Trigger snoop when weather watchdog is enabled
+    4e5a3f62 2021-12-05 Jasem Mutlaq         Remove unused variable
+    bbf74b90 2021-12-05 Jasem Mutlaq         Clean up guide simulator and add timeout capability to simulate devices that time out during exposure
+    bb68c407 2021-12-03 James Lancaster      OnStep: Update version to 1.13, introduce timeouts based on network or not (2sec & 0.1sec), add input verification where possible.
+    f3ebd901 2021-12-01 Jasem Mutlaq         Less spammy log
+    154fee44 2021-12-01 Jasem Mutlaq         1. Fix PEC being on by default, it should be OFF by default. 2. Fix iOptronV3 parking bug by using a workaround, the firmware must be fixed by iOptr..
+    bacf8af4 2021-11-30 Jasem Mutlaq         Anything less than 2 bytes is wrong
+    422f6b94 2021-11-30 Jasem Mutlaq         If we read too few bytes, retry or exit in error
+    19118b42 2021-11-30 Jasem Mutlaq         Add extra check for invalid values
+    41fa4848 2021-11-30 Jasem Mutlaq         Check if code exists in map
+    6f150a14 2021-11-30 Jasem Mutlaq         Only accept valid encoder values
+    208b92dd 2021-11-27 Jasem Mutlaq         Remove experimental
+    8ddda182 2021-11-27 Jasem Mutlaq         Remove older AP driver and remove experimental name from it
+    f001a03f 2021-11-27 Jasem Mutlaq         Few a few pointer cast warnings
+    a5300a25 2021-11-27 Jasem Mutlaq         Fix include header
+    8f0ce312 2021-11-20 Jasem Mutlaq         Added iterative GOTO, fixed tracking issue and simplified driver + logging
+    463db860 2021-11-20 Jasem Mutlaq         Improving drift compensation
+    8880ca3b 2021-11-19 Jasem Mutlaq         Improved method for reading responses with retries from Skywatcher. reset tracking drift time in a function
+    4169ce7b 2021-11-25 Jasem Mutlaq         Improved use of fpack without storing image to disk first
+    16f21839 2021-11-23 Jasem Mutlaq         Use multimap as suggested by Inder in INDI forum
+    061fbdca 2021-11-23 Jasem Mutlaq         Add one more VID:PID for FCUSB
+    9b0eab9f 2021-11-22 stefansimg           CCD drivers: snooping for standard epoch positions and issues with fast exposure mode fixed (#1574)
+    392027d6 2021-11-20 Jasem Mutlaq         Fix Pegasus pocket DSLR switch
+    254f151e 2021-11-18 jimmy-ck             Fixing pull request #1566 by adding missing property init and update (#1572)
+    3f162369 2021-11-17 Jasem Mutlaq         Do not load config port for an explicitly defined device
+    7f95a6b3 2021-11-17 Jasem Mutlaq         Add iPolar alias as well
+    2a8f6658 2021-11-17 Jasem Mutlaq         Further clarify the search algorithm
+    2813aaef 2021-11-17 Jasem Mutlaq         Apparently iGuider shows up differently sometimes
+    49593d26 2021-11-17 Jasem Mutlaq         Fix issue where we are not detecting correct camera label and the device label was not considered
+    c48ba8a6 2021-11-17 sywong2000           Save Alignment Data to mount before sync (#1566)
+    c5f70309 2021-11-15 james-lan            OnStep: Remove Focuser on disconnect (#1569)
+    bbaa5531 2021-11-16 Daniel Van Noord     More Lynx fixes - Step Size and Devices Types (#1570)
+    59d4d553 2021-11-15 Jim                  1.9.4git-spec: update the spec to 1.9.4git for the dev cycle (#1568)
+    9108a3f0 2021-11-14 james-lan            OnStep: Don't show focuser tab unless found. (#1567)
+
++ From 1.9.2 to 1.9.3
+
+    1293b062 2021-11-10 Jasem Mutlaq         Skyris is from Celestron
+    36d8e98b 2021-11-10 Jasem Mutlaq         Standarize the names to be consistent
+    beb2fd86 2021-11-10 Jasem Mutlaq         Enable fast exposure without a cmake option since this would require the same option for all 3rd party drivers which is cumbersome. Feature still ex..
+    ae352a39 2021-11-10 Jasem Mutlaq         Enable Fast Exposure support by default. It needs to be explicitly toggled in the camera driver and is marked experimental
+    f4ee1081 2021-11-10 Jasem Mutlaq         Save simulator settings when changed to config
+    63e0f2f6 2021-11-10 Jasem Mutlaq         Add preliminary support for DC focusers to DMFC. Needs testing.
+    010d5cfe 2021-11-10 Jasem Mutlaq         Do not modify index if not found
+    c6b45eb4 2021-11-09 Jasem Mutlaq         Do not use local hour angle in any alignment function. Fix alignment test
+    f37e8702 2021-11-09 Jasem Mutlaq         If no alignment config is specified, use Nearest by default
+    14bc562d 2021-11-09 Jasem Mutlaq         Add tracking toggle. By default the driver tracks automatically, but it is possible to toggle it off to IDLE
+    c81cfaf8 2021-11-08 Daniel Van Noord     Improve lynx sync and homing behavior (#1558)
+    a4eae0d3 2021-11-06 Kevin Ross           sestosenso: Increase max allowed focuser position (Fixes #1555) (#1557)
+    ed6cb9f0 2021-11-06 Jasem Mutlaq         Save focuser interface properties in config on change
+    815cd93c 2021-11-04 Jarno Paananen       Updates and cleanup for the OpenWeatherMap driver (#1552)
+    a3e03f4c 2021-11-03 Jasem Mutlaq         Accept any parameter containing hour (h)
+    1c91de09 2021-11-02 Daniel Van Noord     Fix FocusLynx GetConfig for focusers without HomeOnStart (#1551)
+    e39af1e3 2021-11-01 Jasem Mutlaq         Remove vantage rules file as as apparently the VID:PID is applicable to more than just vantage. Add prolific vendor ID to the aux rules file
+    42bef119 2021-10-31 james-lan            LX200 SiteName Fix V2 (#1550)
+    4018919a 2021-10-30 Jasem Mutlaq         Read selected site index and name from config file on startup. Do not malloc text property directly since this is done by the INDI framework
+    a9d7726e 2021-10-26 Jasem Mutlaq         V42L driver supports detecting camera and renaming the driver (#1548)
+    0722216a 2021-10-24 Jasem Mutlaq         Fix buffer overflow. Make style compatible with INDI style
+    6bdb76b8 2021-10-20 Jasem Mutlaq         Set max possible position to 1317500. Hopefully fixes #1545
+    8b0174c3 2021-10-20 Jasem Mutlaq         Fix switch rule
+    b218950c 2021-10-15 Jim                  usbfs_memory_mb_fix: exit with TRUE even if the memory is already set (#1546)
+    7ec08c40 2021-10-14 Jasem Mutlaq         Increase maximum possible postion to 1500000. Fixes #1545
+    2ea67102 2021-10-08 james-lan            OnStep: Update to 1.12 (#1543)
+    a4c0a0c5 2021-10-07 nouspiro             Force using hour angle when mount is slewing (#1539)
+    463dc8a4 2021-10-07 Michael              Correction the amplification values to spec. (#1541)
+    74e6fb80 2021-10-05 Jasem Mutlaq         Save stack mode
+    6f826950 2021-10-05 Jasem Mutlaq         Improve manufacturers further
+    b61ea15e 2021-10-05 Jasem Mutlaq         Clarify this driver is for WiFi
+    a18b69df 2021-10-05 Jasem Mutlaq         Add missing ISGetProperties
+    ad419897 2021-10-04 Jasem Mutlaq         Make AZ GTi use network connection by default
+    8c651c89 2021-10-02 jmocenigo            fixes to PlaneWave EFA driver (#1540)
+    bcbfe283 2021-09-30 Jasem Mutlaq         Add manufacturer field to all drivers
+    f4c29fb6 2021-09-30 Jasem Mutlaq         Add simple light panel simulator for testing
+    5b1fcfb8 2021-09-29 Jasem Mutlaq         Do not spam the log unless it is important
+    4a6f80f1 2021-09-26 Jasem Mutlaq         Fix case for 0 to -1 range in DE
+    2e89a0c7 2021-09-26 Jarno Paananen       Pipes should be closed with pclose(), not fclose() (#1538)
+    cab4e7c6 2021-09-24 Jasem Mutlaq         Fix max number of filters
+    fd25142f 2021-09-23 Pedram Ashofteh Ardakani Script: Developer build update (#1537)
+    619e9363 2021-09-19 Jim                  spec-1.9.3: update the libindi.spec file for 1.9.3 beta (#1536)
+    9bea7ce5 2021-09-19 Jasem Mutlaq         Config port and baud rate should always take presedence over default driver ports
+    676b20a0 2021-09-18 Jasem Mutlaq         Make backlash limit to 10000
+    c6ec0147 2021-09-15 nouspiro             Add setting of home position for Rigel/Pulsar dome (#1534)
+    b818879e 2021-09-15 Jasem Mutlaq         Start INDI v1.9.3 development cycle
+
++ From 1.9.1 to 1.9.2
+
+    043d4ef4 2021-09-12 Jasem Mutlaq         Adjust for hemisphere when reading velocity
+    51fa9e2d 2021-09-12 Jasem Mutlaq         Fix regex to include negative numbers
+    2f9d2416 2021-09-12 Pedram Ashofteh Ardakani Developer build script (#1533)
+    7925b2c3 2021-09-11 Jasem Mutlaq         Ignore SIGPIPE
+    38773e0e 2021-09-10 Jasem Mutlaq         fabs --> std::abs
+    1d626268 2021-09-10 Jasem Mutlaq         Use std::abs only
+    68afe58f 2021-09-09 Jasem Mutlaq         Remove obsolete comments
+    df904906 2021-09-09 Jasem Mutlaq         Protect against too short device labels after regex
+    ce3ee14a 2021-09-08 Jasem Mutlaq         Always alert parent of disconnection before clearing the devices
+    75e5c4f6 2021-09-08 Jasem Mutlaq         Perform one extra check if the property for some reason is null
+    cad08082 2021-09-08 Jasem Mutlaq         Enable tighter syncs
+    1460fc32 2021-09-08 Jasem Mutlaq         Find time estimation
+    05e0767d 2021-09-08 Jasem Mutlaq         When syncing, use mount internal coordinates
+    1db46625 2021-09-08 Jasem Mutlaq         More logging
+    53a4c4e8 2021-09-08 Jasem Mutlaq         Remove leading space from element names
+    efd733f6 2021-09-07 Jasem Mutlaq         Re-engage tracking after slew. Add more logging
+    a573ae2c 2021-09-07 Jasem Mutlaq         Sync axis encoders on Sync command
+    c04b35ab 2021-09-07 Pedram Ashofteh Ardakani Script: Developer build script for UNIX users (#1529)
+    cbb6eb1b 2021-09-07 Paweł T. Jochym      Remove old part of CircleCI config (#1530)
+    5153e0f4 2021-09-06 Jasem Mutlaq         Only update temperature value is above a threshold
+    7db164e8 2021-09-05 Jasem Mutlaq         Use double otherwise the threshold will never work
+    b357b4c3 2021-09-05 Jasem Mutlaq         Less spammy when no real changes happening
+    eda21296 2021-09-01 Ilia Platone         ESATTO Backlash measure and correction (#1526)
+    f8b0b3c5 2021-08-30 jamiecflinn          Update lx200_OnStep.cpp (#1527)
+    7b811ba6 2021-08-27 Jasem Mutlaq         Take care of jitter. If position parse fails, try to see if it is for the other axis
+    667f99d3 2021-08-26 Jasem Mutlaq         Include zero point explicitly
+    fbfd53d1 2021-08-26 Jasem Mutlaq         Add more logging
+    09065078 2021-08-26 Jasem Mutlaq         Simulate manual motion
+    b8f0f13f 2021-08-25 Ilia Platone         Change INDISensorInterface and INDIReceiver FITS Keywords (#1525)
+    f7d8838c 2021-08-24 Jasem Mutlaq         Protect against crash by checking if map has key
+    4b442123 2021-08-20 Jasem Mutlaq         Stop tracking after park is complete
+    f6fa161f 2021-08-18 Jasem Mutlaq         Need to reverse velocity in southern hemisphere
+    ecbef968 2021-08-18 Jasem Mutlaq         Reverse NS for southern hemisphere as well
+    cc5e4751 2021-08-18 Jasem Mutlaq         Fix southern hemisphere bugs
+    6b0aa60e 2021-08-13 andkem               indicom: fix FreeBSD compilation (#1524)
+    cecb909d 2021-08-11 Jasem Mutlaq         If directory is not found, return error
+    bde39f11 2021-08-10 Jasem Mutlaq         Make default slew speed to be max
+    08b4d1c1 2021-08-04 Jasem Mutlaq         Differentiate between regular star adventurer tracking which cannot be control and the WiFi version which can
+    e8307829 2021-08-02 Xiretza              Fix invalid substitution in udev rules file (#1521)
+    a8ff8c37 2021-08-02 Jasem Mutlaq         Change default gain to 90
+    897fe88b 2021-07-31 Jasem Mutlaq         Set current mount alignment when switching plugins
+    bf68ffd4 2021-07-31 Jasem Mutlaq         Init in memory database after plugin switch
+    3d441a54 2021-07-31 Jasem Mutlaq         Check that in memory database is available
+    97dba863 2021-07-31 Jasem Mutlaq         Add Nearest Math Plugin similar to how it is done in EQMod. Enable loading of saved plugin preferences in math plugin loader.
+    96fc2928 2021-07-27 Jasem Mutlaq         Convert RA from Degrees --> Hours. Fixes #1519
+    6d699923 2021-07-27 Jasem Mutlaq         Decrease tolerance when checking for duplicate points
+    27528a50 2021-07-26 Jasem Mutlaq         Merge branch 'master' of https://github.com/indilib/indi
+    e1fa9f7b 2021-07-26 Jasem Mutlaq         Differential between zenith and equatorial modes
+    6ae49d33 2021-07-26 Nekomeshi            Correct color space when stacking on indi_v4l2_ccd driver with a web cam  that doesn't have color space info. (#1520)
+    e38b973d 2021-07-26 Jasem Mutlaq         Fix bug where dynamic flag was not set when loading properties from XML file.
+    0f5a628a 2021-07-22 Jasem Mutlaq         Change Label to Network as it make more sense. The name stays the same
+    0e9873a3 2021-07-21 Nicholas Dahlke      The driver for the Planewave Delta-T was not working (#1515)
+    008942e5 2021-07-19 Jasem Mutlaq         Add IMX290 board
+    ce611e76 2021-07-19 Robert Brown         Improved handling of myFP2ESP controllers (#1514)
+    74bd090c 2021-07-15 Efstathios Chrysikos Pegasus UCH (#1513)
+    fca7a137 2021-07-13 Jarno Paananen       Move calling of (dis)connect callback out of lock scope (#1511)
+    62c546e0 2021-07-13 Jasem Mutlaq         Use INDI lib pyindi-client
+    c973b7fc 2021-07-11 Nekomeshi            Support stacking mode on a indi_v4l2_ccd driver with v4l2 device that doesn't have AbsExposure. (#1510)
+    1d10d1a5 2021-07-07 Jim                  update to 1.9.2 indi dev version in spec file (#1509)
+    3092e823 2021-07-06 Jasem Mutlaq         Call parent serverConnected. Why was this removed?
+    1015ccd3 2021-07-06 Jasem Mutlaq         Start 1.9.2 development cycle
+    abcb2d9f 2021-07-05 Jasem Mutlaq         Separate equatorial and horizontal transformations as they cannot be reliably used interchangably
+    e1ea992a 2021-07-05 Jasem Mutlaq         For sync use apparent telescope coordinates
+    03a78b5e 2021-07-04 Jasem Mutlaq         Add simulation mode
+    49e88a36 2021-07-04 Jasem Mutlaq         Do not use rotation for zero sync points
+    8e175cdd 2021-07-04 Jasem Mutlaq         When we have zero sync points for equatorial mounts, simply transform the telescope direction vector back to equatorial coordinates instead of using..
+    47d23904 2021-07-03 Jasem Mutlaq         Add TCIO flush before sending commands
+    9045b593 2021-06-30 Jasem Mutlaq         Revert "Replace gethostbyname with getaddrinfo (#1462)"
+    63346a7e 2021-06-30 Jasem Mutlaq         Revert getaddrinfo in baseclient as it caused a regression
+    8ba2c726 2021-06-30 Jasem Mutlaq         Fix INDI compile on Windows after latest update
+    7fb682d3 2021-06-30 Jasem Mutlaq         Move CMAKE_POSITION_INDEPENDENT_CODE to CMakeCommon and disable -pie. Fixes #1504
+    90a87d90 2021-06-29 Paolo Stivanin       Use getaddrinfo instead of gethostbyname (part 2) (#1505)
+    db6655d1 2021-06-29 interplanetarychris  TheSkyX/Paramount Pier-side + guide async cmd fixes (#1506)
+    f1e154ef 2021-06-29 Efstathios Chrysikos Change Pegasus UCH Handsake Message (#1507)
+    907b3d81 2021-06-29 Paolo Stivanin       Fix indimacros include path on baseclient.h (#1503)
+    6337561b 2021-06-28 Jasem Mutlaq         Set DMFC version
+    48dcd002 2021-06-26 Jasem Mutlaq         These properties are already defined by the interface, no need to redefine them here
+    9f59cd95 2021-06-26 Jasem Mutlaq         v1.9.1 change log
+    ead3f5c5 2021-06-26 Jasem Mutlaq         Remove tcdrain since it causes TheSkyX to produce errors
+
 + From 1.9.0 to 1.9.1
 
     0a28db96 2021-06-26 Jasem Mutlaq         Make it build on Windows
@@ -1126,4 +1397,4 @@ From v0.2 to v0.3:
                 + INDI scripting tools
                 + Various bug fixing
 
-INDI Library v1.1 conforms to INDI wire protocol v1.7
+INDI Library v1.9.5 conforms to INDI wire protocol v1.7

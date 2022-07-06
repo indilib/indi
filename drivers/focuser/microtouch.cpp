@@ -38,7 +38,7 @@ Microtouch::Microtouch()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
-                         FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
+                      FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
 }
 
 bool Microtouch::initProperties()
@@ -61,9 +61,9 @@ bool Microtouch::initProperties()
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Maximum Travel
-//    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
-//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
-//                       IP_RW, 0, IPS_IDLE);
+    //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
+    //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
+    //                       IP_RW, 0, IPS_IDLE);
 
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.01, 0);
@@ -78,13 +78,13 @@ bool Microtouch::initProperties()
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Reset
-//    IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
-//    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
-//                       IPS_IDLE);
+    //    IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
+    //    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    //                       IPS_IDLE);
 
-//    IUFillNumber(&ResetToPosN[0], "Position", "", "%6.0f", 0, 60000, 1, 0);
-//    IUFillNumberVector(&ResetToPosNP, ResetToPosN, 1, getDeviceName(), "Reset to Position", "", MAIN_CONTROL_TAB, IP_RW,
-//                       0, IPS_IDLE);
+    //    IUFillNumber(&ResetToPosN[0], "Position", "", "%6.0f", 0, 60000, 1, 0);
+    //    IUFillNumberVector(&ResetToPosNP, ResetToPosN, 1, getDeviceName(), "Reset to Position", "", MAIN_CONTROL_TAB, IP_RW,
+    //                       0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
@@ -114,8 +114,8 @@ bool Microtouch::updateProperties()
         defineProperty(&MotorSpeedSP);
         defineProperty(&TemperatureSettingNP);
         defineProperty(&TemperatureCompensateSP);
-//        defineProperty(&ResetSP);
-//        defineProperty(&ResetToPosNP);
+        //        defineProperty(&ResetSP);
+        //        defineProperty(&ResetToPosNP);
 
         GetFocusParams();
 
@@ -124,12 +124,12 @@ bool Microtouch::updateProperties()
     else
     {
         deleteProperty(TemperatureNP.name);
-//        deleteProperty(MaxTravelNP.name);
+        //        deleteProperty(MaxTravelNP.name);
         deleteProperty(MotorSpeedSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
-//        deleteProperty(ResetSP.name);
-//        deleteProperty(ResetToPosNP.name);
+        //        deleteProperty(ResetSP.name);
+        //        deleteProperty(ResetToPosNP.name);
     }
 
     return true;
@@ -146,7 +146,7 @@ bool Microtouch::Handshake()
     }
 
     LOG_INFO("Error retrieving data from Microtouch, please ensure Microtouch controller is "
-                                     "powered and the port is correct.");
+             "powered and the port is correct.");
     return false;
 }
 
@@ -178,7 +178,7 @@ bool Microtouch::updateTemperature()
     tcomp_coeff = (double)(((double)WriteCmdGetInt(CMD_GET_COEFF)) / 128);
 
     LOGF_DEBUG("updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0], resp[1],
-           resp[2], resp[3], resp[4], resp[5]);
+               resp[2], resp[3], resp[4], resp[5]);
 
     TemperatureN[0].value        = raw_temp + raw_coeff;
     TemperatureSettingN[0].value = raw_coeff;
@@ -361,7 +361,8 @@ bool Microtouch::setTemperatureCompensation(bool enable)
             return true;
         else
             return false;
-    } else if (WriteCmd(CMD_TEMPCOMP_OFF))
+    }
+    else if (WriteCmd(CMD_TEMPCOMP_OFF))
         return true;
 
     return false;
@@ -427,18 +428,18 @@ bool Microtouch::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-//        if (strcmp(ResetSP.name, name) == 0)
-//        {
-//            IUResetSwitch(&ResetSP);
+        //        if (strcmp(ResetSP.name, name) == 0)
+        //        {
+        //            IUResetSwitch(&ResetSP);
 
-//            if (reset())
-//                ResetSP.s = IPS_OK;
-//            else
-//                ResetSP.s = IPS_ALERT;
+        //            if (reset())
+        //                ResetSP.s = IPS_OK;
+        //            else
+        //                ResetSP.s = IPS_ALERT;
 
-//            IDSetSwitch(&ResetSP, nullptr);
-//            return true;
-//        }
+        //            IDSetSwitch(&ResetSP, nullptr);
+        //            return true;
+        //        }
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -448,19 +449,19 @@ bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-//        if (strcmp(name, MaxTravelNP.name) == 0)
-//        {
-//            IUUpdateNumber(&MaxTravelNP, values, names, n);
-//            MaxTravelNP.s = IPS_OK;
-//            IDSetNumber(&MaxTravelNP, nullptr);
-//            return true;
-//        }
+        //        if (strcmp(name, MaxTravelNP.name) == 0)
+        //        {
+        //            IUUpdateNumber(&MaxTravelNP, values, names, n);
+        //            MaxTravelNP.s = IPS_OK;
+        //            IDSetNumber(&MaxTravelNP, nullptr);
+        //            return true;
+        //        }
 
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
             if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                !setTemperatureCoefficient(TemperatureSettingN[1].value))
+                    !setTemperatureCoefficient(TemperatureSettingN[1].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
@@ -471,19 +472,19 @@ bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[],
             IDSetNumber(&TemperatureSettingNP, nullptr);
         }
 
-//        if (strcmp(name, ResetToPosNP.name) == 0)
-//        {
-//            IUUpdateNumber(&ResetToPosNP, values, names, n);
-//            if (!reset(ResetToPosN[0].value))
-//            {
-//                ResetToPosNP.s = IPS_ALERT;
-//                IDSetNumber(&ResetToPosNP, nullptr);
-//                return false;
-//            }
+        //        if (strcmp(name, ResetToPosNP.name) == 0)
+        //        {
+        //            IUUpdateNumber(&ResetToPosNP, values, names, n);
+        //            if (!reset(ResetToPosN[0].value))
+        //            {
+        //                ResetToPosNP.s = IPS_ALERT;
+        //                IDSetNumber(&ResetToPosNP, nullptr);
+        //                return false;
+        //            }
 
-//            ResetToPosNP.s = IPS_OK;
-//            IDSetNumber(&ResetToPosNP, nullptr);
-//        }
+        //            ResetToPosNP.s = IPS_OK;
+        //            IDSetNumber(&ResetToPosNP, nullptr);
+        //        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -661,7 +662,10 @@ float Microtouch::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =
@@ -755,7 +759,7 @@ bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
     write_buffer[2] = val >> 8;
 
     LOGF_DEBUG("WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0], write_buffer[1],
-           write_buffer[2]);
+               write_buffer[2]);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -792,7 +796,7 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
     write_buffer[4] = val >> 24;
 
     LOGF_DEBUG("WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0], write_buffer[1],
-           write_buffer[2], write_buffer[3], write_buffer[4]);
+               write_buffer[2], write_buffer[3], write_buffer[4]);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -818,7 +822,7 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     write_buffer[4] = (val / 1000);
 
     LOGF_DEBUG("WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0],
-           write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
+               write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 
     tcflush(PortFD, TCIOFLUSH);
 

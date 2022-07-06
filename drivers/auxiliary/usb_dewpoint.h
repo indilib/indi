@@ -79,67 +79,67 @@ class Serial;
 
 class USBDewpoint : public INDI::DefaultDevice
 {
-  public:
-    USBDewpoint();
-    virtual ~USBDewpoint() = default;
+    public:
+        USBDewpoint();
+        virtual ~USBDewpoint() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual void TimerHit() override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual void TimerHit() override;
 
-  private:
-    bool sendCommand(const char *cmd, char *response);
+    private:
+        bool sendCommand(const char *cmd, char *response);
 
-    bool Handshake();
-    bool Ack();
-    bool Resync();
+        bool Handshake();
+        bool Ack();
+        bool Resync();
 
-    bool reset();
-    bool readSettings();
+        bool reset();
+        bool readSettings();
 
-    bool setOutput(unsigned int channel, unsigned int value);
-    bool setCalibrations(unsigned int ch1, unsigned int ch2, unsigned int ambient);
-    bool setThresholds(unsigned int ch1, unsigned int ch2);
-    bool setAutoMode(bool enable);
-    bool setLinkMode(bool enable);
-    bool setAggressivity(unsigned int aggressivity);
+        bool setOutput(unsigned int channel, unsigned int value);
+        bool setCalibrations(unsigned int ch1, unsigned int ch2, unsigned int ambient);
+        bool setThresholds(unsigned int ch1, unsigned int ch2);
+        bool setAutoMode(bool enable);
+        bool setLinkMode(bool enable);
+        bool setAggressivity(unsigned int aggressivity);
 
-    Connection::Serial *serialConnection{ nullptr };
-    int PortFD{ -1 };
+        Connection::Serial *serialConnection{ nullptr };
+        int PortFD{ -1 };
 
-    INumber OutputsN[3];
-    INumberVectorProperty OutputsNP;
+        INumber OutputsN[3];
+        INumberVectorProperty OutputsNP;
 
-    INumber TemperaturesN[3];
-    INumberVectorProperty TemperaturesNP;
+        INumber TemperaturesN[3];
+        INumberVectorProperty TemperaturesNP;
 
-    INumber CalibrationsN[3];
-    INumberVectorProperty CalibrationsNP;
+        INumber CalibrationsN[3];
+        INumberVectorProperty CalibrationsNP;
 
-    INumber ThresholdsN[2];
-    INumberVectorProperty ThresholdsNP;
+        INumber ThresholdsN[2];
+        INumberVectorProperty ThresholdsNP;
 
-    INumber HumidityN[1];
-    INumberVectorProperty HumidityNP;
+        INumber HumidityN[1];
+        INumberVectorProperty HumidityNP;
 
-    INumber DewpointN[1];
-    INumberVectorProperty DewpointNP;
+        INumber DewpointN[1];
+        INumberVectorProperty DewpointNP;
 
-    INumber AggressivityN[1];
-    INumberVectorProperty AggressivityNP;
+        INumber AggressivityN[1];
+        INumberVectorProperty AggressivityNP;
 
-    ISwitch AutoModeS[2];
-    ISwitchVectorProperty AutoModeSP;
+        ISwitch AutoModeS[2];
+        ISwitchVectorProperty AutoModeSP;
 
-    ISwitch LinkOut23S[2];
-    ISwitchVectorProperty LinkOut23SP;
+        ISwitch LinkOut23S[2];
+        ISwitchVectorProperty LinkOut23SP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
 
-    INumber FWversionN[1];
-    INumberVectorProperty FWversionNP;
+        INumber FWversionN[1];
+        INumberVectorProperty FWversionNP;
 };

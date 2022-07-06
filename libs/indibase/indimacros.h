@@ -20,11 +20,11 @@
 
 /**
  * @brief Unused variable
- * 
+ *
  * Indicates to the compiler that the parameter with the specified name is not used in the body of a function.
  * This can be used to suppress compiler warnings while allowing functions to be defined with meaningful
  * parameter names in their signatures.
- * 
+ *
  */
 #ifndef INDI_UNUSED
 # define INDI_UNUSED(x) (void)x
@@ -54,7 +54,7 @@
 
 /**
  * @brief Allows attributes to be set on null statements
- * 
+ *
  * The fallthrough attribute with a null statement serves as a fallthrough statement.
  * It hints to the compiler that a statement that falls through to another case label,
  * or user-defined label in a switch statement is intentional and thus the
@@ -63,7 +63,7 @@
  * and may not be mixed with other attributes.
  * It can only be used in a switch statement (the compiler will issue an error otherwise),
  * after a preceding statement and before a logically succeeding case label, or user-defined label.
- * 
+ *
  * switch (cond)
  * {
  * case 1:
@@ -93,7 +93,7 @@
 
 /**
  * @brief Opaque pointer
- * 
+ *
  * The D_PTR macro is part of a design pattern called the d-pointer (also called the opaque pointer)
  * where the implementation details of a library may be hidden from its users and changes to the implementation
  * can be made to a library without breaking binary compatibility.
@@ -101,10 +101,16 @@
 #if defined(__cplusplus)
 
 template <typename T>
-static inline T *getPtrHelper(T *ptr) { return ptr; }
+static inline T *getPtrHelper(T *ptr)
+{
+    return ptr;
+}
 
 template <typename Wrapper>
-static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p) { return p.get(); }
+static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p)
+{
+    return p.get();
+}
 
 #define DECLARE_PRIVATE(Class) \
     inline Class##Private* d_func() { return reinterpret_cast<Class##Private *>(getPtrHelper(this->d_ptr)); } \

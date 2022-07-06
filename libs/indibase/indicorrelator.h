@@ -66,8 +66,10 @@ class Correlator : public SensorInterface
          * \struct Baseline
          * \brief the baseline (position of the telescopes) of this correlator.
          */
-        typedef union {
-            struct {
+        typedef union
+        {
+            struct
+            {
                 double x;
                 double y;
                 double z;
@@ -79,8 +81,10 @@ class Correlator : public SensorInterface
          * \enum UVCoordinate
          * \brief The coordinates of the current projection into the UV plane.
          */
-        typedef union {
-            struct {
+        typedef union
+        {
+            struct
+            {
                 double u;
                 double v;
             };
@@ -91,7 +95,8 @@ class Correlator : public SensorInterface
          * \enum Correlation
          * \brief Struct containing the correlation, coordinate and baseline informations.
          */
-        typedef struct {
+        typedef struct
+        {
             Baseline baseline;
             UVCoordinate coordinate;
             double coefficient;
@@ -99,7 +104,7 @@ class Correlator : public SensorInterface
 
         enum
         {
-            CORRELATOR_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
+            CORRELATOR_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY << 0, /*!< Can the Sensor Integration be aborted?  */
         } CorrelatorCapability;
 
         Correlator();
@@ -111,7 +116,8 @@ class Correlator : public SensorInterface
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n) override;
         bool ISSnoopDevice(XMLEle *root) override;
 
         virtual bool StartIntegration(double duration) override;
@@ -120,13 +126,23 @@ class Correlator : public SensorInterface
          * @brief getCorrelationDegree Get current correlation degree.
          * @return the correlation coefficient.
          */
-        virtual inline double getCorrelationDegree() { return 0.0; }
+        virtual inline double getCorrelationDegree()
+        {
+            return 0.0;
+        }
 
         /**
          * @brief getCorrelation Get current correlation degree plus UV and baseline information.
          * @return the correlation and UV coordinates.
          */
-        inline Correlation getCorrelation() { Correlation ret; ret.coordinate = getUVCoordinates(); ret.baseline = baseline; ret.coefficient = getCorrelationDegree(); return ret; }
+        inline Correlation getCorrelation()
+        {
+            Correlation ret;
+            ret.coordinate = getUVCoordinates();
+            ret.baseline = baseline;
+            ret.coefficient = getCorrelationDegree();
+            return ret;
+        }
 
         /**
          * @brief setBaseline Set the baseline size in meters.
@@ -247,7 +263,8 @@ class Correlator : public SensorInterface
          * @param sendToClient If true (default), the element limits are updated and is sent to the
          * client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient);
+        virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                                   bool sendToClient) override;
 
         typedef enum
         {
@@ -259,7 +276,7 @@ class Correlator : public SensorInterface
         } CORRELATOR_INFO_INDEX;
         INumberVectorProperty CorrelatorSettingsNP;
 
-      private:
+    private:
         Baseline baseline;
         double wavelength;
         double bandwidth;

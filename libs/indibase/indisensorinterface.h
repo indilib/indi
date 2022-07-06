@@ -73,12 +73,12 @@ class SensorInterface : public DefaultDevice
     public:
         enum
         {
-            SENSOR_CAN_ABORT                  = 1<<0,  /*!< Can the Sensor Integration be aborted?  */
-            SENSOR_HAS_STREAMING              = 1<<1,  /*!< Does the Sensor supports streaming?  */
-            SENSOR_HAS_SHUTTER                = 1<<2,  /*!< Does the Sensor have a mechanical shutter?  */
-            SENSOR_HAS_COOLER                 = 1<<3,  /*!< Does the Sensor have a cooler and temperature control?  */
-            SENSOR_HAS_DSP                    = 1<<4,
-            SENSOR_MAX_CAPABILITY             = 1<<5,  /*!< Does the Sensor have a cooler and temperature control?  */
+            SENSOR_CAN_ABORT                  = 1 << 0, /*!< Can the Sensor Integration be aborted?  */
+            SENSOR_HAS_STREAMING              = 1 << 1, /*!< Does the Sensor supports streaming?  */
+            SENSOR_HAS_SHUTTER                = 1 << 2, /*!< Does the Sensor have a mechanical shutter?  */
+            SENSOR_HAS_COOLER                 = 1 << 3, /*!< Does the Sensor have a cooler and temperature control?  */
+            SENSOR_HAS_DSP                    = 1 << 4,
+            SENSOR_MAX_CAPABILITY             = 1 << 5, /*!< Does the Sensor have a cooler and temperature control?  */
         } SensorCapability;
 
         SensorInterface();
@@ -180,8 +180,8 @@ class SensorInterface : public DefaultDevice
          * @param sendToClient If true (default), the element limits are updated and is sent to the
          * client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                           bool sendToClient = true);
+        virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                                   bool sendToClient = true);
 
         /**
          * @brief setBufferSize Set desired buffer size. The function will allocate memory
@@ -269,6 +269,7 @@ class SensorInterface : public DefaultDevice
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
+        friend class StreamManagerPrivate;
         /**
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
@@ -310,7 +311,10 @@ class SensorInterface : public DefaultDevice
         /**
          * @return Get current Sensor connection mode
          */
-        inline uint8_t getSensorConnection() { return sensorConnection; }
+        inline uint8_t getSensorConnection()
+        {
+            return sensorConnection;
+        }
 
         /**
          * \brief Add FITS keywords to a fits file
@@ -335,7 +339,7 @@ class SensorInterface : public DefaultDevice
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 
-protected:
+    protected:
 
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
@@ -516,7 +520,7 @@ protected:
         /// For Serial & TCP connections
         int PortFD = -1;
 
-      private:
+    private:
         bool callHandshake();
         uint8_t sensorConnection = CONNECTION_NONE;
 

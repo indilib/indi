@@ -64,7 +64,7 @@ class Receiver : public virtual SensorInterface
     public:
         enum
         {
-            SPECTROGRAPH_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
+            SPECTROGRAPH_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY << 0, /*!< Can the Sensor Integration be aborted?  */
         } ReceiverCapability;
 
         Receiver();
@@ -76,7 +76,8 @@ class Receiver : public virtual SensorInterface
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                               char *names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
         virtual bool StartIntegration(double duration) override;
@@ -174,8 +175,8 @@ class Receiver : public virtual SensorInterface
          * @param sendToClient If true (default), the element limits are updated and is sent to the
          * client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                           bool sendToClient = true);
+        virtual void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                                   bool sendToClient = true) override;
 
         typedef enum
         {
@@ -189,7 +190,7 @@ class Receiver : public virtual SensorInterface
         INumberVectorProperty ReceiverSettingsNP;
         INumber ReceiverSettingsN[7];
 
-private:
+    private:
         double Frequency;
         double SampleRate;
         double Bandwidth;

@@ -59,7 +59,7 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-#define XIOCTL(fd, ioctl, arg) this->xioctl(fd, ioctl, arg, #ioctl)
+#define XIOCTL(fd, ioctl, arg) xioctl(fd, ioctl, arg, #ioctl)
 
 #define DBG_STR_PIX "%c%c%c%c"
 #define DBG_PIX(pf) ((pf) >> 0) & 0xFF, ((pf) >> 8) & 0xFF, ((pf) >> 16) & 0xFF, ((pf) >> 24) & 0xFF
@@ -2978,5 +2978,78 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
 void V4L2_Base::setDeviceName(const char * name)
 {
     strncpy(deviceName, name, MAXINDIDEVICE);
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+/// Find all /dev/videoXXX devices and open them one by one to query
+/// the common of the device. We use this later to match against the device label
+/// so that we can automatically open the desired device automatically without having
+/// to manually set the device port manually.
+/// return a map of pairs common_name:device_path (e.g. {"Logitech D9000", "/dev/video3"})
+///////////////////////////////////////////////////////////////////////////
+std::map<std::string, std::string> V4L2_Base::enumerate()
+{
+    std::map<std::string, std::string> devices;
+
+    auto searchPath = [&](std::string prefix)
+    {
+        struct dirent **namelist;
+        std::vector<std::string> detectedDevices;
+        int devCount = 0;
+        devCount = scandir(prefix.c_str(), &namelist, video_dev_file_select, alphasort);
+        if (devCount > 0)
+        {
+            while (devCount--)
+            {
+                if (detectedDevices.size() < 10)
+                {
+                    std::string s(namelist[devCount]->d_name);
+                    s.erase(s.find_last_not_of(" \n\r\t") + 1);
+                    detectedDevices.push_back(prefix + s);
+                }
+                free(namelist[devCount]);
+            }
+            free(namelist);
+        }
+
+        return detectedDevices;
+    };
+
+    const std::vector<std::string> videoDevices = searchPath("/dev/");
+
+    for (const auto &oneDevice : videoDevices)
+    {
+        int fd = open(oneDevice.c_str(), O_RDWR | O_NONBLOCK, 0);
+        if (fd >= 0)
+        {
+            struct v4l2_capability cap;
+            if (ioctl(fd, VIDIOC_QUERYCAP, &cap) >= 0)
+            {
+                devices[std::string(reinterpret_cast<const char *>(cap.card))] = oneDevice;
+            }
+            close(fd);
+        }
+    }
+
+    return devices;
+}
+
+///////////////////////////////////////////////////////////////////////////
+///
+///////////////////////////////////////////////////////////////////////////
+int V4L2_Base::video_dev_file_select(const dirent * entry)
+{
+    static const char *filter_names[] = { "video", nullptr };
+    const char **filter;
+
+    for (filter = filter_names; *filter; ++filter)
+    {
+        if (strstr(entry->d_name, *filter) != nullptr)
+        {
+            return (true);
+        }
+    }
+    return (false);
 }
 }

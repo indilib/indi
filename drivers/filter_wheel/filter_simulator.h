@@ -25,14 +25,14 @@
  */
 class FilterSim : public INDI::FilterWheel
 {
-  public:
-    FilterSim() = default;
-    virtual ~FilterSim() = default;
+    public:
+        FilterSim() = default;
+        virtual ~FilterSim() = default;
 
-    const char *getDefaultName();
+        const char *getDefaultName();
 
-    bool Connect();
-    bool Disconnect();
-    bool SelectFilter(int);
-    void TimerHit();
+        bool Connect();
+        bool Disconnect();
+        bool SelectFilter(int);
+        void TimerHit();
 };

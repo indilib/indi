@@ -87,10 +87,9 @@ bool WatchDog::Connect()
                       WeatherThresholdN[0].value);
         else
             LOG_INFO("Weather Watchdog is enabled. Shutdown is triggered when Weather status in DANGER zone.");
-        // Trigger Snoop
-        IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
     }
 
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
 
@@ -416,7 +415,10 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                     LOG_INFO("Weather Watchdog is disabled.");
                 }
                 else
+                {
+                    IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
                     LOG_INFO("Weather Watchdog is enabled.");
+                }
 
             }
 
