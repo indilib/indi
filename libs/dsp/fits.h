@@ -183,37 +183,37 @@ typedef struct
 #define EXTFITS_MEASURE_UNIT_MILLIBAR "millibar"
 
 ///Set to 'FLUX' or 'DATA' for matrix buffers
-#define EXTFITS_KEYWORD_TTYPE(n) ((dsp_fits_keyword){"TTYPE" itostr(n), "8A", "", "", "Set to 'FLUX'", (char*[]){"FLUX", "DATA", ""}})
+#define EXTFITS_KEYWORD_TTYPE(n) (dsp_fits_keyword){"TTYPE" itostr(n), "8A", "", "", "Set to 'FLUX'", (char*[]){"FLUX", "DATA", ""}}
 ///shall have the value 'K', 'JY' or 'UNCALIB'
-#define EXTFITS_KEYWORD_TUNIT(n) ((dsp_fits_keyword){"TUNIT" itostr(n), "8A", "", "", "Shall have the value 'JY' or 'UNCALIB'", (char*[]){""}})
+#define EXTFITS_KEYWORD_TUNIT(n) (dsp_fits_keyword){"TUNIT" itostr(n), "8A", "", "", "Shall have the value 'JY' or 'UNCALIB'", (char*[]){""}}
 ///Size in pixels of data buffer
-#define EXTFITS_KEYWORD_TDIM(n) ((dsp_fits_keyword){"TDIM" itostr(n), "8A", "", "", "Size in pixels of data buffer", (char*[]){""}})
+#define EXTFITS_KEYWORD_TDIM(n) (dsp_fits_keyword){"TDIM" itostr(n), "8A", "", "", "Size in pixels of data buffer", (char*[]){""}}
 ///shall have the format of the column
-#define EXTFITS_KEYWORD_TFORM(n) ((dsp_fits_keyword){"TFORM" itostr(n), "8A", "", "", "Shall be a character string", (char*[]){""}})
+#define EXTFITS_KEYWORD_TFORM(n) (dsp_fits_keyword){"TFORM" itostr(n), "8A", "", "", "Shall be a character string", (char*[]){""}}
 
 ///Name of regular axis m = 1 to M
-#define EXTFITS_KEYWORD_CTYPE(m) ((dsp_fits_keyword){"CTYPE" itostr(m), EXTFITS_ELEMENT_STRING.typestr, "", "", "Name of regular axis m = 1 to M", (char*[]){""}})
+#define EXTFITS_KEYWORD_CTYPE(m) (dsp_fits_keyword){"CTYPE" itostr(m), EXTFITS_ELEMENT_STRING.typestr, "", "", "Name of regular axis m = 1 to M", (char*[]){""}}
 ///Coordinate increment on axis m = 1 to M
-#define EXTFITS_KEYWORD_CDELT(m) ((dsp_fits_keyword){"CDELT" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Coordinate increment on axis m = 1 to M", (char*[]){""}})
+#define EXTFITS_KEYWORD_CDELT(m) (dsp_fits_keyword){"CDELT" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Coordinate increment on axis m = 1 to M", (char*[]){""}}
 ///Reference pixel on axis m = 1 to M
-#define EXTFITS_KEYWORD_CRPIX(m) ((dsp_fits_keyword){"CRPIX" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Reference pixel on axis m = 1 to M", (char*[]){""}})
+#define EXTFITS_KEYWORD_CRPIX(m) (dsp_fits_keyword){"CRPIX" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Reference pixel on axis m = 1 to M", (char*[]){""}}
 ///Coordinate value at reference pixel on axis m = 1 to M
-#define EXTFITS_KEYWORD_CRVAL(m) ((dsp_fits_keyword){"CRVAL" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Coordinate value at reference pixel on axis m = 1 to M", (char*[]){""}})
+#define EXTFITS_KEYWORD_CRVAL(m) (dsp_fits_keyword){"CRVAL" itostr(m), EXTFITS_ELEMENT_FLOAT.typestr, "", "", "Coordinate value at reference pixel on axis m = 1 to M", (char*[]){""}}
 
 ///NMATRIX shall be present with the value 1
-#define EXTFITS_KEYWORD_NMATRIX ((dsp_fits_keyword){"NMATRIX", EXTFITS_ELEMENT_SHORT.typestr, "", "1", "NMATRIX shall be present with the value 1", (char*[]){"1", ""}})
+#define EXTFITS_KEYWORD_NMATRIX (dsp_fits_keyword){"NMATRIX", EXTFITS_ELEMENT_SHORT.typestr, "", "1", "NMATRIX shall be present with the value 1", (char*[]){"1", ""}}
 ///Set to 'T' — column n contains the visibility matrix
-#define EXTFITS_KEYWORD_TMATX(n) ((dsp_fits_matrix){"TMATX" itostr(n), "8A", "T", "Set to 'T'", {EXTFITS_KEYWORD_TTYPE(n), EXTFITS_KEYWORD_TFORM(n), EXTFITS_KEYWORD_TUNIT(n), EXTFITS_KEYWORD_TDIM(n)}})
+#define EXTFITS_KEYWORD_TMATX(n) (dsp_fits_matrix){"TMATX" itostr(n), "8A", "T", "Set to 'T'", {EXTFITS_KEYWORD_TTYPE(n), EXTFITS_KEYWORD_TFORM(n), EXTFITS_KEYWORD_TUNIT(n), EXTFITS_KEYWORD_TDIM(n)}}
 ///M = number axes in regular matrix, Number pixels on axis m = 1 to M
-#define EXTFITS_KEYWORD_MAXIS(m) ((dsp_fits_axis){"MAXIS" itostr(m), EXTFITS_ELEMENT_SHORT.typestr, "", "", "M = number axes in regular matrix, Number pixels on axis m = 1 to M", {EXTFITS_KEYWORD_CTYPE(m), EXTFITS_KEYWORD_CDELT(m), EXTFITS_KEYWORD_CRPIX(m), EXTFITS_KEYWORD_CRVAL(m)}})
+#define EXTFITS_KEYWORD_MAXIS(m) (dsp_fits_axis){"MAXIS" itostr(m), EXTFITS_ELEMENT_SHORT.typestr, "", "", "M = number axes in regular matrix, Number pixels on axis m = 1 to M", {EXTFITS_KEYWORD_CTYPE(m), EXTFITS_KEYWORD_CDELT(m), EXTFITS_KEYWORD_CRPIX(m), EXTFITS_KEYWORD_CRVAL(m)}}
 
 ///Target right ascension coordinate
-#define EXTFITS_KEYWORD_OBJCTRA ((dsp_fits_column){"OBJCTRA", EXTFITS_ELEMENT_STRING.typestr, EXTFITS_MEASURE_UNIT_DEGREE, "", "Target right ascension coordinate", (char*[]){""}})
+#define EXTFITS_KEYWORD_OBJCTRA (dsp_fits_column){"OBJCTRA", EXTFITS_ELEMENT_STRING.typestr, EXTFITS_MEASURE_UNIT_DEGREE, "", "Target right ascension coordinate", (char*[]){""}}
 ///Target declination coordinate
-#define EXTFITS_KEYWORD_OBJCTDEC ((dsp_fits_column){"OBJCTDEC", EXTFITS_ELEMENT_STRING.typestr, EXTFITS_MEASURE_UNIT_DEGREE, "", "Target declination coordinate", (char*[]){""}})
+#define EXTFITS_KEYWORD_OBJCTDEC (dsp_fits_column){"OBJCTDEC", EXTFITS_ELEMENT_STRING.typestr, EXTFITS_MEASURE_UNIT_DEGREE, "", "Target declination coordinate", (char*[]){""}}
 
-#define FITS_KEYWORD_EXTEND ((dsp_fits_keyword){"EXTEND", "A", "", "T", "", (char*[]){""}})
-#define FITS_KEYWORD_EXTNAME ((dsp_fits_keyword){"EXTNAME", "", "", "", "", (char*[]){""}})
+#define FITS_KEYWORD_EXTEND (dsp_fits_keyword){"EXTEND", "A", "", "T", "", (char*[]){""}}
+#define FITS_KEYWORD_EXTNAME (dsp_fits_keyword){"EXTNAME", "", "", "", "", (char*[]){""}}
 
 /**
 * \brief Create or update a new fits header key

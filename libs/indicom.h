@@ -47,38 +47,98 @@
 
 #include <math.h>
 
+#ifndef J2000
 #define J2000       2451545.0
+#endif
 #define ERRMSG_SIZE 1024
 
+#ifndef STELLAR_DAY
 #define STELLAR_DAY        86164.098903691
+#endif
+#ifndef TRACKRATE_SIDEREAL
 #define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
+#endif
+#ifndef SOLAR_DAY
 #define SOLAR_DAY          86400
+#endif
+#ifndef TRACKRATE_SOLAR
 #define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
+#endif
+#ifndef TRACKRATE_LUNAR
 #define TRACKRATE_LUNAR    14.511415
+#endif
+#ifndef EARTHRADIUSEQUATORIAL
 #define EARTHRADIUSEQUATORIAL 6378137.0
+#endif
+#ifndef EARTHRADIUSPOLAR
 #define EARTHRADIUSPOLAR 6356752.0
+#endif
+#ifndef EARTHRADIUSMEAN
 #define EARTHRADIUSMEAN 6372797.0
+#endif
+#ifndef SUNMASS
 #define SUNMASS 1.98847E+30
+#endif
+#ifndef PLANK_H
 #define PLANK_H 6.62607015E-34
+#endif
+#ifndef DIRAC_H
 #define DIRAC_H (PLANK_H/(2*M_PI))
+#endif
+#ifndef EINSTEIN_G
 #define EINSTEIN_G 6.67408E-11
+#endif
+#ifndef EULER
 #define EULER 2.71828182845904523536028747135266249775724709369995
+#endif
+#ifndef ROOT2
 #define ROOT2 1.41421356237309504880168872420969807856967187537694
+#endif
+#ifndef AIRY
 #define AIRY 1.21966
+#endif
+#ifndef CIRCLE_DEG
 #define CIRCLE_DEG 360
+#endif
+#ifndef CIRCLE_AM
 #define CIRCLE_AM (CIRCLE_DEG * 60)
+#endif
+#ifndef CIRCLE_AS
 #define CIRCLE_AS (CIRCLE_AM * 60)
+#endif
+#ifndef RAD_AS
 #define RAD_AS (CIRCLE_AS/(M_PI*2))
+#endif
+#ifndef ASTRONOMICALUNIT
 #define ASTRONOMICALUNIT 1.495978707E+11
+#endif
+#ifndef PARSEC
 #define PARSEC (ASTRONOMICALUNIT*RAD_AS)
+#endif
+#ifndef LIGHTSPEED
 #define LIGHTSPEED 299792458.0
+#endif
+#ifndef JULIAN_LY
 #define JULIAN_LY (LIGHTSPEED * SOLAR_DAY * 365)
+#endif
+#ifndef STELLAR_LY
 #define STELLAR_LY (LIGHTSPEED * STELLAR_DAY * 365)
+#endif
+#ifndef FLUX
 #define FLUX(wavelength) (wavelength/(PLANK_H*LIGHTSPEED))
+#endif
+#ifndef CANDLE
 #define CANDLE ((1.0/683.0)*FLUX(555))
+#endif
+#ifndef LUMEN
 #define LUMEN(wavelength) (CANDLE/(4*M_PI)*pow((FLUX(wavelength)/FLUX(555)), 0.25))
+#endif
+#ifndef REDSHIFT
 #define REDSHIFT(wavelength, reference) (1.0-(reference/wavelength))
+#endif
+#ifndef DOPPLER
 #define DOPPLER(shift, speed) (speed*shift)
+#endif
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
