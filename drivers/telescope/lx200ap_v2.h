@@ -73,7 +73,6 @@ class LX200AstroPhysicsV2 : public LX200Generic
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool SetSlewRate(int index) override;
-        bool updateAPSlewRate(int index);
 
         // Guide Commands
         virtual IPState GuideNorth(uint32_t ms) override;
@@ -147,6 +146,10 @@ class LX200AstroPhysicsV2 : public LX200Generic
         ISwitchVectorProperty ManualSetParkedSP;
         ISwitch ManualSetParkedS[1];
 
+        ISwitchVectorProperty HomeAndReSyncSP;
+        ISwitch HomeAndReSyncS[1];
+        bool homeAndReSyncEnabled { false };
+
         INumber APWormPositionN[1];
         INumberVectorProperty APWormPositionNP;
 
@@ -164,6 +167,7 @@ class LX200AstroPhysicsV2 : public LX200Generic
         bool updateAPLocation(double latitude, double longitude, double elevation);
         bool parkInternal();
         bool isAPReady();
+        void setMajorMinorVersions(char *version);
 
         // Side of pier
         void syncSideOfPier();
@@ -179,6 +183,9 @@ class LX200AstroPhysicsV2 : public LX200Generic
 
         ControllerVersion firmwareVersion = MCV_UNKNOWN;
         ServoVersion servoType = GTOCP_UNKNOWN;
+        char majorVersion[32];
+        char minorVersion[32];
+
 
         double currentAlt = 0, currentAz = 0;
         double lastRA = 0, lastDE = 0;

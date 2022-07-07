@@ -834,6 +834,8 @@ class TcpServer
         void listen();
 };
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
 class UnixServer
 {
         std::string path;
@@ -851,8 +853,13 @@ class UnixServer
          * exit on failure
          */
         void listen();
+
+        static std::string unixSocketPath;
 };
 
+std::string UnixServer::unixSocketPath = INDIUNIXSOCK;
+
+#endif
 
 static void log(const std::string &log);
 /* Turn a printf format into std::string */
@@ -862,7 +869,6 @@ static char *indi_tstamp(char *s);
 
 static const char *me;                                 /* our name */
 static int port = INDIPORT;                            /* public INDI port */
-static std::string unixSocketPath = INDIUNIXSOCK;
 static int verbose;                                    /* chattiness */
 static char *ldir;                                     /* where to log driver messages */
 static unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
@@ -949,15 +955,17 @@ int main(int ac, char *av[])
                     maxstreamsiz = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
+#ifdef ENABLE_INDI_SHARED_MEMORY
                 case 'u':
                     if (ac < 2)
                     {
-                        fprintf(stderr, "-f requires local socket path\n");
+                        fprintf(stderr, "-u requires local socket path\n");
                         usage();
                     }
-                    unixSocketPath = *++av;
+                    UnixServer::unixSocketPath = *++av;
                     ac--;
                     break;
+#endif // ENABLE_INDI_SHARED_MEMORY
                 case 'f':
                     if (ac < 2)
                     {
@@ -1014,9 +1022,10 @@ int main(int ac, char *av[])
     /* announce we are online */
     (new TcpServer(port))->listen();
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
     /* create a new unix server */
-    (new UnixServer(unixSocketPath))->listen();
-
+    (new UnixServer(UnixServer::unixSocketPath))->listen();
+#endif
     /* Load up FIFO, if available */
     if (fifo) fifo->listen();
 
@@ -1054,7 +1063,9 @@ static void usage(void)
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
             DEFMAXSSIZ);
+#ifdef ENABLE_INDI_SHARED_MEMORY
     fprintf(stderr, " -u path  : Path for the local connection socket (abstract), default %s\n", INDIUNIXSOCK);
+#endif
     fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
     fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
@@ -1356,6 +1367,8 @@ int RemoteDvrInfo::openINDIServer()
     return (sockfd);
 }
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+
 UnixServer::UnixServer(const std::string &path): path(path)
 {
     sfdev.set<UnixServer, &UnixServer::ioCb>(this);
@@ -1499,6 +1512,8 @@ void UnixServer::accept()
     fflush(stderr);
 #endif
 }
+
+#endif // ENABLE_INDI_SHARED_MEMORY
 
 TcpServer::TcpServer(int port): port(port)
 {
@@ -1987,7 +2002,8 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     mp->queuingDone();
 }
 
-void DvrInfo::closeWritePart() {
+void DvrInfo::closeWritePart()
+{
     // Don't want any half-dead drivers
     close();
 }
@@ -3116,7 +3132,9 @@ void Msg::releaseSharedBuffers(const std::set<int> &keep)
         auto fd = sharedBuffers[i];
         if (fd != -1 && keep.find(fd) == keep.end())
         {
-            close(fd);
+            if (close(fd) == -1) {
+                perror("Releasing shared buffer");
+            }
             sharedBuffers[i] = -1;
         }
     }
@@ -3189,7 +3207,7 @@ bool Msg::fetchBlobs(std::list<int> &incomingSharedBuffers)
             }
 
             queueSize += blobSize;
-            log("Found one fd !\n");
+            //log("Found one fd !\n");
             int fd = *incomingSharedBuffers.begin();
             incomingSharedBuffers.pop_front();
 
@@ -3392,6 +3410,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
         std::vector<int> fds(cdata.size());
         std::vector<void*> blobs(cdata.size());
         std::vector<size_t> sizes(cdata.size());
+        std::vector<size_t> attachedSizes(cdata.size());
 
         // Attach all blobs
         for(std::size_t i = 0; i < cdata.size(); ++i)
@@ -3402,6 +3421,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
                 size_t dataSize;
                 blobs[i] = attachSharedBuffer(fds[i], dataSize);
+                attachedSizes[i] = dataSize;
 
                 // check dataSize is compatible with the blob element's size
                 // It's mandatory for attached blob to give their size
@@ -3458,7 +3478,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
 
                 // Dettach blobs ASAP
-                dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
+                dettachSharedBuffer(fds[i], blobs[i], attachedSizes[i]);
 
                 // requirements.sharedBuffers.erase(fds[i]);
             }
@@ -3601,8 +3621,10 @@ MsgQueue::~MsgQueue()
     }
 }
 
-void MsgQueue::closeWritePart() {
-    if (wFd == -1) {
+void MsgQueue::closeWritePart()
+{
+    if (wFd == -1)
+    {
         // Already closed
         return;
     }
@@ -3613,15 +3635,21 @@ void MsgQueue::closeWritePart() {
     // Clear the queue and stop the io slot
     clearMsgQueue();
 
-    if (oldWFd == rFd) {
-        if (shutdown(oldWFd, SHUT_WR) == -1) {
-            if (errno != ENOTCONN) {
+    if (oldWFd == rFd)
+    {
+        if (shutdown(oldWFd, SHUT_WR) == -1)
+        {
+            if (errno != ENOTCONN)
+            {
                 log(fmt("socket shutdown failed: %s\n", strerror(errno)));
                 close();
             }
         }
-    } else {
-        if (::close(oldWFd) == -1) {
+    }
+    else
+    {
+        if (::close(oldWFd) == -1)
+        {
             log(fmt("socket close failed: %s\n", strerror(errno)));
             close();
         }
@@ -3634,11 +3662,16 @@ void MsgQueue::setFds(int rFd, int wFd)
     {
         rio.stop();
         wio.stop();
-        ::close(rFd);
-        if (rFd != wFd)
+        ::close(this->rFd);
+        if (this->rFd != this->wFd)
         {
-            ::close(wFd);
+            ::close(this->wFd);
         }
+    }
+    else if (this->wFd != -1)
+    {
+        wio.stop();
+        ::close(this->wFd);
     }
 
     this->rFd = rFd;
@@ -3678,7 +3711,8 @@ void MsgQueue::consumeHeadMsg()
 void MsgQueue::pushMsg(Msg * mp)
 {
     // Don't write messages to client that have been disconnected
-    if (wFd == -1) {
+    if (wFd == -1)
+    {
         return;
     }
 
@@ -3976,7 +4010,7 @@ static void * attachSharedBuffer(int fd, size_t &size)
         Bye();
     }
     size = sb.st_size;
-    void * ret = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    void * ret = mmap(0, size, PROT_READ, MAP_SHARED, fd, 0);
 
     if (ret == MAP_FAILED)
     {

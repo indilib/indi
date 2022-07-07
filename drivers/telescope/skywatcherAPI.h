@@ -266,18 +266,30 @@ class SkywatcherAPI
         // Skywatcher mount status variables
         unsigned long MCVersion { 0 }; // Motor control board firmware version
 
+        static const char *mountTypeToString(uint8_t type);
+
         enum MountType
         {
-            EQ6    = 0x00,
-            HEQ5   = 0x01,
-            EQ5    = 0x02,
-            EQ3    = 0x03,
-            AZEQ6  = 0x22,
-            GT     = 0x80,
-            MF     = 0x81,
-            _114GT = 0x82,
-            DOB    = 0x90
+            EQ6              = 0x00,
+            HEQ5             = 0x01,
+            EQ5              = 0x02,
+            EQ3              = 0x03,
+            EQ8              = 0x04,
+            AZEQ6            = 0x05,
+            AZEQ5            = 0x06,
+            STAR_ADVENTURER  = 0x0A,
+            EQ8R_PRO         = 0x20,
+            AZEQ6_PRO        = 0x22,
+            EQ6_PRO          = 0x23,
+            EQ5_PRO          = 0x31,
+            GT               = 0x80,
+            MF               = 0x81,
+            _114GT           = 0x82,
+            DOB              = 0x90,
+            AZGTE            = 0xA2,
+            AZGTI            = 0xA5,
         };
+
         unsigned long MountCode { 0 };
         bool IsDCMotor { false };
         bool SilentSlewMode { true };

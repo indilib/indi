@@ -32,11 +32,6 @@
 #include "ProcessController.h"
 #include "IndiClientMock.h"
 
-#define TEST_TCP_PORT 17624
-#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define STRINGIFY_TOK(x) #x
-#define TO_STRING(x) STRINGIFY_TOK(x)
-
 // Having a large number of properties ensures cases with buffer not empty on exits occur on server side
 #define PROP_COUNT 100
 
@@ -66,7 +61,7 @@ static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDr
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -83,7 +78,7 @@ TEST(TestIndiSetProperties, SetFirstPropertyUntyped) {
     startFakeDev1(indiServer, fakeDriver);
 
     ProcessController indiSetProp;
-    startIndiSetProp(indiSetProp, { "-p", TO_STRING(TEST_TCP_PORT), "-v", "fakedev1.testnumber0.content=8" });
+    startIndiSetProp(indiSetProp, { "-p", std::to_string(indiServer.getTcpPort()), "-v", "fakedev1.testnumber0.content=8" });
 
     driverIsAskedProps(fakeDriver);
 
@@ -111,7 +106,7 @@ TEST(TestIndiSetProperties, SetFirstPropertyTyped) {
     startFakeDev1(indiServer, fakeDriver);
 
     ProcessController indiSetProp;
-    startIndiSetProp(indiSetProp, { "-p", TO_STRING(TEST_TCP_PORT), "-v", "-n", "fakedev1.testnumber0.content=8" });
+    startIndiSetProp(indiSetProp, { "-p", std::to_string(indiServer.getTcpPort()), "-v", "-n", "fakedev1.testnumber0.content=8" });
 
     indiSetProp.join();
     indiSetProp.expectExitCode(0);
@@ -137,7 +132,7 @@ TEST(TestIndiSetProperties, SetLastProperty) {
     startFakeDev1(indiServer, fakeDriver);
 
     ProcessController indiSetProp;
-    startIndiSetProp(indiSetProp, { "-p", TO_STRING(TEST_TCP_PORT), "-v", "fakedev1.testnumber" + std::to_string(PROP_COUNT - 1) + ".content=8" });
+    startIndiSetProp(indiSetProp, { "-p", std::to_string(indiServer.getTcpPort()), "-v", "fakedev1.testnumber" + std::to_string(PROP_COUNT - 1) + ".content=8" });
 
     driverIsAskedProps(fakeDriver);
 
@@ -165,7 +160,7 @@ TEST(TestIndiSetProperties, SetLastPropertyTyped) {
     startFakeDev1(indiServer, fakeDriver);
 
     ProcessController indiSetProp;
-    startIndiSetProp(indiSetProp, { "-p", TO_STRING(TEST_TCP_PORT), "-v", "-n", "fakedev1.testnumber" + std::to_string(PROP_COUNT - 1) + ".content=8" });
+    startIndiSetProp(indiSetProp, { "-p", std::to_string(indiServer.getTcpPort()), "-v", "-n", "fakedev1.testnumber" + std::to_string(PROP_COUNT - 1) + ".content=8" });
 
     indiSetProp.join();
     indiSetProp.expectExitCode(0);

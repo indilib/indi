@@ -43,7 +43,7 @@ extern "C" {
 #include <time.h>
 #include <assert.h>
 #include <pthread.h>
-#include <fftw3.h>
+#include <time.h>
 
 /**
  * \defgroup DSP Digital Signal Processing API
@@ -66,7 +66,8 @@ extern "C" {
 */
 /**\{*/
 #define DSP_MAX_STARS 200
-#define dsp_t double
+typedef double dsp_t;
+typedef double complex_t[2];
 #define dsp_t_max 255
 #define dsp_t_min -dsp_t_max
 
@@ -253,7 +254,7 @@ typedef struct dsp_triangle_t
     /// The dimensions of the triangle
     int dims;
     /// The inclination of the triangle
-    double theta;
+    double *theta;
     /// The sizes of the triangle
     double *sizes;
     /// The sizes of the triangle
@@ -304,7 +305,7 @@ typedef union
         double imaginary;
     } *complex;
     /// Complex number type array used with libFFTW
-    fftw_complex *fftw;
+    complex_t *pairs;
     /// Linear double array containing complex numbers
     double *buf;
 } dsp_complex;
@@ -455,16 +456,17 @@ DLL_EXPORT void dsp_fourier_2dsp(dsp_stream_p stream);
 * \brief Obtain the complex fourier tranform from the current magnitude and phase buffers
 * \param stream the inout stream.
 */
-DLL_EXPORT void dsp_fourier_2fftw(dsp_stream_p stream);
+DLL_EXPORT void dsp_fourier_2complex_t(dsp_stream_p stream);
 
 /**
 * \brief Obtain a complex array from phase and magnitude arrays
 * \param mag the input magnitude array.
 * \param phi the input phase array.
+* \param out the output complex arrays.
 * \param len the input arrays length.
 * \return the array filled with the complex numbers
 */
-DLL_EXPORT dsp_complex dsp_fourier_phase_mag_array_get_complex(double* mag, double* phi, int len);
+DLL_EXPORT void dsp_fourier_phase_mag_array_get_complex(double* mag, double* phi, complex_t *out, int len);
 
 /**
 * \brief Obtain a complex number's array magnitudes
@@ -1269,6 +1271,12 @@ DLL_EXPORT void dsp_stream_translate(dsp_stream_p stream);
 */
 DLL_EXPORT void dsp_stream_scale(dsp_stream_p stream);
 
+/**
+* \brief Perform scale, translate and rotate transformations in-place
+* \param stream The stream that will be transformed
+*/
+DLL_EXPORT void dsp_stream_align(dsp_stream_p in);
+
 /**\}*/
 /**
  * \defgroup dsp_SignalGen DSP API Signal generation functions
@@ -1420,8 +1428,7 @@ DLL_EXPORT dsp_stream_p *dsp_stream_from_components(dsp_t* buf, int dims, int *s
 * \param stretch whether to stretch within 0 and dsp_t_max
 * \return The new dsp_stream_p array
 */
-DLL_EXPORT dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int components, int bpp,
-        int stretch);
+DLL_EXPORT dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int components, int bpp, int stretch);
 
 /**
 * \brief Convert a component dsp_stream_p array into an RGB dsp_t array
@@ -1460,6 +1467,21 @@ DLL_EXPORT void dsp_file_write_fits_bayer(const char* filename, int components, 
 * \return The new dsp_t array
 */
 DLL_EXPORT dsp_t* dsp_file_bayer_2_composite(dsp_t *src, int red, int width, int height);
+
+/**
+* \brief Fill a dsp_align_info struct by comparing two triangles
+* \param t1 the reference triangle
+* \param t2 the triangle taken for comparison
+* \return The dsp_align_info struct filled with the offsets
+*/
+DLL_EXPORT dsp_align_info dsp_align_fill_info(dsp_triangle t1, dsp_triangle t2);
+
+/**
+* \brief Create a dsp_triangle struct
+* \param stars the stars array meeded to build the triangle struct
+* \return A new dsp_triangle struct
+*/
+DLL_EXPORT dsp_triangle dsp_align_calc_triangle(dsp_star* stars);
 
 /**
 * \brief Calculate offsets, rotation and scaling of two streams giving reference alignment point

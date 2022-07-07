@@ -558,7 +558,7 @@ void BaseClientPrivate::listenINDI()
 
             if (n >= 0)
             {
-                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg))
+                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msgh, cmsg))
                 {
                     if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
                     {
@@ -567,12 +567,12 @@ void BaseClientPrivate::listenINDI()
                         {
                             fdCount++;
                         }
-                        IDLog("Received %d fds\n", fdCount);
-                        int * fds = (int*)CMSG_DATA(cmsg);
+                        //IDLog("Received %d fds\n", fdCount);
+                        int * fds = reinterpret_cast<int*>(CMSG_DATA(cmsg));
                         for(int i = 0; i < fdCount; ++i)
                         {
                             int fd = fds[i];
-                            IDLog("Received fd %d\n", fd);
+                            //IDLog("Received fd %d\n", fd);
 #ifndef __linux__
                             fcntl(fds[i], F_SETFD, FD_CLOEXEC);
 #endif

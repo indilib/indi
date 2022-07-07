@@ -64,6 +64,51 @@ const std::map<int, std::string> SkywatcherAPI::errorCodes
     {5, "Driver sleeping"}
 };
 
+const char *SkywatcherAPI::mountTypeToString(uint8_t type)
+{
+    switch(type)
+    {
+        case EQ6:
+            return "EQ6";
+        case HEQ5:
+            return "HEQ5";
+        case EQ5:
+            return "EQ5";
+        case EQ3:
+            return "EQ3";
+        case EQ8:
+            return "EQ8";
+        case AZEQ6:
+            return "AZ-EQ6";
+        case AZEQ5:
+            return "AZ-EQ5";
+        case STAR_ADVENTURER:
+            return "Star Adventurer";
+        case EQ8R_PRO:
+            return "EQ8R Pro";
+        case AZEQ6_PRO:
+            return "AZ-EQ6 Pro";
+        case EQ6_PRO:
+            return "EQ6 Pro";
+        case EQ5_PRO:
+            return "EQ5 Pro";
+        case GT:
+            return "GT";
+        case MF:
+            return "MF";
+        case _114GT:
+            return "114 GT";
+        case DOB:
+            return "Dob";
+        case AZGTE:
+            return "AZ-GTe";
+        case AZGTI:
+            return "AZ-GTi";
+        default:
+            return "Uknown";
+    }
+}
+
 SkywatcherAPI::SkywatcherAPI()
 {
     // I add an additional debug level so I can log verbose scope status
@@ -194,7 +239,7 @@ bool SkywatcherAPI::GetEncoder(AXISID Axis)
 
 bool SkywatcherAPI::GetHighSpeedRatio(AXISID Axis)
 {
-    //MYDEBUG(DBG_SCOPE, "GetHighSpeedRatio");
+    MYDEBUG(DBG_SCOPE, "GetHighSpeedRatio");
     std::string Parameters, Response;
 
     if (!TalkWithAxis(Axis, 'g', Parameters, Response))
@@ -258,11 +303,7 @@ bool SkywatcherAPI::GetMicrostepsPerWormRevolution(AXISID Axis)
 
     uint32_t value = BCDstr2long(Response);
     if (value == 0)
-    {
-        MYDEBUG(INDI::Logger::DBG_ERROR,
-                "Invalid Microstep per work revolution value from mount. Cycle power and reconnect again.");
-        return false;
-    }
+        MYDEBUGF(INDI::Logger::DBG_WARNING, "Zero Microsteps per worm revolution for Axis %d. Possible corrupted data.", Axis);
 
     MicrostepsPerWormRevolution[Axis] = value;
 
@@ -271,7 +312,7 @@ bool SkywatcherAPI::GetMicrostepsPerWormRevolution(AXISID Axis)
 
 bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
 {
-    //    MYDEBUG(DBG_SCOPE, "GetMotorBoardVersion");
+    MYDEBUG(DBG_SCOPE, "GetMotorBoardVersion");
     std::string Parameters, Response;
 
     if (!TalkWithAxis(Axis, 'e', Parameters, Response))
@@ -280,6 +321,9 @@ bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
     unsigned long tmpMCVersion = BCDstr2long(Response);
 
     MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
+
+    MYDEBUGF(INDI::Logger::DBG_DEBUG, "Motor Board Version: %#X", MCVersion);
+
     return true;
 }
 
@@ -400,9 +444,11 @@ bool SkywatcherAPI::InitMount()
 
     MountCode = MCVersion & 0xFF;
 
+    MYDEBUGF(DBG_SCOPE, "Mount Code: %d (%s)", MountCode, mountTypeToString(MountCode));
+
     // Disable EQ mounts
     // 0x22 is code for AZEQ6 which is added as an exception as proposed by Dirk Tetzlaff
-    if (MountCode < 0x80 && MountCode != AZEQ6)
+    if (MountCode < 0x80 && MountCode != AZEQ6 && MountCode != AZEQ5 && MountCode != AZEQ6_PRO)
     {
         MYDEBUGF(DBG_SCOPE, "Mount type not supported. %d", MountCode);
         return false;
@@ -810,32 +856,44 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
             }
         }
 
-        // If we get less than 2 bytes then it must be an error (=\r is a valid response).
-        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
-                || bytesRead < 2)
-        {
-            if (retries == SKYWATCHER_MAX_RETRTY - 1)
-            {
-                char errorMessage[MAXRBUF] = {0};
-                tty_error_msg(errorCode, errorMessage, MAXRBUF);
-                if (bytesRead < 2)
+        bool isResponseReceived = false;
+        while(true){
+            memset(response, '\0', SKYWATCHER_MAX_CMD);
+            // If we get less than 2 bytes then it must be an error (=\r is a valid response).
+            if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
+                    || bytesRead < 2)
+           {   
+                if (retries == SKYWATCHER_MAX_RETRTY - 1)
+                {
+                    char errorMessage[MAXRBUF] = {0};
+                    tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                    if (bytesRead < 2)
+                        return false;
+                    else
+                        MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
                     return false;
+                }
                 else
-                    MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
-                return false;
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    break;
+                }
             }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
+            else {
+                // Remove CR (0x0D)
+                response[bytesRead - 1] = '\0';
+                if(response[0] == '=' || response[0] == '!'){
+                    isResponseReceived = true;
+                    break;
+                }
+                else{
+                    //Skip invalid response
+                }
             }
         }
-        else
-            break;
+        if(isResponseReceived) break;
     }
 
-    // Remove CR (0x0D)
-    response[bytesRead - 1] = 0;
     // If it is not empty, log it.
     if (response[1] != 0)
         MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);

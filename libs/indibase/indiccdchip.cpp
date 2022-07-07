@@ -28,14 +28,44 @@ namespace INDI
 CCDChip::CCDChip()
 {
     strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
-    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
 }
 
 CCDChip::~CCDChip()
 {
-    delete [] RawFrame;
-    delete[] BinFrame;
+    IDSharedBlobFree(RawFrame);
+    IDSharedBlobFree(BinFrame);
     IDSharedBlobFree(m_FITSMemoryBlock);
+}
+
+bool CCDChip::openFITSFile(uint32_t size, int &status)
+{
+    m_FITSMemorySize = size;
+    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
+    if (m_FITSMemoryBlock == nullptr)
+    {
+        IDLog("Failed to allocate memory for FITS file.");
+        status = MEMORY_ALLOCATION;
+        return false;
+    }
+
+    fits_create_memfile(&m_FITSFilePointer, &m_FITSMemoryBlock, &m_FITSMemorySize, 2880, IDSharedBlobRealloc, &status);
+    if (status != 0)
+    {
+        IDSharedBlobFree(m_FITSMemoryBlock);
+        m_FITSMemoryBlock = nullptr;
+    }
+
+    return (status == 0);
+}
+
+bool CCDChip::closeFITSFile()
+{
+    int status = 0;
+    fits_close_file(m_FITSFilePointer, &status);
+    m_FITSFilePointer = nullptr;
+    IDSharedBlobFree(m_FITSMemoryBlock);
+    m_FITSMemoryBlock = nullptr;
+    return (status == 0);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -152,14 +182,10 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    delete [] RawFrame;
-    RawFrame = new uint8_t[nbuf];
+    RawFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(RawFrame, RawFrameSize));
 
     if (BinFrame)
-    {
-        delete [] BinFrame;
-        BinFrame = new uint8_t[nbuf];
-    }
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
 }
 
 void CCDChip::setExposureLeft(double duration)
@@ -242,7 +268,7 @@ void CCDChip::binFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -253,7 +279,7 @@ void CCDChip::binFrame()
             uint8_t *bin_buf = BinFrame;
             // Try to average pixels since in 8bit they get saturated pretty quickly
             double factor      = (BinX * BinX) / 2;
-            double accumulator = 0;
+            double accumulator;
 
             for (uint32_t i = 0; i < SubH; i += BinX)
                 for (uint32_t j = 0; j < SubW; j += BinX)
@@ -329,7 +355,7 @@ void CCDChip::binBayerFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -362,7 +388,7 @@ void CCDChip::binBayerFrame()
                     if(val > UINT8_MAX)
                         val = UINT8_MAX;
                     // write back into the binned frame
-                    BinFrame[BinFrameOffset] = (uint8_t)val;
+                    BinFrame[BinFrameOffset] = static_cast<uint8_t>(val);
                     // next binned frame pixel
                     RawOffset++;
                 }
@@ -382,11 +408,10 @@ void CCDChip::binBayerFrame()
             uint32_t val;
             uint32_t BinW = SubW / BinX;
             uint32_t RawOffset = 0;
-            uint32_t BinOffsetH;
 
             for (uint32_t i = 0; i < SubH; i++)
             {
-                BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                uint32_t BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
                 for (uint32_t j = 0; j < SubW; j++)
                 {
                     BinFrameOffset = BinOffsetH + ((j / BinX) & 0xFFFFFFFE) + (j & 0x00000001);

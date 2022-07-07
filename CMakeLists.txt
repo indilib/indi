@@ -91,6 +91,11 @@ OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+if (UNIX AND NOT APPLE)
+    OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
+else()
+    OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory (require shm specific settings)" OFF)
+endif()
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
 CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
@@ -106,6 +111,17 @@ IF (INDI_FAST_BLOB)
 # Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
 add_definitions(-DWITH_ENCLEN)
 ENDIF(INDI_FAST_BLOB)
+
+###################################################################################################
+####################################  UNIX protocol / SHM  ########################################
+###################################################################################################
+if (INDI_SHARED_MEMORY)
+    if (APPLE)
+        message(WARNING "Shared memory protocol require specific shared memory settings")
+    else()
+        add_definitions(-DENABLE_INDI_SHARED_MEMORY)
+    endif()
+endif()
 
 ###################################################################################################
 ######################################  Calculate Min/Max #########################################

@@ -31,26 +31,27 @@
 #include "IndiServerController.h"
 #include "IndiClientMock.h"
 
-#define TEST_TCP_PORT 17624
-#define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define STRINGIFY_TOK(x) #x
-#define TO_STRING(x) STRINGIFY_TOK(x)
-
 #define PROP_COUNT 5
 
-static void driverSendsProps(DriverMock & fakeDriver) {
+static void driverSendsProps(DriverMock &fakeDriver)
+{
     fprintf(stderr, "Driver sends properties\n");
-    for(int i = 0; i < PROP_COUNT; ++i) {
-        fakeDriver.cnx.send("<defNumberVector device='fakedev1' name='testnumber" + std::to_string(i) + "' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
+    for(int i = 0; i < PROP_COUNT; ++i)
+    {
+        fakeDriver.cnx.send("<defNumberVector device='fakedev1' name='testnumber" + std::to_string(
+                                i) + "' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
         fakeDriver.cnx.send("<defNumber name='content' label='content' min='0' max='100' step='1'>50</defNumber>\n");
         fakeDriver.cnx.send("</defNumberVector>\n");
     }
 }
 
-static void clientReceivesProps(IndiClientMock & indiClient) {
+static void clientReceivesProps(IndiClientMock &indiClient)
+{
     fprintf(stderr, "Client reveives properties\n");
-    for(int i = 0; i < PROP_COUNT; ++i) {
-        indiClient.cnx.expectXml("<defNumberVector device='fakedev1' name='testnumber" + std::to_string(i) + "' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>");
+    for(int i = 0; i < PROP_COUNT; ++i)
+    {
+        indiClient.cnx.expectXml("<defNumberVector device='fakedev1' name='testnumber" + std::to_string(
+                                     i) + "' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>");
         indiClient.cnx.expectXml("<defNumber name='content' label='content' min='0' max='100' step='1'>");
         indiClient.cnx.expect("\n50");
         indiClient.cnx.expectXml("</defNumber>");
@@ -59,7 +60,8 @@ static void clientReceivesProps(IndiClientMock & indiClient) {
 }
 
 
-static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDriver) {
+static void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
+{
     setupSigPipe();
 
     fakeDriver.setup();
@@ -67,7 +69,7 @@ static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDr
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
-    indiServer.start({ "-p", TO_STRING(TEST_TCP_PORT), "-u", TEST_UNIX_SOCKET, "-vvv", "-r", "0", fakeDriverPath.c_str() });
+    indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
 
     fakeDriver.waitEstablish();
@@ -79,7 +81,8 @@ static void startFakeDev1(IndiServerController & indiServer, DriverMock & fakeDr
     driverSendsProps(fakeDriver);
 }
 
-static void connectFakeDev1Client(IndiServerController &, DriverMock & fakeDriver, IndiClientMock & indiClient) {
+static void connectFakeDev1Client(IndiServerController &, DriverMock &fakeDriver, IndiClientMock &indiClient)
+{
     fprintf(stderr, "Client asks properties\n");
     indiClient.cnx.send("<getProperties version='1.7'/>\n");
     fakeDriver.cnx.expectXml("<getProperties version='1.7'/>");
@@ -91,7 +94,8 @@ static void connectFakeDev1Client(IndiServerController &, DriverMock & fakeDrive
     clientReceivesProps(indiClient);
 }
 
-TEST(TestClientQueries, ServerForwardRequest) {
+TEST(TestClientQueries, ServerForwardRequest)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -99,7 +103,7 @@ TEST(TestClientQueries, ServerForwardRequest) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -119,7 +123,8 @@ TEST(TestClientQueries, ServerForwardRequest) {
 
 }
 
-TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient) {
+TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient)
+{
     DriverMock fakeDriver;
     IndiServerController indiServer;
 
@@ -127,7 +132,7 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient) {
 
     IndiClientMock indiClient;
 
-    indiClient.connectUnix(TEST_UNIX_SOCKET);
+    indiClient.connect(indiServer);
 
     connectFakeDev1Client(indiServer, fakeDriver, indiClient);
 
@@ -136,10 +141,7 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient) {
 
     driverSendsProps(fakeDriver);
 
-    // client writes before receiving any data
-    indiClient.cnx.shutdown(true, false);
-
-    // Make sure the server sees the client shutdown. Get a full interaction with it
+    // Make sure the server is sync with the client before shutdown. Get a full interaction with it
     fakeDriver.cnx.send("<pingRequest uid='1'/>\n");
     fakeDriver.cnx.expectXml("<pingReply uid='1'/>");
 
@@ -147,6 +149,8 @@ TEST(TestClientQueries, ServerForwardRequestOfHalfDeadClient) {
     indiClient.cnx.send("<oneNumber name='content' > 51 </oneNumber>");
     indiClient.cnx.send("</newNumberVector>");
 
+    // Client is done writing.
+    indiClient.cnx.shutdown(false, true);
 
     fakeDriver.cnx.expectXml("<newNumberVector device='fakedev1' name='testnumber' timestamp='2018-01-01T00:00:00'>");
     fakeDriver.cnx.expectXml("<oneNumber name='content'>");

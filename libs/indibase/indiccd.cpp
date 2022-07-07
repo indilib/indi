@@ -2222,13 +2222,10 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             std::unique_lock<std::mutex> guard(ccdBufferLock);
 
-            //  Now we have to send fits format data to the client
-
-            // Reuse memory if possible
-            fits_create_memfile(targetChip->fitsFilePointer(), targetChip->fitsMemoryBlockPointer(),
-                                targetChip->fitsMemorySizePointer(), 2880, IDSharedBlobRealloc, &status);
-
-            if (status)
+            // 8640 = 2880 * 3 which is sufficient for most cases.
+            uint32_t size = 8640 + nelements * (targetChip->getBPP() / 8);
+            //  Initialize FITS file.
+            if (targetChip->openFITSFile(size, status) == false)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
@@ -2245,27 +2242,29 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
                 LOGF_ERROR("FITS Error: %s", error_status);
+                targetChip->closeFITSFile();
                 return false;
             }
 
             addFITSKeywords(targetChip);
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
+            fits_flush_file(fptr, &status);
 
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
                 LOGF_ERROR("FITS Error: %s", error_status);
+                targetChip->closeFITSFile();
                 return false;
             }
 
-            fits_flush_file(fptr, &status);
 
             bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
                                  saveImage);
 
-            fits_close_file(fptr, &status);
+            targetChip->closeFITSFile();
 
             guard.unlock();
 

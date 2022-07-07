@@ -22,35 +22,29 @@
 
 static void dsp_fourier_dft_magnitude(dsp_stream_p stream)
 {
-    if(stream == NULL)
-        return;
     if(stream->magnitude)
         stream->magnitude->buf = dsp_fourier_complex_array_get_magnitude(stream->dft, stream->len);
 }
 
 static void dsp_fourier_dft_phase(dsp_stream_p stream)
 {
-    if(stream == NULL)
-        return;
     if(stream->phase)
         stream->phase->buf = dsp_fourier_complex_array_get_phase(stream->dft, stream->len);
 }
 
 void dsp_fourier_2dsp(dsp_stream_p stream)
 {
-    if(stream == NULL)
-        return;
     int x, y;
-    fftw_complex *dft = (fftw_complex*)malloc(sizeof(fftw_complex) * stream->len);
-    memcpy(dft, stream->dft.fftw, sizeof(fftw_complex) * stream->len);
+    complex_t *dft = (complex_t*)malloc(sizeof(complex_t) * stream->len);
+    memcpy(dft, stream->dft.pairs, sizeof(complex_t) * stream->len);
     y = 0;
     for(x = 0; x < stream->len && y < stream->len; x++) {
         int *pos = dsp_stream_get_position(stream, x);
         if(pos[0] <= stream->sizes[0] / 2) {
-            stream->dft.fftw[x][0] = dft[y][0];
-            stream->dft.fftw[x][1] = dft[y][1];
-            stream->dft.fftw[stream->len-1-x][0] = dft[y][0];
-            stream->dft.fftw[stream->len-1-x][1] = dft[y][1];
+            stream->dft.pairs[x][0] = dft[y][0];
+            stream->dft.pairs[x][1] = dft[y][1];
+            stream->dft.pairs[stream->len-1-x][0] = dft[y][0];
+            stream->dft.pairs[stream->len-1-x][1] = dft[y][1];
             y++;
         }
         free(pos);
@@ -61,28 +55,27 @@ void dsp_fourier_2dsp(dsp_stream_p stream)
     dsp_buffer_shift(stream->phase);
 }
 
-void dsp_fourier_2fftw(dsp_stream_p stream)
+void dsp_fourier_2complex_t(dsp_stream_p stream)
 {
-    if(stream == NULL)
-        return;
     int x, y;
     if(!stream->phase || !stream->magnitude) return;
     dsp_buffer_shift(stream->magnitude);
     dsp_buffer_shift(stream->phase);
-    stream->dft = dsp_fourier_phase_mag_array_get_complex(stream->magnitude->buf, stream->phase->buf, stream->len);
-    fftw_complex *dft = (fftw_complex*)malloc(sizeof(fftw_complex) * stream->len);
-    memcpy(dft, stream->dft.fftw, sizeof(fftw_complex) * stream->len);
+    dsp_fourier_phase_mag_array_get_complex(stream->magnitude->buf, stream->phase->buf, (complex_t*)stream->dft.pairs, stream->len);
+    complex_t *dft = (complex_t*)malloc(sizeof(complex_t) * stream->len);
+    memcpy(dft, stream->dft.pairs, sizeof(complex_t) * stream->len);
     dsp_buffer_set(stream->dft.buf, stream->len*2, 0);
     y = 0;
     for(x = 0; x < stream->len; x++) {
         int *pos = dsp_stream_get_position(stream, x);
         if(pos[0] <= stream->sizes[0] / 2) {
-            stream->dft.fftw[y][0] = dft[x][0];
-            stream->dft.fftw[y][1] = dft[x][1];
+            stream->dft.pairs[y][0] = dft[x][0];
+            stream->dft.pairs[y][1] = dft[x][1];
             y++;
         }
         free(pos);
     }
+    free(dft);
 }
 
 double* dsp_fourier_complex_array_get_magnitude(dsp_complex in, int len)
@@ -119,19 +112,15 @@ double* dsp_fourier_complex_array_get_phase(dsp_complex in, int len)
     return out;
 }
 
-dsp_complex dsp_fourier_phase_mag_array_get_complex(double* mag, double* phi, int len)
+void dsp_fourier_phase_mag_array_get_complex(double* mag, double* phi, complex_t* out, int len)
 {
     int i;
-    dsp_complex out;
-    out.fftw = (fftw_complex*)malloc(sizeof(fftw_complex) * len);
-    dsp_buffer_set(out.buf, len*2, 0);
     for(i = 0; i < len; i++) {
         double real = sin(phi[i])*mag[i];
         double imaginary = cos(phi[i])*mag[i];
-        out.complex[i].real = real;
-        out.complex[i].imaginary = imaginary;
+        out[i][0] = real;
+        out[i][1] = imaginary;
     }
-    return out;
 }
 
 static void* dsp_stream_dft_th(void* arg)
@@ -145,8 +134,6 @@ static void* dsp_stream_dft_th(void* arg)
 }
 void dsp_fourier_dft(dsp_stream_p stream, int exp)
 {
-    if(stream == NULL)
-        return;
     if(exp < 1)
         return;
     double* buf = (double*)malloc(sizeof(double) * stream->len);
@@ -158,7 +145,7 @@ void dsp_fourier_dft(dsp_stream_p stream, int exp)
     dsp_buffer_copy(stream->buf, buf, stream->len);
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_dft_r2c(stream->dims, stream->sizes, buf, stream->dft.fftw, FFTW_ESTIMATE_PATIENT);
+    fftw_plan plan = fftw_plan_dft_r2c(stream->dims, stream->sizes, buf, stream->dft.pairs, FFTW_ESTIMATE_PATIENT);
     fftw_execute(plan);
     fftw_free(plan);
     free(sizes);
@@ -184,17 +171,14 @@ void dsp_fourier_dft(dsp_stream_p stream, int exp)
 
 void dsp_fourier_idft(dsp_stream_p stream)
 {
-    if(stream == NULL)
-        return;
     double *buf = (double*)malloc(sizeof(double)*stream->len);
     dsp_t mn = dsp_stats_min(stream->buf, stream->len);
     dsp_t mx = dsp_stats_max(stream->buf, stream->len);
     dsp_buffer_set(buf, stream->len, 0);
-    free(stream->dft.buf);
-    dsp_fourier_2fftw(stream);
+    dsp_fourier_2complex_t(stream);
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_dft_c2r(stream->dims, stream->sizes, stream->dft.fftw, buf, FFTW_ESTIMATE_PATIENT);
+    fftw_plan plan = fftw_plan_dft_c2r(stream->dims, stream->sizes, stream->dft.pairs, buf, FFTW_ESTIMATE_PATIENT);
     fftw_execute(plan);
     fftw_free(plan);
     free(sizes);
