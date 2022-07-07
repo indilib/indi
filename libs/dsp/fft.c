@@ -47,10 +47,11 @@ void dsp_fourier_2dsp(dsp_stream_p stream)
     for(x = 0; x < stream->len && y < stream->len; x++) {
         int *pos = dsp_stream_get_position(stream, x);
         if(pos[0] <= stream->sizes[0] / 2) {
-            stream->dft.fftw[x][0] = dft[y][0];
-            stream->dft.fftw[x][1] = dft[y][1];
-            stream->dft.fftw[stream->len-1-x][0] = dft[y][0];
-            stream->dft.fftw[stream->len-1-x][1] = dft[y][1];
+            fftw_complex *complex = (fftw_complex *) stream->dft.fftw;
+            complex[x][0] = dft[y][0];
+            complex[x][1] = dft[y][1];
+            complex[stream->len-1-x][0] = dft[y][0];
+            complex[stream->len-1-x][1] = dft[y][1];
             y++;
         }
         free(pos);
@@ -77,8 +78,9 @@ void dsp_fourier_2fftw(dsp_stream_p stream)
     for(x = 0; x < stream->len; x++) {
         int *pos = dsp_stream_get_position(stream, x);
         if(pos[0] <= stream->sizes[0] / 2) {
-            stream->dft.fftw[y][0] = dft[x][0];
-            stream->dft.fftw[y][1] = dft[x][1];
+            fftw_complex * complex = (fftw_complex *) stream->dft.fftw;
+            complex[y][0] = dft[x][0];
+            complex[y][1] = dft[x][1];
             y++;
         }
         free(pos);

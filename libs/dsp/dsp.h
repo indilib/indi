@@ -43,7 +43,6 @@ extern "C" {
 #include <time.h>
 #include <assert.h>
 #include <pthread.h>
-#include <fftw3.h>
 
 /**
  * \defgroup DSP Digital Signal Processing API
@@ -304,7 +303,7 @@ typedef union
         double imaginary;
     } *complex;
     /// Complex number type array used with libFFTW
-    fftw_complex *fftw;
+    void *fftw;
     /// Linear double array containing complex numbers
     double *buf;
 } dsp_complex;

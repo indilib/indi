@@ -18,6 +18,7 @@
 */
 
 #include "dsp.h"
+#include <fftw3.h>
 static int dsp_debug = 0;
 static char* dsp_app_name = NULL;
 
