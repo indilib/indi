@@ -21,16 +21,24 @@
 
 double* dsp_stats_histogram(dsp_stream_p stream, int size)
 {
+    if(stream == NULL)
+        return NULL;
     int k;
+    long i = 0;
     double* out = (double*)malloc(sizeof(double)*size);
-    double* tmp = (double*)malloc(sizeof(double)*stream->len);
+    dsp_t* tmp = (dsp_t*)malloc(sizeof(dsp_t)*stream->len);
     dsp_buffer_set(out, size, 0.0);
-    dsp_buffer_copy(stream->buf, tmp, stream->len);
+    memcpy(tmp, stream->buf, sizeof(dsp_t)*stream->len);
     dsp_buffer_stretch(tmp, stream->len, 0, size-1);
     for(k = 0; k < stream->len; k++) {
-        out[(long)tmp[k]] ++;
+        i = (long)tmp[k];
+        if(i > 0 && i < size)
+            out[i] ++;
     }
     free(tmp);
-    dsp_buffer_stretch(out, size, 0, size);
+    dsp_t mn = dsp_stats_min(out, size);
+    dsp_t mx = dsp_stats_max(out, size);
+    if(mn < mx)
+        dsp_buffer_stretch(out, size, 0, size);
     return out;
 }
