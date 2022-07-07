@@ -856,32 +856,44 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
             }
         }
 
-        // If we get less than 2 bytes then it must be an error (=\r is a valid response).
-        if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
-                || bytesRead < 2)
-        {
-            if (retries == SKYWATCHER_MAX_RETRTY - 1)
-            {
-                char errorMessage[MAXRBUF] = {0};
-                tty_error_msg(errorCode, errorMessage, MAXRBUF);
-                if (bytesRead < 2)
+        bool isResponseReceived = false;
+        while(true){
+            memset(response, '\0', SKYWATCHER_MAX_CMD);
+            // If we get less than 2 bytes then it must be an error (=\r is a valid response).
+            if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
+                    || bytesRead < 2)
+           {   
+                if (retries == SKYWATCHER_MAX_RETRTY - 1)
+                {
+                    char errorMessage[MAXRBUF] = {0};
+                    tty_error_msg(errorCode, errorMessage, MAXRBUF);
+                    if (bytesRead < 2)
+                        return false;
+                    else
+                        MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
                     return false;
+                }
                 else
-                    MYDEBUGF(INDI::Logger::DBG_ERROR, "Communication error: %s", errorMessage);
-                return false;
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    break;
+                }
             }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
+            else {
+                // Remove CR (0x0D)
+                response[bytesRead - 1] = '\0';
+                if(response[0] == '=' || response[0] == '!'){
+                    isResponseReceived = true;
+                    break;
+                }
+                else{
+                    //Skip invalid response
+                }
             }
         }
-        else
-            break;
+        if(isResponseReceived) break;
     }
 
-    // Remove CR (0x0D)
-    response[bytesRead - 1] = 0;
     // If it is not empty, log it.
     if (response[1] != 0)
         MYDEBUGF(DBG_SCOPE, "RES <%s>", response + 1);
