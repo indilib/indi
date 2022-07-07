@@ -23,7 +23,6 @@
 #include <locale.h>
 #include <unistd.h>
 #include <jpeglib.h>
-#include <png.h>
 
 dsp_stream_p* dsp_file_read_fits(const char* filename, int *channels, int stretch)
 {
