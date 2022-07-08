@@ -771,14 +771,22 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
-    // Sometimes Rotator motor returns negative result, we must sync it.
-    if (RotatorAbsPosN[0].value < 0 || RotatorAbsPosN[0].value > m_RotatorStepsPerRevolution)
+    // If absolute position is zero, we must sync to 180 degrees so we can rotate in both directions freely.
+    // Also sometimes Rotator motor returns negative result, we must sync it to 180 degrees as well.
+    if (RotatorAbsPosN[0].value <= 0 || RotatorAbsPosN[0].value > m_RotatorStepsPerRevolution)
     {
         // 180 degress so that we can move right or left
         // at 0 we'd be forced to make 360 degrees rotation to reach 1 degree CW of zero position.
-        const auto newOffset = static_cast<uint32_t>(RotatorAbsPosN[0].value) % m_RotatorStepsPerRevolution;
+        auto newOffset = static_cast<uint32_t>(RotatorAbsPosN[0].value) % m_RotatorStepsPerRevolution;
+        if (newOffset <= 0)
+            newOffset = m_RotatorStepsPerRevolution / 2.0;
+
+        if (RotatorAbsPosN[0].value > m_RotatorStepsPerRevolution)
+            LOGF_WARN("Bogus motor position received: %d. Syncing rotator to %d", RotatorAbsPosN[0].value, newOffset);
+        else
+            LOGF_INFO("Calibrating rotator to 180 degrees. Syncing rotator position to %d", newOffset);
+
         syncMotor(MOTOR_ROTATOR, newOffset);
-        LOGF_WARN("Bogus motor position received: %d. Syncing rotator to %d", RotatorAbsPosN[0].value, newOffset);
         rc = getPosition(MOTOR_ROTATOR);
     }
     if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
