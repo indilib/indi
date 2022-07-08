@@ -46,6 +46,8 @@
 #define GOTO_SLEWING_SPEED_ID 140
 #define MOVE_SPEED_ID 145
 #define GUIDING_SPEED_ID 150
+#define GUIDING_SPEED_RA_ID 151
+#define GUIDING_SPEED_DEC_ID 152
 #define CENTERING_SPEED_ID 170
 #define SERVO_POINTING_PRECISION_ID 401
 #define PEC_MAX_STEPS_ID 27
@@ -132,8 +134,13 @@ bool LX200Gemini::initProperties()
     IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed",
+    IUFillNumber(&GuidingSpeedBothN[GUIDING_BOTH], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
+    IUFillNumberVector(&GuidingSpeedBothNP, GuidingSpeedBothN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED_BOTH", "Guiding Speed (RA and DEC)",
+                       GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillNumber(&GuidingSpeedN[GUIDING_WE], "GUIDE_RATE_WE", "W/E Rate", "%g", 0.2, 0.8, 0.1, 0.5);
+    IUFillNumber(&GuidingSpeedN[GUIDING_NS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0.2, 0.8, 0.1, 0.5);
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Speed",
                        GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
@@ -179,7 +186,7 @@ bool LX200Gemini::initProperties()
 
     IUFillNumber(&PECEnableAtBootN[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", "%f", 0, 1, 1, 0);
     IUFillNumberVector(&PECEnableAtBootNP, PECEnableAtBootN, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
-                       "PEC at boot", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+                       "ENABLE_PEC_AT_BOOT", MOTION_TAB, IP_RW, 0, IPS_IDLE);
     return true;
 }
 
@@ -229,6 +236,30 @@ void LX200Gemini::syncPec(){
             sscanf(value, "%f", &guiding_value);
             PECGuidingSpeedN[0].value = guiding_value;
 	    IDSetNumber(&PECGuidingSpeedNP, nullptr);
+
+        }
+        if (getGeminiProperty(GUIDING_SPEED_ID, value))
+        {
+	    float guiding_value;
+            sscanf(value, "%f", &guiding_value);
+            GuidingSpeedBothN[GUIDING_BOTH].value = guiding_value;
+	    IDSetNumber(&GuidingSpeedBothNP, nullptr);
+
+        }
+        if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
+        {
+	    float guiding_value;
+            sscanf(value, "%f", &guiding_value);
+            GuidingSpeedN[GUIDING_WE].value = guiding_value;
+	    IDSetNumber(&GuidingSpeedNP, nullptr);
+
+        }
+        if (getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
+        {
+	    float guiding_value;
+            sscanf(value, "%f", &guiding_value);
+            GuidingSpeedN[GUIDING_NS].value = guiding_value;
+	    IDSetNumber(&GuidingSpeedNP, nullptr);
 
         }
         if (getGeminiProperty(PEC_STATUS_ID, value))
@@ -303,12 +334,12 @@ bool LX200Gemini::updateProperties()
             ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
             defineProperty(&ServoPrecisionNP);
         }
-        if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
+        if (getGeminiProperty(PEC_GUIDING_SPEED_ID, value))
         {
-  	    float max_value;
-            sscanf(value, "%f", &max_value);
-            PECMaxStepsN[0].value = max_value;
-            defineProperty(&PECMaxStepsNP);
+  	    float guiding_speed_value;
+            sscanf(value, "%f", &guiding_speed_value);
+            PECGuidingSpeedN[0].value = guiding_speed_value;
+            defineProperty(&PECGuidingSpeedNP);
         }
         if (getGeminiProperty(PEC_COUNTER_ID, value))
         {
@@ -324,10 +355,10 @@ bool LX200Gemini::updateProperties()
 	}
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
-  	    float guiding_value;
-            sscanf(value, "%f", &guiding_value);
-            PECGuidingSpeedN[0].value = guiding_value;
-            defineProperty(&PECGuidingSpeedNP);
+  	    float max_steps_value;
+            sscanf(value, "%f", &max_steps_value);
+            PECMaxStepsN[0].value = max_steps_value;
+            defineProperty(&PECMaxStepsNP);
         }
         if (getGeminiProperty(PEC_STATUS_ID, value))
         {
@@ -390,7 +421,21 @@ bool LX200Gemini::updateProperties()
         {
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
-            GuidingSpeedN[0].value = guidingSpeed;
+            GuidingSpeedBothN[GUIDING_BOTH].value = guidingSpeed;
+            defineProperty(&GuidingSpeedBothNP);
+        }
+        if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
+        {
+            float guidingSpeed = 0.0;
+            sscanf(value, "%f", &guidingSpeed);
+            GuidingSpeedN[GUIDING_WE].value = guidingSpeed;
+            //defineProperty(&GuidingSpeedNP);
+        }
+        if (getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
+        {
+            float guidingSpeed = 0.0;
+            sscanf(value, "%f", &guidingSpeed);
+            GuidingSpeedN[GUIDING_NS].value = guidingSpeed;
             defineProperty(&GuidingSpeedNP);
         }
         if (getGeminiProperty(CENTERING_SPEED_ID, value))
@@ -402,7 +447,6 @@ bool LX200Gemini::updateProperties()
 
         updateParkingState();
         updateMovementState();
-	//syncPec();
     }
     else
     {
@@ -411,6 +455,7 @@ bool LX200Gemini::updateProperties()
         deleteProperty(GotoSlewingSpeedNP.name);
         deleteProperty(MoveSpeedNP.name);
         deleteProperty(GuidingSpeedNP.name);
+        deleteProperty(GuidingSpeedBothNP.name);
         deleteProperty(CenteringSpeedNP.name);
 	deleteProperty(PECControlSP.name);
 	deleteProperty(PECStateTP.name);
@@ -419,6 +464,7 @@ bool LX200Gemini::updateProperties()
         deleteProperty(PECGuidingSpeedNP.name);
         deleteProperty(ServoPrecisionNP.name);
         deleteProperty(PECEnableAtBootNP.name);
+        deleteProperty(PECGuidingSpeedNP.name);
     }
 
     return true;
@@ -566,23 +612,65 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
             return true;
         }
-        if (!strcmp(name, GuidingSpeedNP.name))
+        if (!strcmp(name, GuidingSpeedBothNP.name))
         {
             LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
-            // Special formatting for guiding speed
-            snprintf(valueString, 16, "%1.1f", values[0]);
+	    for(int i = 0; i<n; ++i){
+	        if (!strcmp(names[i], GuidingSpeedBothN[GUIDING_BOTH].name))
+		{
+		    // Special formatting for guiding speed
+		    snprintf(valueString, 16, "%1.1f", values[0]);
+		    
+		    if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_ID, valueString))
+		    {
+  		        GuidingSpeedBothNP.s = IPS_ALERT;
+			IDSetNumber(&GuidingSpeedBothNP, "Error setting guiding speed");
+			return false;
+		    }
+		    
+		}
+	    }
+	    
+	    GuidingSpeedBothN[GUIDING_BOTH].value = values[0];
+            GuidingSpeedBothNP.s                  = IPS_OK;
+            IDSetNumber(&GuidingSpeedBothNP, "Guiding speed set to %f", values[0]);
 
-            if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_ID, valueString))
-            {
-                GuidingSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&GuidingSpeedNP, "Error setting guiding speed");
-                return false;
-            }
+            return true;
+        }
+        if (!strcmp(name, GuidingSpeedNP.name))
+        {
 
+	    for(int i = 0; i<n; ++i){
+		if (!strcmp(names[i], GuidingSpeedN[GUIDING_WE].name))
+		{
+		    // Special formatting for guiding speed
+		    snprintf(valueString, 16, "%1.1f", values[i]);
+		    if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_RA_ID, valueString)){
+		        GuidingSpeedN[GUIDING_WE].value = values[i];
+		        GuidingSpeedNP.s = IPS_ALERT;
+			IDSetNumber(&GuidingSpeedNP, "Error Setting Guiding WE");
+			return false;
+		    }
+			
+		}
+		if (!strcmp(names[i], GuidingSpeedN[GUIDING_NS].name))
+		{
+		    // Special formatting for guiding speed
+		    snprintf(valueString, 16, "%1.1f", values[i]);
+		    GuidingSpeedNP.s = IPS_ALERT;
+		    if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_DEC_ID, valueString))
+		    {
+		        GuidingSpeedN[GUIDING_NS].value = values[i];
+		        GuidingSpeedNP.s = IPS_ALERT;
+			IDSetNumber(&GuidingSpeedNP, "Error Setting Guiding WE");
+			return false;
+		    }
+		}
+	    }
+	    
             GuidingSpeedNP.s       = IPS_OK;
-            GuidingSpeedN[0].value = values[0];
-            IDSetNumber(&GuidingSpeedNP, "Guiding speed set to %f", values[0]);
+            IDSetNumber(&GuidingSpeedNP, "Guiding speed set to RA:%f DEC:%f",  GuidingSpeedN[GUIDING_WE].value, GuidingSpeedN[GUIDING_NS].value);
 
             return true;
         }
