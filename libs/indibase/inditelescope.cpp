@@ -2071,9 +2071,10 @@ const char *Telescope::LoadParkXML()
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
     ParkpositionXml      = findXMLEle(parkxml, "parkposition");
-    ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-    ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
-
+    if (ParkpositionXml)
+        ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
+    if (ParkpositionXml)
+        ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
