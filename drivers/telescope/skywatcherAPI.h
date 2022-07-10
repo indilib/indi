@@ -91,6 +91,12 @@ class SkywatcherAPI
             SetPolarScopeLED          = 'V',
         };
 
+        enum SkywatcherGetFeatureCmd
+        {
+            GET_INDEXER_CMD  = 0x00,
+            GET_FEATURES_CMD = 0x01
+        };
+
         enum SkywatcherSetFeatureCmd
         {
             START_PPEC_TRAINING_CMD            = 0x00,

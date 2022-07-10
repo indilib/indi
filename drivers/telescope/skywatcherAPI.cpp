@@ -437,10 +437,13 @@ bool SkywatcherAPI::InquireFeatures()
     std::string Parameters, Response;
     uint32_t rafeatures = 0, defeatures = 0;
 
+    Long2BCDstr(GET_FEATURES_CMD, Parameters);
     if (!TalkWithAxis(AXIS1, GetFeatureCmd, Parameters, Response))
         return false;
     else
         rafeatures = BCDstr2long(Response);
+
+    Long2BCDstr(GET_FEATURES_CMD, Parameters);
     if (!TalkWithAxis(AXIS2, GetFeatureCmd, Parameters, Response))
         return false;
     else
