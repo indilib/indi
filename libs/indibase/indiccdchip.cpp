@@ -269,6 +269,12 @@ void CCDChip::binFrame()
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
         BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    else
+    {
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    }
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -356,6 +362,12 @@ void CCDChip::binBayerFrame()
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
         BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    else
+    {
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    }
 
     memset(BinFrame, 0, RawFrameSize);
 

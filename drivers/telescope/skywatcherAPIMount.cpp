@@ -211,6 +211,11 @@ bool SkywatcherAPIMount::initProperties()
     IUFillNumberVector(&GuidingRatesNP, GuidingRatesN, 2, getDeviceName(), "GUIDE_RATES", "Guide Rates", MOTION_TAB,
                        IP_RW, 60, IPS_IDLE);
 
+    // AUX Encoders
+    AUXEncoderSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    AUXEncoderSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AUXEncoderSP.fill(getDeviceName(), "AUX_ENCODERS", "AUX Encoders", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Tracking Factor
     TrackFactorNP[AXIS_AZ].fill("AXIS_AZ", "Azimuth", "%.2f", 0.1, 5, 0.1, 1);
     TrackFactorNP[AXIS_ALT].fill("AXIS_ALT", "Altitude", "%.2f", 0.1, 5, 0.1, 1);
@@ -333,6 +338,17 @@ bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (AUXEncoderSP.isNameMatch(name))
+        {
+            AUXEncoderSP.update(states, names, n);
+            AUXEncoderSP.setState(IPS_OK);
+            AUXEncoderSP.apply();
+            auto enabled = AUXEncoderSP.findOnSwitchIndex() == INDI_ENABLED;
+            TurnRAEncoder(enabled);
+            TurnDEEncoder(enabled);
+            saveConfig(true, AUXEncoderSP.getName());
+            return true;
+        }
 
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
@@ -1038,8 +1054,8 @@ void SkywatcherAPIMount::TimerHit()
                         if (AxesStatus[AXIS1].FullStop)
                         {
                             DEBUG(DBG_SCOPE, "Tracking -> AXIS1 restart.");
-                            SetMotionMode(AXIS1, '1', Direction);
-                            StartMotion(AXIS1);
+                            SetAxisMotionMode(AXIS1, '1', Direction);
+                            StartAxisMotion(AXIS1);
                         }
                         DEBUGF(DBG_SCOPE, "Tracking -> AXIS1 offset %ld microsteps rate %ld direction %c",
                                AzimuthOffsetMicrosteps, AzimuthRate, Direction);
@@ -1078,8 +1094,8 @@ void SkywatcherAPIMount::TimerHit()
                         if (AxesStatus[AXIS2].FullStop)
                         {
                             DEBUG(DBG_SCOPE, "Tracking -> AXIS2 restart.");
-                            SetMotionMode(AXIS2, '1', Direction);
-                            StartMotion(AXIS2);
+                            SetAxisMotionMode(AXIS2, '1', Direction);
+                            StartAxisMotion(AXIS2);
                         }
                         DEBUGF(DBG_SCOPE, "Tracking -> AXIS2 offset %ld microsteps rate %ld direction %c",
                                AltitudeOffsetMicrosteps, AltitudeRate, Direction);
@@ -1157,6 +1173,14 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuideWENP);
         defineProperty(&TrackFactorNP);
 
+        if (HasAuxEncoders())
+        {
+            LOG_WARN("AUX encoders detected. Turning off...");
+            TurnRAEncoder(false);
+            TurnDEEncoder(false);
+            defineProperty(&AUXEncoderSP);
+        }
+
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -1198,6 +1222,9 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(TrackFactorNP.getName());
+
+        if (HasAuxEncoders())
+            deleteProperty(AUXEncoderSP.getName());
 
         return true;
     }
