@@ -1,6 +1,11 @@
 name: Docker
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - '.github/docker/*'
 
 jobs:
   build:
