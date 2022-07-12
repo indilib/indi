@@ -10,6 +10,8 @@ jobs:
       matrix:
         container: ["ubuntu", "debian", "fedora"]
 
+    continue-on-error: ${{ matrix.container == 'fedora' }}
+
     container:
       image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
 
