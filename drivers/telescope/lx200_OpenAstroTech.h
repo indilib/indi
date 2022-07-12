@@ -40,13 +40,25 @@ class LX200_OpenAstroTech : public LX200GPS
 
   protected:
 //    virtual void getBasicData(void) override;
+    //FocuserInterface
+
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    IPState MoveAbsFocuser (uint32_t targetTicks) override;
+    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+    bool SetFocuserBacklash(int32_t steps);
+    bool AbortFocuser () override;
+
+    //End FocuserInterface
 
   private:
-    virtual int executeMeadeCommand(char *cmd);
+    virtual int executeMeadeCommand(const char *cmd);
+    virtual bool executeMeadeCommandBlind(const char *cmd);
+    virtual int flushIO(int fd);
 
   private:
     IText MeadeCommandT;
     ITextVectorProperty MeadeCommandTP;
     char MeadeCommandResult[1024];
+    int32_t Backlash;
 };
 
