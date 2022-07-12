@@ -966,9 +966,9 @@ int getApMountFeatures(int fd, bool *hasEncoder, bool *clutchAware)
 
     tty_read_section(fd, readBuffer, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
-    if (nbytes_read > 5)
+    if (nbytes_read > 1)
     {
-        readBuffer[4] = '\0';
+        readBuffer[nbytes_read - 1] = '\0';
 
         DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "getApMountFeatures: received bytes %d, [%s]",
                      nbytes_write, readBuffer);

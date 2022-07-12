@@ -268,14 +268,8 @@ void LX200Gemini::syncPec(){
 	    sscanf(value, "%u", &pec_status);
 	    if(pec_status & 1){ // PEC_ACTIVE
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
-              setPECState(PEC_ON);
-	      PECStateSP.s         = IPS_OK;
-	      IDSetSwitch(&PECStateSP, nullptr);
 	    } else {
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
-              setPECState(PEC_OFF);
-	      PECStateSP.s         = IPS_IDLE;
-	      IDSetSwitch(&PECStateSP, nullptr);
 	    }
     	    if(pec_status & 2){ // Freshly_Trained
 	      IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
@@ -366,8 +360,10 @@ bool LX200Gemini::updateProperties()
 	    sscanf(value, "%u", &pec_status);
 	    if(pec_status & 1){ // PEC_ACTIVE
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+	      setPECState(PEC_ON);
 	    } else {
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+	      setPECState(PEC_OFF);
 	    }
 	    
     	    if(pec_status & 2){ // Freshly_Trained
@@ -514,16 +510,25 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 
         if (!strcmp(name, PECStateSP.name))
         {
-	    for(int i = 0; i<n; ++i){
+	  IUUpdateSwitch(&PECStateSP, states, names, n);
+	  IDSetSwitch(&PECStateSP, nullptr);
+	    for(int i = 0; i<n; ++i)
+	    {
 	        if (!strcmp(names[i], PECStateS[PEC_ON].name))
 	        {
-  		    char valueString[16] = {0};
-		    setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
+		    if(PECStateS[PEC_ON].s == ISS_ON)
+		    {
+		        char valueString[16] = {0};
+			setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
+		    }
 	        }
 	        if (!strcmp(names[i], PECStateS[PEC_OFF].name))
 	        {
-  		    char valueString[16] = {0};
-		    setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
+		    if(PECStateS[PEC_OFF].s == ISS_ON)
+		    {
+		        char valueString[16] = {0};
+			setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
+		    }
 	        }
 	    }
 	}

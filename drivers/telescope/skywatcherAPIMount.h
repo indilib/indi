@@ -19,6 +19,7 @@
 #include "skywatcherAPI.h"
 #include "indielapsedtimer.h"
 #include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -203,6 +204,8 @@ class SkywatcherAPIMount :
 
         INDI::PropertyNumber TrackFactorNP {2};
 
+        // AUX Encoders
+        INDI::PropertySwitch AUXEncoderSP {2};
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Private Variables
