@@ -46,11 +46,11 @@ static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
 }
 
 bool NightCrawler::initProperties()
@@ -1368,7 +1368,13 @@ IPState NightCrawler::MoveRotator(double angle)
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
-    auto newAngle = angle > 180 ? angle - 360 : angle;
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget = RotatorAbsPosN[0].min;
@@ -1389,7 +1395,13 @@ IPState NightCrawler::MoveRotator(double angle)
 
 bool NightCrawler::SyncRotator(double angle)
 {
-    auto newAngle = angle > 180 ? angle - 360 : angle;
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget = RotatorAbsPosN[0].min;
@@ -1409,4 +1421,10 @@ bool NightCrawler::AbortRotator()
     }
 
     return rc;
+}
+
+bool NightCrawler::ReverseRotator(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    return true;
 }
