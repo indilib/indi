@@ -113,6 +113,20 @@ class LX200Gemini : public LX200Generic
 
         INumber PECGuidingSpeedN[1];
         INumberVectorProperty PECGuidingSpeedNP;
+
+        ITextVectorProperty VersionTP;
+        IText VersionT[5] {};
+
+        float gemini_software_level_;
+
+        enum
+        {
+	 FIRMWARE_DATE,
+	 FIRMWARE_TIME,
+	 FIRMWARE_LEVEL,
+	 FIRMWARE_NAME
+	};
+  
         enum
         {
             PARK_HOME,
