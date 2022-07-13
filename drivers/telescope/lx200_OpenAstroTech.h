@@ -24,7 +24,7 @@
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 9
- 
+
 class LX200_OpenAstroTech : public LX200GPS
 {
   public:
@@ -47,18 +47,23 @@ class LX200_OpenAstroTech : public LX200GPS
     IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
     bool SetFocuserBacklash(int32_t steps);
     bool AbortFocuser () override;
+    virtual bool ReadScopeStatus() override;
 
     //End FocuserInterface
 
   private:
-    virtual int executeMeadeCommand(const char *cmd);
+    virtual char getCommandChar(int fd, const char *cmd);
+    virtual int executeMeadeCommand(const char *cmd, char *data);
     virtual bool executeMeadeCommandBlind(const char *cmd);
     virtual int flushIO(int fd);
+    int OATUpdateFocuser();
+    void initFocuserProperties(const char *);
 
   private:
     IText MeadeCommandT;
     ITextVectorProperty MeadeCommandTP;
     char MeadeCommandResult[1024];
-    int32_t Backlash;
+    int32_t FocuserBacklash;
+    INDI::FocuserInterface::FocusDirection FocuserDirectionLast;    
 };
 
