@@ -784,7 +784,10 @@ void NightCrawler::TimerHit()
     if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosN[0].value;
-        GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
+        if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
+            GotoRotatorN[0].value = range360(360 - (RotatorAbsPosN[0].value / m_RotatorTicksPerDegree));
+        else
+            GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
