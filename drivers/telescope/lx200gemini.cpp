@@ -42,24 +42,26 @@
 #include <cstring>
 #include <termios.h>
 
-#define MANUAL_SLEWING_SPEED_ID 120
-#define GOTO_SLEWING_SPEED_ID 140
-#define MOVE_SPEED_ID 145
-#define GUIDING_SPEED_ID 150
-#define GUIDING_SPEED_RA_ID 151
-#define GUIDING_SPEED_DEC_ID 152
-#define CENTERING_SPEED_ID 170
-#define SERVO_POINTING_PRECISION_ID 401
-#define PEC_MAX_STEPS_ID 27
-#define PEC_COUNTER_ID 501
-#define PEC_STATUS_ID 509
-#define PEC_START_TRAINING_ID 530
-#define PEC_ABORT_TRAINING_ID 535
-#define PEC_REPLAY_ON_ID 531
-#define PEC_REPLAY_OFF_ID 532
-#define PEC_ENABLE_AT_BOOT_ID 508
-#define PEC_GUIDING_SPEED_ID 502
+#define MANUAL_SLEWING_SPEED_ID     120
+#define GOTO_SLEWING_SPEED_ID       140
+#define MOVE_SPEED_ID               145 // L5
+#define GUIDING_SPEED_ID            150
+#define GUIDING_SPEED_RA_ID         151 // L5
+#define GUIDING_SPEED_DEC_ID        152 // L5
+#define CENTERING_SPEED_ID          170
+#define SERVO_POINTING_PRECISION_ID 401 // L6
+#define PEC_MAX_STEPS_ID            27
+#define PEC_COUNTER_ID              501
+#define PEC_STATUS_ID               509
+#define PEC_START_TRAINING_ID       530 // L5
+#define PEC_ABORT_TRAINING_ID       535 // L5
+#define PEC_REPLAY_ON_ID            531 // L5
+#define PEC_REPLAY_OFF_ID           532 // L5
+#define PEC_ENABLE_AT_BOOT_ID       508 // L5.2
+#define PEC_GUIDING_SPEED_ID        502
+#define SERVO_FIRMWARE              400 // L6 <ra>;<dec> (L6)
 #define PEC_TAB "PEC"
+#define FIRMWARE_TAB "Firmware data"
 
 
 LX200Gemini::LX200Gemini()
@@ -108,6 +110,13 @@ void LX200Gemini::ISGetProperties(const char *dev)
 bool LX200Gemini::initProperties()
 {
     LX200Generic::initProperties();
+
+    // Show firmware
+    IUFillText(&VersionT[FIRMWARE_DATE], "Date", "", "");
+    IUFillText(&VersionT[FIRMWARE_TIME], "Time", "", "");
+    IUFillText(&VersionT[FIRMWARE_LEVEL], "Level", "", "");
+    IUFillText(&VersionT[FIRMWARE_NAME], "Name", "", "");
+    IUFillTextVector(&VersionTP, VersionT, 5, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
     // Park Option
     IUFillSwitch(&ParkSettingsS[PARK_HOME], "HOME", "Home", ISS_ON);
@@ -187,6 +196,9 @@ bool LX200Gemini::initProperties()
     IUFillNumber(&PECEnableAtBootN[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", "%f", 0, 1, 1, 0);
     IUFillNumberVector(&PECEnableAtBootNP, PECEnableAtBootN, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
                        "ENABLE_PEC_AT_BOOT", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    gemini_software_level_ = 0.0;
+    
     return true;
 }
 
@@ -194,34 +206,71 @@ void LX200Gemini::syncPec(){
         const int MAX_VALUE_LENGTH = 32;
         char value[MAX_VALUE_LENGTH] = {0};
 
-        if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
-        {
-	    uint32_t pec_at_boot_value;
-            sscanf(value, "%i", &pec_at_boot_value);
-            PECEnableAtBootN[0].value = pec_at_boot_value;
-	    IDSetNumber(&PECEnableAtBootNP, nullptr);
 
-        }
-        if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
-        {
-	    uint8_t servo_value;
-            sscanf(value, "%c", &servo_value);
-            ServoPrecisionN[SERVO_RA].value = servo_value & 1;
-            ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
-	    IDSetNumber(&ServoPrecisionNP, nullptr);
+	// Gemini Firmware > 4
+	if(gemini_software_level_ >= 6.0)
+	{
+	    if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+	    {
+	        uint8_t servo_value;
+		sscanf(value, "%c", &servo_value);
+		ServoPrecisionN[SERVO_RA].value = servo_value & 1;
+		ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
+		IDSetNumber(&ServoPrecisionNP, nullptr);
+	    } else {
+	        ServoPrecisionNP.s = IPS_ALERT;
+		IDSetNumber(&ServoPrecisionNP, nullptr);
+	    }	  
+	} else if (gemini_software_level_ >= 5.2)
+	{
+	    if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
+	    {
+	        uint32_t pec_at_boot_value;
+		sscanf(value, "%i", &pec_at_boot_value);
+		PECEnableAtBootN[0].value = pec_at_boot_value;
+		IDSetNumber(&PECEnableAtBootNP, nullptr);
+	    } else {
+	        PECEnableAtBootNP.s = IPS_ALERT;
+		IDSetNumber(&PECEnableAtBootNP, nullptr);
+	    }
+	} else if (gemini_software_level_ >= 5.0)
+	{
+	    if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
+	    {
+	        float guiding_value;
+		sscanf(value, "%f", &guiding_value);
+		GuidingSpeedN[GUIDING_WE].value = guiding_value;
+		IDSetNumber(&GuidingSpeedNP, nullptr);
+	    } else {
+	        GuidingSpeedNP.s = IPS_ALERT;
+		IDSetNumber(&GuidingSpeedNP, nullptr);
+	    }	  
+	    if (getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
+	    {
+	        float guiding_value;
+		sscanf(value, "%f", &guiding_value);
+		GuidingSpeedN[GUIDING_NS].value = guiding_value;
+		IDSetNumber(&GuidingSpeedNP, nullptr);
+	    } else {
+	        GuidingSpeedNP.s = IPS_ALERT;
+		IDSetNumber(&GuidingSpeedNP, nullptr);
+	    }	  
+	}
+	// Gemini Firmware > 4
 
-        }
+	
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
 	    float max_value;
             sscanf(value, "%f", &max_value);
             PECMaxStepsN[0].value = max_value;
 	    IDSetNumber(&PECMaxStepsNP, nullptr);
-
-        }
+        } else {
+	    PECMaxStepsNP.s = IPS_ALERT;
+	    IDSetNumber(&PECMaxStepsNP, nullptr);
+	}	  
         if (getGeminiProperty(PEC_COUNTER_ID, value))
         {
-	  
 	    char valueString[32] = {0};
 	    uint32_t pec_counter = 0;
 	    sscanf(value, "%u", &pec_counter);
@@ -229,39 +278,30 @@ void LX200Gemini::syncPec(){
 
 	    IUSaveText(&PECCounterT[0], valueString);
 	    IDSetText(&PECCounterTP, nullptr);
-	}
+        } else {
+	    PECCounterTP.s = IPS_ALERT;
+	    IDSetText(&PECCounterTP, nullptr);
+	}	  
         if (getGeminiProperty(PEC_GUIDING_SPEED_ID, value))
         {
 	    float guiding_value;
             sscanf(value, "%f", &guiding_value);
             PECGuidingSpeedN[0].value = guiding_value;
 	    IDSetNumber(&PECGuidingSpeedNP, nullptr);
-
-        }
+        } else {
+	    PECGuidingSpeedNP.s = IPS_ALERT;
+	    IDSetNumber(&PECGuidingSpeedNP, nullptr);
+	}	  
         if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
 	    float guiding_value;
             sscanf(value, "%f", &guiding_value);
             GuidingSpeedBothN[GUIDING_BOTH].value = guiding_value;
 	    IDSetNumber(&GuidingSpeedBothNP, nullptr);
-
-        }
-        if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
-        {
-	    float guiding_value;
-            sscanf(value, "%f", &guiding_value);
-            GuidingSpeedN[GUIDING_WE].value = guiding_value;
-	    IDSetNumber(&GuidingSpeedNP, nullptr);
-
-        }
-        if (getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
-        {
-	    float guiding_value;
-            sscanf(value, "%f", &guiding_value);
-            GuidingSpeedN[GUIDING_NS].value = guiding_value;
-	    IDSetNumber(&GuidingSpeedNP, nullptr);
-
-        }
+        } else {
+	    GuidingSpeedBothNP.s = IPS_ALERT;
+	    IDSetNumber(&GuidingSpeedBothNP, nullptr);
+	}	  
         if (getGeminiProperty(PEC_STATUS_ID, value))
         {
 	    uint32_t pec_status = 0;
@@ -297,7 +337,10 @@ void LX200Gemini::syncPec(){
 	      IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "No");
 	    }
 	    IDSetText(&PECStateTP, nullptr);
-        }
+        } else {
+	    PECStateTP.s = IPS_ALERT;
+	    IDSetText(&PECStateTP, nullptr);
+	}	  
 }
 
 
@@ -310,9 +353,23 @@ bool LX200Gemini::updateProperties()
     {
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
+	if (!isSimulation())
+	{
+	    VersionTP.tp[FIRMWARE_DATE].text = new char[64];
+	    getVersionDate(PortFD, VersionTP.tp[FIRMWARE_DATE].text);
+	    VersionTP.tp[FIRMWARE_TIME].text = new char[64];
+	    getVersionTime(PortFD, VersionTP.tp[FIRMWARE_TIME].text);
+	    VersionTP.tp[FIRMWARE_LEVEL].text = new char[64];
+	    getVersionNumber(PortFD, VersionTP.tp[FIRMWARE_LEVEL].text);
+	    VersionTP.tp[FIRMWARE_NAME].text = new char[128];
+	    getProductName(PortFD, VersionTP.tp[FIRMWARE_NAME].text);
+	    sscanf(VersionTP.tp[FIRMWARE_LEVEL].text, "%f", &gemini_software_level_);
+	    IDSetText(&VersionTP, nullptr);
+	}
+        defineProperty(&VersionTP);
         defineProperty(&ParkSettingsSP);
 
-        if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
+        if (gemini_software_level_ >= 5.2 && getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
         {
 	    uint32_t pec_at_boot_value;
             sscanf(value, "%i", &pec_at_boot_value);
@@ -320,7 +377,7 @@ bool LX200Gemini::updateProperties()
 	    IDSetNumber(&PECEnableAtBootNP, nullptr);
             defineProperty(&PECEnableAtBootNP);
         }
-        if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+        if (gemini_software_level_ >= 6.0 && getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
         {
 	    uint8_t servo_value;
             sscanf(value, "%c", &servo_value);
@@ -407,7 +464,7 @@ bool LX200Gemini::updateProperties()
             GotoSlewingSpeedN[0].value = speed;
             defineProperty(&GotoSlewingSpeedNP);
         }
-        if (getGeminiProperty(MOVE_SPEED_ID, value))
+        if (gemini_software_level_ >= 5.0 && getGeminiProperty(MOVE_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
             MoveSpeedN[0].value = speed;
@@ -420,14 +477,14 @@ bool LX200Gemini::updateProperties()
             GuidingSpeedBothN[GUIDING_BOTH].value = guidingSpeed;
             defineProperty(&GuidingSpeedBothNP);
         }
-        if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
+        if (gemini_software_level_ >= 5.0 && getGeminiProperty(GUIDING_SPEED_RA_ID, value))
         {
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
             GuidingSpeedN[GUIDING_WE].value = guidingSpeed;
             //defineProperty(&GuidingSpeedNP);
         }
-        if (getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
+        if (gemini_software_level_ >= 5.0 && getGeminiProperty(GUIDING_SPEED_DEC_ID, value))
         {
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
@@ -461,6 +518,7 @@ bool LX200Gemini::updateProperties()
         deleteProperty(ServoPrecisionNP.name);
         deleteProperty(PECEnableAtBootNP.name);
         deleteProperty(PECGuidingSpeedNP.name);
+        deleteProperty(VersionTP.name);
     }
 
     return true;
@@ -508,7 +566,7 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             return true;
         }
 
-        if (!strcmp(name, PECStateSP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECStateSP.name))
         {
 	  IUUpdateSwitch(&PECStateSP, states, names, n);
 	  IDSetSwitch(&PECStateSP, nullptr);
@@ -533,7 +591,7 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 	    }
 	}
 
-        if (!strcmp(name, PECControlSP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECControlSP.name))
         {
 	    for(int i = 0; i<n; ++i){
 	        if (!strcmp(names[i], PECControlS[PEC_START_TRAINING].name))
@@ -600,7 +658,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
             return true;
         }
-        if (!strcmp(name, MoveSpeedNP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, MoveSpeedNP.name))
         {
             LOGF_DEBUG("Trying to set move speed of: %f", values[0]);
 
@@ -617,7 +675,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
             return true;
         }
-        if (!strcmp(name, GuidingSpeedBothNP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, GuidingSpeedBothNP.name))
         {
             LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
@@ -703,14 +761,14 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             IDSetNumber(&PECMaxStepsNP, "Max steps set to %f", values[0]);
             return true;
         }
-        if (!strcmp(name, PECGuidingSpeedNP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECGuidingSpeedNP.name))
         {
             PECGuidingSpeedNP.s       = IPS_OK;
             PECGuidingSpeedN[0].value = values[0];
             IDSetNumber(&PECGuidingSpeedNP, "Guiding Speed set to %f", values[0]);
             return true;
         }
-        if (!strcmp(name, ServoPrecisionNP.name))
+        if (gemini_software_level_ >= 6.0 && !strcmp(name, ServoPrecisionNP.name))
         {
 
 	    for(int i = 0; i<n; ++i){
@@ -743,7 +801,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             IDSetNumber(&ServoPrecisionNP, "Servo Precision %f", values[0]);
             return true;
         }
-        if (!strcmp(name, PECEnableAtBootNP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECEnableAtBootNP.name))
         {
 
 	    uint32_t enable_pec_value = static_cast<uint32_t>(values[0]);
@@ -1262,6 +1320,38 @@ bool LX200Gemini::getGeminiProperty(uint32_t propertyNumber, char* value)
     char prefix[16] = {0};
     char cmd[16] = {0};
 
+    switch(propertyNumber){
+    case MOVE_SPEED_ID:
+    case GUIDING_SPEED_RA_ID:
+    case GUIDING_SPEED_DEC_ID:
+    case PEC_START_TRAINING_ID:
+    case PEC_ABORT_TRAINING_ID:
+    case PEC_REPLAY_ON_ID:
+    case PEC_REPLAY_OFF_ID:
+      if(gemini_software_level_ < 5.0)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;
+    case PEC_ENABLE_AT_BOOT_ID:
+      if(gemini_software_level_ < 5.2)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;      
+    case SERVO_POINTING_PRECISION_ID:
+    case SERVO_FIRMWARE:
+      if(gemini_software_level_ < 6)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;      
+    default:;
+    }
+    
     snprintf(prefix, 16, "<%d:", propertyNumber);
 
     uint8_t checksum = calculateChecksum(prefix);
@@ -1300,6 +1390,38 @@ bool LX200Gemini::setGeminiProperty(uint32_t propertyNumber, char* value)
     int nbytes_written = 0;
     char prefix[16] = {0};
     char cmd[16] = {0};
+
+    switch(propertyNumber){
+    case MOVE_SPEED_ID:
+    case GUIDING_SPEED_RA_ID:
+    case GUIDING_SPEED_DEC_ID:
+    case PEC_START_TRAINING_ID:
+    case PEC_ABORT_TRAINING_ID:
+    case PEC_REPLAY_ON_ID:
+    case PEC_REPLAY_OFF_ID:
+      if(gemini_software_level_ < 5.0)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;
+    case PEC_ENABLE_AT_BOOT_ID:
+      if(gemini_software_level_ < 5.2)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;      
+    case SERVO_POINTING_PRECISION_ID:
+    case SERVO_FIRMWARE:
+      if(gemini_software_level_ < 6)
+      {
+        LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+	return false;
+      }
+      break;      
+    default:;
+    }
 
     snprintf(prefix, 16, ">%d:%s", propertyNumber, value);
 
