@@ -29,8 +29,7 @@ std::unique_ptr<RotatorSimulator> rotatorSimulator(new RotatorSimulator());
 
 RotatorSimulator::RotatorSimulator()
 {
-    // We do not have absolute ticks
-    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
 }
 
 const char * RotatorSimulator::getDefaultName()
@@ -51,7 +50,10 @@ bool RotatorSimulator::Disconnect()
 
 IPState RotatorSimulator::MoveRotator(double angle)
 {
-    m_TargetAngle = range360(angle);
+    if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
+        m_TargetAngle = range360(360 - angle);
+    else
+        m_TargetAngle = range360(angle);
     return IPS_BUSY;
 }
 
@@ -63,6 +65,12 @@ bool RotatorSimulator::SyncRotator(double angle)
 
 bool RotatorSimulator::AbortRotator()
 {
+    return true;
+}
+
+bool RotatorSimulator::ReverseRotator(bool enabled)
+{
+    INDI_UNUSED(enabled);
     return true;
 }
 
@@ -94,5 +102,6 @@ void RotatorSimulator::TimerHit()
 
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
+
     SetTimer(getCurrentPollingPeriod());
 }

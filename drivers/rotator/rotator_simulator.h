@@ -41,6 +41,7 @@ class RotatorSimulator : public INDI::Rotator
 
         // Misc.
         virtual void TimerHit() override;
+        virtual bool ReverseRotator(bool enabled) override;
 
     private:
         double m_TargetAngle {-1};
