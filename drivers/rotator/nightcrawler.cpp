@@ -1428,6 +1428,11 @@ bool NightCrawler::AbortRotator()
 
 bool NightCrawler::ReverseRotator(bool enabled)
 {
-    INDI_UNUSED(enabled);
+    // Immediately update the angle after reverse is set.
+    if (enabled)
+        GotoRotatorN[0].value = range360(360 - (RotatorAbsPosN[0].value / m_RotatorTicksPerDegree));
+    else
+        GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
+    IDSetNumber(&GotoRotatorNP, nullptr);
     return true;
 }
