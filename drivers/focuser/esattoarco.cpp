@@ -1,7 +1,8 @@
 /*
-    SestoSenso 2 Focuser
+    Primaluca Labs Essato-Arco Focuser+Rotator Driver
+
     Copyright (C) 2020 Piotr Zyziuk
-    Copyright (C) 2020 Jasem Mutlaq (Added Esatto support)
+    Copyright (C) 2020-2022 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,11 +18,14 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    JM 2022.07.16: Major refactor to using json.h and update to Essato Arco
+    Document protocol revision 3.3 (8th July 2022).
 */
 
 #include "esattoarco.h"
 
 #include "indicom.h"
+#include "json.h"
 
 #include <cmath>
 #include <cstring>
@@ -34,7 +38,7 @@
 #include <connectionplugins/connectionserial.h>
 #include <sys/ioctl.h>
 
-static std::unique_ptr<SestoSenso2> sesto(new SestoSenso2());
+static std::unique_ptr<EssatoArco> essatoarco(new EssatoArco());
 
 static const char *MOTOR_TAB  = "Motor";
 static const char *ENVIRONMENT_TAB  = "Environment";
@@ -57,29 +61,403 @@ struct MotorCurrents
 // Settings names for the default motor settings presets
 const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
 
-
-
-
-
-
-SestoSenso2::SestoSenso2() : RotatorInterface(this)
+namespace CommandSet
 {
-    setVersion(0, 7);
+
+bool sendCommand(const std::string &command, json *response)
+{
+    int tty_rc = TTY_OK;
+    int nbytes_written = 0, nbytes_read = 0;
+    tcflush(PortFD, TCIOFLUSH);
+    LOGF_DEBUG("<REQ> %s", command.c_str());
+    if ( (tty_rc = tty_write(PortFD, command.c_str(), command.length(), &nbytes_written)) == TTY_OK)
+    {
+        char errorMessage[MAXRBUF] = {0};
+        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s", errorMessage);
+        return false;
+    }
+
+    // Should we ignore response?
+    if (response == nullptr)
+        return true;
+
+    char read_buf[DRIVER_LEN] = {0};
+    if ( (tty_rc = tty_read_section(PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) == TTY_OK)
+    {
+        char errorMessage[MAXRBUF] = {0};
+        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s", errorMessage);
+        return false;
+    }
+
+    LOGF_DEBUG("<RES> %s", read_buf);
+
+    try
+    {
+        *response = json::parse(read_buf)["res"];
+    }
+    catch (json::exception &e)
+    {
+        // output exception information
+        LOGF_ERROR("Error parsing device response %s id: %d", e.what(), e.id);
+        return false;
+    }
+
+    return true;
+}
+
+namespace Essato
+{
+bool stop()
+{
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"MOT_STOP", ""}}}};
+    return sendCommand(jsonRequest);
+}
+
+bool fastMoveOut()
+{
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"F_OUTW", ""}}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        return jsonResponse["get"]["cmd"]["MOT1"]["F_OUTW"] == "done";
+    }
+    return false;
+}
+
+bool fastMoveIn(char *res)
+{
+    return sendCommand("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}", "F_INW", res);
+}
+
+bool getMaxPosition(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
+}
+
+bool getHallSensor(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "HSENDET", res);
+}
+
+bool storeAsMaxPosition(char *res)
+{
+    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}", res);
+}
+
+bool goOutToFindMaxPos()
+{
+    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
+}
+
+bool storeAsMinPosition()
+{
+    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
+}
+
+bool initCalibration()
+{
+    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
+}
+
+bool getAbsolutePosition(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
+}
+
+bool getCurrentSpeed(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
+}
+
+bool applyMotorPreset(const char *name)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":\"%s\"}}}", name);
+
+    std::string result;
+    if (!sendCommand(cmd, "RUNPRESET", result))
+        return false;
+
+    if (result == "done")
+        return true;
+
+    LOGF_ERROR("Req RUNPRESET %s returned: %s", name, result.c_str());
+    return false;
+}
+
+bool applyMotorUserPreset(uint32_t index)
+{
+    // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
+    // command fails when applied to user presets. Therefore here we
+    // fetch the motor preset and then apply it ourselves.
+    char request[SESTO_LEN] = {0};
+    snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);
+
+    std::string response;
+    if (!send(request, response))
+        return false;   // send() call handles failure logging
+
+    MotorRates mr;
+    MotorCurrents mc;
+    if (parseUIntFromResponse(response, "M1ACC", mr.accRate)
+            && parseUIntFromResponse(response, "M1SPD", mr.runSpeed)
+            && parseUIntFromResponse(response, "M1DEC", mr.decRate)
+            && parseUIntFromResponse(response, "M1CACC", mc.accCurrent)
+            && parseUIntFromResponse(response, "M1CSPD", mc.runCurrent)
+            && parseUIntFromResponse(response, "M1CDEC", mc.decCurrent)
+            && parseUIntFromResponse(response, "M1HOLD", mc.holdCurrent))
+    {
+        return setMotorRates(mr) && setMotorCurrents(mc);
+    }
+
+    return false;
+}
+
+//constexpr char MOTOR_SAVE_PRESET_CMD[] =
+//    "{\"req\":{\"set\":{\"RUNPRESET_%u\":{"
+//    "\"RP_NAME\":\"User%u\","
+//    "\"M1ACC\":%u,\"M1DEC\":%u,\"M1SPD\":%u,"
+//    "\"M1CACC\":%u,\"M1CDEC\":%u,\"M1CSPD\":%u,\"M1HOLD\":%u"
+//    "}}}}";
+
+bool saveMotorUserPreset(uint32_t index, MotorRates &mr, MotorCurrents &mc)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_SAVE_PRESET_CMD, index,
+             index,
+             mr.accRate, mr.decRate, mr.runSpeed,
+             mc.accCurrent, mc.decCurrent, mc.runCurrent, mc.holdCurrent);
+
+    std::string result;
+    if (!sendCommand(cmd, "M1ACC", result))
+        return false;
+
+    // TODO: Check each parameter's result
+    if (result == "done")
+        return true;
+
+    LOGF_ERROR("Set RUNPRESET %u returned: %s", index, result.c_str());
+    return false;
+}
+
+bool getMotorTemp(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
+}
+
+bool getExternalTemp(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
+}
+
+bool getVoltageIn(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
+}
+
+bool getMotorSettings(struct MotorRates &mr, struct MotorCurrents &mc, bool &motorHoldActive)
+{
+    std::string response;
+    if (!send("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", response))
+        return false;   // send() call handles failure logging
+
+    uint32_t holdStatus = 0;
+    if (parseUIntFromResponse(response, "FnRUN_ACC", mr.accRate)
+            && parseUIntFromResponse(response, "FnRUN_SPD", mr.runSpeed)
+            && parseUIntFromResponse(response, "FnRUN_DEC", mr.decRate)
+            && parseUIntFromResponse(response, "FnRUN_CURR_ACC", mc.accCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_SPD", mc.runCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_DEC", mc.decCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", mc.holdCurrent)
+            && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
+    {
+        motorHoldActive = holdStatus != 0;
+        return true;
+    }
+
+    // parseUIntFromResponse() should log failure
+    return false;
+}
+
+//constexpr char MOTOR_RATES_CMD[] =
+//    "{\"req\":{\"set\":{\"MOT1\":{"
+//    "\"FnRUN_ACC\":%u,"
+//    "\"FnRUN_SPD\":%u,"
+//    "\"FnRUN_DEC\":%u"
+//    "}}}}";
+
+bool setMotorRates(struct MotorRates &mr)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_RATES_CMD, mr.accRate, mr.runSpeed, mr.decRate);
+
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
+}
+
+//constexpr char MOTOR_CURRENTS_CMD[] =
+//    "{\"req\":{\"set\":{\"MOT1\":{"
+//    "\"FnRUN_CURR_ACC\":%u,"
+//    "\"FnRUN_CURR_SPD\":%u,"
+//    "\"FnRUN_CURR_DEC\":%u,"
+//    "\"FnRUN_CURR_HOLD\":%u"
+//    "}}}}";
+
+bool setMotorCurrents(struct MotorCurrents &mc)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, mc.accCurrent, mc.runCurrent, mc.decCurrent, mc.holdCurrent);
+
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
+}
+
+bool setMotorHold(bool hold)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"set\":{\"MOT1\":{\"HOLDCURR_STATUS\":%u}}}}", hold ? 1 : 0);
+
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
+}
+
+}
+
+namespace Arco
+{
+bool getARCO(char *res)
+{
+    return sendCommand("{\"req\":{\"get\":{\"ARCO\":\"\"}}}", "ARCO", res);
+}
+
+//bool getArcoAbsPos(char *res)
+//{
+
+//return sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}","ABS_POS", res);
+
+//}
+
+double getArcoAbsPos()
+{
+
+    char res[SESTO_LEN] = {0};
+    std::string buf;
+    bool rc = sendCommand("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}", "ABS_POS", res);
+    if(rc == true)
+    {
+        std::string my_string(res);
+        buf = my_string.substr(0, my_string.length() - 5);
+
+    }
+    return std::stof(buf);
+}
+
+
+double getArcoPosition()
+{
+
+    char res[SESTO_LEN] = {0};
+    std::string buf;
+    bool rc = sendCommand("{\"req\":{\"get\":{\"MOT2\":{\"POSITION\":\"DEG\"}}}}", "POSITION", res);
+    if(rc == true)
+    {
+        std::string my_string(res);
+        buf = my_string.substr(0, my_string.length() - 5);
+
+    }
+    return std::stof(buf);
+}
+
+
+
+bool setArcoAbsPos(double targetAngle, char *res)
+{
+    char cmd[SESTO_LEN] = {0};
+    if(targetAngle > getArcoAbsPos() + 180.)
+    {
+        targetAngle -= 360.0;
+    }
+
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"GOTO\":{\"DEG\":%f}}}}}", targetAngle);
+
+    LOGF_INFO("Rotator moving to: %f", targetAngle);
+    return sendCommand(cmd, "DEG", res);
+}
+
+bool isArcoBusy()
+{
+    char res[SESTO_LEN] = {0};
+
+    if(!sendCommand("{\"req\":{\"get\":{\"MOT2\":\"\"}}}", "BUSY", res))
+    {
+        LOG_INFO("Could not check if Arco is busy.");
+        return true;
+    }
+
+    int busy = std::stoi(res);
+    if(!(busy == 0)) return true;
+
+    return false;
+}
+
+bool stopArco()
+{
+    char res[SESTO_LEN] = {0};
+    return sendCommand("{\"req\":{\"cmd\":{\"MOT2\":{\"MOT_STOP\":\"\"}}}}", "MOT_STOP", res);
+}
+
+
+bool syncArco(double angle)
+{
+    char res[SESTO_LEN] = {0};
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"SYNC_POS\":{\"DEG\":%f}}}}}", angle);
+    return sendCommand(cmd, "DEG", res);
+}
+
+bool calArco()
+{
+    char res[SESTO_LEN] = {0};
+    return sendCommand("{\"req\":{\"set\":{\"MOT2\":{\"CAL_STATUS\":\"exec\"}}}}", "CAL_STATUS", res);
+}
+
+bool isArcoCalibrating()
+{
+    char res[SESTO_LEN] = {0};
+    if(!sendCommand("{\"req\":{\"get\":{\"MOT2\":{\"CAL_STATUS\":\"\"}}}}", "CAL_STATUS", res))
+    {
+        LOG_INFO("Could not check if Arco is Calibrating.");
+        return true;
+    }
+    std::string result(res);
+    if(result == "exec") return true;
+    return false;
+
+}
+
+
+}
+}
+
+EssatoArco::EssatoArco() : RotatorInterface(this)
+{
+    setVersion(0, 8);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
 
-    m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
+    m_MotionProgressTimer.callOnTimeout(std::bind(&EssatoArco::checkMotionProgressCallback, this));
     m_MotionProgressTimer.setSingleShot(true);
 
-    m_HallSensorTimer.callOnTimeout(std::bind(&SestoSenso2::checkHallSensorCallback, this));
+    m_HallSensorTimer.callOnTimeout(std::bind(&EssatoArco::checkHallSensorCallback, this));
     m_HallSensorTimer.setSingleShot(true);
     m_HallSensorTimer.setInterval(1000);
 }
 
-bool SestoSenso2::initProperties()
+bool EssatoArco::initProperties()
 {
-
     INDI::Focuser::initProperties();
 
     FocusBacklashN[0].min = 0;
@@ -244,7 +622,7 @@ bool SestoSenso2::initProperties()
     return true;
 }
 
-bool SestoSenso2::updateProperties()
+bool EssatoArco::updateProperties()
 {
     if (isConnected() && updateMaxLimit() == false)
         LOGF_WARN("Check you have the latest %s firmware. Focuser requires calibration.", getDeviceName());
@@ -321,7 +699,7 @@ bool SestoSenso2::updateProperties()
 
 
 
-bool SestoSenso2::Handshake()
+bool EssatoArco::Handshake()
 {
     //char res[SESTO_LEN] = {0};
     double ArcoPos;
@@ -330,11 +708,7 @@ bool SestoSenso2::Handshake()
     if (Ack())
     {
         LOGF_INFO("%s is online. Getting focus parameters...", getDeviceName());
-        //if (command->getArcoAbsPos() == true)
-        //	{
-        //LOGF_INFO("ARCO is offline. %f", );
-        //	}
-        ArcoPos = command->getArcoAbsPos();
+        ArcoPos = Arco::getArcoAbsPos();
         LOGF_INFO("ARCO POSITION %f", ArcoPos);
         return true;
     }
@@ -343,7 +717,7 @@ bool SestoSenso2::Handshake()
     return false;
 }
 
-bool SestoSenso2::Disconnect()
+bool EssatoArco::Disconnect()
 {
     //    if (isSimulation() == false)
     //        command->goHome();
@@ -351,7 +725,7 @@ bool SestoSenso2::Disconnect()
     return INDI::Focuser::Disconnect();
 }
 
-bool SestoSenso2::SetFocuserBacklash(int32_t steps)
+bool EssatoArco::SetFocuserBacklash(int32_t steps)
 {
     backlashTicks = static_cast<uint32_t>(abs(steps));
     backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
@@ -359,12 +733,12 @@ bool SestoSenso2::SetFocuserBacklash(int32_t steps)
     return true;
 }
 
-const char *SestoSenso2::getDefaultName()
+const char *EssatoArco::getDefaultName()
 {
     return "Sesto Senso 2";
 }
 
-bool SestoSenso2::updateTemperature()
+bool EssatoArco::updateTemperature()
 {
     char res[SESTO_LEN] = {0};
     double temperature = 0;
@@ -411,7 +785,7 @@ bool SestoSenso2::updateTemperature()
 }
 
 
-bool SestoSenso2::updateMaxLimit()
+bool EssatoArco::updateMaxLimit()
 {
     char res[SESTO_LEN] = {0};
 
@@ -458,7 +832,7 @@ bool SestoSenso2::updateMaxLimit()
     return false;
 }
 
-bool SestoSenso2::updatePosition()
+bool EssatoArco::updatePosition()
 {
     char res[SESTO_LEN] = {0};
     if (isSimulation())
@@ -536,7 +910,7 @@ bool SestoSenso2::updatePosition()
     }
 }
 
-bool SestoSenso2::updateVoltageIn()
+bool EssatoArco::updateVoltageIn()
 {
     char res[SESTO_LEN] = {0};
     double voltageIn = 0;
@@ -565,7 +939,7 @@ bool SestoSenso2::updateVoltageIn()
     return true;
 }
 
-bool SestoSenso2::fetchMotorSettings()
+bool EssatoArco::fetchMotorSettings()
 {
     // Fetch driver state and reflect in INDI
     MotorRates ms;
@@ -626,7 +1000,7 @@ bool SestoSenso2::fetchMotorSettings()
     return true;
 }
 
-bool SestoSenso2::AbortRotator()
+bool EssatoArco::AbortRotator()
 {
     bool rc = command->stopArco();
     if (rc && RotatorAbsPosNP.s != IPS_OK)
@@ -640,14 +1014,19 @@ bool SestoSenso2::AbortRotator()
     return rc;
 }
 
-bool SestoSenso2::SyncRotator(double angle)
+bool  EssatoArco::ReverseRotator(bool enabled)
+{
+
+}
+
+bool EssatoArco::SyncRotator(double angle)
 {
     GotoRotatorN[0].value = angle;
     return command -> syncArco(angle);
 }
 
 
-bool SestoSenso2::applyMotorRates()
+bool EssatoArco::applyMotorRates()
 {
     if (isSimulation())
         return true;
@@ -669,7 +1048,7 @@ bool SestoSenso2::applyMotorRates()
     return true;
 }
 
-bool SestoSenso2::applyMotorCurrents()
+bool EssatoArco::applyMotorCurrents()
 {
     if (isSimulation())
         return true;
@@ -693,7 +1072,7 @@ bool SestoSenso2::applyMotorCurrents()
     return true;
 }
 
-bool SestoSenso2::isMotionComplete()
+bool EssatoArco::isMotionComplete()
 {
     char res[SESTO_LEN] = {0};
 
@@ -762,7 +1141,7 @@ bool SestoSenso2::isMotionComplete()
     return false;
 }
 
-bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -791,7 +1170,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     //
                     // Init
                     //
-                    if (m_IsSestoSenso2 && command->initCalibration() == false)
+                    if (m_IsEssatoArco && command->initCalibration() == false)
                         return false;
 
                     IUSaveText(&CalibrationMessageT[0], "Set focus in MIN position and then press NEXT.");
@@ -815,7 +1194,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 if (cStage == GoToMiddle)
                 {
                     defineProperty(&FastMoveSP);
-                    if (m_IsSestoSenso2)
+                    if (m_IsEssatoArco)
                     {
                         if (command->storeAsMinPosition() == false)
                             return false;
@@ -837,7 +1216,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 else if (cStage == GoMinimum)
                 {
                     char res[SESTO_LEN] = {0};
-                    if (m_IsSestoSenso2 && command->storeAsMaxPosition(res) == false)
+                    if (m_IsEssatoArco && command->storeAsMaxPosition(res) == false)
                         return false;
 
                     IUSaveText(&CalibrationMessageT[0], "Press NEXT to finish.");
@@ -999,7 +1378,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     }
                     break;
                 case FASTMOVE_OUT:
-                    if (m_IsSestoSenso2)
+                    if (m_IsEssatoArco)
                     {
                         if (command->goOutToFindMaxPos() == false)
                         {
@@ -1018,7 +1397,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
 
                             //                            if (m_MotionProgressTimerID > 0)
                             //                                IERmTimer(m_MotionProgressTimerID);
-                            //                            m_MotionProgressTimerID = IEAddTimer(500, &SestoSenso2::checkMotionProgressHelper, this);
+                            //                            m_MotionProgressTimerID = IEAddTimer(500, &EssatoArco::checkMotionProgressHelper, this);
                             m_MotionProgressTimer.start(500);
                         }
                     }
@@ -1051,7 +1430,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
 
                 //                if (m_MotionProgressTimerID > 0)
                 //                    IERmTimer(m_MotionProgressTimerID);
-                //                m_MotionProgressTimerID = IEAddTimer(100, &SestoSenso2::checkMotionProgressHelper, this);
+                //                m_MotionProgressTimerID = IEAddTimer(100, &EssatoArco::checkMotionProgressHelper, this);
                 m_MotionProgressTimer.start(100);
             }
             else
@@ -1192,7 +1571,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool EssatoArco::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -1243,7 +1622,7 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
-IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
+IPState EssatoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
@@ -1265,34 +1644,32 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     //    if (m_MotionProgressTimerID > 0)
     //        IERmTimer(m_MotionProgressTimerID);
-    //    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso2::checkMotionProgressHelper, this);
+    //    m_MotionProgressTimerID = IEAddTimer(10, &EssatoArco::checkMotionProgressHelper, this);
     m_MotionProgressTimer.start(10);
     return IPS_BUSY;
 }
 
 //Move Rotator to Gotposition corrected for Sync-Angle
-IPState SestoSenso2::MoveRotator(double angle)
+IPState EssatoArco::MoveRotator(double angle)
 {
     char res[SESTO_LEN] = {0};
     //Calc sync angle (could also be received from Arco (CORRECTION_POS)
     double PosCor = RotatorAbsPosN[0].value - GotoRotatorN[0].value;
-    if(PosCor - 360.0 < 0.0001) PosCor = 0.0;
+    if(PosCor - 360.0 < 0.0001)
+        PosCor = 0.0;
     angle += PosCor;
-    if(angle > 360.0) angle -= 360.0;
+    if(angle > 360.0)
+        angle -= 360.0;
     if(command->setArcoAbsPos(angle, res) == false)
     {
         LOGF_INFO("ARCO won't move. %s", res);
         return IPS_ALERT;
     }
-    LOGF_INFO("Reply: %s", res);
-    //m_MotionProgressTimer.start(10);
+    LOGF_DEBUG("Reply: %s", res);
     return IPS_BUSY;
 }
 
-
-
-
-IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState EssatoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
@@ -1303,7 +1680,7 @@ IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
-bool SestoSenso2::AbortFocuser()
+bool EssatoArco::AbortFocuser()
 {
     //    if (m_MotionProgressTimerID > 0)
     //    {
@@ -1328,14 +1705,14 @@ bool SestoSenso2::AbortFocuser()
     return rc;
 }
 
-//void SestoSenso2::checkMotionProgressHelper(void *context)
+//void EssatoArco::checkMotionProgressHelper(void *context)
 //{
-//    static_cast<SestoSenso2*>(context)->checkMotionProgressCallback();
+//    static_cast<EssatoArco*>(context)->checkMotionProgressCallback();
 //}
 
-//void SestoSenso2::checkHallSensorHelper(void *context)
+//void EssatoArco::checkHallSensorHelper(void *context)
 //{
-//    static_cast<SestoSenso2*>(context)->checkHallSensorCallback();
+//    static_cast<EssatoArco*>(context)->checkHallSensorCallback();
 //}
 
 //
@@ -1343,7 +1720,7 @@ bool SestoSenso2::AbortFocuser()
 // A timer will call this function on a regular interval during the motion
 // Modified the code to exit when motion is complete
 //
-void SestoSenso2::checkMotionProgressCallback()
+void EssatoArco::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
@@ -1387,11 +1764,11 @@ void SestoSenso2::checkMotionProgressCallback()
     lastPos = FocusAbsPosN[0].value;
 
     //    IERmTimer(m_MotionProgressTimerID);
-    //    m_MotionProgressTimerID = IEAddTimer(500, &SestoSenso2::checkMotionProgressHelper, this);
+    //    m_MotionProgressTimerID = IEAddTimer(500, &EssatoArco::checkMotionProgressHelper, this);
     m_MotionProgressTimer.start(500);
 }
 
-void SestoSenso2::checkHallSensorCallback()
+void EssatoArco::checkHallSensorCallback()
 {
     // FIXME
     // Function not getting call from anywhere?
@@ -1411,13 +1788,13 @@ void SestoSenso2::checkHallSensorCallback()
         }
     }
 
-    //m_HallSensorTimerID = IEAddTimer(1000, &SestoSenso2::checkHallSensorHelper, this);
+    //m_HallSensorTimerID = IEAddTimer(1000, &EssatoArco::checkHallSensorHelper, this);
     m_HallSensorTimer.start();
 }
 
-void SestoSenso2::TimerHit()
+void EssatoArco::TimerHit()
 {
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || (m_IsSestoSenso2
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || (m_IsEssatoArco
             && CalibrationSP.s == IPS_BUSY))
     {
         SetTimer(getCurrentPollingPeriod());
@@ -1468,7 +1845,7 @@ void SestoSenso2::TimerHit()
     SetTimer(getCurrentPollingPeriod());
 }
 
-bool SestoSenso2::getStartupValues()
+bool EssatoArco::getStartupValues()
 {
     bool rc = updatePosition();
     if (rc)
@@ -1482,19 +1859,19 @@ bool SestoSenso2::getStartupValues()
 }
 
 
-bool SestoSenso2::ReverseFocuser(bool enable)
+bool EssatoArco::ReverseFocuser(bool enable)
 {
     INDI_UNUSED(enable);
     return false;
 }
 
 
-bool SestoSenso2::Ack()
+bool EssatoArco::Ack()
 {
-    char res[SESTO_LEN] = {0};
+    std::string response;
 
     if (isSimulation())
-        strncpy(res, "1.0 Simulation", SESTO_LEN);
+        response = "1.0 Simulation";
     else
     {
         if(initCommandSet() == false)
@@ -1502,7 +1879,7 @@ bool SestoSenso2::Ack()
             LOG_ERROR("Failed setting attributes on serial port and init command sets");
             return false;
         }
-        if(command->getSerialNumber(res))
+        if(command->getSerialNumber(response))
         {
             LOGF_INFO("Serial number: %s", res);
         }
@@ -1512,7 +1889,7 @@ bool SestoSenso2::Ack()
         }
     }
 
-    m_IsSestoSenso2 = !strstr(res, "ESATTO");
+    m_IsEssatoArco = !strstr(res, "ESATTO");
     IUSaveText(&FirmwareT[FIRMWARE_SN], res);
 
     if (command->getFirmwareVersion(res))
@@ -1529,14 +1906,14 @@ bool SestoSenso2::Ack()
 }
 
 
-void SestoSenso2::setConnectionParams()
+void EssatoArco::setConnectionParams()
 {
     serialConnection->setDefaultBaudRate(serialConnection->B_115200);
     serialConnection->setWordSize(8);
 }
 
 
-bool SestoSenso2::initCommandSet()
+bool EssatoArco::initCommandSet()
 {
     command = new CommandSet(PortFD, getDeviceName());
 
@@ -1555,484 +1932,65 @@ bool SestoSenso2::initCommandSet()
     return true;
 }
 
-bool SestoSenso2::saveConfigItems(FILE *fp)
+bool EssatoArco::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
+    RI::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &MotorRateNP);
     IUSaveConfigNumber(fp, &MotorCurrentNP);
     return true;
 }
 
-bool CommandSet::send(const std::string &request, std::string &response) const
-{
-    tcflush(CommandSet::PortFD, TCIOFLUSH);
-    if (write(CommandSet::PortFD, request.c_str(), request.length()) == 0)
-    {
-        LOGF_ERROR("Failed to send to device: %s", request.c_str());
-        return false;
-    }
-
-    // NOTE: Every request should result in a response from the device
-    char read_buf[SESTO_LEN] = {0};
-    if (read(CommandSet::PortFD, &read_buf, sizeof(read_buf)) == 0)
-    {
-        LOGF_ERROR("No response from device for request: %s", request.c_str());
-        return false;
-    }
-
-    LOGF_DEBUG("Received response: %s", read_buf);
-
-    response = read_buf;
-    return true;
-}
-
-bool CommandSet::sendCmd(const std::string &cmd, std::string property, char *res) const
-{
-    tcflush(PortFD, TCIOFLUSH);
-    LOGF_DEBUG("Sending command: %s with property: %s", cmd.c_str(), property.c_str());
-    std::string response;
-    if (!send(cmd, response))
-        return false;
-
-    if (property.empty() || res == nullptr)
-        return true;
-
-    if (getValueFromResponse(response, property, res) == false)
-    {
-        LOGF_ERROR("Communication error: cmd %s property %s response: %s", cmd.c_str(), property.c_str(), res);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    return true;
-}
-
-bool CommandSet::sendCmd(const std::string &cmd, std::string property, std::string &res) const
-{
-    char response_buff[SESTO_LEN] = {0};
-    bool success = sendCmd(cmd, property, response_buff);
-    res = response_buff;
-    return success;
-}
 
 inline void remove_chars_inplace(std::string &str, char ch)
 {
     str.erase(std::remove(str.begin(), str.end(), ch), str.end());
 }
 
-bool CommandSet::getValueFromResponse(const std::string &response, const std::string &property, char *value) const
+bool getSerialNumber(std::string &response)
 {
-    // FIXME: This parsing code will only return the first named property,
-    // if JSON layout changes, this may break things in unexpected ways.
-
-    // Find property
-    std::size_t property_pos = response.find(property);
-    if (property_pos == std::string::npos)
+    json jsonRequest = {"req", {"get", {"SN", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, jsonResponse))
     {
-        LOGF_ERROR("Failed to find property: %s", property.c_str());
-        return false;
+        jsonResponse["get"]["SN"].get_to(response);
+        return true;
     }
 
-    // Skip past key name
-    std::string sub = response.substr(property_pos + property.length());
+    return false;
+}
 
-    // Find end of current JSON element: , or }
-    std::size_t found = sub.find(",");
-    if(found != std::string::npos)
+bool getFirmwareVersion(std::string &response)
+{
+    json jsonRequest = {"req", {"get", {"SWVERS", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, jsonResponse))
     {
-        sub = sub.substr(0, found);
-    }
-    else
-    {
-        found = sub.find("}");
-        sub = sub.substr(0, found);
+        jsonResponse["get"]["SWVERS"]["SWAPP"].get_to(response);
+        return true;
     }
 
-    // Strip JSON related formatting
-    remove_chars_inplace(sub, '\"');
-    remove_chars_inplace(sub, ',');
-    remove_chars_inplace(sub, ':');
-    strcpy(value, sub.c_str());
-
-    return true;
+    return false;
 }
 
-bool CommandSet::parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const
+bool abort()
 {
-    char valueBuff[SESTO_LEN] = { 0 };
-    if (!getValueFromResponse(response, property, valueBuff))
-        return false;
-
-    if (sscanf(valueBuff, "%u", &result) != 1)
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"MOT_ABORT", ""}}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, jsonResponse))
     {
-        LOGF_ERROR("Failed to parse integer property %s with value: %s", property.c_str(), valueBuff);
-        return false;
+        return jsonResponse["get"]["cmd"]["MOT1"]["MOT_ABORT"] == "done";
     }
 
-    return true;
+    return false;
 }
 
-bool CommandSet::getSerialNumber(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
-}
-
-bool CommandSet::getFirmwareVersion(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"SWVERS\":\"\"}}}", "SWAPP", res);
-}
-
-bool CommandSet::abort()
-{
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_ABORT\":\"\"}}}}");
-}
-
-bool CommandSet::go(uint32_t targetTicks, char *res)
+bool go(uint32_t targetTicks, char *res)
 {
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
-    return sendCmd(cmd, "GOTO", res);
-}
-
-bool CommandSet::stop()
-{
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_STOP\":\"\"}}}}");
-}
-
-bool CommandSet::goHome(char *res)
-{
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}", "GOHOME", res);
-}
-
-bool CommandSet::fastMoveOut(char *res)
-{
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_OUTW\":\"\"}}}}", "F_OUTW", res);
-}
-
-bool CommandSet::fastMoveIn(char *res)
-{
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}", "F_INW", res);
-}
-
-bool CommandSet::getMaxPosition(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
-}
-
-bool CommandSet::getHallSensor(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "HSENDET", res);
-}
-
-bool CommandSet::storeAsMaxPosition(char *res)
-{
-    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}", res);
-}
-
-bool CommandSet::goOutToFindMaxPos()
-{
-    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
-}
-
-bool CommandSet::storeAsMinPosition()
-{
-    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
-}
-
-bool CommandSet::initCalibration()
-{
-    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
-}
-
-bool CommandSet::getAbsolutePosition(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
-}
-
-bool CommandSet::getCurrentSpeed(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
-}
-
-bool CommandSet::applyMotorPreset(const char *name)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":\"%s\"}}}", name);
-
-    std::string result;
-    if (!sendCmd(cmd, "RUNPRESET", result))
-        return false;
-
-    if (result == "done")
-        return true;
-
-    LOGF_ERROR("Req RUNPRESET %s returned: %s", name, result.c_str());
-    return false;
-}
-
-bool CommandSet::applyMotorUserPreset(uint32_t index)
-{
-    // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
-    // command fails when applied to user presets. Therefore here we
-    // fetch the motor preset and then apply it ourselves.
-    char request[SESTO_LEN] = {0};
-    snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);
-
-    std::string response;
-    if (!send(request, response))
-        return false;   // send() call handles failure logging
-
-    MotorRates mr;
-    MotorCurrents mc;
-    if (parseUIntFromResponse(response, "M1ACC", mr.accRate)
-            && parseUIntFromResponse(response, "M1SPD", mr.runSpeed)
-            && parseUIntFromResponse(response, "M1DEC", mr.decRate)
-            && parseUIntFromResponse(response, "M1CACC", mc.accCurrent)
-            && parseUIntFromResponse(response, "M1CSPD", mc.runCurrent)
-            && parseUIntFromResponse(response, "M1CDEC", mc.decCurrent)
-            && parseUIntFromResponse(response, "M1HOLD", mc.holdCurrent))
-    {
-        return setMotorRates(mr) && setMotorCurrents(mc);
-    }
-
-    // parseUIntFromResponse() should log failure
-    return false;
-
-    /* TODO: Replace above code with this once RUNPRESET is verified as fixed:
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":%u}}}", index);
-
-    std::string result;
-    if (!sendCmd(cmd, "RUNPRESET", result))
-        return false;
-
-    if (result == "done")
-        return true;
-
-    LOGF_ERROR("Req RUNPRESET %u returned: %s cmd:\n%s", index, result.c_str(), cmd);
-    return false;
-    */
-}
-
-constexpr char MOTOR_SAVE_PRESET_CMD[] =
-    "{\"req\":{\"set\":{\"RUNPRESET_%u\":{"
-    "\"RP_NAME\":\"User%u\","
-    "\"M1ACC\":%u,\"M1DEC\":%u,\"M1SPD\":%u,"
-    "\"M1CACC\":%u,\"M1CDEC\":%u,\"M1CSPD\":%u,\"M1HOLD\":%u"
-    "}}}}";
-
-bool CommandSet::saveMotorUserPreset(uint32_t index, MotorRates &mr, MotorCurrents &mc)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_SAVE_PRESET_CMD, index,
-             index,
-             mr.accRate, mr.decRate, mr.runSpeed,
-             mc.accCurrent, mc.decCurrent, mc.runCurrent, mc.holdCurrent);
-
-    std::string result;
-    if (!sendCmd(cmd, "M1ACC", result))
-        return false;
-
-    // TODO: Check each parameter's result
-    if (result == "done")
-        return true;
-
-    LOGF_ERROR("Set RUNPRESET %u returned: %s", index, result.c_str());
-    return false;
-}
-
-bool CommandSet::getMotorTemp(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
-}
-
-bool CommandSet::getExternalTemp(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
-}
-
-bool CommandSet::getVoltageIn(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
-}
-
-bool CommandSet::getMotorSettings(struct MotorRates &mr, struct MotorCurrents &mc, bool &motorHoldActive)
-{
-    std::string response;
-    if (!send("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", response))
-        return false;   // send() call handles failure logging
-
-    uint32_t holdStatus = 0;
-    if (parseUIntFromResponse(response, "FnRUN_ACC", mr.accRate)
-            && parseUIntFromResponse(response, "FnRUN_SPD", mr.runSpeed)
-            && parseUIntFromResponse(response, "FnRUN_DEC", mr.decRate)
-            && parseUIntFromResponse(response, "FnRUN_CURR_ACC", mc.accCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_SPD", mc.runCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_DEC", mc.decCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", mc.holdCurrent)
-            && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
-    {
-        motorHoldActive = holdStatus != 0;
-        return true;
-    }
-
-    // parseUIntFromResponse() should log failure
-    return false;
-}
-
-constexpr char MOTOR_RATES_CMD[] =
-    "{\"req\":{\"set\":{\"MOT1\":{"
-    "\"FnRUN_ACC\":%u,"
-    "\"FnRUN_SPD\":%u,"
-    "\"FnRUN_DEC\":%u"
-    "}}}}";
-
-bool CommandSet::setMotorRates(struct MotorRates &mr)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_RATES_CMD, mr.accRate, mr.runSpeed, mr.decRate);
-
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
-}
-
-constexpr char MOTOR_CURRENTS_CMD[] =
-    "{\"req\":{\"set\":{\"MOT1\":{"
-    "\"FnRUN_CURR_ACC\":%u,"
-    "\"FnRUN_CURR_SPD\":%u,"
-    "\"FnRUN_CURR_DEC\":%u,"
-    "\"FnRUN_CURR_HOLD\":%u"
-    "}}}}";
-
-bool CommandSet::setMotorCurrents(struct MotorCurrents &mc)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, mc.accCurrent, mc.runCurrent, mc.decCurrent, mc.holdCurrent);
-
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
-}
-
-bool CommandSet::setMotorHold(bool hold)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"set\":{\"MOT1\":{\"HOLDCURR_STATUS\":%u}}}}", hold ? 1 : 0);
-
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
-}
-
-bool CommandSet::getARCO(char *res)
-{
-    return sendCmd("{\"req\":{\"get\":{\"ARCO\":\"\"}}}", "ARCO", res);
-}
-
-//bool CommandSet::getArcoAbsPos(char *res)
-//{
-
-//return sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}","ABS_POS", res);
-
-//}
-
-double CommandSet::getArcoAbsPos()
-{
-
-    char res[SESTO_LEN] = {0};
-    std::string buf;
-    bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}", "ABS_POS", res);
-    if(rc == true)
-    {
-        std::string my_string(res);
-        buf = my_string.substr(0, my_string.length() - 5);
-
-    }
-    return std::stof(buf);
+    return sendCommand(cmd, "GOTO", res);
 }
 
 
-double CommandSet::getArcoPosition()
-{
-
-    char res[SESTO_LEN] = {0};
-    std::string buf;
-    bool rc = sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"POSITION\":\"DEG\"}}}}", "POSITION", res);
-    if(rc == true)
-    {
-        std::string my_string(res);
-        buf = my_string.substr(0, my_string.length() - 5);
-
-    }
-    return std::stof(buf);
-}
-
-
-
-bool CommandSet::setArcoAbsPos(double targetAngle, char *res)
-{
-    char cmd[SESTO_LEN] = {0};
-    LOGF_INFO("Angle recieved: %f", targetAngle);
-    if(targetAngle > getArcoAbsPos() + 180.)
-    {
-        targetAngle -= 360.0;
-    }
-
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"GOTO\":{\"DEG\":%f}}}}}", targetAngle);
-
-    //LOG_INFO("Hallo");
-    LOGF_INFO("Command sent: %s", cmd);
-    LOGF_INFO("Rotator moving to: %f", targetAngle);
-    return sendCmd(cmd, "DEG", res);
-}
-
-bool CommandSet::isArcoBusy()
-{
-    char res[SESTO_LEN] = {0};
-
-    if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":\"\"}}}", "BUSY", res))
-    {
-        LOG_INFO("Could not check if Arco is busy.");
-        return true;
-    }
-
-    int busy = std::stoi(res);
-    if(!(busy == 0)) return true;
-
-    return false;
-}
-
-bool CommandSet::stopArco()
-{
-    char res[SESTO_LEN] = {0};
-    return sendCmd("{\"req\":{\"cmd\":{\"MOT2\":{\"MOT_STOP\":\"\"}}}}", "MOT_STOP", res);
-}
-
-
-bool CommandSet::syncArco(double angle)
-{
-    char res[SESTO_LEN] = {0};
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"SYNC_POS\":{\"DEG\":%f}}}}}", angle);
-    return sendCmd(cmd, "DEG", res);
-}
-
-bool CommandSet::calArco()
-{
-    char res[SESTO_LEN] = {0};
-    return sendCmd("{\"req\":{\"set\":{\"MOT2\":{\"CAL_STATUS\":\"exec\"}}}}", "CAL_STATUS", res);
-}
-
-bool CommandSet::isArcoCalibrating()
-{
-    char res[SESTO_LEN] = {0};
-    if(!sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"CAL_STATUS\":\"\"}}}}", "CAL_STATUS", res))
-    {
-        LOG_INFO("Could not check if Arco is Calibrating.");
-        return true;
-    }
-    std::string result(res);
-    if(result == "exec") return true;
-    return false;
-
-}

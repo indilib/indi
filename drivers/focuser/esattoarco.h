@@ -1,6 +1,8 @@
 /*
-    SestoSenso 2 Focuser
+    Primaluca Labs Essato-Arco Focuser+Rotator Driver
+
     Copyright (C) 2020 Piotr Zyziuk
+    Copyright (C) 2020-2022 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -16,6 +18,8 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    JM 2022.07.16: Major refactor to using json.h and update to Essato Arco
+    Document protocol revision 3.3 (8th July 2022).
 */
 
 #pragma once
@@ -23,24 +27,21 @@
 #include "indifocuser.h"
 #include "inditimer.h"
 #include "indirotatorinterface.h"
+#include "json.h"
 
-class CommandSet
+using json = nlohmann::json;
+
+namespace CommandSet
 {
-
-    public:
-        CommandSet(int Port, const char *deviceName)
-        {
-            PortFD = Port;
-            this->deviceName = deviceName;
-        }
-        int PortFD;
+    namespace Essato
+    {
         bool stop();
-        bool getSerialNumber(char *res);
-        bool getFirmwareVersion(char *res);
+        bool getSerialNumber(std::string &response);
+        bool getFirmwareVersion(std::string &response);
         bool abort();
-        bool go(uint32_t targetTicks, char *res);
+        bool go(uint32_t targetTicks);
         bool goHome(char *res);
-        bool fastMoveOut(char *res);
+        bool fastMoveOut();
         bool fastMoveIn(char *res);
         bool getMaxPosition(char *res);
         bool getHallSensor(char *res);
@@ -60,60 +61,57 @@ class CommandSet
         bool setMotorRates(struct MotorRates &ms);
         bool setMotorCurrents(struct MotorCurrents &mc);
         bool setMotorHold(bool hold);
-        bool getARCO(char *res);
-        //bool getArcoAbsPos(char *res);
-        double getArcoAbsPos();
-        double getArcoPosition();
-        bool setArcoAbsPos(double angle, char *res);
-        bool isArcoBusy();
-        bool stopArco();
-        bool syncArco(double angle);
-        bool calArco();
-        bool isArcoCalibrating();
+    }
 
-
-
-        std::string deviceName;
-
-        const char *getDeviceName() const
+    namespace Arco
+    {
+        typedef enum
         {
-            return deviceName.c_str();
-        }
+            UNIT_STEPS,
+            UNIT_DEGREES,
+            UNIT_ARCSECS
+        } Units;
 
-    private:
+        // Arco functions
+        bool getARCO(char *res);
+        bool getAbsolutePosition(Units unit, double &value);
+        bool setAbsolutePoition(Units unit, double value);
+        bool sync(Units unit, double angle);
+        bool isBusy();
+        bool stop();
+        bool calibrate();
+        bool isCalibrating();
+    }
 
-        // Send request and return full response
-        bool send(const std::string &request, std::string &response) const;
-        // Send command and parse response looking for value of property
-        bool sendCmd(const std::string &cmd, std::string property = "", char *res = nullptr) const;
-        bool sendCmd(const std::string &cmd, std::string property, std::string &res) const;
-        bool getValueFromResponse(const std::string &response, const std::string &property, char *value) const;
-        bool parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const;
+    std::string deviceName;
+    int PortFD {-1};
+    const char *getDeviceName() { return deviceName.c_str();}
+    // Send command
+    bool sendCommand(const std::string &command, json *response = nullptr);
 
         // Maximum buffer for sending/receving.
-        static constexpr const int SESTO_LEN {1024};
+        static constexpr const int DRIVER_LEN {1024};
+        static const char DRIVER_STOP_CHAR { 0xD };
+        static const char DRIVER_TIMEOUT { 5 };
         enum
         {
             CMD_OK = true,
             CMD_FALSE = false
         };
-
 };
 
-class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
+
+class EssatoArco : public INDI::Focuser, public INDI::RotatorInterface
 {
     public:
-        SestoSenso2();
-        virtual ~SestoSenso2() override = default;
+        EssatoArco();
+        virtual ~EssatoArco() override = default;
 
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-
-        //        static void checkMotionProgressHelper(void *context);
-        //        static void checkHallSensorHelper(void *context);
 
     protected:
         virtual bool Handshake() override;
@@ -128,12 +126,10 @@ class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
         virtual bool saveConfigItems(FILE *fp) override;
 
         // Rotator
-        //virtual IPState HomeRotator() override;
         virtual IPState MoveRotator(double angle) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;
-
-
+        virtual bool ReverseRotator(bool enabled) override;
 
     private:
         bool Ack();
@@ -152,13 +148,9 @@ class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
         void checkMotionProgressCallback();
         void checkHallSensorCallback();
 
-        CommandSet *command {nullptr};
-
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
-
-
 
         FocusDirection backlashDirection { FOCUS_INWARD };
         FocusDirection oldbacklashDirection { FOCUS_INWARD };
@@ -309,8 +301,6 @@ class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
         typedef enum { RotCalIdle, RotCalComplete } RotCalibrationStage;
         RotCalibrationStage rcStage { RotCalIdle };
 
-
-
         ISwitch RotCalibrationS[1];
         ISwitchVectorProperty RotCalibrationSP;
         enum
@@ -318,29 +308,6 @@ class SestoSenso2 : public INDI::Focuser, public INDI::RotatorInterface
             ARCO_CALIBRATION_START
         };
 
-
-
-
-
-
-
-        //        int m_MotionProgressTimerID {-1};
-        //        int m_HallSensorTimerID {-1};
         INDI::Timer m_MotionProgressTimer;
         INDI::Timer m_HallSensorTimer;
-        bool m_IsSestoSenso2 { true };
-        /////////////////////////////////////////////////////////////////////////////
-        /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////
-        // CR is the stop char
-        static const char SESTO_STOP_CHAR { 0xD };
-        // Update temperature every 10x POLLMS. For 500ms, we would
-        // update the temperature one every 5 seconds.
-        static constexpr const uint8_t SESTO_TEMPERATURE_FREQ {10};
-        // Wait up to a maximum of 3 seconds for serial input
-        static constexpr const uint8_t SESTO_TIMEOUT {5};
-        // Maximum buffer for sending/receving.
-        static constexpr const int SESTO_LEN {1024};
-
-
 };
