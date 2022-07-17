@@ -44,20 +44,6 @@ static const char *MOTOR_TAB  = "Motor";
 static const char *ENVIRONMENT_TAB  = "Environment";
 static const char *ROTATOR_TAB = "Rotator";
 
-struct MotorRates
-{
-    // Rate values: 1-10
-    uint32_t accRate = 0, runSpeed = 0, decRate = 0;
-};
-
-struct MotorCurrents
-{
-    // Current values: 1-10
-    uint32_t accCurrent = 0, runCurrent = 0, decCurrent = 0;
-    // Hold current: 1-5
-    uint32_t holdCurrent = 0;
-};
-
 // Settings names for the default motor settings presets
 const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
 
@@ -121,97 +107,103 @@ bool fastMoveOut()
     json jsonResponse;
     if (sendCommand(jsonRequest, &jsonResponse))
     {
-        return jsonResponse["get"]["cmd"]["MOT1"]["F_OUTW"] == "done";
+        return jsonResponse["get"]["MOT1"]["F_OUTW"] == "done";
     }
     return false;
 }
 
-bool fastMoveIn(char *res)
+bool fastMoveIn()
 {
-    return sendCommand("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}", "F_INW", res);
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"F_INW", ""}}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        return jsonResponse["get"]["MOT1"]["F_INW"] == "done";
+    }
+    return false;
 }
 
-bool getMaxPosition(char *res)
+bool getMaxPosition(uint32_t &position)
 {
-    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"]["CAL_MAXPOS"].get_to(position);
+        return true;
+    }
+    return false;
 }
 
-bool getHallSensor(char *res)
+bool isHallSensorDetected(bool &isDetected)
 {
-    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "HSENDET", res);
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        int detected = jsonResponse["get"]["MOT1"]["HSENDET"].get<int>();
+        isDetected = detected == 1;
+        return true;
+    }
+    return false;
 }
 
-bool storeAsMaxPosition(char *res)
+bool storeAsMaxPosition()
 {
-    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}", res);
-}
-
-bool goOutToFindMaxPos()
-{
-    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "StoreAsMaxPos"}}}};
+    return sendCommand(jsonRequest);
 }
 
 bool storeAsMinPosition()
 {
-    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "StoreAsMinPos"}}}};
+    return sendCommand(jsonRequest);
+}
+
+bool goOutToFindMaxPos()
+{
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "GoOutToFindMaxPos"}}}};
+    return sendCommand(jsonRequest);
 }
 
 bool initCalibration()
 {
-    return sendCommand("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
+    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "Init"}}}};
+    return sendCommand(jsonRequest);
 }
 
-bool getAbsolutePosition(char *res)
+bool getAbsolutePosition(uint32_t &position)
 {
-    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
-}
-
-bool getCurrentSpeed(char *res)
-{
-    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
-}
-
-bool applyMotorPreset(const char *name)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":\"%s\"}}}", name);
-
-    std::string result;
-    if (!sendCommand(cmd, "RUNPRESET", result))
-        return false;
-
-    if (result == "done")
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"]["ABS_POS"].get_to(position);
         return true;
-
-    LOGF_ERROR("Req RUNPRESET %s returned: %s", name, result.c_str());
+    }
     return false;
 }
 
-bool applyMotorUserPreset(uint32_t index)
+bool getCurrentSpeed(uint32_t &speed)
 {
-    // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
-    // command fails when applied to user presets. Therefore here we
-    // fetch the motor preset and then apply it ourselves.
-    char request[SESTO_LEN] = {0};
-    snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);
-
-    std::string response;
-    if (!send(request, response))
-        return false;   // send() call handles failure logging
-
-    MotorRates mr;
-    MotorCurrents mc;
-    if (parseUIntFromResponse(response, "M1ACC", mr.accRate)
-            && parseUIntFromResponse(response, "M1SPD", mr.runSpeed)
-            && parseUIntFromResponse(response, "M1DEC", mr.decRate)
-            && parseUIntFromResponse(response, "M1CACC", mc.accCurrent)
-            && parseUIntFromResponse(response, "M1CSPD", mc.runCurrent)
-            && parseUIntFromResponse(response, "M1CDEC", mc.decCurrent)
-            && parseUIntFromResponse(response, "M1HOLD", mc.holdCurrent))
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
     {
-        return setMotorRates(mr) && setMotorCurrents(mc);
+        jsonResponse["get"]["MOT1"]["SPEED"].get_to(speed);
+        return true;
     }
+    return false;
+}
 
+bool applyMotorPreset(const std::string &name)
+{
+    json jsonRequest = {"req", {"cmd", {"RUNPRESET", name}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        return jsonResponse["get"]["RUNPRESET"] == "done";
+    }
     return false;
 }
 
@@ -222,7 +214,7 @@ bool applyMotorUserPreset(uint32_t index)
 //    "\"M1CACC\":%u,\"M1CDEC\":%u,\"M1CSPD\":%u,\"M1HOLD\":%u"
 //    "}}}}";
 
-bool saveMotorUserPreset(uint32_t index, MotorRates &mr, MotorCurrents &mc)
+bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
 {
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), MOTOR_SAVE_PRESET_CMD, index,

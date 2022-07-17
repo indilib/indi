@@ -33,6 +33,20 @@ using json = nlohmann::json;
 
 namespace CommandSet
 {
+typedef struct MotorRates
+{
+    // Rate values: 1-10
+    uint32_t accRate = 0, runSpeed = 0, decRate = 0;
+} MotorRates;
+
+typedef struct MotorCurrents
+{
+    // Current values: 1-10
+    uint32_t accCurrent = 0, runCurrent = 0, decCurrent = 0;
+    // Hold current: 1-5
+    uint32_t holdCurrent = 0;
+} MotorCurrents;
+
     namespace Essato
     {
         bool stop();
@@ -42,18 +56,17 @@ namespace CommandSet
         bool go(uint32_t targetTicks);
         bool goHome(char *res);
         bool fastMoveOut();
-        bool fastMoveIn(char *res);
-        bool getMaxPosition(char *res);
+        bool fastMoveIn();
+        bool getMaxPosition(uint32_t &position);
         bool getHallSensor(char *res);
-        bool storeAsMaxPosition(char *res);
+        bool storeAsMaxPosition();
         bool goOutToFindMaxPos();
         bool storeAsMinPosition();
         bool initCalibration();
         bool getAbsolutePosition(char *res);
         bool getCurrentSpeed(char *res);
-        bool applyMotorPreset(const char *name);
-        bool applyMotorUserPreset(uint32_t index);
-        bool saveMotorUserPreset(uint32_t index, struct MotorRates &mr, struct MotorCurrents &mc);
+        bool applyMotorPreset(const std::string &name);
+        bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
         bool getMotorTemp(char *res);
         bool getExternalTemp(char *res);
         bool getVoltageIn(char *res);
@@ -73,7 +86,7 @@ namespace CommandSet
         } Units;
 
         // Arco functions
-        bool getARCO(char *res);
+        bool isDetected();
         bool getAbsolutePosition(Units unit, double &value);
         bool setAbsolutePoition(Units unit, double value);
         bool sync(Units unit, double angle);
