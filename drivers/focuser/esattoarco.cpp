@@ -196,6 +196,42 @@ bool getCurrentSpeed(uint32_t &speed)
     return false;
 }
 
+bool getMotorTemp(double &value)
+{
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"]["NTC_T"].get_to(value);
+        return true;
+    }
+    return false;
+}
+
+bool getExternalTemp(double &value)
+{
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"]["EXT_T"].get_to(value);
+        return true;
+    }
+    return false;
+}
+
+bool getVoltageIn(double &value)
+{
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"]["VIN_12V"].get_to(value);
+        return true;
+    }
+    return false;
+}
+
 bool applyMotorPreset(const std::string &name)
 {
     json jsonRequest = {"req", {"cmd", {"RUNPRESET", name}}};
@@ -207,80 +243,47 @@ bool applyMotorPreset(const std::string &name)
     return false;
 }
 
-//constexpr char MOTOR_SAVE_PRESET_CMD[] =
-//    "{\"req\":{\"set\":{\"RUNPRESET_%u\":{"
-//    "\"RP_NAME\":\"User%u\","
-//    "\"M1ACC\":%u,\"M1DEC\":%u,\"M1SPD\":%u,"
-//    "\"M1CACC\":%u,\"M1CDEC\":%u,\"M1CSPD\":%u,\"M1HOLD\":%u"
-//    "}}}}";
-
 bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
 {
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_SAVE_PRESET_CMD, index,
-             index,
-             mr.accRate, mr.decRate, mr.runSpeed,
-             mc.accCurrent, mc.decCurrent, mc.runCurrent, mc.holdCurrent);
+    auto name = std::string("RUNPRESET_") + std::to_string(index);
+    auto user = std::string("user_") + std::to_string(index);
 
-    std::string result;
-    if (!sendCommand(cmd, "M1ACC", result))
-        return false;
+    json preset = {{"RP_NAME", user},
+        {"M1ACC", rates.accRate},
+        {"M1DEC", rates.decRate},
+        {"M1SPD", rates.runSpeed},
+        {"M1CACC", currents.accCurrent},
+        {"M1CDEC", currents.decCurrent},
+        {"M1CSPD", currents.runCurrent},
+        {"M1CHOLD", currents.holdCurrent}
+    };
 
-    // TODO: Check each parameter's result
-    if (result == "done")
-        return true;
-
-    LOGF_ERROR("Set RUNPRESET %u returned: %s", index, result.c_str());
-    return false;
+    json jsonRequest = {"req", {"cmd", {name, preset}}};
+    return sendCommand(jsonRequest);
 }
 
-bool getMotorTemp(char *res)
+bool getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive)
 {
-    return sendCommand("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
-}
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
 
-bool getExternalTemp(char *res)
-{
-    return sendCommand("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
-}
-
-bool getVoltageIn(char *res)
-{
-    return sendCommand("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
-}
-
-bool getMotorSettings(struct MotorRates &mr, struct MotorCurrents &mc, bool &motorHoldActive)
-{
-    std::string response;
-    if (!send("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", response))
-        return false;   // send() call handles failure logging
-
-    uint32_t holdStatus = 0;
-    if (parseUIntFromResponse(response, "FnRUN_ACC", mr.accRate)
-            && parseUIntFromResponse(response, "FnRUN_SPD", mr.runSpeed)
-            && parseUIntFromResponse(response, "FnRUN_DEC", mr.decRate)
-            && parseUIntFromResponse(response, "FnRUN_CURR_ACC", mc.accCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_SPD", mc.runCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_DEC", mc.decCurrent)
-            && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", mc.holdCurrent)
-            && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
+    if (sendCommand(jsonRequest, &jsonResponse))
     {
-        motorHoldActive = holdStatus != 0;
+        jsonResponse["get"]["MOT1"]["FnRUN_ACC"].get_to(rates.accRate);
+        jsonResponse["get"]["MOT1"]["FnRUN_DEC"].get_to(rates.decRate);
+        jsonResponse["get"]["MOT1"]["FnRUN_SPD"].get_to(rates.runSpeed);
+
+        jsonResponse["get"]["MOT1"]["FnRUN_CURR_ACC"].get_to(currents.accCurrent);
+        jsonResponse["get"]["MOT1"]["FnRUN_CURR_DEC"].get_to(currents.decCurrent);
+        jsonResponse["get"]["MOT1"]["FnRUN_CURR_SPD"].get_to(currents.runCurrent);
+        jsonResponse["get"]["MOT1"]["FnRUN_CURR_HOLD"].get_to(currents.holdCurrent);
+        jsonResponse["get"]["MOT1"]["HOLDCURR_STATUS"].get_to(motorHoldActive);
         return true;
     }
-
-    // parseUIntFromResponse() should log failure
     return false;
 }
 
-//constexpr char MOTOR_RATES_CMD[] =
-//    "{\"req\":{\"set\":{\"MOT1\":{"
-//    "\"FnRUN_ACC\":%u,"
-//    "\"FnRUN_SPD\":%u,"
-//    "\"FnRUN_DEC\":%u"
-//    "}}}}";
-
-bool setMotorRates(struct MotorRates &mr)
+bool setMotorRates(const MotorRates &rates)
 {
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), MOTOR_RATES_CMD, mr.accRate, mr.runSpeed, mr.decRate);
@@ -297,10 +300,11 @@ bool setMotorRates(struct MotorRates &mr)
 //    "\"FnRUN_CURR_HOLD\":%u"
 //    "}}}}";
 
-bool setMotorCurrents(struct MotorCurrents &mc)
+bool setMotorCurrents(const MotorCurrents &current)
 {
     char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, mc.accCurrent, mc.runCurrent, mc.decCurrent, mc.holdCurrent);
+    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, current.accCurrent, current.runCurrent, current.decCurrent,
+             current.holdCurrent);
 
     std::string response;
     return send(cmd, response); // TODO: Check response!

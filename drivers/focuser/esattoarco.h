@@ -67,12 +67,12 @@ typedef struct MotorCurrents
         bool getCurrentSpeed(char *res);
         bool applyMotorPreset(const std::string &name);
         bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
-        bool getMotorTemp(char *res);
-        bool getExternalTemp(char *res);
-        bool getVoltageIn(char *res);
-        bool getMotorSettings(struct MotorRates &ms, struct MotorCurrents &mc, bool &motorHoldActive);
-        bool setMotorRates(struct MotorRates &ms);
-        bool setMotorCurrents(struct MotorCurrents &mc);
+        bool getMotorTemp(double &value);
+        bool getExternalTemp(double &value);
+        bool getVoltageIn(double &value);
+        bool getMotorSettings(struct MotorRates &rates, struct MotorCurrents &currents, bool &motorHoldActive);
+        bool setMotorRates(const MotorRates &rates);
+        bool setMotorCurrents(const MotorCurrents &current);
         bool setMotorHold(bool hold);
     }
 
