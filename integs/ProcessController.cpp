@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>
@@ -148,8 +149,16 @@ void ProcessController::expectAlive() {
 
 void ProcessController::expectExitCode(int e) {
     expectDone();
+
+    if (!WIFEXITED(status)) {
+        if (WIFSIGNALED(status)) {
+            throw std::runtime_error(cmd + " got signal " + strsignal(WTERMSIG(status)));
+        }
+        // Not sure this is possible at all
+        throw std::runtime_error(cmd + " exited abnormaly");
+    }
     int actual = WEXITSTATUS(status);
     if (actual != e) {
-        throw std::runtime_error("Wrong exit code of indiserver: got " + std::to_string(actual) + " - expecting: " + std::to_string(e));
+        throw std::runtime_error("Wrong exit code for " + cmd + ": got " + std::to_string(actual) + " - expecting: " + std::to_string(e));
     }
 }

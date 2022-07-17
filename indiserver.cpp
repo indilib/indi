@@ -2361,6 +2361,9 @@ void MsgQueue::writeToFd()
         {
             consumeHeadMsg();
             mp = headMsg();
+            if (mp == nullptr) {
+                return;
+            }
         }
     }
     while(nsend == 0);
