@@ -95,53 +95,77 @@ bool sendCommand(const std::string &command, json *response)
 
 namespace Essato
 {
+
+template <typename T> bool getMotorParameter(const std::string &parameter, T &value)
+{
+    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"]["MOT1"][parameter].get_to(value);
+        return true;
+    }
+    return false;
+
+}
+
+bool setMotorCommandDone(const json &command)
+{
+    json jsonRequest = {"req", {"cmd", {"MOT1", command}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        auto key = command.items().begin().key();
+        return jsonResponse["get"]["MOT1"][key] == "done";
+    }
+
+
+    return false;
+}
+
+template <typename T> bool setMotorCommand(const json &command, T *response)
+{
+    json jsonRequest = {"req", {"cmd", {"MOT1", command}}};
+    if (response == nullptr)
+        return sendCommand(jsonRequest);
+    else
+    {
+        json jsonResponse;
+        if (sendCommand(jsonRequest, &jsonResponse))
+        {
+            auto key = command.items().begin().key();
+            return jsonResponse["get"]["MOT1"][key].get_to(*response);
+        }
+    }
+
+    return false;
+}
+
 bool stop()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"MOT_STOP", ""}}}};
-    return sendCommand(jsonRequest);
+    return setMotorCommand({"MOT_STOP", ""});
 }
 
 bool fastMoveOut()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"F_OUTW", ""}}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        return jsonResponse["get"]["MOT1"]["F_OUTW"] == "done";
-    }
-    return false;
+    return setMotorCommandDone({"F_OUTW", ""});
 }
 
 bool fastMoveIn()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"F_INW", ""}}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        return jsonResponse["get"]["MOT1"]["F_INW"] == "done";
-    }
-    return false;
+    return setMotorCommandDone({"F_INW", ""});
 }
 
 bool getMaxPosition(uint32_t &position)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["CAL_MAXPOS"].get_to(position);
-        return true;
-    }
-    return false;
+    return getMotorParameter("CAL_MAXPOS", position);
 }
 
 bool isHallSensorDetected(bool &isDetected)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
+    int detected = 0;
+    if (getMotorParameter("CAL_MAXPOS", detected))
     {
-        int detected = jsonResponse["get"]["MOT1"]["HSENDET"].get<int>();
         isDetected = detected == 1;
         return true;
     }
@@ -150,26 +174,22 @@ bool isHallSensorDetected(bool &isDetected)
 
 bool storeAsMaxPosition()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "StoreAsMaxPos"}}}};
-    return sendCommand(jsonRequest);
+    return setMotorCommand({"CAL_FOCUSER", "StoreAsMaxPos"});
 }
 
 bool storeAsMinPosition()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "StoreAsMinPos"}}}};
-    return sendCommand(jsonRequest);
+    return setMotorCommand({"CAL_FOCUSER", "StoreAsMinPos"});
 }
 
 bool goOutToFindMaxPos()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "GoOutToFindMaxPos"}}}};
-    return sendCommand(jsonRequest);
+    return setMotorCommand({"CAL_FOCUSER", "GoOutToFindMaxPos"});
 }
 
 bool initCalibration()
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"CAL_FOCUSER", "Init"}}}};
-    return sendCommand(jsonRequest);
+    return setMotorCommand({"CAL_FOCUSER", "Init"});
 }
 
 bool getAbsolutePosition(uint32_t &position)

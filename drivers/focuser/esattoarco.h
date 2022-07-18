@@ -48,7 +48,13 @@ typedef struct MotorCurrents
 } MotorCurrents;
 
     namespace Essato
-    {
+    {        
+        bool setMotorCommandDone(const json &command);
+
+        template <typename T = int32_t> bool getMotorParameter(const std::string &parameter, T &value);
+        template <typename T = int32_t> bool setMotorCommand(const json &command, T *response = nullptr);
+
+
         bool stop();
         bool getSerialNumber(std::string &response);
         bool getFirmwareVersion(std::string &response);
