@@ -1372,11 +1372,9 @@ IPState NightCrawler::MoveRotator(double angle)
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
     const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
-    auto newAngle = 0;
+    auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
-        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
-    else
-        newAngle = ( angle > 180 ? angle - 360 : angle);
+        newAngle *= -1;
 
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
     if (newTarget < RotatorAbsPosN[0].min)
@@ -1399,11 +1397,9 @@ IPState NightCrawler::MoveRotator(double angle)
 bool NightCrawler::SyncRotator(double angle)
 {
     const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
-    auto newAngle = 0;
+    auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
-        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
-    else
-        newAngle = ( angle > 180 ? angle - 360 : angle);
+        newAngle *= -1;
 
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
     if (newTarget < RotatorAbsPosN[0].min)
