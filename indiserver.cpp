@@ -1027,7 +1027,11 @@ int main(int ac, char *av[])
     (new UnixServer(UnixServer::unixSocketPath))->listen();
 #endif
     /* Load up FIFO, if available */
-    if (fifo) fifo->listen();
+    if (fifo) {
+        // New started drivers will not inherit server's prefix anymore
+        unsetenv("INDIPREFIX");
+        fifo->listen();
+    }
 
     /* handle new clients and all io */
     loop.loop();
@@ -1192,8 +1196,6 @@ void LocalDvrInfo::start()
         }
         else
         {
-            if (fifo)
-                unsetenv("INDIPREFIX");
             if (name[0] == '.')
             {
                 executable = std::string(dirname((char*)me)) + "/" + name;
@@ -2361,6 +2363,9 @@ void MsgQueue::writeToFd()
         {
             consumeHeadMsg();
             mp = headMsg();
+            if (mp == nullptr) {
+                return;
+            }
         }
     }
     while(nsend == 0);

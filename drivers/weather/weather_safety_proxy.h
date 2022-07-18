@@ -84,7 +84,7 @@ class WeatherSafetyProxy : public INDI::Weather
     private:
         IPState executeScript();
         IPState executeCurl();
-        IPState parseSafetyJSON(const char *buf, int byte_count);
+        IPState parseSafetyJSON(const std::string &buffer);
 
         IText keywordT[1] {};
         ITextVectorProperty keywordTP;
