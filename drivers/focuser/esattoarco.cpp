@@ -93,39 +93,23 @@ bool sendCommand(const std::string &command, json *response)
     return true;
 }
 
-namespace Essato
+template <typename T> bool motorGet(MotorType type, const std::string &parameter, T &value)
 {
-
-template <typename T> bool getMotorParameter(const std::string &parameter, T &value)
-{
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
+    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
+    json jsonRequest = {"req", {"get", {motor, ""}}};
     json jsonResponse;
     if (sendCommand(jsonRequest, &jsonResponse))
     {
-        jsonResponse["get"]["MOT1"][parameter].get_to(value);
+        jsonResponse["get"][motor][parameter].get_to(value);
         return true;
     }
     return false;
 
 }
 
-bool setMotorCommandDone(const json &command)
+template <typename T> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response)
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", command}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        auto key = command.items().begin().key();
-        return jsonResponse["get"]["MOT1"][key] == "done";
-    }
-
-
-    return false;
-}
-
-template <typename T> bool setMotorCommand(const json &command, T *response)
-{
-    json jsonRequest = {"req", {"cmd", {"MOT1", command}}};
+    json jsonRequest = {"req", {type, {motor, command}}};
     if (response == nullptr)
         return sendCommand(jsonRequest);
     else
@@ -134,37 +118,63 @@ template <typename T> bool setMotorCommand(const json &command, T *response)
         if (sendCommand(jsonRequest, &jsonResponse))
         {
             auto key = command.items().begin().key();
-            return jsonResponse["get"]["MOT1"][key].get_to(*response);
+            return jsonResponse[type][motor][key].get_to(*response);
         }
     }
 
     return false;
 }
 
+bool motorSetDone(MotorType type, const json &command)
+{
+    json response;
+    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
+    if (genericCommand(motor, "set", command, &response))
+        return response == "done";
+    return false;
+}
+
+template <typename T> bool motorSet(MotorType type, const json &command, T *response)
+{
+    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
+    return genericCommand(motor, "set", command, response);
+}
+
+template <typename T> bool motorCommand(MotorType type, const json &command, T *response)
+{
+    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
+    return genericCommand(motor, "cmd", command, response);
+}
+
+
+
+namespace Essato
+{
+
 bool stop()
 {
-    return setMotorCommand({"MOT_STOP", ""});
+    return sendCommand(MOT_1, {"MOT_STOP", ""});
 }
 
 bool fastMoveOut()
 {
-    return setMotorCommandDone({"F_OUTW", ""});
+    return setMotorCommandDone(MOT_1, {"F_OUTW", ""});
 }
 
 bool fastMoveIn()
 {
-    return setMotorCommandDone({"F_INW", ""});
+    return setMotorCommandDone(MOT_1, {"F_INW", ""});
 }
 
 bool getMaxPosition(uint32_t &position)
 {
-    return getMotorParameter("CAL_MAXPOS", position);
+    return getParameter(MOT_1, "CAL_MAXPOS", position);
 }
 
 bool isHallSensorDetected(bool &isDetected)
 {
     int detected = 0;
-    if (getMotorParameter("CAL_MAXPOS", detected))
+    if (getParameter(MOT_1, "CAL_MAXPOS", detected))
     {
         isDetected = detected == 1;
         return true;
@@ -174,93 +184,52 @@ bool isHallSensorDetected(bool &isDetected)
 
 bool storeAsMaxPosition()
 {
-    return setMotorCommand({"CAL_FOCUSER", "StoreAsMaxPos"});
+    return sendCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMaxPos"});
 }
 
 bool storeAsMinPosition()
 {
-    return setMotorCommand({"CAL_FOCUSER", "StoreAsMinPos"});
+    return sendCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMinPos"});
 }
 
 bool goOutToFindMaxPos()
 {
-    return setMotorCommand({"CAL_FOCUSER", "GoOutToFindMaxPos"});
+    return sendCommand(MOT_1, {"CAL_FOCUSER", "GoOutToFindMaxPos"});
 }
 
 bool initCalibration()
 {
-    return setMotorCommand({"CAL_FOCUSER", "Init"});
+    return sendCommand(MOT_1, {"CAL_FOCUSER", "Init"});
 }
 
 bool getAbsolutePosition(uint32_t &position)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["ABS_POS"].get_to(position);
-        return true;
-    }
-    return false;
+    return getParameter(MOT_1, "ABS_POS", position);
 }
 
 bool getCurrentSpeed(uint32_t &speed)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["SPEED"].get_to(speed);
-        return true;
-    }
-    return false;
+    return getParameter(MOT_1, "SPEED", speed);
 }
 
 bool getMotorTemp(double &value)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["NTC_T"].get_to(value);
-        return true;
-    }
-    return false;
+    return getParameter(MOT_1, "NTC_T", value);
 }
 
 bool getExternalTemp(double &value)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["EXT_T"].get_to(value);
-        return true;
-    }
-    return false;
+    return getParameter(MOT_1, "EXT_T", value);
 }
 
 bool getVoltageIn(double &value)
 {
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["VIN_12V"].get_to(value);
-        return true;
-    }
-    return false;
+    return getParameter(MOT_1, "VIN_12V", value);
 }
 
 bool applyMotorPreset(const std::string &name)
 {
-    json jsonRequest = {"req", {"cmd", {"RUNPRESET", name}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        return jsonResponse["get"]["RUNPRESET"] == "done";
-    }
-    return false;
+    return setMotorCommandDone(MOT_1, {"RUNPRESET", name});
 }
 
 bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
@@ -305,138 +274,139 @@ bool getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHol
 
 bool setMotorRates(const MotorRates &rates)
 {
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_RATES_CMD, mr.accRate, mr.runSpeed, mr.decRate);
+    json jsonRates =
+    {
+        {"FnRUN_ACC", rates.accRate},
+        {"FnRUN_ACC", rates.accRate},
+        {"FnRUN_ACC", rates.accRate},
+    };
 
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
+    json jsonRequest = {"req", {"set", {"MOT1", jsonRates}}};
+    return sendCommand(jsonRequest);
 }
 
-//constexpr char MOTOR_CURRENTS_CMD[] =
-//    "{\"req\":{\"set\":{\"MOT1\":{"
-//    "\"FnRUN_CURR_ACC\":%u,"
-//    "\"FnRUN_CURR_SPD\":%u,"
-//    "\"FnRUN_CURR_DEC\":%u,"
-//    "\"FnRUN_CURR_HOLD\":%u"
-//    "}}}}";
-
-bool setMotorCurrents(const MotorCurrents &current)
+bool setMotorCurrents(const MotorCurrents &currents)
 {
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, current.accCurrent, current.runCurrent, current.decCurrent,
-             current.holdCurrent);
+    json jsonRates =
+    {
+        {"FnRUN_CURR_ACC", currents.accCurrent},
+        {"FnRUN_CURR_DEC", currents.decCurrent},
+        {"FnRUN_CURR_SPD", currents.runCurrent},
+        {"FnRUN_CURR_HOLD", currents.holdCurrent},
+    };
 
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
+    json jsonRequest = {"req", {"set", {"MOT1", jsonRates}}};
+    return sendCommand(jsonRequest);
 }
 
 bool setMotorHold(bool hold)
 {
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"set\":{\"MOT1\":{\"HOLDCURR_STATUS\":%u}}}}", hold ? 1 : 0);
-
-    std::string response;
-    return send(cmd, response); // TODO: Check response!
+    json jsonHold = {"HOLDCURR_STATUS", hold ? 1 : 0};
+    json jsonRequest = {"req", {"set", {"MOT1", jsonHold}}};
+    return sendCommand(jsonRequest);
 }
 
 }
 
 namespace Arco
 {
-bool getARCO(char *res)
+bool isEnabled()
 {
-    return sendCommand("{\"req\":{\"get\":{\"ARCO\":\"\"}}}", "ARCO", res);
-}
-
-//bool getArcoAbsPos(char *res)
-//{
-
-//return sendCmd("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}","ABS_POS", res);
-
-//}
-
-double getArcoAbsPos()
-{
-
-    char res[SESTO_LEN] = {0};
-    std::string buf;
-    bool rc = sendCommand("{\"req\":{\"get\":{\"MOT2\":{\"ABS_POS\":\"DEG\"}}}}", "ABS_POS", res);
-    if(rc == true)
-    {
-        std::string my_string(res);
-        buf = my_string.substr(0, my_string.length() - 5);
-
-    }
-    return std::stof(buf);
+    int enabled = 0;
+    if (getParameter(MOT_2, "ARCO", enabled))
+        return enabled == 1;
+    return false;
 }
 
 
-double getArcoPosition()
+bool getAbsolutePosition(Units unit, double &value)
 {
-
-    char res[SESTO_LEN] = {0};
-    std::string buf;
-    bool rc = sendCommand("{\"req\":{\"get\":{\"MOT2\":{\"POSITION\":\"DEG\"}}}}", "POSITION", res);
-    if(rc == true)
+    json command;
+    switch (unit)
     {
-        std::string my_string(res);
-        buf = my_string.substr(0, my_string.length() - 5);
-
-    }
-    return std::stof(buf);
-}
-
-
-
-bool setArcoAbsPos(double targetAngle, char *res)
-{
-    char cmd[SESTO_LEN] = {0};
-    if(targetAngle > getArcoAbsPos() + 180.)
-    {
-        targetAngle -= 360.0;
+        case UNIT_DEGREES:
+            command["POSITION"] = "DEG";
+            break;
+        case UNIT_ARCSECS:
+            command["POSITION"] = "ARCSEC";
+            break;
+        case UNIT_STEPS:
+            command["POSITION"] = "STEPS";
+            break;
     }
 
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"GOTO\":{\"DEG\":%f}}}}}", targetAngle);
-
-    LOGF_INFO("Rotator moving to: %f", targetAngle);
-    return sendCommand(cmd, "DEG", res);
-}
-
-bool isArcoBusy()
-{
-    char res[SESTO_LEN] = {0};
-
-    if(!sendCommand("{\"req\":{\"get\":{\"MOT2\":\"\"}}}", "BUSY", res))
+    json jsonRequest = {"req", {"get", {"MOT2", command}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
     {
-        LOG_INFO("Could not check if Arco is busy.");
+
+        std::string position = jsonResponse["req"]["get"]["MOT2"]["POSITION"];
+        sscanf(position.c_str(), "%lf", &value);
         return true;
     }
-
-    int busy = std::stoi(res);
-    if(!(busy == 0)) return true;
 
     return false;
 }
 
-bool stopArco()
+bool moveAbsolutePoition(Units unit, double value)
 {
-    char res[SESTO_LEN] = {0};
-    return sendCommand("{\"req\":{\"cmd\":{\"MOT2\":{\"MOT_STOP\":\"\"}}}}", "MOT_STOP", res);
+    json command;
+    switch (unit)
+    {
+        case UNIT_DEGREES:
+            command["MOVE"] = {"DEG", value};
+            break;
+        case UNIT_ARCSECS:
+            command["MOVE"] = {"ARCSEC", value};
+            break;
+        case UNIT_STEPS:
+            command["MOVE"] = {"STEPS", value};
+            break;
+    }
+
+    json jsonRequest = {"req", {"cmd", {"MOT2", command}}};
+    return sendCommand(jsonRequest);
+}
+
+bool sync(Units unit, double value)
+{
+    json command;
+    switch (unit)
+    {
+        case UNIT_DEGREES:
+            command["SYNC_POS"] = {"DEG", value};
+            break;
+        case UNIT_ARCSECS:
+            command["SYNC_POS"] = {"ARCSEC", value};
+            break;
+        case UNIT_STEPS:
+            command["SYNC_POS"] = {"STEPS", value};
+            break;
+    }
+
+    json jsonRequest = {"req", {"cmd", {"MOT2", command}}};
+    return sendCommand(jsonRequest);
+}
+
+bool isBusy()
+{
+    json status;
+    if (getParameter(MOT_2, "STATUS", status))
+    {
+        return (status["BUSY"].get<int>() == 1);
+    }
+    return false;
+}
+
+bool stop()
+{
+    return setMotorCommandDone(MOT_2, {"MOT_STOP", ""});
 }
 
 
-bool syncArco(double angle)
+bool calibrate()
 {
-    char res[SESTO_LEN] = {0};
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT2\" :{\"SYNC_POS\":{\"DEG\":%f}}}}}", angle);
-    return sendCommand(cmd, "DEG", res);
-}
-
-bool calArco()
-{
-    char res[SESTO_LEN] = {0};
-    return sendCommand("{\"req\":{\"set\":{\"MOT2\":{\"CAL_STATUS\":\"exec\"}}}}", "CAL_STATUS", res);
+    return setMotorCommandDone(MOT_2, {"CAL_STATUS", "exec"});
 }
 
 bool isArcoCalibrating()

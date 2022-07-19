@@ -47,77 +47,89 @@ typedef struct MotorCurrents
     uint32_t holdCurrent = 0;
 } MotorCurrents;
 
-    namespace Essato
-    {        
-        bool setMotorCommandDone(const json &command);
+typedef enum
+{
+    MOT_1,
+    MOT_2
+} MotorType;
 
-        template <typename T = int32_t> bool getMotorParameter(const std::string &parameter, T &value);
-        template <typename T = int32_t> bool setMotorCommand(const json &command, T *response = nullptr);
+bool setMotorCommandDone(MotorType type, const json &command);
+template <typename T = int32_t> bool motorGet(MotorType type, const std::string &parameter, T &value);
+template <typename T = int32_t> bool motorSet(MotorType type, const json &command, T *response = nullptr);
+template <typename T = int32_t> bool motorCommand(MotorType type, const json &command, T *response = nullptr);
 
+template <typename T = int32_t> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
 
-        bool stop();
-        bool getSerialNumber(std::string &response);
-        bool getFirmwareVersion(std::string &response);
-        bool abort();
-        bool go(uint32_t targetTicks);
-        bool goHome(char *res);
-        bool fastMoveOut();
-        bool fastMoveIn();
-        bool getMaxPosition(uint32_t &position);
-        bool getHallSensor(char *res);
-        bool storeAsMaxPosition();
-        bool goOutToFindMaxPos();
-        bool storeAsMinPosition();
-        bool initCalibration();
-        bool getAbsolutePosition(char *res);
-        bool getCurrentSpeed(char *res);
-        bool applyMotorPreset(const std::string &name);
-        bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
-        bool getMotorTemp(double &value);
-        bool getExternalTemp(double &value);
-        bool getVoltageIn(double &value);
-        bool getMotorSettings(struct MotorRates &rates, struct MotorCurrents &currents, bool &motorHoldActive);
-        bool setMotorRates(const MotorRates &rates);
-        bool setMotorCurrents(const MotorCurrents &current);
-        bool setMotorHold(bool hold);
-    }
+namespace Essato
+{
 
-    namespace Arco
-    {
-        typedef enum
-        {
-            UNIT_STEPS,
-            UNIT_DEGREES,
-            UNIT_ARCSECS
-        } Units;
+bool stop();
+bool getSerialNumber(std::string &response);
+bool getFirmwareVersion(std::string &response);
+bool abort();
+bool go(uint32_t targetTicks);
+bool goHome(char *res);
+bool fastMoveOut();
+bool fastMoveIn();
+bool getMaxPosition(uint32_t &position);
+bool getHallSensor(char *res);
+bool storeAsMaxPosition();
+bool goOutToFindMaxPos();
+bool storeAsMinPosition();
+bool initCalibration();
+bool getAbsolutePosition(char *res);
+bool getCurrentSpeed(char *res);
+bool applyMotorPreset(const std::string &name);
+bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
+bool getMotorTemp(double &value);
+bool getExternalTemp(double &value);
+bool getVoltageIn(double &value);
+bool getMotorSettings(struct MotorRates &rates, struct MotorCurrents &currents, bool &motorHoldActive);
+bool setMotorRates(const MotorRates &rates);
+bool setMotorCurrents(const MotorCurrents &currents);
+bool setMotorHold(bool hold);
+}
 
-        // Arco functions
-        bool isDetected();
-        bool getAbsolutePosition(Units unit, double &value);
-        bool setAbsolutePoition(Units unit, double value);
-        bool sync(Units unit, double angle);
-        bool isBusy();
-        bool stop();
-        bool calibrate();
-        bool isCalibrating();
-    }
+namespace Arco
+{
+typedef enum
+{
+    UNIT_STEPS,
+    UNIT_DEGREES,
+    UNIT_ARCSECS
+} Units;
 
-    std::string deviceName;
-    int PortFD {-1};
-    const char *getDeviceName() { return deviceName.c_str();}
-    // Send command
-    bool sendCommand(const std::string &command, json *response = nullptr);
+// Arco functions
+bool isEnabled();
+bool getAbsolutePosition(Units unit, double &value);
+bool moveAbsolutePoition(Units unit, double value);
+bool sync(Units unit, double value);
+bool isBusy();
+bool stop();
+bool calibrate();
+bool reverse(bool enabled);
+bool isCalibrating();
+}
 
-        // Maximum buffer for sending/receving.
-        static constexpr const int DRIVER_LEN {1024};
-        static const char DRIVER_STOP_CHAR { 0xD };
-        static const char DRIVER_TIMEOUT { 5 };
-        enum
-        {
-            CMD_OK = true,
-            CMD_FALSE = false
-        };
+std::string deviceName;
+int PortFD {-1};
+const char *getDeviceName()
+{
+    return deviceName.c_str();
+}
+// Send command
+bool sendCommand(const std::string &command, json *response = nullptr);
+
+// Maximum buffer for sending/receving.
+static constexpr const int DRIVER_LEN {1024};
+static const char DRIVER_STOP_CHAR { 0xD };
+static const char DRIVER_TIMEOUT { 5 };
+enum
+{
+    CMD_OK = true,
+    CMD_FALSE = false
 };
+}
 
 
 class EssatoArco : public INDI::Focuser, public INDI::RotatorInterface
