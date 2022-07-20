@@ -53,41 +53,54 @@ typedef enum
     MOT_2
 } MotorType;
 
-bool setMotorCommandDone(MotorType type, const json &command);
-template <typename T = int32_t> bool motorGet(MotorType type, const std::string &parameter, T &value);
-template <typename T = int32_t> bool motorSet(MotorType type, const json &command, T *response = nullptr);
-template <typename T = int32_t> bool motorCommand(MotorType type, const json &command, T *response = nullptr);
-
 template <typename T = int32_t> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
+template <typename T = int32_t> bool motorGet(MotorType type, const std::string &parameter, T &value);
+template <typename T = int32_t> bool motorSet(MotorType type, const json &command);
+template <typename T = int32_t> bool motorCommand(MotorType type, const json &command);
 
 namespace Essato
 {
 
+
+
+
+// Position
+bool getMaxPosition(uint32_t &position);
+bool isHallSensorDetected(bool &isDetected);
+bool storeAsMaxPosition();
+bool storeAsMinPosition();
+bool goOutToFindMaxPos();
+bool getAbsolutePosition(uint32_t &position);
+
+// Motion
+bool go(uint32_t position);
 bool stop();
-bool getSerialNumber(std::string &response);
-bool getFirmwareVersion(std::string &response);
-bool abort();
-bool go(uint32_t targetTicks);
-bool goHome(char *res);
 bool fastMoveOut();
 bool fastMoveIn();
-bool getMaxPosition(uint32_t &position);
-bool getHallSensor(char *res);
-bool storeAsMaxPosition();
-bool goOutToFindMaxPos();
-bool storeAsMinPosition();
-bool initCalibration();
-bool getAbsolutePosition(char *res);
-bool getCurrentSpeed(char *res);
-bool applyMotorPreset(const std::string &name);
-bool saveMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
+bool getCurrentSpeed(uint32_t &speed);
+
+
+// Firmware
+bool getSerialNumber(std::string &response);
+bool getFirmwareVersion(std::string &response);
+
+// Sensors
 bool getMotorTemp(double &value);
 bool getExternalTemp(double &value);
 bool getVoltageIn(double &value);
+
+// Presets
+bool applyMotorPreset(const std::string &name);
+bool setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
+
+// Motor Settings
 bool getMotorSettings(struct MotorRates &rates, struct MotorCurrents &currents, bool &motorHoldActive);
 bool setMotorRates(const MotorRates &rates);
 bool setMotorCurrents(const MotorCurrents &currents);
 bool setMotorHold(bool hold);
+
+// Calibration
+bool initCalibration();
 }
 
 namespace Arco
@@ -99,23 +112,32 @@ typedef enum
     UNIT_ARCSECS
 } Units;
 
-// Arco functions
+// Does it work?
 bool isEnabled();
-bool getAbsolutePosition(Units unit, double &value);
+
+// Motion
 bool moveAbsolutePoition(Units unit, double value);
-bool sync(Units unit, double value);
-bool isBusy();
 bool stop();
+
+// Position
+bool getAbsolutePosition(Units unit, double &value);
+bool sync(Units unit, double value);
+
+// Calibration
 bool calibrate();
-bool reverse(bool enabled);
 bool isCalibrating();
+bool isBusy();
+
+// Reverse
+bool reverse(bool enabled);
+bool isReversed();
 }
 
-std::string deviceName;
-int PortFD {-1};
+static std::string DeviceName;
+static int PortFD {-1};
 const char *getDeviceName()
 {
-    return deviceName.c_str();
+    return DeviceName.c_str();
 }
 // Send command
 bool sendCommand(const std::string &command, json *response = nullptr);
@@ -146,7 +168,6 @@ class EssatoArco : public INDI::Focuser, public INDI::RotatorInterface
 
     protected:
         virtual bool Handshake() override;
-        virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual bool ReverseFocuser(bool enabled) override;
@@ -293,9 +314,6 @@ class EssatoArco : public INDI::Focuser, public INDI::RotatorInterface
             MOTOR_SAVE_USER2,
             MOTOR_SAVE_USER3
         };
-
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
 
         IText CalibrationMessageT[1] {};
         ITextVectorProperty CalibrationMessageTP;

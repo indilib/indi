@@ -1102,7 +1102,9 @@ install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 
 ################ Esatto with Arco Focuser ################
 SET(esarc_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/esattoarco.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/esattoarco.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/primalucacommandset.cpp
+    )
 
 add_executable(indi_esattoarco_focus ${esarc_SRC})
 target_link_libraries(indi_esattoarco_focus indidriver)

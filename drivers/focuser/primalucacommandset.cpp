@@ -1,8 +1,8 @@
 /*
-    Primaluca Labs Essato-Arco Focuser+Rotator Driver
+    Primaluca Labs Essato-Arco-Sesto Command Set
+    For USB Control Specification Document Revision 3.3 published 2020.07.08
 
-    Copyright (C) 2020 Piotr Zyziuk
-    Copyright (C) 2020-2022 Jasem Mutlaq
+    Copyright (C) 2022 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,11 +22,6 @@
     Document protocol revision 3.3 (8th July 2022).
 */
 
-#include "esattoarco.h"
-
-#include "indicom.h"
-#include "json.h"
-
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -35,25 +30,22 @@
 #include <assert.h>
 #include <termios.h>
 #include <unistd.h>
-#include <connectionplugins/connectionserial.h>
 #include <sys/ioctl.h>
 
-static std::unique_ptr<EssatoArco> essatoarco(new EssatoArco());
-
-static const char *MOTOR_TAB  = "Motor";
-static const char *ENVIRONMENT_TAB  = "Environment";
-static const char *ROTATOR_TAB = "Rotator";
+#include "primalucacommandset.h"
+#include "indicom.h"
+#include "indilogger.h"
 
 namespace CommandSet
 {
 
-bool sendCommand(const std::string &command, json *response)
+bool Communication::sendCommand(const std::string &command, json *response)
 {
     int tty_rc = TTY_OK;
     int nbytes_written = 0, nbytes_read = 0;
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(m_PortFD, TCIOFLUSH);
     LOGF_DEBUG("<REQ> %s", command.c_str());
-    if ( (tty_rc = tty_write(PortFD, command.c_str(), command.length(), &nbytes_written)) == TTY_OK)
+    if ( (tty_rc = tty_write(m_PortFD, command.c_str(), command.length(), &nbytes_written)) == TTY_OK)
     {
         char errorMessage[MAXRBUF] = {0};
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
@@ -66,7 +58,7 @@ bool sendCommand(const std::string &command, json *response)
         return true;
 
     char read_buf[DRIVER_LEN] = {0};
-    if ( (tty_rc = tty_read_section(PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) == TTY_OK)
+    if ( (tty_rc = tty_read_section(m_PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) == TTY_OK)
     {
         char errorMessage[MAXRBUF] = {0};
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
@@ -90,7 +82,7 @@ bool sendCommand(const std::string &command, json *response)
     return true;
 }
 
-template <typename T> bool motorGet(MotorType type, const std::string &parameter, T &value)
+template <typename T> bool Communication::motorGet(MotorType type, const std::string &parameter, T &value)
 {
     auto motor = type == MOT_1 ? "MOT1" : "MOT2";
     json jsonRequest = {"req", {"get", {motor, ""}}};
@@ -104,7 +96,7 @@ template <typename T> bool motorGet(MotorType type, const std::string &parameter
 
 }
 
-template <typename T> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response)
+template <typename T> bool Communication::genericCommand(const std::string &motor, const std::string &type, const json &command, T *response)
 {
     json jsonRequest = {"req", {type, {motor, command}}};
     if (response == nullptr)
@@ -122,7 +114,7 @@ template <typename T> bool genericCommand(const std::string &motor, const std::s
     return false;
 }
 
-template <typename T> bool motorSet(MotorType type, const json &command)
+template <typename T> bool Communication::motorSet(MotorType type, const json &command)
 {
     json response;
     auto motor = type == MOT_1 ? "MOT1" : "MOT2";
@@ -131,7 +123,7 @@ template <typename T> bool motorSet(MotorType type, const json &command)
     return false;
 }
 
-template <typename T> bool motorCommand(MotorType type, const json &command)
+template <typename T> bool Communication::motorCommand(MotorType type, const json &command)
 {
     json response;
     auto motor = type == MOT_1 ? "MOT1" : "MOT2";
@@ -139,10 +131,6 @@ template <typename T> bool motorCommand(MotorType type, const json &command)
         return response == "done";
     return false;
 }
-
-
-namespace Essato
-{
 
 bool go(uint32_t position)
 {
