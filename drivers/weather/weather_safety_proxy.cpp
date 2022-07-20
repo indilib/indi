@@ -28,8 +28,10 @@
 #include <cstring>
 #include <curl/curl.h>
 
-#include "gason.h"
+#include "json.h"
 #include "weather_safety_proxy.h"
+
+using json = nlohmann::json;
 
 std::unique_ptr<WeatherSafetyProxy> weatherSafetyProxy(new WeatherSafetyProxy());
 
@@ -152,7 +154,6 @@ bool WeatherSafetyProxy::ISNewNumber(const char *dev, const char *name, double v
     {
         if (strcmp(name, softErrorHysteresisNP.name) == 0)
         {
-            LOG_DEBUG("WeatherSafetyProxy::ISNewNumber");
             IUUpdateNumber(&softErrorHysteresisNP, values, names, n);
             softErrorHysteresisNP.s = IPS_OK;
             IDSetNumber(&softErrorHysteresisNP, nullptr);
@@ -288,7 +289,7 @@ IPState WeatherSafetyProxy::executeScript()
     }
     LOGF_DEBUG("Read %d bytes output [%s]", byte_count, buf);
 
-    return parseSafetyJSON(buf, byte_count);
+    return parseSafetyJSON(buf);
 }
 
 IPState WeatherSafetyProxy::executeCurl()
@@ -313,7 +314,7 @@ IPState WeatherSafetyProxy::executeCurl()
         }
         curl_easy_cleanup(curl_handle);
         LOGF_DEBUG("Read %d bytes output [%s]", readBuffer.size(), readBuffer.c_str());
-        return parseSafetyJSON(readBuffer.c_str(), readBuffer.size());
+        return parseSafetyJSON(readBuffer);
     }
     else
     {
@@ -322,122 +323,72 @@ IPState WeatherSafetyProxy::executeCurl()
     }
 }
 
-IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_count)
+IPState WeatherSafetyProxy::parseSafetyJSON(const std::string &buffer)
 {
-    // copy clean_buf to buf which jsonParse can destroy
-    char buf[BUFSIZ];
-    strncpy(buf, clean_buf, byte_count);
-
-    char *source = buf;
-    char *endptr;
-    JsonValue value;
-    JsonAllocator allocator;
-    int status = jsonParse(source, &endptr, &value, allocator);
-    if (status != JSON_OK)
+    json report = json::parse(buffer);
+    try
     {
-        LOGF_ERROR("jsonParse %s at position %zd", jsonStrError(status), endptr - source);
-        LastParseSuccess = false;
-        return IPS_ALERT;
-    }
+        int NewSafety = 0;
+        report["roof_status"]["open_ok"].get_to(NewSafety);
 
-    JsonIterator it;
-    JsonIterator observationIterator;
-    bool roof_status_found = false;
-    bool open_ok_found = false;
-    bool reasons_found = false;
-    bool error_found = false;
-    for (it = begin(value); it != end(value); ++it)
-    {
-        if (!strcmp(it->key, "roof_status"))
+        if (NewSafety != Safety)
         {
-            roof_status_found = true;
-            for (observationIterator = begin(it->value); observationIterator != end(it->value); ++observationIterator)
+            if (NewSafety == WSP_UNSAFE)
             {
-                if (!strcmp(observationIterator->key, "open_ok"))
+                LOG_WARN("Weather is UNSAFE");
+            }
+            else if (NewSafety == WSP_SAFE)
+            {
+                if (SofterrorRecoveryMode == true)
                 {
-                    open_ok_found = true;
-                    int NewSafety = observationIterator->value.toNumber();
-                    if (NewSafety != Safety)
+                    SofterrorRecoveryCount++;
+                    if (SofterrorRecoveryCount > softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY].value)
                     {
-                        if (NewSafety == WSP_UNSAFE)
-                        {
-                            LOG_WARN("Weather is UNSAFE");
-                        }
-                        else if (NewSafety == WSP_SAFE)
-                        {
-                            if (SofterrorRecoveryMode == true)
-                            {
-                                SofterrorRecoveryCount++;
-                                if (SofterrorRecoveryCount > softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY].value)
-                                {
-                                    LOG_INFO("Minimum soft recovery errors reached while Weather was SAFE");
-                                    SofterrorRecoveryCount = 0;
-                                    SofterrorRecoveryMode = false;
-                                }
-                                else
-                                {
-                                    LOGF_INFO("Weather is SAFE but soft error recovery %d is still counting", SofterrorRecoveryCount);
-                                    NewSafety = WSP_UNSAFE;
-                                }
-                            }
-                            else
-                            {
-                                LOG_INFO("Weather is SAFE");
-                            }
-                        }
-                        Safety = NewSafety;
-                    }
-                    setParameterValue("WEATHER_SAFETY", NewSafety);
-                }
-                else if (!strcmp(observationIterator->key, "reasons"))
-                {
-                    reasons_found = true;
-                    char *reasons = observationIterator->value.toString();
-                    if (SofterrorRecoveryMode == true)
-                    {
-                        char newReasons[MAXRBUF];
-                        snprintf(newReasons, MAXRBUF, "SofterrorRecoveryMode, %s", reasons);
-                        IUSaveText(&reasonsT[0], newReasons);
+                        LOG_INFO("Minimum soft recovery errors reached while Weather was SAFE");
+                        SofterrorRecoveryCount = 0;
+                        SofterrorRecoveryMode = false;
                     }
                     else
                     {
-                        IUSaveText(&reasonsT[0], reasons);
+                        LOGF_INFO("Weather is SAFE but soft error recovery %d is still counting", SofterrorRecoveryCount);
+                        NewSafety = WSP_UNSAFE;
                     }
-                    reasonsTP.s = IPS_OK;
-                    IDSetText(&reasonsTP, nullptr);
+                }
+                else
+                {
+                    LOG_INFO("Weather is SAFE");
                 }
             }
+            Safety = NewSafety;
         }
-        if (!strcmp(it->key, "error"))
+        setParameterValue("WEATHER_SAFETY", NewSafety);
+
+        // Optional reasons?
+        try
         {
-            error_found = true;
+            std::string reasons;
+            report["roof_status"]["reasons"].get_to(reasons);
+            if (SofterrorRecoveryMode == true)
+            {
+                char newReasons[MAXRBUF];
+                snprintf(newReasons, MAXRBUF, "SofterrorRecoveryMode, %s", reasons.c_str());
+                IUSaveText(&reasonsT[0], newReasons);
+            }
+            else
+            {
+                IUSaveText(&reasonsT[0], reasons.c_str());
+            }
+            reasonsTP.s = IPS_OK;
+            IDSetText(&reasonsTP, nullptr);
         }
+        catch (json::exception &e) {}
+    }
+    catch (json::exception &e)
+    {
+        // output exception information
+        LOGF_ERROR("Error parsing weather report %s id: %d", e.what(), e.id);
+        return IPS_ALERT;
     }
 
-    if (error_found)
-    {
-        LOGF_ERROR("Error hint found in JSON [%s]", clean_buf);
-        LastParseSuccess = false;
-        return IPS_ALERT;
-    }
-    if (!roof_status_found)
-    {
-        LOGF_ERROR("Found no roof_status field in JSON [%s]", clean_buf);
-        LastParseSuccess = false;
-        return IPS_ALERT;
-    }
-    if (!open_ok_found)
-    {
-        LOGF_ERROR("Found no open_ok field in roof_status JSON [%s]", clean_buf);
-        LastParseSuccess = false;
-        return IPS_ALERT;
-    }
-    // do not error if reasons are missing, they're not required for safety
-    if (!LastParseSuccess)
-    {
-        // show the good news. Once.
-        LOGF_INFO("Script output fully parsed, weather is %s", (Safety == 1) ? "SAFE" : "UNSAFE");
-        LastParseSuccess = true;
-    }
     return IPS_OK;
 }
