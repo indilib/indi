@@ -29,7 +29,7 @@
 
 using json = nlohmann::json;
 
-namespace CommandSet
+namespace PrimalucaLabs
 {
 typedef struct MotorRates
 {
@@ -85,10 +85,10 @@ class Communication
         static const char DRIVER_TIMEOUT { 5 };
 };
 
-class Essato
+class Esatto
 {
     public:
-        Essato(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port) {}
+        Esatto(const std::string &name, int port);
         const char *getDeviceName()
         {
             return m_DeviceName.c_str();
@@ -134,14 +134,15 @@ class Essato
     private:
         std::string m_DeviceName;
         int m_PortFD {-1};
+        std::unique_ptr<Communication> m_Communication;
 };
 
 class Arco
 {
 
     public:
-        Arco(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
-            const char *getDeviceName()
+        explicit Arco(const std::string &name, int port);
+        const char *getDeviceName()
         {
             return m_DeviceName.c_str();
         }
@@ -169,6 +170,7 @@ class Arco
     private:
         std::string m_DeviceName;
         int m_PortFD {-1};
+        std::unique_ptr<Communication> m_Communication;
 };
 
 }
