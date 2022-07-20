@@ -1337,6 +1337,7 @@ bool NightCrawler::setSleepBrightness(uint8_t value)
 bool NightCrawler::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
+    RI::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &BrightnessNP);
     IUSaveConfigNumber(fp, &FocusStepDelayNP);
