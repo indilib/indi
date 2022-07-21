@@ -369,7 +369,11 @@ bool LX200Gemini::updateProperties()
         defineProperty(&VersionTP);
         defineProperty(&ParkSettingsSP);
 
-        if (gemini_software_level_ >= 5.2 && getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
+	if (gemini_software_level_ < 5.0)
+	{
+	    deleteProperty(PECStateSP.name);
+	}
+	if (gemini_software_level_ >= 5.2 && getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
         {
 	    uint32_t pec_at_boot_value;
             sscanf(value, "%i", &pec_at_boot_value);
@@ -392,7 +396,7 @@ bool LX200Gemini::updateProperties()
             PECGuidingSpeedN[0].value = guiding_speed_value;
             defineProperty(&PECGuidingSpeedNP);
         }
-        if (getGeminiProperty(PEC_COUNTER_ID, value))
+        if (gemini_software_level_ >= 5.0 && getGeminiProperty(PEC_COUNTER_ID, value))
         {
 	    defineProperty(&PECControlSP);
 	    char valueString[32] = {0};

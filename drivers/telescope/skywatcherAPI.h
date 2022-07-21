@@ -73,7 +73,7 @@ class SkywatcherAPI
             SetAxisPositionCmd        = 'E',
             GetAxisPosition           = 'j',
             GetAxisStatus             = 'f',
-            SetSnapPort               = 'O', // EQ8/AZEQ6/AZEQ5/EQ6-R only
+            SetSnapPort               = 'O', // EQ8/AZEQ6/AZEQ5/EQ6-R/AZ-GTi only
             SetMotionMode             = 'G',
             SetGotoTargetIncrement    = 'H',
             SetBreakPointIncrement    = 'M',
@@ -295,9 +295,9 @@ class SkywatcherAPI
         /// \return false failure
         bool SetSlewToModeDeccelerationRampLength(AXISID Axis, long Microsteps);
 
-        /// \brief Set the camera control switch to the given state
-        /// \param[in] OnOff - the state requested.
-        bool SetSwitch(bool OnOff);
+        /// \brief Toggle the snap port on or off
+        /// \param[in] enabled - the state requested.
+        bool toggleSnapPort(bool enabled);
 
         /// \brief Start the axis slewing at the given rate
         /// \param[in] Axis - The axis to use.

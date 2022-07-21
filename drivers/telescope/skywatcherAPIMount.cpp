@@ -216,6 +216,11 @@ bool SkywatcherAPIMount::initProperties()
     AUXEncoderSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     AUXEncoderSP.fill(getDeviceName(), "AUX_ENCODERS", "AUX Encoders", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Snap port
+    SnapPortSP[INDI_ENABLED].fill("INDI_ENABLED", "On", ISS_OFF);
+    SnapPortSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_ON);
+    SnapPortSP.fill(getDeviceName(), "SNAP_PORT", "Snap Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // Tracking Factor
     TrackFactorNP[AXIS_AZ].fill("AXIS_AZ", "Azimuth", "%.2f", 0.1, 5, 0.1, 1);
     TrackFactorNP[AXIS_ALT].fill("AXIS_ALT", "Altitude", "%.2f", 0.1, 5, 0.1, 1);
@@ -338,6 +343,7 @@ bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Auxiliary Encoders
         if (AUXEncoderSP.isNameMatch(name))
         {
             AUXEncoderSP.update(states, names, n);
@@ -347,6 +353,21 @@ bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState 
             TurnRAEncoder(enabled);
             TurnDEEncoder(enabled);
             saveConfig(true, AUXEncoderSP.getName());
+            return true;
+        }
+
+        // Snap Port
+        if (SnapPortSP.isNameMatch(name))
+        {
+            SnapPortSP.update(states, names, n);
+            auto enabled = SnapPortSP.findOnSwitchIndex() == INDI_ENABLED;
+            toggleSnapPort(enabled);
+            if (enabled)
+                LOG_INFO("Toggling snap port on...");
+            else
+                LOG_INFO("Toggling snap port off...");
+            SnapPortSP.setState(enabled ? IPS_OK : IPS_IDLE);
+            SnapPortSP.apply();
             return true;
         }
 

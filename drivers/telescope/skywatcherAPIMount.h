@@ -42,7 +42,7 @@ class SkywatcherAPIMount :
 {
     public:
         SkywatcherAPIMount();
-        virtual ~SkywatcherAPIMount() = default;
+        virtual ~SkywatcherAPIMount() override = default;
 
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
@@ -206,6 +206,9 @@ class SkywatcherAPIMount :
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
+
+        // Snap Port
+        INDI::PropertySwitch SnapPortSP {2};
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Private Variables
