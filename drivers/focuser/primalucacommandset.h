@@ -73,7 +73,7 @@ class Communication
         }
 
         // Communication functions
-        bool sendCommand(const std::string &command, json *response = nullptr);
+        bool sendCommand(const json &command, json *response = nullptr);
         template <typename T = int32_t> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
         /**
          * @brief Get paramter from device.
