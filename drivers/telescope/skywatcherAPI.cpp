@@ -734,22 +734,16 @@ bool SkywatcherAPI::SetSlewToModeDeccelerationRampLength(AXISID Axis, long Micro
     return TalkWithAxis(Axis, SetBreakPointIncrement, Parameters, Response);
 }
 
-bool SkywatcherAPI::SetSwitch(bool OnOff)
+bool SkywatcherAPI::toggleSnapPort(bool enabled)
 {
-    MYDEBUG(DBG_SCOPE, "SetSwitch");
-    std::string Parameters, Response;
-
-    if (OnOff)
-        Parameters = "1";
-    else
-        Parameters = "0";
-
+    std::string Response;
+    std::string Parameters = enabled ? "1" : "0";
     return TalkWithAxis(AXIS1, SetSnapPort, Parameters, Response);
 }
 
 void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode)
 {
-    MYDEBUGF(DBG_SCOPE, "Slew axis: %d speed: %1.6f", (int)Axis, SpeedInRadiansPerSecond);
+    MYDEBUGF(DBG_SCOPE, "Slew axis: %d speed: %1.6f", Axis, SpeedInRadiansPerSecond);
     // Clamp to MAX_SPEED
     if (SpeedInRadiansPerSecond > MAX_SPEED)
         SpeedInRadiansPerSecond = MAX_SPEED;
