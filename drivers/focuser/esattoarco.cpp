@@ -38,434 +38,40 @@
 #include <connectionplugins/connectionserial.h>
 #include <sys/ioctl.h>
 
-static std::unique_ptr<EssatoArco> essatoarco(new EssatoArco());
+static std::unique_ptr<EsattoArco> esattoarco(new EsattoArco());
 
-static const char *MOTOR_TAB  = "Motor";
 static const char *ENVIRONMENT_TAB  = "Environment";
 static const char *ROTATOR_TAB = "Rotator";
 
-namespace CommandSet
+EsattoArco::EsattoArco() : RotatorInterface(this)
 {
+    setVersion(1, 0);
 
-bool sendCommand(const std::string &command, json *response)
-{
-    int tty_rc = TTY_OK;
-    int nbytes_written = 0, nbytes_read = 0;
-    tcflush(PortFD, TCIOFLUSH);
-    LOGF_DEBUG("<REQ> %s", command.c_str());
-    if ( (tty_rc = tty_write(PortFD, command.c_str(), command.length(), &nbytes_written)) == TTY_OK)
-    {
-        char errorMessage[MAXRBUF] = {0};
-        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
-        return false;
-    }
-
-    // Should we ignore response?
-    if (response == nullptr)
-        return true;
-
-    char read_buf[DRIVER_LEN] = {0};
-    if ( (tty_rc = tty_read_section(PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) == TTY_OK)
-    {
-        char errorMessage[MAXRBUF] = {0};
-        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
-        return false;
-    }
-
-    LOGF_DEBUG("<RES> %s", read_buf);
-
-    try
-    {
-        *response = json::parse(read_buf)["res"];
-    }
-    catch (json::exception &e)
-    {
-        // output exception information
-        LOGF_ERROR("Error parsing device response %s id: %d", e.what(), e.id);
-        return false;
-    }
-
-    return true;
-}
-
-template <typename T> bool motorGet(MotorType type, const std::string &parameter, T &value)
-{
-    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
-    json jsonRequest = {"req", {"get", {motor, ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"][motor][parameter].get_to(value);
-        return true;
-    }
-    return false;
-
-}
-
-template <typename T> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response)
-{
-    json jsonRequest = {"req", {type, {motor, command}}};
-    if (response == nullptr)
-        return sendCommand(jsonRequest);
-    else
-    {
-        json jsonResponse;
-        if (sendCommand(jsonRequest, &jsonResponse))
-        {
-            auto key = command.items().begin().key();
-            return jsonResponse[type][motor][key].get_to(*response);
-        }
-    }
-
-    return false;
-}
-
-template <typename T> bool motorSet(MotorType type, const json &command)
-{
-    json response;
-    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
-    if (genericCommand(motor, "set", command, &response))
-        return response == "done";
-    return false;
-}
-
-template <typename T> bool motorCommand(MotorType type, const json &command)
-{
-    json response;
-    auto motor = type == MOT_1 ? "MOT1" : "MOT2";
-    if (genericCommand(motor, "cmd", command, &response))
-        return response == "done";
-    return false;
-}
-
-
-namespace Essato
-{
-
-bool go(uint32_t position)
-{
-    return motorCommand(MOT_1, {"MOV_ABS", {"STEPS", position}});
-}
-
-bool stop()
-{
-    return motorCommand(MOT_1, {"MOT_STOP", ""});
-}
-
-bool fastMoveOut()
-{
-    return motorCommand(MOT_1, {"F_OUTW", ""});
-}
-
-bool fastMoveIn()
-{
-    return motorCommand(MOT_1, {"F_INW", ""});
-}
-
-bool getMaxPosition(uint32_t &position)
-{
-    return motorGet(MOT_1, "CAL_MAXPOS", position);
-}
-
-bool isHallSensorDetected(bool &isDetected)
-{
-    int detected = 0;
-    if (motorGet(MOT_1, "CAL_MAXPOS", detected))
-    {
-        isDetected = detected == 1;
-        return true;
-    }
-    return false;
-}
-
-bool storeAsMaxPosition()
-{
-    return motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMaxPos"});
-}
-
-bool storeAsMinPosition()
-{
-    return motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMinPos"});
-}
-
-bool goOutToFindMaxPos()
-{
-    return motorCommand(MOT_1, {"CAL_FOCUSER", "GoOutToFindMaxPos"});
-}
-
-bool initCalibration()
-{
-    return motorCommand(MOT_1, {"CAL_FOCUSER", "Init"});
-}
-
-bool getAbsolutePosition(uint32_t &position)
-{
-    return motorGet(MOT_1, "ABS_POS", position);
-}
-
-bool getCurrentSpeed(uint32_t &speed)
-{
-    return motorGet(MOT_1, "SPEED", speed);
-}
-
-bool getMotorTemp(double &value)
-{
-    return motorGet(MOT_1, "NTC_T", value);
-}
-
-bool getExternalTemp(double &value)
-{
-    return motorGet(MOT_1, "EXT_T", value);
-}
-
-bool getVoltageIn(double &value)
-{
-    return motorGet(MOT_1, "VIN_12V", value);
-}
-
-bool applyMotorPreset(const std::string &name)
-{
-    return motorCommand(MOT_1, {"RUNPRESET", name});
-}
-
-bool setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
-{
-    auto name = std::string("RUNPRESET_") + std::to_string(index);
-    auto user = std::string("user_") + std::to_string(index);
-
-    json preset = {{"RP_NAME", user},
-        {"M1ACC", rates.accRate},
-        {"M1DEC", rates.decRate},
-        {"M1SPD", rates.runSpeed},
-        {"M1CACC", currents.accCurrent},
-        {"M1CDEC", currents.decCurrent},
-        {"M1CSPD", currents.runCurrent},
-        {"M1CHOLD", currents.holdCurrent}
-    };
-
-    json jsonRequest = {"req", {"set", {name, preset}}};
-    return sendCommand(jsonRequest);
-}
-
-bool getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive)
-{
-    json jsonRequest = {"req", {"get", {"MOT1", ""}}};
-    json jsonResponse;
-
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-        jsonResponse["get"]["MOT1"]["FnRUN_ACC"].get_to(rates.accRate);
-        jsonResponse["get"]["MOT1"]["FnRUN_DEC"].get_to(rates.decRate);
-        jsonResponse["get"]["MOT1"]["FnRUN_SPD"].get_to(rates.runSpeed);
-
-        jsonResponse["get"]["MOT1"]["FnRUN_CURR_ACC"].get_to(currents.accCurrent);
-        jsonResponse["get"]["MOT1"]["FnRUN_CURR_DEC"].get_to(currents.decCurrent);
-        jsonResponse["get"]["MOT1"]["FnRUN_CURR_SPD"].get_to(currents.runCurrent);
-        jsonResponse["get"]["MOT1"]["FnRUN_CURR_HOLD"].get_to(currents.holdCurrent);
-        jsonResponse["get"]["MOT1"]["HOLDCURR_STATUS"].get_to(motorHoldActive);
-        return true;
-    }
-    return false;
-}
-
-bool setMotorRates(const MotorRates &rates)
-{
-    json jsonRates =
-    {
-        {"FnRUN_ACC", rates.accRate},
-        {"FnRUN_ACC", rates.accRate},
-        {"FnRUN_ACC", rates.accRate},
-    };
-
-    json jsonRequest = {"req", {"set", {"MOT1", jsonRates}}};
-    return sendCommand(jsonRequest);
-}
-
-bool setMotorCurrents(const MotorCurrents &currents)
-{
-    json jsonRates =
-    {
-        {"FnRUN_CURR_ACC", currents.accCurrent},
-        {"FnRUN_CURR_DEC", currents.decCurrent},
-        {"FnRUN_CURR_SPD", currents.runCurrent},
-        {"FnRUN_CURR_HOLD", currents.holdCurrent},
-    };
-
-    json jsonRequest = {"req", {"set", {"MOT1", jsonRates}}};
-    return sendCommand(jsonRequest);
-}
-
-bool setMotorHold(bool hold)
-{
-    json jsonHold = {"HOLDCURR_STATUS", hold ? 1 : 0};
-    json jsonRequest = {"req", {"set", {"MOT1", jsonHold}}};
-    return sendCommand(jsonRequest);
-}
-
-}
-
-namespace Arco
-{
-bool isEnabled()
-{
-    int enabled = 0;
-    if (motorGet(MOT_2, "ARCO", enabled))
-        return enabled == 1;
-    return false;
-}
-
-
-bool getAbsolutePosition(Units unit, double &value)
-{
-    json command;
-    switch (unit)
-    {
-        case UNIT_DEGREES:
-            command["POSITION"] = "DEG";
-            break;
-        case UNIT_ARCSECS:
-            command["POSITION"] = "ARCSEC";
-            break;
-        case UNIT_STEPS:
-            command["POSITION"] = "STEPS";
-            break;
-    }
-
-    json jsonRequest = {"req", {"get", {"MOT2", command}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, &jsonResponse))
-    {
-
-        std::string position = jsonResponse["get"]["MOT2"]["POSITION"];
-        sscanf(position.c_str(), "%lf", &value);
-        return true;
-    }
-
-    return false;
-}
-
-bool moveAbsolutePoition(Units unit, double value)
-{
-    json command;
-    switch (unit)
-    {
-        case UNIT_DEGREES:
-            command["MOVE"] = {"DEG", value};
-            break;
-        case UNIT_ARCSECS:
-            command["MOVE"] = {"ARCSEC", value};
-            break;
-        case UNIT_STEPS:
-            command["MOVE"] = {"STEPS", value};
-            break;
-    }
-
-    json jsonRequest = {"req", {"cmd", {"MOT2", command}}};
-    return sendCommand(jsonRequest);
-}
-
-bool sync(Units unit, double value)
-{
-    json command;
-    switch (unit)
-    {
-        case UNIT_DEGREES:
-            command["SYNC_POS"] = {"DEG", value};
-            break;
-        case UNIT_ARCSECS:
-            command["SYNC_POS"] = {"ARCSEC", value};
-            break;
-        case UNIT_STEPS:
-            command["SYNC_POS"] = {"STEPS", value};
-            break;
-    }
-
-    json jsonRequest = {"req", {"cmd", {"MOT2", command}}};
-    return sendCommand(jsonRequest);
-}
-
-bool isBusy()
-{
-    json status;
-    if (motorGet(MOT_2, "STATUS", status))
-    {
-        return (status["BUSY"].get<int>() == 1);
-    }
-    return false;
-}
-
-bool stop()
-{
-    return motorCommand(MOT_2, {"MOT_STOP", ""});
-}
-
-
-bool calibrate()
-{
-    return motorSet(MOT_2, {"CAL_STATUS", "exec"});
-}
-
-bool isCalibrating()
-{
-    std::string value;
-    if (motorGet(MOT_2, "CAL_STATUS", value))
-    {
-        return value == "exec";
-    }
-    return false;
-}
-
-bool reverse(bool enabled)
-{
-    return motorCommand(MOT_2, {"REVERSE", enabled ? 1 : 0});
-}
-
-bool isReversed()
-{
-    int value;
-    if (motorGet(MOT_2, "REVERSE", value))
-    {
-        return value == 1;
-    }
-    return false;
-}
-
-}
-}
-
-EssatoArco::EssatoArco() : RotatorInterface(this)
-{
-    setVersion(0, 8);
-    // Can move in Absolute & Relative motions, can AbortFocuser motion.
+    // Focuser capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    // Rotator capabilities
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
-
-    m_MotionProgressTimer.callOnTimeout(std::bind(&EssatoArco::checkMotionProgressCallback, this));
-    m_MotionProgressTimer.setSingleShot(true);
-
-    m_HallSensorTimer.callOnTimeout(std::bind(&EssatoArco::checkHallSensorCallback, this));
-    m_HallSensorTimer.setSingleShot(true);
-    m_HallSensorTimer.setInterval(1000);
 }
 
-bool EssatoArco::initProperties()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::initProperties()
 {
     INDI::Focuser::initProperties();
-
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 10000;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
 
     setConnectionParams();
 
     // Firmware information
-    IUFillText(&FirmwareT[FIRMWARE_SN], "SERIALNUMBER", "Serial Number", "");
-    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 0,
-                     IPS_IDLE);
+    FirmwareTP[ESATTO_FIRMWARE_SN].fill("ESATTO_FIRMWARE_SN", "Esatto SN", "");
+    FirmwareTP[ESATTO_FIRMWARE_VERSION].fill("ESATTO_FIRMWARE_VERSION", "Esatto Firmware", "");
+    FirmwareTP[ARCO_FIRMWARE_SN].fill("ARCO_FIRMWARE_SN", "Arco SN", "");
+    FirmwareTP[ARCO_FIRMWARE_VERSION].fill("VERARCO_FIRMWARE_VERSIONSION", "Arco Firmware", "");
+    FirmwareTP.fill(getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 60, IPS_IDLE);
+
+    //////////////////////////////////////////////////////
+    /// Esatto Properties
+    /////////////////////////////////////////////////////
 
     // Voltage Information
     IUFillNumber(&VoltageInN[0], "VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
@@ -483,25 +89,15 @@ bool EssatoArco::initProperties()
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
-    // Focuser calibration
-    IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
-    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    // Calibration
-    IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
-    IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
+    // Backlash measurement
     IUFillText(&BacklashMessageT[0], "BACKLASH", "Backlash stage", "Press START to measure backlash.");
     IUFillTextVector(&BacklashMessageTP, BacklashMessageT, 1, getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Backlash
-    IUFillSwitch(&BacklashS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
-    IUFillSwitch(&BacklashS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&BacklashSP, BacklashS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
+    // Backlash measurement stages
+    IUFillSwitch(&BacklashMeasurementS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
+    IUFillSwitch(&BacklashMeasurementS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
+    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
@@ -511,77 +107,28 @@ bool EssatoArco::initProperties()
     IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    // Hold state
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_ON], "HOLD_ON", "Hold On", ISS_OFF);
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_OFF], "HOLD_OFF", "Hold Off", ISS_OFF);
-    IUFillSwitchVector(&MotorHoldSP, MotorHoldS, 2, getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     // Override the default Max. Position to make it Read-Only
     IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
 
-    // Motor rate
-    IUFillNumber(&MotorRateN[MOTOR_RATE_ACC], "ACC", "Acceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorRateN[MOTOR_RATE_RUN], "RUN", "Run Speed", "%.f", 1, 10, 1, 2);
-    IUFillNumber(&MotorRateN[MOTOR_RATE_DEC], "DEC", "Deceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumberVector(&MotorRateNP, MotorRateN, 3, getDeviceName(), "MOTOR_RATE", "Motor Rate", MOTOR_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    // Motor current
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_ACC], "CURR_ACC", "Acceleration", "%.f", 1, 10, 1, 7);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_RUN], "CURR_RUN", "Run", "%.f", 1, 10, 1, 7);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_DEC], "CURR_DEC", "Deceleration", "%.f", 1, 10, 1, 7);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_HOLD], "CURR_HOLD", "Hold", "%.f", 0, 5, 1, 3);
-    IUFillNumberVector(&MotorCurrentNP, MotorCurrentN, 4, getDeviceName(), "MOTOR_CURRENT", "Current", MOTOR_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    // Load motor preset
-    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_LIGHT], "MOTOR_APPLY_LIGHT", "Light", ISS_OFF);
-    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_MEDIUM], "MOTOR_APPLY_MEDIUM", "Medium", ISS_OFF);
-    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_HEAVY], "MOTOR_APPLY_HEAVY", "Heavy", ISS_OFF);
-    IUFillSwitchVector(&MotorApplyPresetSP, MotorApplyPresetS, 3, getDeviceName(), "MOTOR_APPLY_PRESET", "Apply Preset",
-                       MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Load user preset
-    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER1], "MOTOR_APPLY_USER1", "User 1", ISS_OFF);
-    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER2], "MOTOR_APPLY_USER2", "User 2", ISS_OFF);
-    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER3], "MOTOR_APPLY_USER3", "User 3", ISS_OFF);
-    IUFillSwitchVector(&MotorApplyUserPresetSP, MotorApplyUserPresetS, 3, getDeviceName(), "MOTOR_APPLY_USER_PRESET",
-                       "Apply Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Save user preset
-    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER1], "MOTOR_SAVE_USER1", "User 1", ISS_OFF);
-    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER2], "MOTOR_SAVE_USER2", "User 2", ISS_OFF);
-    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER3], "MOTOR_SAVE_USER3", "User 3", ISS_OFF);
-    IUFillSwitchVector(&MotorSaveUserPresetSP, MotorSaveUserPresetS, 3, getDeviceName(), "MOTOR_SAVE_USER_PRESET",
-                       "Save Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
+    //////////////////////////////////////////////////////
+    /// Arco Properties
+    /////////////////////////////////////////////////////
     INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
-    // Rotator Position
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Angle", "%f", 0., 360., .0001, 0.);
+    // Rotator Ticks
+    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
                        0, IPS_IDLE );
-
-
-
-
-
-    // Rotator calibration
-    //    IUFillText(&RotCalibrationMessageT[0], "Cal Arco", "Arco Cal Stage", "Press START to calibrate Arco.");
-    //    IUFillTextVector(&RotCalibrationMessageTP, RotCalibrationMessageT, 1, getDeviceName(), "ROT_CALIBRATION_MESSAGE", "Cal Arco",
-    //                    ROTATOR_TAB, IP_RO, 0, IPS_IDLE);
-
-
     // Rotator Calibration
     IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
     //   IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&RotCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Cal Arco", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-
-
+    //////////////////////////////////////////////////////
+    // Defaults
+    /////////////////////////////////////////////////////
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -599,10 +146,10 @@ bool EssatoArco::initProperties()
     PresetN[1].max = FocusMaxPosN[0].value;
     PresetN[2].max = FocusMaxPosN[0].value;
 
-    RotatorAbsPosN[0].min = 0.000;
-    RotatorAbsPosN[0].max = 360.;
-    RotatorAbsPosN[0].value = 0.000;
-    RotatorAbsPosN[0].step = 0.0001;
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 10000;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
 
     addAuxControls();
 
@@ -611,35 +158,22 @@ bool EssatoArco::initProperties()
     return true;
 }
 
-bool EssatoArco::updateProperties()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::updateProperties()
 {
     if (isConnected() && updateMaxLimit() == false)
         LOGF_WARN("Check you have the latest %s firmware. Focuser requires calibration.", getDeviceName());
 
-    // Rotator
-    INDI::RotatorInterface::updateProperties();
-    defineProperty(&RotatorAbsPosNP);
-    defineProperty(&RotCalibrationSP);
-    defineProperty(&RotCalibrationMessageTP);
-
-    //Focuser
-    INDI::Focuser::updateProperties();
-
-
     if (isConnected())
     {
-        defineProperty(&SpeedNP);
-        defineProperty(&CalibrationMessageTP);
-        defineProperty(&CalibrationSP);
-        defineProperty(&BacklashMessageTP);
-        defineProperty(&BacklashSP);
-        defineProperty(&MotorRateNP);
-        defineProperty(&MotorCurrentNP);
-        defineProperty(&MotorHoldSP);
-        defineProperty(&MotorApplyPresetSP);
-        defineProperty(&MotorApplyUserPresetSP);
-        defineProperty(&MotorSaveUserPresetSP);
+        //Focuser
+        INDI::Focuser::updateProperties();
 
+        defineProperty(&SpeedNP);
+        defineProperty(&BacklashMessageTP);
+        defineProperty(&BacklashMeasurementSP);
         defineProperty(&FirmwareTP);
 
         if (updateTemperature())
@@ -648,50 +182,47 @@ bool EssatoArco::updateProperties()
         if (updateVoltageIn())
             defineProperty(&VoltageInNP);
 
+        // Rotator
+        INDI::RotatorInterface::updateProperties();
+        defineProperty(&RotatorAbsPosNP);
+        defineProperty(&RotCalibrationSP);
+        defineProperty(&RotCalibrationMessageTP);
+
         if (getStartupValues())
-            LOG_INFO("Parameters updated, focuser ready for use.");
+            LOGF_INFO("Parameters updated, %s ready for use.", getDeviceName());
         else
             LOG_WARN("Failed to inquire parameters. Check logs.");
     }
     else
     {
+        //Focuser
+        INDI::Focuser::updateProperties();
+
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
-        deleteProperty(FirmwareTP.name);
+
+        deleteProperty(FirmwareTP.getName());
         deleteProperty(VoltageInNP.name);
-        deleteProperty(CalibrationMessageTP.name);
-        deleteProperty(CalibrationSP.name);
         deleteProperty(BacklashMessageTP.name);
-        deleteProperty(BacklashSP.name);
+        deleteProperty(BacklashMeasurementSP.name);
         deleteProperty(SpeedNP.name);
-        deleteProperty(MotorRateNP.name);
-        deleteProperty(MotorCurrentNP.name);
-        deleteProperty(MotorHoldSP.name);
-        deleteProperty(MotorApplyPresetSP.name);
-        deleteProperty(MotorApplyUserPresetSP.name);
-        deleteProperty(MotorSaveUserPresetSP.name);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
         deleteProperty(RotCalibrationSP.name);
         deleteProperty(RotCalibrationMessageTP.name);
-
     }
 
     return true;
 }
 
-
-
-
-
-bool EssatoArco::Handshake()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::Handshake()
 {
-    CommandSet::PortFD = PortFD;
-    CommandSet::DeviceName = getDeviceName();
-
-    if (Ack() && CommandSet::Arco::isEnabled())
+    if (Ack())
     {
         LOGF_INFO("%s is online. Getting parameters...", getDeviceName());
         return true;
@@ -701,23 +232,21 @@ bool EssatoArco::Handshake()
     return false;
 }
 
-bool EssatoArco::SetFocuserBacklash(int32_t steps)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+const char *EsattoArco::getDefaultName()
 {
-    backlashTicks = static_cast<uint32_t>(abs(steps));
-    backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
-    oldbacklashDirection = backlashDirection;
-    return true;
+    return "Esatto Arco";
 }
 
-const char *EssatoArco::getDefaultName()
-{
-    return "Sesto Senso 2";
-}
-
-bool EssatoArco::updateTemperature()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::updateTemperature()
 {
     double temperature = 0;
-    if (CommandSet::Essato::getMotorTemp(temperature))
+    if (m_Esatto->getMotorTemp(temperature))
     {
         TemperatureN[TEMPERATURE_MOTOR].value = temperature;
         TemperatureNP.s = IPS_OK;
@@ -726,7 +255,7 @@ bool EssatoArco::updateTemperature()
         TemperatureNP.s = IPS_ALERT;
 
     TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
-    if (CommandSet::Essato::getExternalTemp(temperature) && temperature < 90)
+    if (m_Esatto->getExternalTemp(temperature) && temperature < 90)
     {
         TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
     }
@@ -734,12 +263,14 @@ bool EssatoArco::updateTemperature()
     return true;
 }
 
-
-bool EssatoArco::updateMaxLimit()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::updateMaxLimit()
 {
     uint32_t maxLimit = 0;
 
-    if (CommandSet::Essato::getMaxPosition(maxLimit) && maxLimit > 0)
+    if (m_Esatto->getMaxPosition(maxLimit) && maxLimit > 0)
     {
         FocusMaxPosN[0].max = maxLimit;
         if (FocusMaxPosN[0].value > maxLimit)
@@ -767,497 +298,140 @@ bool EssatoArco::updateMaxLimit()
         return true;
     }
 
-
     FocusMaxPosNP.s = IPS_ALERT;
     return false;
 }
 
-bool EssatoArco::updatePosition()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::SetFocuserBacklash(int32_t steps)
 {
-    uint32_t position;
+    return m_Esatto->setBacklash(steps);
+}
 
-    if (CommandSet::Essato::getAbsolutePosition())
-        char res[SESTO_LEN] = {0};
-    if (isSimulation())
-        snprintf(res, SESTO_LEN, "%u", static_cast<uint32_t>(FocusAbsPosN[0].value));
-    else if (command->getAbsolutePosition(res) == false)
-        return false;
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::updatePosition()
+{
+    uint32_t steps;
+    // Update focuser position
+    if (m_Esatto->getAbsolutePosition(steps))
+        FocusAbsPosN[0].value = steps;
 
-    try
+    double arcoPosition;
+    // Update Arco steps position
+    if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_STEPS, arcoPosition))
     {
-        int32_t currentPos = std::stoi(res);
-        if(backlashDirection == FOCUS_INWARD)
-        {
-            currentPos += backlashTicks;
-        }
-        else
-        {
-            currentPos -= backlashTicks;
-        }
-        FocusAbsPosN[0].value = currentPos;
-        FocusAbsPosNP.s = IPS_OK;
-
-
         //Update Rotator Position
-        RotatorAbsPosN[0].value = command->getArcoAbsPos();
-
-        if(command->getArcoPosition() >= 0 )
-        {
-            GotoRotatorN[0].value = command->getArcoPosition();
-        }
-        else
-        {
-            GotoRotatorN[0].value = 360.0 + command->getArcoPosition();
-        }
-
-        if(!command -> isArcoBusy())
-        {
-            RotatorAbsPosNP.s = IPS_OK;
-            GotoRotatorNP.s = IPS_OK;
-        }
-        if(command -> isArcoCalibrating())
-        {
-            RotatorAbsPosNP.s = IPS_BUSY;
-            GotoRotatorNP.s = IPS_BUSY;
-            RotCalibrationSP.s = IPS_BUSY;
-            IDSetSwitch(&RotCalibrationSP, nullptr);
-        }
-        else
-        {
-            if(RotCalibrationSP.s == IPS_BUSY)
-            {
-                RotCalibrationSP.s = IPS_IDLE;
-                IDSetSwitch(&RotCalibrationSP, nullptr);
-                LOG_INFO("Arco calibration complete.");
-                if(command -> syncArco(0))
-                {
-                    LOG_INFO("Arco synced to zero");
-                }
-            }
-
-        }
-
-        if(GotoRotatorNP.s == IPS_BUSY) RotatorAbsPosNP.s = IPS_BUSY;
-        //LOGF_INFO("RotatorAbsPos: %f",RotatorAbsPosN[0].value);
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
-        IDSetNumber(&GotoRotatorNP, nullptr);
-        //End Update Rotator Position
-
-        return true;
+        RotatorAbsPosN[0].value = arcoPosition;
     }
-    catch(...)
+
+    // Update Arco degrees position
+    if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
-        LOGF_WARN("Failed to process position response: %s (%d bytes)", res, strlen(res));
-        FocusAbsPosNP.s = IPS_ALERT;
-        return false;
-    }
-}
-
-bool EssatoArco::updateVoltageIn()
-{
-    char res[SESTO_LEN] = {0};
-    double voltageIn = 0;
-
-    if (isSimulation())
-        strncpy(res, "12.00", SESTO_LEN);
-    else if (command->getVoltageIn(res) == false)
-        return false;
-
-    try
-    {
-        voltageIn = std::stod(res);
-    }
-    catch(...)
-    {
-        LOGF_WARN("Failed to process voltage response: %s (%d bytes)", res, strlen(res));
-        return false;
+        //Update Rotator Position
+        GotoRotatorN[0].value = arcoPosition;
     }
 
-    if (voltageIn > 24)
-        return false;
 
-    VoltageInN[0].value = voltageIn;
-    VoltageInNP.s = (voltageIn >= 11.0) ? IPS_OK : IPS_ALERT;
-
-    return true;
-}
-
-bool EssatoArco::fetchMotorSettings()
-{
-    // Fetch driver state and reflect in INDI
-    MotorRates ms;
-    MotorCurrents mc;
-    bool motorHoldActive = false;
-
-    if (isSimulation())
-    {
-        ms.accRate = 1;
-        ms.runSpeed = 2;
-        ms.decRate = 1;
-        mc.accCurrent = 3;
-        mc.runCurrent = 4;
-        mc.decCurrent = 3;
-        mc.holdCurrent = 2;
-    }
-    else
-    {
-        if (!command->getMotorSettings(ms, mc, motorHoldActive))
-        {
-            MotorRateNP.s = IPS_IDLE;
-            MotorCurrentNP.s = IPS_IDLE;
-            MotorHoldSP.s = IPS_IDLE;
-            return false;
-        }
-    }
-
-    MotorRateN[MOTOR_RATE_ACC].value = ms.accRate;
-    MotorRateN[MOTOR_RATE_RUN].value = ms.runSpeed;
-    MotorRateN[MOTOR_RATE_DEC].value = ms.decRate;
-    MotorRateNP.s = IPS_OK;
-    IDSetNumber(&MotorRateNP, nullptr);
-
-    MotorCurrentN[MOTOR_CURR_ACC].value = mc.accCurrent;
-    MotorCurrentN[MOTOR_CURR_RUN].value = mc.runCurrent;
-    MotorCurrentN[MOTOR_CURR_DEC].value = mc.decCurrent;
-    MotorCurrentN[MOTOR_CURR_HOLD].value = mc.holdCurrent;
-    MotorCurrentNP.s = IPS_OK;
-    IDSetNumber(&MotorCurrentNP, nullptr);
-
-    // Also update motor hold switch
-    const char *activeSwitchID = motorHoldActive ? "HOLD_ON" : "HOLD_OFF";
-    ISwitch *sp = IUFindSwitch(&MotorHoldSP, activeSwitchID);
-    assert(sp != nullptr && "Motor hold switch not found");
-    if (sp)
-    {
-        IUResetSwitch(&MotorHoldSP);
-        sp->s = ISS_ON;
-        MotorHoldSP.s = motorHoldActive ? IPS_OK : IPS_ALERT;
-        IDSetSwitch(&MotorHoldSP, nullptr);
-    }
-
-    if (motorHoldActive && mc.holdCurrent == 0)
-    {
-        LOG_WARN("Motor hold current set to 0, motor hold setting will have no effect");
-    }
-
-    return true;
-}
-
-bool EssatoArco::AbortRotator()
-{
-    bool rc = command->stopArco();
-    if (rc && RotatorAbsPosNP.s != IPS_OK)
+    if(!m_Arco->isBusy())
     {
         RotatorAbsPosNP.s = IPS_OK;
         GotoRotatorNP.s = IPS_OK;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
-        IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    return rc;
-}
-
-bool  EssatoArco::ReverseRotator(bool enabled)
-{
-
-}
-
-bool EssatoArco::SyncRotator(double angle)
-{
-    GotoRotatorN[0].value = angle;
-    return command -> syncArco(angle);
-}
-
-
-bool EssatoArco::applyMotorRates()
-{
-    if (isSimulation())
-        return true;
-
-    // Send INDI state to driver
-    MotorRates mr;
-    mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
-    mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
-    mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
-
-    if (!command->setMotorRates(mr))
+    if(m_Arco->isCalibrating())
     {
-        LOG_ERROR("Failed to apply motor rates");
-        // TODO: Error state?
-        return false;
-    }
-
-    LOGF_INFO("Motor rates applied: Acc: %u Run: %u Dec: %u", mr.accRate, mr.runSpeed, mr.decRate);
-    return true;
-}
-
-bool EssatoArco::applyMotorCurrents()
-{
-    if (isSimulation())
-        return true;
-
-    // Send INDI state to driver
-    MotorCurrents mc;
-    mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
-    mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
-    mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
-    mc.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
-
-    if (!command->setMotorCurrents(mc))
-    {
-        LOG_ERROR("Failed to apply motor currents");
-        // TODO: Error state?
-        return false;
-    }
-
-    LOGF_INFO("Motor currents applied: Acc: %u Run: %u Dec: %u Hold: %u", mc.accCurrent, mc.runCurrent, mc.decCurrent,
-              mc.holdCurrent);
-    return true;
-}
-
-bool EssatoArco::isMotionComplete()
-{
-    char res[SESTO_LEN] = {0};
-
-    if (isSimulation())
-    {
-        int32_t nextPos = FocusAbsPosN[0].value;
-        int32_t targPos = static_cast<int32_t>(targetPos);
-
-        if (targPos > nextPos)
-            nextPos += 250;
-        else if (targPos < nextPos)
-            nextPos -= 250;
-
-        if (abs(nextPos - targPos) < 250)
-            nextPos = targetPos;
-        else if (nextPos < 0)
-            nextPos = 0;
-        else if (nextPos > FocusAbsPosN[0].max)
-            nextPos = FocusAbsPosN[0].max;
-
-        snprintf(res, SESTO_LEN, "%d", nextPos);
+        RotatorAbsPosNP.s = IPS_BUSY;
+        GotoRotatorNP.s = IPS_BUSY;
+        RotCalibrationSP.s = IPS_BUSY;
+        IDSetSwitch(&RotCalibrationSP, nullptr);
     }
     else
     {
-        if(command->getCurrentSpeed(res))
+        if(RotCalibrationSP.s == IPS_BUSY)
         {
-            try
+            RotCalibrationSP.s = IPS_IDLE;
+            IDSetSwitch(&RotCalibrationSP, nullptr);
+            LOG_INFO("Arco calibration complete.");
+            if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
             {
-                uint32_t newSpeed = std::stoi(res);
-                SpeedN[0].value = newSpeed;
-                SpeedNP.s = IPS_OK;
-            }
-            catch (...)
-            {
-                LOGF_WARN("Failed to get motor speed response: %s (%d bytes)", res, strlen(res));
-            }
-
-            if(!strcmp(res, "0"))
-                return true;
-
-            *res = {0};
-            if(command->getAbsolutePosition(res))
-            {
-                try
-                {
-                    uint32_t newPos = std::stoi(res);
-                    if(backlashDirection == FOCUS_INWARD)
-                    {
-                        newPos += backlashTicks;
-                    }
-                    else
-                    {
-                        newPos -= backlashTicks;
-                    }
-                    FocusAbsPosN[0].value = newPos;
-                }
-                catch (...)
-                {
-                    LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
-                }
+                LOG_INFO("Arco position synced to zero.");
             }
         }
+    }
 
+    if(GotoRotatorNP.s == IPS_BUSY)
+        RotatorAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&RotatorAbsPosNP, nullptr);
+    IDSetNumber(&GotoRotatorNP, nullptr);
+    return true;
+}
+
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::updateVoltageIn()
+{
+    double voltage;
+    if (m_Esatto->getVoltageIn(voltage))
+    {
+
+        if (voltage > 24)
+            return false;
+
+        VoltageInN[0].value = voltage;
+        VoltageInNP.s = (voltage >= 11.0) ? IPS_OK : IPS_ALERT;
+
+        return true;
     }
 
     return false;
 }
 
-bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::isMotionComplete()
+{
+    uint32_t speed;
+    if (m_Esatto->getCurrentSpeed(speed))
+    {
+        return speed == 0;
+    }
+    return false;
+}
+
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Calibrate focuser
-        if (!strcmp(name, CalibrationSP.name))
-        {
-            int current_switch = 0;
-
-            CalibrationSP.s = IPS_BUSY;
-            //IDSetSwitch(&CalibrationSP, nullptr);
-            IUUpdateSwitch(&CalibrationSP, states, names, n);
-
-            current_switch = IUFindOnSwitchIndex(&CalibrationSP);
-            CalibrationS[current_switch].s = ISS_ON;
-            IDSetSwitch(&CalibrationSP, nullptr);
-
-            if (current_switch == CALIBRATION_START)
-            {
-                if (cStage == Idle || cStage == Complete )
-                {
-                    // Start the calibration process
-                    LOG_INFO("Start Calibration");
-                    CalibrationSP.s = IPS_BUSY;
-                    IDSetSwitch(&CalibrationSP, nullptr);
-
-                    //
-                    // Init
-                    //
-                    if (m_IsEssatoArco && command->initCalibration() == false)
-                        return false;
-
-                    IUSaveText(&CalibrationMessageT[0], "Set focus in MIN position and then press NEXT.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
-
-                    // Motor hold disabled during calibration init, so fetch new hold state
-                    fetchMotorSettings();
-
-                    // Set next step
-                    cStage = GoToMiddle;
-                }
-                else
-                {
-                    LOG_INFO("Already started calibration. Proceed to next step.");
-                    IUSaveText(&CalibrationMessageT[0], "Already started. Proceed to NEXT.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
-                }
-            }
-            else if (current_switch == CALIBRATION_NEXT)
-            {
-                if (cStage == GoToMiddle)
-                {
-                    defineProperty(&FastMoveSP);
-                    if (m_IsEssatoArco)
-                    {
-                        if (command->storeAsMinPosition() == false)
-                            return false;
-
-                        IUSaveText(&CalibrationMessageT[0], "Press MOVE OUT to move focuser out (CAUTION!)");
-                        IDSetText(&CalibrationMessageTP, nullptr);
-                        cStage = GoMinimum;
-                    }
-                    // For Esatto, start moving out immediately
-                    else
-                    {
-                        cStage = GoMaximum;
-
-                        ISState fs[1] = { ISS_ON };
-                        const char *fn[1] =  { FastMoveS[FASTMOVE_OUT].name };
-                        ISNewSwitch(getDeviceName(), FastMoveSP.name, fs, const_cast<char **>(fn), 1);
-                    }
-                }
-                else if (cStage == GoMinimum)
-                {
-                    char res[SESTO_LEN] = {0};
-                    if (m_IsEssatoArco && command->storeAsMaxPosition(res) == false)
-                        return false;
-
-                    IUSaveText(&CalibrationMessageT[0], "Press NEXT to finish.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
-                    cStage = GoMaximum;
-                }
-                else if (cStage == GoMaximum)
-                {
-                    char res[SESTO_LEN] = {0};
-
-                    if (command->getMaxPosition(res) == false)
-                        return false;
-
-                    int maxLimit = 0;
-                    sscanf(res, "%d", &maxLimit);
-                    LOGF_INFO("MAX setting is %d", maxLimit);
-
-                    FocusMaxPosN[0].max = maxLimit;
-                    FocusMaxPosN[0].value = maxLimit;
-
-                    FocusAbsPosN[0].min   = 0;
-                    FocusAbsPosN[0].max   = maxLimit;
-                    FocusAbsPosN[0].value = maxLimit;
-                    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-
-                    FocusRelPosN[0].min   = 0.;
-                    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-                    FocusRelPosN[0].value = 0;
-                    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
-
-                    PresetN[0].max = maxLimit;
-                    PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-                    PresetN[1].max = maxLimit;
-                    PresetN[1].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-                    PresetN[2].max = maxLimit;
-                    PresetN[2].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-
-                    FocusMaxPosNP.s = IPS_OK;
-                    IUUpdateMinMax(&FocusAbsPosNP);
-                    IUUpdateMinMax(&FocusRelPosNP);
-                    IUUpdateMinMax(&PresetNP);
-                    IUUpdateMinMax(&FocusMaxPosNP);
-
-                    IUSaveText(&CalibrationMessageT[0], "Calibration Completed.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
-
-                    deleteProperty(FastMoveSP.name);
-                    cStage = Complete;
-
-                    LOG_INFO("Calibration completed");
-                    CalibrationSP.s = IPS_OK;
-                    IDSetSwitch(&CalibrationSP, nullptr);
-                    CalibrationS[current_switch].s = ISS_OFF;
-                    IDSetSwitch(&CalibrationSP, nullptr);
-
-                    // Double check motor hold state after calibration
-                    fetchMotorSettings();
-                }
-                else
-                {
-                    IUSaveText(&CalibrationMessageT[0], "Calibration not in progress.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
-                }
-
-            }
-            return true;
-        }
         // Set backlash
-        else if (!strcmp(name, BacklashSP.name))
+        if (!strcmp(name, BacklashMeasurementSP.name))
         {
-            int current_switch = 0;
+            BacklashMeasurementSP.s = IPS_BUSY;
+            IUUpdateSwitch(&BacklashMeasurementSP, states, names, n);
 
-            BacklashSP.s = IPS_BUSY;
-            //IDSetSwitch(&BacklashSP, nullptr);
-            IUUpdateSwitch(&BacklashSP, states, names, n);
-
-            current_switch = IUFindOnSwitchIndex(&BacklashSP);
-            BacklashS[current_switch].s = ISS_ON;
-            IDSetSwitch(&BacklashSP, nullptr);
+            auto current_switch = IUFindOnSwitchIndex(&BacklashMeasurementSP);
+            BacklashMeasurementS[current_switch].s = ISS_ON;
+            IDSetSwitch(&BacklashMeasurementSP, nullptr);
 
             if (current_switch == BACKLASH_START)
             {
                 if (bStage == BacklashIdle || bStage == BacklashComplete )
                 {
                     // Start the backlash measurement process
-                    LOG_INFO("Start Backlash Measure");
-                    BacklashSP.s = IPS_BUSY;
-                    IDSetSwitch(&BacklashSP, nullptr);
-
-                    //
-                    // Init
-                    //
+                    LOG_INFO("Start Backlash measurement.");
+                    BacklashMeasurementSP.s = IPS_BUSY;
+                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
 
                     IUSaveText(&BacklashMessageT[0], "Drive the focuser in any direction until focus changes.");
                     IDSetText(&BacklashMessageTP, nullptr);
-
-                    // Motor hold disabled during calibration init, so fetch new hold state
-                    fetchMotorSettings();
 
                     // Set next step
                     bStage = BacklashMinimum;
@@ -1282,7 +456,11 @@ bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 else if (bStage == BacklashMaximum)
                 {
                     FocusBacklashN[0].value -= FocusAbsPosN[0].value;
+
+                    // Set Esatto backlash
+                    SetFocuserBacklash(FocusBacklashN[0].value);
                     IDSetNumber(&FocusBacklashNP, nullptr);
+
                     SetFocuserBacklashEnabled(true);
 
                     IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
@@ -1291,10 +469,10 @@ bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     bStage = BacklashComplete;
 
                     LOG_INFO("Backlash measurement completed");
-                    BacklashSP.s = IPS_OK;
-                    IDSetSwitch(&BacklashSP, nullptr);
-                    BacklashS[current_switch].s = ISS_OFF;
-                    IDSetSwitch(&BacklashSP, nullptr);
+                    BacklashMeasurementSP.s = IPS_OK;
+                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
+                    BacklashMeasurementS[current_switch].s = ISS_OFF;
+                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
                 }
                 else
                 {
@@ -1309,173 +487,35 @@ bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
         else if (!strcmp(name, FastMoveSP.name))
         {
             IUUpdateSwitch(&FastMoveSP, states, names, n);
-            int current_switch = IUFindOnSwitchIndex(&FastMoveSP);
-            char res[SESTO_LEN] = {0};
+            auto current_switch = IUFindOnSwitchIndex(&FastMoveSP);
 
             switch (current_switch)
             {
                 case FASTMOVE_IN:
-                    if (command->fastMoveIn(res) == false)
-                    {
+                    if (!m_Esatto->fastMoveIn())
                         return false;
-                    }
+                    FastMoveSP.s = IPS_BUSY;
                     break;
                 case FASTMOVE_OUT:
-                    if (m_IsEssatoArco)
-                    {
-                        if (command->goOutToFindMaxPos() == false)
-                        {
-                            return false;
-                        }
-                        IUSaveText(&CalibrationMessageT[0], "Press STOP focuser almost at MAX position.");
-
-                        // GoOutToFindMaxPos should cause motor hold to be reactivated
-                        fetchMotorSettings();
-                    }
-                    else
-                    {
-                        if (command->fastMoveOut(res))
-                        {
-                            IUSaveText(&CalibrationMessageT[0], "Focusing out to detect hall sensor.");
-
-                            //                            if (m_MotionProgressTimerID > 0)
-                            //                                IERmTimer(m_MotionProgressTimerID);
-                            //                            m_MotionProgressTimerID = IEAddTimer(500, &EssatoArco::checkMotionProgressHelper, this);
-                            m_MotionProgressTimer.start(500);
-                        }
-                    }
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    if (!m_Esatto->fastMoveOut())
+                        return false;
+                    FastMoveSP.s = IPS_BUSY;
                     break;
                 case FASTMOVE_STOP:
-                    if (command->stop() == false)
-                    {
+                    if (!m_Esatto->stop())
                         return false;
-                    }
-                    IUSaveText(&CalibrationMessageT[0], "Press NEXT to store max limit.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    FastMoveSP.s = IPS_IDLE;
                     break;
                 default:
                     break;
             }
 
-            FastMoveSP.s = IPS_BUSY;
             IDSetSwitch(&FastMoveSP, nullptr);
-            return true;
-        }
-        else if (!strcmp(name, MotorHoldSP.name))
-        {
-            IUUpdateSwitch(&MotorHoldSP, states, names, n);
-            ISwitch *sp = IUFindOnSwitch(&MotorHoldSP);
-            assert(sp != nullptr);
-
-            // NOTE: Default to HOLD_ON as a safety feature
-            if (!strcmp(sp->name, "HOLD_OFF"))
-            {
-                command->setMotorHold(false);
-                MotorHoldSP.s = IPS_ALERT;
-                LOG_INFO("Motor hold OFF. You may now manually adjust the focuser. Remember to enable motor hold once done.");
-            }
-            else
-            {
-                command->setMotorHold(true);
-                MotorHoldSP.s = IPS_OK;
-                LOG_INFO("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
-                if (MotorCurrentN[MOTOR_CURR_HOLD].value < 2.0)
-                {
-                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficent to hold focus", MotorCurrentN[MOTOR_CURR_HOLD].value);
-                }
-            }
-
-            IDSetSwitch(&MotorHoldSP, nullptr);
-            return true;
-        }
-        else if (!strcmp(name, MotorApplyPresetSP.name))
-        {
-            IUUpdateSwitch(&MotorApplyPresetSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&MotorApplyPresetSP);
-            assert(index >= 0 && index < 3);
-
-            // Settings names for the default motor settings presets
-            const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
-            const char* presetName = MOTOR_PRESET_NAMES[index];
-
-            if (command->applyMotorPreset(presetName))
-            {
-                LOGF_INFO("Loaded motor preset: %s", presetName);
-                MotorApplyPresetSP.s = IPS_IDLE;
-            }
-            else
-            {
-                LOGF_ERROR("Failed to load motor preset: %s", presetName);
-                MotorApplyPresetSP.s = IPS_ALERT;
-            }
-
-            MotorApplyPresetS[index].s = ISS_OFF;
-            IDSetSwitch(&MotorApplyPresetSP, nullptr);
-
-            fetchMotorSettings();
-            return true;
-        }
-        else if (!strcmp(name, MotorApplyUserPresetSP.name))
-        {
-            IUUpdateSwitch(&MotorApplyUserPresetSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&MotorApplyUserPresetSP);
-            assert(index >= 0 && index < 3);
-            uint32_t userIndex = index + 1;
-
-            if (command->applyMotorUserPreset(userIndex))
-            {
-                LOGF_INFO("Loaded motor user preset: %u", userIndex);
-                MotorApplyUserPresetSP.s = IPS_IDLE;
-            }
-            else
-            {
-                LOGF_ERROR("Failed to load motor user preset: %u", userIndex);
-                MotorApplyUserPresetSP.s = IPS_ALERT;
-            }
-
-            MotorApplyUserPresetS[index].s = ISS_OFF;
-            IDSetSwitch(&MotorApplyUserPresetSP, nullptr);
-
-            fetchMotorSettings();
-            return true;
-        }
-        else if (!strcmp(name, MotorSaveUserPresetSP.name))
-        {
-            IUUpdateSwitch(&MotorSaveUserPresetSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&MotorSaveUserPresetSP);
-            assert(index >= 0 && index < 3);
-            uint32_t userIndex = index + 1;
-
-            MotorRates mr;
-            mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
-            mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
-            mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
-
-            MotorCurrents mc;
-            mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
-            mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
-            mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
-            mc.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
-
-            if (command->saveMotorUserPreset(userIndex, mr, mc))
-            {
-                LOGF_INFO("Saved motor user preset %u to firmware", userIndex);
-                MotorSaveUserPresetSP.s = IPS_IDLE;
-            }
-            else
-            {
-                LOGF_ERROR("Failed to save motor user preset %u to firmware", userIndex);
-                MotorSaveUserPresetSP.s = IPS_ALERT;
-            }
-
-            MotorSaveUserPresetS[index].s = ISS_OFF;
-            IDSetSwitch(&MotorSaveUserPresetSP, nullptr);
             return true;
         }
         else if (!strcmp(name, RotCalibrationSP.name))
         {
-            if(command -> calArco())
+            if(m_Arco->calibrate())
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
                 RotCalibrationSP.s = IPS_BUSY;
@@ -1483,7 +523,6 @@ bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             }
             return true;
         }
-
         else if (strstr(name, "ROTATOR"))
         {
             if (INDI::RotatorInterface::processSwitch(dev, name, states, names, n))
@@ -1493,46 +532,25 @@ bool EssatoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool EssatoArco::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
-    if (!strcmp(name, MotorRateNP.name))
-    {
-        IUUpdateNumber(&MotorRateNP, values, names, n);
-        MotorRateNP.s = IPS_OK;
-        applyMotorRates();
-        IDSetNumber(&MotorRateNP, nullptr);
-        return true;
-    }
-    else if (!strcmp(name, MotorCurrentNP.name))
-    {
-        IUUpdateNumber(&MotorCurrentNP, values, names, n);
-        MotorCurrentNP.s = IPS_OK;
-        applyMotorCurrents();
-        IDSetNumber(&MotorCurrentNP, nullptr);
-        return true;
-    }
-
     else if (strcmp(name, RotatorAbsPosNP.name) == 0)
     {
-        char res[SESTO_LEN] = {0};
-        bool rc = command->setArcoAbsPos(values[0], res);
-        if(rc == true)
-        {
+        if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_STEPS, values[0]))
             RotatorAbsPosNP.s = IPS_BUSY;
-        }
         else
-        {
             RotatorAbsPosNP.s = IPS_ALERT;
-        }
         GotoRotatorNP.s = RotatorAbsPosNP.s;
         IDSetNumber(&RotatorAbsPosNP, nullptr);
         IDSetNumber(&GotoRotatorNP, nullptr);
-        //IUUpdateNumber(&RotatorAbsPosNP,values,names,n);
         if (RotatorAbsPosNP.s == IPS_BUSY)
-            LOGF_INFO("Rotator moving to %f degrees...", values[0]);
+            LOGF_INFO("Rotator moving to %.f steps...", values[0]);
         return true;
     }
     else if (strstr(name, "ROTATOR"))
@@ -1544,54 +562,20 @@ bool EssatoArco::ISNewNumber(const char *dev, const char *name, double values[],
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
-IPState EssatoArco::MoveAbsFocuser(uint32_t targetTicks)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
-    targetPos = targetTicks;
-
-    if (isSimulation() == false)
-    {
-        backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
-        if(backlashDirection == FOCUS_INWARD)
-        {
-            targetPos -=  backlashTicks;
-        }
-        else
-        {
-            targetPos +=  backlashTicks;
-        }
-        char res[SESTO_LEN] = {0};
-        if (command->go(static_cast<uint32_t>(targetPos), res) == false)
-            return IPS_ALERT;
-    }
-
-    //    if (m_MotionProgressTimerID > 0)
-    //        IERmTimer(m_MotionProgressTimerID);
-    //    m_MotionProgressTimerID = IEAddTimer(10, &EssatoArco::checkMotionProgressHelper, this);
-    m_MotionProgressTimer.start(10);
-    return IPS_BUSY;
+    if (m_Esatto->goAbsolutePosition(targetTicks))
+        return IPS_BUSY;
+    return IPS_ALERT;
 }
 
-//Move Rotator to Gotposition corrected for Sync-Angle
-IPState EssatoArco::MoveRotator(double angle)
-{
-    char res[SESTO_LEN] = {0};
-    //Calc sync angle (could also be received from Arco (CORRECTION_POS)
-    double PosCor = RotatorAbsPosN[0].value - GotoRotatorN[0].value;
-    if(PosCor - 360.0 < 0.0001)
-        PosCor = 0.0;
-    angle += PosCor;
-    if(angle > 360.0)
-        angle -= 360.0;
-    if(command->setArcoAbsPos(angle, res) == false)
-    {
-        LOGF_INFO("ARCO won't move. %s", res);
-        return IPS_ALERT;
-    }
-    LOGF_DEBUG("Reply: %s", res);
-    return IPS_BUSY;
-}
-
-IPState EssatoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
@@ -1602,138 +586,56 @@ IPState EssatoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
-bool EssatoArco::AbortFocuser()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::AbortFocuser()
 {
-    //    if (m_MotionProgressTimerID > 0)
-    //    {
-    //        IERmTimer(m_MotionProgressTimerID);
-    //        m_MotionProgressTimerID = -1;
-    //    }
-
-    m_MotionProgressTimer.stop();
-
-    if (isSimulation())
-        return true;
-
-    bool rc = command->abort();
-
-    return rc;
+    return m_Esatto->stop();
 }
 
-//
-// This timer function is initiated when a GT command has been issued
-// A timer will call this function on a regular interval during the motion
-// Modified the code to exit when motion is complete
-//
-void EssatoArco::checkMotionProgressCallback()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+void EsattoArco::TimerHit()
 {
-    if (isMotionComplete())
-    {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        SpeedNP.s = IPS_OK;
-        SpeedN[0].value = 0;
-        IDSetNumber(&SpeedNP, nullptr);
-
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-
-
-        lastPos = FocusAbsPosN[0].value;
-
-        else if (CalibrationSP.s == IPS_BUSY)
-        {
-            ISState states[2] = { ISS_OFF, ISS_ON };
-            const char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
-            ISNewSwitch(getDeviceName(), CalibrationSP.name, states, const_cast<char **>(names), CalibrationSP.nsp);
-        }
-        else
-            LOG_INFO("Focuser reached requested position.");
-        return;
-    }
-    else
-    {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-    }
-
-    SpeedNP.s = IPS_BUSY;
-    IDSetNumber(&SpeedNP, nullptr);
-
-    lastPos = FocusAbsPosN[0].value;
-
-    //    IERmTimer(m_MotionProgressTimerID);
-    //    m_MotionProgressTimerID = IEAddTimer(500, &EssatoArco::checkMotionProgressHelper, this);
-    m_MotionProgressTimer.start(500);
-}
-
-void EssatoArco::checkHallSensorCallback()
-{
-    // FIXME
-    // Function not getting call from anywhere?
-    char res[SESTO_LEN] = {0};
-    if (command->getHallSensor(res))
-    {
-        int detected = 0;
-        if (sscanf(res, "%d", &detected) == 1)
-        {
-            if (detected == 1)
-            {
-                ISState states[2] = { ISS_OFF, ISS_ON };
-                const char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
-                ISNewSwitch(getDeviceName(), CalibrationSP.name, states, const_cast<char **>(names), CalibrationSP.nsp);
-                return;
-            }
-        }
-    }
-
-    //m_HallSensorTimerID = IEAddTimer(1000, &EssatoArco::checkHallSensorHelper, this);
-    m_HallSensorTimer.start();
-}
-
-void EssatoArco::TimerHit()
-{
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || (m_IsEssatoArco
-            && CalibrationSP.s == IPS_BUSY))
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         SetTimer(getCurrentPollingPeriod());
         return;
     }
 
-    bool rc = updatePosition();
-    if (rc)
+    auto currentFocusPosition = FocusAbsPosN[0].value;
+    auto currentRotatorPosition = RotatorAbsPosN[0].value;
+    if (updatePosition())
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
-        {
+        if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+
+        if (std::abs(currentRotatorPosition - RotatorAbsPosN[0].value) > 0)
+        {
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            IDSetNumber(&RotatorAbsPosNP, nullptr);
         }
     }
 
-    if (m_TemperatureCounter++ == SESTO_TEMPERATURE_FREQ)
+    if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        rc = updateTemperature();
-        if (rc)
+        auto currentTemperature = TemperatureN[0].value;
+        if (updateTemperature())
         {
-            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1)
-            {
+            if (std::abs(currentTemperature - TemperatureN[0].value) >= 0.1)
                 IDSetNumber(&TemperatureNP, nullptr);
-                lastTemperature = TemperatureN[0].value;
-            }
         }
 
-        // Also use temparature poll rate for tracking input voltage
-        rc = updateVoltageIn();
-        if (rc)
+        auto currentVoltage = VoltageInN[0].value;
+        if (updateVoltageIn())
         {
-            if (fabs(lastVoltageIn - VoltageInN[0].value) >= 0.1)
+            if (std::abs(currentVoltage - VoltageInN[0].value) >= 0.1)
             {
                 IDSetNumber(&VoltageInNP, nullptr);
-                lastVoltageIn = VoltageInN[0].value;
-
                 if (VoltageInN[0].value < 11.0)
-                {
                     LOG_WARN("Please check 12v DC power supply is connected.");
-                }
             }
         }
 
@@ -1743,78 +645,78 @@ void EssatoArco::TimerHit()
     SetTimer(getCurrentPollingPeriod());
 }
 
-bool EssatoArco::getStartupValues()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::getStartupValues()
 {
-    bool rc = updatePosition();
-    if (rc)
-    {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-    }
-
-    rc &= fetchMotorSettings();
-
-    return (rc);
+    updatePosition();
+    auto isReversed = m_Arco->isReversed();
+    ReverseRotatorS[INDI_ENABLED].s = isReversed ? ISS_ON : ISS_OFF;
+    ReverseRotatorS[INDI_DISABLED].s = isReversed ? ISS_OFF : ISS_ON;
+    return true;
 }
 
-
-bool EssatoArco::ReverseFocuser(bool enable)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::Ack()
 {
-    INDI_UNUSED(enable);
-    return false;
-}
+    std::string serial, firmware;
 
-
-bool EssatoArco::Ack()
-{
-    std::string response;
-
-    if (isSimulation())
-        response = "1.0 Simulation";
-    else
+    if(initCommandSet() == false)
     {
-        if(initCommandSet() == false)
-        {
-            LOG_ERROR("Failed setting attributes on serial port and init command sets");
-            return false;
-        }
-        if(command->getSerialNumber(response))
-        {
-            LOGF_INFO("Serial number: %s", res);
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    m_IsEssatoArco = !strstr(res, "ESATTO");
-    IUSaveText(&FirmwareT[FIRMWARE_SN], res);
-
-    if (command->getFirmwareVersion(res))
-    {
-        LOGF_INFO("Firmware version: %s", res);
-        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
-    }
-    else
-    {
+        LOG_ERROR("Failed setting attributes on serial port and init command sets");
         return false;
     }
+
+    if (!m_Arco->isEnabled())
+    {
+        LOG_ERROR("Failed to detect ARCO rotator. Please check it is powered and connected.");
+        return false;
+    }
+
+    bool rc1 = m_Esatto->getSerialNumber(serial);
+    bool rc2 = m_Esatto->getFirmwareVersion(firmware);
+
+    if (rc1 && rc2)
+    {
+        IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_SN], serial.c_str());
+        IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_VERSION], firmware.c_str());
+        LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(), FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
+    }
+    else
+        return false;
+
+    rc1 = m_Esatto->getSerialNumber(serial);
+    rc2 = m_Esatto->getFirmwareVersion(firmware);
+
+    if (rc1 && rc2)
+    {
+        IUSaveText(&FirmwareTP[ARCO_FIRMWARE_SN], serial.c_str());
+        IUSaveText(&FirmwareTP[ARCO_FIRMWARE_VERSION], firmware.c_str());
+        LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(), FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
+    }
+    else
+        return false;
 
     return true;
 }
 
-
-void EssatoArco::setConnectionParams()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+void EsattoArco::setConnectionParams()
 {
     serialConnection->setDefaultBaudRate(serialConnection->B_115200);
     serialConnection->setWordSize(8);
 }
 
-
-bool EssatoArco::initCommandSet()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::initCommandSet()
 {
-    command = new CommandSet(PortFD, getDeviceName());
-
     struct termios tty_setting;
     if (tcgetattr(PortFD, &tty_setting) == -1)
     {
@@ -1827,68 +729,61 @@ bool EssatoArco::initCommandSet()
         LOG_ERROR("setTTYFlags: failed setting attributes on serial port.");
         return false;
     }
+
+    m_Esatto.reset(new PrimalucaLabs::Esatto(getDeviceName(), PortFD));
+    m_Arco.reset(new PrimalucaLabs::Arco(getDeviceName(), PortFD));
     return true;
 }
 
-bool EssatoArco::saveConfigItems(FILE *fp)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
     RI::saveConfigItems(fp);
-
-    IUSaveConfigNumber(fp, &MotorRateNP);
-    IUSaveConfigNumber(fp, &MotorCurrentNP);
     return true;
 }
 
-
-inline void remove_chars_inplace(std::string &str, char ch)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+IPState EsattoArco::MoveRotator(double angle)
 {
-    str.erase(std::remove(str.begin(), str.end(), ch), str.end());
+    if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, angle))
+        return IPS_BUSY;
+    return IPS_ALERT;
 }
 
-bool getSerialNumber(std::string &response)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::AbortRotator()
 {
-    json jsonRequest = {"req", {"get", {"SN", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, jsonResponse))
+    auto rc = m_Arco->stop();
+    if (rc && RotatorAbsPosNP.s != IPS_IDLE)
     {
-        jsonResponse["get"]["SN"].get_to(response);
-        return true;
+        RotatorAbsPosNP.s = IPS_IDLE;
+        GotoRotatorNP.s = IPS_IDLE;
+        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    return false;
+    return rc;
 }
 
-bool getFirmwareVersion(std::string &response)
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool  EsattoArco::ReverseRotator(bool enabled)
 {
-    json jsonRequest = {"req", {"get", {"SWVERS", ""}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, jsonResponse))
-    {
-        jsonResponse["get"]["SWVERS"]["SWAPP"].get_to(response);
-        return true;
-    }
-
-    return false;
+    return m_Arco->reverse(enabled);
 }
 
-bool abort()
+/************************************************************************************************************
+ *
+*************************************************************************************************************/
+bool EsattoArco::SyncRotator(double angle)
 {
-    json jsonRequest = {"req", {"cmd", {"MOT1", {"MOT_ABORT", ""}}}};
-    json jsonResponse;
-    if (sendCommand(jsonRequest, jsonResponse))
-    {
-        return jsonResponse["get"]["cmd"]["MOT1"]["MOT_ABORT"] == "done";
-    }
-
-    return false;
+    return m_Arco->sync(PrimalucaLabs::UNIT_DEGREES, angle);
 }
-
-bool go(uint32_t targetTicks, char *res)
-{
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
-    return sendCommand(cmd, "GOTO", res);
-}
-
-

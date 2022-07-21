@@ -96,7 +96,18 @@ template <typename T> bool Communication::motorGet(MotorType type, const std::st
         return true;
     }
     return false;
+}
 
+template <typename T> bool Communication::get(const std::string &parameter, T &value)
+{
+    json jsonRequest = {"req", {"get", {parameter, ""}}};
+    json jsonResponse;
+    if (sendCommand(jsonRequest, &jsonResponse))
+    {
+        jsonResponse["get"][parameter].get_to(value);
+        return true;
+    }
+    return false;
 }
 
 template <typename T> bool Communication::genericCommand(const std::string &motor, const std::string &type,
@@ -137,42 +148,60 @@ template <typename T> bool Communication::motorCommand(MotorType type, const jso
 }
 
 /******************************************************************************************************
- * Esatto
+ * Common Focuser functions between SestoSenso2 & Esatto
 *******************************************************************************************************/
-Esatto::Esatto(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
+Focuser::Focuser(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
 {
     m_Communication.reset(new Communication(name, port));
 }
 
-bool Esatto::go(uint32_t position)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::goAbsolutePosition(uint32_t position)
 {
     return m_Communication->motorCommand(MOT_1, {"MOV_ABS", {"STEPS", position}});
 }
 
-bool Esatto::stop()
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::stop()
 {
     return m_Communication->motorCommand(MOT_1, {"MOT_STOP", ""});
 }
 
-bool Esatto::fastMoveOut()
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::fastMoveOut()
 {
     return m_Communication->motorCommand(MOT_1, {"F_OUTW", ""});
 }
 
-bool Esatto::fastMoveIn()
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::fastMoveIn()
 {
     return m_Communication->motorCommand(MOT_1, {"F_INW", ""});
 }
 
-bool Esatto::getMaxPosition(uint32_t &position)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getMaxPosition(uint32_t &position)
 {
     return m_Communication->motorGet(MOT_1, "CAL_MAXPOS", position);
 }
 
-bool Esatto::isHallSensorDetected(bool &isDetected)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::isHallSensorDetected(bool &isDetected)
 {
     int detected = 0;
-    if (m_Communication->motorGet(MOT_1, "CAL_MAXPOS", detected))
+    if (m_Communication->motorGet(MOT_1, "HSENDET", detected))
     {
         isDetected = detected == 1;
         return true;
@@ -180,57 +209,113 @@ bool Esatto::isHallSensorDetected(bool &isDetected)
     return false;
 }
 
-bool Esatto::storeAsMaxPosition()
-{
-    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMaxPos"});
-}
-
-bool Esatto::storeAsMinPosition()
-{
-    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMinPos"});
-}
-
-bool Esatto::goOutToFindMaxPos()
-{
-    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "GoOutToFindMaxPos"});
-}
-
-bool Esatto::initCalibration()
-{
-    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "Init"});
-}
-
-bool Esatto::getAbsolutePosition(uint32_t &position)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getAbsolutePosition(uint32_t &position)
 {
     return m_Communication->motorGet(MOT_1, "ABS_POS", position);
 }
 
-bool Esatto::getCurrentSpeed(uint32_t &speed)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getCurrentSpeed(uint32_t &speed)
 {
     return m_Communication->motorGet(MOT_1, "SPEED", speed);
 }
 
-bool Esatto::getMotorTemp(double &value)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getMotorTemp(double &value)
 {
     return m_Communication->motorGet(MOT_1, "NTC_T", value);
 }
 
-bool Esatto::getExternalTemp(double &value)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getExternalTemp(double &value)
 {
-    return m_Communication->motorGet(MOT_1, "EXT_T", value);
+    return m_Communication->get("EXT_T", value);
 }
 
-bool Esatto::getVoltageIn(double &value)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getVoltageIn(double &value)
 {
-    return m_Communication->motorGet(MOT_1, "VIN_12V", value);
+    return m_Communication->get("VIN_12V", value);
 }
 
-bool Esatto::applyMotorPreset(const std::string &name)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getSerialNumber(std::string &response)
+{
+    return m_Communication->get("SN", response);
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Focuser::getFirmwareVersion(std::string &response)
+{
+    json versions;
+    if (m_Communication->get("SWVERS", response))
+    {
+        versions["SWAPP"].get_to(response);
+        return true;
+    }
+    return false;
+}
+
+/******************************************************************************************************
+ * SestoSenso2 functions
+*******************************************************************************************************/
+SestoSenso2::SestoSenso2(const std::string &name, int port) : Focuser(name, port) {}
+bool SestoSenso2::storeAsMaxPosition()
+{
+    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMaxPos"});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::storeAsMinPosition()
+{
+    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "StoreAsMinPos"});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::goOutToFindMaxPos()
+{
+    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "GoOutToFindMaxPos"});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::initCalibration()
+{
+    return m_Communication->motorCommand(MOT_1, {"CAL_FOCUSER", "Init"});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::applyMotorPreset(const std::string &name)
 {
     return m_Communication->motorCommand(MOT_1, {"RUNPRESET", name});
 }
 
-bool Esatto::setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents)
 {
     auto name = std::string("RUNPRESET_") + std::to_string(index);
     auto user = std::string("user_") + std::to_string(index);
@@ -249,7 +334,10 @@ bool Esatto::setMotorUserPreset(uint32_t index, const MotorRates &rates, const M
     return m_Communication->sendCommand(jsonRequest);
 }
 
-bool Esatto::getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive)
 {
     json jsonRequest = {"req", {"get", {"MOT1", ""}}};
     json jsonResponse;
@@ -270,7 +358,10 @@ bool Esatto::getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &
     return false;
 }
 
-bool Esatto::setMotorRates(const MotorRates &rates)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::setMotorRates(const MotorRates &rates)
 {
     json jsonRates =
     {
@@ -283,7 +374,10 @@ bool Esatto::setMotorRates(const MotorRates &rates)
     return m_Communication->sendCommand(jsonRequest);
 }
 
-bool Esatto::setMotorCurrents(const MotorCurrents &currents)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::setMotorCurrents(const MotorCurrents &currents)
 {
     json jsonRates =
     {
@@ -297,11 +391,31 @@ bool Esatto::setMotorCurrents(const MotorCurrents &currents)
     return m_Communication->sendCommand(jsonRequest);
 }
 
-bool Esatto::setMotorHold(bool hold)
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::setMotorHold(bool hold)
 {
     json jsonHold = {"HOLDCURR_STATUS", hold ? 1 : 0};
     json jsonRequest = {"req", {"set", {"MOT1", jsonHold}}};
     return m_Communication->sendCommand(jsonRequest);
+}
+
+/******************************************************************************************************
+ * Esatto functions
+*******************************************************************************************************/
+Esatto::Esatto(const std::string &name, int port) : Focuser(name, port) {}
+bool Esatto::setBacklash(uint32_t steps)
+{
+    return m_Communication->motorSet(MOT_1, {"BKLASH", steps});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Esatto::getBacklash(uint32_t &steps)
+{
+    return m_Communication->motorGet(MOT_1, "BKLASH", steps);
 }
 
 /******************************************************************************************************
@@ -312,6 +426,9 @@ Arco::Arco(const std::string &name, int port) : m_DeviceName(name), m_PortFD(por
     m_Communication.reset(new Communication(name, port));
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::isEnabled()
 {
     int enabled = 0;
@@ -320,7 +437,9 @@ bool Arco::isEnabled()
     return false;
 }
 
-
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::getAbsolutePosition(Units unit, double &value)
 {
     json command;
@@ -350,6 +469,9 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
     return false;
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::moveAbsolutePoition(Units unit, double value)
 {
     json command;
@@ -370,6 +492,9 @@ bool Arco::moveAbsolutePoition(Units unit, double value)
     return m_Communication->sendCommand(jsonRequest);
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::sync(Units unit, double value)
 {
     json command;
@@ -390,6 +515,9 @@ bool Arco::sync(Units unit, double value)
     return m_Communication->sendCommand(jsonRequest);
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::isBusy()
 {
     json status;
@@ -400,17 +528,25 @@ bool Arco::isBusy()
     return false;
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::stop()
 {
     return m_Communication->motorCommand(MOT_2, {"MOT_STOP", ""});
 }
 
-
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::calibrate()
 {
     return m_Communication->motorSet(MOT_2, {"CAL_STATUS", "exec"});
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::isCalibrating()
 {
     std::string value;
@@ -421,11 +557,17 @@ bool Arco::isCalibrating()
     return false;
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::reverse(bool enabled)
 {
     return m_Communication->motorCommand(MOT_2, {"REVERSE", enabled ? 1 : 0});
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
 bool Arco::isReversed()
 {
     int value;

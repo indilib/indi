@@ -58,6 +58,10 @@ typedef enum
     UNIT_ARCSECS
 } Units;
 
+/*****************************************************************************************
+ * Communicaton class handle the serial communication with SestoSenso2/Esatto/Arco
+ * models according to the USB Protocol specifications document in JSON.
+******************************************************************************************/
 class Communication
 {
     public:
@@ -71,8 +75,40 @@ class Communication
         // Communication functions
         bool sendCommand(const std::string &command, json *response = nullptr);
         template <typename T = int32_t> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
+        /**
+         * @brief Get paramter from device.
+         * @param paramter paramter name (e.g.SN)
+         * @param value where to store the queried value.
+         * @return True if successful, false otherwise.
+         * @note This is a generic get and not related to any motor.
+         * @example {"req":{"get":{"SN":""}}} --> {"res":{"get":{"SN":" ESATTO30001"}}
+         */
+        template <typename T> bool get(const std::string &parameter, T &value);
+
+        /**
+         * @brief Get paramter from motor.
+         * @param paramter paramter name (e.g.SN)
+         * @param value where to store the queried value.
+         * @return True if successful, false otherwise.
+         * @example {"req":{"get": {"MOT1" :{"BKLASH": ""}}} --> {"res":{"get": {"MOT1" :{"BKLASH": 120}}}
+         */
         template <typename T = int32_t> bool motorGet(MotorType type, const std::string &parameter, T &value);
+
+        /**
+         * @brief Set paramter on device.
+         * @param paramter paramter name (e.g.BKLASH)
+         * @param command Command containing the data to be sent
+         * @return True if successful, false otherwise.
+         * @example {"req":{"set": {"MOT1" :{"BKLASH": 120}}} --> {"res":{"set": {"MOT1" :{"BKLASH": "done"}}}
+         */
         template <typename T = int32_t> bool motorSet(MotorType type, const json &command);
+
+        /**
+         * @brief Execute a motor command.
+         * @param command json command.
+         * @return True if successful, false otherwise.
+         * @example {"req":{"cmd":{"MOT1" :{"MOT_STOP":""}}}} --> {"res":{"cmd":{"MOT1" :{"MOT_STOP":"done"}}}}
+         */
         template <typename T = int32_t> bool motorCommand(MotorType type, const json &command);
 
     private:
@@ -85,10 +121,13 @@ class Communication
         static const char DRIVER_TIMEOUT { 5 };
 };
 
-class Esatto
+/*****************************************************************************************
+ * Focuser class represent the common functionality between SestoSenso2 and Esatto models.
+******************************************************************************************/
+class Focuser
 {
     public:
-        Esatto(const std::string &name, int port);
+        Focuser(const std::string &name, int port);
         const char *getDeviceName()
         {
             return m_DeviceName.c_str();
@@ -97,13 +136,10 @@ class Esatto
         // Position
         bool getMaxPosition(uint32_t &position);
         bool isHallSensorDetected(bool &isDetected);
-        bool storeAsMaxPosition();
-        bool storeAsMinPosition();
-        bool goOutToFindMaxPos();
         bool getAbsolutePosition(uint32_t &position);
 
         // Motion
-        bool go(uint32_t position);
+        bool goAbsolutePosition(uint32_t position);
         bool stop();
         bool fastMoveOut();
         bool fastMoveIn();
@@ -118,6 +154,25 @@ class Esatto
         bool getExternalTemp(double &value);
         bool getVoltageIn(double &value);
 
+    protected:
+        std::string m_DeviceName;
+        int m_PortFD {-1};
+        std::unique_ptr<Communication> m_Communication;
+};
+
+/*****************************************************************************************
+ * SestoSenso2 class
+ * Adds presets and motor rates/current control in addition to calibration.
+******************************************************************************************/
+class SestoSenso2 : public Focuser
+{
+    public:
+        SestoSenso2(const std::string &name, int port);
+        const char *getDeviceName()
+        {
+            return m_DeviceName.c_str();
+        }
+
         // Presets
         bool applyMotorPreset(const std::string &name);
         bool setMotorUserPreset(uint32_t index, const MotorRates &rates, const MotorCurrents &currents);
@@ -130,13 +185,33 @@ class Esatto
 
         // Calibration
         bool initCalibration();
-
-    private:
-        std::string m_DeviceName;
-        int m_PortFD {-1};
-        std::unique_ptr<Communication> m_Communication;
+        bool storeAsMaxPosition();
+        bool storeAsMinPosition();
+        bool goOutToFindMaxPos();
 };
 
+/*****************************************************************************************
+ * Esatto class
+ * Just adds backlash support.
+******************************************************************************************/
+class Esatto : public Focuser
+{
+    public:
+        Esatto(const std::string &name, int port);
+        const char *getDeviceName()
+        {
+            return m_DeviceName.c_str();
+        }
+
+        // Backlash
+        bool setBacklash(uint32_t steps);
+        bool getBacklash(uint32_t &steps);
+};
+
+/*****************************************************************************************
+ * Arco class
+ * GOTO/Sync/Stop and reverse support.
+******************************************************************************************/
 class Arco
 {
 
@@ -147,7 +222,7 @@ class Arco
             return m_DeviceName.c_str();
         }
 
-        // Does it work?
+        // Is it detected and enabled?
         bool isEnabled();
 
         // Motion

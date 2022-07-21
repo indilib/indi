@@ -433,7 +433,7 @@
         </device>
         <device label="Esatto Arco" manufacturer="Primaluce Lab">
             <driver name="Esatto Arco">indi_esattoarco_focus</driver>
-            <version>0.8</version>
+            <version>1.0</version>
         </device>
         <device label="Lakeside" manufacturer="LakesideAstro">
             <driver name="Lakeside">indi_lakeside_focus</driver>
