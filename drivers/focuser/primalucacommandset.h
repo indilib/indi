@@ -88,6 +88,15 @@ class Communication
         template <typename T = int32_t> bool get(MotorType type, const std::string &parameter, T &value);
 
         /**
+         * @brief getStringAsDouble Same as get, but it receives a string and scan it for double.
+         * @param type motor type
+         * @param parameter parameter name
+         * @param value value to store the scanned double value.
+         * @return True if successful, false otherwise.
+         */
+        bool getStringAsDouble(MotorType type, const std::string &parameter, double &value);
+
+        /**
          * @brief Set JSON value
          * @param value json value to set
          * @return True if successful, false otherwise.

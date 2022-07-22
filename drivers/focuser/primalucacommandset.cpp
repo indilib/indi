@@ -87,6 +87,17 @@ bool Communication::sendRequest(const json &command, json *response)
     return true;
 }
 
+bool Communication::getStringAsDouble(MotorType type, const std::string &parameter, double &value)
+{
+    std::string response;
+    if (get(type, parameter, response))
+    {
+        sscanf(response.c_str(), "%lf", &value);
+        return true;
+    }
+    return false;
+}
+
 template <typename T> bool Communication::get(MotorType type, const std::string &parameter, T &value)
 {
     std::string motor;
@@ -268,7 +279,7 @@ bool Focuser::getCurrentSpeed(uint32_t &speed)
 *******************************************************************************************************/
 bool Focuser::getMotorTemp(double &value)
 {
-    return m_Communication->get(MOT_1, "NTC_T", value);
+    return m_Communication->getStringAsDouble(MOT_1, "NTC_T", value);
 }
 
 /******************************************************************************************************
@@ -276,7 +287,7 @@ bool Focuser::getMotorTemp(double &value)
 *******************************************************************************************************/
 bool Focuser::getExternalTemp(double &value)
 {
-    return m_Communication->get(MOT_NONE, "EXT_T", value);
+    return m_Communication->getStringAsDouble(MOT_1, "EXT_T", value);
 }
 
 /******************************************************************************************************
@@ -284,7 +295,7 @@ bool Focuser::getExternalTemp(double &value)
 *******************************************************************************************************/
 bool Focuser::getVoltageIn(double &value)
 {
-    return m_Communication->get(MOT_NONE, "VIN_12V", value);
+    return m_Communication->getStringAsDouble(MOT_1, "VIN_12V", value);
 }
 
 /******************************************************************************************************
