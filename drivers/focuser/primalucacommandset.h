@@ -48,7 +48,8 @@ typedef struct MotorCurrents
 typedef enum
 {
     MOT_1,
-    MOT_2
+    MOT_2,
+    MOT_NONE
 } MotorType;
 
 typedef enum
@@ -73,35 +74,28 @@ class Communication
         }
 
         // Communication functions
-        bool sendCommand(const json &command, json *response = nullptr);
-        template <typename T = int32_t> bool genericCommand(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
+        bool sendRequest(const json &command, json *response = nullptr);
+        template <typename T = int32_t> bool genericRequest(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
         /**
          * @brief Get paramter from device.
+         * @param type motor type, if MOT_NONE, then it's a generic device-wide get.
          * @param paramter paramter name (e.g.SN)
          * @param value where to store the queried value.
          * @return True if successful, false otherwise.
-         * @note This is a generic get and not related to any motor.
          * @example {"req":{"get":{"SN":""}}} --> {"res":{"get":{"SN":" ESATTO30001"}}
-         */
-        template <typename T> bool get(const std::string &parameter, T &value);
-
-        /**
-         * @brief Get paramter from motor.
-         * @param paramter paramter name (e.g.SN)
-         * @param value where to store the queried value.
-         * @return True if successful, false otherwise.
          * @example {"req":{"get": {"MOT1" :{"BKLASH": ""}}} --> {"res":{"get": {"MOT1" :{"BKLASH": 120}}}
          */
-        template <typename T = int32_t> bool motorGet(MotorType type, const std::string &parameter, T &value);
+        template <typename T = int32_t> bool get(MotorType type, const std::string &parameter, T &value);
 
         /**
-         * @brief Set paramter on device.
-         * @param paramter paramter name (e.g.BKLASH)
-         * @param command Command containing the data to be sent
+         * @brief Set JSON value
+         * @param value json value to set
          * @return True if successful, false otherwise.
+         * @note This is a generic set and not related to any motor.
+         * @example {"req":{"set": {"ARCO": 1}}} --> {"res":{"set": {"ARCO": "done"}}}
          * @example {"req":{"set": {"MOT1" :{"BKLASH": 120}}} --> {"res":{"set": {"MOT1" :{"BKLASH": "done"}}}
          */
-        template <typename T = int32_t> bool motorSet(MotorType type, const json &command);
+        bool set(MotorType type, const json &value);
 
         /**
          * @brief Execute a motor command.
@@ -109,7 +103,7 @@ class Communication
          * @return True if successful, false otherwise.
          * @example {"req":{"cmd":{"MOT1" :{"MOT_STOP":""}}}} --> {"res":{"cmd":{"MOT1" :{"MOT_STOP":"done"}}}}
          */
-        template <typename T = int32_t> bool motorCommand(MotorType type, const json &command);
+        template <typename T = int32_t> bool command(MotorType type, const json &jsonCommand);
 
     private:
         std::string m_DeviceName;
@@ -223,6 +217,7 @@ class Arco
         }
 
         // Is it detected and enabled?
+        bool setEnabled(bool enabled);
         bool isEnabled();
 
         // Motion

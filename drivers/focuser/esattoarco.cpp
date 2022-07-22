@@ -97,7 +97,8 @@ bool EsattoArco::initProperties()
     // Backlash measurement stages
     IUFillSwitch(&BacklashMeasurementS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
     IUFillSwitch(&BacklashMeasurementS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
+    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
+                       MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
@@ -670,9 +671,9 @@ bool EsattoArco::Ack()
         return false;
     }
 
-    if (!m_Arco->isEnabled())
+    if (m_Arco->setEnabled(true) && !m_Arco->isEnabled())
     {
-        LOG_ERROR("Failed to detect ARCO rotator. Please check it is powered and connected.");
+        LOG_ERROR("Failed to enable ARCO rotator. Please check it is powered and connected.");
         return false;
     }
 
@@ -683,7 +684,8 @@ bool EsattoArco::Ack()
     {
         IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_SN], serial.c_str());
         IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_VERSION], firmware.c_str());
-        LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(), FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
+        LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(),
+                  FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
     }
     else
         return false;
@@ -695,7 +697,8 @@ bool EsattoArco::Ack()
     {
         IUSaveText(&FirmwareTP[ARCO_FIRMWARE_SN], serial.c_str());
         IUSaveText(&FirmwareTP[ARCO_FIRMWARE_VERSION], firmware.c_str());
-        LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(), FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
+        LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(),
+                  FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
     }
     else
         return false;
