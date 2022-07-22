@@ -180,7 +180,7 @@ template <typename T> bool Communication::command(MotorType type, const json &js
 /******************************************************************************************************
  * Common Focuser functions between SestoSenso2 & Esatto
 *******************************************************************************************************/
-Focuser::Focuser(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
+Focuser::Focuser(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
 }
@@ -360,8 +360,7 @@ bool SestoSenso2::setMotorUserPreset(uint32_t index, const MotorRates &rates, co
         {"M1CHOLD", currents.holdCurrent}
     };
 
-    json jsonRequest = {{"req", {{"set", {{name, preset}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->set(MOT_1, {{name, preset}});
 }
 
 /******************************************************************************************************
@@ -400,8 +399,7 @@ bool SestoSenso2::setMotorRates(const MotorRates &rates)
         {"FnRUN_ACC", rates.accRate},
     };
 
-    json jsonRequest = {{"req", {{"set", {{"MOT1", jsonRates}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->set(MOT_1, jsonRates);
 }
 
 /******************************************************************************************************
@@ -417,8 +415,7 @@ bool SestoSenso2::setMotorCurrents(const MotorCurrents &currents)
         {"FnRUN_CURR_HOLD", currents.holdCurrent},
     };
 
-    json jsonRequest = {{"req", {{"set", {{"MOT1", jsonRates}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->set(MOT_1, jsonRates);
 }
 
 /******************************************************************************************************
@@ -426,9 +423,7 @@ bool SestoSenso2::setMotorCurrents(const MotorCurrents &currents)
 *******************************************************************************************************/
 bool SestoSenso2::setMotorHold(bool hold)
 {
-    json jsonHold = {{"HOLDCURR_STATUS", hold ? 1 : 0}};
-    json jsonRequest = {{"req", {{"set", {{"MOT1", jsonHold}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->set(MOT_1, {{"HOLDCURR_STATUS", hold ? 1 : 0}});
 }
 
 /******************************************************************************************************
@@ -451,7 +446,7 @@ bool Esatto::getBacklash(uint32_t &steps)
 /******************************************************************************************************
  * Arco
 *******************************************************************************************************/
-Arco::Arco(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
+Arco::Arco(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
 }
@@ -494,17 +489,7 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
             break;
     }
 
-    json jsonRequest = {{"req", {{"get", {{"MOT2", command}}}}}};
-    json jsonResponse;
-    if (m_Communication->sendRequest(jsonRequest, &jsonResponse))
-    {
-
-        std::string position = jsonResponse["get"]["MOT2"]["POSITION"];
-        sscanf(position.c_str(), "%lf", &value);
-        return true;
-    }
-
-    return false;
+    return m_Communication->genericRequest("MOT2", "get", command, &value);
 }
 
 /******************************************************************************************************
@@ -516,18 +501,17 @@ bool Arco::moveAbsolutePoition(Units unit, double value)
     switch (unit)
     {
         case UNIT_DEGREES:
-            command["MOVE"] = {{"DEG", value}};
+            command["MOVE_ABS"] = {{"DEG", value}};
             break;
         case UNIT_ARCSECS:
-            command["MOVE"] = {{"ARCSEC", value}};
+            command["MOVE_ABS"] = {{"ARCSEC", value}};
             break;
         case UNIT_STEPS:
-            command["MOVE"] = {{"STEPS", value}};
+            command["MOVE_ABS"] = {{"STEPS", value}};
             break;
     }
 
-    json jsonRequest = {{"req", {{"cmd", {{"MOT2", command}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->command(MOT_2, command);
 }
 
 /******************************************************************************************************
@@ -549,8 +533,7 @@ bool Arco::sync(Units unit, double value)
             break;
     }
 
-    json jsonRequest = {{"req", {{"cmd", {{"MOT2", command}}}}}};
-    return m_Communication->sendRequest(jsonRequest);
+    return m_Communication->command(MOT_2, command);
 }
 
 /******************************************************************************************************
