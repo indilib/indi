@@ -146,10 +146,19 @@ template <typename T> bool Communication::genericRequest(const std::string &moto
         if (sendRequest(jsonRequest, &jsonResponse))
         {
             auto key = command.items().begin().key();
-            if (motor.empty())
-                jsonResponse[type][key].get_to(*response);
-            else
-                jsonResponse[type][motor][key].get_to(*response);
+            try
+            {
+                if (motor.empty())
+                    jsonResponse[type][key].get_to(*response);
+                else
+                    jsonResponse[type][motor][key].get_to(*response);
+            }
+            catch (json::exception &e)
+            {
+                // output exception information
+                LOGF_ERROR("request %s failed (%s id: %d)", jsonRequest.dump().c_str(), e.what(), e.id);
+                return false;
+            }
             return true;
         }
     }
