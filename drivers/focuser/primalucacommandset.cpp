@@ -124,12 +124,9 @@ bool Communication::set(MotorType type, const json &value)
             break;
     }
 
-    json jsonResponse;
-    if (genericRequest(motor, "set", value, &jsonResponse))
-    {
-        auto key = value.items().begin().key();
-        return jsonResponse[key] == "done";
-    }
+    std::string isDone;
+    if (genericRequest(motor, "set", value, &isDone))
+        return isDone == "done";
     return false;
 }
 
