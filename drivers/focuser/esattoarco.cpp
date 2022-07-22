@@ -169,6 +169,11 @@ bool EsattoArco::updateProperties()
 
     if (isConnected())
     {
+        if (getStartupValues())
+            LOGF_INFO("Parameters updated, %s ready for use.", getDeviceName());
+        else
+            LOG_WARN("Failed to inquire parameters. Check logs.");
+
         //Focuser
         INDI::Focuser::updateProperties();
 
@@ -188,11 +193,6 @@ bool EsattoArco::updateProperties()
         defineProperty(&RotatorAbsPosNP);
         defineProperty(&RotCalibrationSP);
         defineProperty(&RotCalibrationMessageTP);
-
-        if (getStartupValues())
-            LOGF_INFO("Parameters updated, %s ready for use.", getDeviceName());
-        else
-            LOG_WARN("Failed to inquire parameters. Check logs.");
     }
     else
     {

@@ -158,7 +158,10 @@ template <typename T> bool Communication::genericRequest(const std::string &moto
         json jsonResponse;
         if (sendRequest(jsonRequest, &jsonResponse))
         {
-            auto key = command.items().begin().key();
+            // There is no command.items().last() so we have to iterate all
+            std::string key;
+            for (auto &oneItem : command.items())
+                key = oneItem.key();
             try
             {
                 if (motor.empty())
@@ -195,7 +198,7 @@ template <typename T> bool Communication::command(MotorType type, const json &js
         default:
             break;
     }
-    json response;
+    std::string response;
     if (genericRequest(motor, "cmd", jsonCommand, &response))
         return response == "done";
     return false;
@@ -214,7 +217,7 @@ Focuser::Focuser(const std::string &name, int port)
 *******************************************************************************************************/
 bool Focuser::goAbsolutePosition(uint32_t position)
 {
-    return m_Communication->command(MOT_1, {{"MOV_ABS", {{"STEPS", position}}}});
+    return m_Communication->command(MOT_1, {{"MOVE_ABS", {{"STEPS", position}}}});
 }
 
 /******************************************************************************************************
@@ -511,13 +514,13 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
     switch (unit)
     {
         case UNIT_DEGREES:
-            command["POSITION"] = "DEG";
+            command = {{"POSITION", "DEG"}};
             break;
         case UNIT_ARCSECS:
-            command["POSITION"] = "ARCSEC";
+            command = {{"POSITION", "ARCSEC"}};
             break;
         case UNIT_STEPS:
-            command["POSITION"] = "STEPS";
+            command = {{"POSITION", "STEPS"}};
             break;
     }
 
@@ -549,13 +552,13 @@ bool Arco::moveAbsolutePoition(Units unit, double value)
     switch (unit)
     {
         case UNIT_DEGREES:
-            command["MOVE_ABS"] = {{"DEG", value}};
+            command = {{"MOVE_ABS", {{"DEG", value}}}};
             break;
         case UNIT_ARCSECS:
-            command["MOVE_ABS"] = {{"ARCSEC", value}};
+            command = {{"MOVE_ABS", {{"ARCSEC", value}}}};
             break;
         case UNIT_STEPS:
-            command["MOVE_ABS"] = {{"STEPS", static_cast<int>(value)}};
+            command = {{"MOVE_ABS", {{"STEPS", static_cast<int>(value)}}}};
             break;
     }
 
@@ -571,13 +574,13 @@ bool Arco::sync(Units unit, double value)
     switch (unit)
     {
         case UNIT_DEGREES:
-            command["SYNC_POS"] = {{"DEG", value}};
+            command = {{"SYNC_POS", {{"DEG", value}}}};
             break;
         case UNIT_ARCSECS:
-            command["SYNC_POS"] = {{"ARCSEC", value}};
+            command = {{"SYNC_POS", {{"ARCSEC", value}}}};
             break;
         case UNIT_STEPS:
-            command["SYNC_POS"] = {{"STEPS", static_cast<int>(value)}};
+            command = {{"SYNC_POS", {{"STEPS", static_cast<int>(value)}}}};
             break;
     }
 
