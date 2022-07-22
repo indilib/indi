@@ -690,8 +690,8 @@ bool EsattoArco::Ack()
     else
         return false;
 
-    rc1 = m_Esatto->getSerialNumber(serial);
-    rc2 = m_Esatto->getFirmwareVersion(firmware);
+    rc1 = m_Arco->getSerialNumber(serial);
+    rc2 = m_Arco->getFirmwareVersion(firmware);
 
     if (rc1 && rc2)
     {

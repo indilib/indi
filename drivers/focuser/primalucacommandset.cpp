@@ -293,7 +293,7 @@ bool Focuser::getSerialNumber(std::string &response)
 bool Focuser::getFirmwareVersion(std::string &response)
 {
     json versions;
-    if (m_Communication->get(MOT_NONE, "SWVERS", response))
+    if (m_Communication->get(MOT_NONE, "SWVERS", versions))
     {
         versions["SWAPP"].get_to(response);
         return true;
@@ -615,4 +615,23 @@ bool Arco::isReversed()
     }
     return false;
 }
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Arco::getSerialNumber(std::string &response)
+{
+    return m_Communication->get(MOT_NONE, "ARCO_SN", response);
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Arco::getFirmwareVersion(std::string &response)
+{
+    // JM 2022.07.22: Apparently not possible now in protocol.
+    response = "NA";
+    return true;
+}
+
 }
