@@ -489,7 +489,14 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
             break;
     }
 
-    return m_Communication->genericRequest("MOT2", "get", command, &value);
+    std::string response;
+    if (m_Communication->genericRequest("MOT2", "get", command, &response))
+    {
+        sscanf(response.c_str(), "%lf", &value);
+        return true;
+    }
+
+    return false;
 }
 
 /******************************************************************************************************
