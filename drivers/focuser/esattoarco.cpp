@@ -74,9 +74,9 @@ bool EsattoArco::initProperties()
     /////////////////////////////////////////////////////
 
     // Voltage Information
-    IUFillNumber(&VoltageInN[0], "VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
-    IUFillNumberVector(&VoltageInNP, VoltageInN, 1, getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0,
-                       IPS_IDLE);
+    VoltageNP[VOLTAGE_12V].fill("VOLTAGE_12V", "12v", "%.2f", 0, 100, 0., 0.);
+    VoltageNP[VOLTAGE_USB].fill("VOLTAGE_USB", "USB", "%.2f", 0, 100, 0., 0.);
+    VoltageNP.fill(getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
@@ -181,7 +181,7 @@ bool EsattoArco::updateProperties()
             defineProperty(&TemperatureNP);
 
         if (updateVoltageIn())
-            defineProperty(&VoltageInNP);
+            defineProperty(&VoltageNP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
@@ -203,7 +203,7 @@ bool EsattoArco::updateProperties()
             deleteProperty(TemperatureNP.name);
 
         deleteProperty(FirmwareTP.getName());
-        deleteProperty(VoltageInNP.name);
+        deleteProperty(VoltageNP.getName());
         deleteProperty(BacklashMessageTP.name);
         deleteProperty(BacklashMeasurementSP.name);
         deleteProperty(SpeedNP.name);
@@ -377,19 +377,13 @@ bool EsattoArco::updatePosition()
 bool EsattoArco::updateVoltageIn()
 {
     double voltage;
-    if (m_Esatto->getVoltageIn(voltage))
-    {
+    if (m_Esatto->getVoltage12v(voltage))
+        VoltageNP[VOLTAGE_12V].setValue(voltage);
 
-        if (voltage > 24)
-            return false;
-
-        VoltageInN[0].value = voltage;
-        VoltageInNP.s = (voltage >= 11.0) ? IPS_OK : IPS_ALERT;
-
-        return true;
-    }
-
-    return false;
+    VoltageNP.setState((voltage >= 11.0) ? IPS_OK : IPS_ALERT);
+    if (m_Esatto->getVoltageUSB(voltage))
+        VoltageNP[VOLTAGE_USB].setValue(voltage);
+    return true;
 }
 
 /************************************************************************************************************
@@ -629,13 +623,15 @@ void EsattoArco::TimerHit()
                 IDSetNumber(&TemperatureNP, nullptr);
         }
 
-        auto currentVoltage = VoltageInN[0].value;
+        auto current12V = VoltageNP[VOLTAGE_12V].getValue();
+        auto currentUSB = VoltageNP[VOLTAGE_USB].getValue();
         if (updateVoltageIn())
         {
-            if (std::abs(currentVoltage - VoltageInN[0].value) >= 0.1)
+            if (std::abs(current12V - VoltageNP[VOLTAGE_12V].getValue()) >= 0.1 ||
+                    std::abs(currentUSB - VoltageNP[VOLTAGE_USB].getValue()) >= 0.1)
             {
-                IDSetNumber(&VoltageInNP, nullptr);
-                if (VoltageInN[0].value < 11.0)
+                VoltageNP.apply();
+                if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
                     LOG_WARN("Please check 12v DC power supply is connected.");
             }
         }

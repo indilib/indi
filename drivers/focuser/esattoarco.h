@@ -29,6 +29,7 @@
 #include "indirotatorinterface.h"
 #include "primalucacommandset.h"
 #include "indipropertytext.h"
+#include "indipropertynumber.h"
 
 class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
 {
@@ -99,8 +100,13 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
             ARCO_FIRMWARE_VERSION,
         };
 
-        INumber VoltageInN[1] {};
-        INumberVectorProperty VoltageInNP;
+        INDI::PropertyNumber VoltageNP {2};
+        enum
+        {
+            VOLTAGE_12V,
+            VOLTAGE_USB
+        };
+
 
         ISwitch FastMoveS[3];
         ISwitchVectorProperty FastMoveSP;

@@ -151,7 +151,7 @@ class Focuser
         // Sensors
         bool getMotorTemp(double &value);
         bool getExternalTemp(double &value);
-        bool getVoltageIn(double &value);
+        bool getVoltage12v(double &value);
 
     protected:
         std::unique_ptr<Communication> m_Communication;
@@ -195,6 +195,9 @@ class Esatto : public Focuser
         // Backlash
         bool setBacklash(uint32_t steps);
         bool getBacklash(uint32_t &steps);
+
+        // Sensors
+        bool getVoltageUSB(double &value);
 };
 
 /*****************************************************************************************

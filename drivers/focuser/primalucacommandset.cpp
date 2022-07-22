@@ -293,17 +293,17 @@ bool Focuser::getExternalTemp(double &value)
 /******************************************************************************************************
  *
 *******************************************************************************************************/
-bool Focuser::getVoltageIn(double &value)
+bool Focuser::getSerialNumber(std::string &response)
 {
-    return m_Communication->getStringAsDouble(MOT_1, "VIN_12V", value);
+    return m_Communication->get(MOT_NONE, "SN", response);
 }
 
 /******************************************************************************************************
  *
 *******************************************************************************************************/
-bool Focuser::getSerialNumber(std::string &response)
+bool Focuser::getVoltage12v(double &value)
 {
-    return m_Communication->get(MOT_NONE, "SN", response);
+    return m_Communication->getStringAsDouble(MOT_NONE, "VIN_12V", value);
 }
 
 /******************************************************************************************************
@@ -460,6 +460,14 @@ bool Esatto::setBacklash(uint32_t steps)
 bool Esatto::getBacklash(uint32_t &steps)
 {
     return m_Communication->get(MOT_1, "BKLASH", steps);
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Esatto::getVoltageUSB(double &value)
+{
+    return m_Communication->getStringAsDouble(MOT_NONE, "VIN_USB", value);
 }
 
 /******************************************************************************************************
