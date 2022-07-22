@@ -102,10 +102,7 @@ template <typename T> bool Communication::get(MotorType type, const std::string 
             break;
     }
 
-    json jsonRequest;
-    if (motor.empty())
-        jsonRequest = {{parameter, ""}};
-
+    json jsonRequest = {{parameter, ""}};
     return genericRequest(motor, "get", jsonRequest, &value);
 }
 
@@ -156,7 +153,9 @@ template <typename T> bool Communication::genericRequest(const std::string &moto
             catch (json::exception &e)
             {
                 // output exception information
-                LOGF_ERROR("request %s failed (%s id: %d)", jsonRequest.dump().c_str(), e.what(), e.id);
+                LOGF_ERROR("Failed Request: %s\nResponse: %s\nException: %s id: %d", jsonRequest.dump().c_str(),
+                           jsonResponse.dump().c_str(),
+                           e.what(), e.id);
                 return false;
             }
             return true;
@@ -498,11 +497,20 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
             break;
     }
 
-    std::string response;
-    if (m_Communication->genericRequest("MOT2", "get", command, &response))
+
+    // For steps, we can value directly
+    if (unit == UNIT_STEPS)
+        return m_Communication->genericRequest("MOT2", "get", command, &value);
+    // For DEG and ARCSEC, a string is returned that we must parse.
+    // e.g. "10.000[DEG]"
+    else
     {
-        sscanf(response.c_str(), "%lf", &value);
-        return true;
+        std::string response;
+        if (m_Communication->genericRequest("MOT2", "get", command, &response))
+        {
+            sscanf(response.c_str(), "%lf", &value);
+            return true;
+        }
     }
 
     return false;
