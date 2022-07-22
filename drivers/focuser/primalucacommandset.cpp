@@ -26,6 +26,7 @@
 #include <cstring>
 #include <memory>
 #include <algorithm>
+#include <regex>
 
 #include <assert.h>
 #include <termios.h>
@@ -38,6 +39,16 @@
 
 namespace PrimalucaLabs
 {
+
+std::vector<std::string> split(const std::string &input, const std::string &regex)
+{
+    // passing -1 as the submatch index parameter performs splitting
+    std::regex re(regex);
+    std::sregex_token_iterator
+    first{input.begin(), input.end(), re, -1},
+          last;
+    return {first, last};
+}
 
 /******************************************************************************************************
  * Communication
@@ -160,8 +171,11 @@ template <typename T> bool Communication::genericRequest(const std::string &moto
         {
             // There is no command.items().last() so we have to iterate all
             std::string key;
-            for (auto &oneItem : command.items())
-                key = oneItem.key();
+            std::string flat = command.flatten().items().begin().key();
+            std::vector<std::string> keys = split(flat, "/");
+            key = keys.back();
+            //            for (auto &oneItem : command.items())
+            //                key = oneItem.key();
             try
             {
                 if (motor.empty())
