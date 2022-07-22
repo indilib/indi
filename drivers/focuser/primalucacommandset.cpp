@@ -555,7 +555,7 @@ bool Arco::moveAbsolutePoition(Units unit, double value)
             command["MOVE_ABS"] = {{"ARCSEC", value}};
             break;
         case UNIT_STEPS:
-            command["MOVE_ABS"] = {{"STEPS", value}};
+            command["MOVE_ABS"] = {{"STEPS", static_cast<int>(value)}};
             break;
     }
 
@@ -577,7 +577,7 @@ bool Arco::sync(Units unit, double value)
             command["SYNC_POS"] = {{"ARCSEC", value}};
             break;
         case UNIT_STEPS:
-            command["SYNC_POS"] = {{"STEPS", value}};
+            command["SYNC_POS"] = {{"STEPS", static_cast<int>(value)}};
             break;
     }
 
