@@ -256,7 +256,7 @@ bool EsattoArco::updateTemperature()
         TemperatureNP.s = IPS_ALERT;
 
     TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
-    if (m_Esatto->getExternalTemp(temperature) && temperature < 90)
+    if (m_Esatto->getExternalTemp(temperature) && temperature > -127)
     {
         TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
     }

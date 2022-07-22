@@ -75,6 +75,11 @@ bool Communication::sendRequest(const json &command, json *response)
 
     try
     {
+        if (strstr(read_buf, "Error:"))
+        {
+            LOGF_ERROR("Requred failed: %s", read_buf);
+            return false;
+        }
         *response = json::parse(read_buf)["res"];
     }
     catch (json::exception &e)
@@ -287,7 +292,7 @@ bool Focuser::getMotorTemp(double &value)
 *******************************************************************************************************/
 bool Focuser::getExternalTemp(double &value)
 {
-    return m_Communication->getStringAsDouble(MOT_1, "EXT_T", value);
+    return m_Communication->getStringAsDouble(MOT_NONE, "EXT_T", value);
 }
 
 /******************************************************************************************************
