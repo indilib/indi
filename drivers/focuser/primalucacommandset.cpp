@@ -104,21 +104,9 @@ template <typename T> bool Communication::get(MotorType type, const std::string 
 
     json jsonRequest;
     if (motor.empty())
-        jsonRequest = {{"req", {{"get", {{parameter, ""}}}}}};
-    else
-        jsonRequest = {{"req", {{"get", {{motor, ""}}}}}};
+        jsonRequest = {{parameter, ""}};
 
-    json jsonResponse;
-    if (sendRequest(jsonRequest, &jsonResponse))
-    {
-        if (motor.empty())
-            jsonResponse["get"][parameter].get_to(value);
-        else
-            jsonResponse["get"][motor][parameter].get_to(value);
-
-        return true;
-    }
-    return false;
+    return genericRequest(motor, "get", jsonRequest, &value);
 }
 
 bool Communication::set(MotorType type, const json &value)
@@ -137,7 +125,7 @@ bool Communication::set(MotorType type, const json &value)
     }
 
     json jsonResponse;
-    if (sendRequest(value, &jsonResponse))
+    if (genericRequest(motor, "set", value, &jsonResponse))
     {
         auto key = value.items().begin().key();
         return jsonResponse[key] == "done";
@@ -162,9 +150,10 @@ template <typename T> bool Communication::genericRequest(const std::string &moto
         {
             auto key = command.items().begin().key();
             if (motor.empty())
-                return jsonResponse[type][key].get_to(*response);
+                jsonResponse[type][key].get_to(*response);
             else
-                return jsonResponse[type][motor][key].get_to(*response);
+                jsonResponse[type][motor][key].get_to(*response);
+            return true;
         }
     }
 
