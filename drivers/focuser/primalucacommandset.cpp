@@ -677,7 +677,7 @@ bool Arco::isCalibrating()
 *******************************************************************************************************/
 bool Arco::reverse(bool enabled)
 {
-    return m_Communication->command(MOT_2, {{"REVERSE", enabled ? 1 : 0}});
+    return m_Communication->set(MOT_2, {{"REVERSE", enabled ? 1 : 0}});
 }
 
 /******************************************************************************************************
