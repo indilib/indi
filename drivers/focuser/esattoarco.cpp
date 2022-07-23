@@ -672,8 +672,18 @@ bool EsattoArco::getStartupValues()
     if (m_Arco->getMotorInfo(info))
     {
         int calMax, calMin;
-        info["get"]["MOT2"]["CAL_MAXPOS"].get_to(calMax);
-        info["get"]["MOT2"]["CAL_MAXMIN"].get_to(calMin);
+        try
+        {
+            info["get"]["MOT2"]["CAL_MAXPOS"].get_to(calMax);
+            info["get"]["MOT2"]["CAL_MAXMIN"].get_to(calMin);
+        }
+        catch (json::exception &e)
+        {
+            // output exception information
+            LOGF_ERROR("Failed to parse info: %s Exception: %s id: %d", info.dump().c_str(),
+                       e.what(), e.id);
+            return false;
+        }
         RotatorAbsPosN[0].min = calMin;
         RotatorAbsPosN[0].max = calMax;
         RotatorAbsPosN[0].step = std::abs(calMax - calMin) / 50.0;
