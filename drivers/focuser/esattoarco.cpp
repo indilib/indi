@@ -123,7 +123,6 @@ bool EsattoArco::initProperties()
                        0, IPS_IDLE );
     // Rotator Calibration
     IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
-    //   IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Cal Arco", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
@@ -333,7 +332,7 @@ bool EsattoArco::updatePosition()
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
         //Update Rotator Position
-        GotoRotatorN[0].value = arcoPosition;
+        GotoRotatorN[0].value = range360(arcoPosition);
     }
 
     return true;
@@ -668,6 +667,17 @@ bool EsattoArco::getStartupValues()
     auto isReversed = m_Arco->isReversed();
     ReverseRotatorS[INDI_ENABLED].s = isReversed ? ISS_ON : ISS_OFF;
     ReverseRotatorS[INDI_DISABLED].s = isReversed ? ISS_OFF : ISS_ON;
+
+    json info;
+    if (m_Arco->getMotorInfo(info))
+    {
+        int calMax, calMin;
+        info["get"]["MOT2"]["CAL_MAXPOS"].get_to(calMax);
+        info["get"]["MOT2"]["CAL_MAXMIN"].get_to(calMin);
+        RotatorAbsPosN[0].min = calMin;
+        RotatorAbsPosN[0].max = calMax;
+        RotatorAbsPosN[0].step = std::abs(calMax - calMin) / 50.0;
+    }
     return true;
 }
 
@@ -766,7 +776,8 @@ bool EsattoArco::saveConfigItems(FILE *fp)
 *************************************************************************************************************/
 IPState EsattoArco::MoveRotator(double angle)
 {
-    if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, angle))
+    auto newAngle = ( angle > 180 ? angle - 360 : angle);
+    if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, newAngle))
         return IPS_BUSY;
     return IPS_ALERT;
 }

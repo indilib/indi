@@ -212,6 +212,8 @@ class Arco
     public:
         explicit Arco(const std::string &name, int port);
 
+        // Motor Info
+        bool getMotorInfo(json &info);
         // Is it detected and enabled?
         bool setEnabled(bool enabled);
         bool isEnabled();

@@ -711,4 +711,13 @@ bool Arco::getFirmwareVersion(std::string &response)
     return true;
 }
 
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool Arco::getMotorInfo(json &info)
+{
+    json jsonRequest = {{"req", {{"get", {{"MOT2", ""}}}}}};
+    return m_Communication->sendRequest(jsonRequest, &info);
+}
+
 }
