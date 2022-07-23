@@ -542,7 +542,11 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
 IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (m_Esatto->goAbsolutePosition(targetTicks))
+    {
+        RotatorAbsPosNP.s = IPS_BUSY;
+        IDSetNumber(&RotatorAbsPosNP, nullptr);
         return IPS_BUSY;
+    }
     return IPS_ALERT;
 }
 
