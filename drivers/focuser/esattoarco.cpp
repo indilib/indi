@@ -675,7 +675,7 @@ bool EsattoArco::getStartupValues()
         try
         {
             info["get"]["MOT2"]["CAL_MAXPOS"].get_to(calMax);
-            info["get"]["MOT2"]["CAL_MAXMIN"].get_to(calMin);
+            info["get"]["MOT2"]["CAL_MINPOS"].get_to(calMin);
         }
         catch (json::exception &e)
         {
