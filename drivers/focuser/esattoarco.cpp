@@ -583,40 +583,47 @@ void EsattoArco::TimerHit()
     auto currentRotatorPosition = RotatorAbsPosN[0].value;
     if (updatePosition())
     {
-        // Focuser State Machine
-        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+        if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            // Focuser State Machine
+            if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+            {
+                FocusAbsPosNP.s = IPS_OK;
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+            }
+            else
+                IDSetNumber(&FocusAbsPosNP, nullptr);
         }
-        else if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
-            IDSetNumber(&FocusAbsPosNP, nullptr);
 
         // Rotator State Machine
 
-        // Rotator was busy and now stopped?
-        if (GotoRotatorNP.s == IPS_BUSY && m_Arco->isBusy() == false)
+        // Only check status if position changed.
+        if (std::abs(currentRotatorPosition - RotatorAbsPosN[0].value) > 0)
         {
-            // Check if we were calibrating
-            if(RotatorCalibrationSP.s == IPS_BUSY)
+            // Rotator was busy and now stopped?
+            if (GotoRotatorNP.s == IPS_BUSY && m_Arco->isBusy() == false)
             {
-                RotatorCalibrationSP.s = IPS_IDLE;
-                IDSetSwitch(&RotatorCalibrationSP, nullptr);
-                LOG_INFO("Arco calibration complete.");
-                if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
-                    LOG_INFO("Arco position synced to zero.");
+                // Check if we were calibrating
+                if(RotatorCalibrationSP.s == IPS_BUSY)
+                {
+                    RotatorCalibrationSP.s = IPS_IDLE;
+                    IDSetSwitch(&RotatorCalibrationSP, nullptr);
+                    LOG_INFO("Arco calibration complete.");
+                    if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
+                        LOG_INFO("Arco position synced to zero.");
+                }
+                GotoRotatorNP.s = IPS_OK;
+                RotatorAbsPosNP.s = IPS_OK;
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
             }
-            GotoRotatorNP.s = IPS_OK;
-            RotatorAbsPosNP.s = IPS_OK;
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
-        }
-        else if (std::abs(currentRotatorPosition - RotatorAbsPosN[0].value) > 0)
-        {
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            else
+            {
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
+            }
         }
     }
 
