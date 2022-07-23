@@ -312,7 +312,7 @@ bool Focuser::isBusy()
     json status;
     if (m_Communication->get(MOT_1, "STATUS", status))
     {
-        return status["MST"] != "stop";
+        return status["BUSY"] == 1;
     }
     return false;
 }
@@ -630,7 +630,7 @@ bool Arco::isBusy()
     json status;
     if (m_Communication->get(MOT_2, "STATUS", status))
     {
-        return status["MST"] != "stop";
+        return status["BUSY"] == 1;
     }
     return false;
 }
