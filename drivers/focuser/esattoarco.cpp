@@ -123,7 +123,7 @@ bool EsattoArco::initProperties()
                        0, IPS_IDLE );
     // Rotator Calibration
     IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
-    IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Cal Arco", ROTATOR_TAB,
+    IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     //////////////////////////////////////////////////////
