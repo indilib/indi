@@ -138,11 +138,13 @@ class Focuser
         bool getAbsolutePosition(uint32_t &position);
 
         // Motion
+        bool getStatus(json &status);
         bool goAbsolutePosition(uint32_t position);
         bool stop();
         bool fastMoveOut();
         bool fastMoveIn();
         bool getCurrentSpeed(uint32_t &speed);
+        bool isBusy();
 
         // Firmware
         bool getSerialNumber(std::string &response);
@@ -215,6 +217,8 @@ class Arco
         bool isEnabled();
 
         // Motion
+        bool isBusy();
+        bool getStatus(json &status);
         bool moveAbsolutePoition(Units unit, double value);
         bool stop();
 
@@ -225,7 +229,6 @@ class Arco
         // Calibration
         bool calibrate();
         bool isCalibrating();
-        bool isBusy();
 
         // Reverse
         bool reverse(bool enabled);

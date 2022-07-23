@@ -145,7 +145,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         RotCalibrationStage rcStage { RotCalIdle };
 
         ISwitch RotCalibrationS[1];
-        ISwitchVectorProperty RotCalibrationSP;
+        ISwitchVectorProperty RotatorCalibrationSP;
         enum
         {
             ARCO_CALIBRATION_START
