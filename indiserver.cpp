@@ -1027,9 +1027,12 @@ int main(int ac, char *av[])
     (new UnixServer(UnixServer::unixSocketPath))->listen();
 #endif
     /* Load up FIFO, if available */
-    if (fifo) {
+    if (fifo)
+    {
         // New started drivers will not inherit server's prefix anymore
-        unsetenv("INDIPREFIX");
+
+        // JM 2022.07.23: This causes an issue on MacOS. Disabled for now until investigated further.
+        //unsetenv("INDIPREFIX");
         fifo->listen();
     }
 
@@ -2363,7 +2366,8 @@ void MsgQueue::writeToFd()
         {
             consumeHeadMsg();
             mp = headMsg();
-            if (mp == nullptr) {
+            if (mp == nullptr)
+            {
                 return;
             }
         }
@@ -3137,7 +3141,8 @@ void Msg::releaseSharedBuffers(const std::set<int> &keep)
         auto fd = sharedBuffers[i];
         if (fd != -1 && keep.find(fd) == keep.end())
         {
-            if (close(fd) == -1) {
+            if (close(fd) == -1)
+            {
                 perror("Releasing shared buffer");
             }
             sharedBuffers[i] = -1;

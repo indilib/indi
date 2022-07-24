@@ -96,6 +96,7 @@ class Driver
         **************************************************************************/
         bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT,
                          uint8_t debugLog = INDI::Logger::DBG_DEBUG);
+        bool sendCommandOk(const char *command);
         bool checkConnection(int fd);
 
         /**************************************************************************
