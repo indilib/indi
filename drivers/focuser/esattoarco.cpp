@@ -341,7 +341,12 @@ bool EsattoArco::updatePosition()
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
         //Update Rotator Position
-        GotoRotatorN[0].value = range360(arcoPosition);
+        const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        if (isReversed)
+            GotoRotatorN[0].value = range360(360 - arcoPosition);
+        else
+            GotoRotatorN[0].value = range360(arcoPosition);
+
     }
 
     return true;
@@ -831,6 +836,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
     // Do not use Primaluca native reverse since it has some bugs
     //return m_Arco->reverse(enabled);
     INDI_UNUSED(enabled);
+    GotoRotatorN[0].value = range360(360 - GotoRotatorN[0].value);
     return true;
 }
 
