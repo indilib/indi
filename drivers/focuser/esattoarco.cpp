@@ -802,7 +802,7 @@ IPState EsattoArco::MoveRotator(double angle)
     const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
     auto newAngle = 0;
     if (isReversed)
-        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
+        newAngle = ( angle > 180 ? 360 - angle : angle * -1);
     else
         newAngle = ( angle > 180 ? angle - 360 : angle);
 
@@ -845,5 +845,11 @@ bool  EsattoArco::ReverseRotator(bool enabled)
 *************************************************************************************************************/
 bool EsattoArco::SyncRotator(double angle)
 {
-    return m_Arco->sync(PrimalucaLabs::UNIT_DEGREES, angle);
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? 360 - angle : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+    return m_Arco->sync(PrimalucaLabs::UNIT_DEGREES, newAngle);
 }
