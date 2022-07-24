@@ -126,6 +126,15 @@ bool EsattoArco::initProperties()
     IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    // Read reverse rotator config
+    int index = -1;
+    IUGetConfigOnSwitchIndex(getDeviceName(), ReverseRotatorSP.name, &index);
+    if (index >= 0)
+    {
+        IUResetSwitch(&ReverseRotatorSP);
+        ReverseRotatorS[index].s = ISS_ON;
+    }
+
     //////////////////////////////////////////////////////
     // Defaults
     /////////////////////////////////////////////////////
@@ -664,10 +673,6 @@ void EsattoArco::TimerHit()
 bool EsattoArco::getStartupValues()
 {
     updatePosition();
-    auto isReversed = m_Arco->isReversed();
-    ReverseRotatorS[INDI_ENABLED].s = isReversed ? ISS_ON : ISS_OFF;
-    ReverseRotatorS[INDI_DISABLED].s = isReversed ? ISS_OFF : ISS_ON;
-
     json info;
     if (m_Arco->getMotorInfo(info))
     {
@@ -786,7 +791,16 @@ bool EsattoArco::saveConfigItems(FILE *fp)
 *************************************************************************************************************/
 IPState EsattoArco::MoveRotator(double angle)
 {
-    auto newAngle = ( angle > 180 ? angle - 360 : angle);
+    // Rotator move 0 to +180 degrees CCW
+    // Rotator move 0 to -180 degrees CW
+    // This is from looking at rotator from behind.
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? angle - 180 : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+
     if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, newAngle))
         return IPS_BUSY;
     return IPS_ALERT;
@@ -814,7 +828,10 @@ bool EsattoArco::AbortRotator()
 *************************************************************************************************************/
 bool  EsattoArco::ReverseRotator(bool enabled)
 {
-    return m_Arco->reverse(enabled);
+    // Do not use Primaluca native reverse since it has some bugs
+    //return m_Arco->reverse(enabled);
+    INDI_UNUSED(enabled);
+    return true;
 }
 
 /************************************************************************************************************
