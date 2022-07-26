@@ -143,7 +143,7 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
 void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
 {
     // Ignore empty snooped device
-    if (snooped_device[0])
+    if (snooped_device && snooped_device[0])
     {
         driverio io;
         driverio_init(&io);
@@ -160,13 +160,16 @@ void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
  */
 void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOBHandling bh)
 {
-    driverio io;
-    driverio_init(&io);
+    if (snooped_device && snooped_device[0])
+    {
+        driverio io;
+        driverio_init(&io);
 
-    userio_xmlv1(&io.userio, io.user);
-    IUUserIOEnableBLOB(&io.userio, io.user, snooped_device, snooped_property, bh);
+        userio_xmlv1(&io.userio, io.user);
+        IUUserIOEnableBLOB(&io.userio, io.user, snooped_device, snooped_property, bh);
 
-    driverio_finish(&io);
+        driverio_finish(&io);
+    }
 }
 
 /* Update property switches in accord with states and names. */
