@@ -668,7 +668,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 #endif
 
         //  calc this now, we will use it a lot later
-        rad = currentRA * 15.0;
+        rad = currentRA * 15.0 + PEOffset;
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
@@ -722,7 +722,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             int drawn = 0;
 
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
-                    range360(rad + PEOffset),
+                    range360(rad),
                     rangeDec(cameradec),
                     radius,
                     lookuplimit);
