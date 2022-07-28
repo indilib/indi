@@ -181,7 +181,7 @@ extern "C" {
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
+[[nodiscard, gnu::nonnull]] int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -196,7 +196,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
+[[nodiscard, gnu::nonnull]] int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long timeout_microseconds, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -206,7 +206,7 @@ int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long 
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
+[[nodiscard, gnu::nonnull]] int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -222,7 +222,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds,
+[[nodiscard, gnu::nonnull]] int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_seconds, long timeout_microseconds,
                               int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
@@ -234,7 +234,7 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
+[[nodiscard, gnu::nonnull]] int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
 
 /** \brief Writes a buffer to fd.
     \param fd file descriptor
@@ -243,7 +243,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
+[[nodiscard, gnu::nonnull]] int tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
 
 /** \brief Writes a null terminated string to fd.
     \param fd file descriptor
@@ -251,7 +251,7 @@ int tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write_string(int fd, const char *buffer, int *nbytes_written);
+[[nodiscard, gnu::nonnull]] int tty_write_string(int fd, const char *buffer, int *nbytes_written);
 
 /** \brief Establishes a tty connection to a terminal device.
     \param device the device node. e.g. /dev/ttyS0
@@ -263,20 +263,20 @@ int tty_write_string(int fd, const char *buffer, int *nbytes_written);
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
     \author Wildi Markus
 */
-int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd);
+[[nodiscard, gnu::nonnull]] int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd);
 
 /** \brief Closes a tty connection and flushes the bus.
     \param fd the file descriptor to close.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_disconnect(int fd);
+[[nodiscard]] int tty_disconnect(int fd);
 
 /** \brief Retrieve the tty error message
     \param err_code the error code return by any TTY function.
     \param err_msg an initialized buffer to hold the error message.
     \param err_msg_len length in bytes of \e err_msg
 */
-void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
+[[gnu::nonnull]] void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
 
 /**
  * @brief tty_set_debug Enable or disable debug which prints verbose information.
@@ -287,10 +287,10 @@ void tty_set_gemini_udp_format(int enabled);
 void tty_set_generic_udp_format(int enabled);
 void tty_clr_trailing_read_lf(int enabled);
 
-int tty_timeout(int fd, int timeout);
+[[nodiscard]]int tty_timeout(int fd, int timeout);
 /*@}*/
 
-int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
+[[nodiscard]] int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microseconds);
 /*@}*/
 
 /**
@@ -314,7 +314,7 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
 
   \return number of characters written to out, not counting final null terminator.
  */
-int fs_sexa(char *out, double a, int w, int fracbase);
+[[gnu::nonnull]] int fs_sexa(char *out, double a, int w, int fracbase);
 
 /** \brief convert sexagesimal string str AxBxC to double.
 
@@ -324,7 +324,7 @@ int fs_sexa(char *out, double a, int w, int fracbase);
     \param dp pointer to a double to store the sexagesimal number.
     \return return 0 if ok, -1 if can't find a thing.
  */
-int f_scansexa(const char *str0, double *dp);
+[[nodiscard, gnu::nonnull]] int f_scansexa(const char *str0, double *dp);
 
 /** \brief Extract ISO 8601 time and store it in a tm struct.
     \param timestr a string containing date and time in ISO 8601 format.

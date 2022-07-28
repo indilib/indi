@@ -133,7 +133,7 @@ class BaseDevice
          *  @param errmsg buffer to store error message.
          *  @return 0 if successul, -1 otherwise.
          */
-        int removeProperty(const char *name, char *errmsg);
+        [[nodiscard, gnu::nonnull(2)]] int removeProperty(const char *name, char *errmsg);
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.
@@ -144,7 +144,7 @@ class BaseDevice
          *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
          *  is the property type (Number, Text, Switch..etc).
          */
-        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+        [[gnu::nonnull]] void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.
@@ -152,7 +152,7 @@ class BaseDevice
          *  @return If property is found, it is returned. To be used you must use static_cast with given the type of property
          *  returned.
          */
-        Property getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+        [[gnu::nonnull]] Property getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
         /** @brief Return a list of all properties in the device. */
         Properties getProperties();
@@ -231,7 +231,7 @@ class BaseDevice
          *  to other clients.
          *  @see An example skeleton file can be found under examples/tutorial_four_sk.xml
          */
-        bool buildSkeleton(const char *filename);
+        [[nodiscard, gnu::nonnull]] bool buildSkeleton(const char *filename);
 
         /** @brief Build a property given the supplied XML element (defXXX)
          *  @param root XML element to parse and build.
@@ -239,13 +239,13 @@ class BaseDevice
          *  @param isDynamic set to true if property is loaded from an XML file.
          *  @return 0 if parsing is successful, -1 otherwise and errmsg is set
          */
-        int buildProp(XMLEle *root, char *errmsg, bool isDynamic = false);
+        [[nodiscard, gnu::nonnull]] int buildProp(XMLEle *root, char *errmsg, bool isDynamic = false);
 
         /** @brief handle SetXXX commands from client */
-        int setValue(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int setValue(XMLEle *root, char *errmsg);
 
         /** @brief Parse and store BLOB in the respective vector */
-        int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
 
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;

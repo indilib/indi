@@ -66,7 +66,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  @param hostname INDI server host name or IP address.
          *  @param port INDI server port.
          */
-        void setServer(const char *hostname, unsigned int port);
+        [[gnu::nonnull]] void setServer(const char *hostname, unsigned int port);
 
         /** @brief Get the server host name. */
         const char *getHost() const;
@@ -78,7 +78,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  @returns True if the connection is successful, false otherwise.
          *  @note This function blocks until connection is either successull or unsuccessful.
          */
-        bool connectServer();
+        [[nodiscard]] bool connectServer();
 
         /** @brief Disconnect from INDI server.
          *
@@ -86,7 +86,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *
          *  @return True if disconnection is successful, false otherwise.
          */
-        bool disconnectServer(int exit_code = 0);
+        [[nodiscard]] bool disconnectServer(int exit_code = 0);
 
         /** @brief Get status of the connection. */
         bool isServerConnected() const;
@@ -120,7 +120,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *
          *  @param propertyName Property to watch for.
          */
-        void watchProperty(const char *deviceName, const char *propertyName);
+        [[gnu::nonnull]] void watchProperty(const char *deviceName, const char *propertyName);
 
     public:
         /** @brief Add a device to the watch list.
@@ -130,22 +130,22 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
          *  will be created and handled.
          */
-        void watchDevice(const char *deviceName);
+        [[gnu::nonnull]] void watchDevice(const char *deviceName);
 
         /** @brief Connect to INDI driver
          *  @param deviceName Name of the device to connect to.
         */
-        void connectDevice(const char *deviceName);
+        [[gnu::nonnull]] void connectDevice(const char *deviceName);
 
         /** @brief Disconnect INDI driver
          *  @param deviceName Name of the device to disconnect.
          */
-        void disconnectDevice(const char *deviceName);
+        [[gnu::nonnull]] void disconnectDevice(const char *deviceName);
 
         /** @param deviceName Name of device to search for in the list of devices owned by INDI server,
          *  @returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
          */
-        INDI::BaseDevice *getDevice(const char *deviceName);
+        [[gnu::nonnull]] INDI::BaseDevice *getDevice(const char *deviceName);
 
         /** @returns Returns a vector of all devices created in the client. */
         const std::vector<INDI::BaseDevice *> &getDevices() const;
@@ -163,7 +163,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  @param driverInterface ORed DRIVER_INTERFACE values to select the desired class of devices.
          *  @return True if one or more devices are found for the supplied driverInterface, false if no matching devices found.
          */
-        bool getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface);
+        [[nodiscard]] bool getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface);
 
     public:
         /** @brief Set Binary Large Object policy mode
@@ -181,14 +181,14 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  @param dev name of device, required.
          *  @param prop name of property, optional.
          */
-        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
+        [[gnu::nonnull(2)]] void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
 
         /** @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
          *  @param dev name of device.
          *  @param prop property name, can be NULL to return overall device policy if it exists.
          *  @return BLOB Policy, if not found, it always returns B_ALSO
          */
-        BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
+        [[gnu::nonnull(1)]] BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
         /** @brief activate zero-copy delivering of the blob content.
          * When enabled, all blob copy will be avoided when possible (depending on the connection).
@@ -203,24 +203,24 @@ class INDI::BaseClient : public INDI::BaseMediator
         void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
 
         /** @brief Send new Text command to server */
-        void sendNewText(ITextVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewText(ITextVectorProperty *pp);
         /** @brief Send new Text command to server */
-        void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
+        [[gnu::nonnull]] void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
         /** @brief Send new Number command to server */
-        void sendNewNumber(INumberVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewNumber(INumberVectorProperty *pp);
         /** @brief Send new Number command to server */
-        void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
+        [[gnu::nonnull]] void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
         /** @brief Send new Switch command to server */
-        void sendNewSwitch(ISwitchVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewSwitch(ISwitchVectorProperty *pp);
         /** @brief Send new Switch command to server */
-        void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
+        [[gnu::nonnull]] void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
         /** @brief Send opening tag for BLOB command to server */
-        void startBlob(const char *devName, const char *propName, const char *timestamp);
+        [[gnu::nonnull]] void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-        void sendOneBlob(IBLOB *bp);
+        [[gnu::nonnull]] void sendOneBlob(IBLOB *bp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-        void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
+        [[gnu::nonnull]] void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** @brief Send closing tag for BLOB command to server */
         void finishBlob();
 
@@ -228,12 +228,12 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  @param uid This string will server as identifier for the reply
          *  @note reply will be dispatched to newPingReply
          */
-        void sendPingRequest(const char * uid);
+        [[gnu::nonnull]] void sendPingRequest(const char * uid);
 
         /** @brief Send a ping reply for the given uuid
          *  @note This should not be called directly, as it is already handled by baseclient
          */
-        void sendPingReply(const char * uid);
+        [[gnu::nonnull]] void sendPingReply(const char * uid);
 
     protected:
         /** @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
