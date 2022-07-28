@@ -66,7 +66,7 @@ class BaseDevice
         };
 
         /** @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces. */
-        enum DRIVER_INTERFACE
+        [[clang::flag_enum]] enum DRIVER_INTERFACE
         {
             GENERAL_INTERFACE       = 0,         /**< Default interface for all INDI devices */
             TELESCOPE_INTERFACE     = (1 << 0),  /**< Telescope interface, must subclass INDI::Telescope */
