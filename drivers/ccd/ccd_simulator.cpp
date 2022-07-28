@@ -131,7 +131,7 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (seconds)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
     IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
