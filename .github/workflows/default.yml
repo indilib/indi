@@ -1,5 +1,13 @@
 name: Linux
-on: [push, pull_request, workflow_dispatch]
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
 
 jobs:
   build:
