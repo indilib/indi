@@ -51,14 +51,14 @@ class USBDevice
         libusb_device *FindDevice(int, int, int);
 
     public:
-        int WriteInterrupt(unsigned char *, int, int);
-        int ReadInterrupt(unsigned char *, int, int);
-        int WriteBulk(unsigned char *buf, int nbytes, int timeout);
-        int ReadBulk(unsigned char *buf, int nbytes, int timeout);
-        int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index,
+        [[nodiscard, gnu::nonnull, gnu::access(read_only, 2, 3)]] int WriteInterrupt(unsigned char *, int, int);
+        [[nodiscard, gnu::nonnull, gnu::access(write_only, 2, 3)]] int ReadInterrupt(unsigned char *, int, int);
+        [[nodiscard, gnu::nonnull, gnu::access(read_only, 2, 3)]] int WriteBulk(unsigned char *buf, int nbytes, int timeout);
+        [[nodiscard, gnu::nonnull, gnu::access(write_only, 2, 3)]] int ReadBulk(unsigned char *buf, int nbytes, int timeout);
+        [[nodiscard, gnu::nonnull]] int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index,
                            unsigned char *data, unsigned char len);
-        int FindEndpoints();
-        int Open();
+        [[nodiscard]] int FindEndpoints();
+        [[nodiscard]] int Open();
         void Close();
         USBDevice();
         USBDevice(libusb_device *dev);

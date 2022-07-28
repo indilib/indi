@@ -47,10 +47,10 @@ class BaseClientPrivate
          *                Otherwise, CONNECTION will be turned off.
          *  @param deviceName Name of the device to connect to.
          */
-        void setDriverConnection(bool status, const char *deviceName);
+        [[gnu::nonnull]] void setDriverConnection(bool status, const char *deviceName);
 
-        size_t sendData(const void *data, size_t size);
-        void sendString(const char *fmt, ...);
+        [[nodiscard, gnu::nonnull]] size_t sendData(const void *data, size_t size);
+        [[gnu::nonnull, gnu::format(gnu_printf,2,3)]] void sendString(const char *fmt, ...);
 
     public:
         void listenINDI();
@@ -65,23 +65,23 @@ class BaseClientPrivate
 
     public:
         /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int dispatchCommand(XMLEle *root, char *errmsg);
 
         /** @brief Remove device */
-        int deleteDevice(const char *devName, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int deleteDevice(const char *devName, char *errmsg);
 
         /** @brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int delPropertyCmd(XMLEle *root, char *errmsg);
 
         /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
+        [[nodiscard, gnu::nonnull]] INDI::BaseDevice *findDev(const char *devName, char *errmsg);
         /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
+        [[nodiscard, gnu::nonnull]] INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
         /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
+        [[nodiscard, gnu::nonnull]] INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
 
         /**  Process messages */
-        int messageCmd(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int messageCmd(XMLEle *root, char *errmsg);
 
     private:
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
@@ -90,7 +90,7 @@ class BaseClientPrivate
         bool establish(const std::string &target);
 
         // Add an attribute for access to shared blobs
-        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> &blobs);
+        [[nodiscard, gnu::nonnull]] bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> &blobs);
 
     public:
         BaseClient *parent;

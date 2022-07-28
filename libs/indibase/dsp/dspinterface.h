@@ -79,14 +79,14 @@ class Interface
             DSP_HISTOGRAM,
         } Type;
 
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+        [[gnu::nonnull]] virtual void ISGetProperties(const char *dev);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
                                char *names[], int n);
-        virtual bool saveConfigItems(FILE *fp);
-        virtual bool updateProperties();
+        [[nodiscard, gnu::nonnull]] virtual bool saveConfigItems(FILE *fp);
+        [[nodiscard]] virtual bool updateProperties();
 
         /**
          * @brief processBLOB Propagate to Callback and generate BLOBs for parent device.

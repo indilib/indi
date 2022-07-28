@@ -92,27 +92,27 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
         //~PropertyView()                                        { for(auto &p: *this) {p.clear();} free(widget()); }
 
     public:
-        void setDeviceName(const char *name);                  /* outside implementation */
+        [[gnu::nonnull]] void setDeviceName(const char *name);                  /* outside implementation */
         void setDeviceName(const std::string &name);           /* outside implementation */
 
-        void setName(const char *name);                        /* outside implementation */
+        [[gnu::nonnull]] void setName(const char *name);                        /* outside implementation */
         void setName(const std::string &name);                 /* outside implementation */
 
-        void setLabel(const char *label);                      /* outside implementation */
+        [[gnu::nonnull]] void setLabel(const char *label);                      /* outside implementation */
         void setLabel(const std::string &label);               /* outside implementation */
 
-        void setGroupName(const char *name);                   /* outside implementation */
+        [[gnu::nonnull]] void setGroupName(const char *name);                   /* outside implementation */
         void setGroupName(const std::string &name);            /* outside implementation */
 
         void setPermission(IPerm permission);                  /* outside implementation */
         void setTimeout(double timeout);                       /* outside implementation */
         void setState(IPState state);
 
-        void setTimestamp(const char *timestamp);              /* outside implementation */
+        [[gnu::nonnull]] void setTimestamp(const char *timestamp);              /* outside implementation */
         void setTimestamp(const std::string &timestamp);       /* outside implementation */
 
-        void setAux(void *user);                               /* outside implementation */
-        void setWidgets(WidgetType *w, size_t count);          /* outside implementation */
+        [[gnu::nonnull]] void setAux(void *user);                               /* outside implementation */
+        [[gnu::nonnull, gnu::access(read_only, 2, 3)]] void setWidgets(WidgetType *w, size_t count);          /* outside implementation */
 
         template <size_t N>
         void setWidgets(WidgetType (&w)[N]);                   /* outside implementation */
@@ -222,7 +222,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
         }
 
     public: // only driver side
-        void save(FILE *f) const;                              /* outside implementation */
+        [[gnu::nonnull]] void save(FILE *f) const;                              /* outside implementation */
 
         void vapply(const char *format, va_list args)
         const;   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
@@ -245,46 +245,46 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
 
     public:
         template <typename X = T, enable_if_is_same_t<X, IText> = true>
-        void fill(
+        [[gnu::nonnull]] void fill(
             const char *device, const char *name, const char *label, const char *group,
             IPerm permission, double timeout, IPState state
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-        void fill(
+        [[gnu::nonnull]] void fill(
             const char *device, const char *name, const char *label, const char *group,
             IPerm permission, double timeout, IPState state
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-        void fill(
+        [[gnu::nonnull]] void fill(
             const char *device, const char *name, const char *label, const char *group,
             IPerm permission, ISRule rule, double timeout, IPState state
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, ILight> = true>
-        void fill(
+        [[gnu::nonnull]] void fill(
             const char *device, const char *name, const char *label, const char *group,
             IPState state
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, IBLOB> = true>
-        void fill(
+        [[gnu::nonnull]] void fill(
             const char *device, const char *name, const char *label, const char *group,
             IPerm permission, double timeout, IPState state
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     public:
         template <typename X = T, enable_if_is_same_t<X, IText> = true>
-        bool update(const char * const texts[], const char * const names[], int n);
+        [[gnu::nonnull]] bool update(const char * const texts[], const char * const names[], int n);
         /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-        bool update(const double values[], const char * const names[], int n);
+        [[gnu::nonnull]] bool update(const double values[], const char * const names[], int n);
         /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-        bool update(const ISState states[], const char * const names[], int n);
+        [[gnu::nonnull]] bool update(const ISState states[], const char * const names[], int n);
         /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
         /*
@@ -293,7 +293,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
         */
 
         template <typename X = T, enable_if_is_same_t<X, IBLOB> = true>
-        bool update(
+        [[gnu::nonnull]] bool update(
             const int sizes[], const int blobsizes[], const char * const blobs[], const char * const formats[],
             const char * const names[], int n
         ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
@@ -618,7 +618,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
         }
 
     public:
-        void fill(const char *name, const char *label, const char *format,
+        [[gnu::nonnull]] void fill(const char *name, const char *label, const char *format,
                   double min, double max, double step, double value)
         ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 

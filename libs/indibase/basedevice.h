@@ -94,37 +94,37 @@ class BaseDevice
 
     public:
         /** @return Return vector number property given its name */
-        INDI::PropertyView<INumber> *getNumber(const char *name) const;
+        [[gnu::nonnull]] INDI::PropertyView<INumber> *getNumber(const char *name) const;
         /** @return Return vector text property given its name */
-        INDI::PropertyView<IText>   *getText(const char *name) const;
+        [[gnu::nonnull]] INDI::PropertyView<IText>   *getText(const char *name) const;
         /** @return Return vector switch property given its name */
-        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
+        [[gnu::nonnull]] INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
         /** @return Return vector light property given its name */
-        INDI::PropertyView<ILight>  *getLight(const char *name) const;
+        [[gnu::nonnull]] INDI::PropertyView<ILight>  *getLight(const char *name) const;
         /** @return Return vector BLOB property given its name */
-        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
+        [[gnu::nonnull]] INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
 
     public:
         /** @return Return property state */
-        IPState getPropertyState(const char *name) const;
+        [[gnu::nonnull]] IPState getPropertyState(const char *name) const;
         /** @return Return property permission */
-        IPerm getPropertyPermission(const char *name) const;
+        [[gnu::nonnull]] IPerm getPropertyPermission(const char *name) const;
 
     public:
-        void registerProperty(void *p, INDI_PROPERTY_TYPE type);
+        [[gnu::nonnull]] void registerProperty(void *p, INDI_PROPERTY_TYPE type);
 
         // #PS: will be deprecated / backward compatibility
-        void registerProperty(ITextVectorProperty *property);
-        void registerProperty(INumberVectorProperty *property);
-        void registerProperty(ISwitchVectorProperty *property);
-        void registerProperty(ILightVectorProperty *property);
-        void registerProperty(IBLOBVectorProperty *property);
+        [[gnu::nonnull]] void registerProperty(ITextVectorProperty *property);
+        [[gnu::nonnull]] void registerProperty(INumberVectorProperty *property);
+        [[gnu::nonnull]] void registerProperty(ISwitchVectorProperty *property);
+        [[gnu::nonnull]] void registerProperty(ILightVectorProperty *property);
+        [[gnu::nonnull]] void registerProperty(IBLOBVectorProperty *property);
 
-        void registerProperty(INDI::PropertyView<IText> *property);
-        void registerProperty(INDI::PropertyView<INumber> *property);
-        void registerProperty(INDI::PropertyView<ISwitch> *property);
-        void registerProperty(INDI::PropertyView<ILight> *property);
-        void registerProperty(INDI::PropertyView<IBLOB> *property);
+        [[gnu::nonnull]] void registerProperty(INDI::PropertyView<IText> *property);
+        [[gnu::nonnull]] void registerProperty(INDI::PropertyView<INumber> *property);
+        [[gnu::nonnull]] void registerProperty(INDI::PropertyView<ISwitch> *property);
+        [[gnu::nonnull]] void registerProperty(INDI::PropertyView<ILight> *property);
+        [[gnu::nonnull]] void registerProperty(INDI::PropertyView<IBLOB> *property);
 
         void registerProperty(INDI::Property &property);
 
@@ -163,8 +163,8 @@ class BaseDevice
          *  @param msg Message to add.
          */
         void addMessage(const std::string &msg);
-        void checkMessage(XMLEle *root);
-        void doMessage(XMLEle *msg);
+        [[gnu::nonnull]] void checkMessage(XMLEle *root);
+        [[gnu::nonnull]] void doMessage(XMLEle *msg);
 
         /** @return Returns a specific message. */
         const std::string &messageQueue(size_t index) const;
@@ -177,7 +177,7 @@ class BaseDevice
         bool isConnected() const;
 
         /** @brief Set the driver's mediator to receive notification of news devices and updated property values. */
-        void setMediator(INDI::BaseMediator *mediator);
+        [[gnu::nonnull]] void setMediator(INDI::BaseMediator *mediator);
 
         /** @returns Get the meditator assigned to this driver */
         INDI::BaseMediator *getMediator() const;
@@ -185,13 +185,13 @@ class BaseDevice
         /** @brief Set the device name
          *  @param dev new device name
          */
-        void setDeviceName(const char *dev);
+        [[gnu::nonnull]] void setDeviceName(const char *dev);
 
         /** @return Returns the device name */
         const char *getDeviceName() const;
 
         /** @brief Check that the device name matches the argument. **/
-        bool isDeviceNameMatch(const char *otherName) const;
+        [[gnu::nonnull]] bool isDeviceNameMatch(const char *otherName) const;
 
         /** @brief Check that the device name matches the argument. **/
         bool isDeviceNameMatch(const std::string &otherName) const;

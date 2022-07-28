@@ -149,8 +149,8 @@ class DefaultDevice : public BaseDevice
          * save configuration files.
          * \param nvp The number vector property to be defined
          */
-        void defineNumber(INumberVectorProperty *nvp) __attribute__((deprecated));
-        void defineProperty(INumberVectorProperty *property);
+        [[gnu::nonnull]] void defineNumber(INumberVectorProperty *nvp) __attribute__((deprecated));
+        [[gnu::nonnull]] void defineProperty(INumberVectorProperty *property);
 
         /**
          * \brief Define text vector to client & register it. Alternatively, IDDefText can be
@@ -158,8 +158,8 @@ class DefaultDevice : public BaseDevice
          * configuration files.
          * \param tvp The text vector property to be defined
          */
-        void defineText(ITextVectorProperty *tvp) __attribute__((deprecated));
-        void defineProperty(ITextVectorProperty *property);
+        [[gnu::nonnull]] void defineText(ITextVectorProperty *tvp) __attribute__((deprecated));
+        [[gnu::nonnull]] void defineProperty(ITextVectorProperty *property);
 
         /**
          * \brief Define switch vector to client & register it. Alternatively, IDDefswitch can be
@@ -167,8 +167,8 @@ class DefaultDevice : public BaseDevice
          * configuration files.
          * \param svp The switch vector property to be defined
          */
-        void defineSwitch(ISwitchVectorProperty *svp) __attribute__((deprecated));
-        void defineProperty(ISwitchVectorProperty *property);
+        [[gnu::nonnull]] void defineSwitch(ISwitchVectorProperty *svp) __attribute__((deprecated));
+        [[gnu::nonnull]] void defineProperty(ISwitchVectorProperty *property);
 
         /**
          * \brief Define light vector to client & register it. Alternatively, IDDeflight can be
@@ -176,8 +176,8 @@ class DefaultDevice : public BaseDevice
          * configuration files.
          * \param lvp The light vector property to be defined
          */
-        void defineLight(ILightVectorProperty *lvp) __attribute__((deprecated));
-        void defineProperty(ILightVectorProperty *property);
+        [[gnu::nonnull]] void defineLight(ILightVectorProperty *lvp) __attribute__((deprecated));
+        [[gnu::nonnull]] void defineProperty(ILightVectorProperty *property);
 
         /**
          * \brief Define BLOB vector to client & register it. Alternatively, IDDefBLOB can be
@@ -185,15 +185,15 @@ class DefaultDevice : public BaseDevice
          * save configuration files.
          * \param bvp The BLOB vector property to be defined
          */
-        void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
-        void defineProperty(IBLOBVectorProperty *property);
+        [[gnu::nonnull]] void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
+        [[gnu::nonnull]] void defineProperty(IBLOBVectorProperty *property);
 
         void defineProperty(INDI::Property &property);
         /**
          * \brief Delete a property and unregister it. It will also be deleted from all clients.
          * \param propertyName name of property to be deleted.
          */
-        virtual bool deleteProperty(const char *propertyName);
+        [[nodiscard, gnu::nonnull]] virtual bool deleteProperty(const char *propertyName);
 
     public:
         /**
@@ -254,35 +254,35 @@ class DefaultDevice : public BaseDevice
          * \note This function is called by the INDI framework, do not call it directly. See LX200
          * Generic driver for an example implementation
          */
-        virtual void ISGetProperties(const char *dev);
+        [[gnu::nonnull]] virtual void ISGetProperties(const char *dev);
 
         /**
          * \brief Process the client newSwitch command
          * \note This function is called by the INDI framework, do not call it directly.
          * \returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
         /**
          * \brief Process the client newNumber command
          * \note This function is called by the INDI framework, do not call it directly.
          * \returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
         /**
          * \brief Process the client newSwitch command
          * \note This function is called by the INDI framework, do not call it directly.
          * \returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
         /**
          * \brief Process the client newBLOB command
          * \note This function is called by the INDI framework, do not call it directly.
          * \returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+        [[nodiscard, gnu::nonnull]] virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                char *formats[], char *names[], int n);
 
         /**
@@ -291,7 +291,7 @@ class DefaultDevice : public BaseDevice
          * \note This function is called by the INDI framework, do not call it directly.
          * \returns True if any property was successfully processed, false otherwise.
          */
-        virtual bool ISSnoopDevice(XMLEle *root);
+        [[nodiscard, gnu::nonnull]] virtual bool ISSnoopDevice(XMLEle *root);
 
         /**
          * @return getInterface Return the interface declared by the driver.
@@ -333,7 +333,7 @@ class DefaultDevice : public BaseDevice
          * configuration file are loaded which is the default behavior.
          * \return True if successful, false otherwise.
          */
-        virtual bool loadConfig(bool silent = false, const char *property = nullptr);
+        [[nodiscard]] virtual bool loadConfig(bool silent = false, const char *property = nullptr);
 
         /**
          * \brief Save the current properties in a configuration file
@@ -342,13 +342,13 @@ class DefaultDevice : public BaseDevice
          * file as is.
          * \return True if successful, false otherwise.
          */
-        virtual bool saveConfig(bool silent = false, const char *property = nullptr);
+        [[nodiscard]] virtual bool saveConfig(bool silent = false, const char *property = nullptr);
 
         /**
          * @brief purgeConfig Remove config file from disk.
          * @return True if successful, false otherwise.
          */
-        virtual bool purgeConfig();
+        [[nodiscard]] virtual bool purgeConfig();
 
         /**
          * @brief saveConfigItems Save specific properties in the provide config file handler. Child
@@ -358,20 +358,20 @@ class DefaultDevice : public BaseDevice
          * @param fp Pointer to config file handler
          * @return True if successful, false otherwise.
          */
-        virtual bool saveConfigItems(FILE *fp);
+        [[nodiscard, gnu::nonnull]] virtual bool saveConfigItems(FILE *fp);
 
         /**
          * @brief saveAllConfigItems Save all the drivers' properties in the configuration file
          * @param fp pointer to config file handler
          * @return  True if successful, false otherwise.
          */
-        virtual bool saveAllConfigItems(FILE *fp);
+        [[nodiscard, gnu::nonnull]] virtual bool saveAllConfigItems(FILE *fp);
 
         /**
          * \brief Load the default configuration file
          * \return True if successful, false otherwise.
          */
-        virtual bool loadDefaultConfig();
+        [[nodiscard]] virtual bool loadDefaultConfig();
 
         // Simulatin & Debug
 
@@ -448,14 +448,14 @@ class DefaultDevice : public BaseDevice
          * connection type shall be defined to the client in ISGetProperties()
          * @param newConnection Pointer to new connection plugin
          */
-        void registerConnection(Connection::Interface *newConnection);
+        [[gnu::nonnull]] void registerConnection(Connection::Interface *newConnection);
 
         /**
          * @brief unRegisterConnection Remove connection from existing pool
          * @param existingConnection pointer to connection interface
          * @return True if connection is removed, false otherwise.
          */
-        bool unRegisterConnection(Connection::Interface *existingConnection);
+        [[nodiscard, gnu::nonnull]] bool unRegisterConnection(Connection::Interface *existingConnection);
 
         /** @return Return actively selected connection plugin */
         Connection::Interface *getActiveConnection();
@@ -464,7 +464,7 @@ class DefaultDevice : public BaseDevice
          * @brief setActiveConnection Switch the active connection to the passed connection plugin
          * @param existingConnection pointer to an existing connection to be made active.
          */
-        void setActiveConnection(Connection::Interface *existingConnection);
+        [[gnu::nonnull]] void setActiveConnection(Connection::Interface *existingConnection);
 
     protected: // polling
         /**

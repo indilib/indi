@@ -66,7 +66,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
             \param hostname INDI server host name or IP address.
             \param port INDI server port.
         */
-        void setServer(const char *hostname, unsigned int port);
+        [[gnu::nonnull(1)]] void setServer(const char *hostname, unsigned int port);
 
         /** \brief Add a device to the watch list.
 
@@ -75,7 +75,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
             INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
             will be created and handled.
         */
-        void watchDevice(const char *deviceName);
+        [[gnu::nonnull(1)]] void watchDevice(const char *deviceName);
 
         /**
          * @brief watchProperties Add a property to the watch list. When communicating with INDI server.
@@ -85,7 +85,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
          * will call watchDevice(deviceName) as well to limit the traffic to this device.
          * @param propertyName Property to watch for.
          */
-        void watchProperty(const char *deviceName, const char *propertyName);
+        [[gnu::nonnull]] void watchProperty(const char *deviceName, const char *propertyName);
 
         /** \brief Connect to INDI server.
 
@@ -106,17 +106,17 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         /** \brief Connect to INDI driver
             \param deviceName Name of the device to connect to.
         */
-        void connectDevice(const char *deviceName);
+        [[gnu::nonnull]] void connectDevice(const char *deviceName);
 
         /** \brief Disconnect INDI driver
             \param deviceName Name of the device to disconnect.
         */
-        void disconnectDevice(const char *deviceName);
+        [[gnu::nonnull]] void disconnectDevice(const char *deviceName);
 
         /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
              \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
         */
-        INDI::BaseDevice *getDevice(const char *deviceName);
+        [[gnu::nonnull]] INDI::BaseDevice *getDevice(const char *deviceName);
 
         /** \returns Returns a vector of all devices created in the client.
         */
@@ -158,7 +158,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
           \param dev name of device, required.
           \param prop name of property, optional.
         */
-        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
+        [[gnu::nonnull(2)]] void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
 
         /**
          * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
@@ -166,10 +166,10 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
          * @param prop property name, can be NULL to return overall device policy if it exists.
          * @return BLOB Policy, if not found, it always returns B_ALSO
          */
-        BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
+        [[gnu::nonnull(1)]] BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
         // Update
-        static void *listenHelper(void *context);
+        [[gnu::nonnull]] static void *listenHelper(void *context);
 
         const char *getHost()
         {
@@ -181,24 +181,24 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         }
 
         /** \brief Send new Text command to server */
-        void sendNewText(ITextVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewText(ITextVectorProperty *pp);
         /** \brief Send new Text command to server */
-        void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
+        [[gnu::nonnull]] void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
         /** \brief Send new Number command to server */
-        void sendNewNumber(INumberVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewNumber(INumberVectorProperty *pp);
         /** \brief Send new Number command to server */
-        void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
+        [[gnu::nonnull]] void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
         /** \brief Send new Switch command to server */
-        void sendNewSwitch(ISwitchVectorProperty *pp);
+        [[gnu::nonnull]] void sendNewSwitch(ISwitchVectorProperty *pp);
         /** \brief Send new Switch command to server */
-        void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
+        [[gnu::nonnull]] void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
         /** \brief Send opening tag for BLOB command to server */
-        void startBlob(const char *devName, const char *propName, const char *timestamp);
+        [[gnu::nonnull]] void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-        void sendOneBlob(IBLOB *bp);
+        [[gnu::nonnull]] void sendOneBlob(IBLOB *bp);
         /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-        void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
+        [[gnu::nonnull, gnu::access(read_only, 4,2)]] void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** \brief Send closing tag for BLOB command to server */
         void finishBlob();
 
@@ -234,20 +234,20 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 
     protected:
         /** \brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int dispatchCommand(XMLEle *root, char *errmsg);
 
         /** \brief Remove device */
-        int deleteDevice(const char *devName, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int deleteDevice(const char *devName, char *errmsg);
 
         /** \brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
+        [[nodiscard, gnu::nonnull]] int delPropertyCmd(XMLEle *root, char *errmsg);
 
         /** \brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
+        [[gnu::nonnull]] INDI::BaseDevice *findDev(const char *devName, char *errmsg);
         /** \brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
+        [[nodiscard, gnu::nonnull]] INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
         /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
+        [[nodiscard, gnu::nonnull]] INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
 
         /**  Process messages */
         int messageCmd(XMLEle *root, char *errmsg);
@@ -274,7 +274,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
              Otherwise, CONNECTION will be turned off.
             \param deviceName Name of the device to connect to.
         */
-        void setDriverConnection(bool status, const char *deviceName);
+        [[gnu::nonnull]] void setDriverConnection(bool status, const char *deviceName);
 
         /**
          * @brief clear Clear devices and blob modes

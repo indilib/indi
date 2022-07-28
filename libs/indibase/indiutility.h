@@ -41,7 +41,7 @@ int mkpath(std::string path, mode_t mode);
 /**
  * @brief Converts the date and time to string - this function uses 'strftime'
  */
-std::string format_time(const std::tm &tm, const char *format);
+[[gnu::nonnull(2)]] std::string format_time(const std::tm &tm, const char *format);
 
 /**
  * @brief Replaces every occurrence of the string 'search' with the string 'replace'

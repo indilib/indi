@@ -55,11 +55,11 @@ class Property
         ~Property();
 
     public:
-        void setProperty(void *);
+        [[gnu::nonnull]] void setProperty(void *);
         void setType(INDI_PROPERTY_TYPE t);
         void setRegistered(bool r);
         void setDynamic(bool d);
-        void setBaseDevice(BaseDevice *idp);
+        [[gnu::nonnull]] void setBaseDevice(BaseDevice *idp);
 
     public:
         void *getProperty() const;
@@ -70,11 +70,11 @@ class Property
         BaseDevice *getBaseDevice() const;
 
     public: // Convenience Functions
-        void setName(const char *name);
-        void setLabel(const char *label);
-        void setGroupName(const char *groupName);
-        void setDeviceName(const char *deviceName);
-        void setTimestamp(const char *timestamp);
+        [[gnu::nonnull]] void setName(const char *name);
+        [[gnu::nonnull]] void setLabel(const char *label);
+        [[gnu::nonnull]] void setGroupName(const char *groupName);
+        [[gnu::nonnull]] void setDeviceName(const char *deviceName);
+        [[gnu::nonnull]] void setTimestamp(const char *timestamp);
         void setState(IPState state);
         void setPermission(IPerm permission);
         void setTimeout(double timeout);
@@ -93,18 +93,18 @@ class Property
         bool isEmpty() const;
         bool isValid() const;
 
-        bool isNameMatch(const char *otherName) const;
+        [[gnu::nonnull]] bool isNameMatch(const char *otherName) const;
         bool isNameMatch(const std::string &otherName) const;
 
-        bool isLabelMatch(const char *otherLabel) const;
+        [[gnu::nonnull]] bool isLabelMatch(const char *otherLabel) const;
         bool isLabelMatch(const std::string &otherLabel) const;
 
     public:
-        void save(FILE *fp) const;
+        [[gnu::nonnull]] void save(FILE *fp) const;
 
     public:
-        void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
-        void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+        [[gnu::nonnull]] void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+        [[gnu::nonnull]] void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
         void apply() const
         {
