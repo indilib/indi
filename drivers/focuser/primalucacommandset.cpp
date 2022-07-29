@@ -150,7 +150,7 @@ template <typename T> bool Communication::motorCommand(MotorType type, const jso
 /******************************************************************************************************
  * Common Focuser functions between SestoSenso2 & Esatto
 *******************************************************************************************************/
-Focuser::Focuser(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
+Focuser::Focuser(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
 }
