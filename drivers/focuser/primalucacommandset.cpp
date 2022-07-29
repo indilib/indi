@@ -421,7 +421,7 @@ bool Esatto::getBacklash(uint32_t &steps)
 /******************************************************************************************************
  * Arco
 *******************************************************************************************************/
-Arco::Arco(const std::string &name, int port) : m_DeviceName(name), m_PortFD(port)
+Arco::Arco(const std::string &name, int port)
 {
     m_Communication.reset(new Communication(name, port));
 }

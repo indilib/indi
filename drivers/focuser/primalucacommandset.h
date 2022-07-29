@@ -203,10 +203,6 @@ class Arco
 
     public:
         explicit Arco(const std::string &name, int port);
-        const char *getDeviceName()
-        {
-            return m_DeviceName.c_str();
-        }
 
         // Is it detected and enabled?
         bool isEnabled();
@@ -229,8 +225,6 @@ class Arco
         bool isReversed();
 
     private:
-        std::string m_DeviceName;
-        int m_PortFD {-1};
         std::unique_ptr<Communication> m_Communication;
 };
 
