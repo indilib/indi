@@ -53,8 +53,23 @@ int setAPUTCOffset(int fd, double hours);
 int setAPSlewMode(int fd, int slewMode);
 int APSyncCM(int fd, char *matchedObject);
 int APSyncCMR(int fd, char *matchedObject);
-int selectAPMoveToRate(int fd, int moveToRate);
-int selectAPSlewRate(int fd, int slewRate);
+
+enum APRateTableState
+{
+    AP_RATE_TABLE_0 = 0,
+    AP_RATE_TABLE_1 = 1,
+    AP_RATE_TABLE_2 = 2,
+    AP_RATE_TABLE_3 = 3,
+    AP_RATE_TABLE_DEFAULT = -1,
+};
+
+// Rate selection for legacy drivers
+int selectAPMoveToRate(int fd, int moveToIndex);
+int selectAPSlewRate(int fd, int slewIndex);
+int selectAPCenterRate(int fd, int centerIndex);
+// Support rate tables in newer drivers
+int selectAPV2CenterRate(int fd, int centerIndex, APRateTableState rateTable);
+
 int selectAPTrackingMode(int fd, int trackMode);
 int selectAPGuideRate(int fd, int guideRate);
 int selectAPPECState(int fd, int pecstate);
@@ -67,7 +82,6 @@ int setAPRATrackRate(int fd, double rate);
 int setAPDETrackRate(int fd, double rate);
 int APSendPulseCmd(int fd, int direction, int duration_msec);
 void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level);
-int selectAPCenterRate(int fd, int centerRate);
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
@@ -79,15 +93,6 @@ bool apStatusParked(const char *statusString);
 bool apStatusSlewing(const char *statusString);
 const char *apMountStatus(const char *statusString);
 int isAPInitialized(int fd, bool *isInitialized);
-
-enum APRateTableState
-{
-    AP_RATE_TABLE_0 = 0,
-    AP_RATE_TABLE_1 = 1,
-    AP_RATE_TABLE_2 = 2,
-    AP_RATE_TABLE_3 = 3,
-    AP_RATE_TABLE_DEFAULT = -1,
-};
 
 APRateTableState apRateTable(const char *statusString);
 int getApMountFeatures(int fd, bool *hasEncoder, bool *clutchAware);
