@@ -98,13 +98,21 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
     if (count == 0)
         return true;
 
-    if (count == -1)
-        errCode = tty_read_section(PortFD, res, '#', timeout, &nbytes_read);
-    else
-        errCode = tty_read(PortFD, res, count, timeout, &nbytes_read);
+    // Try to read twice in case of timeouts.
+    for (int i = 0; i < 2; i++)
+    {
+        if (count == -1)
+            errCode = tty_read_section(PortFD, res, '#', timeout, &nbytes_read);
+        else
+            errCode = tty_read(PortFD, res, count, timeout, &nbytes_read);
+
+        if (errCode == TTY_OK)
+            break;
+    }
 
     if (errCode != TTY_OK)
     {
+
         tty_error_msg(errCode, errMsg, MAXRBUF);
         DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Read Command Error: %s", errMsg);
         return false;
@@ -249,7 +257,8 @@ bool Driver::getStatus(IOPInfo *info)
 
     if (strlen(res) != 23)
     {
-        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 23 bytes but received %d.", __PRETTY_FUNCTION__, strlen(res));
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 23 bytes but received %d.", __PRETTY_FUNCTION__,
+                     strlen(res));
         return false;
     }
 
@@ -709,7 +718,8 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
 
     if (strlen(res) != 20)
     {
-        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 20 bytes but received %d.", __PRETTY_FUNCTION__, strlen(res));
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 20 bytes but received %d.", __PRETTY_FUNCTION__,
+                     strlen(res));
         return false;
     }
 
@@ -749,7 +759,8 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
 
     if (strlen(res) != 18)
     {
-        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 18 bytes but received %d.", __PRETTY_FUNCTION__, strlen(res));
+        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "%s: Expected 18 bytes but received %d.", __PRETTY_FUNCTION__,
+                     strlen(res));
         return false;
     }
 

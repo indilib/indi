@@ -128,10 +128,6 @@ class Focuser
 {
     public:
         Focuser(const std::string &name, int port);
-        const char *getDeviceName()
-        {
-            return m_DeviceName.c_str();
-        }
 
         // Position
         bool getMaxPosition(uint32_t &position);
@@ -155,8 +151,6 @@ class Focuser
         bool getVoltageIn(double &value);
 
     protected:
-        std::string m_DeviceName;
-        int m_PortFD {-1};
         std::unique_ptr<Communication> m_Communication;
 };
 
@@ -168,10 +162,6 @@ class SestoSenso2 : public Focuser
 {
     public:
         SestoSenso2(const std::string &name, int port);
-        const char *getDeviceName()
-        {
-            return m_DeviceName.c_str();
-        }
 
         // Presets
         bool applyMotorPreset(const std::string &name);
@@ -198,10 +188,6 @@ class Esatto : public Focuser
 {
     public:
         Esatto(const std::string &name, int port);
-        const char *getDeviceName()
-        {
-            return m_DeviceName.c_str();
-        }
 
         // Backlash
         bool setBacklash(uint32_t steps);
@@ -217,10 +203,6 @@ class Arco
 
     public:
         explicit Arco(const std::string &name, int port);
-        const char *getDeviceName()
-        {
-            return m_DeviceName.c_str();
-        }
 
         // Is it detected and enabled?
         bool isEnabled();
@@ -243,8 +225,6 @@ class Arco
         bool isReversed();
 
     private:
-        std::string m_DeviceName;
-        int m_PortFD {-1};
         std::unique_ptr<Communication> m_Communication;
 };
 

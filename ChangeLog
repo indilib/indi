@@ -1,3 +1,98 @@
++ From 1.9.6 to 1.9.7
+
+      bc1623cd5 2022-07-29 Jasem Mutlaq         Remove unused fields                                                                                                                                  
+      63d301cf2 2022-07-28 murveit              fix periodic error simulation (#1709)                                                                                                                 
+      8abdea975 2022-07-28 murveit              ap rate tables (#1710)                                                                                                                                
+      e6d788cc2 2022-07-28 Jasem Mutlaq         Merge branch 'arco_work'                                                                                                                              
+      1325bf746 2022-07-26 Jasem Mutlaq         Add extra checks when snopping devices                                                                                                                
+      15a9b4403 2022-07-25 Eric Dejouhanet      Build pushes and PRs on master branch only. (#1706)                                                                                                   
+      f3b9ca550 2022-07-24 Jasem Mutlaq         Add sendCommandOK to ensure we get the proper response back and to prevent any character remaining on buffer that do not get cleared for some reason..
+      0668feba7 2022-07-23 Jasem Mutlaq         Fix server issue on MacOS                                                                                                                             
+      348abc96c 2022-07-21 Jasem Mutlaq         Add snap port support. Fixes #1645                                                                                                                    
+      0df7848fb 2022-07-21 Jasem Mutlaq         Only load ACTIVE_DEVICES from config once in initProperties. Fixes #1670                                                                              
+      2f41499b2 2022-07-21 James Amendolagine   UI Cleanup (#1704)                                                                                                                                    
+      fd1dad295 2022-07-21 Jasem Mutlaq         Driver ready for testing                                                                                                                              
+      64203044b 2022-07-20 Jasem Mutlaq         Fixed separated classes                                                                                                                               
+      88021cf06 2022-07-20 Jasem Mutlaq         Separate primaluca focuser commands into a separate file                                                                                              
+      5ea4af813 2022-07-20 Jasem Mutlaq         Save rotator configuration as well                                                                                                                    
+      e4c5817f9 2022-07-19 Jasem Mutlaq         More progress                                                                                                                                         
+      ea52358de 2022-07-18 Jasem Mutlaq         use templated functions for easier query                                                                                                              
+      5a75296bb 2022-07-16 Jasem Mutlaq         Update to use newer json parser                                                                                                                       
+      2037925f7 2022-07-16 Jasem Mutlaq         Use a modern C++ header only JSON parser instead of old parser                                                                                        
+      12c730e55 2022-07-18 Jasem Mutlaq         fix wrap issue when in reversed                                                                                                                       
+      8091f75ca 2022-07-17 pludov               Ensure INDIPREFIX is cleared only for drivers started from FIFO (#1702)                                                                               
+      3feba164d 2022-07-17 Jasem Mutlaq         More progress                                                                                                                                         
+      0127fc383 2022-07-17 Jasem Mutlaq         More progress                                                                                                                                         
+      c0b3f6f05 2022-07-16 Jasem Mutlaq         Major refactor to v3.3 of the protocol                                                                                                                
+      42c9685b9 2022-07-16 Jasem Mutlaq         Update to use newer json parser                                                                                                                       
+      69ab0b4f9 2022-07-16 Jasem Mutlaq         Use a modern C++ header only JSON parser instead of old parser                                                                                        
+      74c55383b 2022-07-16 Jasem Mutlaq         Immediately update angle after reverse                                                                                                                
+      844d3b15c 2022-07-14 pludov               Fix rare crash when doing base64 encoding (#1700)                                                                                                     
+      ae238a449 2022-07-14 pludov               Check for signalled process in integration test (#1699)                                                                                               
+      b781f9bed 2022-07-14 Jasem Mutlaq         Add support for direction reverse                                                                                                                     
+      6aa53d249 2022-07-14 James Amendolagine   Add firmware properties and checks. (#1698)                                                                                                           
+      091daa2b8 2022-07-14 Jasem Mutlaq         Account for reverse direction on read out                                                                                                             
+      43c9fe094 2022-07-14 Jasem Mutlaq         use int32 for ticks per degree                                                                                                                        
+      a90feb607 2022-07-14 Jasem Mutlaq         Add initial support to reverse rotation                                                                                                               
+      e04e10328 2022-07-13 Eric Dejouhanet      Use generic libdc1394-dev dependency for Ubuntu. (#1697)                                                                                              
+      993a47bfd 2022-07-13 Eric Dejouhanet      Fix typo in cron schedule for docker build containers. (#1696)                                                                                        
+      c4d87c118 2022-07-13 Eric Dejouhanet      Make the Ubuntu workflow use the ubuntu build environment. (#1695)                                                                                    
+      0833e4fe9 2022-07-12 Eric Dejouhanet      Fix Fedora build (#1694)                                                                                                                              
+      20b8d4582 2022-07-12 James Amendolagine   Fixed a bug where PEC was always enabled on startup. (#1693)                                                                                          
+      d653dc0ec 2022-07-11 Jasem Mutlaq         Send GET_FEATURES_CMD params                                                                                                                          
+      6ce511ef3 2022-07-10 Jasem Mutlaq         Detect if mount has aux encoders and turn them off on startup. User can override and turn them back on                                                
+      58718736c 2022-07-10 Jasem Mutlaq         skywatcher Alt Az simple is not maintained so moving to obsolete                                                                                      
+      ec6936f7a 2022-07-10 Jasem Mutlaq         realloc Binned frame and if sealed then allocate new memory region                                                                                    
+      e83fe374e 2022-07-09 murveit              Fix issue in AstroPhysics getApMountFeatures (#1692)                                                                                                  
+      f1153a844 2022-07-09 Jasem Mutlaq         Simplify driver by allowing negative values as permitted by the API                                                                                   
+      1b62c8e08 2022-07-08 James Amendolagine   Added RA/DEC guide speed  (#1686)                                                                                                                     
+      64da23a8a 2022-07-09 Jasem Mutlaq         If position is zero, sync to 180 degrees                                                                                                              
+      1372f3d6f 2022-07-08 Jasem Mutlaq         Add check for ParkpositionXml to avoid possible crash                                                                                                 
+      27e9973f2 2022-07-07 Ilia Platone         Iliaplatone (#1691)                                                                                                                                   
+      840ac826e 2022-07-07 Jasem Mutlaq         Move fftw3.h inclusion to implementation files to avoid indi 3rd party dependency issues                                                              
+      3259e0419 2022-07-07 nekomeshi            Fix connection error for Virtuoso mount (#1690)                                                                                                       
+      54fa8ef86 2022-07-05 Jasem Mutlaq         Use mount type to string directly                                                                                                                     
+      4571a5f85 2022-07-05 Jasem Mutlaq         Minimal changes to make it work                                                                                                                       
+      2ef36fb66 2022-07-02 pludov               Fix dead client test (#1688)                                                                                                                          
+      6487b326e 2022-07-02 pludov               Fix compilation with older gcc (debian 9 / stretch) (#1687)                                                                                           
+      3fb4ccc72 2022-07-01 Jasem Mutlaq         Fix typo                                                                                                                                              
+      605f4ccea 2022-07-01 Jasem Mutlaq         Disable deadclient test on MacoS                                                                                                                      
+      25359f113 2022-06-30 James Amendolagine   Added "enable pec at boot" switch, and a display for "current pec guide speed" (#1685)                                                                
+      d711af821 2022-06-30 Jasem Mutlaq         Add libev depdendency                                                                                                                                 
+      4c821ae30 2022-06-30 Jasem Mutlaq         Return 0 on is_unix_io when ENABLE_INDI_SHARED_MEMORY is not defined                                                                                  
+      99ff3d2c9 2022-06-30 Jasem Mutlaq         Fix cmake logic for INDI_SHARED_MEMORY                                                                                                                
+      c96b99339 2022-06-29 Jasem Mutlaq         Assign memory allocations correctly                                                                                                                   
+      451b85819 2022-06-29 James Amendolagine   Add Servo Precision control (#1683)                                                                                                                   
+      8be0360cc 2022-06-29 pludov               Shared blob hardening (#1684)                                                                                                                         
+      fb03e6bcb 2022-06-27 Jasem Mutlaq         Use shared blobs for primary and binned frames                                                                                                        
+      22451d6c1 2022-06-26 James Amendolagine   Adding some basic PEC status and control to lx200gemini (#1675)                                                                                       
+      d937699e5 2022-06-26 pludov               Use 8bits samples in the lookup table (#1680)                                                                                                         
+      3c0b0c60f 2022-06-26 Jasem Mutlaq         Fix timeleft type. Fixes #1679                                                                                                                        
+      e74f9e1ae 2022-06-25 Jasem Mutlaq         Use initial size as proposed by Ludovic                                                                                                               
+      67b6c5a7f 2022-06-25 pludov               Disable shared memory protocol by default on MacOS (#1677)                                                                                            
+      1581a871e 2022-06-24 pludov               Fix memory leak when converting blob to base64 (#1674)                                                                                                
+      87e842046 2022-06-24 Jasem Mutlaq         Free memory after closing FITS files                                                                                                                  
+      02cb0c653 2022-06-23 Jasem Mutlaq         Save mount model on change                                                                                                                            
+      237f940c8 2022-06-22 Jasem Mutlaq         Delegate opening and closing FITS files to each camera chip                                                                                           
+      377e6d59b 2022-06-22 Jasem Mutlaq         Remove unnecessary IDLogs messages                                                                                                                    
+      01957dbd6 2022-06-21 murveit              More AP changes: UDP, Home, Encoder Status, version major/minor. (#1673)                                                                              
+      7bd863823 2022-06-21 Jasem Mutlaq         Invalidate memory buffer when binning                                                                                                                 
+      39466ee42 2022-06-21 pludov               Fix socket leak (#1672)                                                                                                                               
+      66241df20 2022-06-19 pludov               Fix for indi_setprop (#1669)                                                                                                                          
+      3d63e3be5 2022-06-18 Jasem Mutlaq         Use IDSharedBlobAlloc and IDSharedBlobRealloc as suggested by Ludovic                                                                                 
+      174d457d5 2022-06-18 Jasem Mutlaq         Reduce memory re-allocation by re-using the same block of memory allocated by the FITS file. Each driver now starts with 100k memory allocated for e..
+      2e1c231c8 2022-06-18 Jasem Mutlaq         astyle applied to all files to bring all to the same coding format                                                                                    
+      1f27fc19e 2022-06-18 pludov               Fast blob transfer (#1668)                                                                                                                            
+      87e699491 2022-06-12 sonny486             Update dmfc.cpp (#1665)                                                                                                                               
+      f615e084b 2022-06-12 sonny486             Update drivers.xml (#1667)                                                                                                                            
+      f8e1a316f 2022-06-09 Jasem Mutlaq         Add more protection to code when parsing strings and fix various warnings. Fixes #1664                                                                
+      9d707bbc1 2022-06-07 Jasem Mutlaq         Make Pegasus FlatMaster compatible with LightBox interface pattern                                                                                    
+      6e9d4e55f 2022-06-07 Jasem Mutlaq         Light should be OFF by default                                                                                                                        
+      511044d99 2022-06-04 Jasem Mutlaq         Immediately correct rotator out of bound values                                                                                                       
+      758240d31 2022-05-29 Jasem Mutlaq         INDI v1.9.7 development cycle                                                                                                                         
+      37860f05c 2022-05-28 Will Gauvin          Ensure defensive check of UBP previous data to fix crash - fixes #1662 (#1663)                                                                        
+      3c6f767af 2022-05-28 Ilia Platone         INDI Receiver and rtl-sdr (#1661)
+
 + From 1.9.5 to 1.9.6
 
     63d41777 2022-05-20 Michal Jamry         Fix pyindi pipeline (#1660)
@@ -1397,4 +1492,4 @@ From v0.2 to v0.3:
                 + INDI scripting tools
                 + Various bug fixing
 
-INDI Library v1.9.5 conforms to INDI wire protocol v1.7
+INDI Library v1.9.7 conforms to INDI wire protocol v1.7 with FAST BLOB extension.
