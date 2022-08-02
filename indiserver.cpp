@@ -1769,11 +1769,8 @@ void Fifo::processLine(const char * line)
         {
             if (dp == nullptr) continue;
 
-            log(fmt("dp->name: %s - tDriver: %s\n", dp->name.c_str(), tDriver));
             if (dp->name == tDriver)
             {
-                log(fmt("name: %s - dp->dev[0]: %s\n", tName, dp->dev.empty() ? "" : dp->dev.begin()->c_str()));
-
                 /* If device name is given, check against it before shutting down */
                 if (tName[0] && !dp->isHandlingDevice(tName))
                     continue;
