@@ -463,6 +463,7 @@ bool IOptronV3::ISNewNumber(const char *dev, const char *name, double values[], 
                           MeridianLimitN[0].value, MeridianActionS[IOP_MB_STOP].s == ISS_ON ? "stop" : "flip");
             }
             IDSetNumber(&MeridianLimitNP, nullptr);
+            saveConfig(true, MeridianLimitNP.name);
             return true;
         }
 
@@ -586,6 +587,7 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                           MeridianLimitN[0].value, MeridianActionS[IOP_MB_STOP].s == ISS_ON ? "stop" : "flip");
             }
             IDSetSwitch(&MeridianActionSP, nullptr);
+            saveConfig(true, MeridianActionSP.name);
             return true;
         }
 
