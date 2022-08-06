@@ -341,7 +341,7 @@ bool CCDSim::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
-    if (DirectoryS[INDI_ENABLED].s == ISS_ON)
+    if (PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME && DirectoryS[INDI_ENABLED].s == ISS_ON)
     {
         if (loadNextImage() == false)
             return false;
