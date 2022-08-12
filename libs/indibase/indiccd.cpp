@@ -61,6 +61,14 @@ const char * GUIDE_HEAD_TAB     = "Guider Head";
 uint16_t INDIWSServer::m_global_port = 11623;
 #endif
 
+std::string join(std::vector<std::string> const &strings, std::string delim)
+{
+    std::stringstream ss;
+    std::copy(strings.begin(), strings.end(),
+              std::ostream_iterator<std::string>(ss, delim.c_str()));
+    return ss.str();
+}
+
 namespace INDI
 {
 
@@ -781,16 +789,20 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
     else if (!strcmp(propName, "FILTER_NAME"))
     {
+        LOG_DEBUG("SNOOP: FILTER_NAME update...");
         FilterNames.clear();
-
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             FilterNames.push_back(pcdataXMLEle(ep));
+        LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+
     }
     else if (!strcmp(propName, "FILTER_SLOT"))
     {
+        LOG_DEBUG("SNOOP: FILTER_SLOT update...");
         CurrentFilterSlot = -1;
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             CurrentFilterSlot = atoi(pcdataXMLEle(ep));
+        LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
@@ -888,6 +900,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             strncpy(J2000EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
             if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceT[ACTIVE_TELESCOPE].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
@@ -895,6 +908,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
             else
             {
+                LOG_DEBUG("No mount is set. Clearing all mount watchers.");
                 RA = std::numeric_limits<double>::quiet_NaN();
                 Dec = std::numeric_limits<double>::quiet_NaN();
                 J2000RA = std::numeric_limits<double>::quiet_NaN();
@@ -907,31 +921,40 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
 
             if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
+            {
+                LOGF_DEBUG("Snopping on Rotator %s", ActiveDeviceT[ACTIVE_ROTATOR].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+            }
             else
+            {
+                LOG_DEBUG("No rotator is set. Clearing all rotator watchers.");
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
+            }
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Focuser %s", ActiveDeviceT[ACTIVE_FOCUSER].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
             }
             else
             {
+                LOG_DEBUG("No focuser is set. Clearing all focuser watchers.");
                 FocuserPos = -1;
                 FocuserTemp = std::numeric_limits<double>::quiet_NaN();
             }
-            //
 
 
             if (strlen(ActiveDeviceT[ACTIVE_FILTER].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Filter Wheel %s", ActiveDeviceT[ACTIVE_FILTER].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
             }
             else
             {
+                LOG_DEBUG("No filter wheel is set. Clearing All filter wheel watchers.");
                 CurrentFilterSlot = -1;
             }
 
