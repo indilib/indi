@@ -39,8 +39,8 @@ CCDChip::~CCDChip()
 
 bool CCDChip::openFITSFile(uint32_t size, int &status)
 {
-    m_FITSMemorySize = size;
-    m_FITSMemoryBlock = IDSharedBlobAlloc(m_FITSMemorySize);
+    m_FITSMemorySize = size > 2880 ? 2880 : size;
+    m_FITSMemoryBlock = IDSharedBlobAlloc(size);
     if (m_FITSMemoryBlock == nullptr)
     {
         IDLog("Failed to allocate memory for FITS file.");
