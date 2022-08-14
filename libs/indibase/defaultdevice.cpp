@@ -143,6 +143,11 @@ DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
     : BaseDevice(dd)
 { }
 
+bool DefaultDevice::loadConfig(INDI::Property &property)
+{
+    return loadConfig(true, property->getName());
+}
+
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     D_PTR(DefaultDevice);
@@ -215,6 +220,11 @@ bool DefaultDevice::purgeConfig()
 
     LOG_INFO("Configuration file successfully purged.");
     return true;
+}
+
+bool DefaultDevice::saveConfig(INDI::Property &property)
+{
+    return saveConfig(true, property->getName());
 }
 
 bool DefaultDevice::saveConfig(bool silent, const char *property)

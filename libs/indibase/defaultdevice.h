@@ -344,6 +344,15 @@ class DefaultDevice : public BaseDevice
         virtual bool loadConfig(bool silent = false, const char *property = nullptr);
 
         /**
+         * @brief Load property config from the configuration file. If the property configuration is successfully parsed, the corresponding ISNewXXX
+         * is called with the values parsed from the config file.
+         * @param property Property to load configuration for.
+         * @return True if successful, false otherwise.
+         * @note This is a convenience function that calls loadConfig(true, property->getName())
+         */
+        bool loadConfig(INDI::Property &property);
+
+        /**
          * \brief Save the current properties in a configuration file
          * \param silent if true, don't report any error or notification messages.
          * \param property Name of specific property to save while leaving all others properties in the
@@ -351,6 +360,14 @@ class DefaultDevice : public BaseDevice
          * \return True if successful, false otherwise.
          */
         virtual bool saveConfig(bool silent = false, const char *property = nullptr);
+
+        /**
+         * @brief Save a property in the configuration file
+         * @param property Property to save in configuration file.
+         * @return True if successful, false otherwise.
+         * @note This is a convenience function that calls saveConfig(true, property->getName())
+         */
+        bool saveConfig(INDI::Property &property);
 
         /**
          * @brief purgeConfig Remove config file from disk.
