@@ -57,11 +57,17 @@ class CCDChip
          */
         bool openFITSFile(uint32_t size, int &status);
 
+
         /**
-         * @brief closeFITSFile Close the in-memory FITS File.
+         * @brief Finish any pending write to fits file.
          * @return True if successful, false otherwise.
          */
-        bool closeFITSFile();
+        bool finishFITSFile(int &status);
+
+        /**
+         * @brief closeFITSFile Close the in-memory FITS File.
+         */
+        void closeFITSFile();
 
         /**
          * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.

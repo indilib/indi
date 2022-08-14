@@ -58,14 +58,26 @@ bool CCDChip::openFITSFile(uint32_t size, int &status)
     return (status == 0);
 }
 
-bool CCDChip::closeFITSFile()
+bool CCDChip::finishFITSFile(int &status)
 {
-    int status = 0;
+    fits_flush_file(m_FITSFilePointer, &status);
     fits_close_file(m_FITSFilePointer, &status);
-    m_FITSFilePointer = nullptr;
+    if (status == 0) {
+        m_FITSFilePointer = nullptr;
+    }
+    return (status == 0);
+}
+
+void CCDChip::closeFITSFile()
+{
+    if (m_FITSFilePointer != nullptr) {
+        int status = 0;
+        // Discard error here, the caller can't expect a valid file anymore at that point
+        fits_close_file(m_FITSFilePointer, &status);
+        m_FITSFilePointer = nullptr;
+    }
     IDSharedBlobFree(m_FITSMemoryBlock);
     m_FITSMemoryBlock = nullptr;
-    return (status == 0);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)

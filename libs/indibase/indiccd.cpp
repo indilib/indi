@@ -2282,8 +2282,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             addFITSKeywords(targetChip);
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
-            fits_flush_file(fptr, &status);
-
+            targetChip->finishFITSFile(status);
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
