@@ -195,6 +195,14 @@ class DefaultDevice : public BaseDevice
          */
         virtual bool deleteProperty(const char *propertyName);
 
+        /**
+         * @brief deleteProperty Delete a property and unregister it. It will also be deleted from all clients.
+         * @param property Property to be deleted.
+         * @return True if successful, false otherwise.
+         * @note This is a convience function that internally calls deleteProperty with the property name.
+         */
+        bool deleteProperty(INDI::Property &property);
+
     public:
         /**
          * \brief Set connection switch status in the client.

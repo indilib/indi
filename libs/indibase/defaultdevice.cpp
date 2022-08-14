@@ -956,9 +956,14 @@ bool DefaultDevice::initProperties()
     // Ready the logger
     std::string logFile = getDriverExec();
 
-    DEBUG_CONF(logFile, Logger::file_off | Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
+    DEBUG_CONF(logFile, Logger::file_off | Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel)
 
     return true;
+}
+
+bool DefaultDevice::deleteProperty(INDI::Property &property)
+{
+    return deleteProperty(property.getName());
 }
 
 bool DefaultDevice::deleteProperty(const char *propertyName)
