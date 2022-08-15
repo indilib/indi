@@ -191,15 +191,15 @@ bool PegasusFalcon::AbortRotator()
 }
 
 //////////////////////////////////////////////////////////////////////
-///
+/// Command for reverse action ("FN:0" disabled, "FN:1" enabled)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalcon::ReverseRotator(bool enabled)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "FR:%d", enabled ? 1 : 0);
+    snprintf(cmd, DRIVER_LEN, "FN:%d", enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd));
+        return (!strncmp(res, cmd, 4)); //Restrict length to 4 chars!
     }
 
     return false;
