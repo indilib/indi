@@ -1055,6 +1055,7 @@ static void logStartup(int ac, char *av[])
         startupMsg += " ";
         startupMsg += av[i];
     }
+    startupMsg += '\n';
     log(startupMsg);
 }
 
