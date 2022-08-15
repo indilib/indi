@@ -2327,6 +2327,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (FastExposureToggleS[INDI_ENABLED].s != ISS_ON)
         targetChip->setExposureComplete();
+
+    UploadComplete(targetChip);
     return true;
 }
 

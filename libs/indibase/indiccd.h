@@ -530,6 +530,13 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual void GuideComplete(INDI_EQ_AXIS axis) override;
 
         /**
+         * @brief UploadComplete Signal that capture is completed and image was uploaded and/or saved successfully.
+         * @param targetChip Active exposure chip
+         * @note Child camera should override this function to receive notification on exposure upload completion.
+         */
+        virtual void UploadComplete(CCDChip *) {}
+
+        /**
          * @brief checkTemperatureTarget Checks the current temperature against target temperature and calculates
          * the next required temperature if there is a ramp. If the current temperature is within threshold of
          * target temperature, it sets the state as OK.
