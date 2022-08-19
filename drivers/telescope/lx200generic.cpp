@@ -43,6 +43,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
+#include "lx200am5.h"
 #include <cmath>
 #include <memory>
 #include <cstring>
@@ -152,6 +153,11 @@ static class Loader
             {
                 IDLog("initializing for EQ500X mount...\n");
                 telescope.reset(new EQ500X());
+            }
+            else if (strstr(__progname, "indi_lx200am5"))
+            {
+                IDLog("initializing for ZWO AM5 mount...\n");
+                telescope.reset(new LX200AM5());
             }
             // be nice and give them a generic device
             else

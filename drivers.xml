@@ -58,8 +58,8 @@
             <version>1.1</version>
         </device>
         <device label="ZWO AM5" manufacturer="ZWO">
-            <driver name="LX200 Autostar">indi_lx200autostar</driver>
-            <version>2.1</version>
+            <driver name="ZWO AM5">indi_lx200am5</driver>
+            <version>1.0</version>
         </device>
         <device label="AstroPhysics GTOCP2" manufacturer="Astrophysics">
             <driver name="AstroPhysics GTOCP2">indi_lx200ap_gtocp2</driver>
