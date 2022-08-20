@@ -30,7 +30,6 @@ class LX200AM5 : public LX200Generic
         LX200AM5();
         virtual ~LX200AM5() override = default;
 
-        virtual void ISGetProperties(const char *dev) override;
         virtual bool updateProperties() override;
         virtual bool initProperties() override;
 
@@ -39,17 +38,15 @@ class LX200AM5 : public LX200Generic
 
     protected:
         virtual const char *getDefaultName() override;
-        virtual bool saveConfigItems(FILE *fp) override;
 
+        // Communication
         virtual bool checkConnection() override;
-        //virtual bool isSlewComplete() override;
-        //virtual bool ReadScopeStatus() override;
 
-        // Goto
+        // Motion & Goto
         virtual bool ReadScopeStatus() override;
+        virtual bool SetSlewRate(int index) override;
 
-        // Tracking
-        //virtual bool SetTrackMode(uint8_t mode) override;
+        // Tracking        
         virtual bool SetTrackEnabled(bool enabled) override;
 
         // Time & Location
@@ -83,28 +80,49 @@ class LX200AM5 : public LX200Generic
         //////////////////////////////////////////////////////////////////////////////////
         /// Properties
         //////////////////////////////////////////////////////////////////////////////////
+        // Go Home
+        INDI::PropertySwitch HomeSP {1};
+        // Mount Type
         INDI::PropertySwitch MountTypeSP {2};
         enum
         {
             Azimuth,
             Equatorial
-        };
-
-        INDI::PropertySwitch HomeSP {1};
-
+        };        
+        // Guide Rate
         INDI::PropertyNumber GuideRateNP {1};
+        // Buzzer control
+        INDI::PropertySwitch BuzzerSP {3};
+        enum
+        {
+            Off,
+            Low,
+            High
+        };
 
 
         //////////////////////////////////////////////////////////////////////////////////
         /// AM5 Specific
         //////////////////////////////////////////////////////////////////////////////////
         void setup();
-        bool setMountType(int type);
-        //bool isTracking();
+
+        // Homing
         bool goHome();
+
+        // Guide Rate
         bool setGuideRate(double value);
+        bool getGuideRate();
 
+        // Buzzer
+        bool getBuzzer();
+        bool setBuzzer(int value);
 
+        // Mount type
+        bool setMountType(int type);
+        bool getMountType();
+
+        // Track Mode
+        bool getTrackMode();
 
 
         //////////////////////////////////////////////////////////////////////////////////

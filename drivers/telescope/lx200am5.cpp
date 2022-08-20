@@ -46,7 +46,7 @@ LX200AM5::LX200AM5()
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
-                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_HAS_TRACK_MODE,
                            SLEW_MODES);
 }
 
@@ -55,22 +55,6 @@ bool LX200AM5::initProperties()
     LX200Generic::initProperties();
 
     SetParkDataType(PARK_NONE);
-
-    // Slew Rates
-    strncpy(SlewRateS[0].label, "0.25x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "0.50x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "4x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "20x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "60x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "720x", MAXINDILABEL);
-    strncpy(SlewRateS[9].label, "1440x", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
-    // 60x is the default
-    SlewRateS[7].s = ISS_ON;
-
     timeFormat = LX200_24;
 
     tcpConnection->setDefaultHost("192.168.4.1");
@@ -90,7 +74,22 @@ bool LX200AM5::initProperties()
     MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     if (mountType == Equatorial)
-        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE);
+        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
+
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "0.25x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "0.50x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "4x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "20x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "60x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "720x", MAXINDILABEL);
+    strncpy(SlewRateS[9].label, "1440x", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 1440x is the default
+    SlewRateS[9].s = ISS_ON;
 
     // Home/Zero position
     HomeSP[0].fill("GO", "Go", ISS_OFF);
@@ -100,22 +99,13 @@ bool LX200AM5::initProperties()
     GuideRateNP[0].fill("RATE", "Rate", "%.2f", 0.1, 0.9, 0.1, 0.5);
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Buzzer
+    BuzzerSP[Off].fill("OFF", "Off", ISS_OFF);
+    BuzzerSP[Low].fill("LOW", "Low", ISS_OFF);
+    BuzzerSP[High].fill("HIGH", "High", ISS_ON);
+    BuzzerSP.fill(getDeviceName(), "BUZZER", "Buzzer", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-void LX200AM5::ISGetProperties(const char *dev)
-{
-    LX200Generic::ISGetProperties(dev);
-    defineProperty(&MountTypeSP);
-
-    if (isConnected())
-    {
-        defineProperty(&HomeSP);
-        defineProperty(&GuideRateNP);
-    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -129,14 +119,16 @@ bool LX200AM5::updateProperties()
     {
         setup();
 
-        defineProperty(&HomeSP);
-        defineProperty(&GuideRateNP);
+        defineProperty(HomeSP);
+        defineProperty(GuideRateNP);
+        defineProperty(BuzzerSP);
 
     }
     else
     {
         deleteProperty(HomeSP);
         deleteProperty(GuideRateNP);
+        deleteProperty(BuzzerSP);
     }
 
     return true;
@@ -175,8 +167,8 @@ bool LX200AM5::checkConnection()
 void LX200AM5::setup()
 {
     // Mount Type
-    MountTypeSP.setState(setMountType(MountTypeSP.findOnSwitchIndex()) ? IPS_OK : IPS_ALERT);
-    MountTypeSP.apply();
+    //    MountTypeSP.setState(setMountType(MountTypeSP.findOnSwitchIndex()) ? IPS_OK : IPS_ALERT);
+    //    MountTypeSP.apply();
 
     if (InitPark())
     {
@@ -192,6 +184,11 @@ void LX200AM5::setup()
         SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
+
+    getMountType();
+    getTrackMode();
+    getGuideRate();
+    getBuzzer();
 
 }
 
@@ -218,7 +215,6 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             }
             MountTypeSP.setState(state);
             MountTypeSP.apply();
-            saveConfig(&MountTypeSP);
             return true;
         }
 
@@ -269,11 +265,116 @@ bool LX200AM5::setMountType(int type)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getMountType()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GU#", response))
+    {
+        MountTypeSP.reset();
+        MountTypeSP[Azimuth].setState(strchr(response, 'Z') ? ISS_ON : ISS_OFF);
+        MountTypeSP[Equatorial].setState(strchr(response, 'G') ? ISS_ON : ISS_OFF);
+        MountTypeSP.setState(IPS_OK);
+        return true;
+    }
+    else
+    {
+        MountTypeSP.setState(IPS_ALERT);
+        return true;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::SetSlewRate(int index)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":R%d#", index);
+    return sendCommand(command);
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::setGuideRate(double value)
 {
     char command[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, ":Rg%.2f", value);
     return sendCommand(command);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getGuideRate()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":Ggr#", response))
+    {
+        float rate = 0;
+        int result = sscanf(response, "%f", &rate);
+        if (result == 1)
+        {
+            GuideRateNP[0].setValue(rate);
+            return true;
+        }
+    }
+
+    GuideRateNP.setState(IPS_ALERT);
+    return false;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getTrackMode()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GT#", response))
+    {
+        IUResetSwitch(&TrackModeSP);
+        auto onIndex = response[0] - 0x30;
+        TrackModeS[onIndex].s = ISS_ON;
+        return true;
+    }
+
+    TrackModeSP.s = IPS_ALERT;
+    return false;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setBuzzer(int value)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":SBu%d", value);
+    return sendCommand(command);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getBuzzer()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GBu#", response))
+    {
+        BuzzerSP.reset();
+        auto onIndex = response[0] - 0x30;
+        BuzzerSP[onIndex].setState(ISS_ON);
+        BuzzerSP.setState(IPS_OK);
+        return true;
+    }
+    else
+    {
+        BuzzerSP.setState(IPS_ALERT);
+        return true;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -303,7 +404,7 @@ bool LX200AM5::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 bool LX200AM5::SetTrackEnabled(bool enabled)
 {
     char response[DRIVER_LEN] = {0};
-    bool rc = sendCommand(enabled ? ":Te#" : ":Td#", response);
+    bool rc = sendCommand(enabled ? ":Te#" : ":Td#", response, 4, 1);
     return rc && response[0] == '1';
 }
 
@@ -395,9 +496,7 @@ bool LX200AM5::ReadScopeStatus()
         IUResetSwitch(&TrackStateSP);
         TrackStateS[INDI_ENABLED].s = isTracking ? ISS_ON : ISS_OFF;
         TrackStateS[INDI_DISABLED].s = isTracking ? ISS_OFF : ISS_ON;
-        TrackStateSP.s = isTracking ? IPS_BUSY : IPS_IDLE;
-        if (isTracking)
-            TrackState = SCOPE_TRACKING;
+        TrackState = isTracking ? SCOPE_TRACKING : SCOPE_IDLE;
         IDSetSwitch(&TrackStateSP, nullptr);
     }
 
@@ -449,18 +548,6 @@ bool LX200AM5::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
-    return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-bool LX200AM5::saveConfigItems(FILE *fp)
-{
-    LX200Generic::saveConfigItems(fp);
-
-    IUSaveConfigSwitch(fp, &MountTypeSP);
-    IUSaveConfigNumber(fp, &GuideRateNP);
     return true;
 }
 
