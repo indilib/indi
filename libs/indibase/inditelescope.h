@@ -192,12 +192,12 @@ class Telescope : public DefaultDevice
         /**
          * @brief SetTelescopeCapability sets the Telescope capabilities. All capabilities must be initialized.
          * @param cap ORed list of telescope capabilities.
-         * @param slewRateCount Number of slew rates supported by the telescope. If < 4 (default is 0),
+         * @param slewRateCount Number of slew rates supported by the telescope. If < 4,
          * no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX
          * members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount = 0);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount);
 
         /**
          * @return True if telescope support goto operations
