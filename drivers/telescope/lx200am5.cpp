@@ -489,17 +489,6 @@ bool LX200AM5::ReadScopeStatus()
         isHome = strchr(status, 'H');
     }
 
-    // Tracking changed?
-    auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
-    if (HomeSP.getState() != IPS_BUSY && wasTracking != isTracking)
-    {
-        IUResetSwitch(&TrackStateSP);
-        TrackStateS[INDI_ENABLED].s = isTracking ? ISS_ON : ISS_OFF;
-        TrackStateS[INDI_DISABLED].s = isTracking ? ISS_OFF : ISS_ON;
-        TrackState = isTracking ? SCOPE_TRACKING : SCOPE_IDLE;
-        IDSetSwitch(&TrackStateSP, nullptr);
-    }
-
     if (HomeSP.getState() == IPS_BUSY && isHome)
     {
         HomeSP[0].setState(ISS_OFF);
@@ -523,6 +512,13 @@ bool LX200AM5::ReadScopeStatus()
         {
             SetParked(true);
         }
+    }
+    else
+    {
+        // Tracking changed?
+        auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
+        if (HomeSP.getState() != IPS_BUSY && wasTracking != isTracking)
+            TrackState = isTracking ? SCOPE_TRACKING : SCOPE_IDLE;
     }
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
