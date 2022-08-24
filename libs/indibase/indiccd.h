@@ -576,7 +576,7 @@ class CCD : public DefaultDevice, GuiderInterface
         char exposureStartTime[MAXINDINAME];
         double exposureDuration;
 
-        double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
+        double snoopedFocalLength, snoopedAperture;
         bool InExposure;
         bool InGuideExposure;
         //bool RapidGuideEnabled;
@@ -721,12 +721,12 @@ class CCD : public DefaultDevice, GuiderInterface
             UPLOAD_PREFIX
         };
 
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
+        // Telescope Information
+        INDI::PropertyNumber ScopeInfoNP {2};
         enum
         {
-            TELESCOPE_PRIMARY,
-            TELESCOPE_GUIDE
+            FocalLength,
+            Aperture
         };
 
         // Websocket Support

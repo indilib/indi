@@ -44,10 +44,6 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
 
     terminateThread = false;
 
-    //  focal length of the telescope in millimeters
-    primaryFocalLength = 900;
-    guiderFocalLength  = 300;
-
     time(&RunStart);
 
     // Filter stuff
@@ -232,10 +228,6 @@ bool CCDSim::initProperties()
     addDebugControl();
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
-
-    // Make Guide Scope ON by default
-    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
-    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
 
     return true;
 }
@@ -527,7 +519,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
     float exposure_time;
-    float targetFocalLength;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -543,10 +534,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else if (GainN[0].value < 50)
         exposure_time /= sqrt(50 - GainN[0].value);
 
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
-        targetFocalLength = primaryFocalLength;
-    else
-        targetFocalLength = guiderFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
     if (ShowStarField && GainN[0].value > 0)
     {
