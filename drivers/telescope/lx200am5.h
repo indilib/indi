@@ -123,6 +123,7 @@ class LX200AM5 : public LX200Generic
 
         // Track Mode
         bool getTrackMode();
+        bool isTracking();
 
 
         //////////////////////////////////////////////////////////////////////////////////

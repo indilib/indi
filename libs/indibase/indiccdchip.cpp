@@ -62,7 +62,8 @@ bool CCDChip::finishFITSFile(int &status)
 {
     fits_flush_file(m_FITSFilePointer, &status);
     fits_close_file(m_FITSFilePointer, &status);
-    if (status == 0) {
+    if (status == 0)
+    {
         m_FITSFilePointer = nullptr;
     }
     return (status == 0);
@@ -70,7 +71,8 @@ bool CCDChip::finishFITSFile(int &status)
 
 void CCDChip::closeFITSFile()
 {
-    if (m_FITSFilePointer != nullptr) {
+    if (m_FITSFilePointer != nullptr)
+    {
         int status = 0;
         // Discard error here, the caller can't expect a valid file anymore at that point
         fits_close_file(m_FITSFilePointer, &status);
@@ -195,9 +197,15 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
         return;
 
     RawFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(RawFrame, RawFrameSize));
+    if (RawFrame == nullptr)
+        RawFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
 
     if (BinFrame)
+    {
         BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    }
 }
 
 void CCDChip::setExposureLeft(double duration)

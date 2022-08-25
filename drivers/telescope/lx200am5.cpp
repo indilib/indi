@@ -411,12 +411,12 @@ bool LX200AM5::SetTrackEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-//bool LX200AM5::isTracking()
-//{
-//    char response[DRIVER_LEN] = {0};
-//    bool rc = sendCommand(":GAT#", response);
-//    return rc && response[0] == '1';
-//}
+bool LX200AM5::isTracking()
+{
+    char response[DRIVER_LEN] = {0};
+    bool rc = sendCommand(":GAT#", response);
+    return rc && response[0] == '1';
+}
 
 /////////////////////////////////////////////////////////////////////////////
 ///
@@ -480,11 +480,10 @@ bool LX200AM5::ReadScopeStatus()
     if (!isConnected())
         return false;
 
-    bool slewComplete = false, isHome = false, isTracking = false;
+    bool slewComplete = false, isHome = false;
     char status[DRIVER_LEN] = {0};
     if (sendCommand(":GU#", status))
     {
-        isTracking = !strchr(status, 'n');
         slewComplete = strchr(status, 'N');
         isHome = strchr(status, 'H');
     }
@@ -517,8 +516,9 @@ bool LX200AM5::ReadScopeStatus()
     {
         // Tracking changed?
         auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
-        if (HomeSP.getState() != IPS_BUSY && wasTracking != isTracking)
-            TrackState = isTracking ? SCOPE_TRACKING : SCOPE_IDLE;
+        auto nowTracking = isTracking();
+        if (wasTracking != nowTracking)
+            TrackState = nowTracking ? SCOPE_TRACKING : SCOPE_IDLE;
     }
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)

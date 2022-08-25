@@ -111,10 +111,8 @@ CCD::CCD()
     Longitude       = std::numeric_limits<double>::quiet_NaN();
     Azimuth         = std::numeric_limits<double>::quiet_NaN();
     Altitude        = std::numeric_limits<double>::quiet_NaN();
-    primaryAperture = std::numeric_limits<double>::quiet_NaN();
-    primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
-    guiderAperture = std::numeric_limits<double>::quiet_NaN();
-    guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
+    snoopedAperture        = std::numeric_limits<double>::quiet_NaN();
+    snoopedFocalLength     = std::numeric_limits<double>::quiet_NaN();
 
     // Check temperature every 5 seconds.
     m_TemperatureCheckTimer.setInterval(5000);
@@ -348,10 +346,9 @@ bool CCD::initProperties()
     IUFillNumberVector(&CCDRotationNP, CCDRotationN, 1, getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ScopeInfoNP[FocalLength].fill("FOCAL_LENGTH", "Focal Length (mm)", "%.2f", 10, 10000, 100, 0);
+    ScopeInfoNP[Aperture].fill("APERTURE", "Aperture (mm)", "%.2f", 10, 3000, 100, 0);
+    ScopeInfoNP.fill(getDeviceName(), "SCOPE_INFO", "Scope", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
     /************** Capture Format ***************/
@@ -602,7 +599,7 @@ bool CCD::updateProperties()
             defineProperty(&GuideCCD.RapidGuideDataNP);
         }
 #endif
-        defineProperty(&TelescopeTypeSP);
+        defineProperty(ScopeInfoNP);
 
         defineProperty(&WorldCoordSP);
         defineProperty(&UploadSP);
@@ -686,7 +683,7 @@ bool CCD::updateProperties()
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
         if (HasBayer())
             deleteProperty(BayerTP.name);
-        deleteProperty(TelescopeTypeSP.name);
+        deleteProperty(ScopeInfoNP);
 
         if (WorldCoordS[0].s == ISS_ON)
         {
@@ -771,19 +768,11 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "TELESCOPE_APERTURE"))
             {
-                primaryAperture = atof(pcdataXMLEle(ep));
+                snoopedAperture = atof(pcdataXMLEle(ep));
             }
             else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
             {
-                primaryFocalLength = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "GUIDER_APERTURE"))
-            {
-                guiderAperture = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "GUIDER_FOCAL_LENGTH"))
-            {
-                guiderFocalLength = atof(pcdataXMLEle(ep));
+                snoopedFocalLength = atof(pcdataXMLEle(ep));
             }
         }
     }
@@ -1144,6 +1133,15 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             return true;
         }
 
+        // Scope Information
+        if (ScopeInfoNP.isNameMatch(name))
+        {
+            ScopeInfoNP.update(values, names, n);
+            ScopeInfoNP.setState(IPS_OK);
+            ScopeInfoNP.apply();
+            return true;
+        }
+
         if (!strcmp(name, "CCD_FRAME"))
         {
             int x = -1, y = -1, w = -1, h = -1;
@@ -1401,14 +1399,6 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             IDSetSwitch(&UploadSP, nullptr);
 
-            return true;
-        }
-
-        if (!strcmp(name, TelescopeTypeSP.name))
-        {
-            IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
-            TelescopeTypeSP.s = IPS_OK;
-            IDSetSwitch(&TelescopeTypeSP, nullptr);
             return true;
         }
 
@@ -1878,21 +1868,9 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
     }
 
     // Which scope is in effect
-    // TODO: Support N-telescopes
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
-    {
-        if (primaryFocalLength > 0)
-            effectiveFocalLength = primaryFocalLength;
-        if (primaryAperture > 0)
-            effectiveAperture = primaryAperture;
-    }
-    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON)
-    {
-        if (guiderFocalLength > 0)
-            effectiveFocalLength = guiderFocalLength;
-        if (guiderAperture > 0)
-            effectiveAperture = guiderAperture;
-    }
+    // Prefer Scope Info over snooped property which should be deprecated.
+    effectiveFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ?  ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
+    effectiveAperture = ScopeInfoNP[Aperture].getValue() > 0 ?  ScopeInfoNP[Aperture].getValue() : snoopedAperture;
 
     if (std::isnan(effectiveFocalLength))
         LOG_WARN("Telescope focal length is missing.");
@@ -2585,7 +2563,6 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
-    IUSaveConfigSwitch(fp, &TelescopeTypeSP);
     IUSaveConfigSwitch(fp, &FastExposureToggleSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);

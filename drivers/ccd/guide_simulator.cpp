@@ -42,9 +42,6 @@ GuideSim::GuideSim()
     streamPredicate = 0;
     terminateThread = false;
 
-    primaryFocalLength = 900; //  focal length of the telescope in millimeters
-    guiderFocalLength  = 300;
-
     time(&RunStart);
 }
 
@@ -195,10 +192,6 @@ bool GuideSim::initProperties()
     addDebugControl();
 
     setDriverInterface(getDriverInterface());
-
-    // Make Guide Scope ON by default
-    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
-    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
 
     return true;
 }
@@ -397,7 +390,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
     double exposure_time;
-    double targetFocalLength;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -411,10 +403,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else if (GainN[0].value < 50)
         exposure_time /= sqrt(50 - GainN[0].value);
 
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
-        targetFocalLength = primaryFocalLength;
-    else
-        targetFocalLength = guiderFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
     if (ShowStarField)
     {
