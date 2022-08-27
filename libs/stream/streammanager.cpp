@@ -430,7 +430,7 @@ void StreamManagerPrivate::asyncStreamThread()
 
         std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (sourceBuffer->size() != srcFrameInfo.totalSize())
+        if (PixelFormat != INDI_JPG && sourceBuffer->size() != srcFrameInfo.totalSize())
         {
             LOG_ERROR("Invalid source buffer size, skipping frame...");
             continue;
