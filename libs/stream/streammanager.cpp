@@ -1189,7 +1189,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         imageBP->at(0)->setBlob(const_cast<uint8_t *>(buffer));
         imageBP->at(0)->setBlobLen(nbytes);
         imageBP->at(0)->setSize(nbytes);
-        imageBP->at(0)->setFormat(".streajpg");
+        imageBP->at(0)->setFormat(".stream_jpg");
         imageBP->setState(IPS_OK);
         imageBP->apply();
         return true;
