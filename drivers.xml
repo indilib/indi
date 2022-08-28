@@ -173,6 +173,10 @@
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
         </device>
+        <device label="iOptron SkyHunter" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.6</version>
+        </device>
         <device label="iOptron CEM40" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
