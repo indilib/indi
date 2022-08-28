@@ -430,7 +430,7 @@ void StreamManagerPrivate::asyncStreamThread()
 
         std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (sourceBuffer->size() != srcFrameInfo.totalSize())
+        if (PixelFormat != INDI_JPG && sourceBuffer->size() != srcFrameInfo.totalSize())
         {
             LOG_ERROR("Invalid source buffer size, skipping frame...");
             continue;
@@ -1189,7 +1189,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         imageBP->at(0)->setBlob(const_cast<uint8_t *>(buffer));
         imageBP->at(0)->setBlobLen(nbytes);
         imageBP->at(0)->setSize(nbytes);
-        imageBP->at(0)->setFormat(".streajpg");
+        imageBP->at(0)->setFormat(".stream_jpg");
         imageBP->setState(IPS_OK);
         imageBP->apply();
         return true;

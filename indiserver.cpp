@@ -3866,7 +3866,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
                 {
                     fdCount++;
                 }
-                log(fmt("Received %d fds\n", fdCount));
+                //log(fmt("Received %d fds\n", fdCount));
                 int * fds = (int*)CMSG_DATA(cmsg);
                 for(int i = 0; i < fdCount; ++i)
                 {
