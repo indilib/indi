@@ -1388,6 +1388,15 @@ add_executable(indi_wanderer_lite_rotator ${WandererRotatorLite_SRC})
 target_link_libraries(indi_wanderer_lite_rotator indidriver)
 install(TARGETS indi_wanderer_lite_rotator RUNTIME DESTINATION bin)
 
+########### Wanderer Cover V3 ###############
+
+SET(wandererCover_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/wanderer_cover.cpp)
+
+add_executable(indi_wanderer_cover ${wandererCover_SRC})
+target_link_libraries(indi_wanderer_cover indidriver)
+install(TARGETS indi_wanderer_cover RUNTIME DESTINATION bin)
+
 #################################################################################
 
 #####################################
