@@ -60,7 +60,7 @@ bool LX200_OpenAstroTech::initProperties()
     LX200GPS::initProperties();
     IUFillText(&MeadeCommandT, OAT_MEADE_COMMAND, "Result / Command", "");
     IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_ABS_MOVE);
     FI::initProperties(FOCUS_TAB);
     initFocuserProperties(FOCUS_TAB);
 
@@ -318,14 +318,26 @@ IPState LX200_OpenAstroTech::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
 IPState LX200_OpenAstroTech::MoveAbsFocuser (uint32_t targetTicks)
 {
-    //  :FSsnnn#  Set focuser target position (in microns)
-    //            Returns: Nothing
     if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks))
     {
         char read_buffer[32];
-        snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
-        executeMeadeCommandBlind(read_buffer);
-        return IPS_BUSY; // Normal case, should be set to normal by update.
+        snprintf(read_buffer, sizeof(read_buffer), ":Fp#");
+        if(!executeMeadeCommand(read_buffer, read_buffer)) {
+            uint32_t currentTicks = atoi(read_buffer);
+            if(FocuserDirectionLast == FOCUS_INWARD && targetTicks > currentTicks) {
+                targetTicks += FocuserBacklash;
+                FocuserDirectionLast = FOCUS_OUTWARD;
+            } else if(FocuserDirectionLast == FOCUS_OUTWARD && targetTicks < currentTicks) {
+                targetTicks -= FocuserBacklash;
+                FocuserDirectionLast = FOCUS_INWARD;
+            }
+            uint32_t relTicks = targetTicks - currentTicks;
+
+            char read_buffer[32];
+            snprintf(read_buffer, sizeof(read_buffer), ":FM%d#", int(relTicks));
+            executeMeadeCommandBlind(read_buffer);
+            return IPS_BUSY; // Normal case, should be set to normal by update.
+        }
     }
     else
     {
