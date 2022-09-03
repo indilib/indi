@@ -41,12 +41,13 @@ static uint64_t idGenerator = rand();
 
     std::string allocateBlobUid(int fd)
     {
+        std::lock_guard<std::mutex> lock(attachedBlobMutex);
+
         std::stringstream ss;
-        ss << idGenerator;
+        ss << idGenerator++;
 
         std::string id = ss.str();
 
-        std::lock_guard<std::mutex> lock(attachedBlobMutex);
         receivedFds[id] = fd;
         return id;
     }
