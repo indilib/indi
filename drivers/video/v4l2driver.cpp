@@ -1903,6 +1903,8 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &StackModeSP);
 
+    IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
+
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
 
