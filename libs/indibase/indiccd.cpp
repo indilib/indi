@@ -1071,6 +1071,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
                 return false;
             }
+            else if (values[0] == 0 || values[1] == 0)
+            {
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
+                return false;
+            }
 
             int binx, biny;
             if (!strcmp(np->name, "HOR_BIN"))
@@ -1105,6 +1112,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             {
                 GuideCCD.ImageBinNP.s = IPS_ALERT;
                 IDSetNumber(&GuideCCD.ImageBinNP, nullptr);
+                return false;
+            }
+            else if (values[0] == 0 || values[1] == 0)
+            {
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
                 return false;
             }
 
