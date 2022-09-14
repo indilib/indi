@@ -45,6 +45,7 @@
 
 #include <cmath>
 #include <regex>
+#include <iterator>
 
 #include <dirent.h>
 #include <cerrno>
