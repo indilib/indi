@@ -383,6 +383,10 @@
             <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
             <version>1.0</version>
         </device>
+         <device label="Pegasus ProdigyMF" manufacturer="Pegasus Astro">
+            <driver name="Pegasus MMC-7000AH">indi_pegasus_prodigyMF</driver>
+            <version>1.0</version>
+        </device>
         <device label="Pegasus ScopsOAG" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_pegasus_scopsoag</driver>
             <version>1.0</version>
@@ -667,6 +671,10 @@
                <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
                <version>1.0</version>
         </device>
+        <device label="Wanderer Cover V3" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
+            <version>1.0</version>
+        </device>        
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">

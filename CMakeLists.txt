@@ -1154,6 +1154,13 @@ SET(pegasusfocuscube_SRC
 add_executable(indi_pegasus_focuscube ${pegasusfocuscube_SRC})
 target_link_libraries(indi_pegasus_focuscube indidriver)
 install(TARGETS indi_pegasus_focuscube RUNTIME DESTINATION bin)
+################ Pegasus ProdigyMF Focuser ################
+SET(pegasusprodigyMF_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/pegasus_prodigyMF.cpp)
+
+add_executable(indi_pegasus_prodigyMF ${pegasusprodigyMF_SRC})
+target_link_libraries(indi_pegasus_prodigyMF indidriver)
+install(TARGETS indi_pegasus_prodigyMF RUNTIME DESTINATION bin)
 ################ Pegasus ScopsOAG Focuser ################
 SET(pegasusScopsoag_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/pegasus_scopsoag.cpp)
@@ -1380,6 +1387,15 @@ SET(WandererRotatorLite_SRC
 add_executable(indi_wanderer_lite_rotator ${WandererRotatorLite_SRC})
 target_link_libraries(indi_wanderer_lite_rotator indidriver)
 install(TARGETS indi_wanderer_lite_rotator RUNTIME DESTINATION bin)
+
+########### Wanderer Cover V3 ###############
+
+SET(wandererCover_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/wanderer_cover.cpp)
+
+add_executable(indi_wanderer_cover ${wandererCover_SRC})
+target_link_libraries(indi_wanderer_cover indidriver)
+install(TARGETS indi_wanderer_cover RUNTIME DESTINATION bin)
 
 #################################################################################
 
