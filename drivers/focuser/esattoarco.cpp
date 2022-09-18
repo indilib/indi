@@ -74,9 +74,9 @@ bool EsattoArco::initProperties()
     /////////////////////////////////////////////////////
 
     // Voltage Information
-    IUFillNumber(&VoltageInN[0], "VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
-    IUFillNumberVector(&VoltageInNP, VoltageInN, 1, getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0,
-                       IPS_IDLE);
+    VoltageNP[VOLTAGE_12V].fill("VOLTAGE_12V", "12v", "%.2f", 0, 100, 0., 0.);
+    VoltageNP[VOLTAGE_USB].fill("VOLTAGE_USB", "USB", "%.2f", 0, 100, 0., 0.);
+    VoltageNP.fill(getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
@@ -97,7 +97,8 @@ bool EsattoArco::initProperties()
     // Backlash measurement stages
     IUFillSwitch(&BacklashMeasurementS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
     IUFillSwitch(&BacklashMeasurementS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
+    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
+                       MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
@@ -122,9 +123,17 @@ bool EsattoArco::initProperties()
                        0, IPS_IDLE );
     // Rotator Calibration
     IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
-    //   IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&RotCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Cal Arco", ROTATOR_TAB,
+    IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Read reverse rotator config
+    int index = -1;
+    IUGetConfigOnSwitchIndex(getDeviceName(), ReverseRotatorSP.name, &index);
+    if (index >= 0)
+    {
+        IUResetSwitch(&ReverseRotatorSP);
+        ReverseRotatorS[index].s = ISS_ON;
+    }
 
     //////////////////////////////////////////////////////
     // Defaults
@@ -168,6 +177,11 @@ bool EsattoArco::updateProperties()
 
     if (isConnected())
     {
+        if (getStartupValues())
+            LOGF_INFO("Parameters updated, %s ready for use.", getDeviceName());
+        else
+            LOG_WARN("Failed to inquire parameters. Check logs.");
+
         //Focuser
         INDI::Focuser::updateProperties();
 
@@ -180,18 +194,13 @@ bool EsattoArco::updateProperties()
             defineProperty(&TemperatureNP);
 
         if (updateVoltageIn())
-            defineProperty(&VoltageInNP);
+            defineProperty(&VoltageNP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
         defineProperty(&RotatorAbsPosNP);
-        defineProperty(&RotCalibrationSP);
+        defineProperty(&RotatorCalibrationSP);
         defineProperty(&RotCalibrationMessageTP);
-
-        if (getStartupValues())
-            LOGF_INFO("Parameters updated, %s ready for use.", getDeviceName());
-        else
-            LOG_WARN("Failed to inquire parameters. Check logs.");
     }
     else
     {
@@ -202,7 +211,7 @@ bool EsattoArco::updateProperties()
             deleteProperty(TemperatureNP.name);
 
         deleteProperty(FirmwareTP.getName());
-        deleteProperty(VoltageInNP.name);
+        deleteProperty(VoltageNP.getName());
         deleteProperty(BacklashMessageTP.name);
         deleteProperty(BacklashMeasurementSP.name);
         deleteProperty(SpeedNP.name);
@@ -210,7 +219,7 @@ bool EsattoArco::updateProperties()
         // Rotator
         INDI::RotatorInterface::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotCalibrationSP.name);
+        deleteProperty(RotatorCalibrationSP.name);
         deleteProperty(RotCalibrationMessageTP.name);
     }
 
@@ -255,7 +264,7 @@ bool EsattoArco::updateTemperature()
         TemperatureNP.s = IPS_ALERT;
 
     TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
-    if (m_Esatto->getExternalTemp(temperature) && temperature < 90)
+    if (m_Esatto->getExternalTemp(temperature) && temperature > -127)
     {
         TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
     }
@@ -332,41 +341,14 @@ bool EsattoArco::updatePosition()
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
         //Update Rotator Position
-        GotoRotatorN[0].value = arcoPosition;
+        const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        if (isReversed)
+            GotoRotatorN[0].value = range360(360 - arcoPosition);
+        else
+            GotoRotatorN[0].value = range360(arcoPosition);
+
     }
 
-
-    if(!m_Arco->isBusy())
-    {
-        RotatorAbsPosNP.s = IPS_OK;
-        GotoRotatorNP.s = IPS_OK;
-    }
-
-    if(m_Arco->isCalibrating())
-    {
-        RotatorAbsPosNP.s = IPS_BUSY;
-        GotoRotatorNP.s = IPS_BUSY;
-        RotCalibrationSP.s = IPS_BUSY;
-        IDSetSwitch(&RotCalibrationSP, nullptr);
-    }
-    else
-    {
-        if(RotCalibrationSP.s == IPS_BUSY)
-        {
-            RotCalibrationSP.s = IPS_IDLE;
-            IDSetSwitch(&RotCalibrationSP, nullptr);
-            LOG_INFO("Arco calibration complete.");
-            if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
-            {
-                LOG_INFO("Arco position synced to zero.");
-            }
-        }
-    }
-
-    if(GotoRotatorNP.s == IPS_BUSY)
-        RotatorAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&RotatorAbsPosNP, nullptr);
-    IDSetNumber(&GotoRotatorNP, nullptr);
     return true;
 }
 
@@ -376,19 +358,13 @@ bool EsattoArco::updatePosition()
 bool EsattoArco::updateVoltageIn()
 {
     double voltage;
-    if (m_Esatto->getVoltageIn(voltage))
-    {
+    if (m_Esatto->getVoltage12v(voltage))
+        VoltageNP[VOLTAGE_12V].setValue(voltage);
 
-        if (voltage > 24)
-            return false;
-
-        VoltageInN[0].value = voltage;
-        VoltageInNP.s = (voltage >= 11.0) ? IPS_OK : IPS_ALERT;
-
-        return true;
-    }
-
-    return false;
+    VoltageNP.setState((voltage >= 11.0) ? IPS_OK : IPS_ALERT);
+    if (m_Esatto->getVoltageUSB(voltage))
+        VoltageNP[VOLTAGE_USB].setValue(voltage);
+    return true;
 }
 
 /************************************************************************************************************
@@ -513,13 +489,24 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IDSetSwitch(&FastMoveSP, nullptr);
             return true;
         }
-        else if (!strcmp(name, RotCalibrationSP.name))
+        // Rotator Calibration
+        else if (!strcmp(name, RotatorCalibrationSP.name))
         {
             if(m_Arco->calibrate())
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
-                RotCalibrationSP.s = IPS_BUSY;
-                IDSetSwitch(&RotCalibrationSP, nullptr);
+                RotatorAbsPosNP.s = IPS_BUSY;
+                GotoRotatorNP.s = IPS_BUSY;
+                RotatorCalibrationSP.s = IPS_BUSY;
+                IDSetSwitch(&RotatorCalibrationSP, nullptr);
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
+            }
+            else
+            {
+                IUResetSwitch(&RotatorCalibrationSP);
+                RotatorCalibrationSP.s = IPS_ALERT;
+                IDSetSwitch(&RotatorCalibrationSP, nullptr);
             }
             return true;
         }
@@ -568,7 +555,11 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
 IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (m_Esatto->goAbsolutePosition(targetTicks))
+    {
+        RotatorAbsPosNP.s = IPS_BUSY;
+        IDSetNumber(&RotatorAbsPosNP, nullptr);
         return IPS_BUSY;
+    }
     return IPS_ALERT;
 }
 
@@ -599,7 +590,7 @@ bool EsattoArco::AbortFocuser()
 *************************************************************************************************************/
 void EsattoArco::TimerHit()
 {
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (!isConnected())
     {
         SetTimer(getCurrentPollingPeriod());
         return;
@@ -610,12 +601,46 @@ void EsattoArco::TimerHit()
     if (updatePosition())
     {
         if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+        {
+            // Focuser State Machine
+            if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+            {
+                FocusAbsPosNP.s = IPS_OK;
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+            }
+            else
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+        }
 
+        // Rotator State Machine
+
+        // Only check status if position changed.
         if (std::abs(currentRotatorPosition - RotatorAbsPosN[0].value) > 0)
         {
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            // Rotator was busy and now stopped?
+            if (GotoRotatorNP.s == IPS_BUSY && m_Arco->isBusy() == false)
+            {
+                // Check if we were calibrating
+                if(RotatorCalibrationSP.s == IPS_BUSY)
+                {
+                    RotatorCalibrationSP.s = IPS_IDLE;
+                    IDSetSwitch(&RotatorCalibrationSP, nullptr);
+                    LOG_INFO("Arco calibration complete.");
+                    if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
+                        LOG_INFO("Arco position synced to zero.");
+                }
+                GotoRotatorNP.s = IPS_OK;
+                RotatorAbsPosNP.s = IPS_OK;
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
+            }
+            else
+            {
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
+            }
         }
     }
 
@@ -628,13 +653,15 @@ void EsattoArco::TimerHit()
                 IDSetNumber(&TemperatureNP, nullptr);
         }
 
-        auto currentVoltage = VoltageInN[0].value;
+        auto current12V = VoltageNP[VOLTAGE_12V].getValue();
+        auto currentUSB = VoltageNP[VOLTAGE_USB].getValue();
         if (updateVoltageIn())
         {
-            if (std::abs(currentVoltage - VoltageInN[0].value) >= 0.1)
+            if (std::abs(current12V - VoltageNP[VOLTAGE_12V].getValue()) >= 0.1 ||
+                    std::abs(currentUSB - VoltageNP[VOLTAGE_USB].getValue()) >= 0.1)
             {
-                IDSetNumber(&VoltageInNP, nullptr);
-                if (VoltageInN[0].value < 11.0)
+                VoltageNP.apply();
+                if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
                     LOG_WARN("Please check 12v DC power supply is connected.");
             }
         }
@@ -651,9 +678,26 @@ void EsattoArco::TimerHit()
 bool EsattoArco::getStartupValues()
 {
     updatePosition();
-    auto isReversed = m_Arco->isReversed();
-    ReverseRotatorS[INDI_ENABLED].s = isReversed ? ISS_ON : ISS_OFF;
-    ReverseRotatorS[INDI_DISABLED].s = isReversed ? ISS_OFF : ISS_ON;
+    json info;
+    if (m_Arco->getMotorInfo(info))
+    {
+        int calMax, calMin;
+        try
+        {
+            info["get"]["MOT2"]["CAL_MAXPOS"].get_to(calMax);
+            info["get"]["MOT2"]["CAL_MINPOS"].get_to(calMin);
+        }
+        catch (json::exception &e)
+        {
+            // output exception information
+            LOGF_ERROR("Failed to parse info: %s Exception: %s id: %d", info.dump().c_str(),
+                       e.what(), e.id);
+            return false;
+        }
+        RotatorAbsPosN[0].min = calMin;
+        RotatorAbsPosN[0].max = calMax;
+        RotatorAbsPosN[0].step = std::abs(calMax - calMin) / 50.0;
+    }
     return true;
 }
 
@@ -670,9 +714,9 @@ bool EsattoArco::Ack()
         return false;
     }
 
-    if (!m_Arco->isEnabled())
+    if (m_Arco->setEnabled(true) && !m_Arco->isEnabled())
     {
-        LOG_ERROR("Failed to detect ARCO rotator. Please check it is powered and connected.");
+        LOG_ERROR("Failed to enable ARCO rotator. Please check it is powered and connected.");
         return false;
     }
 
@@ -683,19 +727,21 @@ bool EsattoArco::Ack()
     {
         IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_SN], serial.c_str());
         IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_VERSION], firmware.c_str());
-        LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(), FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
+        LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(),
+                  FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
     }
     else
         return false;
 
-    rc1 = m_Esatto->getSerialNumber(serial);
-    rc2 = m_Esatto->getFirmwareVersion(firmware);
+    rc1 = m_Arco->getSerialNumber(serial);
+    rc2 = m_Arco->getFirmwareVersion(firmware);
 
     if (rc1 && rc2)
     {
         IUSaveText(&FirmwareTP[ARCO_FIRMWARE_SN], serial.c_str());
         IUSaveText(&FirmwareTP[ARCO_FIRMWARE_VERSION], firmware.c_str());
-        LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(), FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
+        LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(),
+                  FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
     }
     else
         return false;
@@ -750,7 +796,17 @@ bool EsattoArco::saveConfigItems(FILE *fp)
 *************************************************************************************************************/
 IPState EsattoArco::MoveRotator(double angle)
 {
-    if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, angle))
+    // Rotator move 0 to +180 degrees CCW
+    // Rotator move 0 to -180 degrees CW
+    // This is from looking at rotator from behind.
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? 360 - angle : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+
+    if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_DEGREES, newAngle))
         return IPS_BUSY;
     return IPS_ALERT;
 }
@@ -777,7 +833,11 @@ bool EsattoArco::AbortRotator()
 *************************************************************************************************************/
 bool  EsattoArco::ReverseRotator(bool enabled)
 {
-    return m_Arco->reverse(enabled);
+    // Do not use Primaluca native reverse since it has some bugs
+    //return m_Arco->reverse(enabled);
+    INDI_UNUSED(enabled);
+    GotoRotatorN[0].value = range360(360 - GotoRotatorN[0].value);
+    return true;
 }
 
 /************************************************************************************************************
@@ -785,5 +845,11 @@ bool  EsattoArco::ReverseRotator(bool enabled)
 *************************************************************************************************************/
 bool EsattoArco::SyncRotator(double angle)
 {
-    return m_Arco->sync(PrimalucaLabs::UNIT_DEGREES, angle);
+    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    auto newAngle = 0;
+    if (isReversed)
+        newAngle = ( angle > 180 ? 360 - angle : angle * -1);
+    else
+        newAngle = ( angle > 180 ? angle - 360 : angle);
+    return m_Arco->sync(PrimalucaLabs::UNIT_DEGREES, newAngle);
 }

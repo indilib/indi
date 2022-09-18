@@ -2431,6 +2431,8 @@ void MsgQueue::writeToFd()
         msgh.msg_iovlen = 1;
 
         nw = sendmsg(wFd, &msgh,  MSG_NOSIGNAL);
+
+        free(cmsgh);
     }
 
     /* shut down if trouble */
@@ -3388,6 +3390,8 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
         char * model = (char*)malloc(sprlXMLEle(xmlContent, 0) + 1);
         int modelSize = sprXMLEle(model, xmlContent, 0);
+
+        ownBuffers.push_back(model);
 
         async_pushChunck(MsgChunck(model, modelSize));
 
