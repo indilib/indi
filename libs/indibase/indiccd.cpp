@@ -2582,6 +2582,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
+    if (PrimaryCCD.getCCDInfo()->p != IP_RO)
+        IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
+
     IUSaveConfigSwitch(fp, &CaptureFormatSP);
     IUSaveConfigSwitch(fp, &EncodeFormatSP);
 
