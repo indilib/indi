@@ -354,9 +354,9 @@ bool CCD::initProperties()
     /**********************************************/
     /************** Capture Format ***************/
     /**********************************************/
-    char configLabel[64] = {0};
-    if (IUGetConfigOnSwitchLabel(getDeviceName(), "CCD_CAPTURE_FORMAT", configLabel, 64) == 0)
-        m_ConfigCaptureFormatLabel = configLabel;
+    char configName[64] = {0};
+    if (IUGetConfigOnSwitchName(getDeviceName(), "CCD_CAPTURE_FORMAT", configName, MAXINDINAME) == 0)
+        m_ConfigCaptureFormatName = configName;
     CaptureFormatSP.fill(getDeviceName(), "CCD_CAPTURE_FORMAT", "Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                          IPS_IDLE);
 
@@ -1663,9 +1663,9 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             }
             CaptureFormatSP.apply();
 
-            if (m_ConfigCaptureFormatLabel != CaptureFormatSP.findOnSwitch()->getLabel())
+            if (m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
             {
-                m_ConfigCaptureFormatLabel = CaptureFormatSP.findOnSwitch()->getLabel();
+                m_ConfigCaptureFormatName = CaptureFormatSP.findOnSwitch()->getName();
                 saveConfig(true, CaptureFormatSP.getName());
             }
 
@@ -2856,7 +2856,7 @@ void CCD::addCaptureFormat(const CaptureFormat &format)
     auto count = CaptureFormatSP.size();
     CaptureFormatSP.resize(count + 1);
     // Format is ON if the label matches the configuration label OR if there is no configuration saved and isDefault is true.
-    const bool isOn = (format.label == m_ConfigCaptureFormatLabel) || (m_ConfigCaptureFormatLabel.empty() && format.isDefault);
+    const bool isOn = (format.name == m_ConfigCaptureFormatName) || (m_ConfigCaptureFormatName.empty() && format.isDefault);
     CaptureFormatSP[count].fill(format.name.c_str(), format.label.c_str(), isOn ? ISS_ON : ISS_OFF);
     m_CaptureFormats.push_back(format);
 }

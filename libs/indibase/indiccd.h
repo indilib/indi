@@ -778,7 +778,7 @@ class CCD : public DefaultDevice, GuiderInterface
         uint32_t capability;
 
         bool m_ValidCCDRotation {false};
-        std::string m_ConfigCaptureFormatLabel;
+        std::string m_ConfigCaptureFormatName;
         int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
 
