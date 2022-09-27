@@ -189,14 +189,14 @@ extern int IUGetConfigOnSwitchIndex(const char *dev, const char *property, int *
 
 
 /**
- * @brief IUGetConfigOnSwitchLabel Opens configuration file and reads single switch property to find ON switch index, if any.
+ * @brief IUGetConfigOnSwitchLabel Opens configuration file and returns the name of the ON switch property, if any.
  * @param dev name of device
  * @param property name of vector property
- * @param label of the ON switch index if any.
- * @param size size of label in bytes.
+ * @param name of the ON switch, if any.
+ * @param size size of name in bytes.
  * @return 0 on success, -1 if not found.
  */
-extern int IUGetConfigOnSwitchLabel(const char *dev, const char *property, char *label, size_t size);
+extern int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, size_t size);
 
 /**
  * @brief IUGetConfigOnSwitch Opens configuration file and reads a single switch vector property to find the index

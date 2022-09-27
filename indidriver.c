@@ -1340,7 +1340,7 @@ int IUGetConfigOnSwitchIndex(const char *dev, const char *property, int *index)
     return (valueFound == 1 ? 0 : -1);
 }
 
-int IUGetConfigOnSwitchLabel(const char *dev, const char *property, char *label, size_t size)
+int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, size_t size)
 {
     char *rname, *rdev;
     XMLEle *root = NULL, *fproot = NULL;
@@ -1385,7 +1385,7 @@ int IUGetConfigOnSwitchLabel(const char *dev, const char *property, char *label,
                 if (crackISState(pcdataXMLEle(oneSwitch), &s) == 0 && s == ISS_ON)
                 {
                     found = 0;
-                    strncpy(label, findXMLAttValu(oneSwitch, "name"), size);
+                    strncpy(name, findXMLAttValu(oneSwitch, "name"), size);
                     break;
                 }
             }
