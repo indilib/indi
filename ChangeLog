@@ -1,3 +1,46 @@
++ From 1.9.7 to 1.9.8
+
+    d3e668303 2022-09-27 Jasem Mutlaq         Fix using label when name should be used instead since it is the only attribute saved in the configuration file. Fixes #1736
+    ef50bb205 2022-09-21 Jasem Mutlaq         Save important V42L properties
+    253f13064 2022-09-21 Jasem Mutlaq         Save CCD_INFO in config if it is writable
+    28cbaf3d1 2022-09-18 Jasem Mutlaq         Merge branch 'arco_work'
+    23309dff8 2022-09-17 Vladimir Nadvornik   Fix memory leaks in indiserver (#1734)
+    9b31e8221 2022-09-15 Jérémie Klein        feat(): Adding wanderer cover v3 (#1732)
+    1a82fc7f9 2022-09-14 Jasem Mutlaq         Try to fix Fedora error
+    2137e608f 2022-09-13 Efstathios Chrysikos PegasusAstro ProdigyMF Focuser Initial commit, Fix ScopsOAG Backlash (#1730)
+    06f6cba9a 2022-09-10 Jasem Mutlaq         Do not accept 0x0 binning
+    f256b0085 2022-09-10 Alexey Sokolov       Fix locale_compat.h for newest MSVC (#1728)
+    5b7b1001b 2022-09-10 Jasem Mutlaq         Save Image Info in driver
+    482c0d1d2 2022-09-08 Jasem Mutlaq         Reduce default pixel size so that it can work better at shorter focal lengths
+    924da5e02 2022-09-03 pludov               Fix blob id conflit (#1726)
+    5e98060b8 2022-08-28 Jasem Mutlaq         Add alias for iOptron SkyHunter
+    3db6ad038 2022-08-28 Jasem Mutlaq         Comment message as it can get spammy in the logs
+    bdf6d588d 2022-08-28 Jasem Mutlaq         Skip JPG pixel format when checking for source frame matching
+    1bad2055c 2022-08-27 Jasem Mutlaq         Fix rule for Neximage
+    a5b2c87e8 2022-08-27 Jasem Mutlaq         Fix typo
+    62a672740 2022-08-25 Jasem Mutlaq         Use the dedicated tracking query
+    1d0864564 2022-08-24 Jasem Mutlaq         Scope information should be set directly in camera driver. It does not belong in mount driver. Legacy snooping kept for backward compatibility
+    938e6b6cd 2022-08-23 Jasem Mutlaq         Add extra check in case realloc fails
+    d854cb909 2022-08-23 Jasem Mutlaq         Check track update last
+    c88a9e176 2022-08-20 Jasem Mutlaq         Add more controls
+    3cd7ae518 2022-08-20 Jasem Mutlaq         Explicitly set slew rate count
+    88f8f7718 2022-08-20 Jasem Mutlaq         Make it mandotary to set slew rate to avoid setting them to zero by omission
+    97f5bd091 2022-08-20 Jasem Mutlaq         Initial support for ZWO AM5 mount
+    4ed6ad8ef 2022-08-15 escribana            Corrections for Pegasus Falcon Rotator: (#1721)
+    aabf47cf7 2022-08-15 pludov               Don't tell cfitsio about preallocated buffers (#1720)
+    ed0a81afb 2022-08-15 Jasem Mutlaq         Add a signal to notify cameras that an upload is complete
+    5d48be760 2022-08-15 Jasem Mutlaq         Add missing newline
+    c0dce42ad 2022-08-14 Jasem Mutlaq         Add more convenience functions for loadConfig and saveConfig
+    f0ba3e60d 2022-08-14 Jasem Mutlaq         Add a convenience function to delete property so that it is consistent with defineProperty
+    b221ce695 2022-08-12 Jasem Mutlaq         Add more logging for camera to detect why filter slot is sometimes lost from FITS header
+    31176693c 2022-08-12 Jasem Mutlaq         Add HEM27 alias
+    89a491988 2022-08-06 Jasem Mutlaq         Only return directory images if a LIGHT frame is taken
+    b717412dc 2022-08-03 Jasem Mutlaq         Save meridian flip settings by default on change
+    bec4c7ff0 2022-08-02 pludov               Remove some debug message from indiserver (#1713)
+    328fefd1c 2022-08-01 Jim                  1.9.8git_spec: set the version to 1.9.8git for the dev cycle (#1712)
+    d1b880d2d 2022-07-31 Jasem Mutlaq         INDI v1.9.8 development cycle
+    694e07177 2022-07-30 Jasem Mutlaq         Add again in case a timeout is issued and iOptron returns it despite the flush. This is an attempt to read this buffer again. Might fix issue report..
+
 + From 1.9.6 to 1.9.7
 
       bc1623cd5 2022-07-29 Jasem Mutlaq         Remove unused fields                                                                                                                                  
