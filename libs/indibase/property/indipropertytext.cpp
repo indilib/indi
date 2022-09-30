@@ -43,7 +43,7 @@ PropertyText::~PropertyText()
 bool PropertyText::update(const char * const texts[], const char * const names[], int n)
 {
     D_PTR(PropertyText);
-    return d->property.update(texts, names, n);
+    return d->property.update(texts, names, n) && (emitUpdate(), true);
 }
 
 void PropertyText::fill(

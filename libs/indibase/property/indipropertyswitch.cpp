@@ -61,7 +61,7 @@ INDI::WidgetView<ISwitch> *PropertySwitch::findOnSwitch() const
 bool PropertySwitch::update(const ISState states[], const char * const names[], int n)
 {
     D_PTR(PropertySwitch);
-    return d->property.update(states, names, n);
+    return d->property.update(states, names, n) && (emitUpdate(), true);
 }
 
 void PropertySwitch::fill(

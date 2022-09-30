@@ -43,7 +43,7 @@ PropertyNumber::~PropertyNumber()
 bool PropertyNumber::update(const double values[], const char * const names[], int n)
 {
     D_PTR(PropertyNumber);
-    return d->property.update(values, names, n);
+    return d->property.update(values, names, n) && (emitUpdate(), true);
 }
 
 void PropertyNumber::fill(

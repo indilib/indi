@@ -27,6 +27,7 @@
 
 #include <memory>
 #include <cstdarg>
+#include <functional>
 
 #define INDI_PROPERTY_BACKWARD_COMPATIBILE
 namespace INDI
@@ -98,6 +99,12 @@ class Property
 
         bool isLabelMatch(const char *otherLabel) const;
         bool isLabelMatch(const std::string &otherLabel) const;
+
+    public:
+        void onUpdate(std::function<void()> callback);
+
+    public:
+        void emitUpdate();
 
     public:
         void save(FILE *fp) const;

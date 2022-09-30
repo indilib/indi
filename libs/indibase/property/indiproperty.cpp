@@ -440,4 +440,17 @@ void Property::define(const char *format, ...) const
     va_end(ap);
 }
 
+void Property::onUpdate(std::function<void()> callback)
+{
+    D_PTR(Property);
+    d->onUpdateCallback = callback;
+}
+
+void Property::emitUpdate()
+{
+    D_PTR(Property);
+    if (d->onUpdateCallback)
+        d->onUpdateCallback();
+}
+
 }

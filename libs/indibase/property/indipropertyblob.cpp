@@ -46,7 +46,7 @@ bool PropertyBlob::update(
 )
 {
     D_PTR(PropertyBlob);
-    return d->property.update(sizes, blobsizes, blobs, formats, names, n);
+    return d->property.update(sizes, blobsizes, blobs, formats, names, n) && (emitUpdate(), true);
 }
 
 void PropertyBlob::fill(

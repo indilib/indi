@@ -21,6 +21,8 @@
 #include "indibase.h"
 #include "indiproperty.h"
 #include <memory>
+#include <functional>
+
 namespace INDI
 {
 
@@ -57,6 +59,8 @@ class PropertyPrivate
         INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
         bool registered = false;
         bool dynamic = false;
+
+        std::function<void()> onUpdateCallback;
 
         PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
         PropertyPrivate(ITextVectorProperty *property);
