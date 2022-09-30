@@ -65,15 +65,41 @@ bool Dome::initProperties()
     // Must init parent properties first!
     INDI::DefaultDevice::initProperties();
 
-    IUFillSwitch(&ShutterS[0], "Open", "", ISS_ON);
-    IUFillSwitch(&ShutterS[1], "Close", "", ISS_OFF);
-    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "Shutter Door", "", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    mShutterSwitch[0].fill("Open", "", ISS_ON);
+    mShutterSwitch[1].fill("Close", "", ISS_OFF);
+    mShutterSwitch.fill(getDeviceName(), "Shutter Door", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    mShutterSwitch.onUpdate([this](){
 
+        mShutterSwitch.setState(IPS_BUSY);
+        if (mShutterSwitch[0].getState() == ISS_ON)
+        {
+            if (mRainLight[0].getState() == IPS_ALERT)
+            {
+                mShutterSwitch.setState(IPS_ALERT);
+                mShutterSwitch[0].setState(ISS_OFF);
+                mShutterSwitch[1].setState(ISS_ON);
+                mShutterSwitch.apply("It is raining, cannot open Shutter.");
+                return;
+            }
+            mShutterSwitch.apply("Shutter is opening.");
+        }
+        else
+            mShutterSwitch.apply("Shutter is closing.");
+        
+        sleep(5);
+
+        mShutterSwitch.setState(IPS_OK);
+
+        if (mShutterSwitch[0].getState() == ISS_ON)
+            mShutterSwitch.apply("Shutter is open.");
+        else
+            mShutterSwitch.apply("Shutter is closed.");
+
+    });
     // We init here the property we wish to "snoop" from the target device
-    IUFillLight(&RainL[0], "Status", "", IPS_IDLE);
+    mRainLight[0].fill("Status", "", IPS_IDLE);
     // Make sure to set the device name to "Rain Detector" since we are snooping on rain detector device.
-    IUFillLightVector(&RainLP, RainL, 1, "Rain Detector", "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
+    mRainLight.fill("Rain Detector", "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
 
     return true;
 }
@@ -89,83 +115,39 @@ bool Dome::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&ShutterSP);
+        defineProperty(mShutterSwitch);
         /* Let's listen for Rain Alert property in the device Rain */
         IDSnoopDevice("Rain Detector", "Rain Alert");
     }
     else
         // We're disconnected
-        deleteProperty(ShutterSP.name);
+        deleteProperty(mShutterSwitch);
 
     return true;
 }
 
-/********************************************************************************************
-** Client is asking us to update a switch
-*********************************************************************************************/
-bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, ShutterSP.name) == 0)
-        {
-            IUUpdateSwitch(&ShutterSP, states, names, n);
-
-            ShutterSP.s = IPS_BUSY;
-
-            if (ShutterS[0].s == ISS_ON)
-            {
-                if (RainL[0].s == IPS_ALERT)
-                {
-                    ShutterSP.s   = IPS_ALERT;
-                    ShutterS[0].s = ISS_OFF;
-                    ShutterS[1].s = ISS_ON;
-                    IDSetSwitch(&ShutterSP, "It is raining, cannot open Shutter.");
-                    return true;
-                }
-
-                IDSetSwitch(&ShutterSP, "Shutter is opening.");
-            }
-            else
-                IDSetSwitch(&ShutterSP, "Shutter is closing.");
-
-            sleep(5);
-
-            ShutterSP.s = IPS_OK;
-
-            if (ShutterS[0].s == ISS_ON)
-                IDSetSwitch(&ShutterSP, "Shutter is open.");
-            else
-                IDSetSwitch(&ShutterSP, "Shutter is closed.");
-
-            return true;
-        }
-    }
-
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
-}
 
 /********************************************************************************************
 ** We received snooped property update from rain detector device
 *********************************************************************************************/
 bool Dome::ISSnoopDevice(XMLEle *root)
 {
-    IPState old_state = RainL[0].s;
+    IPState old_state = mRainLight[0].getState();
 
     /* If the "Rain Alert" property gets updated in the Rain device, we will receive a notification. We need to process the new values of Rain Alert and update the local version
        of the property.*/
-    if (IUSnoopLight(root, &RainLP) == 0)
+    if (IUSnoopLight(root, &mRainLight) == 0)
     {
         // If the dome is connected and rain is Alert */
-        if (RainL[0].s == IPS_ALERT)
+        if (mRainLight[0].getState() == IPS_ALERT)
         {
             // If dome is open, then close it */
-            if (ShutterS[0].s == ISS_ON)
+            if (mShutterSwitch[0].getState() == ISS_ON)
                 closeShutter();
             else
                 IDMessage(getDeviceName(), "Rain Alert Detected! Dome is already closed.");
         }
-        else if (old_state == IPS_ALERT && RainL[0].s != IPS_ALERT)
+        else if (old_state == IPS_ALERT && mRainLight[0].getState() != IPS_ALERT)
             IDMessage(getDeviceName(), "Rain threat passed. Opening the dome is now safe.");
 
         return true;
@@ -179,16 +161,14 @@ bool Dome::ISSnoopDevice(XMLEle *root)
 *********************************************************************************************/
 void Dome::closeShutter()
 {
-    ShutterSP.s = IPS_BUSY;
-
-    IDSetSwitch(&ShutterSP, "Rain Alert! Shutter is closing...");
+    mShutterSwitch.setState(IPS_BUSY);
+    mShutterSwitch.apply("Rain Alert! Shutter is closing...");
 
     sleep(5);
 
-    ShutterS[0].s = ISS_OFF;
-    ShutterS[1].s = ISS_ON;
+    mShutterSwitch[0].setState(ISS_OFF);
+    mShutterSwitch[1].setState(ISS_ON);
 
-    ShutterSP.s = IPS_OK;
-
-    IDSetSwitch(&ShutterSP, "Shutter is closed.");
+    mShutterSwitch.setState(IPS_OK);
+    mShutterSwitch.apply("Shutter is closed.");
 }
