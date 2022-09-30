@@ -29,6 +29,7 @@ class PropertySwitch: public INDI::PropertyBasic<ISwitch>
         DECLARE_PRIVATE(PropertySwitch)
     public:
         PropertySwitch(size_t count);
+        PropertySwitch(INDI::Property property);
         ~PropertySwitch();
 
     public:

@@ -133,8 +133,13 @@ class Property
 
     protected:
         std::shared_ptr<PropertyPrivate> d_ptr;
-        Property(std::shared_ptr<PropertyPrivate> dd);
+        Property(const std::shared_ptr<PropertyPrivate> &dd);
         Property(PropertyPrivate &dd);
+        friend class PropertyNumber;
+        friend class PropertyText;
+        friend class PropertySwitch;
+        friend class PropertyLight;
+        friend class PropertyBlob;
 };
 
 } // namespace INDI

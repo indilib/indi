@@ -32,6 +32,22 @@ static inline std::shared_ptr<T> make_shared_weak(T *object)
 }
 #endif
 
+template <typename T, typename U>
+static inline std::shared_ptr<T> &property_private_cast(const std::shared_ptr<U> &r)
+{
+    using S = std::remove_pointer_t<T>;
+    static struct Invalid
+    {
+        std::shared_ptr<T> instance {new S {0}};
+        Invalid()
+        {
+            instance->type = INDI_UNKNOWN;
+        }
+    } invalid;
+    auto result = std::dynamic_pointer_cast<T>(r);
+    return result != nullptr ? result : invalid.instance;
+}
+
 class BaseDevice;
 class PropertyPrivate
 {

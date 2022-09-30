@@ -29,6 +29,7 @@ class PropertyBlob: public INDI::PropertyBasic<IBLOB>
         DECLARE_PRIVATE(PropertyBlob)
     public:
         PropertyBlob(size_t count);
+        PropertyBlob(INDI::Property property);
         ~PropertyBlob();
 
     public:

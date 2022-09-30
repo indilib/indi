@@ -142,7 +142,7 @@ Property::Property(PropertyPrivate &dd)
     : d_ptr(&dd)
 { }
 
-Property::Property(std::shared_ptr<PropertyPrivate> dd)
+Property::Property(const std::shared_ptr<PropertyPrivate> &dd)
     : d_ptr(dd)
 { }
 

@@ -44,6 +44,11 @@ PropertyBasic<T>::PropertyBasic(PropertyBasicPrivate &dd)
 { }
 
 template <typename T>
+PropertyBasic<T>::PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd)
+    : Property(std::static_pointer_cast<PropertyPrivate>(dd))
+{ }
+
+template <typename T>
 void PropertyBasic<T>::setName(const char *name)
 {
     D_PTR(PropertyBasic);

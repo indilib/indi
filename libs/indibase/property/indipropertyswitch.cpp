@@ -33,6 +33,10 @@ PropertySwitch::PropertySwitch(size_t count)
     : PropertyBasic<ISwitch>(*new PropertySwitchPrivate(count))
 { }
 
+PropertySwitch::PropertySwitch(INDI::Property property)
+    : PropertyBasic<ISwitch>(property_private_cast<PropertySwitchPrivate>(property.d_ptr))
+{ }
+
 PropertySwitch::~PropertySwitch()
 { }
 

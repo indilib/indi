@@ -136,6 +136,7 @@ class PropertyBasic : public INDI::Property
 
     protected:
         PropertyBasic(PropertyBasicPrivate &dd);
+        PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd);
 };
 
 }

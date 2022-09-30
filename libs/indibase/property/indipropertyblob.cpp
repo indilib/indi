@@ -33,6 +33,10 @@ PropertyBlob::PropertyBlob(size_t count)
     : PropertyBasic<IBLOB>(*new PropertyBlobPrivate(count))
 { }
 
+PropertyBlob::PropertyBlob(INDI::Property property)
+    : PropertyBasic<IBLOB>(property_private_cast<PropertyBlobPrivate>(property.d_ptr))
+{ }
+
 PropertyBlob::~PropertyBlob()
 { }
 

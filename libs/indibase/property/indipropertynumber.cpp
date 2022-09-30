@@ -33,6 +33,10 @@ PropertyNumber::PropertyNumber(size_t count)
     : PropertyBasic<INumber>(*new PropertyNumberPrivate(count))
 { }
 
+PropertyNumber::PropertyNumber(INDI::Property property)
+    : PropertyBasic<INumber>(property_private_cast<PropertyNumberPrivate>(property.d_ptr))
+{ }
+
 PropertyNumber::~PropertyNumber()
 { }
 

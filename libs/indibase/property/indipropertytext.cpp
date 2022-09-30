@@ -33,6 +33,10 @@ PropertyText::PropertyText(size_t count)
     : PropertyBasic<IText>(*new PropertyTextPrivate(count))
 { }
 
+PropertyText::PropertyText(INDI::Property property)
+    : PropertyBasic<IText>(property_private_cast<PropertyTextPrivate>(property.d_ptr))
+{ }
+
 PropertyText::~PropertyText()
 { }
 
