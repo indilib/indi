@@ -109,9 +109,9 @@ bool LX200_OpenAstroTech::updateProperties()
         defineProperty(&PolarAlignAltNP);
         defineProperty(&PolarAlignAzNP);
         //defineProperty(&HomeSP);
-        defineProperty(&RAHomeNP);
-        defineProperty(&RAHomeOffsetNP);
-        defineProperty(&DecLimitsNP);
+        //defineProperty(&RAHomeNP);
+        //defineProperty(&RAHomeOffsetNP);
+        //defineProperty(&DecLimitsNP);
     }
     else
     {
@@ -119,9 +119,9 @@ bool LX200_OpenAstroTech::updateProperties()
         deleteProperty(PolarAlignAltNP.name);
         deleteProperty(PolarAlignAzNP.name);
         //deleteProperty(HomeSP.name);
-        deleteProperty(RAHomeNP.name);
-        deleteProperty(RAHomeOffsetNP.name);
-        deleteProperty(DecLimitsNP.name);
+        //deleteProperty(RAHomeNP.name);
+        //deleteProperty(RAHomeOffsetNP.name);
+        //deleteProperty(DecLimitsNP.name);
     }
 
     return true;
