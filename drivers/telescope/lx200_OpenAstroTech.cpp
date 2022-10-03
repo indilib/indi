@@ -165,8 +165,7 @@ int LX200_OpenAstroTech::OATUpdateProperties()
     int rc = executeMeadeCommand(":GX#", value);
     if (rc == 0 && strlen(value) > 10)
     {
-        char *status = "Tracking";
-        char *motors = strchr(value, ',') + 1;
+        const char *motors = strchr(value, ',') + 1;
         if(PolarAlignAzNP.s == IPS_BUSY && motors[3] =='-') {
             PolarAlignAzNP.s = IPS_IDLE;
             IDSetNumber(&PolarAlignAzNP, nullptr);
@@ -175,7 +174,7 @@ int LX200_OpenAstroTech::OATUpdateProperties()
             PolarAlignAltNP.s = IPS_IDLE;
             IDSetNumber(&PolarAlignAltNP, nullptr);
         }
-        if(RAHomeNP.s == IPS_BUSY && status[0] == 'H') 
+        if(RAHomeNP.s == IPS_BUSY && value[0] == 'H') 
         {
             RAHomeNP.s = IPS_IDLE;
             IDSetNumber(&RAHomeNP, nullptr);
@@ -263,15 +262,13 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
 
 bool LX200_OpenAstroTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int index = 0;
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, HomeS.name))
         {
             HomeSP.s = IPS_IDLE;
             IUResetSwitch(&HomeSP);
-            int targetState = IUFindOnSwitchIndex(&HomeSP);
+            /*int targetState = */IUFindOnSwitchIndex(&HomeSP);
             return executeMeadeCommandBlind(":hF#");
         }
     }
@@ -302,7 +299,7 @@ int LX200_OpenAstroTech::executeMeadeCommand(const char *cmd, char *data)
     if(!wait) {
         return executeMeadeCommandBlind(cmd);
     }
-    int err;
+    int err = 0;
     if(getchar) {
         int val = getCommandChar(PortFD, cmd);
         sprintf(data, "%c", val);
@@ -420,6 +417,7 @@ IPState LX200_OpenAstroTech::MoveAbsFocuser (uint32_t targetTicks)
             executeMeadeCommandBlind(read_buffer);
             return IPS_BUSY; // Normal case, should be set to normal by update.
         }
+        return IPS_ALERT;
     }
     else
     {
