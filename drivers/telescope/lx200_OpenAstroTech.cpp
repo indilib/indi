@@ -328,9 +328,10 @@ char LX200_OpenAstroTech::getCommandChar(int fd, const char * cmd)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) == TTY_OK) {
         error_type = tty_read(fd, read_buffer, 1, 5, &nbytes_read);
         //LOGF_INFO("getCommandChar 2: %s -> '%s'", cmd, read_buffer);
-        if (nbytes_read == 1)
+        if (nbytes_read == 1) {
             LOGF_INFO("getCommandChar 3: %s -> '%s'", cmd, read_buffer);
             return read_buffer[0];
+        }
     }
 
     LOGF_WARN("getCommandChar error: %d %s -> '%s'", error_type, cmd, read_buffer);
