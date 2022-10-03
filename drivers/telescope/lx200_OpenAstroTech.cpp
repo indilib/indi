@@ -60,10 +60,42 @@ bool LX200_OpenAstroTech::initProperties()
     LX200GPS::initProperties();
     IUFillText(&MeadeCommandT, OAT_MEADE_COMMAND, "Result / Command", "");
     IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_ABS_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH);
+    
     FI::initProperties(FOCUS_TAB);
     initFocuserProperties(FOCUS_TAB);
 
+    // Polar Align Alt
+    IUFillNumber(&PolarAlignAltN, "OAT_POLAR_ALT", "Arcsecs", "%.f", -500.0, 500.0, 10.0, 0);
+    IUFillNumberVector(&PolarAlignAltNP, &PolarAlignAltN, 1, m_defaultDevice->getDeviceName(), "POLAR_ALT",
+                       "Polar Align Alt",
+                       MOTION_TAB, IP_RW, 60, IPS_OK);
+    // Polar Align Az
+    IUFillNumber(&PolarAlignAzN, "OAT_POLAR_AZ", "Arcsecs", "%.f", -500.0, 500.0, 10.0, 0);
+    IUFillNumberVector(&PolarAlignAzNP, &PolarAlignAzN, 1, m_defaultDevice->getDeviceName(), "POLAR_AZ",
+                       "Polar Align Azimuth",
+                       MOTION_TAB, IP_RW, 60, IPS_OK);
+
+    // Home
+    IUFillSwitch(&HomeS, "OAT_HOME", "Home", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, &HomeS, 1, m_defaultDevice->getDeviceName(), 
+                       "OAT_HOME", "Home", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // RA Home
+    IUFillNumber(&RAHomeN, "RA_HOME", "Hours", "%d", 1.0, 7.0, 1.0, 2);
+    IUFillNumberVector(&RAHomeNP, &RAHomeN, 1, m_defaultDevice->getDeviceName(), 
+                       "OAT_RA_HOME", "RA Home", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // RA Home
+    IUFillNumber(&RAHomeOffsetN, "OAT_RA_HOME_OFFSET", "Steps", "%d", -10000.0, 10000.0, 100.0, 0);
+    IUFillNumberVector(&RAHomeOffsetNP, &RAHomeOffsetN, 1, m_defaultDevice->getDeviceName(), 
+                       "OAT_RA_HOME", "RA Home Offset", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Polar Align Alt
+    IUFillNumber(&DecLimitsN[0], "OAT_DEC_LIMIT_LOWER", "Lower", "%.f", -20000.0, 0.0, 1000.0, 0);
+    IUFillNumber(&DecLimitsN[1], "OAT_DEC_LIMIT_UPPER", "Upper", "%.f", 0.0, 50000.0, 1000.0, 0);
+    IUFillNumberVector(&DecLimitsNP, DecLimitsN, 2, m_defaultDevice->getDeviceName(), "OAT_DEC_LIMITS",
+                       "DEC Limits", MOTION_TAB, IP_RW, 60, IPS_OK);
     return true;
 }
 
@@ -74,13 +106,83 @@ bool LX200_OpenAstroTech::updateProperties()
     if (isConnected())
     {
         defineProperty(&MeadeCommandTP);
+        defineProperty(&PolarAlignAltNP);
+        defineProperty(&PolarAlignAzNP);
+        //defineProperty(&HomeSP);
+        defineProperty(&RAHomeNP);
+        defineProperty(&RAHomeOffsetNP);
+        defineProperty(&DecLimitsNP);
     }
     else
     {
         deleteProperty(MeadeCommandTP.name);
+        deleteProperty(PolarAlignAltNP.name);
+        deleteProperty(PolarAlignAzNP.name);
+        //deleteProperty(HomeSP.name);
+        deleteProperty(RAHomeNP.name);
+        deleteProperty(RAHomeOffsetNP.name);
+        deleteProperty(DecLimitsNP.name);
     }
 
     return true;
+}
+
+bool LX200_OpenAstroTech::ReadScopeStatus() {
+    if (!isConnected())
+        return false;
+
+    if (isSimulation()) //if Simulation is selected
+    {
+        mountSim();
+        return true;
+    }
+
+    if(OATUpdateProperties() != 0) 
+    {
+
+    }
+    if (OATUpdateFocuser() != 0)  // Update Focuser Position
+    {
+        LOG_WARN("Communication error on Focuser Update, this update aborted, will try again...");
+    }
+    return LX200GPS::ReadScopeStatus();
+}
+
+int LX200_OpenAstroTech::OATUpdateProperties()
+{
+    // we don't need to poll if we're not moving
+    if(!(
+        PolarAlignAltNP.s == IPS_BUSY || PolarAlignAzNP.s == IPS_BUSY
+        || RAHomeNP.s == IPS_BUSY
+    )) {
+        return 0;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    flushIO(PortFD);
+   
+    char value[RB_MAX_LEN] = {0};
+    int rc = executeMeadeCommand(":GX#", value);
+    if (rc == 0 && strlen(value) > 10)
+    {
+        char *status = "Tracking";
+        char *motors = strchr(value, ',') + 1;
+        if(PolarAlignAzNP.s == IPS_BUSY && motors[3] =='-') {
+            PolarAlignAzNP.s = IPS_IDLE;
+            IDSetNumber(&PolarAlignAzNP, nullptr);
+        }
+        if(PolarAlignAltNP.s == IPS_BUSY && motors[4] =='-') {
+            PolarAlignAltNP.s = IPS_IDLE;
+            IDSetNumber(&PolarAlignAltNP, nullptr);
+        }
+        if(RAHomeNP.s == IPS_BUSY && status[0] == 'H') 
+        {
+            RAHomeNP.s = IPS_IDLE;
+            IDSetNumber(&RAHomeNP, nullptr);
+        }
+    }
+    updateProperties();
+    return 0;
 }
 
 bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -127,20 +229,33 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        /* left in for later use
-        if (!strcmp(name, SlewAccuracyNP.name))
+        char read_buffer[RB_MAX_LEN] = {0};
+        if (!strcmp(name, PolarAlignAltN.name))
         {
-            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
+            /*if (IUUpdateNumber(&PolarAlignAltNP, values, names, n) < 0)
                 return false;
-
-            SlewAccuracyNP.s = IPS_OK;
-
-            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
-                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
-
-            IDSetNumber(&SlewAccuracyNP, nullptr);
+            */
+            LOGF_WARN("Moving Polar Alt to %.3f", values[0]);
+            snprintf(read_buffer, sizeof(read_buffer), ":MAL%.3f#", values[0]);
+            executeMeadeCommandBlind(read_buffer);
+            PolarActive = true;
+            PolarAlignAltNP.s = IPS_BUSY;
+            IDSetNumber(&PolarAlignAltNP, nullptr);
             return true;
-        }*/
+        }
+        if (!strcmp(name, PolarAlignAzN.name))
+        {
+            /*if (IUUpdateNumber(&PolarAlignAzNP, values, names, n) < 0)
+                return false;
+            */
+            LOGF_WARN("Moving Polar Az to %.3f", values[0]);
+            snprintf(read_buffer, sizeof(read_buffer), ":MAZ%.3f#", values[0]);
+            executeMeadeCommandBlind(read_buffer);
+            PolarActive = true;
+            PolarAlignAzNP.s = IPS_BUSY;
+            IDSetNumber(&PolarAlignAzNP, nullptr);
+            return true;
+        }
     }
 
     return LX200GPS::ISNewNumber(dev, name, values, names, n);
@@ -148,51 +263,18 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
 
 bool LX200_OpenAstroTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    /*
     int index = 0;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        //Intercept Before inditelescope base can set TrackState
-        //Next one modification of inditelescope.cpp function
-        if (!strcmp(name, TrackStateSP.name))
+        if (!strcmp(name, HomeS.name))
         {
-            //             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
-            //             LOG_DEBUG("OnStep driver TrackStateSP override called");
-            //             if (previousState == targetState)
-            //             {
-            //                 IDSetSwitch(&TrackStateSP, nullptr);
-            //                 return true;
-            //             }
-
-            if (TrackState == SCOPE_PARKED)
-            {
-                LOG_WARN("Telescope is Parked, Unpark before tracking.");
-                return false;
-            }
-
-            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
-
-            if (rc)
-            {
-                return true;
-                //TrackStateSP moved to Update
-            }
-            else
-            {
-                //This is the case for an error on sending the command, so change TrackStateSP
-                TrackStateSP.s = IPS_ALERT;
-                IUResetSwitch(&TrackStateSP);
-                return false;
-            }
-
-            LOG_DEBUG("TrackStateSP intercept, OnStep driver, should never get here");
-            return false;
+            HomeSP.s = IPS_IDLE;
+            IUResetSwitch(&HomeSP);
+            int targetState = IUFindOnSwitchIndex(&HomeSP);
+            return executeMeadeCommandBlind(":hF#");
         }
     }
-    */
     return LX200GPS::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -440,23 +522,6 @@ void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
     IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS",
                        "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
-}
-
-bool LX200_OpenAstroTech::ReadScopeStatus() {
-    if (!isConnected())
-        return false;
-
-    if (isSimulation()) //if Simulation is selected
-    {
-        mountSim();
-        return true;
-    }
-
-    if (OATUpdateFocuser() != 0)  // Update Focuser Position
-    {
-        LOG_WARN("Communication error on Focuser Update, this update aborted, will try again...");
-    }
-    return LX200GPS::ReadScopeStatus();
 }
 
 int LX200_OpenAstroTech::OATUpdateFocuser()

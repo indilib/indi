@@ -56,14 +56,35 @@ class LX200_OpenAstroTech : public LX200GPS
     virtual int executeMeadeCommand(const char *cmd, char *data);
     virtual bool executeMeadeCommandBlind(const char *cmd);
     virtual int flushIO(int fd);
+    int OATUpdateProperties();
     int OATUpdateFocuser();
     void initFocuserProperties(const char *);
 
   private:
     IText MeadeCommandT;
     ITextVectorProperty MeadeCommandTP;
+
+    INumber PolarAlignAltN;
+    INumberVectorProperty PolarAlignAltNP;
+
+    INumber PolarAlignAzN;
+    INumberVectorProperty PolarAlignAzNP;
+
+    INumber RAHomeN;
+    INumberVectorProperty RAHomeNP;
+
+    INumber RAHomeOffsetN;
+    INumberVectorProperty RAHomeOffsetNP;
+
+    INumber DecLimitsN[2];
+    INumberVectorProperty DecLimitsNP;
+
+    ISwitchVectorProperty HomeSP;
+    ISwitch HomeS;
+
     char MeadeCommandResult[1024];
     int32_t FocuserBacklash;
+    bool PolarActive;
     INDI::FocuserInterface::FocusDirection FocuserDirectionLast;    
 };
 
