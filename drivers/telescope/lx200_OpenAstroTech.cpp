@@ -209,7 +209,7 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                     if(err == 0) {
                         MeadeCommandTP.s = IPS_OK;
                         IUSaveText(tp, MeadeCommandResult);
-                        IDSetText(&MeadeCommandTP, (const char*)MeadeCommandResult);
+                        IDSetText(&MeadeCommandTP, "%s", MeadeCommandResult);
                         return true;
                     } else {
                         MeadeCommandTP.s = IPS_ALERT;
