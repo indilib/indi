@@ -45,8 +45,8 @@ class LX200_OpenAstroTech : public LX200GPS
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     IPState MoveAbsFocuser (uint32_t targetTicks) override;
     IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
-    bool SetFocuserBacklash(int32_t steps);
-    bool AbortFocuser () override;
+    virtual bool SetFocuserBacklash(int32_t steps) override;
+    virtual bool AbortFocuser () override;
     virtual bool ReadScopeStatus() override;
 
     //End FocuserInterface

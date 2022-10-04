@@ -204,6 +204,7 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                 DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "Meade Command <%s>", cmd);
                 if(len > 2 && cmd[0] == ':' && cmd[len-1] == '#') {
                     IText *tp = IUFindText(&MeadeCommandTP, names[0]);
+                    MeadeCommandResult[0] = 0;
                     int err = executeMeadeCommand(texts[0], MeadeCommandResult);
                     DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "Meade Command Result %d <%s>", err, MeadeCommandResult);
                     if(err == 0) {
@@ -213,7 +214,8 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                         return true;
                     } else {
                         MeadeCommandTP.s = IPS_ALERT;
-                        IDSetText(&MeadeCommandTP, nullptr);
+                        IUSaveText(tp, MeadeCommandResult);
+                        IDSetText(&MeadeCommandTP, "%s", MeadeCommandResult);
                         return true;
                     }
                 }
