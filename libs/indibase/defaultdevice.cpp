@@ -808,7 +808,7 @@ bool DefaultDevice::initProperties()
     snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
 
     // Connection Mode
-    d->ConnectionModeSP.onUpdate([this, d](){
+    d->ConnectionModeSP.onUpdate([d](){
         int activeConnectionMode = d->ConnectionModeSP.findOnSwitchIndex();
 
         if (activeConnectionMode >= 0 && activeConnectionMode < static_cast<int>(d->connections.size()))
@@ -946,7 +946,7 @@ bool DefaultDevice::initProperties()
     // Polling Period
     d->PollPeriodNP[0].fill("PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, d->pollingPeriod);
     d->PollPeriodNP.fill(getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
-    d->PollPeriodNP.onUpdate([this, d]()
+    d->PollPeriodNP.onUpdate([d]()
     {
         d->PollPeriodNP.setState(IPS_OK);
         d->pollingPeriod = static_cast<uint32_t>(d->PollPeriodNP[0].getValue());
