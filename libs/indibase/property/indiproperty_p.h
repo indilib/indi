@@ -35,7 +35,7 @@ static inline std::shared_ptr<T> make_shared_weak(T *object)
 #endif
 
 template <typename T, typename U>
-static inline std::shared_ptr<T> &property_private_cast(const std::shared_ptr<U> &r)
+static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> &r)
 {
     using S = std::remove_pointer_t<T>;
     static struct Invalid
