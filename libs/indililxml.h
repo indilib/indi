@@ -218,7 +218,7 @@ inline int LilXmlValue::toInt(safe_ptr<bool> ok) const
     try {
         result = std::stoi(mValue);
         *ok = true;
-    } catch (std::invalid_argument) {
+    } catch (const std::invalid_argument &) {
         *ok = false;
     }
     return result;
@@ -237,7 +237,7 @@ inline double LilXmlValue::toDouble(safe_ptr<bool> ok) const
     try {
         result = std::stod(mValue);
         *ok = true;
-    } catch (std::invalid_argument) {
+    } catch (const std::invalid_argument &) {
         *ok = false;
     }
     return result;
