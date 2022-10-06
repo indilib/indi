@@ -39,6 +39,9 @@ class PropertyBasic : public INDI::Property
         using PropertyBasicPrivate = PropertyBasicPrivateTemplate<T>;
         DECLARE_PRIVATE(PropertyBasic)
     public:
+        using ViewType = T;
+
+    public:
         ~PropertyBasic();
 
     public:
