@@ -36,152 +36,152 @@ namespace INDI
 template <typename T>
 class safe_ptr
 {
-    T fake, *ptr;
+        T fake, *ptr;
 
-public:
-    safe_ptr(T *ptr = nullptr): ptr(ptr ? ptr : &fake)
-    { }
+    public:
+        safe_ptr(T *ptr = nullptr): ptr(ptr ? ptr : &fake)
+        { }
 
-    T& operator *() { return *ptr; }
-    operator bool() const { return true; }
+        T& operator *() { return *ptr; }
+        operator bool() const { return true; }
 };
 
 class LilXmlValue
 {
-public:
-    explicit LilXmlValue(const char *value);
-    explicit LilXmlValue(const char *value, size_t size);
+    public:
+        explicit LilXmlValue(const char *value);
+        explicit LilXmlValue(const char *value, size_t size);
 
-public:
-    bool isValid() const;
-    const void *data()  const;
-    size_t size() const;
+    public:
+        bool isValid() const;
+        const void *data()  const;
+        size_t size() const;
 
-public:
-    int         toInt(safe_ptr<bool> ok = nullptr) const;
-    double      toDoubleSexa(safe_ptr<bool> ok = nullptr) const;
-    double      toDouble(safe_ptr<bool> ok = nullptr) const;
-    const char *toCString() const;
-    std::string toString() const;
-    ISState     toISState(safe_ptr<bool> ok = nullptr) const;
-    IPState     toIPState(safe_ptr<bool> ok = nullptr) const;
-    IPerm       toIPerm(safe_ptr<bool> ok = nullptr) const;
+    public:
+        int         toInt(safe_ptr<bool> ok = nullptr) const;
+        double      toDoubleSexa(safe_ptr<bool> ok = nullptr) const;
+        double      toDouble(safe_ptr<bool> ok = nullptr) const;
+        const char *toCString() const;
+        std::string toString() const;
+        ISState     toISState(safe_ptr<bool> ok = nullptr) const;
+        IPState     toIPState(safe_ptr<bool> ok = nullptr) const;
+        IPerm       toIPerm(safe_ptr<bool> ok = nullptr) const;
 
-public:
-    std::size_t indexOf(const char *needle, size_t from = 0) const;
-    std::size_t indexOf(const std::string &needle, size_t from = 0) const;
+    public:
+        std::size_t indexOf(const char *needle, size_t from = 0) const;
+        std::size_t indexOf(const std::string &needle, size_t from = 0) const;
 
-    std::size_t lastIndexOf(const char *needle, size_t from = 0) const;
-    std::size_t lastIndexOf(const std::string &needle, size_t from = 0) const;
+        std::size_t lastIndexOf(const char *needle, size_t from = 0) const;
+        std::size_t lastIndexOf(const std::string &needle, size_t from = 0) const;
 
-    bool startsWith(const char *needle) const;
-    bool startsWith(const std::string &needle) const;
+        bool startsWith(const char *needle) const;
+        bool startsWith(const std::string &needle) const;
 
-    bool endsWith(const char *needle) const;
-    bool endsWith(const std::string &needle) const;
+        bool endsWith(const char *needle) const;
+        bool endsWith(const std::string &needle) const;
 
-public:
-    operator const char *() const { return toCString(); }
-    operator double  () const { return toDouble();  }
-    operator int     () const { return toInt();     }
-    operator ISState () const { return toISState(); }
-    operator IPState () const { return toIPState(); }
-    operator IPerm   () const { return toIPerm();   }
-    operator size_t  () const { return toInt();     }
+    public:
+        operator const char *() const { return toCString(); }
+        operator double  () const { return toDouble();  }
+        operator int     () const { return toInt();     }
+        operator ISState () const { return toISState(); }
+        operator IPState () const { return toIPState(); }
+        operator IPerm   () const { return toIPerm();   }
+        operator size_t  () const { return toInt();     }
 
-protected:
-    const char *mValue; 
-    size_t      mSize;
+    protected:
+        const char *mValue; 
+        size_t      mSize;
 };
 
 class LilXmlAttribute: public LilXmlValue
 {
-public:
-    explicit LilXmlAttribute(XMLAtt *a);
+    public:
+        explicit LilXmlAttribute(XMLAtt *a);
 
-public:
-    bool isValid() const;
+    public:
+        bool isValid() const;
 
-public:
-    std::string name() const;
-    const LilXmlValue &value() const { return *this; }
+    public:
+        std::string name() const;
+        const LilXmlValue &value() const { return *this; }
 
-public:
-    operator bool() const { return isValid(); }
+    public:
+        operator bool() const { return isValid(); }
 
-public:
-    XMLAtt *handle() const;
+    public:
+        XMLAtt *handle() const;
 
-protected:
-    XMLAtt *mHandle;
+    protected:
+        XMLAtt *mHandle;
 };
 
 class LilXmlElement
 {
-public:
-    using Elements = std::list<LilXmlElement>; // or implement custom container/iterators
+    public:
+        using Elements = std::list<LilXmlElement>; // or implement custom container/iterators
 
-public:
-    explicit LilXmlElement(XMLEle *e);
+    public:
+        explicit LilXmlElement(XMLEle *e);
 
-public:
-    bool isValid() const;
-    std::string tagName() const;
+    public:
+        bool isValid() const;
+        std::string tagName() const;
 
-public:
-    Elements getElements() const;
-    Elements getElementsByTagName(const char *tagName) const;
-    LilXmlAttribute getAttribute(const char *name) const;
-    LilXmlValue context() const;
+    public:
+        Elements getElements() const;
+        Elements getElementsByTagName(const char *tagName) const;
+        LilXmlAttribute getAttribute(const char *name) const;
+        LilXmlValue context() const;
 
-public:
-    XMLEle *handle() const;
+    public:
+        XMLEle *handle() const;
 
-protected:
-    XMLEle *mHandle;
-    char errmsg[128];
+    protected:
+        XMLEle *mHandle;
+        char errmsg[128];
 };
 
 class LilXmlDocument
 {
-    LilXmlDocument(const LilXmlDocument &) = delete;
-    LilXmlDocument &operator=(const LilXmlDocument&) = delete;
+        LilXmlDocument(const LilXmlDocument &) = delete;
+        LilXmlDocument &operator=(const LilXmlDocument&) = delete;
 
-public:
-    explicit LilXmlDocument(XMLEle *root);
-    LilXmlDocument(LilXmlDocument &&other);
-    ~LilXmlDocument() = default;
+    public:
+        explicit LilXmlDocument(XMLEle *root);
+        LilXmlDocument(LilXmlDocument &&other);
+        ~LilXmlDocument() = default;
 
-public:
-    bool isValid() const;
-    LilXmlElement root() const;
+    public:
+        bool isValid() const;
+        LilXmlElement root() const;
 
-protected:
-    std::unique_ptr<XMLEle, void(*)(XMLEle*)> mRoot;
+    protected:
+        std::unique_ptr<XMLEle, void(*)(XMLEle*)> mRoot;
 };
 
 class LilXmlParser
 {
-    LilXmlParser(const LilXmlDocument &) = delete;
-    LilXmlParser &operator=(const LilXmlDocument&) = delete;
-    LilXmlParser(LilXmlDocument &&) = delete;
-    LilXmlParser &operator=(LilXmlDocument &&) = delete;
+        LilXmlParser(const LilXmlDocument &) = delete;
+        LilXmlParser &operator=(const LilXmlDocument&) = delete;
+        LilXmlParser(LilXmlDocument &&) = delete;
+        LilXmlParser &operator=(LilXmlDocument &&) = delete;
 
-public:
-    LilXmlParser();
-    ~LilXmlParser() = default;
+    public:
+        LilXmlParser();
+        ~LilXmlParser() = default;
 
-public:
-    LilXmlDocument readFromFile(FILE *file);
-    LilXmlDocument readFromFile(const char *fileName);
-    LilXmlDocument readFromFile(const std::string &fileName);
+    public:
+        LilXmlDocument readFromFile(FILE *file);
+        LilXmlDocument readFromFile(const char *fileName);
+        LilXmlDocument readFromFile(const std::string &fileName);
 
-public:
-    const char *errorMessage() const;
+    public:
+        const char *errorMessage() const;
 
-protected:
-    std::unique_ptr<LilXML, void(*)(LilXML *)> mHandle;
-    char mErrorMessage[MAXRBUF] = {0, };
+    protected:
+        std::unique_ptr<LilXML, void(*)(LilXML *)> mHandle;
+        char mErrorMessage[MAXRBUF] = {0, };
 };
 
 
