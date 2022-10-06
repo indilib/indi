@@ -2143,6 +2143,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indililxml.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
