@@ -55,7 +55,6 @@ namespace INDI
 BaseDevicePrivate::BaseDevicePrivate()
 {
     static char indidev[] = "INDIDEV=";
-    lp = newLilXML();
 
     if (getenv("INDIDEV") != nullptr)
     {
@@ -66,7 +65,6 @@ BaseDevicePrivate::BaseDevicePrivate()
 
 BaseDevicePrivate::~BaseDevicePrivate()
 {
-    delLilXML(lp);
     pAll.clear();
 }
 
@@ -205,297 +203,265 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
     return result;
 }
 
-bool BaseDevice::buildSkeleton(const char *filename)
+static std::string sGetSheletonFilePath(std::string fileName)
 {
-    D_PTR(BaseDevice);
-    char errmsg[MAXRBUF];
-    FILE *fp     = nullptr;
-    XMLEle *root = nullptr, *fproot = nullptr;
+    std::string pathName;
 
-    char pathname[MAXRBUF];
     struct stat st;
+
+    // ENV file path
     const char *indiskel = getenv("INDISKEL");
     if (indiskel)
     {
-        strncpy(pathname, indiskel, MAXRBUF - 1);
-        pathname[MAXRBUF - 1] = 0;
-        IDLog("Using INDISKEL %s\n", pathname);
+        pathName = indiskel;
+
+        IDLog("Using INDISKEL %s\n", pathName.c_str());
+        return pathName;
+    }
+
+    // absolute file path 
+    if (stat(fileName.c_str(), &st) == 0)
+    {
+        pathName = fileName;
+        IDLog("Using %s\n", pathName.c_str());
+        return pathName;
+    }
+
+    // get base name of file
+    const size_t lastSlashIdx = fileName.find_last_of("\\/");
+    if (std::string::npos != lastSlashIdx)
+    {
+        fileName.erase(0, lastSlashIdx + 1);
+    }
+
+    const char * indiprefix = getenv("INDIPREFIX");
+    if (indiprefix)
+    {
+#if defined(OSX_EMBEDED_MODE)
+        pathName  = std::string(indiprefix) + "/Contents/Resources/" + fileName;
+#elif defined(__APPLE__)
+        pathName  = std::string(indiprefix) + "/Contents/Resources/DriverSupport/" + fileName;
+#else
+        pathName  = std::string(indiprefix) + "/share/indi/" + fileName;
+#endif
     }
     else
     {
-        if (stat(filename, &st) == 0)
-        {
-            strncpy(pathname, filename, MAXRBUF - 1);
-            pathname[MAXRBUF - 1] = 0;
-            IDLog("Using %s\n", pathname);
-        }
-        else
-        {
-            const char *slash = strrchr(filename, '/');
-            if (slash)
-                filename = slash + 1;
-            const char *indiprefix = getenv("INDIPREFIX");
-            if (indiprefix)
-            {
-#if defined(OSX_EMBEDED_MODE)
-                snprintf(pathname, MAXRBUF - 1, "%s/Contents/Resources/%s", indiprefix, filename);
-#elif defined(__APPLE__)
-                snprintf(pathname, MAXRBUF - 1, "%s/Contents/Resources/DriverSupport/%s", indiprefix, filename);
-#else
-                snprintf(pathname, MAXRBUF - 1, "%s/share/indi/%s", indiprefix, filename);
-#endif
-            }
-            else
-            {
-                snprintf(pathname, MAXRBUF - 1, "%s/%s", DATA_INSTALL_DIR, filename);
-            }
-            pathname[MAXRBUF - 1] = 0;
-            IDLog("Using prefix %s\n", pathname);
-        }
+        pathName = std::string(DATA_INSTALL_DIR) + "/" + fileName;
     }
-
-    fp = fopen(pathname, "r");
-
-    if (fp == nullptr)
-    {
-        IDLog("Unable to build skeleton. Error loading file %s: %s\n", pathname, strerror(errno));
-        return false;
-    }
-
-    fproot = readXMLFile(fp, d->lp, errmsg);
-    fclose(fp);
-
-    if (fproot == nullptr)
-    {
-        IDLog("Unable to parse skeleton XML: %s", errmsg);
-        return false;
-    }
-
-    //prXMLEle(stderr, fproot, 0);
-
-    for (root = nextXMLEle(fproot, 1); root != nullptr; root = nextXMLEle(fproot, 0))
-        buildProp(root, errmsg, true);
-
-    delXMLEle(fproot);
-    return true;
-    /**************************************************************************/
+    IDLog("Using prefix %s\n", pathName.c_str());
+    return pathName;
 }
 
-int BaseDevice::buildProp(XMLEle *root, char *errmsg, bool isDynamic)
+bool BaseDevice::buildSkeleton(const char *filename)
 {
     D_PTR(BaseDevice);
-    IPerm perm    = IP_RO;
-    IPState state = IPS_IDLE;
-    XMLEle *ep    = nullptr;
-    char *rtag, *rname, *rdev;
 
-    INDI::Property indiProp;
+    LilXmlDocument document = d->xmlParser.readFromFile(sGetSheletonFilePath(filename));
+    
+    if(!document.isValid())
+    {
+        IDLog("Unable to parse skeleton XML: %s", d->xmlParser.errorMessage());
+        return false;
+    }
 
-    rtag = tagXMLEle(root);
+    char errmsg[MAXRBUF];
 
-    /* pull out device and name */
-    if (crackDN(root, &rdev, &rname, errmsg) < 0)
+    for (const auto &element: document.root().getElements())
+    {
+        buildProp(element.handle(), errmsg, true);
+    }
+
+    return true;
+}
+
+int BaseDevice::buildProp(XMLEle *_root, char *errmsg, bool isDynamic)
+{
+    D_PTR(BaseDevice);
+
+    LilXmlElement root(_root);
+
+    // only for check, #PS: remove
+    {
+        char *rname, *rdev;
+        if (crackDN(_root, &rdev, &rname, errmsg) < 0)
+            return -1;
+    }
+
+    // find type of tag
+    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName = {
+        {INDI_NUMBER, "defNumberVector"},
+        {INDI_SWITCH, "defSwitchVector"},
+        {INDI_TEXT,   "defTextVector"},
+        {INDI_LIGHT,  "defLightVector"},
+        {INDI_BLOB,   "defBLOBVector"}        
+    };
+
+    const auto rootTagName = root.tagName();
+    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto &it) {
+        return rootTagName == it.second;
+    });
+
+    if (rootTagType == tagTypeName.end())
+    {
+        snprintf(errmsg, MAXRBUF, "INDI: <%s> Unable to process tag", rootTagName.c_str());
         return -1;
+    }
+
+    //
+    const char * propertyName = root.getAttribute("name").toCString();
+
+    if (getProperty(propertyName).isValid())
+    {
+        return INDI_PROPERTY_DUPLICATED;
+    }
 
     if (d->deviceName.empty())
-        d->deviceName = rdev;
+        d->deviceName = root.getAttribute("device").toString();
 
-    if (getProperty(rname).isValid())
-        return INDI_PROPERTY_DUPLICATED;
-
-    if (strcmp(rtag, "defLightVector") && crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
+    INDI::Property property;
+    switch (rootTagType->first)
     {
-        IDLog("Error extracting %s permission (%s)\n", rname, findXMLAttValu(root, "perm"));
-        return -1;
-    }
-
-    if (crackIPState(findXMLAttValu(root, "state"), &state) < 0)
-    {
-        IDLog("Error extracting %s state (%s)\n", rname, findXMLAttValu(root, "state"));
-        return -1;
-    }
-
-    if (!strcmp(rtag, "defNumberVector"))
-    {
-        AutoCNumeric locale;
-
-        INDI::PropertyNumber nvp {0};
-
-        /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (strcmp(tagXMLEle(ep), "defNumber"))
-                continue;
-
-            INDI::WidgetView<INumber> np;
-            np.setName(findXMLAttValu(ep, "name"));
-            if (np.getName()[0] == '\0')
-                continue;
-
-            double value;
-            if (f_scansexa(pcdataXMLEle(ep), &value) < 0)
+        case INDI_NUMBER: {
+            INDI::PropertyNumber typedProperty {0};
+            for (const auto &element: root.getElementsByTagName("defNumber"))
             {
-                IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
-                continue;
+                INDI::WidgetView<INumber> widget;
+
+                widget.setParent(typedProperty->getNumber());
+
+                widget.setName   (element.getAttribute("name"));
+                widget.setLabel  (element.getAttribute("label"));
+
+                widget.setFormat (element.getAttribute("format"));
+                widget.setMin    (element.getAttribute("min"));
+                widget.setMax    (element.getAttribute("max"));
+                widget.setStep   (element.getAttribute("step"));
+
+                widget.setValue  (element.context().toDoubleSexa());
+
+                if (!widget.isNameMatch(""))
+                    typedProperty.push(std::move(widget));
             }
+            property = typedProperty;
+            break;
+        }
+        case INDI_SWITCH: {
+            INDI::PropertySwitch typedProperty {0};
+            for (const auto &element: root.getElementsByTagName("defSwitch"))
+            {
+                INDI::WidgetView<ISwitch> widget;
 
-            np.setValue(value);
-            np.setLabel(findXMLAttValu(ep, "label"));
-            np.setFormat(findXMLAttValu(ep, "format"));
+                widget.setParent(typedProperty->getSwitch());
 
-            np.setMin(atof(findXMLAttValu(ep, "min")));
-            np.setMax(atof(findXMLAttValu(ep, "max")));
-            np.setStep(atof(findXMLAttValu(ep, "step")));
+                widget.setName   (element.getAttribute("name"));
+                widget.setLabel  (element.getAttribute("label"));
 
-            np.setParent(nvp->getNumber());
+                widget.setState  (element.context());
 
-            nvp.push(std::move(np));
+                if (!widget.isNameMatch(""))
+                    typedProperty.push(std::move(widget));
+            }
+            property = typedProperty;
+            break;
         }
 
-        indiProp = nvp;
-    }
-    else if (!strcmp(rtag, "defSwitchVector"))
-    {
+        case INDI_TEXT: {
+            INDI::PropertyText typedProperty {0};
+            for (const auto &element: root.getElementsByTagName("defText"))
+            {
+                INDI::WidgetView<IText> widget;
 
-        ISRule rule = ISR_1OFMANY;
-        if (crackISRule(findXMLAttValu(root, "rule"), &rule) < 0)
-            rule = ISR_1OFMANY;
+                widget.setParent(typedProperty->getText());
 
-        INDI::PropertySwitch svp {0};
-        svp.setRule(rule);
+                widget.setName   (element.getAttribute("name"));
+                widget.setLabel  (element.getAttribute("label"));
 
-        /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (strcmp(tagXMLEle(ep), "defSwitch"))
-                continue;
+                widget.setText   (element.context());
 
-            INDI::WidgetView<ISwitch> sp;
-            sp.setName(findXMLAttValu(ep, "name"));
-            if (sp.getName()[0] == '\0')
-                continue;
+                if (!widget.isNameMatch(""))
+                    typedProperty.push(std::move(widget));
+            }
+            property = typedProperty;
+            break;
+        }
+        
+        case INDI_LIGHT: {
+            INDI::PropertyLight typedProperty {0};
+            for (const auto &element: root.getElementsByTagName("defLight"))
+            {
+                INDI::WidgetView<ILight> widget;
 
-            ISState state;
-            crackISState(pcdataXMLEle(ep), &state);
+                widget.setParent(typedProperty->getLight());
 
-            sp.setState(state);
-            sp.setLabel(findXMLAttValu(ep, "label"));
+                widget.setName   (element.getAttribute("name"));
+                widget.setLabel  (element.getAttribute("label"));
 
-            sp.setParent(svp->getSwitch());
+                widget.setState  (element.context());
 
-            svp.push(std::move(sp));
+                if (!widget.isNameMatch(""))
+                    typedProperty.push(std::move(widget));
+            }
+            property = typedProperty;
+            break;
         }
 
-        indiProp = svp;
-    }
+        case INDI_BLOB: {
+            INDI::PropertyBlob typedProperty {0};
+            for (const auto &element: root.getElementsByTagName("defBLOB"))
+            {
+                INDI::WidgetView<IBLOB> widget;
 
-    else if (!strcmp(rtag, "defTextVector"))
-    {
-        INDI::PropertyText tvp {0};
+                widget.setParent(typedProperty->getBLOB());
 
-        // pull out each name/value pair
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (strcmp(tagXMLEle(ep), "defText"))
-                continue;
+                widget.setName   (element.getAttribute("name"));
+                widget.setLabel  (element.getAttribute("label"));
 
-            INDI::WidgetView<IText> tp;
-            tp.setName(findXMLAttValu(ep, "name"));
-            if (tp.getName()[0] == '\0')
-                continue;
+                widget.setFormat (element.getAttribute("format"));
 
-            tp.setText(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-            tp.setLabel(findXMLAttValu(ep, "label"));
-
-            tp.setParent(tvp->getText());
-
-            tvp.push(std::move(tp));
+                if (!widget.isNameMatch(""))
+                    typedProperty.push(std::move(widget));
+            }
+            property = typedProperty;
+            break;
         }
 
-        indiProp = tvp;
-    }
-    else if (!strcmp(rtag, "defLightVector"))
-    {
-        INDI::PropertyLight lvp {0};
-
-        /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (strcmp(tagXMLEle(ep), "defLight"))
-                continue;
-
-            INDI::WidgetView<ILight> lp;
-            lp.setName(findXMLAttValu(ep, "name"));
-            if (lp.getName()[0] == '\0')
-                continue;
-
-            IPState state;
-            crackIPState(pcdataXMLEle(ep), &state);
-            lp.setState(state);
-            lp.setLabel(findXMLAttValu(ep, "label"));
-
-            lp.setParent(lvp.getLight());
-
-            lvp.push(std::move(lp));
-        }
-
-        indiProp = lvp;
-    }
-    else if (!strcmp(rtag, "defBLOBVector"))
-    {
-        INDI::PropertyBlob bvp {0};
-
-        /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            if (strcmp(tagXMLEle(ep), "defBLOB"))
-                continue;
-
-            INDI::WidgetView<IBLOB> bp;
-            bp.setName(findXMLAttValu(ep, "name"));
-            if (bp.getName()[0] == '\0')
-                continue;
-
-            bp.setLabel(findXMLAttValu(ep, "label"));
-            bp.setFormat(findXMLAttValu(ep, "format"));
-
-            bp.setParent(bvp.getBLOB());
-
-            bvp.push(std::move(bp));
-        }
-
-        indiProp = bvp;
+        case INDI_UNKNOWN: // it will never happen 
+            return -1;
     }
 
-    if (!indiProp.isValid())
+    if (!property.isValid())
     {
-        IDLog("%s: invalid name '%s'\n", rname, rtag);
+        IDLog("%s: invalid name '%s'\n", propertyName, rootTagName.c_str());
         return 0;
     }
 
-    if (indiProp.isEmpty())
+    if (property.isEmpty())
     {
-        IDLog("%s: %s with no valid members\n", rname, rtag);
+        IDLog("%s: %s with no valid members\n", propertyName, rootTagName.c_str());
         return 0;
     }
 
-    indiProp.setBaseDevice(this);
-    indiProp.setDynamic(isDynamic);
-    indiProp.setDeviceName(getDeviceName());
-    indiProp.setName(rname);
-    indiProp.setLabel(findXMLAttValu(root, "label"));
-    indiProp.setGroupName(findXMLAttValu(root, "group"));
-    indiProp.setPermission(perm);
-    indiProp.setState(state);
-    indiProp.setTimeout(atoi(findXMLAttValu(root, "timeout")));
+    property.setBaseDevice (this);
+    property.setName       (propertyName);
+    property.setDynamic    (isDynamic);
+    property.setDeviceName (getDeviceName());
 
-    std::unique_lock<std::mutex> lock(d->m_Lock);
-    d->pAll.push_back(indiProp);
-    lock.unlock();
+    property.setLabel      (root.getAttribute("label"));
+    property.setGroupName  (root.getAttribute("group"));
+    property.setState      (root.getAttribute("state"));
+    property.setTimeout    (root.getAttribute("timeout"));
 
-    //IDLog("Adding number property %s to list.\n", indiProp->getName());
+    if (rootTagType->first != INDI_LIGHT)
+    {
+        property.setPermission(root.getAttribute("perm").toIPerm());
+    }
+
+    d->addProperty(property);
+
+    // IDLog("Adding number property %s to list.\n", property.getName());
     if (d->mediator)
-        d->mediator->newProperty(indiProp);
+        d->mediator->newProperty(property);
 
     return (0);
 }
@@ -511,298 +477,245 @@ bool BaseDevice::isConnected() const
     return sp && sp->getState() == ISS_ON && svp->getState() == IPS_OK;
 }
 
+// helper for BaseDevice::setValue
+template <typename TypedProperty>
+static void for_property(
+    //XMLEle *root,
+    const LilXmlElement &root,
+    INDI::Property &property,
+    const std::function<void(const LilXmlElement &, INDI::WidgetView<typename TypedProperty::ViewType> *)> &function
+)
+{
+    TypedProperty typedProperty = property;
+
+    for (const auto &element: root.getElements())
+    {
+        auto * item = typedProperty.findWidgetByName(element.getAttribute("name"));
+        if (item)
+            function(element, item);
+    }
+}
+
 /*
  * return 0 if ok else -1 with reason in errmsg
  */
-int BaseDevice::setValue(XMLEle *root, char *errmsg)
+int BaseDevice::setValue(XMLEle *_root, char *errmsg)
 {
     D_PTR(BaseDevice);
-    XMLEle *ep = nullptr;
-    char *name = nullptr;
-    double timeout = 0;
-    IPState state = IPS_IDLE;
-    bool stateSet = false, timeoutSet = false;
 
-    char *rtag = tagXMLEle(root);
+    LilXmlElement root = LilXmlElement(_root);
 
-    XMLAtt *ap = findXMLAtt(root, "name");
-    if (!ap)
+    if (!root.getAttribute("name").isValid())
     {
-        snprintf(errmsg, MAXRBUF, "INDI: <%s> unable to find name attribute", tagXMLEle(root));
-        return (-1);
+        snprintf(errmsg, MAXRBUF, "INDI: <%s> unable to find name attribute", root.tagName().c_str());
+        return -1;
     }
 
-    name = valuXMLAtt(ap);
+    // check message
+    checkMessage(root.handle());
 
-    /* set overall property state, if any */
-    ap = findXMLAtt(root, "state");
-    if (ap)
+    // find type of tag
+    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName = {
+        {INDI_NUMBER, "setNumberVector"},
+        {INDI_SWITCH, "setSwitchVector"},
+        {INDI_TEXT,   "setTextVector"},
+        {INDI_LIGHT,  "setLightVector"},
+        {INDI_BLOB,   "setBLOBVector"}        
+    };
+
+    const auto rootTagName = root.tagName();
+    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto &it) {
+        return rootTagName == it.second;
+    });
+
+    if (rootTagType == tagTypeName.end())
     {
-        if (crackIPState(valuXMLAtt(ap), &state) != 0)
+        snprintf(errmsg, MAXRBUF, "INDI: <%s> Unable to process tag", rootTagName.c_str());
+        return -1;
+    }
+
+    // update generic values
+    const char * propertyName = root.getAttribute("name").toCString();
+
+    INDI::Property property = getProperty(propertyName, rootTagType->first);
+
+    if (!property.isValid())
+    {
+        snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", propertyName, getDeviceName());
+        return -1;
+    }
+
+    // 1. set overall property state, if any
+    {
+        bool ok = false;
+        property.setState(root.getAttribute("state").toIPState(&ok));
+
+        if (!ok)
         {
-            snprintf(errmsg, MAXRBUF, "INDI: <%s> bogus state %s for %s", tagXMLEle(root), valuXMLAtt(ap), name);
-            return (-1);
+            snprintf(errmsg, MAXRBUF, "INDI: <%s> bogus state %s for %s", rootTagName.c_str(), root.getAttribute("state").toCString(), propertyName);
+            return -1;
         }
-
-        stateSet = true;
     }
 
-    /* allow changing the timeout */
-    ap = findXMLAtt(root, "timeout");
-    if (ap)
+    // 2. allow changing the timeout
     {
         AutoCNumeric locale;
-        timeout    = atof(valuXMLAtt(ap));
-        timeoutSet = true;
+        bool ok = false;
+        auto timeoutValue = root.getAttribute("timeout").toDouble(&ok);
+
+        if (ok)
+            property.setTimeout(timeoutValue);
     }
 
-    checkMessage(root);
-
-    if (!strcmp(rtag, "setNumberVector"))
+    // update specific values
+    switch (rootTagType->first)
     {
-        auto nvp = getNumber(name);
-        if (!nvp)
-        {
-            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, getDeviceName());
-            return -1;
+        case INDI_NUMBER: {
+            AutoCNumeric locale;
+            for_property<INDI::PropertyNumber>(root, property, [](const LilXmlElement &element, auto *item) {
+                item->setValue(element.context());
+
+                // Permit changing of min/max
+                if (auto min = element.getAttribute("min")) item->setMin(min);
+                if (auto max = element.getAttribute("max")) item->setMax(max);
+            });
+            locale.Restore();
+            if (d->mediator) d->mediator->newNumber(property.getNumber());
+            break;
         }
 
-        if (stateSet)
-            nvp->setState(state);
-
-        if (timeoutSet)
-            nvp->setTimeout(timeout);
-
-        AutoCNumeric locale;
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            auto np = nvp->findWidgetByName(findXMLAttValu(ep, "name"));
-            if (!np)
-                continue;
-
-            np->setValue(atof(pcdataXMLEle(ep)));
-
-            // Permit changing of min/max
-            if (findXMLAtt(ep, "min"))
-                np->setMin(atof(findXMLAttValu(ep, "min")));
-            if (findXMLAtt(ep, "max"))
-                np->setMax(atof(findXMLAttValu(ep, "max")));
+        case INDI_SWITCH: {
+            for_property<INDI::PropertySwitch>(root, property, [](const LilXmlElement &element, auto *item) {
+                item->setState(element.context());
+            });
+            if (d->mediator) d->mediator->newSwitch(property.getSwitch());
+            break;
         }
 
-        locale.Restore();
-
-        if (d->mediator)
-            d->mediator->newNumber(nvp);
-
-        return 0;
-    }
-    else if (!strcmp(rtag, "setTextVector"))
-    {
-        auto tvp = getText(name);
-        if (!tvp)
-            return -1;
-
-        if (stateSet)
-            tvp->setState(state);
-
-        if (timeoutSet)
-            tvp->setTimeout(timeout);
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            auto tp = tvp->findWidgetByName(findXMLAttValu(ep, "name"));
-            if (!tp)
-                continue;
-
-            tp->setText(pcdataXMLEle(ep));
+        case INDI_TEXT: {
+            for_property<INDI::PropertyText>(root, property, [](const LilXmlElement &element, auto *item) {
+                item->setText(element.context());
+            });
+            if (d->mediator) d->mediator->newText(property.getText());
+            break;
         }
 
-        if (d->mediator)
-            d->mediator->newText(tvp);
-
-        return 0;
-    }
-    else if (!strcmp(rtag, "setSwitchVector"))
-    {
-        ISState swState;
-        auto svp = getSwitch(name);
-        if (!svp)
-            return -1;
-
-        if (stateSet)
-            svp->setState(state);
-
-        if (timeoutSet)
-            svp->setTimeout(timeout);
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            auto sp = svp->findWidgetByName(findXMLAttValu(ep, "name"));
-            if (!sp)
-                continue;
-
-            if (crackISState(pcdataXMLEle(ep), &swState) == 0)
-                sp->setState(swState);
+        case INDI_LIGHT: {
+            for_property<INDI::PropertyLight>(root, property, [](const LilXmlElement &element, auto *item) {
+                item->setState(element.context());
+            });
+            if (d->mediator) d->mediator->newLight(property.getLight());
+            break;
         }
 
-        if (d->mediator)
-            d->mediator->newSwitch(svp);
-
-        return 0;
-    }
-    else if (!strcmp(rtag, "setLightVector"))
-    {
-        IPState lState;
-        auto lvp = getLight(name);
-
-        if (!lvp)
-            return -1;
-
-        if (stateSet)
-            lvp->setState(state);
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            auto lp = lvp->findWidgetByName(findXMLAttValu(ep, "name"));
-            if (!lp)
-                continue;
-
-            if (crackIPState(pcdataXMLEle(ep), &lState) == 0)
-                lp->setState(lState);
+        case INDI_BLOB: {
+            INDI::PropertyBlob typedProperty = property;
+            return d->setBLOB(typedProperty, root, errmsg);
         }
 
-        if (d->mediator)
-            d->mediator->newLight(lvp);
-
-        return 0;
-    }
-    else if (!strcmp(rtag, "setBLOBVector"))
-    {
-        auto bvp = getBLOB(name);
-
-        if (!bvp)
+        case INDI_UNKNOWN: // it will never happen 
             return -1;
-
-        if (stateSet)
-            bvp->setState(state);
-
-        if (timeoutSet)
-            bvp->setTimeout(timeout);
-
-        return setBLOB(bvp, root, errmsg);
     }
 
-    snprintf(errmsg, MAXRBUF, "INDI: <%s> Unable to process tag", tagXMLEle(root));
-    return -1;
+    return 0;
 }
 
 /* Set BLOB vector. Process incoming data stream
  * Return 0 if okay, -1 if error
 */
-int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
+int BaseDevicePrivate::setBLOB(const INDI::PropertyBlob &property, const LilXmlElement &root, char *errmsg)
 {
-    D_PTR(BaseDevice);
-    /* pull out each name/BLOB pair, decode */
-    for (XMLEle *ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    for (const auto &element: root.getElementsByTagName("oneBLOB"))
     {
-        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
+        auto name   = element.getAttribute("name");
+        auto format = element.getAttribute("format");
+        auto size   = element.getAttribute("size");
+
+        auto widget = property.findWidgetByName(name);
+
+        if (!name || !format || !size)
         {
-            XMLAtt *na = findXMLAtt(ep, "name");
+            snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s No valid members.",
+                property.getDeviceName(), property.getName(), name.toCString()
+            );
+            return -1;
+        }
 
-            IBLOB *blobEL = IUFindBLOB(bvp, findXMLAttValu(ep, "name"));
+        if (size.toInt() == 0)
+        {
+            if (mediator) mediator->newBLOB(widget);
+            continue;
+        }
 
-            XMLAtt *fa = findXMLAtt(ep, "format");
-            XMLAtt *sa = findXMLAtt(ep, "size");
-            if (na && fa && sa)
+        widget->setSize(size);
+
+        if (auto attachementId = element.getAttribute("attached-data-id"))
+        {
+            // Client mark blob that can be attached directly
+
+            // FIXME: Where is the blob data buffer freed at the end ?
+            // FIXME: blobSize is not buffer size here. Must pass it all the way through
+            // (while compressing shared buffer is useless)
+            if (auto directAttachment = element.getAttribute("attachment-direct"))
             {
-                int blobSize = atoi(valuXMLAtt(sa));
-
-                /* Blob size = 0 when only state changes */
-                if (blobSize == 0)
+                if (widget->getBlob())
                 {
-                    if (d->mediator)
-                        d->mediator->newBLOB(blobEL);
-                    continue;
+                    IDSharedBlobFree(widget->getBlob());
+                    widget->setBlobLen(0);
                 }
-
-                blobEL->size    = blobSize;
-
-                XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
-                if (attachementId != nullptr)
-                {
-                    // Client mark blob that can be attached directly
-                    XMLAtt * directAttachment = findXMLAtt(ep, "attachment-direct");
-                    bool directBlobAccess = directAttachment != nullptr;
-                    // FIXME: Where is the blob data buffer freed at the end ?
-                    // FIXME: blobSize is not buffer size here. Must pass it all the way through
-                    // (while compressing shared buffer is useless)
-                    if (directBlobAccess)
-                    {
-                        if (blobEL->blob)
-                        {
-                            IDSharedBlobFree(blobEL->blob);
-                            blobEL->blob = nullptr;
-                            blobEL->bloblen = 0;
-                        }
-                        blobEL->blob = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
-                    }
-                    else
-                    {
-                        // For compatibility, copy to a modifiable memory area
-                        blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobSize));
-                        void * tmp = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
-                        memcpy(blobEL->blob, tmp, blobSize);
-                        IDSharedBlobFree(tmp);
-                    }
-                    blobEL->bloblen = blobSize;
-                }
-                else
-                {
-                    uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
-                    uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
-                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
-                    blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
-                }
-
-                strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
-
-                if (strstr(blobEL->format, ".z"))
-                {
-                    blobEL->format[strlen(blobEL->format) - 2] = '\0';
-                    uLongf dataSize = blobEL->size * sizeof(uint8_t);
-                    uint8_t *dataBuffer = static_cast<uint8_t *>(malloc(dataSize));
-
-                    if (dataBuffer == nullptr)
-                    {
-                        strncpy(errmsg, "Unable to allocate memory for data buffer", MAXRBUF);
-                        return (-1);
-                    }
-
-                    int r = uncompress(dataBuffer, &dataSize, static_cast<unsigned char *>(blobEL->blob),
-                                       static_cast<uLong>(blobEL->bloblen));
-                    if (r != Z_OK)
-                    {
-                        snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s compression error: %d", blobEL->bvp->device,
-                                 blobEL->bvp->name, blobEL->name, r);
-                        free(dataBuffer);
-                        return -1;
-                    }
-                    blobEL->size = dataSize;
-                    IDSharedBlobFree(blobEL->blob);
-                    blobEL->blob = dataBuffer;
-                }
-
-                if (d->mediator)
-                    d->mediator->newBLOB(blobEL);
+                widget->setBlob(attachBlobByUid(attachementId.toString(), size));
             }
             else
             {
-                snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s No valid members.", blobEL->bvp->device, blobEL->bvp->name,
-                         blobEL->name);
+                // For compatibility, copy to a modifiable memory area
+                widget->setBlob(realloc(widget->getBlob(), size));
+                void *tmp = attachBlobByUid(attachementId.toString(), size);
+                memcpy(widget->getBlob(), tmp, size);
+                IDSharedBlobFree(tmp);
+            }
+            widget->setBlobLen(size);
+        }
+        else
+        {
+            size_t base64_encoded_size = element.context().size();
+            size_t base64_decoded_size = 3 * base64_encoded_size / 4;
+            widget->setBlob(realloc(widget->getBlob(), base64_decoded_size));
+            size_t blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), root.context(), base64_encoded_size);
+            widget->setBlobLen(blobLen);
+        }
+
+        if (format.endsWith(".z"))
+        {
+            widget->setFormat(format.toString().substr(0, format.lastIndexOf(".z")));
+
+            uLongf dataSize = widget->getSize() * sizeof(uint8_t);
+            Bytef *dataBuffer = static_cast<Bytef *>(malloc(dataSize));
+
+            if (dataBuffer == nullptr)
+            {
+                strncpy(errmsg, "Unable to allocate memory for data buffer", MAXRBUF);
                 return -1;
             }
+            int r = uncompress(dataBuffer, &dataSize, static_cast<unsigned char *>(widget->getBlob()),
+                               static_cast<uLong>(widget->getBlobLen()));
+            if (r != Z_OK)
+            {
+                snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s compression error: %d",
+                         property.getDeviceName(), property.getName(), widget->getName(), r);
+                free(dataBuffer);
+                return -1;
+            }
+            widget->setSize(dataSize);
+            IDSharedBlobFree(widget->getBlob());
+            widget->setBlob(dataBuffer);
+
         }
+        else
+        {
+            widget->setFormat(format);
+        }
+
+        if (mediator) mediator->newBLOB(widget);
     }
 
     return 0;
@@ -911,10 +824,7 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
     if (pContainer.isValid())
         pContainer.setRegistered(true);
     else
-    {
-        std::lock_guard<std::mutex> lock(d->m_Lock);
-        d->pAll.push_back(INDI::Property(p, type));
-    }
+        d->addProperty(INDI::Property(p, type));
 }
 
 void BaseDevice::registerProperty(INDI::Property &property)
@@ -929,10 +839,7 @@ void BaseDevice::registerProperty(INDI::Property &property)
     if (pContainer.isValid())
         pContainer.setRegistered(true);
     else
-    {
-        std::lock_guard<std::mutex> lock(d->m_Lock);
-        d->pAll.push_back(property);
-    }
+        d->addProperty(property);
 }
 
 const char *BaseDevice::getDriverName() const

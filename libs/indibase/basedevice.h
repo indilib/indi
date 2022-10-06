@@ -244,9 +244,6 @@ class BaseDevice
         /** @brief handle SetXXX commands from client */
         int setValue(XMLEle *root, char *errmsg);
 
-        /** @brief Parse and store BLOB in the respective vector */
-        int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
-
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);
