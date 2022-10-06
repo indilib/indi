@@ -988,7 +988,10 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             return this->format;
         }
-
+        void *getBlob()
+        {
+            return this->blob;
+        }
         const void *getBlob()   const
         {
             return this->blob;
