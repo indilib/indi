@@ -78,12 +78,6 @@ namespace INDI
 
 BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
     : parent(parent)
-    , cServer("localhost")
-    , cPort(7624)
-    , sConnected(false)
-    , verbose(false)
-    , timeout_sec(3)
-    , timeout_us(0)
 {
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {

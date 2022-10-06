@@ -109,18 +109,19 @@ class BaseClientPrivate
         std::map<std::string, std::set<std::string>> cWatchProperties;
         std::map<std::string, std::set<std::string>> directBlobAccess;
 
-        std::string cServer;
-        uint32_t cPort;
-        std::atomic_bool sConnected;
+        std::string cServer {"localhost"};
+        uint32_t cPort      {7624};
+
+        std::atomic_bool sConnected {false};
         std::atomic_bool sAboutToClose;
         std::mutex sSocketBusy;
         std::condition_variable sSocketChanged;
         int sExitCode;
-        bool verbose;
+        bool verbose {false};
 
         // Parse & FILE buffers for IO
 
-        uint32_t timeout_sec, timeout_us;
+        uint32_t timeout_sec {3}, timeout_us {0};
 };
 
 }
