@@ -132,7 +132,12 @@ class LilXmlElement
         Elements getElements() const;
         Elements getElementsByTagName(const char *tagName) const;
         LilXmlAttribute getAttribute(const char *name) const;
+        LilXmlAttribute addAttribute(const char *name, const char *value);
+        void removeAttribute(const char *name);
+
         LilXmlValue context() const;
+
+        void print(FILE *f, int level = 0) const;
 
     public:
         XMLEle *handle() const;
@@ -177,6 +182,10 @@ class LilXmlParser
         LilXmlDocument readFromFile(const std::string &fileName);
 
     public:
+        std::list<LilXmlDocument> parseChunk(const char *data, size_t size);
+
+    public:
+        bool hasErrorMessage() const;
         const char *errorMessage() const;
 
     protected:
@@ -380,9 +389,24 @@ inline LilXmlAttribute LilXmlElement::getAttribute(const char *name) const
     return LilXmlAttribute(findXMLAtt(mHandle, name));
 }
 
+inline LilXmlAttribute LilXmlElement::addAttribute(const char *name, const char *value)
+{
+    return LilXmlAttribute(addXMLAtt(mHandle, name, value));
+}
+
+inline void LilXmlElement::removeAttribute(const char *name)
+{
+    rmXMLAtt(mHandle, name);
+}
+
 inline LilXmlValue LilXmlElement::context() const
 {
     return LilXmlValue(pcdataXMLEle(mHandle), pcdatalenXMLEle(mHandle));
+}
+
+inline void LilXmlElement::print(FILE *f, int level) const
+{
+    prXMLEle(f, handle(), level);
 }
 
 // LilXmlDocument Implementation
@@ -433,6 +457,26 @@ inline LilXmlDocument LilXmlParser::readFromFile(const char *fileName)
 inline LilXmlDocument LilXmlParser::readFromFile(const std::string &fileName)
 {
     return readFromFile(fileName.c_str());
+}
+
+inline std::list<LilXmlDocument> LilXmlParser::parseChunk(const char *data, size_t size)
+{
+    std::list<LilXmlDocument> result;
+    XMLEle ** nodes = parseXMLChunk(mHandle.get(), const_cast<char*>(data), size, mErrorMessage);
+    if (nodes != nullptr)
+    {    
+        for (auto it = nodes; *it; ++it)
+        {
+            result.push_back(LilXmlDocument(*it));
+        }
+        free(nodes);
+    }
+    return result;
+}
+
+inline bool LilXmlParser::hasErrorMessage() const
+{
+    return mErrorMessage[0] != '\0';
 }
 
 inline const char *LilXmlParser::errorMessage() const
