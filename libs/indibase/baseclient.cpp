@@ -799,12 +799,12 @@ int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *er
     {
         if (root.tagName() == "defBLOBVector")
         {
-            return dp->buildProp(root.handle(), errmsg);
+            return dp->buildProp(root, errmsg);
         }
 
         if (root.tagName() == "setBLOBVector")
         {
-            return dp->setValue(root.handle(), errmsg);
+            return dp->setValue(root, errmsg);
         }
         // Ignore everything else
         return 0;
@@ -835,7 +835,7 @@ int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *er
 
     if (defVectors.find(root.tagName()) != defVectors.end())
     {
-        return dp->buildProp(root.handle(), errmsg);
+        return dp->buildProp(root, errmsg);
     }
 
     static const std::set<std::string> setVectors{
@@ -845,7 +845,7 @@ int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *er
 
     if (setVectors.find(root.tagName()) != setVectors.end())
     {
-        return dp->setValue(root.handle(), errmsg);
+        return dp->setValue(root, errmsg);
     }
 
     return INDI_DISPATCH_ERROR;

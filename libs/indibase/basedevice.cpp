@@ -269,22 +269,20 @@ bool BaseDevice::buildSkeleton(const char *filename)
 
     for (const auto &element: document.root().getElements())
     {
-        buildProp(element.handle(), errmsg, true);
+        buildProp(element, errmsg, true);
     }
 
     return true;
 }
 
-int BaseDevice::buildProp(XMLEle *_root, char *errmsg, bool isDynamic)
+int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool isDynamic)
 {
     D_PTR(BaseDevice);
-
-    LilXmlElement root(_root);
 
     // only for check, #PS: remove
     {
         char *rname, *rdev;
-        if (crackDN(_root, &rdev, &rname, errmsg) < 0)
+        if (crackDN(root.handle(), &rdev, &rname, errmsg) < 0)
             return -1;
     }
 
@@ -501,11 +499,9 @@ static void for_property(
 /*
  * return 0 if ok else -1 with reason in errmsg
  */
-int BaseDevice::setValue(XMLEle *_root, char *errmsg)
+int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
 {
     D_PTR(BaseDevice);
-
-    LilXmlElement root = LilXmlElement(_root);
 
     if (!root.getAttribute("name").isValid())
     {

@@ -47,6 +47,7 @@
 namespace INDI
 {
 
+class LilXmlElement;
 class BaseDevicePrivate;
 class BaseDevice
 {
@@ -254,10 +255,10 @@ class BaseDevice
          *  @param isDynamic set to true if property is loaded from an XML file.
          *  @return 0 if parsing is successful, -1 otherwise and errmsg is set
          */
-        int buildProp(XMLEle *root, char *errmsg, bool isDynamic = false);
+        int buildProp(const INDI::LilXmlElement &root, char *errmsg, bool isDynamic = false);
 
         /** @brief handle SetXXX commands from client */
-        int setValue(XMLEle *root, char *errmsg);
+        int setValue(const INDI::LilXmlElement &root, char *errmsg);
 
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;
