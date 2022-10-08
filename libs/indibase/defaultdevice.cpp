@@ -1002,31 +1002,31 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
 
 void DefaultDevice::defineProperty(INumberVectorProperty *property)
 {
-    registerProperty(property);
+    registerProperty(INDI::Property(property));
     static_cast<PropertyView<INumber>*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ITextVectorProperty *property)
 {
-    registerProperty(property);
+    registerProperty(INDI::Property(property));
     static_cast<PropertyView<IText>*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ISwitchVectorProperty *property)
 {
-    registerProperty(property);
+    registerProperty(INDI::Property(property));
     static_cast<PropertyView<ISwitch>*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ILightVectorProperty *property)
 {
-    registerProperty(property);
+    registerProperty(INDI::Property(property));
     static_cast<PropertyView<ILight>*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
 {
-    registerProperty(property);
+    registerProperty(INDI::Property(property));
     static_cast<PropertyView<IBLOB>*>(property)->define();
 }
 

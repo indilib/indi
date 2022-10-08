@@ -809,22 +809,6 @@ const std::string &BaseDevice::lastMessage() const
     return d->messageLog.back();
 }
 
-void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
-{
-    D_PTR(BaseDevice);
-    if (p == nullptr || type == INDI_UNKNOWN)
-        return;
-
-    const char *name = INDI::Property(p, type).getName();
-
-    auto pContainer = getProperty(name, type);
-
-    if (pContainer.isValid())
-        pContainer.setRegistered(true);
-    else
-        d->addProperty(INDI::Property(p, type));
-}
-
 void BaseDevice::watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback)
 {
     D_PTR(BaseDevice);
@@ -846,6 +830,12 @@ void BaseDevice::registerProperty(const INDI::Property &property)
         d->addProperty(property);
 }
 
+// #PS: TODO remove
+void BaseDevice::registerProperty(const INDI::Property &property, INDI_PROPERTY_TYPE)
+{
+    registerProperty(property);
+}
+
 const char *BaseDevice::getDriverName() const
 {
     auto driverInfo = getText("DRIVER_INFO");
@@ -856,57 +846,6 @@ const char *BaseDevice::getDriverName() const
     auto driverName = driverInfo->findWidgetByName("DRIVER_NAME");
 
     return driverName ? driverName->getText() : nullptr;
-}
-
-
-void BaseDevice::registerProperty(ITextVectorProperty *property)
-{
-    registerProperty(property, INDI_TEXT);
-}
-
-void BaseDevice::registerProperty(INumberVectorProperty *property)
-{
-    registerProperty(property, INDI_NUMBER);
-}
-
-void BaseDevice::registerProperty(ISwitchVectorProperty *property)
-{
-    registerProperty(property, INDI_SWITCH);
-}
-
-void BaseDevice::registerProperty(ILightVectorProperty *property)
-{
-    registerProperty(property, INDI_LIGHT);
-}
-
-void BaseDevice::registerProperty(IBLOBVectorProperty *property)
-{
-    registerProperty(property, INDI_BLOB);
-}
-
-void BaseDevice::registerProperty(PropertyView<IText> *property)
-{
-    registerProperty(static_cast<ITextVectorProperty*>(property));
-}
-
-void BaseDevice::registerProperty(PropertyView<INumber> *property)
-{
-    registerProperty(static_cast<INumberVectorProperty*>(property));
-}
-
-void BaseDevice::registerProperty(PropertyView<ISwitch> *property)
-{
-    registerProperty(static_cast<ISwitchVectorProperty*>(property));
-}
-
-void BaseDevice::registerProperty(PropertyView<ILight> *property)
-{
-    BaseDevice::registerProperty(static_cast<ILightVectorProperty*>(property));
-}
-
-void BaseDevice::registerProperty(PropertyView<IBLOB> *property)
-{
-    BaseDevice::registerProperty(static_cast<IBLOBVectorProperty*>(property));
 }
 
 const char *BaseDevice::getDriverExec() const

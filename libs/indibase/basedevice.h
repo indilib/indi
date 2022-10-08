@@ -104,6 +104,7 @@ class BaseDevice
          *  @param property any property from the INDI::PropertyXXX family.
          */
         void registerProperty(const INDI::Property &property);
+        void registerProperty(const INDI::Property &property, INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
@@ -141,21 +142,6 @@ class BaseDevice
         INDI::PropertyView<ILight>  *getLight(const char *name) const;
         /** @return Return vector BLOB property given its name */
         INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
-
-    public: // deprecated
-        void registerProperty(void *p, INDI_PROPERTY_TYPE type);
-
-        void registerProperty(ITextVectorProperty *property);
-        void registerProperty(INumberVectorProperty *property);
-        void registerProperty(ISwitchVectorProperty *property);
-        void registerProperty(ILightVectorProperty *property);
-        void registerProperty(IBLOBVectorProperty *property);
-
-        void registerProperty(INDI::PropertyView<IText> *property);
-        void registerProperty(INDI::PropertyView<INumber> *property);
-        void registerProperty(INDI::PropertyView<ISwitch> *property);
-        void registerProperty(INDI::PropertyView<ILight> *property);
-        void registerProperty(INDI::PropertyView<IBLOB> *property);
 
     public: // deprecated
         /** @return Return property state */
