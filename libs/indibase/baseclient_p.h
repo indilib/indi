@@ -65,23 +65,23 @@ class BaseClientPrivate
 
     public:
         /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
+        int dispatchCommand(const INDI::LilXmlElement &root, char *errmsg);
 
         /** @brief Remove device */
         int deleteDevice(const char *devName, char *errmsg);
 
         /** @brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
+        int delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg);
 
         /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
-        /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
+        INDI::BaseDevice *findDevice(const char *devName, char *errmsg);
         /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
+        INDI::BaseDevice *findDevice(const INDI::LilXmlElement &root, bool create, char *errmsg);
+        /** @brief Add a new device */
+        INDI::BaseDevice *addDevice(const INDI::LilXmlElement &root, char *errmsg);
 
         /**  Process messages */
-        int messageCmd(XMLEle *root, char *errmsg);
+        int messageCmd(const INDI::LilXmlElement &root, char *errmsg);
 
     private:
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
@@ -90,7 +90,7 @@ class BaseClientPrivate
         bool establish(const std::string &target);
 
         // Add an attribute for access to shared blobs
-        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> &blobs);
+        bool parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs);
 
     public:
         BaseClient *parent;

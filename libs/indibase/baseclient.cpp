@@ -38,6 +38,7 @@
 #include <assert.h>
 
 #include "indiuserio.h"
+#include "indililxml.h"
 
 #ifdef _WINDOWS
 #include <ws2tcpip.h>
@@ -446,9 +447,6 @@ void BaseClientPrivate::listenINDI()
     int maxfd = 0;
 #endif
     fd_set rs;
-    XMLEle **nodes = nullptr;
-    XMLEle *root = nullptr;
-    int inode = 0;
 
     connect();
 
@@ -492,7 +490,9 @@ void BaseClientPrivate::listenINDI()
 #endif
 
     clear();
-    LilXML *lillp = newLilXML();
+
+    INDI::LilXmlParser xmlParser;
+
     bool clientFatalError = false;
 
     /* read from server, exit if find all requested properties */
@@ -591,22 +591,24 @@ void BaseClientPrivate::listenINDI()
                 break;
             }
 
-            nodes = parseXMLChunk(lillp, buffer, n, msg);
+            auto documents = xmlParser.parseChunk(buffer, n);
 
-            if (!nodes)
+            if (documents.size() == 0)
             {
-                if (msg[0])
+                if (xmlParser.hasErrorMessage())
                 {
-                    IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
+                    IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, xmlParser.errorMessage(), buffer);
                 }
-                break;
+                break;   
             }
-            root = nodes[inode];
-            while (root)
-            {
-                if (verbose)
-                    prXMLEle(stderr, root, 0);
 
+            for (const auto &doc: documents)
+            {
+                INDI::LilXmlElement root = doc.root();
+
+                if (verbose)
+                    root.print(stderr, 0);
+                
                 std::vector<std::string> blobs;
 
                 if (!parseAttachedBlobs(root, blobs))
@@ -633,16 +635,10 @@ void BaseClientPrivate::listenINDI()
                     if (err_code != INDI_PROPERTY_DUPLICATED)
                     {
                         IDLog("Dispatch command error(%d): %s\n", err_code, msg);
-                        prXMLEle(stderr, root, 0);
+                        root.print(stderr, 0);
                     }
                 }
-
-                delXMLEle(root); // not yet, delete and continue
-                inode++;
-                root = nodes[inode];
             }
-            free(nodes);
-            inode = 0;
 
             if (clientFatalError)
             {
@@ -650,8 +646,6 @@ void BaseClientPrivate::listenINDI()
             }
         }
     }
-
-    delLilXML(lillp);
 
     int exit_code;
 
@@ -681,56 +675,43 @@ void BaseClientPrivate::listenINDI()
     }
 }
 
-static std::vector<XMLEle *> findBlobElements(XMLEle * root)
-{
-    std::vector<XMLEle *> result;
-    for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-    {
-        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
-        {
-            result.push_back(ep);
-        }
-    }
-    return result;
-}
-
-bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> &blobs)
+bool BaseClientPrivate::parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs)
 {
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
-    for(auto blobContent : findBlobElements(root))
+    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
     {
-        std::string attached = findXMLAttValu(blobContent, "attached");
+        auto attached = blobContent.getAttribute("attached");
 
-        if (attached == "true")
+        if (attached.toString() != "true")
+            continue;
+
+        auto device = root.getAttribute("dev");
+        auto name   = root.getAttribute("name");
+
+        blobContent.removeAttribute("attached");
+        blobContent.removeAttribute("enclen");
+
+        if (incomingSharedBuffers.empty())
         {
-            std::string device = findXMLAttValu(root, "dev");
-            std::string name = findXMLAttValu(root, "name");
+            return false;
+        }
 
-            rmXMLAtt(blobContent, "attached");
-            rmXMLAtt(blobContent, "enclen");
+        int fd = *incomingSharedBuffers.begin();
+        incomingSharedBuffers.pop_front();
 
-            if (incomingSharedBuffers.empty())
-            {
-                return false;
-            }
-            int fd = *incomingSharedBuffers.begin();
-            incomingSharedBuffers.pop_front();
+        auto id = allocateBlobUid(fd);
+        blobs.push_back(id);
 
-            auto id = allocateBlobUid(fd);
-            blobs.push_back(id);
-
-            // Put something here for later replacement
-            rmXMLAtt(blobContent, "attached-data-id");
-            rmXMLAtt(blobContent, "attachment-direct");
-
-            addXMLAtt(blobContent, "attached-data-id", id.c_str());
-            if (isDirectBlobAccess(device, name))
-            {
-                // If client support read-only shared blob, mark it here
-                addXMLAtt(blobContent, "attachment-direct",  "true");
-            }
+        // Put something here for later replacement
+        blobContent.removeAttribute("attached-data-id");
+        blobContent.removeAttribute("attachment-direct");
+        blobContent.addAttribute("attached-data-id", id.c_str());
+        if (isDirectBlobAccess(device.toString(), name.toString()))
+        {
+            // If client support read-only shared blob, mark it here
+            blobContent.addAttribute("attachment-direct",  "true");
         }
     }
     return true;
@@ -768,55 +749,63 @@ void BaseClientPrivate::sendString(const char *fmt, ...)
     sendData(message, strlen(message));
 }
 
-int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
+int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *errmsg)
 {
-    const char *tag = tagXMLEle(root);
-
-    if (!strcmp(tagXMLEle(root), "pingRequest"))
+    // Ignore echoed newXXX
+    if (root.tagName().find("new") == 0)
     {
-        const char *uid = findXMLAttValu(root, "uid");
-        if (!uid)
-            uid = "";
+        return 0;       
+    }
 
-        parent->sendPingReply(uid);
+    if (root.tagName() == "pingRequest")
+    {
+        parent->sendPingReply(root.getAttribute("uid"));
         return 0;
     }
 
-    if (!strcmp(tagXMLEle(root), "pingReply"))
+    if (root.tagName() == "pingReply")
     {
-        const char * uid = findXMLAttValu(root, "uid");
-        parent->newPingReply(uid);
+        parent->newPingReply(root.getAttribute("uid").toString());
+        return 0;
     }
 
-    if (!strcmp(tag, "message"))
+    if (root.tagName() == "message")
+    {
         return messageCmd(root, errmsg);
-    else if (!strcmp(tag, "delProperty"))
+    }
+
+    if (root.tagName() == "delProperty")
+    {
         return delPropertyCmd(root, errmsg);
+    }
+
     // Just ignore any getProperties we might get
-    else if (!strcmp(tag, "getProperties"))
+    if (root.tagName() == "getProperties")
+    {
         return INDI_PROPERTY_DUPLICATED;
+    }
 
     /* Get the device, if not available, create it */
-    INDI::BaseDevice *dp = findDev(root, 1, errmsg);
+    INDI::BaseDevice *dp = findDevice(root, true, errmsg);
     if (dp == nullptr)
     {
         strcpy(errmsg, "No device available and none was created");
         return INDI_DEVICE_NOT_FOUND;
     }
 
-    // Ignore echoed newXXX
-    if (strstr(tag, "new"))
-        return 0;
-
     // If device is set to BLOB_ONLY, we ignore everything else
     // not related to blobs
     if (parent->getBLOBMode(dp->getDeviceName()) == B_ONLY)
     {
-        if (!strcmp(tag, "defBLOBVector"))
-            return dp->buildProp(root, errmsg);
-        else if (!strcmp(tag, "setBLOBVector"))
-            return dp->setValue(root, errmsg);
+        if (root.tagName() == "defBLOBVector")
+        {
+            return dp->buildProp(root.handle(), errmsg);
+        }
 
+        if (root.tagName() == "setBLOBVector")
+        {
+            return dp->setValue(root.handle(), errmsg);
+        }
         // Ignore everything else
         return 0;
     }
@@ -824,28 +813,43 @@ int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
     // If we are asked to watch for specific properties only, we ignore everything else
     if (cWatchProperties.size() > 0)
     {
-        const char *device = findXMLAttValu(root, "device");
-        const char *name = findXMLAttValu(root, "name");
-        if (device && name)
+        const auto it = cWatchProperties.find(root.getAttribute("device").toString());
+
+        // device not found
+        if (it == cWatchProperties.end())
         {
-            if (cWatchProperties.find(device) == cWatchProperties.end() ||
-                    cWatchProperties[device].find(name) == cWatchProperties[device].end())
-                return 0;
+            return 0;
+        }
+        
+        // property not found
+        if (it->second.find(root.getAttribute("name").toString()) == it->second.end())
+        {
+            return 0;
         }
     }
 
-    if ((!strcmp(tag, "defTextVector")) || (!strcmp(tag, "defNumberVector")) ||
-            (!strcmp(tag, "defSwitchVector")) || (!strcmp(tag, "defLightVector")) ||
-            (!strcmp(tag, "defBLOBVector")))
-        return dp->buildProp(root, errmsg);
-    else if (!strcmp(tag, "setTextVector") || !strcmp(tag, "setNumberVector") ||
-             !strcmp(tag, "setSwitchVector") || !strcmp(tag, "setLightVector") ||
-             !strcmp(tag, "setBLOBVector"))
-        return dp->setValue(root, errmsg);
+    static const std::set<std::string> defVectors{
+        "defTextVector",  "defNumberVector", "defSwitchVector",
+        "defLightVector", "defBLOBVector"
+    };
+
+    if (defVectors.find(root.tagName()) != defVectors.end())
+    {
+        return dp->buildProp(root.handle(), errmsg);
+    }
+
+    static const std::set<std::string> setVectors{
+        "setTextVector",  "setNumberVector", "setSwitchVector",
+        "setLightVector", "setBLOBVector"
+    };
+
+    if (setVectors.find(root.tagName()) != setVectors.end())
+    {
+        return dp->setValue(root.handle(), errmsg);
+    }
 
     return INDI_DISPATCH_ERROR;
 }
-
 
 int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
@@ -872,46 +876,40 @@ int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
  * if no property name attribute at all, delete the whole device regardless.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int BaseClientPrivate::delPropertyCmd(XMLEle *root, char *errmsg)
+int BaseClientPrivate::delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg)
 {
-    XMLAtt *ap;
-    INDI::BaseDevice *dp;
-
     /* dig out device and optional property name */
-    dp = findDev(root, 0, errmsg);
+    INDI::BaseDevice *dp = findDevice(root, 0, errmsg);
     if (!dp)
         return INDI_DEVICE_NOT_FOUND;
 
-    dp->checkMessage(root);
+    dp->checkMessage(root.handle());
 
-    ap = findXMLAtt(root, "name");
+    const auto propertyName = root.getAttribute("name");
 
-    /* Delete property if it exists, otherwise, delete the whole device */
-    if (ap)
+    // Delete the whole device if propertyName does not exists
+    if (!propertyName.isValid())
     {
-        INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
-        if (rProp == nullptr)
-        {
-            // Silently ignore B_ONLY clients.
-            if (blobModes.empty() || blobModes.front().blobMode == B_ONLY)
-                return 0;
-
-            snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
-            return -1;
-        }
-        if (sConnected)
-            parent->removeProperty(rProp);
-        int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
-
-        return errCode;
-    }
-    // delete the whole device
-    else
         return deleteDevice(dp->getDeviceName(), errmsg);
+    }
+
+    // Delete property if it exists
+    if (auto property = dp->getProperty(propertyName))
+    {
+        if (sConnected)
+            parent->removeProperty(property);
+        return dp->removeProperty(propertyName, errmsg);
+    }
+
+    // Silently ignore B_ONLY clients.
+    if (blobModes.empty() || blobModes.front().blobMode == B_ONLY)
+        return 0;
+    snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", propertyName.toCString());
+    return -1;
 }
 
 
-INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::findDevice(const char *devName, char *errmsg)
 {
     auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
     {
@@ -926,13 +924,11 @@ INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
 }
 
 /* add new device */
-INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::addDevice(const INDI::LilXmlElement &root, char *errmsg)
 {
-    char *device_name;
+    auto deviceName = root.getAttribute("device");
 
-    /* allocate new INDI::BaseDriver */
-    XMLAtt *ap = findXMLAtt(dep, "device");
-    if (!ap)
+    if (!deviceName.isValid())
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
         return nullptr;
@@ -940,10 +936,8 @@ INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
 
     INDI::BaseDevice *dp = new INDI::BaseDevice();
 
-    device_name = valuXMLAtt(ap);
-
     dp->setMediator(parent);
-    dp->setDeviceName(device_name);
+    dp->setDeviceName(deviceName);
 
     cDevices.push_back(dp);
 
@@ -953,85 +947,76 @@ INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
     return dp;
 }
 
-INDI::BaseDevice *BaseClientPrivate::findDev(XMLEle *root, int create, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::findDevice(const INDI::LilXmlElement &root, bool create, char *errmsg)
 {
-    XMLAtt *ap;
-    INDI::BaseDevice *dp;
-    char *dn;
-
-    /* get device name */
-    ap = findXMLAtt(root, "device");
-    if (!ap)
+    auto deviceName = root.getAttribute("device");
+    if (!deviceName.isValid())
     {
-        snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", tagXMLEle(root));
-        return (nullptr);
+        snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", root.tagName().c_str());
+        return nullptr;
+    }
+  
+    if (deviceName.toString() == "")
+    {
+        snprintf(errmsg, MAXRBUF, "Device name is empty! %s", root.tagName().c_str());
+        return nullptr;
     }
 
-    dn = valuXMLAtt(ap);
-
-    if (*dn == '\0')
-    {
-        snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
-        return (nullptr);
-    }
-
-    dp = findDev(dn, errmsg);
+    INDI::BaseDevice *dp = findDevice(deviceName, errmsg);
 
     if (dp)
         return dp;
 
     /* not found, create if ok */
     if (create)
-        return (addDevice(root, errmsg));
+        return addDevice(root, errmsg);
 
-    snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", tagXMLEle(root), dn);
+    snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", root.tagName().c_str(), deviceName.toCString());
     return nullptr;
 }
 
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
+int BaseClientPrivate::messageCmd(const INDI::LilXmlElement &root, char *errmsg)
 {
-    INDI::BaseDevice *dp = findDev(root, 0, errmsg);
+    INDI::BaseDevice *dp = findDevice(root, false, errmsg);
 
     if (dp)
-        dp->checkMessage(root);
-    else
     {
-        XMLAtt *message;
-        XMLAtt *time_stamp;
-
-        char msgBuffer[MAXRBUF];
-
-        /* prefix our timestamp if not with msg */
-        time_stamp = findXMLAtt(root, "timestamp");
-
-        /* finally! the msg */
-        message = findXMLAtt(root, "message");
-        if (!message)
-        {
-            strncpy(errmsg, "No message content found.", MAXRBUF);
-            return -1;
-        }
-
-        if (time_stamp)
-            snprintf(msgBuffer, MAXRBUF, "%s: %s", valuXMLAtt(time_stamp), valuXMLAtt(message));
-        else
-        {
-            char ts[32];
-            struct tm *tp;
-            time_t t;
-            time(&t);
-            tp = gmtime(&t);
-            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
-            snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, valuXMLAtt(message));
-        }
-
-        parent->newUniversalMessage(msgBuffer);
+        dp->checkMessage(root.handle());
+        return 0;
     }
 
-    return (0);
+    char msgBuffer[MAXRBUF];
+
+    auto timestamp = root.getAttribute("timestamp");
+    auto message   = root.getAttribute("message");
+
+    if (!message.isValid())
+    {
+        strncpy(errmsg, "No message content found.", MAXRBUF);
+        return -1;
+    }
+
+    if (timestamp.isValid())
+    {
+        snprintf(msgBuffer, MAXRBUF, "%s: %s", timestamp.toCString(), message.toCString());
+    }
+    else
+    {
+        char ts[32];
+        struct tm *tp;
+        time_t t;
+        time(&t);
+        tp = gmtime(&t);
+        strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+        snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, message.toCString());
+    }
+
+    parent->newUniversalMessage(msgBuffer);
+
+    return 0;
 }
 
 void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * prop)
