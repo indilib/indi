@@ -10,6 +10,7 @@
 #include <set>
 #include <thread>
 #include <cstdint>
+#include <functional>
 
 #include <lilxml.h>
 
@@ -108,6 +109,7 @@ class BaseClientPrivate
         std::list<BLOBMode> blobModes;
         std::map<std::string, std::set<std::string>> cWatchProperties;
         std::map<std::string, std::set<std::string>> directBlobAccess;
+        std::map<std::string, std::function<void(INDI::BaseDevice *)>> cDeviceNamesCallback;
 
         std::string cServer {"localhost"};
         uint32_t cPort      {7624};

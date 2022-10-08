@@ -943,6 +943,13 @@ INDI::BaseDevice *BaseClientPrivate::addDevice(const INDI::LilXmlElement &root, 
 
     parent->newDevice(dp);
 
+    // watchDevice event
+    auto it = cDeviceNamesCallback.find(dp->getDeviceName());
+    if (it != cDeviceNamesCallback.end())
+    {
+        it->second(dp);
+    }
+
     /* ok */
     return dp;
 }
@@ -1150,6 +1157,13 @@ void INDI::BaseClient::watchDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
     d->cDeviceNames.insert(deviceName);
+}
+
+void INDI::BaseClient::watchDevice(const char *deviceName, const std::function<void(INDI::BaseDevice *)> &callback)
+{
+    D_PTR(BaseClient);
+    d->cDeviceNamesCallback[deviceName] = callback;
+    watchDevice(deviceName);
 }
 
 void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)

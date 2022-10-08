@@ -25,6 +25,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <memory>
 
@@ -131,6 +132,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  will be created and handled.
          */
         void watchDevice(const char *deviceName);
+        void watchDevice(const char *deviceName, const std::function<void(INDI::BaseDevice *)> &callback);
 
         /** @brief Connect to INDI driver
          *  @param deviceName Name of the device to connect to.
