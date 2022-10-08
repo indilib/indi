@@ -326,7 +326,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             {
                 INDI::WidgetView<INumber> widget;
 
-                widget.setParent(typedProperty->getNumber());
+                widget.setParent(typedProperty.getNumber());
 
                 widget.setName   (element.getAttribute("name"));
                 widget.setLabel  (element.getAttribute("label"));
@@ -350,7 +350,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             {
                 INDI::WidgetView<ISwitch> widget;
 
-                widget.setParent(typedProperty->getSwitch());
+                widget.setParent(typedProperty.getSwitch());
 
                 widget.setName   (element.getAttribute("name"));
                 widget.setLabel  (element.getAttribute("label"));
@@ -370,7 +370,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             {
                 INDI::WidgetView<IText> widget;
 
-                widget.setParent(typedProperty->getText());
+                widget.setParent(typedProperty.getText());
 
                 widget.setName   (element.getAttribute("name"));
                 widget.setLabel  (element.getAttribute("label"));
@@ -390,7 +390,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             {
                 INDI::WidgetView<ILight> widget;
 
-                widget.setParent(typedProperty->getLight());
+                widget.setParent(typedProperty.getLight());
 
                 widget.setName   (element.getAttribute("name"));
                 widget.setLabel  (element.getAttribute("label"));
@@ -410,7 +410,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             {
                 INDI::WidgetView<IBLOB> widget;
 
-                widget.setParent(typedProperty->getBLOB());
+                widget.setParent(typedProperty.getBLOB());
 
                 widget.setName   (element.getAttribute("name"));
                 widget.setLabel  (element.getAttribute("label"));
