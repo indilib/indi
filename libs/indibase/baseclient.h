@@ -23,6 +23,8 @@
 #include "indibase.h"
 #include "indimacros.h"
 
+#include "indiproperty.h"
+
 #include <string>
 #include <vector>
 #include <functional>
@@ -204,23 +206,26 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
 
+        /** @brief Send new Property command to server */
+        void sendNewProperty(INDI::Property pp);
+
         /** @brief Send new Text command to server */
-        void sendNewText(ITextVectorProperty *pp);
+        void sendNewText(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Text command to server */
         void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
         /** @brief Send new Number command to server */
-        void sendNewNumber(INumberVectorProperty *pp);
+        void sendNewNumber(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Number command to server */
         void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
         /** @brief Send new Switch command to server */
-        void sendNewSwitch(ISwitchVectorProperty *pp);
+        void sendNewSwitch(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Switch command to server */
         void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
         /** @brief Send opening tag for BLOB command to server */
         void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-        void sendOneBlob(IBLOB *bp);
+        void sendOneBlob(INDI::WidgetView<IBLOB> *blob);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** @brief Send closing tag for BLOB command to server */

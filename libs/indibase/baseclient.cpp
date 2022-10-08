@@ -1248,11 +1248,39 @@ void INDI::BaseClient::newPingReply(std::string uid)
     IDLog("Ping reply %s\n", uid.c_str());
 }
 
-void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
+void INDI::BaseClient::sendNewProperty(INDI::Property pp)
 {
     D_PTR(BaseClient);
-    tvp->s = IPS_BUSY;
-    IUUserIONewText(&io, d, tvp);
+    pp.setState(IPS_BUSY);
+    // #PS: TODO more generic
+    switch (pp.getType())
+    {
+        case INDI_NUMBER:
+            IUUserIONewNumber(&io, d, pp.getNumber());
+            break;
+        case INDI_SWITCH:
+            IUUserIONewSwitch(&io, d, pp.getSwitch());
+            break;
+        case INDI_TEXT:
+            IUUserIONewText(&io, d, pp.getText());
+            break;
+        case INDI_LIGHT:
+            IDLog("Light type is not supported to send\n");
+            break;
+        case INDI_BLOB:
+            IUUserIONewBLOB(&io, d, pp.getBLOB());
+            break;
+        case INDI_UNKNOWN:
+            IDLog("Unknown type of property to send\n");
+            break;
+    }
+}
+
+void INDI::BaseClient::sendNewText(INDI::Property pp)
+{
+    D_PTR(BaseClient);
+    pp.setState(IPS_BUSY);
+    IUUserIONewText(&io, d, pp.getText());
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -1278,11 +1306,11 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
     sendNewText(tvp);
 }
 
-void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
+void INDI::BaseClient::sendNewNumber(INDI::Property pp)
 {
     D_PTR(BaseClient);
-    nvp->s = IPS_BUSY;
-    IUUserIONewNumber(&io, d, nvp);
+    pp.setState(IPS_BUSY);
+    IUUserIONewNumber(&io, d, pp.getNumber());
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -1320,11 +1348,11 @@ void INDI::BaseClient::sendPingRequest(const char * uuid)
     IUUserIOPingRequest(&io, d, uuid);
 }
 
-void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
+void INDI::BaseClient::sendNewSwitch(INDI::Property pp)
 {
     D_PTR(BaseClient);
-    svp->s = IPS_BUSY;
-    IUUserIONewSwitch(&io, d, svp);
+    pp.setState(IPS_BUSY);
+    IUUserIONewSwitch(&io, d, pp.getSwitch());
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -1355,12 +1383,12 @@ void INDI::BaseClient::startBlob(const char *devName, const char *propName, cons
     IUUserIONewBLOBStart(&io, d, devName, propName, timestamp);
 }
 
-void INDI::BaseClient::sendOneBlob(IBLOB *bp)
+void INDI::BaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
 {
     D_PTR(BaseClient);
     IUUserIOBLOBContextOne(
         &io, d,
-        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
+        blob->getName(), blob->getSize(), blob->getBlobLen(), blob->getBlob(), blob->getFormat()
     );
 }
 
