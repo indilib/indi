@@ -27,6 +27,12 @@
 #include <vector>
 #include <cstdint>
 
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertylight.h"
+#include "indipropertyblob.h"
+
 // #define MAXRBUF 2048 // #PS: defined in indibase.h
 
 /** @class INDI::BaseDevice
@@ -127,6 +133,7 @@ class BaseDevice
         void registerProperty(INDI::PropertyView<IBLOB> *property);
 
         void registerProperty(INDI::Property &property);
+        void watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback);
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.

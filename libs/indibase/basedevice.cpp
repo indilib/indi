@@ -827,6 +827,12 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
         d->addProperty(INDI::Property(p, type));
 }
 
+void BaseDevice::watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback)
+{
+    D_PTR(BaseDevice);
+    d->watchPropertyMap[name] = callback;
+}
+
 void BaseDevice::registerProperty(INDI::Property &property)
 {
     D_PTR(BaseDevice);

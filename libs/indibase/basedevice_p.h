@@ -25,6 +25,8 @@
 #include <deque>
 #include <string>
 #include <mutex>
+#include <map>
+#include <functional>
 
 #include "indipropertyblob.h"
 #include "indililxml.h"
@@ -44,13 +46,22 @@ class BaseDevicePrivate
 
         void addProperty(const INDI::Property &property)
         {
-            std::unique_lock<std::mutex> lock(m_Lock);
-            pAll.push_back(property);
+            {
+                std::unique_lock<std::mutex> lock(m_Lock);
+                pAll.push_back(property);
+            }
+            
+            auto it = watchPropertyMap.find(property.getName());
+            if (it != watchPropertyMap.end())
+            {
+                it->second(property);
+            }
         }
 
     public:
         std::string deviceName;
         BaseDevice::Properties pAll;
+        std::map<std::string, std::function<void(INDI::Property)>> watchPropertyMap;
         LilXmlParser xmlParser;
 
         INDI::BaseMediator *mediator {nullptr};
