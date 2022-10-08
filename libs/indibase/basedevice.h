@@ -98,42 +98,11 @@ class BaseDevice
         BaseDevice();
         virtual ~BaseDevice();
 
-    public:
-        /** @return Return vector number property given its name */
-        INDI::PropertyView<INumber> *getNumber(const char *name) const;
-        /** @return Return vector text property given its name */
-        INDI::PropertyView<IText>   *getText(const char *name) const;
-        /** @return Return vector switch property given its name */
-        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
-        /** @return Return vector light property given its name */
-        INDI::PropertyView<ILight>  *getLight(const char *name) const;
-        /** @return Return vector BLOB property given its name */
-        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
-
-    public:
-        /** @return Return property state */
-        IPState getPropertyState(const char *name) const;
-        /** @return Return property permission */
-        IPerm getPropertyPermission(const char *name) const;
-
-    public:
-        void registerProperty(void *p, INDI_PROPERTY_TYPE type);
-
-        // #PS: will be deprecated / backward compatibility
-        void registerProperty(ITextVectorProperty *property);
-        void registerProperty(INumberVectorProperty *property);
-        void registerProperty(ISwitchVectorProperty *property);
-        void registerProperty(ILightVectorProperty *property);
-        void registerProperty(IBLOBVectorProperty *property);
-
-        void registerProperty(INDI::PropertyView<IText> *property);
-        void registerProperty(INDI::PropertyView<INumber> *property);
-        void registerProperty(INDI::PropertyView<ISwitch> *property);
-        void registerProperty(INDI::PropertyView<ILight> *property);
-        void registerProperty(INDI::PropertyView<IBLOB> *property);
-
+    public: // property
+        /** @brief Register the property to be able to observe and update.
+         *  @param property any property from the INDI::PropertyXXX family.
+         */
         void registerProperty(INDI::Property &property);
-        void watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback);
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
@@ -142,16 +111,11 @@ class BaseDevice
          */
         int removeProperty(const char *name, char *errmsg);
 
-        /** @brief Return a property and its type given its name.
-         *  @param name of property to be found.
-         *  @param type of property found.
-         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
-         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
-         *
-         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
-         *  is the property type (Number, Text, Switch..etc).
+        /** @brief Call the callback function if property is available.
+         *  @param name of property.
+         *  @param callback as an argument of the function you can use INDI::PropertyNumber, INDI::PropertySwitch etc.
          */
-        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+        void watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback);
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.
@@ -164,6 +128,50 @@ class BaseDevice
         /** @brief Return a list of all properties in the device. */
         Properties getProperties();
         const Properties getProperties() const;
+
+    public: // deprecated
+        /** @return Return vector number property given its name */
+        INDI::PropertyView<INumber> *getNumber(const char *name) const;
+        /** @return Return vector text property given its name */
+        INDI::PropertyView<IText>   *getText(const char *name) const;
+        /** @return Return vector switch property given its name */
+        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
+        /** @return Return vector light property given its name */
+        INDI::PropertyView<ILight>  *getLight(const char *name) const;
+        /** @return Return vector BLOB property given its name */
+        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
+
+    public: // deprecated
+        void registerProperty(void *p, INDI_PROPERTY_TYPE type);
+
+        void registerProperty(ITextVectorProperty *property);
+        void registerProperty(INumberVectorProperty *property);
+        void registerProperty(ISwitchVectorProperty *property);
+        void registerProperty(ILightVectorProperty *property);
+        void registerProperty(IBLOBVectorProperty *property);
+
+        void registerProperty(INDI::PropertyView<IText> *property);
+        void registerProperty(INDI::PropertyView<INumber> *property);
+        void registerProperty(INDI::PropertyView<ISwitch> *property);
+        void registerProperty(INDI::PropertyView<ILight> *property);
+        void registerProperty(INDI::PropertyView<IBLOB> *property);
+
+    public: // deprecated
+        /** @return Return property state */
+        IPState getPropertyState(const char *name) const;
+        /** @return Return property permission */
+        IPerm getPropertyPermission(const char *name) const;
+
+        /** @brief Return a property and its type given its name.
+         *  @param name of property to be found.
+         *  @param type of property found.
+         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
+         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
+         *
+         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
+         *  is the property type (Number, Text, Switch..etc).
+         */
+        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     public:
         /** @brief Add message to the driver's message queue.
