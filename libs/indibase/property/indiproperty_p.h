@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+               2022 Pawel Soja <kernel32.pl@gmail.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -40,7 +41,7 @@ static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> 
     using S = std::remove_pointer_t<T>;
     static struct Invalid
     {
-        std::shared_ptr<T> instance {new S {0}};
+        std::shared_ptr<T> instance {new S {size_t(16)}};
         Invalid()
         {
             instance->type = INDI_UNKNOWN;

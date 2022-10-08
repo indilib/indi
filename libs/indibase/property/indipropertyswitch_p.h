@@ -31,6 +31,11 @@ class PropertySwitchPrivate: public PropertyBasicPrivateTemplate<ISwitch>
 {
     public:
         PropertySwitchPrivate(size_t count);
+#ifdef INDI_PROPERTY_RAW_CAST
+        PropertySwitchPrivate(RawPropertyType *p)
+            : BasicPropertyType(p)
+        { }
+#endif
         virtual ~PropertySwitchPrivate();
 
     public:

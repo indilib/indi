@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+               2022 Pawel Soja <kernel32.pl@gmail.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -18,6 +19,12 @@
 
 #include "indiproperty.h"
 #include "indiproperty_p.h"
+
+#include "indipropertytext_p.h"
+#include "indipropertyswitch_p.h"
+#include "indipropertynumber_p.h"
+#include "indipropertylight_p.h"
+#include "indipropertyblob_p.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -111,29 +118,28 @@ Property::Property()
     : d_ptr(new PropertyPrivate(nullptr, INDI_UNKNOWN))
 { }
 
-Property::Property(void *property, INDI_PROPERTY_TYPE type)
-    : d_ptr(new PropertyPrivate(property, type))
-{ }
 
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
 Property::Property(INumberVectorProperty *property)
-    : d_ptr(new PropertyPrivate(property))
+    : d_ptr(new PropertyNumberPrivate(property))
 { }
 
 Property::Property(ITextVectorProperty   *property)
-    : d_ptr(new PropertyPrivate(property))
+    : d_ptr(new PropertyTextPrivate(property))
 { }
 
 Property::Property(ISwitchVectorProperty *property)
-    : d_ptr(new PropertyPrivate(property))
+    : d_ptr(new PropertySwitchPrivate(property))
 { }
 
 Property::Property(ILightVectorProperty  *property)
-    : d_ptr(new PropertyPrivate(property))
+    : d_ptr(new PropertyLightPrivate(property))
 { }
 
 Property::Property(IBLOBVectorProperty   *property)
-    : d_ptr(new PropertyPrivate(property))
+    : d_ptr(new PropertyBlobPrivate(property))
 { }
+#endif
 
 Property::~Property()
 { }
