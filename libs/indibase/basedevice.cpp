@@ -494,6 +494,8 @@ static void for_property(
         if (item)
             function(element, item);
     }
+
+    typedProperty.emitUpdate();
 }
 
 /*
