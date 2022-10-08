@@ -103,7 +103,7 @@ class BaseDevice
         /** @brief Register the property to be able to observe and update.
          *  @param property any property from the INDI::PropertyXXX family.
          */
-        void registerProperty(INDI::Property &property);
+        void registerProperty(const INDI::Property &property);
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
