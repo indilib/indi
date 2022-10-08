@@ -136,6 +136,7 @@ class LilXmlElement
         void removeAttribute(const char *name);
 
         LilXmlValue context() const;
+        void setContext(const char *data);
 
         void print(FILE *f, int level = 0) const;
 
@@ -365,6 +366,9 @@ inline std::string LilXmlElement::tagName() const
 inline LilXmlElement::Elements LilXmlElement::getElements() const
 {
     Elements result;
+    if (handle() == nullptr)
+        return result;
+
     for (XMLEle *ep = nextXMLEle(mHandle, 1); ep != nullptr; ep = nextXMLEle(mHandle, 0))
         result.push_back(LilXmlElement(ep));
     return result;
@@ -373,6 +377,9 @@ inline LilXmlElement::Elements LilXmlElement::getElements() const
 inline LilXmlElement::Elements LilXmlElement::getElementsByTagName(const char *tagName) const
 {
     LilXmlElement::Elements result;
+    if (handle() == nullptr)
+        return result;
+
     for (XMLEle *ep = nextXMLEle(mHandle, 1); ep != nullptr; ep = nextXMLEle(mHandle, 0))
     {
         LilXmlElement element(ep);
@@ -402,6 +409,11 @@ inline void LilXmlElement::removeAttribute(const char *name)
 inline LilXmlValue LilXmlElement::context() const
 {
     return LilXmlValue(pcdataXMLEle(mHandle), pcdatalenXMLEle(mHandle));
+}
+
+inline void LilXmlElement::setContext(const char *data)
+{
+    editXMLEle(mHandle, data);
 }
 
 inline void LilXmlElement::print(FILE *f, int level) const
