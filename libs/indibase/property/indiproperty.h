@@ -149,6 +149,7 @@ class Property
         operator INDI::PropertyView<IBLOB>   *() const { return getBLOB(); }
         bool operator != (std::nullptr_t) const        { return  isValid(); }
         bool operator == (std::nullptr_t) const        { return !isValid(); }
+        operator bool()                   const        { return  isValid(); }
 #endif
 
     protected:
