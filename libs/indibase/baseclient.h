@@ -225,6 +225,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         /** @brief Send opening tag for BLOB command to server */
         void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
+        void sendOneBlob(IBLOB *bp);
         void sendOneBlob(INDI::WidgetView<IBLOB> *blob);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);

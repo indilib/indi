@@ -1392,6 +1392,11 @@ void INDI::BaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
     );
 }
 
+void INDI::BaseClient::sendOneBlob(IBLOB *bp)
+{
+    sendOneBlob(static_cast<INDI::WidgetView<IBLOB>*>(bp));
+}
+
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
