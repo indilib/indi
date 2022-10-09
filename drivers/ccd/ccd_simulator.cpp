@@ -318,12 +318,6 @@ int CCDSim::SetTemperature(double temperature)
 
 bool CCDSim::StartExposure(float duration)
 {
-    if (std::isnan(RA) && std::isnan(Dec))
-    {
-        LOG_ERROR("Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
-        return false;
-    }
-
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
@@ -630,6 +624,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 #endif
             currentRA  = RA;
             currentDE = Dec;
+
+            if (std::isnan(currentRA))
+            {
+                currentRA = 0;
+                currentDE = 0;
+            }
 
             INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 

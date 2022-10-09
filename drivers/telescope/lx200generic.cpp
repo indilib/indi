@@ -32,6 +32,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200_10micron.h"
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
+#include "lx200_OpenAstroTech.h"
 #include "lx200ap.h"
 #include "lx200ap_v2.h"
 #include "lx200ap_gtocp2.h"
@@ -158,6 +159,11 @@ static class Loader
             {
                 IDLog("initializing for ZWO AM5 mount...\n");
                 telescope.reset(new LX200AM5());
+            }
+            else if (strstr(__progname, "indi_lx200_OpenAstroTech"))
+            {
+                IDLog("initializing for OpenAstroTech mount...\n");
+                telescope.reset(new LX200_OpenAstroTech());
             }
             // be nice and give them a generic device
             else
