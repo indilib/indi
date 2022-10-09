@@ -131,17 +131,17 @@ class BaseDevice
         Properties getProperties();
         const Properties getProperties() const;
 
-    public: // deprecated
+    public:
         /** @return Return vector number property given its name */
-        INDI::PropertyView<INumber> *getNumber(const char *name) const;
+        INDI::PropertyNumber getNumber(const char *name) const;
         /** @return Return vector text property given its name */
-        INDI::PropertyView<IText>   *getText(const char *name) const;
+        INDI::PropertyText getText(const char *name) const;
         /** @return Return vector switch property given its name */
-        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
+        INDI::PropertySwitch getSwitch(const char *name) const;
         /** @return Return vector light property given its name */
-        INDI::PropertyView<ILight>  *getLight(const char *name) const;
+        INDI::PropertyLight getLight(const char *name) const;
         /** @return Return vector BLOB property given its name */
-        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
+        INDI::PropertyBlob getBLOB(const char *name) const;
 
     public: // deprecated
         /** @return Return property state */

@@ -79,29 +79,29 @@ BaseDevice::BaseDevice(BaseDevicePrivate &dd)
     : d_ptr(&dd)
 { }
 
-INDI::PropertyView<INumber> *BaseDevice::getNumber(const char *name) const
+INDI::PropertyNumber BaseDevice::getNumber(const char *name) const
 {
-    return static_cast<PropertyView<INumber> *>(getRawProperty(name, INDI_NUMBER));
+    return getProperty(name, INDI_NUMBER);
 }
 
-INDI::PropertyView<IText> *BaseDevice::getText(const char *name) const
+INDI::PropertyText BaseDevice::getText(const char *name) const
 {
-    return static_cast<PropertyView<IText> *>(getRawProperty(name, INDI_TEXT));
+    return getProperty(name, INDI_TEXT);
 }
 
-INDI::PropertyView<ISwitch> *BaseDevice::getSwitch(const char *name) const
+INDI::PropertySwitch BaseDevice::getSwitch(const char *name) const
 {
-    return static_cast<PropertyView<ISwitch> *>(getRawProperty(name, INDI_SWITCH));
+    return getProperty(name, INDI_SWITCH);
 }
 
-INDI::PropertyView<ILight> *BaseDevice::getLight(const char *name) const
+INDI::PropertyLight BaseDevice::getLight(const char *name) const
 {
-    return static_cast<PropertyView<ILight> *>(getRawProperty(name, INDI_LIGHT));
+    return getProperty(name, INDI_LIGHT);
 }
 
-INDI::PropertyView<IBLOB> *BaseDevice::getBLOB(const char *name) const
+INDI::PropertyBlob BaseDevice::getBLOB(const char *name) const
 {
-    return static_cast<PropertyView<IBLOB> *>(getRawProperty(name, INDI_BLOB));
+    return getProperty(name, INDI_BLOB);
 }
 
 IPState BaseDevice::getPropertyState(const char *name) const
