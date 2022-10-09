@@ -144,6 +144,7 @@ class PropertyBasic : public INDI::Property
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
     public: // deprecated
         INDI::PropertyView<T> *operator->();
+        INDI::PropertyView<T>  operator*();
 #endif
 };
 

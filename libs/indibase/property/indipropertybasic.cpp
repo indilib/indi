@@ -425,6 +425,13 @@ PropertyView<T> *PropertyBasic<T>::operator ->()
     D_PTR(PropertyBasic);
     return static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
 }
+
+template <typename T>
+INDI::PropertyView<T> PropertyBasic<T>::operator*()
+{
+    D_PTR(PropertyBasic);
+    return *static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
+}
 #endif
 
 template class PropertyBasicPrivateTemplate<IText>;
