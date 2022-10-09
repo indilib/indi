@@ -459,4 +459,10 @@ void Property::emitUpdate()
         d->onUpdateCallback();
 }
 
+bool Property::hasUpdateCallback() const
+{
+    D_PTR(const Property);
+    return d->onUpdateCallback != nullptr;
+}
+
 }

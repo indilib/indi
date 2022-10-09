@@ -453,7 +453,9 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
         return rc;
     }
 
-    property.update(states, names, n);
+    property.update(states, names, n); // update and callback
+    if (property.hasUpdateCallback())
+        return true;
 
     bool rc = false;
     for (Connection::Interface *oneConnection : d->connections)
@@ -471,7 +473,9 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     if (!property.isValid())
         return false;
 
-    property.update(values, names, n);
+    property.update(values, names, n); // update and callback
+    if (property.hasUpdateCallback())
+        return true;
 
     for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewNumber(dev, name, values, names, n);
@@ -488,7 +492,9 @@ bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], 
     if (!property.isValid())
         return false;
 
-    property.update(texts, names, n);
+    property.update(texts, names, n); // update and callback
+    if (property.hasUpdateCallback())
+        return true;
 
     for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewText(dev, name, texts, names, n);
@@ -506,7 +512,9 @@ bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], in
     if (!property.isValid())
         return false;
 
-    property.update(sizes, blobsizes, blobs, formats, names, n);
+    property.update(sizes, blobsizes, blobs, formats, names, n); // update and callback
+    if (property.hasUpdateCallback())
+        return true;
 
     for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);

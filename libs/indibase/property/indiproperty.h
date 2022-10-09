@@ -107,6 +107,7 @@ class Property
 
     public:
         void emitUpdate();
+        bool hasUpdateCallback() const;
 
     public:
         void save(FILE *fp) const;

@@ -75,6 +75,12 @@ bool PropertySwitch::update(const ISState states[], const char * const names[], 
     return d->property.update(states, names, n) && (emitUpdate(), true);
 }
 
+bool PropertySwitch::hasUpdateCallback() const
+{
+    D_PTR(const PropertySwitch);
+    return d->onNewValuesCallback != nullptr || d->onUpdateCallback != nullptr;
+}
+
 void PropertySwitch::fill(
     const char *device, const char *name, const char *label, const char *group,
     IPerm permission, ISRule rule, double timeout, IPState state
