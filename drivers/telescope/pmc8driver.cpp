@@ -76,9 +76,9 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
 #define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
-#define PMC8_RATE_SIDEREAL 15.0
+#define PMC8_RATE_SIDEREAL 15.041
 #define PMC8_RATE_LUNAR 14.685
-#define PMC8_RATE_SOLAR 15.041
+#define PMC8_RATE_SOLAR 15.0
 #define PMC8_RATE_KING 15.0369
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
