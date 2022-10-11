@@ -247,7 +247,7 @@ inline double LilXmlValue::toDouble(safe_ptr<bool> ok) const
     try {
         result = std::stod(mValue);
         *ok = true;
-    } catch (const std::invalid_argument &) {
+    } catch (...) {
         *ok = false;
     }
     return result;
