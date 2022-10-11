@@ -524,8 +524,16 @@ bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], in
 
 bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
-    return false;
+    D_PTR(DefaultDevice);
+    char errmsg[MAXRBUF];
+    return d->watchDevice.processXml(INDI::LilXmlElement(root), errmsg) < 0;
+}
+
+void DefaultDevice::watchDevice(const char *name, const std::function<void (BaseDevice)> &callback)
+{
+    D_PTR(DefaultDevice);
+    d->watchDevice[name].newDeviceCallback = callback;
+    IDSnoopDevice(name, nullptr);
 }
 
 void DefaultDevice::addDebugControl()

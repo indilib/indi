@@ -315,6 +315,13 @@ class DefaultDevice : public BaseDevice
          */
         void setDriverInterface(uint16_t value);
 
+    public:
+        /** @brief Add a device to the watch list.
+         *
+         *  A driver may select to receive notifications of a specific other device.
+         */
+        void watchDevice(const char *name, const std::function<void (BaseDevice)> &callback);
+
     protected:
         /**
          * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dyanmic properties
