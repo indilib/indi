@@ -109,12 +109,7 @@ BaseClientPrivate::~BaseClientPrivate()
 
 void BaseClientPrivate::clear()
 {
-    while (!cDevices.empty())
-    {
-        delete cDevices.back();
-        cDevices.pop_back();
-    }
-    cDevices.clear();
+    watchDevice.clear();
     blobModes.clear();
     directBlobAccess.clear();
 }
@@ -450,7 +445,7 @@ void BaseClientPrivate::listenINDI()
 
     connect();
 
-    if (cDeviceNames.empty())
+    if (watchDevice.isEmpty())
     {
         IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
@@ -458,22 +453,22 @@ void BaseClientPrivate::listenINDI()
     }
     else
     {
-        for (const auto &oneDevice : cDeviceNames)
+        for (const auto &deviceInfo : watchDevice /* first: device name, second: device info */)
         {
             // If there are no specific properties to watch, we watch the complete device
-            if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
+            if (deviceInfo.second.properties.size() == 0)
             {
-                IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
+                IUUserIOGetProperties(&io, this, deviceInfo.first.c_str(), nullptr);
                 if (verbose)
-                    IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
+                    IUUserIOGetProperties(userio_file(), stderr, deviceInfo.first.c_str(), nullptr);
             }
             else
             {
-                for (const auto &oneProperty : cWatchProperties[oneDevice])
+                for (const auto &oneProperty : deviceInfo.second.properties)
                 {
-                    IUUserIOGetProperties(&io, this, oneDevice.c_str(), oneProperty.c_str());
+                    IUUserIOGetProperties(&io, this, deviceInfo.first.c_str(), oneProperty.c_str());
                     if (verbose)
-                        IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), oneProperty.c_str());
+                        IUUserIOGetProperties(userio_file(), stderr, deviceInfo.first.c_str(), oneProperty.c_str());
                 }
             }
         }
@@ -670,7 +665,7 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
-        cDeviceNames.clear();
+        watchDevice.clear();
         sSocketChanged.notify_all();
     }
 }
@@ -785,87 +780,32 @@ int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *er
         return INDI_PROPERTY_DUPLICATED;
     }
 
-    /* Get the device, if not available, create it */
-    INDI::BaseDevice *dp = findDevice(root, true, errmsg);
-    if (dp == nullptr)
-    {
-        strcpy(errmsg, "No device available and none was created");
-        return INDI_DEVICE_NOT_FOUND;
-    }
-
     // If device is set to BLOB_ONLY, we ignore everything else
     // not related to blobs
-    if (parent->getBLOBMode(dp->getDeviceName()) == B_ONLY)
+    if (
+        parent->getBLOBMode(root.getAttribute("device")) == B_ONLY &&
+        root.tagName() != "defBLOBVector" &&
+        root.tagName() != "setBLOBVector"
+    )
     {
-        if (root.tagName() == "defBLOBVector")
-        {
-            return dp->buildProp(root, errmsg);
-        }
-
-        if (root.tagName() == "setBLOBVector")
-        {
-            return dp->setValue(root, errmsg);
-        }
-        // Ignore everything else
         return 0;
     }
 
-    // If we are asked to watch for specific properties only, we ignore everything else
-    if (cWatchProperties.size() > 0)
-    {
-        const auto it = cWatchProperties.find(root.getAttribute("device").toString());
-
-        // device not found
-        if (it == cWatchProperties.end())
-        {
-            return 0;
-        }
-        
-        // property not found
-        if (it->second.find(root.getAttribute("name").toString()) == it->second.end())
-        {
-            return 0;
-        }
-    }
-
-    static const std::set<std::string> defVectors{
-        "defTextVector",  "defNumberVector", "defSwitchVector",
-        "defLightVector", "defBLOBVector"
-    };
-
-    if (defVectors.find(root.tagName()) != defVectors.end())
-    {
-        return dp->buildProp(root, errmsg);
-    }
-
-    static const std::set<std::string> setVectors{
-        "setTextVector",  "setNumberVector", "setSwitchVector",
-        "setLightVector", "setBLOBVector"
-    };
-
-    if (setVectors.find(root.tagName()) != setVectors.end())
-    {
-        return dp->setValue(root, errmsg);
-    }
-
-    return INDI_DISPATCH_ERROR;
+    return watchDevice.processXml(root, errmsg, [this]() { // create new device if nessesery
+        INDI::BaseDevice *device = new INDI::BaseDevice();
+        device->setMediator(parent);
+        return device;
+    });
 }
 
 int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
-    for (auto devicei = cDevices.begin(); devicei != cDevices.end();)
+    if (auto device = watchDevice.getDeviceByName(devName))
     {
-        if ((*devicei)->isDeviceNameMatch(devName))
-        {
-            parent->removeDevice(*devicei);
-            delete *devicei;
-            devicei = cDevices.erase(devicei);
-            return 0;
-        }
-        else
-            ++devicei;
+        parent->removeDevice(device);
+        watchDevice.deleteDevice(device);
+        return 0;
     }
-
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
     return INDI_DEVICE_NOT_FOUND;
 }
@@ -879,8 +819,9 @@ int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 int BaseClientPrivate::delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg)
 {
     /* dig out device and optional property name */
-    INDI::BaseDevice *dp = findDevice(root, 0, errmsg);
-    if (!dp)
+    INDI::BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+
+    if (dp == nullptr)
         return INDI_DEVICE_NOT_FOUND;
 
     dp->checkMessage(root.handle());
@@ -908,86 +849,12 @@ int BaseClientPrivate::delPropertyCmd(const INDI::LilXmlElement &root, char *err
     return -1;
 }
 
-
-INDI::BaseDevice *BaseClientPrivate::findDevice(const char *devName, char *errmsg)
-{
-    auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
-    {
-        return oneDevice->isDeviceNameMatch(devName);
-    });
-
-    if (pos != cDevices.end())
-        return *pos;
-
-    snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
-    return nullptr;
-}
-
-/* add new device */
-INDI::BaseDevice *BaseClientPrivate::addDevice(const INDI::LilXmlElement &root, char *errmsg)
-{
-    auto deviceName = root.getAttribute("device");
-
-    if (!deviceName.isValid())
-    {
-        strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
-        return nullptr;
-    }
-
-    INDI::BaseDevice *dp = new INDI::BaseDevice();
-
-    dp->setMediator(parent);
-    dp->setDeviceName(deviceName);
-
-    cDevices.push_back(dp);
-
-    parent->newDevice(dp);
-
-    // watchDevice event
-    auto it = cDeviceNamesCallback.find(dp->getDeviceName());
-    if (it != cDeviceNamesCallback.end())
-    {
-        it->second(dp);
-    }
-
-    /* ok */
-    return dp;
-}
-
-INDI::BaseDevice *BaseClientPrivate::findDevice(const INDI::LilXmlElement &root, bool create, char *errmsg)
-{
-    auto deviceName = root.getAttribute("device");
-    if (!deviceName.isValid())
-    {
-        snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", root.tagName().c_str());
-        return nullptr;
-    }
-  
-    if (deviceName.toString() == "")
-    {
-        snprintf(errmsg, MAXRBUF, "Device name is empty! %s", root.tagName().c_str());
-        return nullptr;
-    }
-
-    INDI::BaseDevice *dp = findDevice(deviceName, errmsg);
-
-    if (dp)
-        return dp;
-
-    /* not found, create if ok */
-    if (create)
-        return addDevice(root, errmsg);
-
-    snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", root.tagName().c_str(), deviceName.toCString());
-    return nullptr;
-}
-
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
 int BaseClientPrivate::messageCmd(const INDI::LilXmlElement &root, char *errmsg)
 {
-    INDI::BaseDevice *dp = findDevice(root, false, errmsg);
+    INDI::BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
 
     if (dp)
     {
@@ -1156,21 +1023,19 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    d->cDeviceNames.insert(deviceName);
+    d->watchDevice[deviceName]; // create empty map field
 }
 
-void INDI::BaseClient::watchDevice(const char *deviceName, const std::function<void(INDI::BaseDevice *)> &callback)
+void INDI::BaseClient::watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback)
 {
     D_PTR(BaseClient);
-    d->cDeviceNamesCallback[deviceName] = callback;
-    watchDevice(deviceName);
+    d->watchDevice[deviceName].newDeviceCallback = callback;
 }
 
 void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
 {
     D_PTR(BaseClient);
-    watchDevice(deviceName);
-    d->cWatchProperties[deviceName].insert(propertyName);
+    d->watchDevice[deviceName].properties.insert(propertyName);
 }
 
 bool INDI::BaseClient::connectServer()
@@ -1212,18 +1077,13 @@ void INDI::BaseClient::disconnectDevice(const char *deviceName)
 INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    for (auto &device : d->cDevices)
-    {
-        if (device->isDeviceNameMatch(deviceName))
-            return device;
-    }
-    return nullptr;
+    return d->watchDevice.getDeviceByName(deviceName);
 }
 
-const std::vector<INDI::BaseDevice *> &INDI::BaseClient::getDevices() const
+std::vector<INDI::BaseDevice *> INDI::BaseClient::getDevices() const
 {
     D_PTR(const BaseClient);
-    return d->cDevices;
+    return d->watchDevice.getDevices();
 }
 
 const char *INDI::BaseClient::getHost() const
@@ -1463,10 +1323,10 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
 bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
 {
     D_PTR(BaseClient);
-    for (INDI::BaseDevice *device : d->cDevices)
+    for (auto &it: d->watchDevice)
     {
-        if (device->getDriverInterface() & driverInterface)
-            deviceList.push_back(device);
+        if (it.second.device->getDriverInterface() & driverInterface)
+            deviceList.push_back(it.second.device.get());
     }
 
     return (deviceList.size() > 0);

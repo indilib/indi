@@ -21,6 +21,8 @@ typedef SSIZE_T ssize_t;
 #endif
 #endif
 
+#include "watchdeviceproperty.h"
+
 namespace INDI
 {
 
@@ -74,13 +76,6 @@ class BaseClientPrivate
         /** @brief Delete property command */
         int delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg);
 
-        /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDevice(const char *devName, char *errmsg);
-        /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDevice(const INDI::LilXmlElement &root, bool create, char *errmsg);
-        /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(const INDI::LilXmlElement &root, char *errmsg);
-
         /**  Process messages */
         int messageCmd(const INDI::LilXmlElement &root, char *errmsg);
 
@@ -104,12 +99,10 @@ class BaseClientPrivate
         int sendFd {-1};
 #endif
 
-        std::vector<INDI::BaseDevice *> cDevices;
-        std::set<std::string> cDeviceNames;
+        WatchDeviceProperty watchDevice;
+
         std::list<BLOBMode> blobModes;
-        std::map<std::string, std::set<std::string>> cWatchProperties;
         std::map<std::string, std::set<std::string>> directBlobAccess;
-        std::map<std::string, std::function<void(INDI::BaseDevice *)>> cDeviceNamesCallback;
 
         std::string cServer {"localhost"};
         uint32_t cPort      {7624};

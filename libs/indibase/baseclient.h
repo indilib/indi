@@ -134,7 +134,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  will be created and handled.
          */
         void watchDevice(const char *deviceName);
-        void watchDevice(const char *deviceName, const std::function<void(INDI::BaseDevice *)> &callback);
+        void watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback);
 
         /** @brief Connect to INDI driver
          *  @param deviceName Name of the device to connect to.
@@ -152,7 +152,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         INDI::BaseDevice *getDevice(const char *deviceName);
 
         /** @returns Returns a vector of all devices created in the client. */
-        const std::vector<INDI::BaseDevice *> &getDevices() const;
+        std::vector<INDI::BaseDevice *> getDevices() const;
 
         /** @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
          *
