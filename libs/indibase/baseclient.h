@@ -254,6 +254,19 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         virtual void newPingReply(std::string uid);
 
+    protected: // override INDI::BaseMediator methods, when they are not needed
+        virtual void newDevice(INDI::BaseDevice *dp) override;
+        virtual void removeDevice(INDI::BaseDevice *dp) override;
+        virtual void newProperty(INDI::Property *property) override;
+        virtual void removeProperty(INDI::Property *property) override;
+        virtual void newBLOB(IBLOB *bp) override;
+        virtual void newSwitch(ISwitchVectorProperty *svp) override;
+        virtual void newNumber(INumberVectorProperty *nvp) override;
+        virtual void newText(ITextVectorProperty *tvp) override;
+        virtual void newLight(ILightVectorProperty *lvp) override;
+        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        virtual void serverConnected() override;
+
     protected:
         std::unique_ptr<INDI::BaseClientPrivate> d_ptr;
 };

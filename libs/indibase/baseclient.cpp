@@ -1331,3 +1331,37 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
 
     return (deviceList.size() > 0);
 }
+
+
+void INDI::BaseClient::newDevice(INDI::BaseDevice *)
+{ }
+
+void INDI::BaseClient::removeDevice(INDI::BaseDevice *)
+{ }
+
+void INDI::BaseClient::newProperty(INDI::Property *)
+{ }
+
+void INDI::BaseClient::removeProperty(INDI::Property *)
+{ }
+
+void INDI::BaseClient::newBLOB(IBLOB *)
+{ }
+
+void INDI::BaseClient::newSwitch(ISwitchVectorProperty *)
+{ }
+
+void INDI::BaseClient::newNumber(INumberVectorProperty *)
+{ }
+
+void INDI::BaseClient::newText(ITextVectorProperty *)
+{ }
+
+void INDI::BaseClient::newLight(ILightVectorProperty *)
+{ }
+
+void INDI::BaseClient::newMessage(INDI::BaseDevice *, int)
+{ }
+
+void INDI::BaseClient::serverConnected()
+{ }
