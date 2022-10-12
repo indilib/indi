@@ -320,7 +320,7 @@ class DefaultDevice : public BaseDevice
          *
          *  A driver may select to receive notifications of a specific other device.
          */
-        void watchDevice(const char *name, const std::function<void (INDI::BaseDevice)> &callback);
+        void watchDevice(const char *deviceName, const std::function<void (INDI::BaseDevice)> &callback);
 
     protected:
         /**
