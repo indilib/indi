@@ -44,6 +44,8 @@ WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const c
     {
         it.device.reset(constructor());
         it.device->setDeviceName(name);
+        if (auto mediator = it.device->getMediator())
+            mediator->newDevice(it.device.get());
         it.emitWatchDevice();
     }
     return it;
