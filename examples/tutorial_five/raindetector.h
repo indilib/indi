@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "defaultdevice.h"
-#include "indipropertylight.h"
-#include "indipropertyswitch.h"
+#include <defaultdevice.h>
+#include <indipropertylight.h>
+#include <indipropertyswitch.h>
 
 class RainDetector : public INDI::DefaultDevice
 {
