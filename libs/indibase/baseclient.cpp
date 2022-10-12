@@ -109,7 +109,7 @@ BaseClientPrivate::~BaseClientPrivate()
 
 void BaseClientPrivate::clear()
 {
-    watchDevice.clear();
+    watchDevice.clearDevices();
     blobModes.clear();
     directBlobAccess.clear();
 }
@@ -665,7 +665,7 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
-        watchDevice.clear();
+        watchDevice.clearDevices();
         sSocketChanged.notify_all();
     }
 }

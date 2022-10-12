@@ -69,6 +69,7 @@ class WatchDeviceProperty
 
     public:
         void clear();
+        void clearDevices();
         bool deleteDevice(const BaseDevice *device);
 
     public:

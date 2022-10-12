@@ -66,6 +66,14 @@ void WatchDeviceProperty::clear()
     data.clear();
 }
 
+void WatchDeviceProperty::clearDevices()
+{
+    for (auto &deviceInfo : data)
+    {
+        deviceInfo.second.device.reset(nullptr);
+    }
+}
+
 bool WatchDeviceProperty::deleteDevice(const BaseDevice *device)
 {
     for (auto it = data.begin(); it != data.end();)
