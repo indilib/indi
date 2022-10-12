@@ -46,7 +46,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <iostream>
 #include <memory>
 
-static const char MYCCD[] = "Simple CCD";
 
 int main(int, char *[])
 {
@@ -55,9 +54,9 @@ int main(int, char *[])
 
     myClient.connectServer();
 
-    myClient.setBLOBMode(B_ALSO, MYCCD, nullptr);
+    myClient.setBLOBMode(B_ALSO, "Simple CCD", nullptr);
 
-    myClient.enableDirectBlobAccess(MYCCD, nullptr);
+    myClient.enableDirectBlobAccess("Simple CCD", nullptr);
 
     std::cout << "Press Enter key to terminate the client.\n";
     std::cin.ignore();
@@ -69,14 +68,14 @@ int main(int, char *[])
 MyClient::MyClient()
 {
     // wait for the availability of the device
-    watchDevice(MYCCD, [this](INDI::BaseDevice device)
+    watchDevice("Simple CCD", [this](INDI::BaseDevice device)
     {
         mCcdSimulator = device; // save device
         // wait for the availability of the "CONNECTION" property
         device.watchProperty("CONNECTION", [this](INDI::Property)
         {
             IDLog("Connecting to INDI Driver...\n");
-            connectDevice(MYCCD);
+            connectDevice("Simple CCD");
         });
 
         // wait for the availability of the "CCD_TEMPERATURE" property
@@ -163,7 +162,7 @@ void MyClient::takeExposure(double seconds)
 ***************************************************************************************/
 void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
 {
-    if (!dp->isDeviceNameMatch(MYCCD))
+    if (!dp->isDeviceNameMatch("Simple CCD"))
         return;
 
     IDLog("Recveing message from Server:\n"
