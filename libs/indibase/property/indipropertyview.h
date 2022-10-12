@@ -995,6 +995,10 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             return this->blob;
         }
+        std::string getBlobAsString() const
+        {
+            return std::string(static_cast<const char*>(this->blob), this->bloblen);
+        }
         int getBlobLen() const
         {
             return this->bloblen;
