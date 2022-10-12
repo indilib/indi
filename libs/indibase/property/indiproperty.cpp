@@ -446,7 +446,7 @@ void Property::define(const char *format, ...) const
     va_end(ap);
 }
 
-void Property::onUpdate(std::function<void()> callback)
+void Property::onUpdate(const std::function<void()> &callback)
 {
     D_PTR(Property);
     d->onUpdateCallback = callback;

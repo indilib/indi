@@ -103,7 +103,7 @@ class Property
         bool isLabelMatch(const std::string &otherLabel) const;
 
     public:
-        void onUpdate(std::function<void()> callback);
+        void onUpdate(const std::function<void()> &callback);
 
     public:
         void emitUpdate();
