@@ -51,5 +51,5 @@ class MyClient : public INDI::BaseClient
         void newMessage(INDI::BaseDevice *dp, int messageID) override;
 
     private:
-        INDI::BaseDevice mCcdSimulator;
+        INDI::BaseDevice mSimpleCCD;
 };

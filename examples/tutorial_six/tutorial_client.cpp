@@ -70,7 +70,8 @@ MyClient::MyClient()
     // wait for the availability of the device
     watchDevice("Simple CCD", [this](INDI::BaseDevice device)
     {
-        mCcdSimulator = device; // save device
+        mSimpleCCD = device; // save device
+
         // wait for the availability of the "CONNECTION" property
         device.watchProperty("CONNECTION", [this](INDI::Property)
         {
@@ -81,13 +82,13 @@ MyClient::MyClient()
         // wait for the availability of the "CCD_TEMPERATURE" property
         device.watchProperty("CCD_TEMPERATURE", [this](INDI::PropertyNumber property)
         {
-            if (mCcdSimulator.isConnected())
+            if (mSimpleCCD.isConnected())
             {
                 IDLog("CCD is connected.\n");
                 setTemperature(-20);
             }
 
-            // call a handler function if property changes
+            // call lambda function if property changed
             property.onUpdate([property, this]()
             {
                 IDLog("Receving new CCD Temperature: %g C\n", property[0].getValue());
@@ -102,19 +103,17 @@ MyClient::MyClient()
         // wait for the availability of the "CCD1" property
         device.watchProperty("CCD1", [](INDI::PropertyBlob property)
         {
-            // call a handler function if property changes
+            // call lambda function if property changed
             property.onUpdate([property]()
             {
                 // Save FITS file to disk
                 std::ofstream myfile;
 
                 myfile.open("ccd_simulator.fits", std::ios::out | std::ios::binary);
-
                 myfile.write(static_cast<char *>(property[0].getBlob()), property[0].getBlobLen());
-
                 myfile.close();
 
-                IDLog("Received image, saved as mCcdSimulator.fits\n");
+                IDLog("Received image, saved as ccd_simulator.fits\n");
             });
         });
     });
@@ -125,11 +124,11 @@ MyClient::MyClient()
 ***************************************************************************************/
 void MyClient::setTemperature(double value)
 {
-    INDI::PropertyNumber ccdTemperature = mCcdSimulator.getProperty("CCD_TEMPERATURE");
+    INDI::PropertyNumber ccdTemperature = mSimpleCCD.getProperty("CCD_TEMPERATURE");
 
     if (!ccdTemperature.isValid())
     {
-        IDLog("Error: unable to find CCD Simulator CCD_TEMPERATURE property...\n");
+        IDLog("Error: unable to find Simple CCD, CCD_TEMPERATURE property...\n");
         return;
     }
 
@@ -143,7 +142,7 @@ void MyClient::setTemperature(double value)
 ***************************************************************************************/
 void MyClient::takeExposure(double seconds)
 {
-    INDI::PropertyNumber ccdExposure = mCcdSimulator.getProperty("CCD_EXPOSURE");
+    INDI::PropertyNumber ccdExposure = mSimpleCCD.getProperty("CCD_EXPOSURE");
 
     if (!ccdExposure.isValid())
     {
@@ -166,10 +165,6 @@ void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
         return;
 
     IDLog("Recveing message from Server:\n"
-          "\n"
-          "########################\n"
-          "%s\n"
-          "########################\n"
-          "\n",
+          "    %s\n\n", 
           dp->messageQueue(messageID).c_str());
 }
