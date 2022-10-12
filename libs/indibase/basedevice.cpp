@@ -621,7 +621,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
 /* Set BLOB vector. Process incoming data stream
  * Return 0 if okay, -1 if error
 */
-int BaseDevicePrivate::setBLOB(const INDI::PropertyBlob &property, const LilXmlElement &root, char *errmsg)
+int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement &root, char *errmsg)
 {
     for (const auto &element: root.getElementsByTagName("oneBLOB"))
     {
@@ -713,6 +713,7 @@ int BaseDevicePrivate::setBLOB(const INDI::PropertyBlob &property, const LilXmlE
             widget->setFormat(format);
         }
 
+        property.emitUpdate();
         if (mediator) mediator->newBLOB(widget);
     }
 

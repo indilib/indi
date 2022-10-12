@@ -41,8 +41,7 @@ class BaseDevicePrivate
         virtual ~BaseDevicePrivate();
 
         /** @brief Parse and store BLOB in the respective vector */
-        //int setBLOB(const INDI::PropertyBlob &propertyBlob, const LilXmlElement &element, char *errmsg);
-        int setBLOB(const INDI::PropertyBlob &propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
+        int setBLOB(INDI::PropertyBlob &propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
 
         void addProperty(const INDI::Property &property)
         {
