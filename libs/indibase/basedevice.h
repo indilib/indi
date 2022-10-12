@@ -117,7 +117,7 @@ class BaseDevice
          *  @param name of property.
          *  @param callback as an argument of the function you can use INDI::PropertyNumber, INDI::PropertySwitch etc.
          */
-        void watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback);
+        void watchProperty(const char *name, const std::function<void (INDI::Property)> &callback);
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.

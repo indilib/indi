@@ -810,7 +810,7 @@ const std::string &BaseDevice::lastMessage() const
     return d->messageLog.back();
 }
 
-void BaseDevice::watchProperty(const std::string &name, const std::function<void(INDI::Property)> &callback)
+void BaseDevice::watchProperty(const char *name, const std::function<void(INDI::Property)> &callback)
 {
     D_PTR(BaseDevice);
     d->watchPropertyMap[name] = callback;
