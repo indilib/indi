@@ -48,21 +48,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 static const char MYCCD[] = "Simple CCD";
 
-static std::unique_ptr<MyClient> camera_client(new MyClient());
-
-int main(int /*argc*/, char **/*argv*/)
+int main(int, char *[])
 {
-    camera_client->setServer("localhost", 7624);
+    MyClient myClient;
+    myClient.setServer("localhost", 7624);
 
-    camera_client->connectServer();
+    myClient.connectServer();
 
-    camera_client->setBLOBMode(B_ALSO, MYCCD, nullptr);
+    myClient.setBLOBMode(B_ALSO, MYCCD, nullptr);
 
-    camera_client->enableDirectBlobAccess(MYCCD, nullptr);
+    myClient.enableDirectBlobAccess(MYCCD, nullptr);
 
-    std::cout << "Press any key to terminate the client.\n";
-    std::string term;
-    std::cin >> term;
+    std::cout << "Press Enter key to terminate the client.\n";
+    std::cin.ignore();
 }
 
 /**************************************************************************************
