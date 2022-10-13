@@ -532,7 +532,7 @@ bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 void DefaultDevice::watchDevice(const char *name, const std::function<void (BaseDevice)> &callback)
 {
     D_PTR(DefaultDevice);
-    d->watchDevice[name].newDeviceCallback = callback;
+    d->watchDevice.watchDevice(name, callback);
     IDSnoopDevice(name, nullptr);
 }
 

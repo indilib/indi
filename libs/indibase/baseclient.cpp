@@ -665,7 +665,7 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
-        watchDevice.clearDevices();
+        watchDevice.unwatchDevices();
         sSocketChanged.notify_all();
     }
 }
@@ -1023,19 +1023,19 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    d->watchDevice[deviceName]; // create empty map field
+    d->watchDevice.watchDevice(deviceName);
 }
 
 void INDI::BaseClient::watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback)
 {
     D_PTR(BaseClient);
-    d->watchDevice[deviceName].newDeviceCallback = callback;
+    d->watchDevice.watchDevice(deviceName, callback);
 }
 
 void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
 {
     D_PTR(BaseClient);
-    d->watchDevice[deviceName].properties.insert(propertyName);
+    d->watchDevice.watchProperty(deviceName, propertyName);
 }
 
 bool INDI::BaseClient::connectServer()

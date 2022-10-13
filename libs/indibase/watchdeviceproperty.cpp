@@ -58,7 +58,29 @@ bool WatchDeviceProperty::isEmpty() const
 
 bool WatchDeviceProperty::isDeviceWatched(const char *name) const
 {
-    return data.size() == 0 || data.find(name) != data.end();
+    return watchedDevice.size() == 0 || watchedDevice.find(name) != watchedDevice.end();
+}
+
+void WatchDeviceProperty::unwatchDevices()
+{
+    watchedDevice.clear();
+}
+
+void WatchDeviceProperty::watchDevice(const std::string &deviceName)
+{
+    watchedDevice.insert(deviceName);
+}
+
+void WatchDeviceProperty::watchDevice(const std::string &deviceName, const std::function<void (BaseDevice)> &callback)
+{
+    watchedDevice.insert(deviceName);
+    data[deviceName].newDeviceCallback = callback;
+}
+
+void WatchDeviceProperty::watchProperty(const std::string &deviceName, const std::string &propertyName)
+{
+    watchedDevice.insert(deviceName);
+    data[deviceName].properties.insert(propertyName);
 }
 
 void WatchDeviceProperty::clear()

@@ -68,6 +68,13 @@ class WatchDeviceProperty
         bool isDeviceWatched(const char *deviceName) const;
 
     public:
+        void unwatchDevices();
+
+        void watchDevice(const std::string &deviceName);
+        void watchDevice(const std::string &deviceName, const std::function<void (BaseDevice)> &callback);
+
+        void watchProperty(const std::string &deviceName, const std::string &propertyName);
+
         void clear();
         void clearDevices();
         bool deleteDevice(const BaseDevice *device);
@@ -76,11 +83,6 @@ class WatchDeviceProperty
         int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor = [](){ return new BaseDevice(); } );
 
     public:
-        DeviceInfo &operator[](const char *name)
-        {
-            return data[name];
-        }
-
         std::map<std::string, DeviceInfo>::iterator begin()
         {
             return data.begin();
@@ -92,6 +94,7 @@ class WatchDeviceProperty
         }
 
     protected:
+        std::set<std::string> watchedDevice;
         std::map<std::string, DeviceInfo> data;
 };
 
