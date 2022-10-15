@@ -29,7 +29,6 @@ class PropertyLight: public INDI::PropertyBasic<ILight>
         DECLARE_PRIVATE(PropertyLight)
     public:
         PropertyLight(size_t count);
-        PropertyLight(INDI::Property property);
         ~PropertyLight();
 
     public:

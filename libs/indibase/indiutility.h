@@ -22,44 +22,12 @@
 */
 #pragma once
 
-
-#ifdef __cplusplus
 #include <string>
-#include <cstring>
 #include <sys/stat.h>
 #include <ctime>
 
 #include "indimacros.h"
-#else
-#include <string.h>
-#endif
 
-// C
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-/**
- * @brief The strlcpy() function copy strings respectively.
- * They are designed to be safer, more consistent, and less error prone replacements for strncpy.
- */
-inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
-{
-    const size_t srclen = strlen(src);
-    if (srclen + 1 < maxlen) {
-        memcpy(dst, src, srclen + 1);
-    } else if (maxlen != 0) {
-        memcpy(dst, src, maxlen - 1);
-        dst[maxlen-1] = '\0';
-    }
-    return srclen;
-}
-#ifdef __cplusplus
-}
-#endif
-
-// C++
-#ifdef __cplusplus
 namespace INDI
 {
 
@@ -80,24 +48,4 @@ std::string format_time(const std::tm &tm, const char *format);
  */
 void replace_all(std::string &subject, const std::string &search, const std::string &replace);
 
-/**
- * @brief The strlcpy() function copy strings respectively.
- * They are designed to be safer, more consistent, and less error prone replacements for strncpy.
- */
-inline size_t strlcpy(char * dst, const char * src, size_t maxlen)
-{
-    return indi_strlcpy(dst, src, maxlen);
 }
-
-/**
- * @brief The strlcpy() function copy strings respectively.
- * They are designed to be safer, more consistent, and less error prone replacements for strncpy.
- */
-template <size_t N>
-inline size_t strlcpy(char (&dst)[N], const char * src)
-{
-    return indi_strlcpy(dst, src, N);
-}
-
-}
-#endif

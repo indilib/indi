@@ -35,7 +35,6 @@
 */
 
 #include "baseclient.h"
-#include <basedevice.h>
 
 class MyClient : public INDI::BaseClient
 {
@@ -43,13 +42,23 @@ class MyClient : public INDI::BaseClient
         MyClient();
         ~MyClient() = default;
 
-    public:
-        void setTemperature(double value);
-        void takeExposure(double seconds);
+        void setTemperature();
+        void takeExposure();
 
     protected:
+        void newDevice(INDI::BaseDevice *dp) override;
+        void removeDevice(INDI::BaseDevice */*dp*/) override {}
+        void newProperty(INDI::Property *property) override;
+        void removeProperty(INDI::Property */*property*/) override {}
+        void newBLOB(IBLOB *bp) override;
+        void newSwitch(ISwitchVectorProperty */*svp*/) override {}
+        void newNumber(INumberVectorProperty *nvp) override;
         void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        void newText(ITextVectorProperty */*tvp*/) override {}
+        void newLight(ILightVectorProperty */*lvp*/) override {}
+        void serverConnected() override {}
+        void serverDisconnected(int /*exit_code*/) override {}
 
     private:
-        INDI::BaseDevice mSimpleCCD;
+        INDI::BaseDevice *ccd_simulator;
 };

@@ -20,7 +20,6 @@
 
 #include "basedevice_p.h"
 #include "defaultdevice.h"
-#include "watchdeviceproperty.h"
 
 #include <cstring>
 #include <list>
@@ -77,8 +76,6 @@ class DefaultDevicePrivate: public BaseDevicePrivate
     public:
         static std::list<DefaultDevicePrivate*> devices;
         static std::recursive_mutex             devicesLock;
-
-        WatchDeviceProperty watchDevice;
 };
 
 }

@@ -33,17 +33,13 @@ PropertyText::PropertyText(size_t count)
     : PropertyBasic<IText>(*new PropertyTextPrivate(count))
 { }
 
-PropertyText::PropertyText(INDI::Property property)
-    : PropertyBasic<IText>(property_private_cast<PropertyTextPrivate>(property.d_ptr))
-{ }
-
 PropertyText::~PropertyText()
 { }
 
 bool PropertyText::update(const char * const texts[], const char * const names[], int n)
 {
     D_PTR(PropertyText);
-    return d->property.update(texts, names, n) && (emitUpdate(), true);
+    return d->property.update(texts, names, n);
 }
 
 void PropertyText::fill(

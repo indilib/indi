@@ -28,11 +28,6 @@ class PropertyBlobPrivate: public PropertyBasicPrivateTemplate<IBLOB>
 {
     public:
         PropertyBlobPrivate(size_t count);
-#ifdef INDI_PROPERTY_RAW_CAST
-        PropertyBlobPrivate(RawPropertyType *p)
-            : BasicPropertyType(p)
-        { }
-#endif
         virtual ~PropertyBlobPrivate();
 
     public:

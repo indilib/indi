@@ -28,11 +28,6 @@ class PropertyLightPrivate: public PropertyBasicPrivateTemplate<ILight>
 {
     public:
         PropertyLightPrivate(size_t count);
-#ifdef INDI_PROPERTY_RAW_CAST
-        PropertyLightPrivate(RawPropertyType *p)
-            : BasicPropertyType(p)
-        { }
-#endif
         virtual ~PropertyLightPrivate();
 
     public:

@@ -1,6 +1,5 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
-               2022 Pawel Soja <kernel32.pl@gmail.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -19,12 +18,6 @@
 
 #include "indiproperty.h"
 #include "indiproperty_p.h"
-
-#include "indipropertytext_p.h"
-#include "indipropertyswitch_p.h"
-#include "indipropertynumber_p.h"
-#include "indipropertylight_p.h"
-#include "indipropertyblob_p.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -118,28 +111,29 @@ Property::Property()
     : d_ptr(new PropertyPrivate(nullptr, INDI_UNKNOWN))
 { }
 
+Property::Property(void *property, INDI_PROPERTY_TYPE type)
+    : d_ptr(new PropertyPrivate(property, type))
+{ }
 
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
 Property::Property(INumberVectorProperty *property)
-    : d_ptr(new PropertyNumberPrivate(property))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ITextVectorProperty   *property)
-    : d_ptr(new PropertyTextPrivate(property))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ISwitchVectorProperty *property)
-    : d_ptr(new PropertySwitchPrivate(property))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ILightVectorProperty  *property)
-    : d_ptr(new PropertyLightPrivate(property))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(IBLOBVectorProperty   *property)
-    : d_ptr(new PropertyBlobPrivate(property))
+    : d_ptr(new PropertyPrivate(property))
 { }
-#endif
 
 Property::~Property()
 { }
@@ -148,7 +142,7 @@ Property::Property(PropertyPrivate &dd)
     : d_ptr(&dd)
 { }
 
-Property::Property(const std::shared_ptr<PropertyPrivate> &dd)
+Property::Property(std::shared_ptr<PropertyPrivate> dd)
     : d_ptr(dd)
 { }
 
@@ -444,25 +438,6 @@ void Property::define(const char *format, ...) const
     va_start(ap, format);
     PROPERTY_CASE( property->vdefine(format, ap); )
     va_end(ap);
-}
-
-void Property::onUpdate(const std::function<void()> &callback)
-{
-    D_PTR(Property);
-    d->onUpdateCallback = callback;
-}
-
-void Property::emitUpdate()
-{
-    D_PTR(Property);
-    if (d->onUpdateCallback)
-        d->onUpdateCallback();
-}
-
-bool Property::hasUpdateCallback() const
-{
-    D_PTR(const Property);
-    return d->onUpdateCallback != nullptr;
 }
 
 }

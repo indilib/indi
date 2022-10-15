@@ -28,11 +28,6 @@ class PropertyTextPrivate: public PropertyBasicPrivateTemplate<IText>
 {
     public:
         PropertyTextPrivate(size_t count);
-#ifdef INDI_PROPERTY_RAW_CAST
-        PropertyTextPrivate(RawPropertyType *p)
-            : BasicPropertyType(p)
-        { }
-#endif
         virtual ~PropertyTextPrivate();
 
     public:

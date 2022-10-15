@@ -18,36 +18,17 @@
 
 #include "indipropertybasic.h"
 #include "indipropertybasic_p.h"
-#include <cassert>
 
 namespace INDI
 {
 
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
-    : PropertyPrivate(new PropertyView<T>())
+    : PropertyPrivate(&property)
     , widgets(count)
-#ifdef INDI_PROPERTY_RAW_CAST
-    , property(*static_cast<PropertyView<T>*>(static_cast<INDI::PropertyPrivate*>(this)->property))
-#endif
 {
     property.setWidgets(widgets.data(), widgets.size());
-#ifdef INDI_PROPERTY_RAW_CAST
-    this->dynamic = true;
-    this->raw = false;
-#endif
 }
-
-#ifdef INDI_PROPERTY_RAW_CAST
-template <typename T>
-PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(RawPropertyType *rawProperty)
-    : PropertyPrivate(rawProperty)
-    , property(*static_cast<PropertyView<T>*>(rawProperty))
-{
-    this->dynamic = false;
-    this->raw = true;
-}
-#endif
 
 template <typename T>
 PropertyBasicPrivateTemplate<T>::~PropertyBasicPrivateTemplate()
@@ -60,11 +41,6 @@ PropertyBasic<T>::~PropertyBasic()
 template <typename T>
 PropertyBasic<T>::PropertyBasic(PropertyBasicPrivate &dd)
     : Property(dd)
-{ }
-
-template <typename T>
-PropertyBasic<T>::PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd)
-    : Property(std::static_pointer_cast<PropertyPrivate>(dd))
 { }
 
 template <typename T>
@@ -322,20 +298,15 @@ template <typename T>
 void PropertyBasic<T>::resize(size_t size)
 {
     D_PTR(PropertyBasic);
-#ifdef INDI_PROPERTY_RAW_CAST
-    assert(d->raw == false);
-#endif
     d->widgets.resize(size);
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
+
 }
 
 template <typename T>
 void PropertyBasic<T>::reserve(size_t size)
 {
     D_PTR(PropertyBasic);
-#ifdef INDI_PROPERTY_RAW_CAST
-    assert(d->raw == false);
-#endif
     d->widgets.reserve(size);
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
 }
@@ -344,9 +315,6 @@ template <typename T>
 void PropertyBasic<T>::shrink_to_fit()
 {
     D_PTR(PropertyBasic);
-#ifdef INDI_PROPERTY_RAW_CAST
-    assert(d->raw == false);
-#endif
     d->widgets.shrink_to_fit();
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
 }
@@ -355,9 +323,6 @@ template <typename T>
 void PropertyBasic<T>::push(WidgetView<T> &&item)
 {
     D_PTR(PropertyBasic);
-#ifdef INDI_PROPERTY_RAW_CAST
-    assert(d->raw == false);
-#endif
     item.setParent(&d->property);
     d->widgets.push_back(std::move(item));
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
@@ -417,22 +382,6 @@ PropertyView<T> * PropertyBasic<T>::operator &()
     D_PTR(PropertyBasic);
     return &d->property;
 }
-
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-template <typename T>
-PropertyView<T> *PropertyBasic<T>::operator ->()
-{
-    D_PTR(PropertyBasic);
-    return static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
-}
-
-template <typename T>
-INDI::PropertyView<T> PropertyBasic<T>::operator*()
-{
-    D_PTR(PropertyBasic);
-    return *static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
-}
-#endif
 
 template class PropertyBasicPrivateTemplate<IText>;
 template class PropertyBasicPrivateTemplate<INumber>;

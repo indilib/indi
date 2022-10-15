@@ -31,24 +31,24 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
     IUFillNumberVector(&AlignmentPointSetEntryV, AlignmentPointSetEntry, 6, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW,
                        60, IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetEntryV);
+    pTelescope->registerProperty(&AlignmentPointSetEntryV, INDI_NUMBER);
 
     IUFillBLOB(&AlignmentPointSetPrivateBinaryData, "ALIGNMENT_POINT_ENTRY_PRIVATE", "Private binary data",
                "alignmentPrivateData");
     IUFillBLOBVector(&AlignmentPointSetPrivateBinaryDataV, &AlignmentPointSetPrivateBinaryData, 1,
                      pTelescope->getDeviceName(), "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB",
                      "Optional sync point binary data", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetPrivateBinaryDataV);
+    pTelescope->registerProperty(&AlignmentPointSetPrivateBinaryDataV, INDI_BLOB);
 
     IUFillNumber(&AlignmentPointSetSize, "ALIGNMENT_POINTSET_SIZE", "Size", "%g", 0, 100000, 0, 0);
     IUFillNumberVector(&AlignmentPointSetSizeV, &AlignmentPointSetSize, 1, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINTSET_SIZE", "Current Set", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetSizeV);
+    pTelescope->registerProperty(&AlignmentPointSetSizeV, INDI_NUMBER);
 
     IUFillNumber(&AlignmentPointSetPointer, "ALIGNMENT_POINTSET_CURRENT_ENTRY", "Pointer", "%g", 0, 100000, 0, 0);
     IUFillNumberVector(&AlignmentPointSetPointerV, &AlignmentPointSetPointer, 1, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINTSET_CURRENT_ENTRY", "Current Set", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetPointerV);
+    pTelescope->registerProperty(&AlignmentPointSetPointerV, INDI_NUMBER);
 
     IUFillSwitch(&AlignmentPointSetAction[0], "APPEND", "Add entries at end of set", ISS_ON);
     IUFillSwitch(&AlignmentPointSetAction[1], "INSERT", "Insert entries at current index", ISS_OFF);
@@ -63,13 +63,13 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
     IUFillSwitch(&AlignmentPointSetAction[8], "SAVE DATABASE", "Save the alignment database to local storage", ISS_OFF);
     IUFillSwitchVector(&AlignmentPointSetActionV, AlignmentPointSetAction, 9, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINTSET_ACTION", "Action to take", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetActionV);
+    pTelescope->registerProperty(&AlignmentPointSetActionV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentPointSetCommit, "ALIGNMENT_POINTSET_COMMIT", "OK", ISS_OFF);
     IUFillSwitchVector(&AlignmentPointSetCommitV, &AlignmentPointSetCommit, 1, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINTSET_COMMIT", "Execute the action", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
-    pTelescope->registerProperty(&AlignmentPointSetCommitV);
+    pTelescope->registerProperty(&AlignmentPointSetCommitV, INDI_SWITCH);
 }
 
 void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope *pTelescope, const char *name, int sizes[],

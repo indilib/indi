@@ -30,19 +30,24 @@
     \note Please note that if you create your own skeleton file, you must append _sk postfix to your skeleton file name.
 */
 
-#include <defaultdevice.h>
+#include "defaultdevice.h"
 
 class SimpleSkeleton : public INDI::DefaultDevice
 {
     public:
         SimpleSkeleton() = default;
+        ~SimpleSkeleton() = default;
 
     protected:
-        // General device functions
-        bool Connect() override;
-        bool Disconnect() override;
+        void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                       char *formats[], char *names[], int n) override;
+
         const char *getDefaultName() override;
         bool initProperties() override;
-
-        void ISGetProperties(const char *dev) override;
+        bool Connect() override;
+        bool Disconnect() override;
 };

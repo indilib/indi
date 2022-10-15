@@ -38,7 +38,6 @@
 #include <assert.h>
 
 #include "indiuserio.h"
-#include "indililxml.h"
 
 #ifdef _WINDOWS
 #include <ws2tcpip.h>
@@ -79,6 +78,12 @@ namespace INDI
 
 BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
     : parent(parent)
+    , cServer("localhost")
+    , cPort(7624)
+    , sConnected(false)
+    , verbose(false)
+    , timeout_sec(3)
+    , timeout_us(0)
 {
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {
@@ -109,7 +114,12 @@ BaseClientPrivate::~BaseClientPrivate()
 
 void BaseClientPrivate::clear()
 {
-    watchDevice.clearDevices();
+    while (!cDevices.empty())
+    {
+        delete cDevices.back();
+        cDevices.pop_back();
+    }
+    cDevices.clear();
     blobModes.clear();
     directBlobAccess.clear();
 }
@@ -442,10 +452,13 @@ void BaseClientPrivate::listenINDI()
     int maxfd = 0;
 #endif
     fd_set rs;
+    XMLEle **nodes = nullptr;
+    XMLEle *root = nullptr;
+    int inode = 0;
 
     connect();
 
-    if (watchDevice.isEmpty())
+    if (cDeviceNames.empty())
     {
         IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
@@ -453,22 +466,22 @@ void BaseClientPrivate::listenINDI()
     }
     else
     {
-        for (const auto &deviceInfo : watchDevice /* first: device name, second: device info */)
+        for (const auto &oneDevice : cDeviceNames)
         {
             // If there are no specific properties to watch, we watch the complete device
-            if (deviceInfo.second.properties.size() == 0)
+            if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
             {
-                IUUserIOGetProperties(&io, this, deviceInfo.first.c_str(), nullptr);
+                IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
                 if (verbose)
-                    IUUserIOGetProperties(userio_file(), stderr, deviceInfo.first.c_str(), nullptr);
+                    IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
             }
             else
             {
-                for (const auto &oneProperty : deviceInfo.second.properties)
+                for (const auto &oneProperty : cWatchProperties[oneDevice])
                 {
-                    IUUserIOGetProperties(&io, this, deviceInfo.first.c_str(), oneProperty.c_str());
+                    IUUserIOGetProperties(&io, this, oneDevice.c_str(), oneProperty.c_str());
                     if (verbose)
-                        IUUserIOGetProperties(userio_file(), stderr, deviceInfo.first.c_str(), oneProperty.c_str());
+                        IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), oneProperty.c_str());
                 }
             }
         }
@@ -485,9 +498,7 @@ void BaseClientPrivate::listenINDI()
 #endif
 
     clear();
-
-    INDI::LilXmlParser xmlParser;
-
+    LilXML *lillp = newLilXML();
     bool clientFatalError = false;
 
     /* read from server, exit if find all requested properties */
@@ -586,24 +597,22 @@ void BaseClientPrivate::listenINDI()
                 break;
             }
 
-            auto documents = xmlParser.parseChunk(buffer, n);
+            nodes = parseXMLChunk(lillp, buffer, n, msg);
 
-            if (documents.size() == 0)
+            if (!nodes)
             {
-                if (xmlParser.hasErrorMessage())
+                if (msg[0])
                 {
-                    IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, xmlParser.errorMessage(), buffer);
+                    IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
                 }
-                break;   
+                break;
             }
-
-            for (const auto &doc: documents)
+            root = nodes[inode];
+            while (root)
             {
-                INDI::LilXmlElement root = doc.root();
-
                 if (verbose)
-                    root.print(stderr, 0);
-                
+                    prXMLEle(stderr, root, 0);
+
                 std::vector<std::string> blobs;
 
                 if (!parseAttachedBlobs(root, blobs))
@@ -630,10 +639,16 @@ void BaseClientPrivate::listenINDI()
                     if (err_code != INDI_PROPERTY_DUPLICATED)
                     {
                         IDLog("Dispatch command error(%d): %s\n", err_code, msg);
-                        root.print(stderr, 0);
+                        prXMLEle(stderr, root, 0);
                     }
                 }
+
+                delXMLEle(root); // not yet, delete and continue
+                inode++;
+                root = nodes[inode];
             }
+            free(nodes);
+            inode = 0;
 
             if (clientFatalError)
             {
@@ -641,6 +656,8 @@ void BaseClientPrivate::listenINDI()
             }
         }
     }
+
+    delLilXML(lillp);
 
     int exit_code;
 
@@ -665,48 +682,61 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
-        watchDevice.unwatchDevices();
+        cDeviceNames.clear();
         sSocketChanged.notify_all();
     }
 }
 
-bool BaseClientPrivate::parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs)
+static std::vector<XMLEle *> findBlobElements(XMLEle * root)
+{
+    std::vector<XMLEle *> result;
+    for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    {
+        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            result.push_back(ep);
+        }
+    }
+    return result;
+}
+
+bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> &blobs)
 {
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
-    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
+    for(auto blobContent : findBlobElements(root))
     {
-        auto attached = blobContent.getAttribute("attached");
+        std::string attached = findXMLAttValu(blobContent, "attached");
 
-        if (attached.toString() != "true")
-            continue;
-
-        auto device = root.getAttribute("dev");
-        auto name   = root.getAttribute("name");
-
-        blobContent.removeAttribute("attached");
-        blobContent.removeAttribute("enclen");
-
-        if (incomingSharedBuffers.empty())
+        if (attached == "true")
         {
-            return false;
-        }
+            std::string device = findXMLAttValu(root, "dev");
+            std::string name = findXMLAttValu(root, "name");
 
-        int fd = *incomingSharedBuffers.begin();
-        incomingSharedBuffers.pop_front();
+            rmXMLAtt(blobContent, "attached");
+            rmXMLAtt(blobContent, "enclen");
 
-        auto id = allocateBlobUid(fd);
-        blobs.push_back(id);
+            if (incomingSharedBuffers.empty())
+            {
+                return false;
+            }
+            int fd = *incomingSharedBuffers.begin();
+            incomingSharedBuffers.pop_front();
 
-        // Put something here for later replacement
-        blobContent.removeAttribute("attached-data-id");
-        blobContent.removeAttribute("attachment-direct");
-        blobContent.addAttribute("attached-data-id", id.c_str());
-        if (isDirectBlobAccess(device.toString(), name.toString()))
-        {
-            // If client support read-only shared blob, mark it here
-            blobContent.addAttribute("attachment-direct",  "true");
+            auto id = allocateBlobUid(fd);
+            blobs.push_back(id);
+
+            // Put something here for later replacement
+            rmXMLAtt(blobContent, "attached-data-id");
+            rmXMLAtt(blobContent, "attachment-direct");
+
+            addXMLAtt(blobContent, "attached-data-id", id.c_str());
+            if (isDirectBlobAccess(device, name))
+            {
+                // If client support read-only shared blob, mark it here
+                addXMLAtt(blobContent, "attachment-direct",  "true");
+            }
         }
     }
     return true;
@@ -744,68 +774,100 @@ void BaseClientPrivate::sendString(const char *fmt, ...)
     sendData(message, strlen(message));
 }
 
-int BaseClientPrivate::dispatchCommand(const INDI::LilXmlElement &root, char *errmsg)
+int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 {
-    // Ignore echoed newXXX
-    if (root.tagName().find("new") == 0)
-    {
-        return 0;       
-    }
+    const char *tag = tagXMLEle(root);
 
-    if (root.tagName() == "pingRequest")
+    if (!strcmp(tagXMLEle(root), "pingRequest"))
     {
-        parent->sendPingReply(root.getAttribute("uid"));
+        const char *uid = findXMLAttValu(root, "uid");
+        if (!uid)
+            uid = "";
+
+        parent->sendPingReply(uid);
         return 0;
     }
 
-    if (root.tagName() == "pingReply")
+    if (!strcmp(tagXMLEle(root), "pingReply"))
     {
-        parent->newPingReply(root.getAttribute("uid").toString());
-        return 0;
+        const char * uid = findXMLAttValu(root, "uid");
+        parent->newPingReply(uid);
     }
 
-    if (root.tagName() == "message")
-    {
+    if (!strcmp(tag, "message"))
         return messageCmd(root, errmsg);
-    }
-
-    if (root.tagName() == "delProperty")
-    {
+    else if (!strcmp(tag, "delProperty"))
         return delPropertyCmd(root, errmsg);
+    // Just ignore any getProperties we might get
+    else if (!strcmp(tag, "getProperties"))
+        return INDI_PROPERTY_DUPLICATED;
+
+    /* Get the device, if not available, create it */
+    INDI::BaseDevice *dp = findDev(root, 1, errmsg);
+    if (dp == nullptr)
+    {
+        strcpy(errmsg, "No device available and none was created");
+        return INDI_DEVICE_NOT_FOUND;
     }
 
-    // Just ignore any getProperties we might get
-    if (root.tagName() == "getProperties")
-    {
-        return INDI_PROPERTY_DUPLICATED;
-    }
+    // Ignore echoed newXXX
+    if (strstr(tag, "new"))
+        return 0;
 
     // If device is set to BLOB_ONLY, we ignore everything else
     // not related to blobs
-    if (
-        parent->getBLOBMode(root.getAttribute("device")) == B_ONLY &&
-        root.tagName() != "defBLOBVector" &&
-        root.tagName() != "setBLOBVector"
-    )
+    if (parent->getBLOBMode(dp->getDeviceName()) == B_ONLY)
     {
+        if (!strcmp(tag, "defBLOBVector"))
+            return dp->buildProp(root, errmsg);
+        else if (!strcmp(tag, "setBLOBVector"))
+            return dp->setValue(root, errmsg);
+
+        // Ignore everything else
         return 0;
     }
 
-    return watchDevice.processXml(root, errmsg, [this]() { // create new device if nessesery
-        INDI::BaseDevice *device = new INDI::BaseDevice();
-        device->setMediator(parent);
-        return device;
-    });
+    // If we are asked to watch for specific properties only, we ignore everything else
+    if (cWatchProperties.size() > 0)
+    {
+        const char *device = findXMLAttValu(root, "device");
+        const char *name = findXMLAttValu(root, "name");
+        if (device && name)
+        {
+            if (cWatchProperties.find(device) == cWatchProperties.end() ||
+                    cWatchProperties[device].find(name) == cWatchProperties[device].end())
+                return 0;
+        }
+    }
+
+    if ((!strcmp(tag, "defTextVector")) || (!strcmp(tag, "defNumberVector")) ||
+            (!strcmp(tag, "defSwitchVector")) || (!strcmp(tag, "defLightVector")) ||
+            (!strcmp(tag, "defBLOBVector")))
+        return dp->buildProp(root, errmsg);
+    else if (!strcmp(tag, "setTextVector") || !strcmp(tag, "setNumberVector") ||
+             !strcmp(tag, "setSwitchVector") || !strcmp(tag, "setLightVector") ||
+             !strcmp(tag, "setBLOBVector"))
+        return dp->setValue(root, errmsg);
+
+    return INDI_DISPATCH_ERROR;
 }
+
 
 int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
-    if (auto device = watchDevice.getDeviceByName(devName))
+    for (auto devicei = cDevices.begin(); devicei != cDevices.end();)
     {
-        parent->removeDevice(device);
-        watchDevice.deleteDevice(device);
-        return 0;
+        if ((*devicei)->isDeviceNameMatch(devName))
+        {
+            parent->removeDevice(*devicei);
+            delete *devicei;
+            devicei = cDevices.erase(devicei);
+            return 0;
+        }
+        else
+            ++devicei;
     }
+
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
     return INDI_DEVICE_NOT_FOUND;
 }
@@ -816,81 +878,166 @@ int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
  * if no property name attribute at all, delete the whole device regardless.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int BaseClientPrivate::delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg)
+int BaseClientPrivate::delPropertyCmd(XMLEle *root, char *errmsg)
 {
-    /* dig out device and optional property name */
-    INDI::BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+    XMLAtt *ap;
+    INDI::BaseDevice *dp;
 
-    if (dp == nullptr)
+    /* dig out device and optional property name */
+    dp = findDev(root, 0, errmsg);
+    if (!dp)
         return INDI_DEVICE_NOT_FOUND;
 
-    dp->checkMessage(root.handle());
+    dp->checkMessage(root);
 
-    const auto propertyName = root.getAttribute("name");
+    ap = findXMLAtt(root, "name");
 
-    // Delete the whole device if propertyName does not exists
-    if (!propertyName.isValid())
+    /* Delete property if it exists, otherwise, delete the whole device */
+    if (ap)
     {
-        return deleteDevice(dp->getDeviceName(), errmsg);
-    }
+        INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
+        if (rProp == nullptr)
+        {
+            // Silently ignore B_ONLY clients.
+            if (blobModes.empty() || blobModes.front().blobMode == B_ONLY)
+                return 0;
 
-    // Delete property if it exists
-    if (auto property = dp->getProperty(propertyName))
-    {
+            snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
+            return -1;
+        }
         if (sConnected)
-            parent->removeProperty(property);
-        return dp->removeProperty(propertyName, errmsg);
+            parent->removeProperty(rProp);
+        int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
+
+        return errCode;
+    }
+    // delete the whole device
+    else
+        return deleteDevice(dp->getDeviceName(), errmsg);
+}
+
+
+INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
+{
+    auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
+    {
+        return oneDevice->isDeviceNameMatch(devName);
+    });
+
+    if (pos != cDevices.end())
+        return *pos;
+
+    snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
+    return nullptr;
+}
+
+/* add new device */
+INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
+{
+    char *device_name;
+
+    /* allocate new INDI::BaseDriver */
+    XMLAtt *ap = findXMLAtt(dep, "device");
+    if (!ap)
+    {
+        strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
+        return nullptr;
     }
 
-    // Silently ignore B_ONLY clients.
-    if (blobModes.empty() || blobModes.front().blobMode == B_ONLY)
-        return 0;
-    snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", propertyName.toCString());
-    return -1;
+    INDI::BaseDevice *dp = new INDI::BaseDevice();
+
+    device_name = valuXMLAtt(ap);
+
+    dp->setMediator(parent);
+    dp->setDeviceName(device_name);
+
+    cDevices.push_back(dp);
+
+    parent->newDevice(dp);
+
+    /* ok */
+    return dp;
+}
+
+INDI::BaseDevice *BaseClientPrivate::findDev(XMLEle *root, int create, char *errmsg)
+{
+    XMLAtt *ap;
+    INDI::BaseDevice *dp;
+    char *dn;
+
+    /* get device name */
+    ap = findXMLAtt(root, "device");
+    if (!ap)
+    {
+        snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", tagXMLEle(root));
+        return (nullptr);
+    }
+
+    dn = valuXMLAtt(ap);
+
+    if (*dn == '\0')
+    {
+        snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
+        return (nullptr);
+    }
+
+    dp = findDev(dn, errmsg);
+
+    if (dp)
+        return dp;
+
+    /* not found, create if ok */
+    if (create)
+        return (addDevice(root, errmsg));
+
+    snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", tagXMLEle(root), dn);
+    return nullptr;
 }
 
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int BaseClientPrivate::messageCmd(const INDI::LilXmlElement &root, char *errmsg)
+int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
 {
-    INDI::BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+    INDI::BaseDevice *dp = findDev(root, 0, errmsg);
 
     if (dp)
-    {
-        dp->checkMessage(root.handle());
-        return 0;
-    }
-
-    char msgBuffer[MAXRBUF];
-
-    auto timestamp = root.getAttribute("timestamp");
-    auto message   = root.getAttribute("message");
-
-    if (!message.isValid())
-    {
-        strncpy(errmsg, "No message content found.", MAXRBUF);
-        return -1;
-    }
-
-    if (timestamp.isValid())
-    {
-        snprintf(msgBuffer, MAXRBUF, "%s: %s", timestamp.toCString(), message.toCString());
-    }
+        dp->checkMessage(root);
     else
     {
-        char ts[32];
-        struct tm *tp;
-        time_t t;
-        time(&t);
-        tp = gmtime(&t);
-        strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
-        snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, message.toCString());
+        XMLAtt *message;
+        XMLAtt *time_stamp;
+
+        char msgBuffer[MAXRBUF];
+
+        /* prefix our timestamp if not with msg */
+        time_stamp = findXMLAtt(root, "timestamp");
+
+        /* finally! the msg */
+        message = findXMLAtt(root, "message");
+        if (!message)
+        {
+            strncpy(errmsg, "No message content found.", MAXRBUF);
+            return -1;
+        }
+
+        if (time_stamp)
+            snprintf(msgBuffer, MAXRBUF, "%s: %s", valuXMLAtt(time_stamp), valuXMLAtt(message));
+        else
+        {
+            char ts[32];
+            struct tm *tp;
+            time_t t;
+            time(&t);
+            tp = gmtime(&t);
+            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+            snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, valuXMLAtt(message));
+        }
+
+        parent->newUniversalMessage(msgBuffer);
     }
 
-    parent->newUniversalMessage(msgBuffer);
-
-    return 0;
+    return (0);
 }
 
 void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * prop)
@@ -1023,19 +1170,14 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    d->watchDevice.watchDevice(deviceName);
-}
-
-void INDI::BaseClient::watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback)
-{
-    D_PTR(BaseClient);
-    d->watchDevice.watchDevice(deviceName, callback);
+    d->cDeviceNames.insert(deviceName);
 }
 
 void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
 {
     D_PTR(BaseClient);
-    d->watchDevice.watchProperty(deviceName, propertyName);
+    watchDevice(deviceName);
+    d->cWatchProperties[deviceName].insert(propertyName);
 }
 
 bool INDI::BaseClient::connectServer()
@@ -1077,13 +1219,18 @@ void INDI::BaseClient::disconnectDevice(const char *deviceName)
 INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    return d->watchDevice.getDeviceByName(deviceName);
+    for (auto &device : d->cDevices)
+    {
+        if (device->isDeviceNameMatch(deviceName))
+            return device;
+    }
+    return nullptr;
 }
 
-std::vector<INDI::BaseDevice *> INDI::BaseClient::getDevices() const
+const std::vector<INDI::BaseDevice *> &INDI::BaseClient::getDevices() const
 {
     D_PTR(const BaseClient);
-    return d->watchDevice.getDevices();
+    return d->cDevices;
 }
 
 const char *INDI::BaseClient::getHost() const
@@ -1108,39 +1255,11 @@ void INDI::BaseClient::newPingReply(std::string uid)
     IDLog("Ping reply %s\n", uid.c_str());
 }
 
-void INDI::BaseClient::sendNewProperty(INDI::Property pp)
+void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     D_PTR(BaseClient);
-    pp.setState(IPS_BUSY);
-    // #PS: TODO more generic
-    switch (pp.getType())
-    {
-        case INDI_NUMBER:
-            IUUserIONewNumber(&io, d, pp.getNumber());
-            break;
-        case INDI_SWITCH:
-            IUUserIONewSwitch(&io, d, pp.getSwitch());
-            break;
-        case INDI_TEXT:
-            IUUserIONewText(&io, d, pp.getText());
-            break;
-        case INDI_LIGHT:
-            IDLog("Light type is not supported to send\n");
-            break;
-        case INDI_BLOB:
-            IUUserIONewBLOB(&io, d, pp.getBLOB());
-            break;
-        case INDI_UNKNOWN:
-            IDLog("Unknown type of property to send\n");
-            break;
-    }
-}
-
-void INDI::BaseClient::sendNewText(INDI::Property pp)
-{
-    D_PTR(BaseClient);
-    pp.setState(IPS_BUSY);
-    IUUserIONewText(&io, d, pp.getText());
+    tvp->s = IPS_BUSY;
+    IUUserIONewText(&io, d, tvp);
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -1166,11 +1285,11 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
     sendNewText(tvp);
 }
 
-void INDI::BaseClient::sendNewNumber(INDI::Property pp)
+void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 {
     D_PTR(BaseClient);
-    pp.setState(IPS_BUSY);
-    IUUserIONewNumber(&io, d, pp.getNumber());
+    nvp->s = IPS_BUSY;
+    IUUserIONewNumber(&io, d, nvp);
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -1208,11 +1327,11 @@ void INDI::BaseClient::sendPingRequest(const char * uuid)
     IUUserIOPingRequest(&io, d, uuid);
 }
 
-void INDI::BaseClient::sendNewSwitch(INDI::Property pp)
+void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
 {
     D_PTR(BaseClient);
-    pp.setState(IPS_BUSY);
-    IUUserIONewSwitch(&io, d, pp.getSwitch());
+    svp->s = IPS_BUSY;
+    IUUserIONewSwitch(&io, d, svp);
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -1243,18 +1362,13 @@ void INDI::BaseClient::startBlob(const char *devName, const char *propName, cons
     IUUserIONewBLOBStart(&io, d, devName, propName, timestamp);
 }
 
-void INDI::BaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
+void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
     D_PTR(BaseClient);
     IUUserIOBLOBContextOne(
         &io, d,
-        blob->getName(), blob->getSize(), blob->getBlobLen(), blob->getBlob(), blob->getFormat()
+        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
     );
-}
-
-void INDI::BaseClient::sendOneBlob(IBLOB *bp)
-{
-    sendOneBlob(static_cast<INDI::WidgetView<IBLOB>*>(bp));
 }
 
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
@@ -1323,45 +1437,11 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
 bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
 {
     D_PTR(BaseClient);
-    for (auto &it: d->watchDevice)
+    for (INDI::BaseDevice *device : d->cDevices)
     {
-        if (it.second.device->getDriverInterface() & driverInterface)
-            deviceList.push_back(it.second.device.get());
+        if (device->getDriverInterface() & driverInterface)
+            deviceList.push_back(device);
     }
 
     return (deviceList.size() > 0);
 }
-
-
-void INDI::BaseClient::newDevice(INDI::BaseDevice *)
-{ }
-
-void INDI::BaseClient::removeDevice(INDI::BaseDevice *)
-{ }
-
-void INDI::BaseClient::newProperty(INDI::Property *)
-{ }
-
-void INDI::BaseClient::removeProperty(INDI::Property *)
-{ }
-
-void INDI::BaseClient::newBLOB(IBLOB *)
-{ }
-
-void INDI::BaseClient::newSwitch(ISwitchVectorProperty *)
-{ }
-
-void INDI::BaseClient::newNumber(INumberVectorProperty *)
-{ }
-
-void INDI::BaseClient::newText(ITextVectorProperty *)
-{ }
-
-void INDI::BaseClient::newLight(ILightVectorProperty *)
-{ }
-
-void INDI::BaseClient::newMessage(INDI::BaseDevice *, int)
-{ }
-
-void INDI::BaseClient::serverConnected()
-{ }

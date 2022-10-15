@@ -1,6 +1,5 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
-               2022 Pawel Soja <kernel32.pl@gmail.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -28,7 +27,6 @@
 
 #include <memory>
 #include <cstdarg>
-#include <functional>
 
 #define INDI_PROPERTY_BACKWARD_COMPATIBILE
 namespace INDI
@@ -47,16 +45,15 @@ class Property
         DECLARE_PRIVATE(Property)
     public:
         Property();
-        ~Property();
-
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-    public:
+        Property(void *property, INDI_PROPERTY_TYPE type);
         Property(INumberVectorProperty *property);
         Property(ITextVectorProperty   *property);
         Property(ISwitchVectorProperty *property);
         Property(ILightVectorProperty  *property);
         Property(IBLOBVectorProperty   *property);
-#endif
+
+        ~Property();
+
     public:
         void setProperty(void *);
         void setType(INDI_PROPERTY_TYPE t);
@@ -103,13 +100,6 @@ class Property
         bool isLabelMatch(const std::string &otherLabel) const;
 
     public:
-        void onUpdate(const std::function<void()> &callback);
-
-    public:
-        void emitUpdate();
-        bool hasUpdateCallback() const;
-
-    public:
         void save(FILE *fp) const;
 
     public:
@@ -126,13 +116,11 @@ class Property
         }
 
     public:
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
         INDI::PropertyView<INumber> *getNumber() const;
         INDI::PropertyView<IText>   *getText() const;
         INDI::PropertyView<ISwitch> *getSwitch() const;
         INDI::PropertyView<ILight>  *getLight() const;
         INDI::PropertyView<IBLOB>   *getBLOB() const;
-#endif
 
     public:
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
@@ -141,26 +129,12 @@ class Property
 
         operator INDI::Property *();
         operator const INDI::Property *() const;
-
-        operator INDI::PropertyView<INumber> *() const { return getNumber(); }
-        operator INDI::PropertyView<IText>   *() const { return getText(); }
-        operator INDI::PropertyView<ISwitch> *() const { return getSwitch(); }
-        operator INDI::PropertyView<ILight>  *() const { return getLight(); }
-        operator INDI::PropertyView<IBLOB>   *() const { return getBLOB(); }
-        bool operator != (std::nullptr_t) const        { return  isValid(); }
-        bool operator == (std::nullptr_t) const        { return !isValid(); }
-        operator bool()                   const        { return  isValid(); }
 #endif
 
     protected:
         std::shared_ptr<PropertyPrivate> d_ptr;
-        Property(const std::shared_ptr<PropertyPrivate> &dd);
+        Property(std::shared_ptr<PropertyPrivate> dd);
         Property(PropertyPrivate &dd);
-        friend class PropertyNumber;
-        friend class PropertyText;
-        friend class PropertySwitch;
-        friend class PropertyLight;
-        friend class PropertyBlob;
 };
 
 } // namespace INDI

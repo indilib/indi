@@ -33,10 +33,6 @@ PropertyLight::PropertyLight(size_t count)
     : PropertyBasic<ILight>(*new PropertyLightPrivate(count))
 { }
 
-PropertyLight::PropertyLight(INDI::Property property)
-    : PropertyBasic<ILight>(property_private_cast<PropertyLightPrivate>(property.d_ptr))
-{ }
-
 PropertyLight::~PropertyLight()
 { }
 

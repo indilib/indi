@@ -27,12 +27,6 @@
 #include <vector>
 #include <cstdint>
 
-#include "indipropertytext.h"
-#include "indipropertynumber.h"
-#include "indipropertyswitch.h"
-#include "indipropertylight.h"
-#include "indipropertyblob.h"
-
 // #define MAXRBUF 2048 // #PS: defined in indibase.h
 
 /** @class INDI::BaseDevice
@@ -47,7 +41,6 @@
 namespace INDI
 {
 
-class LilXmlElement;
 class BaseDevicePrivate;
 class BaseDevice
 {
@@ -99,12 +92,41 @@ class BaseDevice
         BaseDevice();
         virtual ~BaseDevice();
 
-    public: // property
-        /** @brief Register the property to be able to observe and update.
-         *  @param property any property from the INDI::PropertyXXX family.
-         */
-        void registerProperty(const INDI::Property &property);
-        void registerProperty(const INDI::Property &property, INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
+    public:
+        /** @return Return vector number property given its name */
+        INDI::PropertyView<INumber> *getNumber(const char *name) const;
+        /** @return Return vector text property given its name */
+        INDI::PropertyView<IText>   *getText(const char *name) const;
+        /** @return Return vector switch property given its name */
+        INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
+        /** @return Return vector light property given its name */
+        INDI::PropertyView<ILight>  *getLight(const char *name) const;
+        /** @return Return vector BLOB property given its name */
+        INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
+
+    public:
+        /** @return Return property state */
+        IPState getPropertyState(const char *name) const;
+        /** @return Return property permission */
+        IPerm getPropertyPermission(const char *name) const;
+
+    public:
+        void registerProperty(void *p, INDI_PROPERTY_TYPE type);
+
+        // #PS: will be deprecated / backward compatibility
+        void registerProperty(ITextVectorProperty *property);
+        void registerProperty(INumberVectorProperty *property);
+        void registerProperty(ISwitchVectorProperty *property);
+        void registerProperty(ILightVectorProperty *property);
+        void registerProperty(IBLOBVectorProperty *property);
+
+        void registerProperty(INDI::PropertyView<IText> *property);
+        void registerProperty(INDI::PropertyView<INumber> *property);
+        void registerProperty(INDI::PropertyView<ISwitch> *property);
+        void registerProperty(INDI::PropertyView<ILight> *property);
+        void registerProperty(INDI::PropertyView<IBLOB> *property);
+
+        void registerProperty(INDI::Property &property);
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
@@ -113,11 +135,16 @@ class BaseDevice
          */
         int removeProperty(const char *name, char *errmsg);
 
-        /** @brief Call the callback function if property is available.
-         *  @param name of property.
-         *  @param callback as an argument of the function you can use INDI::PropertyNumber, INDI::PropertySwitch etc.
+        /** @brief Return a property and its type given its name.
+         *  @param name of property to be found.
+         *  @param type of property found.
+         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
+         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
+         *
+         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
+         *  is the property type (Number, Text, Switch..etc).
          */
-        void watchProperty(const char *name, const std::function<void (INDI::Property)> &callback);
+        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.
@@ -130,35 +157,6 @@ class BaseDevice
         /** @brief Return a list of all properties in the device. */
         Properties getProperties();
         const Properties getProperties() const;
-
-    public:
-        /** @return Return vector number property given its name */
-        INDI::PropertyNumber getNumber(const char *name) const;
-        /** @return Return vector text property given its name */
-        INDI::PropertyText getText(const char *name) const;
-        /** @return Return vector switch property given its name */
-        INDI::PropertySwitch getSwitch(const char *name) const;
-        /** @return Return vector light property given its name */
-        INDI::PropertyLight getLight(const char *name) const;
-        /** @return Return vector BLOB property given its name */
-        INDI::PropertyBlob getBLOB(const char *name) const;
-
-    public: // deprecated
-        /** @return Return property state */
-        IPState getPropertyState(const char *name) const;
-        /** @return Return property permission */
-        IPerm getPropertyPermission(const char *name) const;
-
-        /** @brief Return a property and its type given its name.
-         *  @param name of property to be found.
-         *  @param type of property found.
-         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
-         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
-         *
-         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
-         *  is the property type (Number, Text, Switch..etc).
-         */
-        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     public:
         /** @brief Add message to the driver's message queue.
@@ -241,10 +239,13 @@ class BaseDevice
          *  @param isDynamic set to true if property is loaded from an XML file.
          *  @return 0 if parsing is successful, -1 otherwise and errmsg is set
          */
-        int buildProp(const INDI::LilXmlElement &root, char *errmsg, bool isDynamic = false);
+        int buildProp(XMLEle *root, char *errmsg, bool isDynamic = false);
 
         /** @brief handle SetXXX commands from client */
-        int setValue(const INDI::LilXmlElement &root, char *errmsg);
+        int setValue(XMLEle *root, char *errmsg);
+
+        /** @brief Parse and store BLOB in the respective vector */
+        int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
 
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;

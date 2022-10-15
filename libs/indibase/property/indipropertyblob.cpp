@@ -33,10 +33,6 @@ PropertyBlob::PropertyBlob(size_t count)
     : PropertyBasic<IBLOB>(*new PropertyBlobPrivate(count))
 { }
 
-PropertyBlob::PropertyBlob(INDI::Property property)
-    : PropertyBasic<IBLOB>(property_private_cast<PropertyBlobPrivate>(property.d_ptr))
-{ }
-
 PropertyBlob::~PropertyBlob()
 { }
 
@@ -46,7 +42,7 @@ bool PropertyBlob::update(
 )
 {
     D_PTR(PropertyBlob);
-    return d->property.update(sizes, blobsizes, blobs, formats, names, n) && (emitUpdate(), true);
+    return d->property.update(sizes, blobsizes, blobs, formats, names, n);
 }
 
 void PropertyBlob::fill(

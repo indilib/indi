@@ -19,7 +19,6 @@
 #pragma once
 
 #include "indiapi.h"
-#include "indiutility.h"
 
 namespace INDI
 {

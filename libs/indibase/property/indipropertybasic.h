@@ -39,9 +39,6 @@ class PropertyBasic : public INDI::Property
         using PropertyBasicPrivate = PropertyBasicPrivateTemplate<T>;
         DECLARE_PRIVATE(PropertyBasic)
     public:
-        using ViewType = T;
-
-    public:
         ~PropertyBasic();
 
     public:
@@ -139,13 +136,6 @@ class PropertyBasic : public INDI::Property
 
     protected:
         PropertyBasic(PropertyBasicPrivate &dd);
-        PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd);
-
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-    public: // deprecated
-        INDI::PropertyView<T> *operator->();
-        INDI::PropertyView<T>  operator*();
-#endif
 };
 
 }

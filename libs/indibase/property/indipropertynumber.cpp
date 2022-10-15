@@ -33,17 +33,13 @@ PropertyNumber::PropertyNumber(size_t count)
     : PropertyBasic<INumber>(*new PropertyNumberPrivate(count))
 { }
 
-PropertyNumber::PropertyNumber(INDI::Property property)
-    : PropertyBasic<INumber>(property_private_cast<PropertyNumberPrivate>(property.d_ptr))
-{ }
-
 PropertyNumber::~PropertyNumber()
 { }
 
 bool PropertyNumber::update(const double values[], const char * const names[], int n)
 {
     D_PTR(PropertyNumber);
-    return d->property.update(values, names, n) && (emitUpdate(), true);
+    return d->property.update(values, names, n);
 }
 
 void PropertyNumber::fill(

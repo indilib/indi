@@ -29,7 +29,6 @@ class PropertyNumber: public INDI::PropertyBasic<INumber>
         DECLARE_PRIVATE(PropertyNumber)
     public:
         PropertyNumber(size_t count);
-        PropertyNumber(INDI::Property property);
         ~PropertyNumber();
 
     public:
