@@ -399,7 +399,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         //void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
         void setText(const char *text, size_t size)
         {
-            INDI::strlcpy(this->text = static_cast<char*>(realloc(this->text, size + 1)), text, size);
+            INDI::strlcpy(this->text = static_cast<char*>(realloc(this->text, size + 1)), text, size + 1);
         }
         void setText(const char *text)
         {
