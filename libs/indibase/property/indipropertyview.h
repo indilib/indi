@@ -380,7 +380,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 
         void setName(const char *name)
         {
-            strncpy(this->name, name, MAXINDINAME);
+            INDI::strlcpy(this->name, name);
         }
         void setName(const std::string &name)
         {
@@ -389,7 +389,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 
         void setLabel(const char *label)
         {
-            strncpy(this->label, label, MAXINDILABEL);
+            INDI::strlcpy(this->label, label);
         }
         void setLabel(const std::string &label)
         {
@@ -399,8 +399,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         //void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
         void setText(const char *text, size_t size)
         {
-            this->text = strncpy(static_cast<char*>(realloc(this->text, size + 1)), text, size);
-            this->text[size] = '\0';
+            INDI::strlcpy(this->text = static_cast<char*>(realloc(this->text, size + 1)), text, size);
         }
         void setText(const char *text)
         {
@@ -509,7 +508,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
         void setName(const char *name)
         {
-            strncpy(this->name, name, MAXINDINAME);
+            INDI::strlcpy(this->name, name);
         }
         void setName(const std::string &name)
         {
@@ -518,7 +517,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
         void setLabel(const char *label)
         {
-            strncpy(this->label, label, MAXINDILABEL);
+            INDI::strlcpy(this->label, label, MAXINDILABEL);
         }
         void setLabel(const std::string &label)
         {
@@ -527,7 +526,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
         void setFormat(const char *format)
         {
-            strncpy(this->format, format, MAXINDIFORMAT);
+            INDI::strlcpy(this->format, format, MAXINDIFORMAT);
         }
         void setFormat(const std::string &format)
         {
@@ -673,7 +672,7 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 
         void setName(const char *name)
         {
-            strncpy(this->name, name, MAXINDINAME);
+            INDI::strlcpy(this->name, name);
         }
         void setName(const std::string &name)
         {
@@ -682,7 +681,7 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 
         void setLabel(const char *label)
         {
-            strncpy(this->label, label, MAXINDILABEL);
+            INDI::strlcpy(this->label, label, MAXINDILABEL);
         }
         void setLabel(const std::string &label)
         {
@@ -802,7 +801,7 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 
         void setName(const char *name)
         {
-            strncpy(this->name, name, MAXINDINAME);
+            INDI::strlcpy(this->name, name);
         }
         void setName(const std::string &name)
         {
@@ -811,7 +810,7 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 
         void setLabel(const char *label)
         {
-            strncpy(this->label, label, MAXINDILABEL);
+            INDI::strlcpy(this->label, label, MAXINDILABEL);
         }
         void setLabel(const std::string &label)
         {
@@ -931,7 +930,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
         void setName(const char *name)
         {
-            strncpy(this->name, name, MAXINDINAME);
+            INDI::strlcpy(this->name, name);
         }
         void setName(const std::string &name)
         {
@@ -940,7 +939,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
         void setLabel(const char *label)
         {
-            strncpy(this->label, label, MAXINDILABEL);
+            INDI::strlcpy(this->label, label, MAXINDILABEL);
         }
         void setLabel(const std::string &label)
         {
@@ -949,7 +948,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
         void setFormat(const char *format)
         {
-            strncpy(this->format, format, MAXINDIBLOBFMT);
+            INDI::strlcpy(this->format, format, MAXINDIBLOBFMT);
         }
         void setFormat(const std::string &format)
         {
@@ -988,10 +987,17 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             return this->format;
         }
-
+        void *getBlob()
+        {
+            return this->blob;
+        }
         const void *getBlob()   const
         {
             return this->blob;
+        }
+        std::string getBlobAsString() const
+        {
+            return std::string(static_cast<const char*>(this->blob), this->bloblen);
         }
         int getBlobLen() const
         {
@@ -1049,7 +1055,7 @@ inline PropertyView<T>::PropertyView()
 template <typename T>
 inline void PropertyView<T>::setDeviceName(const char *name)
 {
-    strncpy(this->device, name, MAXINDIDEVICE);
+    INDI::strlcpy(this->device, name, MAXINDIDEVICE);
 }
 
 template <typename T>
@@ -1061,7 +1067,7 @@ inline void PropertyView<T>::setDeviceName(const std::string &name)
 template <typename T>
 inline void PropertyView<T>::setName(const char *name)
 {
-    strncpy(this->name, name, MAXINDINAME);
+    INDI::strlcpy(this->name, name);
 }
 
 template <typename T>
@@ -1073,7 +1079,7 @@ inline void PropertyView<T>::setName(const std::string &name)
 template <typename T>
 inline void PropertyView<T>::setLabel(const char *label)
 {
-    strncpy(this->label, label, MAXINDILABEL);
+    INDI::strlcpy(this->label, label, MAXINDILABEL);
 }
 
 template <typename T>
@@ -1085,7 +1091,7 @@ inline void PropertyView<T>::setLabel(const std::string &label)
 template <typename T>
 inline void PropertyView<T>::setGroupName(const char *name)
 {
-    strncpy(this->group, name, MAXINDIGROUP);
+    INDI::strlcpy(this->group, name, MAXINDIGROUP);
 }
 
 template <typename T>
@@ -1103,7 +1109,7 @@ inline void PropertyView<T>::setState(IPState state)
 template <typename T>
 inline void PropertyView<T>::setTimestamp(const char *timestamp)
 {
-    strncpy(this->timestamp, timestamp, MAXINDITSTAMP);
+    INDI::strlcpy(this->timestamp, timestamp, MAXINDITSTAMP);
 }
 
 template <typename T>

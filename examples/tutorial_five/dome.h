@@ -25,17 +25,21 @@
 
 #pragma once
 
-#include "defaultdevice.h"
+#include <defaultdevice.h>
+#include <indipropertyswitch.h>
+#include <indipropertylight.h>
 
 class Dome : public INDI::DefaultDevice
 {
     public:
         Dome() = default;
 
+    public:
+        void closeShutter();
+        void openShutter();
+
     protected:
         // General device functions
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        bool ISSnoopDevice(XMLEle *root) override;
         bool Connect() override;
         bool Disconnect() override;
         const char *getDefaultName() override;
@@ -43,11 +47,6 @@ class Dome : public INDI::DefaultDevice
         bool updateProperties() override;
 
     private:
-        void closeShutter();
-
-        ISwitch ShutterS[2];
-        ISwitchVectorProperty ShutterSP;
-
-        ILight RainL[1];
-        ILightVectorProperty RainLP;
+        INDI::PropertySwitch mShutterSwitch {2};
+        INDI::PropertyLight  mRainLight {1};
 };

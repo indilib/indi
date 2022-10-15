@@ -70,19 +70,19 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
             }
         }
     }
-    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV, INDI_SWITCH);
+    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV);
 
     IUFillSwitch(&AlignmentSubsystemMathPluginInitialise, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "OK", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemMathPluginInitialiseV, &AlignmentSubsystemMathPluginInitialise, 1,
                        ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE",
                        "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV, INDI_SWITCH);
+    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV);
 
     IUFillSwitch(&AlignmentSubsystemActive, "ALIGNMENT SUBSYSTEM ACTIVE", "Alignment Subsystem Active", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemActiveV, &AlignmentSubsystemActive, 1, ChildTelescope->getDeviceName(),
                        "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
-    ChildTelescope->registerProperty(&AlignmentSubsystemActiveV, INDI_SWITCH);
+    ChildTelescope->registerProperty(&AlignmentSubsystemActiveV);
 
     // The following property is used for configuration purposes only and is not exposed to the client.
     IUFillText(&AlignmentSubsystemCurrentMathPlugin, "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",

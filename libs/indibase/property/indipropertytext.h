@@ -29,6 +29,7 @@ class PropertyText: public INDI::PropertyBasic<IText>
         DECLARE_PRIVATE(PropertyText)
     public:
         PropertyText(size_t count);
+        PropertyText(INDI::Property property);
         ~PropertyText();
 
     public:

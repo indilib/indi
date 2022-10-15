@@ -23,8 +23,11 @@
 #include "indibase.h"
 #include "indimacros.h"
 
+#include "indiproperty.h"
+
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <memory>
 
@@ -131,6 +134,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          *  will be created and handled.
          */
         void watchDevice(const char *deviceName);
+        void watchDevice(const char *deviceName, const std::function<void (INDI::BaseDevice)> &callback);
 
         /** @brief Connect to INDI driver
          *  @param deviceName Name of the device to connect to.
@@ -148,7 +152,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         INDI::BaseDevice *getDevice(const char *deviceName);
 
         /** @returns Returns a vector of all devices created in the client. */
-        const std::vector<INDI::BaseDevice *> &getDevices() const;
+        std::vector<INDI::BaseDevice *> getDevices() const;
 
         /** @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
          *
@@ -202,16 +206,19 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
 
+        /** @brief Send new Property command to server */
+        void sendNewProperty(INDI::Property pp);
+
         /** @brief Send new Text command to server */
-        void sendNewText(ITextVectorProperty *pp);
+        void sendNewText(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Text command to server */
         void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
         /** @brief Send new Number command to server */
-        void sendNewNumber(INumberVectorProperty *pp);
+        void sendNewNumber(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Number command to server */
         void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
         /** @brief Send new Switch command to server */
-        void sendNewSwitch(ISwitchVectorProperty *pp);
+        void sendNewSwitch(INDI::Property pp); // deprecated, use sendNewProperty
         /** @brief Send new Switch command to server */
         void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
@@ -219,6 +226,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(IBLOB *bp);
+        void sendOneBlob(INDI::WidgetView<IBLOB> *blob);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** @brief Send closing tag for BLOB command to server */
@@ -245,6 +253,19 @@ class INDI::BaseClient : public INDI::BaseMediator
         /** @brief pingReply are sent by the server on response to pingReply (see above).
          */
         virtual void newPingReply(std::string uid);
+
+    protected: // override INDI::BaseMediator methods, when they are not needed
+        virtual void newDevice(INDI::BaseDevice *dp) override;
+        virtual void removeDevice(INDI::BaseDevice *dp) override;
+        virtual void newProperty(INDI::Property *property) override;
+        virtual void removeProperty(INDI::Property *property) override;
+        virtual void newBLOB(IBLOB *bp) override;
+        virtual void newSwitch(ISwitchVectorProperty *svp) override;
+        virtual void newNumber(INumberVectorProperty *nvp) override;
+        virtual void newText(ITextVectorProperty *tvp) override;
+        virtual void newLight(ILightVectorProperty *lvp) override;
+        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        virtual void serverConnected() override;
 
     protected:
         std::unique_ptr<INDI::BaseClientPrivate> d_ptr;

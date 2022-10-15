@@ -20,6 +20,9 @@
 
 #include "indipropertybasic_p.h"
 #include "indipropertyview.h"
+#include "indipropertyswitch.h"
+
+#include <functional>
 
 namespace INDI
 {
@@ -28,9 +31,15 @@ class PropertySwitchPrivate: public PropertyBasicPrivateTemplate<ISwitch>
 {
     public:
         PropertySwitchPrivate(size_t count);
+#ifdef INDI_PROPERTY_RAW_CAST
+        PropertySwitchPrivate(RawPropertyType *p)
+            : BasicPropertyType(p)
+        { }
+#endif
         virtual ~PropertySwitchPrivate();
 
     public:
+        std::function<void(const INDI::PropertySwitch::NewValues &)> onNewValuesCallback;
 
 };
 

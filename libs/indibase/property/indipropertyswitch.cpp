@@ -33,6 +33,10 @@ PropertySwitch::PropertySwitch(size_t count)
     : PropertyBasic<ISwitch>(*new PropertySwitchPrivate(count))
 { }
 
+PropertySwitch::PropertySwitch(INDI::Property property)
+    : PropertyBasic<ISwitch>(property_private_cast<PropertySwitchPrivate>(property.d_ptr))
+{ }
+
 PropertySwitch::~PropertySwitch()
 { }
 
@@ -57,7 +61,24 @@ INDI::WidgetView<ISwitch> *PropertySwitch::findOnSwitch() const
 bool PropertySwitch::update(const ISState states[], const char * const names[], int n)
 {
     D_PTR(PropertySwitch);
-    return d->property.update(states, names, n);
+    if (d->onNewValuesCallback)
+    {
+        NewValues newValues;
+        for (int i=0; i<n; ++i)
+        {
+            newValues[names[i]] = states[i];
+        }
+
+        d->onNewValuesCallback(newValues);
+        return true;
+    }
+    return d->property.update(states, names, n) && (emitUpdate(), true);
+}
+
+bool PropertySwitch::hasUpdateCallback() const
+{
+    D_PTR(const PropertySwitch);
+    return d->onNewValuesCallback != nullptr || d->onUpdateCallback != nullptr;
 }
 
 void PropertySwitch::fill(
@@ -86,6 +107,12 @@ const char * PropertySwitch::getRuleAsString() const
 {
     D_PTR(const PropertySwitch);
     return d->property.getRuleAsString();
+}
+
+void PropertySwitch::onNewValues(const std::function<void(const INDI::PropertySwitch::NewValues &)> &callback)
+{
+    D_PTR(PropertySwitch);
+    d->onNewValuesCallback = callback;
 }
 
 }

@@ -28,6 +28,11 @@ class PropertyNumberPrivate: public PropertyBasicPrivateTemplate<INumber>
 {
     public:
         PropertyNumberPrivate(size_t count);
+#ifdef INDI_PROPERTY_RAW_CAST
+        PropertyNumberPrivate(RawPropertyType *p)
+            : BasicPropertyType(p)
+        { }
+#endif
         virtual ~PropertyNumberPrivate();
 
     public:

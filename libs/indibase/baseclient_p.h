@@ -10,6 +10,7 @@
 #include <set>
 #include <thread>
 #include <cstdint>
+#include <functional>
 
 #include <lilxml.h>
 
@@ -19,6 +20,8 @@
 typedef SSIZE_T ssize_t;
 #endif
 #endif
+
+#include "watchdeviceproperty.h"
 
 namespace INDI
 {
@@ -65,23 +68,16 @@ class BaseClientPrivate
 
     public:
         /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
+        int dispatchCommand(const INDI::LilXmlElement &root, char *errmsg);
 
         /** @brief Remove device */
         int deleteDevice(const char *devName, char *errmsg);
 
         /** @brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
-
-        /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
-        /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
-        /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
+        int delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg);
 
         /**  Process messages */
-        int messageCmd(XMLEle *root, char *errmsg);
+        int messageCmd(const INDI::LilXmlElement &root, char *errmsg);
 
     private:
         std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
@@ -90,7 +86,7 @@ class BaseClientPrivate
         bool establish(const std::string &target);
 
         // Add an attribute for access to shared blobs
-        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> &blobs);
+        bool parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs);
 
     public:
         BaseClient *parent;
@@ -103,24 +99,24 @@ class BaseClientPrivate
         int sendFd {-1};
 #endif
 
-        std::vector<INDI::BaseDevice *> cDevices;
-        std::set<std::string> cDeviceNames;
+        WatchDeviceProperty watchDevice;
+
         std::list<BLOBMode> blobModes;
-        std::map<std::string, std::set<std::string>> cWatchProperties;
         std::map<std::string, std::set<std::string>> directBlobAccess;
 
-        std::string cServer;
-        uint32_t cPort;
-        std::atomic_bool sConnected;
+        std::string cServer {"localhost"};
+        uint32_t cPort      {7624};
+
+        std::atomic_bool sConnected {false};
         std::atomic_bool sAboutToClose;
         std::mutex sSocketBusy;
         std::condition_variable sSocketChanged;
         int sExitCode;
-        bool verbose;
+        bool verbose {false};
 
         // Parse & FILE buffers for IO
 
-        uint32_t timeout_sec, timeout_us;
+        uint32_t timeout_sec {3}, timeout_us {0};
 };
 
 }
