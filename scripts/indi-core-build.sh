@@ -14,6 +14,10 @@ command -v nproc >/dev/null 2>&1 || function nproc {
 
 SRCS=$(dirname $(realpath $0))/..
 
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    export PATH="$(brew --prefix qt5)/bin:$PATH"
+fi
+
 mkdir -p build/indi-core
 pushd build/indi-core
 cmake \
