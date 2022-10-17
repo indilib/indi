@@ -29,8 +29,6 @@
 
 #include <vector>
 #include <string>
-#include <map>
-#include <set>
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
@@ -233,25 +231,6 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         static void *listenHelper(void *context);
 
     protected:
-        /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
-
-        /** @brief Remove device */
-        int deleteDevice(const char *devName, char *errmsg);
-
-        /** @brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
-
-        /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
-        /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
-        /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
-
-        /**  Process messages */
-        int messageCmd(XMLEle *root, char *errmsg);
-
         /**
          * @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
          * @param message content of message.

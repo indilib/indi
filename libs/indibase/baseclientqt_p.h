@@ -21,39 +21,32 @@
 #pragma once
 
 #include "basedevice.h"
-#include "lilxml.h"
 #include "indibase.h"
 
-#include <deque>
 #include <string>
-#include <mutex>
-#include <map>
-#include <functional>
 
 #include "indipropertyblob.h"
 #include "indililxml.h"
 
-
 #include "indidevapi.h" // BLOBHandling
-#include <vector>
+
+#include "watchdeviceproperty.h"
 
 namespace INDI
 {
+struct BLOBMode
+{
+    std::string device;
+    std::string property;
+    BLOBHandling blobMode;
+};
+
 class BaseClientQtPrivate
 {
     public:
         BaseClientQtPrivate(BaseClientQt *parent);
 
     public:
-        typedef struct
-        {
-            std::string device;
-            std::string property;
-            BLOBHandling blobMode;
-        } BLOBMode;
-
-        BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
-
         /** @brief Connect/Disconnect to INDI driver
             @param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
              Otherwise, CONNECTION will be turned off.
@@ -61,14 +54,32 @@ class BaseClientQtPrivate
         */
         void setDriverConnection(bool status, const char *deviceName);
 
-        /**
-         * @brief clear Clear devices and blob modes
-         */
+    public:
+        /** @brief clear Clear devices and blob modes */
         void clear();
+
+    public:
+        BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
+
+    public:
+        /** @brief Dispatch command received from INDI server to respective devices handled by the client */
+        int dispatchCommand(const INDI::LilXmlElement &root, char *errmsg);
+
+        /** @brief Remove device */
+        int deleteDevice(const char *devName, char *errmsg);
+
+        /** @brief Delete property command */
+        int delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg);
+
+        /**  Process messages */
+        int messageCmd(const INDI::LilXmlElement &root, char *errmsg);
 
     public:
         BaseClientQt *parent;
 
+        WatchDeviceProperty watchDevice;
+
+        std::list<BLOBMode> blobModes;
         std::string cServer {"localhost"};
         uint32_t cPort      {7624};
 
@@ -77,14 +88,6 @@ class BaseClientQtPrivate
         bool verbose {false};
 
         uint32_t timeout_sec {3}, timeout_us {0};
-
-        LilXML *lillp = nullptr; /* XML parser context */
-
-
-        std::vector<INDI::BaseDevice *> cDevices;
-        std::vector<std::string> cDeviceNames;
-        std::vector<BLOBMode *> blobModes;
-        std::map<std::string, std::set<std::string>> cWatchProperties;
 
         QTcpSocket client_socket;
 };
