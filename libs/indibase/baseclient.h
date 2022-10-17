@@ -84,9 +84,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         bool connectServer();
 
         /** @brief Disconnect from INDI server.
-         *
-         *  Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
-         *
+         *         Any devices previously created will be deleted and memory cleared.
          *  @return True if disconnection is successful, false otherwise.
          */
         bool disconnectServer(int exit_code = 0);
@@ -115,6 +113,16 @@ class INDI::BaseClient : public INDI::BaseMediator
         bool isVerbose() const;
 
     public:
+        /** @brief Add a device to the watch list.
+         *
+         *  A client may select to receive notifications of only a specific device or a set of devices.
+         *  If the client encounters any of the devices set via this function, it will create a corresponding
+         *  INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
+         *  will be created and handled.
+         */
+        void watchDevice(const char *deviceName);
+        void watchDevice(const char *deviceName, const std::function<void (INDI::BaseDevice)> &callback);
+
         /** @brief watchProperties Add a property to the watch list. When communicating with INDI server.
          *
          *  The client calls <getProperties device=deviceName property=propertyName/> so that only a particular
@@ -126,16 +134,6 @@ class INDI::BaseClient : public INDI::BaseMediator
         void watchProperty(const char *deviceName, const char *propertyName);
 
     public:
-        /** @brief Add a device to the watch list.
-         *
-         *  A client may select to receive notifications of only a specific device or a set of devices.
-         *  If the client encounters any of the devices set via this function, it will create a corresponding
-         *  INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
-         *  will be created and handled.
-         */
-        void watchDevice(const char *deviceName);
-        void watchDevice(const char *deviceName, const std::function<void (INDI::BaseDevice)> &callback);
-
         /** @brief Connect to INDI driver
          *  @param deviceName Name of the device to connect to.
         */
@@ -206,6 +204,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
 
+    public:
         /** @brief Send new Property command to server */
         void sendNewProperty(INDI::Property pp);
 
@@ -232,6 +231,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         /** @brief Send closing tag for BLOB command to server */
         void finishBlob();
 
+    public:
         /** @brief Send one ping request, the server will answer back with the same uuid
          *  @param uid This string will server as identifier for the reply
          *  @note reply will be dispatched to newPingReply
