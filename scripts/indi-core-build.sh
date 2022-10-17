@@ -22,6 +22,7 @@ cmake \
     -DCMAKE_BUILD_TYPE=$1 \
     -DINDI_BUILD_UNITTESTS=ON \
     -DINDI_BUILD_INTEGTESTS=ON \
+    -DINDI_BUILD_QT5_CLIENT=ON \
     . $SRCS
 
 make -j$(($(nproc)+1))
