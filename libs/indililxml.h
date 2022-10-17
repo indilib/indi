@@ -428,7 +428,7 @@ inline LilXmlDocument::LilXmlDocument(XMLEle *root)
 { }
 
 inline LilXmlDocument::LilXmlDocument(LilXmlDocument &&other)
-    : mRoot(std::exchange(other.mRoot, nullptr))
+    : mRoot(std::move(other.mRoot))
 { }
 
 inline bool LilXmlDocument::isValid() const
