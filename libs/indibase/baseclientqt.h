@@ -23,6 +23,7 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibase.h"
+#include "indimacros.h"
 
 #include <QTcpSocket>
 
@@ -54,9 +55,14 @@ typedef SSIZE_T ssize_t;
    @author Jasem Mutlaq
 
  */
+namespace INDI
+{
+class BaseClientQtPrivate;
+}
 class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 {
         Q_OBJECT
+        DECLARE_PRIVATE(BaseClientQt)
 
     public:
         BaseClientQt(QObject *parent = Q_NULLPTR);
@@ -70,16 +76,10 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         void setServer(const char *hostname, unsigned int port);
 
         /** @brief Get the server host name. */
-        const char *getHost() const
-        {
-            return cServer.c_str();
-        }
+        const char *getHost() const;
 
         /** @brief Get the port number */
-        int getPort() const
-        {
-            return cPort;
-        }
+        int getPort() const;
 
         /** @brief Connect to INDI server.
          *  @returns True if the connection is successful, false otherwise.
@@ -100,29 +100,19 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
          *  @param seconds seconds
          *  @param microseconds microseconds
          */
-        void setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
-        {
-            timeout_sec = seconds;
-            timeout_us  = microseconds;
-        }
+        void setConnectionTimeout(uint32_t seconds, uint32_t microseconds);
 
     public:
         /** @brief setVerbose Set verbose mode
          *  @param enable If true, enable <b>FULL</b> verbose output. Any XML message received, including BLOBs, are printed on
          *                standard output. Only use this for debugging purposes.
          */
-        void setVerbose(bool enable)
-        {
-            verbose = enable;
-        }
+        void setVerbose(bool enable);
 
         /** @brief isVerbose Is client in verbose mode?
          *  @return Is client in verbose mode?
          */
-        bool isVerbose() const
-        {
-            return verbose;
-        }
+        bool isVerbose() const;
 
     public:
         /** @brief Add a device to the watch list.
@@ -161,10 +151,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         INDI::BaseDevice *getDevice(const char *deviceName);
 
         /** @returns Returns a vector of all devices created in the client. */
-        std::vector<INDI::BaseDevice *> getDevices() const
-        {
-            return cDevices;
-        }
+        std::vector<INDI::BaseDevice *> getDevices() const;
 
         /** @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
          *
@@ -271,48 +258,12 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
          * @note The default implementation simply logs the message to stderr. Override to handle the message.
          */
         virtual void newUniversalMessage(std::string message);
-
-    private:
-        typedef struct
-        {
-            std::string device;
-            std::string property;
-            BLOBHandling blobMode;
-        } BLOBMode;
-
-        BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
-
-        /** @brief Connect/Disconnect to INDI driver
-            @param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
-             Otherwise, CONNECTION will be turned off.
-            @param deviceName Name of the device to connect to.
-        */
-        void setDriverConnection(bool status, const char *deviceName);
-
-        /**
-         * @brief clear Clear devices and blob modes
-         */
-        void clear();
-
-        QTcpSocket client_socket;
-
-        std::vector<INDI::BaseDevice *> cDevices;
-        std::vector<std::string> cDeviceNames;
-        std::vector<BLOBMode *> blobModes;
-        std::map<std::string, std::set<std::string>> cWatchProperties;
-
-        std::string cServer;
-        uint32_t cPort;
-        bool sConnected;
-        bool verbose;
-
-        // Parse & FILE buffers for IO
-
-        LilXML *lillp; /* XML parser context */
-        uint32_t timeout_sec, timeout_us;
-
+    
     private slots:
 
         void listenINDI();
         void processSocketError(QAbstractSocket::SocketError socketError);
+
+    protected:
+        std::unique_ptr<INDI::BaseClientQtPrivate> d_ptr;
 };
