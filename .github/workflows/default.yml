@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["ubuntu", "debian"] # Temporary remove "fedora", until gcc 12.1.1-3 lands
+        container: ["ubuntu", "debian", "fedora"]
 
     container:
       image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
