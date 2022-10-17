@@ -24,6 +24,7 @@
 #include "basedevice.h"
 #include "locale_compat.h"
 #include "indistandardproperty.h"
+#include "indililxml.h"
 
 #include "indiuserio.h"
 
@@ -330,9 +331,9 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char *errmsg)
     if (getBLOBMode(dp->getDeviceName()) == B_ONLY)
     {
         if (!strcmp(tagXMLEle(root), "defBLOBVector"))
-            return dp->buildProp(root, errmsg);
+            return dp->buildProp(INDI::LilXmlElement(root), errmsg);
         else if (!strcmp(tagXMLEle(root), "setBLOBVector"))
-            return dp->setValue(root, errmsg);
+            return dp->setValue(INDI::LilXmlElement(root), errmsg);
 
         // Ignore everything else
         return 0;
@@ -354,11 +355,11 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char *errmsg)
     if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
             (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
             (!strcmp(tagXMLEle(root), "defBLOBVector")))
-        return dp->buildProp(root, errmsg);
+        return dp->buildProp(INDI::LilXmlElement(root), errmsg);
     else if (!strcmp(tagXMLEle(root), "setTextVector") || !strcmp(tagXMLEle(root), "setNumberVector") ||
              !strcmp(tagXMLEle(root), "setSwitchVector") || !strcmp(tagXMLEle(root), "setLightVector") ||
              !strcmp(tagXMLEle(root), "setBLOBVector"))
-        return dp->setValue(root, errmsg);
+        return dp->setValue(INDI::LilXmlElement(root), errmsg);
 
     return INDI_DISPATCH_ERROR;
 }
