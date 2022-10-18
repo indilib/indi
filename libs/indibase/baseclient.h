@@ -57,7 +57,7 @@ class INDI::BaseClient : public INDI::AbstractBaseClient
          *  @returns True if the connection is successful, false otherwise.
          *  @note This function blocks until connection is either successull or unsuccessful.
          */
-        bool connectServer();
+        bool connectServer() override;
 
         /** @brief Disconnect from INDI server.
          *         Any devices previously created will be deleted and memory cleared.
