@@ -20,3 +20,7 @@ RUN apt-get install -y \
     libftdi1-dev libavcodec-dev libavdevice-dev libavformat-dev libswscale-dev \
     libgps-dev libraw-dev libdc1394-dev libgphoto2-dev \
     libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev
+
+# Install Qt5
+RUN apt-get install -y \
+    qtbase5-dev

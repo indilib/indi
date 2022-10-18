@@ -25,3 +25,7 @@ RUN dnf -y install \
     libftdi-devel \
     gpsd-devel LibRaw-devel libdc1394-devel libgphoto2-devel \
     boost-devel rtl-sdr-devel
+
+# Install Qt5
+RUN dnf -y install \
+    qt5-qtbase-devel
