@@ -19,7 +19,11 @@
 
 #pragma once
 
+#ifndef SWIG
 #include "abstractbaseclient.h"
+#else
+%include "abstractbaseclient.h"
+#endif
 
 /** @class INDI::BaseClient
  *  @brief Class to provide basic client functionality.
