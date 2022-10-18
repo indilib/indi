@@ -712,10 +712,4 @@ bool BaseClient::disconnectServer(int exit_code)
     return d->disconnect(exit_code);
 }
 
-// #PS: avoid calling pure virtual method
-void BaseClient::serverDisconnected(int exit_code)
-{
-    INDI_UNUSED(exit_code);
-}
-
 }

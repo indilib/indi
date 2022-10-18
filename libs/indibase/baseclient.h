@@ -64,7 +64,4 @@ class INDI::BaseClient : public INDI::AbstractBaseClient
          *  @return True if disconnection is successful, false otherwise.
          */
         bool disconnectServer(int exit_code = 0) override;
-
-    protected:
-        void serverDisconnected(int exit_code) override;
 };

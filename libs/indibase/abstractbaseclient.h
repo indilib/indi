@@ -248,11 +248,15 @@ class AbstractBaseClient : public INDI::BaseMediator
         virtual void serverConnected() override;
 
     protected:
+        friend class BaseClientPrivate;
+        friend class BaseClientQtPrivate;
+        // avoid calling pure virtual method from destructor
+        void serverDisconnected(int exit_code) override;
+
+    protected:
         AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&dd);
 
     protected:
-        friend class BaseCientPrivate;
-        friend class AbstractBaseCientPrivate;
         std::unique_ptr<AbstractBaseClientPrivate> d_ptr_indi;
 };
 

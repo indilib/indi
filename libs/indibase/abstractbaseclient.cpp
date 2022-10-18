@@ -705,6 +705,12 @@ void AbstractBaseClient::newMessage(INDI::BaseDevice *, int)
 void AbstractBaseClient::serverConnected()
 { }
 
+// avoid calling pure virtual method from destructor
+void AbstractBaseClient::serverDisconnected(int exit_code)
+{
+    INDI_UNUSED(exit_code);
+}
+
 }
 
 #if defined(_MSC_VER)
