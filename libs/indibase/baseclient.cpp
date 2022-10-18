@@ -669,6 +669,7 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
+        sharedBlobs.disableDirectBlobAccess();
         watchDevice.unwatchDevices();
         sSocketChanged.notify_all();
     }
