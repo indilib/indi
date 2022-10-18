@@ -369,13 +369,7 @@ bool BaseClientPrivate::disconnect(int exit_code)
     sockfd = INVALID_SOCKET;
 #else
     shutdown(sockfd, SHUT_RDWR); // no needed
-    size_t c = 1;
-    // wakeup 'select' function
-    ssize_t ret = write(sendFd, &c, sizeof(c));
-    if (ret != sizeof(c))
-    {
-        IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n");
-    }
+    eventFd.wakeUp();
 #endif
     sExitCode = exit_code;
     return true;
@@ -400,8 +394,8 @@ void BaseClientPrivate::listenINDI()
     maxfd = std::max(maxfd, sockfd);
 
 #ifndef _WINDOWS
-    FD_SET(receiveFd, &rs);
-    maxfd = std::max(maxfd, receiveFd);
+    FD_SET(eventFd.selectFd(), &rs);
+    maxfd = std::max(maxfd, eventFd.selectFd());
 #endif
 
     clear();
@@ -575,8 +569,6 @@ void BaseClientPrivate::listenINDI()
         }
 #else
         close(sockfd);
-        close(receiveFd);
-        close(sendFd);
 #endif
 
         exit_code = sAboutToClose ? sExitCode : -1;
@@ -679,21 +671,6 @@ bool BaseClient::connectServer()
 #else
         if (!establish(d->cServer))
             return false;
-#endif
-
-#ifndef _WINDOWS
-        int pipefd[2];
-        int ret;
-        ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
-
-        if (ret < 0)
-        {
-            IDLog("notify pipe: %s\n", strerror(errno));
-            return false;
-        }
-
-        d->receiveFd = pipefd[0];
-        d->sendFd    = pipefd[1];
 #endif
 
         d->sConnected = true;
