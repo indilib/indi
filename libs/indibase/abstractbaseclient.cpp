@@ -62,9 +62,7 @@ void AbstractBaseClientPrivate::clear()
 {
     watchDevice.clearDevices();
     blobModes.clear();
-    directBlobAccess.clear();
 }
-
 
 int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *errmsg)
 {
@@ -305,24 +303,6 @@ BLOBMode *AbstractBaseClientPrivate::findBLOBMode(const std::string &device, con
     return nullptr;
 }
 
-static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
-                                     const std::string &dev, const std::string &prop)
-{
-    auto devAccess = directBlobAccess.find(dev) ;
-    if (devAccess == directBlobAccess.end())
-    {
-        return false;
-    }
-    return devAccess->second.find(prop) != devAccess->second.end();
-}
-
-bool AbstractBaseClientPrivate::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
-{
-    return hasDirectBlobAccessEntry(directBlobAccess, "", "")
-           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
-           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
-}
-
 // AbstractBaseClient
 
 AbstractBaseClient::AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&d)
@@ -330,9 +310,7 @@ AbstractBaseClient::AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate
 { }
 
 AbstractBaseClient::~AbstractBaseClient()
-{
-
-}
+{ }
 
 void AbstractBaseClient::setServer(const char *hostname, unsigned int port)
 {
@@ -395,7 +373,6 @@ void AbstractBaseClient::watchProperty(const char *deviceName, const char *prope
     D_PTR(AbstractBaseClient);
     d->watchDevice.watchProperty(deviceName, propertyName);
 }
-
 
 void AbstractBaseClient::connectDevice(const char *deviceName)
 {
@@ -473,25 +450,6 @@ BLOBHandling AbstractBaseClient::getBLOBMode(const char *dev, const char *prop)
         bHandle = bMode->blobMode;
 
     return bHandle;
-}
-
-void AbstractBaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
-{
-    D_PTR(AbstractBaseClient);
-
-    if (dev == nullptr || !dev[0])
-    {
-        d->directBlobAccess[""].insert("");
-        return;
-    }
-    if (prop == nullptr || !prop[0])
-    {
-        d->directBlobAccess[dev].insert("");
-    }
-    else
-    {
-        d->directBlobAccess[dev].insert(prop);
-    }
 }
 
 void AbstractBaseClient::sendNewProperty(INDI::Property pp)

@@ -77,6 +77,109 @@
 namespace INDI
 {
 
+//ClientSharedBlobs
+
+ClientSharedBlobs::Blobs::~Blobs()
+{
+    releaseBlobUids(*this);
+}
+
+void ClientSharedBlobs::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    if (dev == nullptr || !dev[0])
+    {
+        directBlobAccess[""].insert("");
+        return;
+    }
+    if (prop == nullptr || !prop[0])
+    {
+        directBlobAccess[dev].insert("");
+    }
+    else
+    {
+        directBlobAccess[dev].insert(prop);
+    }
+}
+
+void ClientSharedBlobs::disableDirectBlobAccess()
+{
+    directBlobAccess.clear();
+}
+
+bool ClientSharedBlobs::parseAttachedBlobs(const INDI::LilXmlElement &root, ClientSharedBlobs::Blobs &blobs)
+{
+    // parse all elements in root that are attached.
+    // Create for each a new GUID and associate it in a global map
+    // modify the xml to add an attribute with the guid
+    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
+    {
+        auto attached = blobContent.getAttribute("attached");
+
+        if (attached.toString() != "true")
+            continue;
+
+        auto device = root.getAttribute("dev");
+        auto name   = root.getAttribute("name");
+
+        blobContent.removeAttribute("attached");
+        blobContent.removeAttribute("enclen");
+
+        if (incomingSharedBuffers.empty())
+        {
+            return false;
+        }
+
+        int fd = *incomingSharedBuffers.begin();
+        incomingSharedBuffers.pop_front();
+
+        auto id = allocateBlobUid(fd);
+        blobs.push_back(id);
+
+        // Put something here for later replacement
+        blobContent.removeAttribute("attached-data-id");
+        blobContent.removeAttribute("attachment-direct");
+        blobContent.addAttribute("attached-data-id", id.c_str());
+        if (isDirectBlobAccess(device.toString(), name.toString()))
+        {
+            // If client support read-only shared blob, mark it here
+            blobContent.addAttribute("attachment-direct",  "true");
+        }
+    }
+    return true;
+}
+
+bool ClientSharedBlobs::hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
+                                                 const std::string &dev, const std::string &prop)
+{
+    auto devAccess = directBlobAccess.find(dev);
+    if (devAccess == directBlobAccess.end())
+    {
+        return false;
+    }
+    return devAccess->second.find(prop) != devAccess->second.end();
+}
+
+bool ClientSharedBlobs::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
+{
+    return hasDirectBlobAccessEntry(directBlobAccess, "", "")
+        || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+        || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+}
+
+void ClientSharedBlobs::addIncomingSharedBuffer(int fd)
+{
+    incomingSharedBuffers.push_back(fd);
+}
+
+void ClientSharedBlobs::clear()
+{
+    for (int fd : incomingSharedBuffers)
+    {
+        close(fd);
+    }
+    incomingSharedBuffers.clear();
+}
+
 // BaseClientPrivate
 
 BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
@@ -348,11 +451,7 @@ bool BaseClientPrivate::establish(const std::string &cServer)
 
 bool BaseClientPrivate::disconnect(int exit_code)
 {
-    for(int fd : this->incomingSharedBuffers)
-    {
-        close(fd);
-    }
-    this->incomingSharedBuffers.clear();
+    sharedBlobs.clear();
 
     //IDLog("Server disconnected called\n");
     std::lock_guard<std::mutex> locker(sSocketBusy);
@@ -399,6 +498,7 @@ void BaseClientPrivate::listenINDI()
 #endif
 
     clear();
+    sharedBlobs.disableDirectBlobAccess();
 
     INDI::LilXmlParser xmlParser;
 
@@ -479,7 +579,8 @@ void BaseClientPrivate::listenINDI()
 #ifndef __linux__
                             fcntl(fds[i], F_SETFD, FD_CLOEXEC);
 #endif
-                            incomingSharedBuffers.push_back(fd);
+
+                            sharedBlobs.addIncomingSharedBuffer(fd);
                         }
                     }
                     else
@@ -518,26 +619,17 @@ void BaseClientPrivate::listenINDI()
                 if (verbose)
                     root.print(stderr, 0);
                 
-                std::vector<std::string> blobs;
 
-                if (!parseAttachedBlobs(root, blobs))
+                ClientSharedBlobs::Blobs blobs;
+
+                if (!sharedBlobs.parseAttachedBlobs(root, blobs))
                 {
                     IDLog("Missing attachment from %s/%d\n", cServer.c_str(), cPort);
                     clientFatalError = true;
                     break;
                 }
-                int err_code;
-                try
-                {
-                    err_code = dispatchCommand(root, msg);
-                }
-                catch(...)
-                {
-                    releaseBlobUids(blobs);
-                    throw;
-                }
-                releaseBlobUids(blobs);
-
+                int err_code = dispatchCommand(root, msg);
+ 
                 if (err_code < 0)
                 {
                     // Silenty ignore property duplication errors
@@ -580,48 +672,6 @@ void BaseClientPrivate::listenINDI()
         watchDevice.unwatchDevices();
         sSocketChanged.notify_all();
     }
-}
-
-bool BaseClientPrivate::parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs)
-{
-    // parse all elements in root that are attached.
-    // Create for each a new GUID and associate it in a global map
-    // modify the xml to add an attribute with the guid
-    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
-    {
-        auto attached = blobContent.getAttribute("attached");
-
-        if (attached.toString() != "true")
-            continue;
-
-        auto device = root.getAttribute("dev");
-        auto name   = root.getAttribute("name");
-
-        blobContent.removeAttribute("attached");
-        blobContent.removeAttribute("enclen");
-
-        if (incomingSharedBuffers.empty())
-        {
-            return false;
-        }
-
-        int fd = *incomingSharedBuffers.begin();
-        incomingSharedBuffers.pop_front();
-
-        auto id = allocateBlobUid(fd);
-        blobs.push_back(id);
-
-        // Put something here for later replacement
-        blobContent.removeAttribute("attached-data-id");
-        blobContent.removeAttribute("attachment-direct");
-        blobContent.addAttribute("attached-data-id", id.c_str());
-        if (isDirectBlobAccess(device.toString(), name.toString()))
-        {
-            // If client support read-only shared blob, mark it here
-            blobContent.addAttribute("attachment-direct",  "true");
-        }
-    }
-    return true;
 }
 
 // BaseClient
@@ -687,6 +737,12 @@ bool BaseClient::disconnectServer(int exit_code)
 {
     D_PTR(BaseClient);
     return d->disconnect(exit_code);
+}
+
+void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    D_PTR(BaseClient);
+    d->sharedBlobs.enableDirectBlobAccess(dev, prop);
 }
 
 }

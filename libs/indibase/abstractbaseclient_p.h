@@ -82,13 +82,9 @@ class AbstractBaseClientPrivate
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
 
     public:
-        bool isDirectBlobAccess(const std::string &dev, const std::string &prop) const;
-
-    public:
         AbstractBaseClient *parent;
 
         std::list<BLOBMode> blobModes;
-        std::map<std::string, std::set<std::string>> directBlobAccess;
 
         std::string cServer {"localhost"};
         uint32_t cPort      {7624};

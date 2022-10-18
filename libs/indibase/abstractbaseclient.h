@@ -170,18 +170,6 @@ class AbstractBaseClient : public INDI::BaseMediator
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
-        /** @brief activate zero-copy delivering of the blob content.
-         * When enabled, all blob copy will be avoided when possible (depending on the connection).
-         * This changes how the IBLOB.data field :
-         * <ul>
-         *   <li>it will point to readonly data: The client must not try to modify its content or realloc it</li>
-         *   <li>when freeing is required, the function IDSharedBlobFree must be used instead of free/realloc.</li>
-         * </ul>
-         *  @param dev name of device, can be NULL to all devs
-         *  @param prop property name, can be NULL to activate for all property of dev
-         */
-        void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
-
     public:
         /** @brief Send new Property command to server */
         void sendNewProperty(INDI::Property pp);

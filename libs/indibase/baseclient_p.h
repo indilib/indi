@@ -69,6 +69,34 @@ class EventFd
 };
 #endif
 
+class ClientSharedBlobs
+{
+    public:
+        class Blobs : public std::vector<std::string>
+        {
+            public:
+                ~Blobs();
+        };
+
+    public:
+        void enableDirectBlobAccess(const char * dev, const char * prop);
+        void disableDirectBlobAccess();
+
+        bool parseAttachedBlobs(const INDI::LilXmlElement &root, Blobs &blobs);
+        bool isDirectBlobAccess(const std::string &dev, const std::string &prop) const;
+
+        static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
+                                            const std::string &dev, const std::string &prop);
+
+        void addIncomingSharedBuffer(int fd);
+
+        void clear();
+
+    private:
+        std::list<int> incomingSharedBuffers;
+        std::map<std::string, std::set<std::string>> directBlobAccess;
+};
+
 class BaseDevice;
 
 
@@ -91,11 +119,7 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
     public:
         bool establish(const std::string &target);
 
-        // Add an attribute for access to shared blobs
-        bool parseAttachedBlobs(const INDI::LilXmlElement &root, std::vector<std::string> &blobs);
-
     public:
-        std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
         bool unixSocket {false};
 
 #ifdef _WINDOWS
@@ -110,6 +134,7 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
         std::condition_variable sSocketChanged;
         int sExitCode;
 
+        ClientSharedBlobs sharedBlobs;
 };
 
 }
