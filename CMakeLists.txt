@@ -287,6 +287,7 @@ SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
@@ -316,7 +317,10 @@ install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
 else(WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif(WIN32 OR ANDROID)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install(FILES
+${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
+${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_QT5_CLIENT)
 
 ####################################################################################################

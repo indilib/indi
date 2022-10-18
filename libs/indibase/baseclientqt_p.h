@@ -20,75 +20,28 @@
 *******************************************************************************/
 #pragma once
 
+#include "abstractbaseclient_p.h"
+
 #include "basedevice.h"
 #include "indibase.h"
-
-#include <string>
 
 #include "indipropertyblob.h"
 #include "indililxml.h"
 
-#include "indidevapi.h" // BLOBHandling
-
-#include "watchdeviceproperty.h"
-
 namespace INDI
 {
-struct BLOBMode
-{
-    std::string device;
-    std::string property;
-    BLOBHandling blobMode;
-};
 
-class BaseClientQtPrivate
+class BaseClientQtPrivate: public AbstractBaseClientPrivate
 {
     public:
         BaseClientQtPrivate(BaseClientQt *parent);
 
     public:
-        /** @brief Connect/Disconnect to INDI driver
-            @param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
-             Otherwise, CONNECTION will be turned off.
-            @param deviceName Name of the device to connect to.
-        */
-        void setDriverConnection(bool status, const char *deviceName);
+        void listenINDI();
 
     public:
-        /** @brief clear Clear devices and blob modes */
-        void clear();
+        QTcpSocket clientSocket;
+        LilXmlParser xmlParser;
 
-    public:
-        BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
-
-    public:
-        /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(const INDI::LilXmlElement &root, char *errmsg);
-
-        /** @brief Remove device */
-        int deleteDevice(const char *devName, char *errmsg);
-
-        /** @brief Delete property command */
-        int delPropertyCmd(const INDI::LilXmlElement &root, char *errmsg);
-
-        /**  Process messages */
-        int messageCmd(const INDI::LilXmlElement &root, char *errmsg);
-
-    public:
-        BaseClientQt *parent;
-
-        WatchDeviceProperty watchDevice;
-
-        std::list<BLOBMode> blobModes;
-        std::string cServer {"localhost"};
-        uint32_t cPort      {7624};
-
-        std::atomic_bool sConnected {false};
-
-        bool verbose {false};
-
-        uint32_t timeout_sec {3}, timeout_us {0};
-
-        QTcpSocket client_socket;
 };
 }
