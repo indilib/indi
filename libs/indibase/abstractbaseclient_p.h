@@ -28,6 +28,8 @@
 
 #include <atomic>
 #include <string>
+#include <map>
+#include <set>
 
 namespace INDI
 {
@@ -45,6 +47,9 @@ class AbstractBaseClientPrivate
     public:
         AbstractBaseClientPrivate(AbstractBaseClient *parent);
         virtual ~AbstractBaseClientPrivate() = default;
+
+    public:
+        virtual size_t sendData(const void *data, size_t size) = 0;
 
     public:
         void clear();
@@ -77,9 +82,13 @@ class AbstractBaseClientPrivate
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
 
     public:
+        bool isDirectBlobAccess(const std::string &dev, const std::string &prop) const;
+
+    public:
         AbstractBaseClient *parent;
 
         std::list<BLOBMode> blobModes;
+        std::map<std::string, std::set<std::string>> directBlobAccess;
 
         std::string cServer {"localhost"};
         uint32_t cPort      {7624};

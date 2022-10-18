@@ -210,6 +210,7 @@ SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
@@ -237,7 +238,10 @@ set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif (NOT CYGWIN AND NOT WIN32)
 target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 
 #################################################################################################

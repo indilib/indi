@@ -30,22 +30,12 @@ namespace INDI
 
 BaseClientQtPrivate::BaseClientQtPrivate(BaseClientQt *parent)
     : AbstractBaseClientPrivate(parent)
+{ }
+
+size_t BaseClientQtPrivate::sendData(const void *data, size_t size)
 {
-    io.write = [](void *user, const void * ptr, size_t count) -> size_t
-    {
-        auto self = static_cast<BaseClientQtPrivate *>(static_cast<AbstractBaseClientPrivate *>(user));
-        return self->clientSocket.write(static_cast<const char *>(ptr), count);
-    };
-
-    io.vprintf = [](void *user, const char * format, va_list ap) -> int
-    {
-        auto self = static_cast<BaseClientQtPrivate *>(static_cast<AbstractBaseClientPrivate *>(user));
-        char message[MAXRBUF];
-        vsnprintf(message, MAXRBUF, format, ap);
-        return self->clientSocket.write(message, strlen(message));
-    };
+    return clientSocket.write(static_cast<const char *>(data), size);
 }
-
 
 void BaseClientQtPrivate::listenINDI()
 {
@@ -146,7 +136,7 @@ bool BaseClientQt::connectServer()
     return true;
 }
 
-bool BaseClientQt::disconnectServer()
+bool BaseClientQt::disconnectServer(int exit_code)
 {
     D_PTR(BaseClientQt);
 
@@ -161,7 +151,7 @@ bool BaseClientQt::disconnectServer()
 
     d->watchDevice.unwatchDevices();
 
-    serverDisconnected(0);
+    serverDisconnected(exit_code);
 
     return true;
 }

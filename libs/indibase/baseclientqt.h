@@ -23,7 +23,6 @@
 #include "abstractbaseclient.h"
 
 #include <QObject>
-#include <QTcpSocket>
 
 /**
  * @class INDI::BaseClientQt
@@ -65,5 +64,8 @@ class INDI::BaseClientQt : public QObject, public INDI::AbstractBaseClient
          *         Any devices previously created will be deleted and memory cleared.
          *  @return True if disconnection is successful, false otherwise.
          */
-        bool disconnectServer() override;
+        bool disconnectServer(int exit_code = 0) override;
+    
+    private:
+        void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr) = delete; // not implemented
 };

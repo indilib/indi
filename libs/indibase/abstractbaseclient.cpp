@@ -42,12 +42,27 @@ userio AbstractBaseClientPrivate::io;
 
 AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
     : parent(parent)
-{ }
+{
+    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    {
+        auto self = static_cast<AbstractBaseClientPrivate *>(user);
+        return self->sendData(ptr, count);
+    };
+
+    io.vprintf = [](void *user, const char * format, va_list ap) -> int
+    {
+        auto self = static_cast<AbstractBaseClientPrivate *>(user);
+        char message[MAXRBUF];
+        vsnprintf(message, MAXRBUF, format, ap);
+        return self->sendData(message, strlen(message));
+    };
+}
 
 void AbstractBaseClientPrivate::clear()
 {
     watchDevice.clearDevices();
     blobModes.clear();
+    directBlobAccess.clear();
 }
 
 
@@ -59,8 +74,6 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
         return 0;       
     }
 
-    // #PS: copied from BaseClient
-#if 0
     if (root.tagName() == "pingRequest")
     {
         parent->sendPingReply(root.getAttribute("uid"));
@@ -72,7 +85,6 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
         parent->newPingReply(root.getAttribute("uid").toString());
         return 0;
     }
-#endif
 
     if (root.tagName() == "message")
     {
@@ -173,8 +185,6 @@ int AbstractBaseClientPrivate::messageCmd(const LilXmlElement &root, char *errms
         return 0;
     }
 
-    // #PS: copied from BaseClient
-#if 0
     char msgBuffer[MAXRBUF];
 
     auto timestamp = root.getAttribute("timestamp");
@@ -202,7 +212,7 @@ int AbstractBaseClientPrivate::messageCmd(const LilXmlElement &root, char *errms
     }
 
     parent->newUniversalMessage(msgBuffer);
-#endif
+
     return 0;
 }
 
@@ -295,6 +305,24 @@ BLOBMode *AbstractBaseClientPrivate::findBLOBMode(const std::string &device, con
     return nullptr;
 }
 
+static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
+                                     const std::string &dev, const std::string &prop)
+{
+    auto devAccess = directBlobAccess.find(dev) ;
+    if (devAccess == directBlobAccess.end())
+    {
+        return false;
+    }
+    return devAccess->second.find(prop) != devAccess->second.end();
+}
+
+bool AbstractBaseClientPrivate::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
+{
+    return hasDirectBlobAccessEntry(directBlobAccess, "", "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+}
+
 // AbstractBaseClient
 
 AbstractBaseClient::AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&d)
@@ -323,16 +351,6 @@ int AbstractBaseClient::getPort() const
 {
     D_PTR(const AbstractBaseClient);
     return d->cPort;
-}
-
-bool AbstractBaseClient::connectServer()
-{
-    return false;
-}
-
-bool AbstractBaseClient::disconnectServer()
-{
-    return false;
 }
 
 bool AbstractBaseClient::isServerConnected() const
@@ -366,10 +384,15 @@ void AbstractBaseClient::watchDevice(const char *deviceName)
     d->watchDevice.watchDevice(deviceName);
 }
 
+void AbstractBaseClient::watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback)
+{
+    D_PTR(AbstractBaseClient);
+    d->watchDevice.watchDevice(deviceName, callback);
+}
+
 void AbstractBaseClient::watchProperty(const char *deviceName, const char *propertyName)
 {
     D_PTR(AbstractBaseClient);
-    watchDevice(deviceName);
     d->watchDevice.watchProperty(deviceName, propertyName);
 }
 
@@ -436,7 +459,7 @@ void AbstractBaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const 
         bMode->blobMode = blobH;
     }
 
-    IUUserIOEnableBLOB(&d->io, this, dev, prop, blobH);
+    IUUserIOEnableBLOB(&d->io, d, dev, prop, blobH);
 }
 
 BLOBHandling AbstractBaseClient::getBLOBMode(const char *dev, const char *prop)
@@ -452,96 +475,141 @@ BLOBHandling AbstractBaseClient::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
+void AbstractBaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    D_PTR(AbstractBaseClient);
 
-void AbstractBaseClient::sendNewText(ITextVectorProperty *tvp)
+    if (dev == nullptr || !dev[0])
+    {
+        d->directBlobAccess[""].insert("");
+        return;
+    }
+    if (prop == nullptr || !prop[0])
+    {
+        d->directBlobAccess[dev].insert("");
+    }
+    else
+    {
+        d->directBlobAccess[dev].insert(prop);
+    }
+}
+
+void AbstractBaseClient::sendNewProperty(INDI::Property pp)
+{
+    D_PTR(AbstractBaseClient);
+    pp.setState(IPS_BUSY);
+    // #PS: TODO more generic
+    switch (pp.getType())
+    {
+        case INDI_NUMBER:
+            IUUserIONewNumber(&d->io, d, pp.getNumber());
+            break;
+        case INDI_SWITCH:
+            IUUserIONewSwitch(&d->io, d, pp.getSwitch());
+            break;
+        case INDI_TEXT:
+            IUUserIONewText(&d->io, d, pp.getText());
+            break;
+        case INDI_LIGHT:
+            IDLog("Light type is not supported to send\n");
+            break;
+        case INDI_BLOB:
+            IUUserIONewBLOB(&d->io, d, pp.getBLOB());
+            break;
+        case INDI_UNKNOWN:
+            IDLog("Unknown type of property to send\n");
+            break;
+    }
+}
+
+void AbstractBaseClient::sendNewText(INDI::Property pp)
 {
     D_PTR(AbstractBaseClient);
     AutoCNumeric locale;
 
-    tvp->s = IPS_BUSY;
-    IUUserIONewText(&d->io, this, tvp);
+    pp.setState(IPS_BUSY);
+    IUUserIONewText(&d->io, d, pp.getText());
 }
 
 void AbstractBaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
                                      const char *text)
 {
-    BaseDevice *drv = getDevice(deviceName);
+    INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    ITextVectorProperty *tvp = drv->getText(propertyName);
+    auto tvp = drv->getText(propertyName);
 
-    if (tvp == nullptr)
+    if (!tvp)
         return;
 
-    IText *tp = IUFindText(tvp, elementName);
+    auto tp = tvp->findWidgetByName(elementName);
 
-    if (tp == nullptr)
+    if (!tp)
         return;
 
-    IUSaveText(tp, text);
+    tp->setText(text);
 
     sendNewText(tvp);
 }
 
-void AbstractBaseClient::sendNewNumber(INumberVectorProperty *nvp)
+void AbstractBaseClient::sendNewNumber(INDI::Property pp)
 {
     D_PTR(AbstractBaseClient);
     AutoCNumeric locale;
-
-    nvp->s = IPS_BUSY;
-    IUUserIONewNumber(&d->io, this, nvp);
+    pp.setState(IPS_BUSY);
+    IUUserIONewNumber(&d->io, d, pp.getNumber());
 }
 
 void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
                                        double value)
 {
-    BaseDevice *drv = getDevice(deviceName);
+    INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    INumberVectorProperty *nvp = drv->getNumber(propertyName);
+    auto nvp = drv->getNumber(propertyName);
 
-    if (nvp == nullptr)
+    if (!nvp)
         return;
 
-    INumber *np = IUFindNumber(nvp, elementName);
+    auto np = nvp->findWidgetByName(elementName);
 
-    if (np == nullptr)
+    if (!np)
         return;
 
-    np->value = value;
+    np->setValue(value);
 
     sendNewNumber(nvp);
 }
 
-void AbstractBaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
+void AbstractBaseClient::sendNewSwitch(INDI::Property pp)
 {
     D_PTR(AbstractBaseClient);
-    svp->s = IPS_BUSY;
-    IUUserIONewSwitch(&d->io, this, svp);
+    pp.setState(IPS_BUSY);
+    IUUserIONewSwitch(&d->io, d, pp.getSwitch());
 }
 
 void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
 {
     BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    ISwitchVectorProperty *svp = drv->getSwitch(propertyName);
+    auto svp = drv->getSwitch(propertyName);
 
-    if (svp == nullptr)
+    if (!svp)
         return;
 
-    ISwitch *sp = IUFindSwitch(svp, elementName);
+    auto sp = svp->findWidgetByName(elementName);
 
-    if (sp == nullptr)
+    if (!sp)
         return;
 
-    sp->s = ISS_ON;
+    sp->setState(ISS_ON);
 
     sendNewSwitch(svp);
 }
@@ -549,16 +617,21 @@ void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *prope
 void AbstractBaseClient::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
     D_PTR(AbstractBaseClient);
-    IUUserIONewBLOBStart(&d->io, this, devName, propName, timestamp);
+    IUUserIONewBLOBStart(&d->io, d, devName, propName, timestamp);
+}
+
+void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
+{
+    D_PTR(AbstractBaseClient);
+    IUUserIOBLOBContextOne(
+        &d->io, d,
+        blob->getName(), blob->getSize(), blob->getBlobLen(), blob->getBlob(), blob->getFormat()
+    );
 }
 
 void AbstractBaseClient::sendOneBlob(IBLOB *bp)
 {
-    D_PTR(AbstractBaseClient);
-    IUUserIOBLOBContextOne(
-        &d->io, this,
-        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
-    );
+    sendOneBlob(static_cast<INDI::WidgetView<IBLOB>*>(bp));
 }
 
 void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
@@ -566,7 +639,7 @@ void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize
 {
     D_PTR(AbstractBaseClient);
     IUUserIOBLOBContextOne(
-        &d->io, this,
+        &d->io, d,
         blobName, blobSize, blobSize, blobBuffer, blobFormat
     );
 }
@@ -574,13 +647,63 @@ void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize
 void AbstractBaseClient::finishBlob()
 {
     D_PTR(AbstractBaseClient);
-    IUUserIONewBLOBFinish(&d->io, this);
+    IUUserIONewBLOBFinish(&d->io, d);
+}
+
+void AbstractBaseClient::sendPingRequest(const char * uuid)
+{
+    D_PTR(AbstractBaseClient);
+    IUUserIOPingRequest(&d->io, d, uuid);
+}
+
+void AbstractBaseClient::sendPingReply(const char * uuid)
+{
+    D_PTR(AbstractBaseClient);
+    IUUserIOPingReply(&d->io, d, uuid);
+}
+
+void AbstractBaseClient::newPingReply(std::string uid)
+{
+    IDLog("Ping reply %s\n", uid.c_str());
 }
 
 void AbstractBaseClient::newUniversalMessage(std::string message)
 {
     IDLog("%s\n", message.c_str());
 }
+
+void AbstractBaseClient::newDevice(INDI::BaseDevice *)
+{ }
+
+void AbstractBaseClient::removeDevice(INDI::BaseDevice *)
+{ }
+
+void AbstractBaseClient::newProperty(INDI::Property *)
+{ }
+
+void AbstractBaseClient::removeProperty(INDI::Property *)
+{ }
+
+void AbstractBaseClient::newBLOB(IBLOB *)
+{ }
+
+void AbstractBaseClient::newSwitch(ISwitchVectorProperty *)
+{ }
+
+void AbstractBaseClient::newNumber(INumberVectorProperty *)
+{ }
+
+void AbstractBaseClient::newText(ITextVectorProperty *)
+{ }
+
+void AbstractBaseClient::newLight(ILightVectorProperty *)
+{ }
+
+void AbstractBaseClient::newMessage(INDI::BaseDevice *, int)
+{ }
+
+void AbstractBaseClient::serverConnected()
+{ }
 
 }
 

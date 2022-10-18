@@ -21,20 +21,21 @@
 #pragma once
 
 #include "abstractbaseclient_p.h"
-
-#include "basedevice.h"
-#include "indibase.h"
-
-#include "indipropertyblob.h"
 #include "indililxml.h"
+
+#include <QTcpSocket>
 
 namespace INDI
 {
 
-class BaseClientQtPrivate: public AbstractBaseClientPrivate
+class BaseClientQtPrivate : public AbstractBaseClientPrivate
 {
     public:
         BaseClientQtPrivate(BaseClientQt *parent);
+        ~BaseClientQtPrivate() = default;
+
+    public:
+        size_t sendData(const void *data, size_t size) override;
 
     public:
         void listenINDI();

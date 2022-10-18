@@ -23,9 +23,11 @@
 
 #include "indibase.h"
 #include "indimacros.h"
+#include "indiproperty.h"
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 namespace INDI
 {
@@ -53,17 +55,18 @@ class AbstractBaseClient : public INDI::BaseMediator
         /** @brief Get the port number */
         int getPort() const;
 
+    public:
         /** @brief Connect to INDI server.
          *  @returns True if the connection is successful, false otherwise.
          *  @note This function blocks until connection is either successull or unsuccessful.
         */
-        virtual bool connectServer();
+        virtual bool connectServer() = 0;
 
         /** @brief Disconnect from INDI server.
          *         Any devices previously created will be deleted and memory cleared.
          *  @return True if disconnection is successful, false otherwise.
         */
-        virtual bool disconnectServer();
+        virtual bool disconnectServer(int exit_code = 0) = 0;
 
         /** @brief Get status of the connection. */
         bool isServerConnected() const;
@@ -95,6 +98,7 @@ class AbstractBaseClient : public INDI::BaseMediator
          *  will be created and handled.
          */
         void watchDevice(const char *deviceName);
+        void watchDevice(const char *deviceName, const std::function<void (BaseDevice)> &callback);
 
         /** @brief watchProperties Add a property to the watch list. When communicating with INDI server.
          *
@@ -176,19 +180,22 @@ class AbstractBaseClient : public INDI::BaseMediator
          *  @param dev name of device, can be NULL to all devs
          *  @param prop property name, can be NULL to activate for all property of dev
          */
-        // void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr); // missing
+        void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
 
     public:
+        /** @brief Send new Property command to server */
+        void sendNewProperty(INDI::Property pp);
+
         /** @brief Send new Text command to server */
-        void sendNewText(ITextVectorProperty *pp);
+        void sendNewText(INDI::Property pp);
         /** @brief Send new Text command to server */
         void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
         /** @brief Send new Number command to server */
-        void sendNewNumber(INumberVectorProperty *pp);
+        void sendNewNumber(INDI::Property pp);
         /** @brief Send new Number command to server */
         void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
         /** @brief Send new Switch command to server */
-        void sendNewSwitch(ISwitchVectorProperty *pp);
+        void sendNewSwitch(INDI::Property pp);
         /** @brief Send new Switch command to server */
         void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
@@ -196,10 +203,28 @@ class AbstractBaseClient : public INDI::BaseMediator
         void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(IBLOB *bp);
+        void sendOneBlob(INDI::WidgetView<IBLOB> *blob);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** @brief Send closing tag for BLOB command to server */
         void finishBlob();
+
+    public:
+        /** @brief Send one ping request, the server will answer back with the same uuid
+         *  @param uid This string will server as identifier for the reply
+         *  @note reply will be dispatched to newPingReply
+         */
+        void sendPingRequest(const char * uid);
+
+        /** @brief Send a ping reply for the given uuid
+         *  @note This should not be called directly, as it is already handled by baseclient
+         */
+        void sendPingReply(const char * uid);
+
+    protected:
+        /** @brief pingReply are sent by the server on response to pingReply (see above).
+         */
+        virtual void newPingReply(std::string uid);
 
     protected:
         /**
@@ -209,10 +234,25 @@ class AbstractBaseClient : public INDI::BaseMediator
          */
         virtual void newUniversalMessage(std::string message);
 
+    protected: // override INDI::BaseMediator methods, when they are not needed
+        virtual void newDevice(INDI::BaseDevice *dp) override;
+        virtual void removeDevice(INDI::BaseDevice *dp) override;
+        virtual void newProperty(INDI::Property *property) override;
+        virtual void removeProperty(INDI::Property *property) override;
+        virtual void newBLOB(IBLOB *bp) override;
+        virtual void newSwitch(ISwitchVectorProperty *svp) override;
+        virtual void newNumber(INumberVectorProperty *nvp) override;
+        virtual void newText(ITextVectorProperty *tvp) override;
+        virtual void newLight(ILightVectorProperty *lvp) override;
+        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        virtual void serverConnected() override;
+
     protected:
         AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&dd);
 
     protected:
+        friend class BaseCientPrivate;
+        friend class AbstractBaseCientPrivate;
         std::unique_ptr<AbstractBaseClientPrivate> d_ptr_indi;
 };
 
