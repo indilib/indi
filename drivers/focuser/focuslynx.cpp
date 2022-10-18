@@ -770,7 +770,6 @@ bool FocusLynxF2::initProperties()
 {
     FocusLynxBase::initProperties();
     // Remove from F2 to avoid confusion, already present on F1
-    deleteProperty("DRIVER_INFO");
     deleteProperty("SIMULATION");
     // deleteProperty("POLLING_PERIOD");
     return true;
