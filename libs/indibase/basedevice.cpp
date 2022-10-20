@@ -30,7 +30,10 @@
 #include "indipropertyswitch.h"
 #include "indipropertylight.h"
 #include "indipropertyblob.h"
-#include "sharedblob_parse.h"
+
+#ifdef ENABLE_INDI_SHARED_MEMORY
+# include "sharedblob_parse.h"
+#endif
 
 #include <cerrno>
 #include <cassert>
@@ -618,6 +621,45 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
     return 0;
 }
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
+static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetView<IBLOB> &widget)
+{
+    auto attachementId = element.getAttribute("attached-data-id");
+
+    if (!attachementId.isValid())
+    {
+        return false;
+    }
+
+    auto size = element.getAttribute("size");
+    // Client mark blob that can be attached directly
+
+    // FIXME: Where is the blob data buffer freed at the end ?
+    // FIXME: blobSize is not buffer size here. Must pass it all the way through
+    // (while compressing shared buffer is useless)
+    if (auto directAttachment = element.getAttribute("attachment-direct"))
+    {
+        if (widget.getBlob())
+        {
+            IDSharedBlobFree(widget.getBlob());
+            widget.setBlobLen(0);
+        }
+        widget.setBlob(attachBlobByUid(attachementId.toString(), size));
+    }
+    else
+    {
+        // For compatibility, copy to a modifiable memory area
+        widget.setBlob(realloc(widget.getBlob(), size));
+        void *tmp = attachBlobByUid(attachementId.toString(), size);
+        memcpy(widget.getBlob(), tmp, size);
+        IDSharedBlobFree(tmp);
+    }
+    widget.setBlobLen(size);
+
+    return true;
+}
+#endif
+
 /* Set BLOB vector. Process incoming data stream
  * Return 0 if okay, -1 if error
 */
@@ -646,34 +688,9 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
         }
 
         widget->setSize(size);
-
-        if (auto attachementId = element.getAttribute("attached-data-id"))
-        {
-            // Client mark blob that can be attached directly
-
-            // FIXME: Where is the blob data buffer freed at the end ?
-            // FIXME: blobSize is not buffer size here. Must pass it all the way through
-            // (while compressing shared buffer is useless)
-            if (auto directAttachment = element.getAttribute("attachment-direct"))
-            {
-                if (widget->getBlob())
-                {
-                    IDSharedBlobFree(widget->getBlob());
-                    widget->setBlobLen(0);
-                }
-                widget->setBlob(attachBlobByUid(attachementId.toString(), size));
-            }
-            else
-            {
-                // For compatibility, copy to a modifiable memory area
-                widget->setBlob(realloc(widget->getBlob(), size));
-                void *tmp = attachBlobByUid(attachementId.toString(), size);
-                memcpy(widget->getBlob(), tmp, size);
-                IDSharedBlobFree(tmp);
-            }
-            widget->setBlobLen(size);
-        }
-        else
+#ifdef ENABLE_INDI_SHARED_MEMORY
+        if (sSharedToBlob(element, *widget) == false)
+#endif
         {
             size_t base64_encoded_size = element.context().size();
             size_t base64_decoded_size = 3 * base64_encoded_size / 4;
@@ -704,7 +721,11 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
                 return -1;
             }
             widget->setSize(dataSize);
+#ifdef ENABLE_INDI_SHARED_MEMORY
             IDSharedBlobFree(widget->getBlob());
+#else
+            free(widget->getBlob());
+#endif
             widget->setBlob(dataBuffer);
 
         }

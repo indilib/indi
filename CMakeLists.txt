@@ -203,7 +203,6 @@ SET(indiclient_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indiclient_CXX_SRC
@@ -211,7 +210,6 @@ SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
@@ -222,6 +220,14 @@ SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
+
+if (INDI_SHARED_MEMORY)
+    SET(indiclient_C_SRC ${indiclient_C_SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
+
+    SET(indiclient_CXX_SRC ${indiclient_CXX_SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp)
+endif ()
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
@@ -284,14 +290,13 @@ SET(indiclientqt_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+    
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
@@ -302,6 +307,15 @@ SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
+
+if (INDI_SHARED_MEMORY)
+    SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
+
+    SET(indiclientqt_CXX_SRC ${indiclientqt_CXX_SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp)
+endif ()
+
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)

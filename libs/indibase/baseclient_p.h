@@ -69,6 +69,7 @@ class EventFd
 };
 #endif
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
 class ClientSharedBlobs
 {
     public:
@@ -96,6 +97,7 @@ class ClientSharedBlobs
         std::list<int> incomingSharedBuffers;
         std::map<std::string, std::set<std::string>> directBlobAccess;
 };
+#endif
 
 class BaseDevice;
 
@@ -133,8 +135,9 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
         std::mutex sSocketBusy;
         std::condition_variable sSocketChanged;
         int sExitCode;
-
+#ifdef ENABLE_INDI_SHARED_MEMORY
         ClientSharedBlobs sharedBlobs;
+#endif
 };
 
 }

@@ -24,7 +24,11 @@
 #include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
+
+#ifdef ENABLE_INDI_SHARED_MEMORY
 #include "sharedblob_parse.h"
+#endif
+
 #include "locale_compat.h"
 
 #include <cerrno>
@@ -78,7 +82,7 @@ namespace INDI
 {
 
 //ClientSharedBlobs
-
+#ifdef ENABLE_INDI_SHARED_MEMORY
 ClientSharedBlobs::Blobs::~Blobs()
 {
     releaseBlobUids(*this);
@@ -179,7 +183,7 @@ void ClientSharedBlobs::clear()
     }
     incomingSharedBuffers.clear();
 }
-
+#endif
 // BaseClientPrivate
 
 BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
@@ -451,7 +455,9 @@ bool BaseClientPrivate::establish(const std::string &cServer)
 
 bool BaseClientPrivate::disconnect(int exit_code)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     sharedBlobs.clear();
+#endif
 
     //IDLog("Server disconnected called\n");
     std::lock_guard<std::mutex> locker(sSocketBusy);
@@ -498,7 +504,9 @@ void BaseClientPrivate::listenINDI()
 #endif
 
     clear();
+#ifdef ENABLE_INDI_SHARED_MEMORY
     sharedBlobs.disableDirectBlobAccess();
+#endif
 
     INDI::LilXmlParser xmlParser;
 
@@ -528,7 +536,7 @@ void BaseClientPrivate::listenINDI()
 
         if (FD_ISSET(sockfd, &rs))
         {
-#ifdef _WINDOWS
+#if defined(_WINDOWS) || !defined(ENABLE_INDI_SHARED_MEMORY)
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
             // Use recvmsg for ancillary data
@@ -619,7 +627,7 @@ void BaseClientPrivate::listenINDI()
                 if (verbose)
                     root.print(stderr, 0);
                 
-
+#ifdef ENABLE_INDI_SHARED_MEMORY
                 ClientSharedBlobs::Blobs blobs;
 
                 if (!sharedBlobs.parseAttachedBlobs(root, blobs))
@@ -628,6 +636,7 @@ void BaseClientPrivate::listenINDI()
                     clientFatalError = true;
                     break;
                 }
+#endif
                 int err_code = dispatchCommand(root, msg);
  
                 if (err_code < 0)
@@ -669,7 +678,9 @@ void BaseClientPrivate::listenINDI()
         parent->serverDisconnected(exit_code);
 
         clear();
+#ifdef ENABLE_INDI_SHARED_MEMORY
         sharedBlobs.disableDirectBlobAccess();
+#endif
         watchDevice.unwatchDevices();
         sSocketChanged.notify_all();
     }
@@ -742,8 +753,13 @@ bool BaseClient::disconnectServer(int exit_code)
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     D_PTR(BaseClient);
     d->sharedBlobs.enableDirectBlobAccess(dev, prop);
+#else
+    INDI_UNUSED(dev);
+    INDI_UNUSED(prop);
+#endif
 }
 
 }
