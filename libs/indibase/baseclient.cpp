@@ -273,14 +273,12 @@ static const char * unixDefaultPath = "/tmp/indiserver";
 
 bool BaseClientPrivate::establish(const std::string &cServer)
 {
+#ifndef _WINDOWS
     struct sockaddr_un serv_addr_un;
+#endif
     struct sockaddr_in serv_addr_in;
     const struct sockaddr *sockaddr;
     socklen_t addrlen;
-
-    struct timeval ts;
-    ts.tv_sec  = timeout_sec;
-    ts.tv_usec = timeout_us;
 
     int ret;
 
@@ -355,7 +353,7 @@ bool BaseClientPrivate::establish(const std::string &cServer)
     //set socket nonblocking flag
 #ifdef _WINDOWS
     u_long iMode = 0;
-    iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
+    int iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
     if (iResult != NO_ERROR)
     {
         IDLog("ioctlsocket failed with error: %ld\n", iResult);
@@ -401,6 +399,10 @@ bool BaseClientPrivate::establish(const std::string &cServer)
     /* If it is connected, continue, otherwise wait */
     if (ret != 0)
     {
+        struct timeval ts;
+        ts.tv_sec  = timeout_sec;
+        ts.tv_usec = timeout_us;
+
         //we are waiting for connect to complete now
         if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
         {
@@ -585,7 +587,7 @@ void BaseClientPrivate::listenINDI()
                             int fd = fds[i];
                             //IDLog("Received fd %d\n", fd);
 #ifndef __linux__
-                            fcntl(fds[i], F_SETFD, FD_CLOEXEC);
+                            fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
 
                             sharedBlobs.addIncomingSharedBuffer(fd);
@@ -731,7 +733,7 @@ bool BaseClient::connectServer()
                 return false;
         }
 #else
-        if (!establish(d->cServer))
+        if (!d->establish(d->cServer))
             return false;
 #endif
 
