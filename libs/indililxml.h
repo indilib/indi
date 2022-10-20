@@ -19,6 +19,7 @@
 
 #include "lilxml.h"
 #include "indiapi.h"
+#include "indibase.h"
 #include "indicom.h"
 #include "indidevapi.h"
 
@@ -26,6 +27,7 @@
 #include <functional>
 #include <list>
 #include <stdexcept>
+#include <memory>
 
 #include <cstring>
 
