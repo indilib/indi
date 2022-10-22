@@ -238,6 +238,10 @@ SET(indiclient_C_SRC ${indiclient_C_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
+
+add_subdirectory(libs/sockets)
+target_link_libraries(indiclient sockets)
+
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif (NOT CYGWIN AND NOT WIN32)
