@@ -82,7 +82,8 @@ ssize_t TcpSocketPrivate::write(const void *data, size_t size)
             return 0;
         }
         ret = TcpSocketPrivate::sendSocket(data, size);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+    }
+    while (ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
 
     if (ret < 0)
     {
@@ -197,11 +198,14 @@ void TcpSocketPrivate::joinThread(std::thread &thread)
 
 class Finally
 {
-    typedef std::function<void()> F;
-    F f;
-public:
-    Finally(const F &f) : f(f) { }
-    ~Finally() { if (f) f(); }
+        typedef std::function<void()> F;
+        F f;
+    public:
+        Finally(const F &f) : f(f) { }
+        ~Finally()
+        {
+            if (f) f();
+        }
 };
 
 void TcpSocketPrivate::connectToHost(const std::string &hostName, unsigned short port)
@@ -214,7 +218,7 @@ void TcpSocketPrivate::connectToHost(const std::string &hostName, unsigned short
 
     setSocketState(TcpSocket::HostLookupState);
 
-    thread = std::thread([this, hostName, port] (std::thread &&oldThread)
+    thread = std::thread([this, hostName, port] (std::thread && oldThread)
     {
         Finally finally([this]
         {
@@ -363,30 +367,54 @@ static std::string sSocketErrorToString(TcpSocket::SocketError error)
 {
     switch (error)
     {
-    case TcpSocket::ConnectionRefusedError: return "ConnectionRefusedError";
-    case TcpSocket::RemoteHostClosedError: return "RemoteHostClosedError";
-    case TcpSocket::HostNotFoundError: return "HostNotFoundError";
-    case TcpSocket::SocketAccessError: return "SocketAccessError";
-    case TcpSocket::SocketResourceError: return "SocketResourceError";
-    case TcpSocket::SocketTimeoutError: return "SocketTimeoutError";
-    case TcpSocket::DatagramTooLargeError: return "DatagramTooLargeError";
-    case TcpSocket::NetworkError: return "NetworkError";
-    case TcpSocket::AddressInUseError: return "AddressInUseError";
-    case TcpSocket::SocketAddressNotAvailableError: return "SocketAddressNotAvailableError";
-    case TcpSocket::UnsupportedSocketOperationError: return "UnsupportedSocketOperationError";
-    case TcpSocket::UnfinishedSocketOperationError: return "UnfinishedSocketOperationError";
-    case TcpSocket::ProxyAuthenticationRequiredError: return "ProxyAuthenticationRequiredError";
-    case TcpSocket::SslHandshakeFailedError: return "SslHandshakeFailedError";
-    case TcpSocket::ProxyConnectionRefusedError: return "ProxyConnectionRefusedError";
-    case TcpSocket::ProxyConnectionClosedError: return "ProxyConnectionClosedError";
-    case TcpSocket::ProxyConnectionTimeoutError: return "ProxyConnectionTimeoutError";
-    case TcpSocket::ProxyNotFoundError: return "ProxyNotFoundError";
-    case TcpSocket::ProxyProtocolError: return "ProxyProtocolError";
-    case TcpSocket::OperationError: return "OperationError";
-    case TcpSocket::SslInternalError: return "SslInternalError";
-    case TcpSocket::SslInvalidUserDataError: return "SslInvalidUserDataError";
-    case TcpSocket::TemporaryError: return "TemporaryError";
-    case TcpSocket::UnknownSocketError: return "UnknownSocketError";
+        case TcpSocket::ConnectionRefusedError:
+            return "ConnectionRefusedError";
+        case TcpSocket::RemoteHostClosedError:
+            return "RemoteHostClosedError";
+        case TcpSocket::HostNotFoundError:
+            return "HostNotFoundError";
+        case TcpSocket::SocketAccessError:
+            return "SocketAccessError";
+        case TcpSocket::SocketResourceError:
+            return "SocketResourceError";
+        case TcpSocket::SocketTimeoutError:
+            return "SocketTimeoutError";
+        case TcpSocket::DatagramTooLargeError:
+            return "DatagramTooLargeError";
+        case TcpSocket::NetworkError:
+            return "NetworkError";
+        case TcpSocket::AddressInUseError:
+            return "AddressInUseError";
+        case TcpSocket::SocketAddressNotAvailableError:
+            return "SocketAddressNotAvailableError";
+        case TcpSocket::UnsupportedSocketOperationError:
+            return "UnsupportedSocketOperationError";
+        case TcpSocket::UnfinishedSocketOperationError:
+            return "UnfinishedSocketOperationError";
+        case TcpSocket::ProxyAuthenticationRequiredError:
+            return "ProxyAuthenticationRequiredError";
+        case TcpSocket::SslHandshakeFailedError:
+            return "SslHandshakeFailedError";
+        case TcpSocket::ProxyConnectionRefusedError:
+            return "ProxyConnectionRefusedError";
+        case TcpSocket::ProxyConnectionClosedError:
+            return "ProxyConnectionClosedError";
+        case TcpSocket::ProxyConnectionTimeoutError:
+            return "ProxyConnectionTimeoutError";
+        case TcpSocket::ProxyNotFoundError:
+            return "ProxyNotFoundError";
+        case TcpSocket::ProxyProtocolError:
+            return "ProxyProtocolError";
+        case TcpSocket::OperationError:
+            return "OperationError";
+        case TcpSocket::SslInternalError:
+            return "SslInternalError";
+        case TcpSocket::SslInvalidUserDataError:
+            return "SslInvalidUserDataError";
+        case TcpSocket::TemporaryError:
+            return "TemporaryError";
+        case TcpSocket::UnknownSocketError:
+            return "UnknownSocketError";
     }
     return "UnknownSocketError";
 }
@@ -430,7 +458,8 @@ bool TcpSocket::waitForConnected(int timeout) const
     }
 
     std::unique_lock<std::mutex> locker(d_ptr->socketStateMutex);
-    d_ptr->socketStateChanged.wait_for(locker, std::chrono::milliseconds(timeout), [this] {
+    d_ptr->socketStateChanged.wait_for(locker, std::chrono::milliseconds(timeout), [this]
+    {
         return d_ptr->socketState == TcpSocket::ConnectedState || d_ptr->socketState == TcpSocket::UnconnectedState;
     });
     return d_ptr->socketState == TcpSocket::ConnectedState;
@@ -445,7 +474,8 @@ bool TcpSocket::waitForDisconnected(int timeout) const
     }
 
     std::unique_lock<std::mutex> locker(d_ptr->socketStateMutex);
-    return d_ptr->socketStateChanged.wait_for(locker, std::chrono::milliseconds(timeout), [this] {
+    return d_ptr->socketStateChanged.wait_for(locker, std::chrono::milliseconds(timeout), [this]
+    {
         return d_ptr->socketState == TcpSocket::UnconnectedState;
     });
 
