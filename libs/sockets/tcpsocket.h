@@ -24,90 +24,93 @@
 class TcpSocketPrivate;
 class TcpSocket
 {
-public:
-    enum SocketError {
-        ConnectionRefusedError,
-        RemoteHostClosedError,
-        HostNotFoundError,
-        SocketAccessError,
-        SocketResourceError,
-        SocketTimeoutError,                     /* 5 */
-        DatagramTooLargeError,
-        NetworkError,
-        AddressInUseError,
-        SocketAddressNotAvailableError,
-        UnsupportedSocketOperationError,        /* 10 */
-        UnfinishedSocketOperationError,
-        ProxyAuthenticationRequiredError,
-        SslHandshakeFailedError,
-        ProxyConnectionRefusedError,
-        ProxyConnectionClosedError,             /* 15 */
-        ProxyConnectionTimeoutError,
-        ProxyNotFoundError,
-        ProxyProtocolError,
-        OperationError,
-        SslInternalError,                       /* 20 */
-        SslInvalidUserDataError,
-        TemporaryError,
+    public:
+        enum SocketError
+        {
+            ConnectionRefusedError,
+            RemoteHostClosedError,
+            HostNotFoundError,
+            SocketAccessError,
+            SocketResourceError,
+            SocketTimeoutError, /* 5 */
+            DatagramTooLargeError,
+            NetworkError,
+            AddressInUseError,
+            SocketAddressNotAvailableError,
+            UnsupportedSocketOperationError, /* 10 */
+            UnfinishedSocketOperationError,
+            ProxyAuthenticationRequiredError,
+            SslHandshakeFailedError,
+            ProxyConnectionRefusedError,
+            ProxyConnectionClosedError, /* 15 */
+            ProxyConnectionTimeoutError,
+            ProxyNotFoundError,
+            ProxyProtocolError,
+            OperationError,
+            SslInternalError, /* 20 */
+            SslInvalidUserDataError,
+            TemporaryError,
 
-        UnknownSocketError = -1
-    };
+            UnknownSocketError = -1
+        };
 
-    enum SocketState {
-        UnconnectedState,
-        HostLookupState,
-        ConnectingState,
-        ConnectedState,
-        BoundState,
-        ListeningState,
-        ClosingState
-    };
-public:
-    TcpSocket();
-    virtual ~TcpSocket();
+        enum SocketState
+        {
+            UnconnectedState,
+            HostLookupState,
+            ConnectingState,
+            ConnectedState,
+            BoundState,
+            ListeningState,
+            ClosingState
+        };
 
-public:
-    void setConnectionTimeout(int timeout);
+    public:
+        TcpSocket();
+        virtual ~TcpSocket();
 
-public:
-    void connectToHost(const std::string &hostName, uint16_t port);
-    void disconnectFromHost();
+    public:
+        void setConnectionTimeout(int timeout);
 
-public:
-    int write(const char *data, int size);
-    int write(const std::string &data);
+    public:
+        void connectToHost(const std::string &hostName, uint16_t port);
+        void disconnectFromHost();
 
-public:
-    SocketError error() const;
-    std::string errorString();
+    public:
+        int write(const char *data, int size);
+        int write(const std::string &data);
 
-public:
-    void onConnected(const std::function<void()> &callback);
-    void onDisconnected(const std::function<void()> &callback);
-    void onData(const std::function<void(const char *, size_t)> &callback);
-    void onErrorOccurred(const std::function<void(SocketError)> &callback);
+    public:
+        SocketError error() const;
+        std::string errorString();
 
-public:
-    bool waitForDisconnected(int timeout = 2000) const;
-    bool waitForConnected(int timeout = 2000) const;
+    public:
+        void onConnected(const std::function<void()> &callback);
+        void onDisconnected(const std::function<void()> &callback);
+        void onData(const std::function<void(const char *, size_t)> &callback);
+        void onErrorOccurred(const std::function<void(SocketError)> &callback);
 
-public:
-    int *socketDescriptor() const;
+    public:
+        bool waitForDisconnected(int timeout = 2000) const;
+        bool waitForConnected(int timeout = 2000) const;
 
-protected:
-    virtual void connected();
-    virtual void disconnected();
-    virtual void readyRead();
-    virtual void errorOccurred(SocketError);
+    public:
+        int *socketDescriptor() const;
 
-protected:
-    void emitConnected();
-    void emitDisconnected();
-    void emitData(const char *data, size_t size);
-    void emitErrorOccurred(SocketError error);
+    protected:
+        virtual void connected();
+        virtual void disconnected();
+        virtual void readyRead();
+        virtual void errorOccurred(SocketError);
 
-protected:
-    friend class TcpSocketPrivate;
-    std::unique_ptr<TcpSocketPrivate> d_ptr;
-    TcpSocket(std::unique_ptr<TcpSocketPrivate> &&d);
+    protected:
+        void emitConnected();
+        void emitDisconnected();
+        void emitData(const char *data, size_t size);
+        void emitErrorOccurred(SocketError error);
+
+    protected:
+        friend class TcpSocketPrivate;
+        std::unique_ptr<TcpSocketPrivate> d_ptr;
+        TcpSocket(std::unique_ptr<TcpSocketPrivate> &&d);
 };

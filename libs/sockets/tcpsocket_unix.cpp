@@ -54,7 +54,7 @@ int TcpSocketPrivate::sendSocket(const void *src, size_t size)
 
 SocketAddress SocketAddress::afUnix(const std::string &unixPath)
 {
-    struct sockaddr_un * sa_un = new struct sockaddr_un;
+    struct sockaddr_un *sa_un = new struct sockaddr_un;
 
     (void)memset(sa_un, 0, sizeof(struct sockaddr_un));
     sa_un->sun_family = AF_UNIX;
@@ -67,9 +67,9 @@ SocketAddress SocketAddress::afUnix(const std::string &unixPath)
     const int offset = 0;
 #endif
     strncpy(sa_un->sun_path + offset, unixPath.c_str(), sizeof(sa_un->sun_path) - offset - 1);
-    
+
     SocketAddress result;
-    result.mData.reset(reinterpret_cast<struct sockaddr*>(sa_un));
+    result.mData.reset(reinterpret_cast<struct sockaddr *>(sa_un));
     result.mSize = offsetof(struct sockaddr_un, sun_path) + unixPath.size() + offset;
     return result;
 }

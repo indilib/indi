@@ -34,99 +34,100 @@
 
 class SocketAddress
 {
-public:
-    static const char *unixDomainPrefix;
+    public:
+        static const char *unixDomainPrefix;
 
-public:
-    SocketAddress() = default;
-    explicit SocketAddress(const std::string &hostName, unsigned short port);
+    public:
+        SocketAddress() = default;
+        explicit SocketAddress(const std::string &hostName, unsigned short port);
 
-public:
-    bool isValid() const
-    {
-        return data() != nullptr;
-    }
+    public:
+        bool isValid() const
+        {
+            return data() != nullptr;
+        }
 
-    const struct sockaddr *data() const
-    {
-        return mData.get();
-    }
+        const struct sockaddr *data() const
+        {
+            return mData.get();
+        }
 
-    size_t size() const
-    {
-        return mSize;
-    }
+        size_t size() const
+        {
+            return mSize;
+        }
 
-public:
-    const struct sockaddr *operator &() const
-    {
-        return data();
-    }
+    public:
+        const struct sockaddr *operator&() const
+        {
+            return data();
+        }
 
-protected:
-    static SocketAddress afInet(const std::string &hostName, unsigned short port);
-    static SocketAddress afUnix(const std::string &hostName);
-    static bool isUnix(const std::string &hostName);
+    protected:
+        static SocketAddress afInet(const std::string &hostName, unsigned short port);
+        static SocketAddress afUnix(const std::string &hostName);
+        static bool isUnix(const std::string &hostName);
 
-protected:
-    std::unique_ptr<struct sockaddr> mData;
-    size_t mSize;
+    protected:
+        std::unique_ptr<struct sockaddr> mData;
+        size_t mSize;
 };
 
 class TcpSocketPrivate
 {
-public:
-    TcpSocketPrivate(TcpSocket *parent);
-    virtual ~TcpSocketPrivate() = default;
+    public:
+        TcpSocketPrivate(TcpSocket *parent);
+        virtual ~TcpSocketPrivate() = default;
 
-public: // platform dependent
-    bool createSocket();
-    void closeSocket();
-    int recvSocket(void *dst, size_t size);
-    int sendSocket(const void *src, size_t size);
-    bool setNonblockSocket();
+    public: // platform dependent
+        bool createSocket();
+        void closeSocket();
+        int recvSocket(void *dst, size_t size);
+        int sendSocket(const void *src, size_t size);
+        bool setNonblockSocket();
 
-public: // low level helpers
-    bool connectSocket(const std::string &hostName, unsigned short port);
-    bool waitForConnectedSockets();
-    bool processSocket();
+    public: // low level helpers
+        bool connectSocket(const std::string &hostName, unsigned short port);
+        bool waitForConnectedSockets();
+        bool processSocket();
 
-public: // TcpSocketPrivate API
-    ssize_t write(const void *data, size_t size);
+    public: // TcpSocketPrivate API
+        ssize_t write(const void *data, size_t size);
 
-    void connectToHost(const std::string &hostName, unsigned short port);
-    void aboutToClose();
+        void connectToHost(const std::string &hostName, unsigned short port);
+        void aboutToClose();
 
-    void joinThread(std::thread &thread);
+        void joinThread(std::thread &thread);
 
-public:
-    enum ErrorType
-    {
-        ErrorTypeSystem,
-        ErrorTypeInternal
-    };
-    void setSocketError(TcpSocket::SocketError error, ErrorType errorType = ErrorTypeSystem, const std::string &errorString = "");
-    void setSocketState(TcpSocket::SocketState state);
+    public:
+        enum ErrorType
+        {
+            ErrorTypeSystem,
+            ErrorTypeInternal
+        };
+        void setSocketError(TcpSocket::SocketError error, ErrorType errorType = ErrorTypeSystem,
+                            const std::string &errorString = "");
+        void setSocketState(TcpSocket::SocketState state);
 
-public:
-    TcpSocket *parent;
-    SocketFileDescriptor socketFd = SocketInvalid;
-    Select select;
-    int timeout {30000};
+    public:
+        TcpSocket *parent;
+        SocketFileDescriptor socketFd = SocketInvalid;
+        Select select;
+        int timeout{30000};
 
-    std::thread thread;
-    std::atomic<bool> isAboutToClose {false};
+        std::thread thread;
+        std::atomic<bool> isAboutToClose{false};
 
-    mutable std::mutex socketStateMutex;
-    mutable std::condition_variable socketStateChanged;
+        mutable std::mutex socketStateMutex;
+        mutable std::condition_variable socketStateChanged;
 
-    std::atomic<TcpSocket::SocketState> socketState {TcpSocket::UnconnectedState};
-    TcpSocket::SocketError socketError;
-    std::string errorString;
+        std::atomic<TcpSocket::SocketState> socketState{TcpSocket::UnconnectedState};
+        TcpSocket::SocketError socketError;
+        std::string errorString;
 
-    // events
-    std::function<void()> onConnected;
-    std::function<void()> onDisconnected;
-    std::function<void(const char *, size_t)> onData;
-    std::function<void(TcpSocket::SocketError)> onErrorOccurred;
+        // events
+        std::function<void()> onConnected;
+        std::function<void()> onDisconnected;
+        std::function<void(const char *, size_t)> onData;
+        std::function<void(TcpSocket::SocketError)> onErrorOccurred;
 };
