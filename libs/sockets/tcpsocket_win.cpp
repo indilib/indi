@@ -56,11 +56,6 @@ int TcpSocketPrivate::sendSocket(const void *src, size_t size)
     return ::send(socketFd, static_cast<const char *>(src), size, 0);
 }
 
-SocketAddress::SocketAddress(const std::string &hostName, unsigned short port)
-{
-    *this = SocketAddress::afInet(hostName, port);
-}
-
 SocketAddress SocketAddress::afUnix(const std::string &)
 {
     return SocketAddress();
