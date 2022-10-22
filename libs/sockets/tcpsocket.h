@@ -82,7 +82,7 @@ class TcpSocket
 
     public:
         SocketError error() const;
-        std::string errorString();
+        std::string errorString() const;
 
     public:
         void onConnected(const std::function<void()> &callback);
@@ -104,10 +104,10 @@ class TcpSocket
         virtual void errorOccurred(SocketError);
 
     protected:
-        void emitConnected();
-        void emitDisconnected();
-        void emitData(const char *data, size_t size);
-        void emitErrorOccurred(SocketError error);
+        void emitConnected() const;
+        void emitDisconnected() const;
+        void emitData(const char *data, size_t size) const;
+        void emitErrorOccurred(SocketError error) const;
 
     protected:
         friend class TcpSocketPrivate;

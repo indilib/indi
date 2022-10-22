@@ -424,7 +424,7 @@ TcpSocket::SocketError TcpSocket::error() const
     return d_ptr->socketError;
 }
 
-std::string TcpSocket::errorString()
+std::string TcpSocket::errorString() const
 {
     return sSocketErrorToString(d_ptr->socketError) + ": " + d_ptr->errorString;
 }
@@ -515,25 +515,25 @@ void TcpSocket::errorOccurred(SocketError error)
     emitErrorOccurred(error);
 }
 
-void TcpSocket::emitConnected()
+void TcpSocket::emitConnected() const
 {
     if (d_ptr->onConnected)
         d_ptr->onConnected();
 }
 
-void TcpSocket::emitDisconnected()
+void TcpSocket::emitDisconnected() const
 {
     if (d_ptr->onDisconnected)
         d_ptr->onDisconnected();
 }
 
-void TcpSocket::emitData(const char *data, size_t size)
+void TcpSocket::emitData(const char *data, size_t size) const
 {
     if (d_ptr->onData)
         d_ptr->onData(data, size);
 }
 
-void TcpSocket::emitErrorOccurred(SocketError error)
+void TcpSocket::emitErrorOccurred(SocketError error) const
 {
     if (d_ptr->onErrorOccurred)
         d_ptr->onErrorOccurred(error);
