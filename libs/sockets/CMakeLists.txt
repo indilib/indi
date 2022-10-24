@@ -31,10 +31,10 @@ endif()
 # Setup Target
 target_sources(${PROJECT_NAME}
     PUBLIC
-        ${${PROJECT_NAME}_SOURCES}
-        tcpsocket.h
+    ${${PROJECT_NAME}_SOURCES}
+    ${${PROJECT_NAME}_HEADERS}
     PRIVATE
-        tcpsocket_p.h
+    ${${PROJECT_NAME}_PRIVATE_HEADERS}
 )
 
 target_include_directories(${PROJECT_NAME}
