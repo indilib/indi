@@ -51,7 +51,7 @@ PropertyBasicPrivateTemplate<T>::~PropertyBasicPrivateTemplate()
 {
 #ifdef INDI_PROPERTY_RAW_CAST
     if (!raw)
-        delete &this->property;
+        delete &this->typedProperty;
 #endif
 }
 
