@@ -937,9 +937,8 @@ size_t sprXMLCDataOffset(XMLEle * root, XMLEle * ep, int level)
 
 void XMLOutput::putEntityXML(const char * s)
 {
-    const char *sret = NULL;
     const char *ep = NULL;
-    for (sret = s; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
+    for (; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
     {
         /* found another entity, copy preceding to malloced buffer */
         int nnew = ep - s; /* all but entity itself */
