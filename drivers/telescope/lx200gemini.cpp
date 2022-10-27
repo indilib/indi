@@ -133,28 +133,29 @@ bool LX200Gemini::initProperties()
 
     IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
     IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED",
-                       "Manual Slewing Speed", MOTION_TAB, IP_RW,  0, IPS_IDLE);
+                       "Slew Speed", MOTION_TAB, IP_RW,  0, IPS_IDLE);
 
     IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed",
-                       MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED",
+		       "Goto Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB,
-                       IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED",
+		       "Move Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&GuidingSpeedBothN[GUIDING_BOTH], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedBothNP, GuidingSpeedBothN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED_BOTH", "Guiding Speed (RA and DEC)",
+    IUFillNumber(&GuidingSpeedBothN[GUIDING_BOTH], "GUIDING_SPEED", "Guide Speed RA/DEC", "%g", 0.2, 0.8, 0.1, 0.5);
+    IUFillNumberVector(&GuidingSpeedBothNP, GuidingSpeedBothN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED_BOTH",
+		       "Guide Speed",
                        GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&GuidingSpeedN[GUIDING_WE], "GUIDE_RATE_WE", "W/E Rate", "%g", 0.2, 0.8, 0.1, 0.5);
     IUFillNumber(&GuidingSpeedN[GUIDING_NS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Speed",
-                       GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 2, getDeviceName(), "GUIDE_RATE",
+                       "Guide Speed", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
     IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED",
-                       "Centering Slewing Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+                       "Center Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
@@ -165,8 +166,8 @@ bool LX200Gemini::initProperties()
     //PEC 
     IUFillSwitch(&PECControlS[PEC_START_TRAINING], "PEC_START_TRAINING", "Start Training", ISS_OFF);
     IUFillSwitch(&PECControlS[PEC_ABORT_TRAINING], "PEC_ABORT_TRAINING", "Abort Training", ISS_OFF);
-    IUFillSwitchVector(&PECControlSP, PECControlS, 2, getDeviceName(), "PEC_COMMANDS", "PEC Commands",
-                       MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PECControlSP, PECControlS, 2, getDeviceName(), "PEC_COMMANDS",
+                       "PEC Cmds", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillText(&PECStateT[PEC_STATUS_ACTIVE], "PEC_STATUS_ACTIVE", "PEC active", "");
     IUFillText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "PEC_STATUS_FRESH_TRAINED", "PEC freshly trained", "");
@@ -175,27 +176,29 @@ bool LX200Gemini::initProperties()
     IUFillText(&PECStateT[PEC_STATUS_WILL_TRAIN], "PEC_STATUS_WILL_TRAIN", "PEC will train soon", "");
 
     IUFillText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "PEC_STATUS_DATA_AVAILABLE", "PEC Data available", "");    
-    IUFillTextVector(&PECStateTP, PECStateT, 6, getDeviceName(), "PEC_STATE", "PEC State", MOTION_TAB, IP_RO, 0, IPS_OK);
+    IUFillTextVector(&PECStateTP, PECStateT, 6, getDeviceName(), "PEC_STATE",
+                     "PEC State", MOTION_TAB, IP_RO, 0, IPS_OK);
 
     IUFillText(&PECCounterT[0], "PEC_COUNTER", "Counter", "");
-    IUFillTextVector(&PECCounterTP, PECCounterT, 1, getDeviceName(), "PEC_COUNTER", "PEC Counter", MOTION_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&PECCounterTP, PECCounterT, 1, getDeviceName(), "PEC_COUNTER",
+                     "PEC Counter", MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&PECMaxStepsN[0], "PEC_MAX_STEPS", "PEC MaxSteps", "%f", 0, 4294967296, 1, 0);
     IUFillNumberVector(&PECMaxStepsNP, PECMaxStepsN, 1, getDeviceName(), "PEC_MAX_STEPS",
-                       "PEC_MAX_STEPS", MOTION_TAB, IP_RO, 0, IPS_IDLE);
+                       "PEC Steps", MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&ServoPrecisionN[SERVO_RA], "SERVO_RA", "4x RA Precision", "%f", 0, 1, 1, 0);
     IUFillNumber(&ServoPrecisionN[SERVO_DEC], "SERVO_DEC", "4x DEC Precision", "%f", 0, 1, 1, 0);
     IUFillNumberVector(&ServoPrecisionNP, ServoPrecisionN, 2, getDeviceName(), "SERVO",
-                       "Servo Precision", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+                       "Servo", MOTION_TAB, IP_RW, 0, IPS_IDLE);
     
     IUFillNumber(&PECGuidingSpeedN[0], "PEC_GUIDING_SPEED", "PEC GuidingSpeed", "%f", 0.2, 0.8, 0.1, 0);
     IUFillNumberVector(&PECGuidingSpeedNP, PECGuidingSpeedN, 1, getDeviceName(), "PEC_GUIDING_SPEED",
-                       "PEC_GUIDING_SPEED", MOTION_TAB, IP_RO, 0, IPS_IDLE);
+                       "PEC Speed", MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&PECEnableAtBootN[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", "%f", 0, 1, 1, 0);
     IUFillNumberVector(&PECEnableAtBootNP, PECEnableAtBootN, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
-                       "ENABLE_PEC_AT_BOOT", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+                       "PEC Setting", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     gemini_software_level_ = 0.0;
     
