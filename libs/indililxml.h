@@ -230,7 +230,7 @@ inline int LilXmlValue::toInt(safe_ptr<bool> ok) const
     try {
         result = std::stoi(mValue);
         *ok = true;
-    } catch (const std::invalid_argument &) {
+    } catch (...) {
         *ok = false;
     }
     return result;
