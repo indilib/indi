@@ -43,19 +43,19 @@ PropertySwitch::~PropertySwitch()
 void PropertySwitch::reset()
 {
     D_PTR(PropertySwitch);
-    d->property.reset();
+    d->typedProperty.reset();
 }
 
 int PropertySwitch::findOnSwitchIndex() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.findOnSwitchIndex();
+    return d->typedProperty.findOnSwitchIndex();
 }
 
 INDI::WidgetView<ISwitch> *PropertySwitch::findOnSwitch() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.findOnSwitch();
+    return d->typedProperty.findOnSwitch();
 }
 
 bool PropertySwitch::update(const ISState states[], const char * const names[], int n)
@@ -72,7 +72,7 @@ bool PropertySwitch::update(const ISState states[], const char * const names[], 
         d->onNewValuesCallback(newValues);
         return true;
     }
-    return d->property.update(states, names, n) && (emitUpdate(), true);
+    return d->typedProperty.update(states, names, n) && (emitUpdate(), true);
 }
 
 bool PropertySwitch::hasUpdateCallback() const
@@ -87,26 +87,26 @@ void PropertySwitch::fill(
 )
 {
     D_PTR(PropertySwitch);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, permission, rule, timeout, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, permission, rule, timeout, state);
 }
 
 void PropertySwitch::setRule(ISRule rule)
 {
     D_PTR(PropertySwitch);
-    d->property.setRule(rule);
+    d->typedProperty.setRule(rule);
 }
 
 ISRule PropertySwitch::getRule() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.getRule();
+    return d->typedProperty.getRule();
 }
 
 const char * PropertySwitch::getRuleAsString() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.getRuleAsString();
+    return d->typedProperty.getRuleAsString();
 }
 
 void PropertySwitch::onNewValues(const std::function<void(const INDI::PropertySwitch::NewValues &)> &callback)

@@ -46,9 +46,9 @@ class PropertyBasicPrivateTemplate: public PropertyPrivate
     public:
         std::vector<WidgetView<T>>  widgets;
 #ifndef INDI_PROPERTY_RAW_CAST
-        PropertyView<T>            &property;
+        PropertyView<T>            typedProperty;
 #else
-        PropertyView<T>            &property;
+        PropertyView<T>            &typedProperty;
         bool raw {false};
 #endif
 };

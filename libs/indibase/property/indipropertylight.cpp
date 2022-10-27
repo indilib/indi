@@ -46,8 +46,8 @@ void PropertyLight::fill(
 )
 {
     D_PTR(PropertyLight);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, state);
 }
 
 }

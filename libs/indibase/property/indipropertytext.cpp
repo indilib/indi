@@ -43,7 +43,7 @@ PropertyText::~PropertyText()
 bool PropertyText::update(const char * const texts[], const char * const names[], int n)
 {
     D_PTR(PropertyText);
-    return d->property.update(texts, names, n) && (emitUpdate(), true);
+    return d->typedProperty.update(texts, names, n) && (emitUpdate(), true);
 }
 
 void PropertyText::fill(
@@ -52,8 +52,8 @@ void PropertyText::fill(
 )
 {
     D_PTR(PropertyText);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, permission, timeout, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, permission, timeout, state);
 }
 
 }
