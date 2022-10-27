@@ -30,7 +30,16 @@ namespace INDI
 {
 
 template <typename T>
-class PropertyBasicPrivateTemplate: public PropertyPrivate
+struct PropertyContainer
+{
+#ifndef INDI_PROPERTY_RAW_CAST
+        PropertyView<T> typedProperty;
+#else
+        PropertyView<T> &typedProperty;
+#endif
+};
+template <typename T>
+class PropertyBasicPrivateTemplate: public PropertyContainer<T>, public PropertyPrivate
 {
     public:
         using RawPropertyType = typename WidgetTraits<T>::PropertyType;
@@ -44,13 +53,10 @@ class PropertyBasicPrivateTemplate: public PropertyPrivate
         virtual ~PropertyBasicPrivateTemplate();
 
     public:
-        std::vector<WidgetView<T>>  widgets;
-#ifndef INDI_PROPERTY_RAW_CAST
-        PropertyView<T>            typedProperty;
-#else
-        PropertyView<T>            &typedProperty;
-        bool raw {false};
+#ifdef INDI_PROPERTY_RAW_CAST
+        bool raw;
 #endif
+        std::vector<WidgetView<T>>  widgets;
 };
 
 }

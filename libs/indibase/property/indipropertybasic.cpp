@@ -25,33 +25,35 @@ namespace INDI
 
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
-    : PropertyPrivate(new PropertyView<T>())
+#ifdef INDI_PROPERTY_RAW_CAST
+    : PropertyContainer<T>{*new PropertyView<T>()}
+    , PropertyPrivate(&this->typedProperty)
+    , raw{false}
+#else
+    : PropertyPrivate(&property)
+#endif
     , widgets(count)
-#ifdef INDI_PROPERTY_RAW_CAST
-    , typedProperty(*static_cast<PropertyView<T>*>(static_cast<INDI::PropertyPrivate*>(this)->property))
-#endif
 {
-    typedProperty.setWidgets(widgets.data(), widgets.size());
-#ifdef INDI_PROPERTY_RAW_CAST
-    this->dynamic = true;
-    this->raw = false;
-#endif
+    this->typedProperty.setWidgets(widgets.data(), widgets.size());
 }
 
 #ifdef INDI_PROPERTY_RAW_CAST
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(RawPropertyType *rawProperty)
-    : PropertyPrivate(rawProperty)
-    , typedProperty(*static_cast<PropertyView<T>*>(rawProperty))
-{
-    this->dynamic = false;
-    this->raw = true;
-}
+    : PropertyContainer<T>{*static_cast<PropertyView<T>*>(rawProperty)}
+    , PropertyPrivate(rawProperty)
+    , raw{true}
+{ }
 #endif
 
 template <typename T>
 PropertyBasicPrivateTemplate<T>::~PropertyBasicPrivateTemplate()
-{ }
+{
+#ifdef INDI_PROPERTY_RAW_CAST
+    if (!raw)
+        delete &this->property;
+#endif
+}
 
 template <typename T>
 PropertyBasic<T>::~PropertyBasic()
