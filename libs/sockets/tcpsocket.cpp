@@ -119,7 +119,7 @@ bool TcpSocketPrivate::connectSocket(const std::string &hostName, unsigned short
     }
 
     // connect to host
-    if (::connect(socketFd, &sockAddr, sizeof(sockAddr)) < 0 && errno != EINPROGRESS)
+    if (::connect(socketFd, &sockAddr, sockAddr.size()) < 0 && errno != EINPROGRESS)
     {
         setSocketError(TcpSocket::UnknownSocketError);
         return false;
