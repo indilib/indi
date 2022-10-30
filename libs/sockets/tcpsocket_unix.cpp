@@ -20,9 +20,9 @@
 
 #include <sys/un.h>
 
-bool TcpSocketPrivate::createSocket()
+bool TcpSocketPrivate::createSocket(int domain)
 {
-    socketFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    socketFd = ::socket(domain, SOCK_STREAM, 0);
     return socketFd >= 0;
 }
 

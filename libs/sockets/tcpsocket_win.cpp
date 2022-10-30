@@ -20,7 +20,7 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-bool TcpSocketPrivate::createSocket()
+bool TcpSocketPrivate::createSocket(int domain)
 {
     WSADATA wsaData;
 
@@ -29,7 +29,7 @@ bool TcpSocketPrivate::createSocket()
         return false;
     }
 
-    socketFd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    socketFd = socket(domain, SOCK_STREAM, IPPROTO_TCP);
     if (socketFd == INVALID_SOCKET)
     {
         WSACleanup();

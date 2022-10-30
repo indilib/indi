@@ -96,7 +96,7 @@ ssize_t TcpSocketPrivate::write(const void *data, size_t size)
 bool TcpSocketPrivate::connectSocket(const std::string &hostName, unsigned short port)
 {
     // create socket handle
-    if (!createSocket())
+    if (!createSocket(SocketAddress::isUnix(hostName) ? AF_UNIX : AF_INET))
     {
         setSocketError(TcpSocket::SocketResourceError);
         return false;

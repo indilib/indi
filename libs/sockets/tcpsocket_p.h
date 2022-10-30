@@ -42,6 +42,9 @@ class SocketAddress
         explicit SocketAddress(const std::string &hostName, unsigned short port);
 
     public:
+        static bool isUnix(const std::string &hostName);
+
+    public:
         bool isValid() const
         {
             return data() != nullptr;
@@ -66,7 +69,6 @@ class SocketAddress
     protected:
         static SocketAddress afInet(const std::string &hostName, unsigned short port);
         static SocketAddress afUnix(const std::string &hostName);
-        static bool isUnix(const std::string &hostName);
 
     protected:
         std::unique_ptr<struct sockaddr> mData;
@@ -80,7 +82,7 @@ class TcpSocketPrivate
         virtual ~TcpSocketPrivate() = default;
 
     public: // platform dependent
-        bool createSocket();
+        bool createSocket(int domain);
         void closeSocket();
         int recvSocket(void *dst, size_t size);
         int sendSocket(const void *src, size_t size);
