@@ -392,10 +392,8 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    if (GainN[0].value > 50)
-        exposure_time *= sqrt(GainN[0].value - 50);
-    else if (GainN[0].value < 50)
-        exposure_time /= sqrt(50 - GainN[0].value);
+    auto gain = std::max(10.0, GainN[0].value);
+    exposure_time *= sqrt(gain) / 10.0;
 
     auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 

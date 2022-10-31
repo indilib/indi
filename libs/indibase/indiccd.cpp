@@ -2822,7 +2822,7 @@ void CCD::checkTemperatureTarget()
             IDSetNumber(&TemperatureNP, nullptr);
         }
         // If we are beyond a minute, check for next step
-        else if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+        else if (TemperatureRampNP[RAMP_SLOPE].value > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;
             // Going down
