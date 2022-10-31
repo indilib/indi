@@ -1725,6 +1725,15 @@ add_executable(indi_pegasus_ppba ${pegasus_ppba_SRC})
 target_link_libraries(indi_pegasus_ppba indidriver)
 install(TARGETS indi_pegasus_ppba RUNTIME DESTINATION bin)
 
+########### RB Focus Excalibur ###############
+
+SET(Excalibur_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/Excalibur.cpp)
+
+add_executable(indi_Excalibur ${Excalibur_SRC})
+target_link_libraries(indi_Excalibur  indidriver)
+install(TARGETS indi_Excalibur  RUNTIME DESTINATION bin)
+
 ########### SnapCap Driver ###############
 
 SET(snapcap_SRC
