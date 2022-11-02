@@ -523,8 +523,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    auto gain = std::max(10.0, GainN[0].value);
-    exposure_time *= sqrt(gain) / 10.0;
+    exposure_time *= (1 + sqrt(GainN[0].value));
 
     auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
