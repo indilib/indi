@@ -26,9 +26,6 @@
 // We declare an auto pointer to focusSim.
 static std::unique_ptr<FocusSim> focusSim(new FocusSim());
 
-// Focuser takes 100 microsecond to move for each step, completing 100,000 steps in 10 seconds
-#define FOCUS_MOTION_DELAY 100
-
 /************************************************************************************
  *
 ************************************************************************************/
@@ -94,6 +91,9 @@ bool FocusSim::initProperties()
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    DelayNP[0].fill("DELAY_VALUE", "Value (uS)", "%.f", 0, 60000, 100, 100);
+    DelayNP.fill(getDeviceName(), "DELAY", "Delay", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     IUFillSwitch(&ModeS[MODE_ALL], "All", "All", ISS_ON);
     IUFillSwitch(&ModeS[MODE_ABSOLUTE], "Absolute", "Absolute", ISS_OFF);
     IUFillSwitch(&ModeS[MODE_RELATIVE], "Relative", "Relative", ISS_OFF);
@@ -127,12 +127,14 @@ bool FocusSim::updateProperties()
         defineProperty(&SeeingNP);
         defineProperty(&FWHMNP);
         defineProperty(&TemperatureNP);
+        defineProperty(DelayNP);
     }
     else
     {
         deleteProperty(SeeingNP.name);
         deleteProperty(FWHMNP.name);
         deleteProperty(TemperatureNP.name);
+        deleteProperty(DelayNP);
     }
 
     return true;
@@ -210,6 +212,16 @@ bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], c
             IDSetNumber(&TemperatureNP, nullptr);
             return true;
         }
+
+        // Delay
+        if (DelayNP.isNameMatch(name))
+        {
+            DelayNP.update(values, names, n);
+            DelayNP.setState(IPS_OK);
+            DelayNP.apply();
+            saveConfig(true, DelayNP.getName());
+            return true;
+        }
     }
 
     // Let INDI::Focuser handle any other number properties
@@ -274,7 +286,7 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
     double ticks = initTicks + (targetTicks - mid) / 5000.0;
 
     // simulate delay in motion as the focuser moves to the new position
-    usleep(std::abs((int)(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY));
+    usleep(std::abs((targetTicks - FocusAbsPosN[0].value) * DelayNP[0].getValue()));
 
     FocusAbsPosN[0].value = targetTicks;
 
@@ -326,5 +338,17 @@ bool FocusSim::SetFocuserBacklash(int32_t steps)
 bool FocusSim::SetFocuserBacklashEnabled(bool enabled)
 {
     INDI_UNUSED(enabled);
+    return true;
+}
+
+/************************************************************************************
+ *
+************************************************************************************/
+bool FocusSim::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &DelayNP);
+
     return true;
 }
