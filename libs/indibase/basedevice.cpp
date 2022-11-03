@@ -695,7 +695,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
             size_t base64_encoded_size = element.context().size();
             size_t base64_decoded_size = 3 * base64_encoded_size / 4;
             widget->setBlob(realloc(widget->getBlob(), base64_decoded_size));
-            size_t blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), root.context(), base64_encoded_size);
+            size_t blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), element.context(), base64_encoded_size);
             widget->setBlobLen(blobLen);
         }
 
