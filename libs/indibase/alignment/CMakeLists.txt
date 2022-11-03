@@ -50,7 +50,7 @@ if (INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
 endif(INDI_BUILD_QT5)
 
-target_link_libraries(AlignmentDriver indicore)
+target_link_libraries(AlignmentDriver indicore indiproperty)
 
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
 install(TARGETS AlignmentDriver
@@ -87,7 +87,7 @@ set (AlignmentClient_SRCS
     )
 
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
-target_link_libraries(AlignmentClient indicore)
+target_link_libraries(AlignmentClient indicore indiproperty)
 
 if (INDI_BUILD_QT5)
     target_link_libraries(AlignmentClient Qt5::Network)
