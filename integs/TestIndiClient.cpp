@@ -26,7 +26,7 @@
 #include "gtest/gtest.h"
 
 #include "indibase/baseclient.h"
-#include "indibase/property/indiproperty.h"
+#include "indiproperty.h"
 
 #include "utils.h"
 
