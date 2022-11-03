@@ -19,12 +19,10 @@
 
 #pragma once
 
-#include "indibase.h"
+#include "indibasetypes.h"
 #include "indiutility.h"
 
 #include "indipropertyview.h"
-
-#include "indidriver.h"
 
 #include <memory>
 #include <cstdarg>

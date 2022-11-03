@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "indibase.h"
 #include "indiproperty.h"
 #include <memory>
 #include <functional>

@@ -26,6 +26,8 @@
 #include "indipropertylight_p.h"
 #include "indipropertyblob_p.h"
 
+#include "indibasetypes.h"
+
 #include <cstdlib>
 #include <cstring>
 
