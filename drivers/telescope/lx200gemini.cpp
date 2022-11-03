@@ -60,6 +60,9 @@
 #define PEC_ENABLE_AT_BOOT_ID       508 // L5.2
 #define PEC_GUIDING_SPEED_ID        502
 #define SERVO_FIRMWARE              400 // L6 <ra>;<dec> (L6)
+#define FLIP_POINT_EAST_ID          227 // L6
+#define FLIP_POINT_WEST_ID          228 // L6
+#define FLIP_POINTS_ENABLED_ID      229 // L6
 #define PEC_TAB "PEC"
 #define FIRMWARE_TAB "Firmware data"
 
@@ -161,7 +164,6 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
-
 
     //PEC 
     IUFillSwitch(&PECControlS[PEC_START_TRAINING], "PEC_START_TRAINING", "Start Training", ISS_OFF);
@@ -356,6 +358,7 @@ bool LX200Gemini::updateProperties()
     {
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
+        char value2[MAX_VALUE_LENGTH] = {0};
 	if (!isSimulation())
 	{
 	    VersionTP.tp[FIRMWARE_DATE].text = new char[64];
@@ -411,6 +414,61 @@ bool LX200Gemini::updateProperties()
 	    IUSaveText(&PECCounterT[0], valueString);
 	    defineProperty(&PECCounterTP);
 	}
+        if (gemini_software_level_ >= 6.0 && getGeminiProperty(FLIP_POINTS_ENABLED_ID, value))
+        {
+	    char valueString[32] = {0};
+	    uint32_t flip_value = 0;
+	    sscanf(value, "%u", &flip_value);
+	    snprintf(valueString, 32, "%i", flip_value);
+
+	    if(flip_value){
+	        if(flip_value & FLIP_EAST){
+		    IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_ON);
+		} else {
+		    IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_OFF);
+		}
+		if(flip_value & FLIP_WEST){
+		    IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_ON);
+		} else {
+		    IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_OFF);
+		}
+	    } else {
+	        IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_OFF);
+	        IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_OFF);
+	    }
+	    IUFillSwitchVector(&FlipControlSP, FlipControlS, 2, getDeviceName(), "FLIP_COMMANDS",
+			       "Flip Point", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+	    defineProperty(&FlipControlSP);
+	}
+
+        if (gemini_software_level_ >= 6.0 &&
+	    getGeminiProperty(FLIP_POINT_EAST_ID, value) &&
+	    getGeminiProperty(FLIP_POINT_WEST_ID, value2))
+        {
+	    uint32_t eastDegree = 0;
+	    uint32_t eastMin = 0;
+
+	    uint32_t westDegree = 0;
+	    uint32_t westMin = 0;
+	    
+	    sscanf(value, " %ud%u ", &eastDegree, &eastMin);
+	    IUFillNumber(&FlipPositionN[FLIP_EAST_DEGREE_VALUE], "FLIP_EAST_DEGREE_VALUE", "East Degrees", "%g", 0, 360, 1, eastDegree);
+	    IUFillNumber(&FlipPositionN[FLIP_EAST_MIN_VALUE], "FLIP_EAST_MIN_VALUE", "East Minutes", "%g", 0, 360, 1, eastMin);
+	    
+	    sscanf(value2, " %ud%u ", &westDegree, &westMin);
+	    IUFillNumber(&FlipPositionN[FLIP_WEST_DEGREE_VALUE], "FLIP_WEST_DEGREE_VALUE", "West Degrees", "%g", 0, 360, 1, westDegree);
+	    IUFillNumber(&FlipPositionN[FLIP_WEST_MIN_VALUE], "FLIP_WEST_MIN_VALUE", "West Minutes", "%g", 0, 360, 1, westMin);
+
+	    IUFillNumberVector(&FlipPositionNP, FlipPositionN, 4, getDeviceName(), "FLIP_POSITION",
+	     		       "Flip Position", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+	    
+	    LOGF_INFO("FlipValueEastD: <%i>", eastDegree);
+	    LOGF_INFO("FlipValueEastM: <%i>", eastMin);
+	    LOGF_INFO("FlipValueWestD: <%i>", westDegree);
+	    LOGF_INFO("FlipValueWestM: <%i>", westMin);
+
+	    defineProperty(&FlipPositionNP);
+	}
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
   	    float max_steps_value;
@@ -423,38 +481,38 @@ bool LX200Gemini::updateProperties()
 	    uint32_t pec_status = 0;
 	    sscanf(value, "%u", &pec_status);
 	    if(pec_status & 1){ // PEC_ACTIVE
-	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
-	      setPECState(PEC_ON);
+	        IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+		setPECState(PEC_ON);
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
-	      setPECState(PEC_OFF);
+	        IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+		setPECState(PEC_OFF);
 	    }
 	    
     	    if(pec_status & 2){ // Freshly_Trained
-	      IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
+	        IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
 	    }
 	    
     	    if(pec_status & 4){ // Training_In_Progress
-	      IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
+	        IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
 	    }
    	    if(pec_status & 6){ // Training_just_completed
-	      IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
+	        IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
 	    }
     	    if(pec_status & 16){ // Training will start soon
-	      IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
+	        IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
 	    }
     	    if(pec_status & 32){ // PEC Data Available
-	      IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
 	    } else {
-	      IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
+	        IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
 	    }
 
 	    defineProperty(&PECStateTP);
@@ -526,6 +584,7 @@ bool LX200Gemini::updateProperties()
         deleteProperty(PECEnableAtBootNP.name);
         deleteProperty(PECGuidingSpeedNP.name);
         deleteProperty(VersionTP.name);
+	deleteProperty(FlipPositionNP.name);
     }
 
     return true;
@@ -538,13 +597,11 @@ bool LX200Gemini::ISNewText(const char *dev, const char *name, char **texts, cha
         {
             IUUpdateText(&PECStateTP, texts, names, n);
             IDSetText(&PECStateTP, nullptr);
-
         }
 	if (!strcmp(name, PECCounterTP.name))
 	{
 	    IUUpdateText(&PECCounterTP, texts, names, n);
             IDSetText(&PECCounterTP, nullptr);
-	
 	}
     }
 
@@ -598,6 +655,39 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 	    }
 	}
 
+        if (gemini_software_level_ >= 6.0 && !strcmp(name, FlipControlSP.name))
+        {
+	    IUUpdateSwitch(&FlipControlSP, states, names, n);
+	    FlipControlSP.s = IPS_OK;
+	    IDSetSwitch(&FlipControlSP, nullptr);
+	    int32_t flipEnabled = 0;
+	    for(int i = 0; i<n; ++i){
+	        if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name)){
+		    if(FlipControlS[FLIP_EAST_CONTROL].s == ISS_ON){
+		        flipEnabled |= 1;
+		        LOGF_INFO("FlipControl: EAST ON  <%i>", flipEnabled);
+		    } else {
+		        flipEnabled &= 0xfffffffe;
+		        LOGF_INFO("FlipControl: EAST OFF  <%i>", flipEnabled);
+		    }
+	      }
+	    
+	    if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name)){
+	        if(FlipControlS[FLIP_WEST_CONTROL].s == ISS_ON){		
+		    flipEnabled |= 2;
+		    LOGF_INFO("FlipControl: WEST ON  <%i>", flipEnabled);
+		} else {
+		    flipEnabled &= 0xfffffffd;
+		    LOGF_INFO("FlipControl: WEST OFF  <%i>", flipEnabled);
+		}
+	    }
+	  }
+	  char valueString[32] = {0};
+	  snprintf(valueString, 32, "%i", flipEnabled);
+	  LOGF_INFO("FlipControl: <%s>", valueString);
+	  setGeminiProperty(FLIP_POINTS_ENABLED_ID, valueString);
+	}
+	
         if (gemini_software_level_ >= 5.0 && !strcmp(name, PECControlSP.name))
         {
 	    for(int i = 0; i<n; ++i){
@@ -742,6 +832,49 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             GuidingSpeedNP.s       = IPS_OK;
             IDSetNumber(&GuidingSpeedNP, "Guiding speed set to RA:%f DEC:%f",  GuidingSpeedN[GUIDING_WE].value, GuidingSpeedN[GUIDING_NS].value);
 
+            return true;
+        }
+        if (gemini_software_level_ >= 6.0 && !strcmp(name, FlipPositionNP.name))
+        {
+	  int eastD = 0;
+	  int eastM = 0;
+	  int westD = 0;
+	  int westM = 0;
+	  
+	  
+	    for(int i = 0; i<n; ++i){
+		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_DEGREE_VALUE].name)){
+		    eastD = values[i];
+		}
+		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_MIN_VALUE].name)){
+		    eastM = values[i];
+		}
+		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_DEGREE_VALUE].name)){
+		    westD = values[i];
+		}
+		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_MIN_VALUE].name)){
+		    westM = values[i];
+		}
+	    }
+	    char east[16] = {0};
+	    snprintf(east, 16, "%id%i", eastD, eastM);
+	    FlipPositionN[FLIP_EAST_DEGREE_VALUE].value = eastD;
+	    FlipPositionN[FLIP_EAST_MIN_VALUE].value = eastM;
+
+	    char west[16] = {0};
+	    snprintf(west, 16, "%id%i", westD, westM);
+	    FlipPositionN[FLIP_WEST_DEGREE_VALUE].value = westD;
+	    FlipPositionN[FLIP_WEST_MIN_VALUE].value = westM;
+
+	    if (!isSimulation() &&
+		!setGeminiProperty(FLIP_POINT_EAST_ID, east) &&
+		!setGeminiProperty(FLIP_POINT_WEST_ID, west)){
+	        FlipPositionNP.s = IPS_ALERT;
+	        IDSetNumber(&FlipPositionNP, "Error Setting Guiding WE");
+	    }
+	    
+	    IDSetNumber(&FlipPositionNP, "OK");
+            FlipPositionNP.s = IPS_OK;
             return true;
         }
         if (!strcmp(name, CenteringSpeedNP.name))
@@ -1347,7 +1480,10 @@ bool LX200Gemini::getGeminiProperty(uint32_t propertyNumber, char* value)
         LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
 	return false;
       }
-      break;      
+      break;
+    case FLIP_POINT_EAST_ID:
+    case FLIP_POINT_WEST_ID:
+    case FLIP_POINTS_ENABLED_ID:
     case SERVO_POINTING_PRECISION_ID:
     case SERVO_FIRMWARE:
       if(gemini_software_level_ < 6)
