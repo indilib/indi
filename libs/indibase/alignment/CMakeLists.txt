@@ -30,7 +30,6 @@ ENDIF ()
 
 IF (CYGWIN)
     SET(AlignmentDriver_SRC ${AlignmentDriver_SRC}
-        ${CMAKE_SOURCE_DIR}/libs/lilxml.c
         ${CMAKE_SOURCE_DIR}/libs/indicom.c)
 
     add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
@@ -50,6 +49,8 @@ ENDIF ()
 if (INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
 endif(INDI_BUILD_QT5)
+
+target_link_libraries(AlignmentDriver indicore)
 
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
 install(TARGETS AlignmentDriver
@@ -86,6 +87,7 @@ set (AlignmentClient_SRCS
     )
 
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
+target_link_libraries(AlignmentClient indicore)
 
 if (INDI_BUILD_QT5)
     target_link_libraries(AlignmentClient Qt5::Network)

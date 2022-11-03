@@ -17,8 +17,6 @@
 */
 #include "indiuserio.h"
 #include "indiapi.h"
-#include "indidevapi.h"
-#include "indicom.h"
 #include "locale_compat.h"
 #include "base64.h"
 

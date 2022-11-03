@@ -263,15 +263,6 @@ extern void IDLogVA(const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(1, 0);
  */
 /*@{*/
 
-/** \typedef BLOBHandling
-    \brief How drivers handle BLOBs incoming from snooping drivers */
-typedef enum
-{
-    B_NEVER = 0, /*!< Never receive BLOBs */
-    B_ALSO,      /*!< Receive BLOBs along with normal messages */
-    B_ONLY       /*!< ONLY receive BLOBs from drivers, ignore all other traffic */
-} BLOBHandling;
-
 /** \brief Function a Driver calls to snoop on another Device. Snooped messages will then arrive via ISSnoopDevice.
     \param snooped_device name of the device to snoop.
     \param snooped_property name of the snooped property in the device.
@@ -396,92 +387,6 @@ both prudent and efficient to do so.</P>
  */
 /*@{*/
 
-/** \brief Find an IText member in a vector text property.
-*
-* \param tvp a pointer to a text vector property.
-* \param name the name of the member to search for.
-* \return a pointer to an IText member on match, or NULL if nothing is found.
-*/
-extern IText *IUFindText(const ITextVectorProperty *tvp, const char *name);
-
-/** \brief Find an INumber member in a number text property.
-*
-* \param nvp a pointer to a number vector property.
-* \param name the name of the member to search for.
-* \return a pointer to an INumber member on match, or NULL if nothing is found.
-*/
-extern INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name);
-
-/** \brief Find an ISwitch member in a vector switch property.
-*
-* \param svp a pointer to a switch vector property.
-* \param name the name of the member to search for.
-* \return a pointer to an ISwitch member on match, or NULL if nothing is found.
-*/
-extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name);
-
-/** \brief Find an ILight member in a vector Light property.
-*
-* \param lvp a pointer to a Light vector property.
-* \param name the name of the member to search for.
-* \return a pointer to an ILight member on match, or NULL if nothing is found.
-*/
-extern ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name);
-
-/** \brief Find an IBLOB member in a vector BLOB property.
-*
-* \param bvp a pointer to a BLOB vector property.
-* \param name the name of the member to search for.
-* \return a pointer to an IBLOB member on match, or NULL if nothing is found.
-*/
-extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
-
-/** \brief Returns the first ON switch it finds in the vector switch property.
-
-*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
-*
-* \param sp a pointer to a switch vector property.
-* \return a pointer to the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
-*/
-extern ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *sp);
-
-/** \brief Returns the index of the string in a string array
-*
-* \param needle the string to match against each element in the hay
-* \param hay a pointer to a string array to search in
-* \param n the size of hay
-* \return index of needle if found in the hay. Otherwise -1 if not found.
-*/
-extern int IUFindIndex(const char *needle, char **hay, unsigned int n);
-
-/** \brief Returns the index of first ON switch it finds in the vector switch property.
-
-*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
-*
-* \param sp a pointer to a switch vector property.
-* \return index to the \e first ON ISwitch member if found. If all switches are off, -1 is returned.
-*/
-
-extern int IUFindOnSwitchIndex(const ISwitchVectorProperty *sp);
-
-/** \brief Returns the name of the first ON switch it finds in the supplied arguments.
-
-*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
-*   \note This is a convience function intended to be used in ISNewSwitch(...) function to find out ON switch name without having to change actual switch state via IUUpdateSwitch(..)
-*
-* \param states list of switch states passed by ISNewSwitch()
-* \param names list of switch names passed by ISNewSwitch()
-* \param n number of switches passed by ISNewSwitch()
-* \return name of the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
-*/
-extern const char *IUFindOnSwitchName(ISState *states, char *names[], int n);
-
-/** \brief Reset all switches in a switch vector property to OFF.
-*
-* \param svp a pointer to a switch vector property.
-*/
-extern void IUResetSwitch(ISwitchVectorProperty *svp);
-
 /** \brief Update all switches in a switch vector property.
 *
 * \param svp a pointer to a switch vector property.
@@ -526,16 +431,6 @@ extern int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], 
 extern int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[],
                         char *names[], int n);
 
-/** \brief Function to save blob metadata in the corresponding blob.
-    \param bp pointer to an IBLOB member.
-    \param size size of the blob buffer encoded in base64
-    \param blobsize actual size of the buffer after base64 decoding. This is the actual byte count used in drivers.
-    \param blob pointer to the blob buffer
-    \param format format of the blob buffer
-    \note Do not call this function directly, it is called internally by IUUpdateBLOB.
-    */
-extern int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format);
-
 /** \brief Function to update the min and max elements of a number in the client
     \param nvp pointer to an INumberVectorProperty.
     \warning This call is not INDI protocol compliant. It sends setNumberVector along with updated Min/Max/Step values so that the client
@@ -544,166 +439,6 @@ extern int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *forma
     INDI Library defines this function to simplify the update process without requiring a complete delete/define cycle.
  */
 extern void IUUpdateMinMax(const INumberVectorProperty *nvp);
-
-/** \brief Function to reliably save new text in a IText.
-    \param tp pointer to an IText member.
-    \param newtext the new text to be saved
-*/
-extern void IUSaveText(IText *tp, const char *newtext);
-
-/** \brief Assign attributes for a switch property. The switch's auxiliary elements will be set to NULL.
-    \param sp pointer a switch property to fill
-    \param name the switch name
-    \param label the switch label
-    \param s the switch state (ISS_ON or ISS_OFF)
-*/
-extern void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s);
-
-/** \brief Assign attributes for a light property. The light's auxiliary elements will be set to NULL.
-    \param lp pointer a light property to fill
-    \param name the light name
-    \param label the light label
-    \param s the light state (IDLE, WARNING, OK, ALERT)
-*/
-extern void IUFillLight(ILight *lp, const char *name, const char *label, IPState s);
-
-/** \brief Assign attributes for a number property. The number's auxiliary elements will be set to NULL.
-    \param np pointer a number property to fill
-    \param name the number name
-    \param label the number label
-    \param format the number format in printf style (e.g. "%02d")
-    \param min  the minimum possible value
-    \param max the maximum possible value
-    \param step the step used to climb from minimum value to maximum value
-    \param value the number's current value
-*/
-extern void IUFillNumber(INumber *np, const char *name, const char *label, const char *format, double min, double max,
-                         double step, double value);
-
-/** \brief Assign attributes for a text property. The text's auxiliary elements will be set to NULL.
-    \param tp pointer a text property to fill
-    \param name the text name
-    \param label the text label
-    \param initialText the initial text
-*/
-extern void IUFillText(IText *tp, const char *name, const char *label, const char *initialText);
-
-/** \brief Assign attributes for a BLOB property. The BLOB's data and auxiliary elements will be set to NULL.
-    \param bp pointer a BLOB property to fill
-    \param name the BLOB name
-    \param label the BLOB label
-    \param format the BLOB format.
-*/
-extern void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *format);
-
-/** \brief Assign attributes for a switch vector property. The vector's auxiliary elements will be set to NULL.
-    \param svp pointer a switch vector property to fill
-    \param sp pointer to an array of switches
-    \param nsp the dimension of sp
-    \param dev the device name this vector property belongs to
-    \param name the vector property name
-    \param label the vector property label
-    \param group the vector property group
-    \param p the vector property permission
-    \param r the switches behavior
-    \param timeout vector property timeout in seconds
-    \param s the vector property initial state.
-*/
-extern void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
-                               const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s);
-
-/** \brief Assign attributes for a light vector property. The vector's auxiliary elements will be set to NULL.
-    \param lvp pointer a light vector property to fill
-    \param lp pointer to an array of lights
-    \param nlp the dimension of lp
-    \param dev the device name this vector property belongs to
-    \param name the vector property name
-    \param label the vector property label
-    \param group the vector property group
-    \param s the vector property initial state.
-*/
-extern void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char *dev, const char *name,
-                              const char *label, const char *group, IPState s);
-
-/** \brief Assign attributes for a number vector property. The vector's auxiliary elements will be set to NULL.
-    \param nvp pointer a number vector property to fill
-    \param np pointer to an array of numbers
-    \param nnp the dimension of np
-    \param dev the device name this vector property belongs to
-    \param name the vector property name
-    \param label the vector property label
-    \param group the vector property group
-    \param p the vector property permission
-    \param timeout vector property timeout in seconds
-    \param s the vector property initial state.
-*/
-extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char *dev, const char *name,
-                               const char *label, const char *group, IPerm p, double timeout, IPState s);
-
-/** \brief Assign attributes for a text vector property. The vector's auxiliary elements will be set to NULL.
-    \param tvp pointer a text vector property to fill
-    \param tp pointer to an array of texts
-    \param ntp the dimension of tp
-    \param dev the device name this vector property belongs to
-    \param name the vector property name
-    \param label the vector property label
-    \param group the vector property group
-    \param p the vector property permission
-    \param timeout vector property timeout in seconds
-    \param s the vector property initial state.
-*/
-extern void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *dev, const char *name,
-                             const char *label, const char *group, IPerm p, double timeout, IPState s);
-
-/** \brief Assign attributes for a BLOB vector property. The vector's auxiliary elements will be set to NULL.
-    \param bvp pointer a BLOB vector property to fill
-    \param bp pointer to an array of BLOBs
-    \param nbp the dimension of bp
-    \param dev the device name this vector property belongs to
-    \param name the vector property name
-    \param label the vector property label
-    \param group the vector property group
-    \param p the vector property permission
-    \param timeout vector property timeout in seconds
-    \param s the vector property initial state.
-*/
-extern void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *dev, const char *name,
-                             const char *label, const char *group, IPerm p, double timeout, IPState s);
-
-/** \brief Update a snooped number vector property from the given XML root element.
-    \param root XML root elememnt containing the snopped property content
-    \param nvp a pointer to the number vector property to be updated.
-    \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
-*/
-extern int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp);
-
-/** \brief Update a snooped text vector property from the given XML root element.
-    \param root XML root elememnt containing the snopped property content
-    \param tvp a pointer to the text vector property to be updated.
-    \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
-*/
-extern int IUSnoopText(XMLEle *root, ITextVectorProperty *tvp);
-
-/** \brief Update a snooped light vector property from the given XML root element.
-    \param root XML root elememnt containing the snopped property content
-    \param lvp a pointer to the light vector property to be updated.
-    \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
-*/
-extern int IUSnoopLight(XMLEle *root, ILightVectorProperty *lvp);
-
-/** \brief Update a snooped switch vector property from the given XML root element.
-    \param root XML root elememnt containing the snopped property content
-    \param svp a pointer to the switch vector property to be updated.
-    \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
-*/
-extern int IUSnoopSwitch(XMLEle *root, ISwitchVectorProperty *svp);
-
-/** \brief Update a snooped BLOB vector property from the given XML root element.
-    \param root XML root elememnt containing the snopped property content
-    \param bvp a pointer to the BLOB vector property to be updated.
-    \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
-*/
-extern int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp);
 
 /*@}*/
 
@@ -798,53 +533,11 @@ extern void ISSnoopDevice(XMLEle *root);
 /* Handy readability macro to avoid unused variables warnings */
 #define INDI_UNUSED(x) (void)x
 
-/** \brief Extract dev and name attributes from an XML element.
-    \param root The XML element to be parsed.
-    \param dev pointer to an allocated buffer to save the extracted element device name attribute.
-           The buffer size must be at least MAXINDIDEVICE bytes.
-    \param name pointer to an allocated buffer to save the extracted elemented name attribute.
-           The buffer size must be at least MAXINDINAME bytes.
-    \param msg pointer to an allocated char buffer to store error messages. The minimum buffer size is MAXRBUF.
-    \return 0 if successful, -1 if error is encountered and msg is set.
-*/
-extern int crackDN(XMLEle *root, char **dev, char **name, char msg[]);
-
 /** \brief Extract property state (Idle, OK, Busy, Alert) from the supplied string.
     \param str A string representation of the state.
     \param ip Pointer to IPState structure to store the extracted property state.
     \return 0 if successful, -1 if error is encountered.
 */
-extern int crackIPState(const char *str, IPState *ip);
-
-/** \brief Extract switch state (On or Off) from the supplied string.
-    \param str A string representation of the switch state.
-    \param ip Pointer to ISState structure to store the extracted switch state.
-    \return 0 if successful, -1 if error is encountered.
-*/
-extern int crackISState(const char *str, ISState *ip);
-
-/** \brief Extract property permission state (RW, RO, WO) from the supplied string.
-    \param str A string representation of the permission state.
-    \param ip Pointer to IPerm structure to store the extracted permission state.
-    \return 0 if successful, -1 if error is encountered.
-*/
-extern int crackIPerm(const char *str, IPerm *ip);
-
-/** \brief Extract switch rule (OneOfMany, OnlyOne..etc) from the supplied string.
-    \param str A string representation of the switch rule.
-    \param ip Pointer to ISRule structure to store the extracted switch rule.
-    \return 0 if successful, -1 if error is encountered.
-*/
-extern int crackISRule(const char *str, ISRule *ip);
-
-/** \return Returns a string representation of the supplied property state. */
-extern const char *pstateStr(IPState s);
-/** \return Returns a string representation of the supplied switch status. */
-extern const char *sstateStr(ISState s);
-/** \return Returns a string representation of the supplied switch rule. */
-extern const char *ruleStr(ISRule r);
-/** \return Returns a string representation of the supplied permission value. */
-extern const char *permStr(IPerm p);
 
 extern void xmlv1();
 

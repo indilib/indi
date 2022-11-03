@@ -33,13 +33,6 @@
 
 #include "config.h"
 
-#if defined(HAVE_LIBNOVA)
-#include <libnova/julian_day.h>
-#include <libnova/sidereal_time.h>
-#include <libnova/ln_types.h>
-#include <libnova/transform.h>
-#endif // HAVE_LIBNOVA
-
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
@@ -103,7 +96,13 @@ static int tty_generic_udp_format = 0;
 static int tty_sequence_number = 1;
 static int tty_clear_trailing_lf = 0;
 
-#if defined(HAVE_LIBNOVA)
+#ifdef HAVE_LIBNOVA
+
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
+#include <libnova/ln_types.h>
+#include <libnova/transform.h>
+
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
     struct tm utm;
@@ -122,189 +121,32 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
 
     return (-1);
 }
+
+double get_local_sidereal_time(double longitude)
+{
+    return range24(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) + longitude / 15.0);
+}
+
+void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position)
+{
+    ln_get_hrz_from_equ(object, observer, JD, position);
+    position->az -= 180;
+    if (position->az < 0)
+        position->az += 360;
+}
+
+void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_equ_posn *position)
+{
+    struct ln_hrz_posn libnova_object;
+    libnova_object.az = object->az + 180;
+    if (libnova_object.az > 360)
+        libnova_object.az -= 360;
+    libnova_object.alt = object->alt;
+
+    ln_get_equ_from_hrz(&libnova_object, observer, JD, position);
+}
+
 #endif
-
-/* sprint the variable a in sexagesimal format into out[].
- * w is the number of spaces for the whole part.
- * fracbase is the number of pieces a whole is to broken into; valid options:
- *	360000:	<w>:mm:ss.ss
- *	36000:	<w>:mm:ss.s
- *	3600:	<w>:mm:ss
- *	600:	<w>:mm.m
- *	60:	<w>:mm
- * return number of characters written to out, not counting final '\0'.
- */
-int fs_sexa(char *out, double a, int w, int fracbase)
-{
-    char *out0 = out;
-    unsigned long n;
-    int d;
-    int f;
-    int m;
-    int s;
-    int isneg;
-
-    /* save whether it's negative but do all the rest with a positive */
-    isneg = (a < 0);
-    if (isneg)
-        a = -a;
-
-    /* convert to an integral number of whole portions */
-    n = (unsigned long)(a * fracbase + 0.5);
-    d = n / fracbase;
-    f = n % fracbase;
-
-    /* form the whole part; "negative 0" is a special case */
-    if (isneg && d == 0)
-        out += snprintf(out, MAXINDIFORMAT, "%*s-0", w - 2, "");
-    else
-        out += snprintf(out, MAXINDIFORMAT, "%*d", w, isneg ? -d : d);
-
-    /* do the rest */
-    switch (fracbase)
-    {
-    case 60: /* dd:mm */
-        m = f / (fracbase / 60);
-        out += snprintf(out, MAXINDIFORMAT, ":%02d", m);
-        break;
-    case 600: /* dd:mm.m */
-        out += snprintf(out, MAXINDIFORMAT, ":%02d.%1d", f / 10, f % 10);
-        break;
-    case 3600: /* dd:mm:ss */
-        m = f / (fracbase / 60);
-        s = f % (fracbase / 60);
-        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d", m, s);
-        break;
-    case 36000: /* dd:mm:ss.s*/
-        m = f / (fracbase / 60);
-        s = f % (fracbase / 60);
-        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s / 10, s % 10);
-        break;
-    case 360000: /* dd:mm:ss.ss */
-        m = f / (fracbase / 60);
-        s = f % (fracbase / 60);
-        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s / 100, s % 100);
-        break;
-    default:
-        printf("fs_sexa: unknown fracbase: %d\n", fracbase);
-        return -1;
-    }
-
-    return (out - out0);
-}
-
-/* convert sexagesimal string str AxBxC to double.
- *   x can be anything non-numeric. Any missing A, B or C will be assumed 0.
- *   optional - and + can be anywhere.
- * return 0 if ok, -1 if can't find a thing.
- */
-int f_scansexa(const char *str0, /* input string */
-               double *dp)       /* cracked value, if return 0 */
-{
-    locale_char_t *orig = indi_locale_C_numeric_push();
-
-    double a = 0, b = 0, c = 0;
-    char str[128];
-    //char *neg;
-    uint8_t isNegative=0;
-    int r= 0;
-
-    /* copy str0 so we can play with it */
-    strncpy(str, str0, sizeof(str) - 1);
-    str[sizeof(str) - 1] = '\0';
-
-    /* remove any spaces */
-    char* i = str;
-    char* j = str;
-    while(*j != 0)
-    {
-        *i = *j++;
-        if(*i != ' ')
-            i++;
-    }
-    *i = 0;
-
-    // This has problem process numbers in scientific notations e.g. 1e-06
-    /*neg = strchr(str, '-');
-    if (neg)
-        *neg = ' ';
-    */
-    if (str[0] == '-')
-    {
-        isNegative = 1;
-        str[0] = ' ';
-    }
-
-    r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
-
-    indi_locale_C_numeric_pop(orig);
-
-    if (r < 1)
-        return (-1);
-    *dp = a + b / 60 + c / 3600;
-    if (isNegative)
-        *dp *= -1;
-    return (0);
-}
-
-void getSexComponents(double value, int *d, int *m, int *s)
-{
-    *d = (int32_t)fabs(value);
-    *m = (int32_t)((fabs(value) - *d) * 60.0);
-    *s = (int32_t)rint(((fabs(value) - *d) * 60.0 - *m) * 60.0);
-
-    // Special case if seconds are >= 59.5 so it will be rounded by rint above
-    // to 60
-    if (*s == 60)
-    {
-        *s  = 0;
-        *m += 1;
-    }
-    if (*m == 60)
-    {
-        *m  = 0;
-        *d += 1;
-    }
-
-    if (value < 0)
-        *d *= -1;
-}
-
-void getSexComponentsIID(double value, int *d, int *m, double *s)
-{
-    *d = (int32_t)fabs(value);
-    *m = (int32_t)((fabs(value) - *d) * 60.0);
-    *s = (double)(((fabs(value) - *d) * 60.0 - *m) * 60.0);
-
-    if (value < 0)
-        *d *= -1;
-}
-
-/* fill buf with properly formatted INumber string. return length */
-int numberFormat(char *buf, const char *format, double value)
-{
-    int w, f, s;
-    char m;
-
-    if (sscanf(format, "%%%d.%d%c", &w, &f, &m) == 3 && m == 'm')
-    {
-        /* INDI sexi format */
-        switch (f)
-        {
-        case 9:  s = 360000;  break;
-        case 8:  s = 36000;   break;
-        case 6:  s = 3600;    break;
-        case 5:  s = 600;     break;
-        default: s = 60;      break;
-        }
-        return (fs_sexa(buf, value, w - f, s));
-    }
-    else
-    {
-        /* normal printf format */
-        return (snprintf(buf, MAXINDIFORMAT, format, value));
-    }
-}
 
 /* log message locally.
  * this has nothing to do with XML or any Clients.
@@ -334,19 +176,6 @@ double time_ns()
     timespec_get(&ts, TIME_UTC);
 #endif
     return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
-}
-
-/* return current system time in message format */
-const char *timestamp()
-{
-    static char ts[32];
-    struct tm *tp;
-    time_t t;
-
-    time(&t);
-    tp = gmtime(&t);
-    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
-    return (ts);
 }
 
 void tty_set_debug(int debug)
@@ -1212,266 +1041,12 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
     }
 }
 
-/* return static string corresponding to the given property or light state */
-const char *pstateStr(IPState s)
-{
-    switch (s)
-    {
-    case IPS_IDLE:  return "Idle";
-    case IPS_OK:    return "Ok";
-    case IPS_BUSY:  return "Busy";
-    case IPS_ALERT: return "Alert";
-    default:
-        fprintf(stderr, "Impossible IPState %d\n", s);
-        return NULL;
-    }
-}
-
-/* crack string into IPState.
- * return 0 if ok, else -1
- */
-int crackIPState(const char *str, IPState *ip)
-{
-    if (!strcmp(str, "Idle"))
-        *ip = IPS_IDLE;
-    else if (!strncmp(str, "Ok", 2))
-        *ip = IPS_OK;
-    else if (!strcmp(str, "Busy"))
-        *ip = IPS_BUSY;
-    else if (!strcmp(str, "Alert"))
-        *ip = IPS_ALERT;
-    else
-        return (-1);
-    return (0);
-}
-
-/* crack string into ISState.
- * return 0 if ok, else -1
- */
-int crackISState(const char *str, ISState *ip)
-{
-    if (!strncmp(str, "On", 2))
-        *ip = ISS_ON;
-    else if (!strcmp(str, "Off"))
-        *ip = ISS_OFF;
-    else
-        return (-1);
-    return (0);
-}
-
-int crackIPerm(const char *str, IPerm *ip)
-{
-    if (!strncmp(str, "rw", 2))
-        *ip = IP_RW;
-    else if (!strncmp(str, "ro", 2))
-        *ip = IP_RO;
-    else if (!strncmp(str, "wo", 2))
-        *ip = IP_WO;
-    else
-        return (-1);
-    return (0);
-}
-
-int crackISRule(const char *str, ISRule *ip)
-{
-    if (!strcmp(str, "OneOfMany"))
-        *ip = ISR_1OFMANY;
-    else if (!strcmp(str, "AtMostOne"))
-        *ip = ISR_ATMOST1;
-    else if (!strcmp(str, "AnyOfMany"))
-        *ip = ISR_NOFMANY;
-    else
-        return (-1);
-    return (0);
-}
-
-/* return static string corresponding to the given switch state */
-const char *sstateStr(ISState s)
-{
-    switch (s)
-    {
-    case ISS_ON:  return "On";
-    case ISS_OFF: return "Off";
-    default:
-        fprintf(stderr, "Impossible ISState %d\n", s);
-        return NULL;
-    }
-}
-
-/* return static string corresponding to the given Rule */
-const char *ruleStr(ISRule r)
-{
-    switch (r)
-    {
-    case ISR_1OFMANY: return "OneOfMany";
-    case ISR_ATMOST1: return "AtMostOne";
-    case ISR_NOFMANY: return "AnyOfMany";
-    default:
-        fprintf(stderr, "Impossible ISRule %d\n", r);
-        return NULL;
-    }
-}
-
-/* return static string corresponding to the given IPerm */
-const char *permStr(IPerm p)
-{
-    switch (p)
-    {
-    case IP_RO: return "ro";
-    case IP_WO: return "wo";
-    case IP_RW: return "rw";
-    default:
-        fprintf(stderr, "Impossible IPerm %d\n", p);
-        return NULL;
-    }
-}
-
 /* print the boilerplate comment introducing xml */
 void xmlv1()
 {
     userio_xmlv1(userio_file(), stdout);
 }
 
-
-/* pull out device and name attributes from root.
- * return 0 if ok else -1 with reason in msg[].
- */
-int crackDN(XMLEle *root, char **dev, char **name, char msg[])
-{
-    XMLAtt *ap;
-
-    ap = findXMLAtt(root, "device");
-    if (!ap)
-    {
-        sprintf(msg, "%s requires 'device' attribute", tagXMLEle(root));
-        return (-1);
-    }
-    *dev = valuXMLAtt(ap);
-
-    ap = findXMLAtt(root, "name");
-    if (!ap)
-    {
-        sprintf(msg, "%s requires 'name' attribute", tagXMLEle(root));
-        return (-1);
-    }
-    *name = valuXMLAtt(ap);
-
-    return (0);
-}
-
-/* find a member of an IText vector, else NULL */
-IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
-{
-    for (int i = 0; i < tvp->ntp; i++)
-        if (strcmp(tvp->tp[i].name, name) == 0)
-            return (&tvp->tp[i]);
-    fprintf(stderr, "No IText '%s' in %s.%s\n", name, tvp->device, tvp->name);
-    return (NULL);
-}
-
-/* find a member of an INumber vector, else NULL */
-INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
-{
-    for (int i = 0; i < nvp->nnp; i++)
-        if (strcmp(nvp->np[i].name, name) == 0)
-            return (&nvp->np[i]);
-    fprintf(stderr, "No INumber '%s' in %s.%s\n", name, nvp->device, nvp->name);
-    return (NULL);
-}
-
-/* find a member of an ISwitch vector, else NULL */
-ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
-{
-    for (int i = 0; i < svp->nsp; i++)
-        if (strcmp(svp->sp[i].name, name) == 0)
-            return (&svp->sp[i]);
-    fprintf(stderr, "No ISwitch '%s' in %s.%s\n", name, svp->device, svp->name);
-    return (NULL);
-}
-
-/* find a member of an ILight vector, else NULL */
-ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
-{
-    for (int i = 0; i < lvp->nlp; i++)
-        if (strcmp(lvp->lp[i].name, name) == 0)
-            return (&lvp->lp[i]);
-    fprintf(stderr, "No ILight '%s' in %s.%s\n", name, lvp->device, lvp->name);
-    return (NULL);
-}
-
-/* find a member of an IBLOB vector, else NULL */
-IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
-{
-    for (int i = 0; i < bvp->nbp; i++)
-        if (strcmp(bvp->bp[i].name, name) == 0)
-            return (&bvp->bp[i]);
-    fprintf(stderr, "No IBLOB '%s' in %s.%s\n", name, bvp->device, bvp->name);
-    return (NULL);
-}
-
-/* find an ON member of an ISwitch vector, else NULL.
- * N.B. user must make sense of result with ISRule in mind.
- */
-ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
-{
-    for (int i = 0; i < svp->nsp; i++)
-        if (svp->sp[i].s == ISS_ON)
-            return (&svp->sp[i]);
-    /*fprintf(stderr, "No ISwitch On in %s.%s\n", svp->device, svp->name);*/
-    return (NULL);
-}
-
-/* Find index of the ON member of an ISwitchVectorProperty */
-int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
-{
-    for (int i = 0; i < svp->nsp; i++)
-        if (svp->sp[i].s == ISS_ON)
-            return i;
-    return -1;
-}
-
-/* Find name the ON member in the given states and names */
-const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
-{
-    for (int i = 0; i < n; i++)
-        if (states[i] == ISS_ON)
-            return names[i];
-    return NULL;
-}
-
-/* Set all switches to off */
-void IUResetSwitch(ISwitchVectorProperty *svp)
-{
-    for (int i = 0; i < svp->nsp; i++)
-        svp->sp[i].s = ISS_OFF;
-}
-
-/* save malloced copy of newtext in tp->text, reusing if not first time */
-void IUSaveText(IText *tp, const char *newtext)
-{
-    /* copy in fresh string */
-    tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
-}
-
-void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
-{
-    IUUserIONewNumber(userio_file(), fp, nvp);
-}
-
-void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
-{
-    IUUserIONewText(userio_file(), fp, tvp);
-}
-
-void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
-{
-    IUUserIONewSwitchFull(userio_file(), fp, svp);
-}
-
-void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
-{
-    IUUserIONewBLOB(userio_file(), fp, bvp);
-}
 
 double rangeHA(double r)
 {
@@ -1513,33 +1088,6 @@ double rangeDec(double decdegrees)
         return (180.0 - decdegrees);
     return decdegrees;
 }
-
-#if defined(HAVE_LIBNOVA)
-double get_local_sidereal_time(double longitude)
-{
-    return range24(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) + longitude / 15.0);
-}
-
-void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position)
-{
-    ln_get_hrz_from_equ(object, observer, JD, position);
-    position->az -= 180;
-    if (position->az < 0)
-        position->az += 360;
-}
-
-void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_equ_posn *position)
-{
-    struct ln_hrz_posn libnova_object;
-    libnova_object.az = object->az + 180;
-    if (libnova_object.az > 360)
-        libnova_object.az -= 360;
-    libnova_object.alt = object->alt;
-
-    ln_get_equ_from_hrz(&libnova_object, observer, JD, position);
-}
-
-#endif // HAVE_LIBNOVA
 
 double get_local_hour_angle(double sideral_time, double ra)
 {

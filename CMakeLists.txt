@@ -2164,7 +2164,6 @@ endif()
 if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install( FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
@@ -2178,7 +2177,6 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fitsidi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h        
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h

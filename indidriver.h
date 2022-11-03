@@ -132,31 +132,6 @@ extern int IUSaveDefaultConfig(const char *source_config, const char *dest_confi
 */
 extern void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent);
 
-/** \brief Add a number vector property value to the configuration file
-    \param fp file pointer to a configuration file.
-    \param nvp pointer to a number vector property.
-*/
-extern void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp);
-
-/** \brief Add a text vector property value to the configuration file
-    \param fp file pointer to a configuration file.
-    \param tvp pointer to a text vector property.
-*/
-extern void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp);
-
-/** \brief Add a switch vector property value to the configuration file
-    \param fp file pointer to a configuration file.
-    \param svp pointer to a switch vector property.
-*/
-extern void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp);
-
-/** \brief Add a BLOB vector property value to the configuration file
-    \param fp file pointer to a configuration file.
-    \param bvp pointer to a BLOB vector property.
-    \note If the BLOB size is large, this function will block until the BLOB contents are written to the file.
-*/
-extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
-
 /**
  * @brief IUGetConfigNumber Opens configuration file and reads single number property.
  * @param dev name of device

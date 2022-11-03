@@ -291,6 +291,16 @@ ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
     return (NULL);
 }
 
+int IUFindIndex(const char *needle, char **hay, unsigned int n)
+{
+    for (int i = 0; i < (int)n; i++)
+    {
+        if (!strcmp(hay[i], needle))
+            return i;
+    }
+    return -1;
+}
+
 /* Find index of the ON member of an ISwitchVectorProperty */
 int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 {

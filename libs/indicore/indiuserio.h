@@ -19,20 +19,11 @@
 #pragma once
 
 #include "userio.h"
-#include "indidevapi.h"
+#include "indiapi.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct _ITextVectorProperty;
-struct _INumberVectorProperty;
-struct _ISwitchVectorProperty;
-struct _IBLOBVectorProperty;
-struct _ILightVectorProperty;
-
-struct _IBLOB;
-struct _ISwitch;
 
 void IUUserIOTextContext(const userio *io, void *user, const struct _ITextVectorProperty *tvp);
 void IUUserIONumberContext(const userio *io, void *user, const struct _INumberVectorProperty *nvp);

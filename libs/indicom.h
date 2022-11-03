@@ -298,65 +298,21 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
  */
 /*@{*/
 
-/** \brief Converts a sexagesimal number to a string.
-
-   sprint the variable a in sexagesimal format into out[].
-
-  \param out a pointer to store the sexagesimal number.
-  \param a the sexagesimal number to convert.
-  \param w the number of spaces in the whole part.
-  \param fracbase is the number of pieces a whole is to broken into; valid options:\n
-          \li 360000:	\<w\>:mm:ss.ss
-      \li 36000:	\<w\>:mm:ss.s
-      \li 3600:	\<w\>:mm:ss
-      \li 600:	\<w\>:mm.m
-      \li 60:	\<w\>:mm
-
-  \return number of characters written to out, not counting final null terminator.
- */
-int fs_sexa(char *out, double a, int w, int fracbase);
-
-/** \brief convert sexagesimal string str AxBxC to double.
-
-    x can be anything non-numeric. Any missing A, B or C will be assumed 0. Optional - and + can be anywhere.
-
-    \param str0 string containing sexagesimal number.
-    \param dp pointer to a double to store the sexagesimal number.
-    \return return 0 if ok, -1 if can't find a thing.
- */
-int f_scansexa(const char *str0, double *dp);
-
 /** \brief Extract ISO 8601 time and store it in a tm struct.
     \param timestr a string containing date and time in ISO 8601 format.
     \param iso_date a pointer to a \e ln_date structure to store the extracted time and date (libnova).
     \return 0 on success, -1 on failure.
 */
 #ifndef _WIN32
+struct ln_date;
 int extractISOTime(const char *timestr, struct ln_date *iso_date);
 #endif
 
-void getSexComponents(double value, int *d, int *m, int *s);
-void getSexComponentsIID(double value, int *d, int *m, double *s);
-
-/** \brief Fill buffer with properly formatted INumber string.
-    \param buf to store the formatted string.
-    \param format format in sprintf style.
-    \param value the number to format.
-    \return length of string.
-
-    \note buf must be of length MAXINDIFORMAT at minimum
-*/
-int numberFormat(char *buf, const char *format, double value);
 
 /** \brief Get a unix timestamp with nanosecond precision
     \return Seconds since UNIX Epoch.
 */
 double time_ns();
-
-/** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
-    \return The formatted time stamp.
-*/
-const char *timestamp();
 
 /**
  * @brief rangeHA Limits the hour angle value to be between -12 ---> 12
