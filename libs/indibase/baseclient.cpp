@@ -299,11 +299,11 @@ bool BaseClient::connectServer()
     D_PTR(BaseClient);
 
     if (d->sConnected.exchange(true) == true)
-        return true;
+        return false;
 
 #ifndef _WINDOWS
     // System with unix support automatically connect over unix domain
-    if (d->cServer == "localhost" && d->connectToHostAndWait("localhost:", d->cPort) == false)
+    if (d->cServer != "localhost" || d->cServer != "127.0.0.1" || d->connectToHostAndWait("localhost:", d->cPort) == false)
 #endif
     {
         if (d->connectToHostAndWait(d->cServer, d->cPort) == false)
