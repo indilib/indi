@@ -138,6 +138,15 @@ ENDIF(INDI_CALCULATE_MINMAX)
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
 
+# ###################################################################################################
+#
+# Component   : INDI Core
+# Dependencies: 
+# Supported OS: All
+#
+# ################################################################################################
+add_subdirectory(libs/indicore)
+
 ####################################################################################################
 #
 # Component   : INDI Server
@@ -158,9 +167,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
 SET(indiserver_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiserver indiserver_SRC 10 c)
@@ -170,7 +177,7 @@ add_executable(indiserver ${indiserver_SRC})
 target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
 target_include_directories(indiserver SYSTEM PRIVATE ${LIBEV_INCLUDE_DIRS})
 target_include_directories(indiserver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/)
-target_link_libraries(indiserver ${LIBEV_LIBRARIES})
+target_link_libraries(indiserver ${LIBEV_LIBRARIES} indicore)
 install(TARGETS indiserver RUNTIME DESTINATION bin)
 endif (WIN32 OR ANDROID)
 endif (INDI_BUILD_SERVER)
@@ -199,11 +206,7 @@ include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 # 3. Build
 
-SET(indiclient_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+SET(indiclient_C_SRC)
 
 SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
@@ -240,7 +243,7 @@ SET(indiclient_C_SRC ${indiclient_C_SRC}
 add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
 
 add_subdirectory(libs/sockets)
-target_link_libraries(indiclient sockets)
+target_link_libraries(indiclient indicore sockets)
 
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -290,11 +293,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CFITSIO_INCLUDE_DIR})
 # 3. Build
 message(STATUS "Building INDI Client with Qt5 support")
-SET(indiclientqt_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+SET(indiclientqt_C_SRC)
     
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
@@ -329,6 +328,7 @@ SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
+target_link_libraries(indiclientqt indicore)
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
@@ -484,11 +484,7 @@ SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     )
 
 SET(indidriver_CXX_SRC
@@ -509,7 +505,6 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
@@ -584,7 +579,7 @@ add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+target_link_libraries(indidriverstatic indicore ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -619,6 +614,8 @@ IF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     # find has been run. Add an explicit link to avoid runtime errors.
     target_link_libraries(indidriver ${ICONV_LIBRARIES})
 ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+
+target_link_libraries(indidriver indicore)
 
 CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
 
@@ -664,6 +661,8 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_library(indilx200 SHARED ${lx200library_SRCS})
+target_link_libraries(indilx200 indicore)
+
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
 endif (NOT CYGWIN AND NOT WIN32)
@@ -1983,11 +1982,7 @@ install(TARGETS indi_deepskydad_fr1 RUNTIME DESTINATION bin)
 ########### getINDI ##############
 SET(indi_get_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
 
 IF (UNITY_BUILD)
@@ -2000,7 +1995,7 @@ SET(indi_get_SRC ${indi_get_SRC}
 
 add_executable(indi_getprop ${indi_get_SRC})
 
-target_link_libraries(indi_getprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_getprop indicore ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_getprop RUNTIME DESTINATION bin )
 
@@ -2009,11 +2004,7 @@ install(TARGETS indi_getprop RUNTIME DESTINATION bin )
 ########### setINDI ##############
 SET(indi_set_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
 
 IF (UNITY_BUILD)
@@ -2026,7 +2017,7 @@ SET(indi_set_SRC ${indi_set_SRC}
 
 add_executable(indi_setprop ${indi_set_SRC})
 
-target_link_libraries(indi_setprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_setprop indicore ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_setprop RUNTIME DESTINATION bin )
 
@@ -2035,12 +2026,8 @@ install(TARGETS indi_setprop RUNTIME DESTINATION bin )
 ########### evalINDI ##############
 SET(indi_eval_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
 
 IF (UNITY_BUILD)
@@ -2053,7 +2040,7 @@ SET(indi_eval_SRC ${indi_eval_SRC}
 
 add_executable(indi_eval ${indi_eval_SRC})
 
-target_link_libraries(indi_eval ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_eval indicore ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
 
@@ -2076,7 +2063,7 @@ SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
 
 add_executable(indi_hid_test ${indi_hid_SRC})
 
-target_link_libraries(indi_hid_test ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+target_link_libraries(indi_hid_test indicore ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 
@@ -2179,9 +2166,6 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install( FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indililxml.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
@@ -2227,8 +2211,6 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indimacros.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
