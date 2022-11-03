@@ -56,6 +56,9 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
         virtual ~BaseClientPrivate();
 
     public:
+        bool connectToHostAndWait(std::string hostname, unsigned short port);
+
+    public:
         size_t sendData(const void *data, size_t size) override;
 
 #ifdef ENABLE_INDI_SHARED_MEMORY

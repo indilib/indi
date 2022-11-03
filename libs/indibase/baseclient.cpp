@@ -284,6 +284,16 @@ BaseClient::~BaseClient()
     d->clear();
 }
 
+bool BaseClientPrivate::connectToHostAndWait(std::string hostname, unsigned short port)
+{
+    if (hostname == "localhost:")
+    {
+        hostname = "localhost:/tmp/indiserver";
+    }
+    clientSocket.connectToHost(hostname, port);
+    return clientSocket.waitForConnected(timeout_sec * 1000 + timeout_us / 1000);
+}
+
 bool BaseClient::connectServer()
 {
     D_PTR(BaseClient);
@@ -291,17 +301,16 @@ bool BaseClient::connectServer()
     if (d->sConnected.exchange(true) == true)
         return true;
 
-    if (d->cServer == "localhost:")
+#ifndef _WINDOWS
+    // System with unix support automatically connect over unix domain
+    if (d->cServer == "localhost" && d->connectToHostAndWait("localhost:", d->cPort) == false)
+#endif
     {
-        d->cServer = "localhost:/tmp/indiserver";
-    }
-
-    d->clientSocket.connectToHost(d->cServer, d->cPort);
-
-    if (d->clientSocket.waitForConnected(d->timeout_sec * 1000 + d->timeout_us / 1000) == false)
-    {
-        d->sConnected = false;
-        return false;
+        if (d->connectToHostAndWait(d->cServer, d->cPort) == false)
+        {
+            d->sConnected = false;
+            return false;
+        }
     }
 
     d->clear();
