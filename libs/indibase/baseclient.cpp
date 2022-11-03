@@ -299,7 +299,12 @@ bool BaseClient::connectServer()
     D_PTR(BaseClient);
 
     if (d->sConnected.exchange(true) == true)
+    {
+        IDLog("INDI::BaseClient::connectServer: Already connected.\n");
         return false;
+    }
+
+    IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
 #ifndef _WINDOWS
     // System with unix support automatically connect over unix domain
@@ -327,7 +332,10 @@ bool BaseClient::disconnectServer(int exit_code)
     D_PTR(BaseClient);
 
     if (d->sConnected.exchange(false) == false)
-        return true;
+    {
+        IDLog("INDI::BaseClient::disconnectServer: Already disconnected.\n");
+        return false;
+    }
 
     d->clientSocket.disconnectFromHost();
 
