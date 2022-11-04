@@ -114,6 +114,12 @@ class LX200Gemini : public LX200Generic
         INumber PECGuidingSpeedN[1];
         INumberVectorProperty PECGuidingSpeedNP;
 
+        ISwitch FlipControlS[2];
+        ISwitchVectorProperty FlipControlSP;
+
+        INumber FlipPositionN[4];
+        INumberVectorProperty FlipPositionNP;
+  
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
@@ -201,6 +207,27 @@ class LX200Gemini : public LX200Generic
             PARKED,
             PARK_IN_PROGRESS
         };
+
+        enum FlipPointState
+	{
+	    DISABLED,
+	    FLIP_EAST,
+	    FLIP_WEST
+	};
+
+        enum FlipPointControl
+	{
+	    FLIP_EAST_CONTROL,
+	    FLIP_WEST_CONTROL
+	};
+
+        enum FlipPointValue
+	{
+	    FLIP_EAST_DEGREE_VALUE,
+	    FLIP_EAST_MIN_VALUE,
+	    FLIP_WEST_DEGREE_VALUE,
+	    FLIP_WEST_MIN_VALUE
+	};
 
         const uint8_t GEMINI_TIMEOUT = 3;
 
