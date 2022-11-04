@@ -34,7 +34,6 @@ void ManualFilter::ISGetProperties(const char *dev)
     INDI::FilterWheel::ISGetProperties(dev);
 
     defineProperty(&MaxFiltersNP);
-    loadConfig(true, MaxFiltersNP.name);
 }
 
 bool ManualFilter::initProperties()
@@ -51,7 +50,13 @@ bool ManualFilter::initProperties()
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "SYNC_FILTER", "Sync", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // Max number of filters
-    IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, 5);
+    double maxFilters = 5;
+    IUGetConfigNumber(getDeviceName(), "MAX_FILTERS", "MAX", &maxFilters);
+    // If names are already loaded, then we ignore all and use this instead.
+    if (FilterNameT)
+        maxFilters = FilterNameTP->ntp;
+    FilterSlotN[0].max = maxFilters;
+    IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, maxFilters);
     IUFillNumberVector(&MaxFiltersNP, MaxFiltersN, 1, getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
@@ -107,7 +112,6 @@ bool ManualFilter::ISNewNumber(const char *dev, const char *name, double values[
 
             return true;
         }
-
     }
 
     return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
