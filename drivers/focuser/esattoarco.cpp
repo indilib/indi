@@ -117,6 +117,8 @@ bool EsattoArco::initProperties()
     /////////////////////////////////////////////////////
     INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
+    setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
+
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
