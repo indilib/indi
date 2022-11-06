@@ -276,9 +276,9 @@ IPState FlipFlat::ParkCap()
         return IPS_ALERT;
 
     char expectedResponse[FLAT_RES];
-    snprintf(expectedResponse, FLAT_RES, "*C%02d000", productID);
+    snprintf(expectedResponse, FLAT_RES, "*C%02d", productID);
 
-    if (strcmp(response, expectedResponse) == 0)
+    if (strstr(response, expectedResponse))
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
@@ -304,9 +304,9 @@ IPState FlipFlat::UnParkCap()
         return IPS_ALERT;
 
     char expectedResponse[FLAT_RES];
-    snprintf(expectedResponse, FLAT_RES, "*O%02d000", productID);
+    snprintf(expectedResponse, FLAT_RES, "*O%02d", productID);
 
-    if (strcmp(response, expectedResponse) == 0)
+    if (strstr(response, expectedResponse))
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
@@ -344,14 +344,13 @@ bool FlipFlat::EnableLightBox(bool enable)
 
     char expectedResponse[FLAT_RES];
     if (enable)
-        snprintf(expectedResponse, FLAT_RES, "*L%02d000", productID);
+        snprintf(expectedResponse, FLAT_RES, "*L%02d", productID);
     else
-        snprintf(expectedResponse, FLAT_RES, "*D%02d000", productID);
+        snprintf(expectedResponse, FLAT_RES, "*D%02d", productID);
 
-    if (strcmp(response, expectedResponse) == 0)
-        return true;
-
-    return false;
+    // JM 2022.11.06 find if the response contains expected response.
+    // We no longer check for zero-fillers since some implementations wrong interpreted as 0.
+    return (strstr(response, expectedResponse));
 }
 
 bool FlipFlat::getStatus()
@@ -586,7 +585,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
-    int rc              = sscanf(brightnessString, "%d", &brightnessValue);
+    int rc = sscanf(brightnessString, "%d", &brightnessValue);
 
     if (rc <= 0)
     {
