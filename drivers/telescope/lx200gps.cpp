@@ -34,7 +34,7 @@ LX200GPS::LX200GPS() : LX200Autostar()
 
 const char *LX200GPS::getDefaultName()
 {
-    return (const char *)"LX200 GPS";
+    return "LX200 GPS";
 }
 
 bool LX200GPS::initProperties()
@@ -158,15 +158,18 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         /* GPS Power */
         if (!strcmp(name, GPSPowerSP.name))
         {
+            int ret = 0;
+
             if (IUUpdateSwitch(&GPSPowerSP, states, names, n) < 0)
                 return false;
 
             index = IUFindOnSwitchIndex(&GPSPowerSP);
             if (index == 0)
-                turnGPSOn(PortFD);
+                ret = turnGPSOn(PortFD);
             else
-                turnGPSOff(PortFD);
+                ret = turnGPSOff(PortFD);
 
+            INDI_UNUSED(ret);
             GPSPowerSP.s = IPS_OK;
             IDSetSwitch(&GPSPowerSP, index == 0 ? "GPS System is ON" : "GPS System is OFF");
             return true;
@@ -175,6 +178,8 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         /* GPS Status Update */
         if (!strcmp(name, GPSStatusSP.name))
         {
+            int ret = 0;
+
             if (IUUpdateSwitch(&GPSStatusSP, states, names, n) < 0)
                 return false;
 
@@ -182,22 +187,23 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (index == 0)
             {
-                gpsSleep(PortFD);
+                ret = gpsSleep(PortFD);
                 strncpy(msg, "GPS system is in sleep mode.", 64);
             }
             else if (index == 1)
             {
-                gpsWakeUp(PortFD)
-                strncpy(msg, "GPS system is reactivated.", 64);
+                ret = gpsWakeUp(PortFD)
+                      strncpy(msg, "GPS system is reactivated.", 64);
             }
             else
             {
-                gpsRestart(PortFD)
-                strncpy(msg, "GPS system is restarting...", 64);
+                ret = gpsRestart(PortFD)
+                      strncpy(msg, "GPS system is restarting...", 64);
                 sendScopeTime();
                 sendScopeLocation();
             }
 
+            INDI_UNUSED(ret);
             GPSStatusSP.s = IPS_OK;
             IDSetSwitch(&GPSStatusSP, "%s", msg);
             return true;
@@ -240,6 +246,8 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         /* Alt Dec Periodic Error correction */
         if (!strcmp(name, AltDecPecSP.name))
         {
+            int ret = 0;
+
             if (IUUpdateSwitch(&AltDecPecSP, states, names, n) < 0)
                 return false;
 
@@ -247,15 +255,16 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (index == 0)
             {
-                enableDecAltPec(PortFD);
+                ret = enableDecAltPec(PortFD);
                 strncpy(msg, "Alt/Dec Compensation Enabled.", 64);
             }
             else
             {
-                disableDecAltPec(PortFD);
+                ret = disableDecAltPec(PortFD);
                 strncpy(msg, "Alt/Dec Compensation Disabled.", 64);
             }
 
+            INDI_UNUSED(ret);
             AltDecPecSP.s = IPS_OK;
             IDSetSwitch(&AltDecPecSP, "%s", msg);
 
@@ -265,6 +274,8 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         /* Az RA periodic error correction */
         if (!strcmp(name, AzRaPecSP.name))
         {
+            int ret = 0;
+
             if (IUUpdateSwitch(&AzRaPecSP, states, names, n) < 0)
                 return false;
 
@@ -272,15 +283,16 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (index == 0)
             {
-                enableRaAzPec(PortFD);
+                ret = enableRaAzPec(PortFD);
                 strncpy(msg, "Ra/Az Compensation Enabled.", 64);
             }
             else
             {
-                disableRaAzPec(PortFD);
+                ret = disableRaAzPec(PortFD);
                 strncpy(msg, "Ra/Az Compensation Disabled.", 64);
             }
 
+            INDI_UNUSED(ret);
             AzRaPecSP.s = IPS_OK;
             IDSetSwitch(&AzRaPecSP, "%s", msg);
 
@@ -289,7 +301,10 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, AltDecBacklashSP.name))
         {
-            activateAltDecAntiBackSlash(PortFD);
+            int ret = 0;
+
+            ret = activateAltDecAntiBackSlash(PortFD);
+            INDI_UNUSED(ret);
             AltDecBacklashSP.s = IPS_OK;
             IDSetSwitch(&AltDecBacklashSP, "Alt/Dec Anti-backlash enabled");
             return true;
@@ -297,8 +312,11 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, AzRaBacklashSP.name))
         {
-            activateAzRaAntiBackSlash(PortFD);
+            int ret = 0;
+
+            ret = activateAzRaAntiBackSlash(PortFD);
             AzRaBacklashSP.s = IPS_OK;
+            INDI_UNUSED(ret);
             IDSetSwitch(&AzRaBacklashSP, "Az/Ra Anti-backlash enabled");
             return true;
         }
@@ -371,7 +389,11 @@ bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
 
 bool LX200GPS::UnPark()
 {
-    initTelescope(PortFD);
+    int ret = 0;
+
+    ret = initTelescope(PortFD);
+
+    INDI_UNUSED(ret);
     TrackState = SCOPE_IDLE;
     return true;
 }

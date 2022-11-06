@@ -36,7 +36,7 @@ LX200_16::LX200_16() : LX200GPS()
 
 const char *LX200_16::getDefaultName()
 {
-    return (const char *)"LX200 16";
+    return "LX200 16";
 }
 
 bool LX200_16::initProperties()
@@ -197,15 +197,18 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, HomeSearchSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&HomeSearchSP);
             IUUpdateSwitch(&HomeSearchSP, states, names, n);
             index = IUFindOnSwitchIndex(&HomeSearchSP);
 
             if (index == 0)
-                seekHomeAndSave(PortFD);
+                ret = seekHomeAndSave(PortFD);
             else
-                seekHomeAndSet(PortFD);
+                ret = seekHomeAndSet(PortFD);
 
+            INDI_UNUSED(ret);
             HomeSearchSP.s = IPS_BUSY;
             IDSetSwitch(&HomeSearchSP, index == 0 ? "Seek Home and Save" : "Seek Home and Set");
             return true;
@@ -213,15 +216,18 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, FieldDeRotatorSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&FieldDeRotatorSP);
             IUUpdateSwitch(&FieldDeRotatorSP, states, names, n);
             index = IUFindOnSwitchIndex(&FieldDeRotatorSP);
 
             if (index == 0)
-                turnFieldDeRotatorOn(PortFD);
+                ret = turnFieldDeRotatorOn(PortFD);
             else
-                turnFieldDeRotatorOff(PortFD);
+                ret = turnFieldDeRotatorOff(PortFD);
 
+            INDI_UNUSED(ret);
             FieldDeRotatorSP.s = IPS_OK;
             IDSetSwitch(&FieldDeRotatorSP, index == 0 ? "Field deRotator is ON" : "Field deRotator is OFF");
             return true;
