@@ -220,7 +220,7 @@ bool SynscanLegacyDriver::AnalyzeMount()
     bool rc = true;
     int tmp = 0;
     int bytesWritten = 0;
-    int bytesRead, numread;
+    int bytesRead;
     char res[MAX_SYN_BUF] = {0};
 
     // JM 2018-08-15 Why are we reading caps here? Looks like it serves no purpose
@@ -315,7 +315,7 @@ bool SynscanLegacyDriver::AnalyzeMount()
         memset(res, 0, MAX_SYN_BUF);
         LOG_DEBUG("CMD <t>");
         tty_write(PortFD, "t", 1, &bytesWritten);
-        numread = tty_read(PortFD, res, 2, 2, &bytesRead);
+        tty_read(PortFD, res, 2, 2, &bytesRead);
         LOGF_DEBUG("RES <%s>", res);
 
         if (res[1] == '#' && static_cast<int>(res[0]) != 0)
