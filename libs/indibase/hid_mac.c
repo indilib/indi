@@ -436,8 +436,7 @@ struct hid_device_info HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, u
         /* Check the VID/PID against the arguments */
         if ((vendor_id == 0x0 && product_id == 0x0) || (vendor_id == dev_vid && product_id == dev_pid))
         {
-            struct hid_device_info *tmp;
-            size_t len;
+            struct hid_device_info *tmp;            
 
             /* VID/PID match. Create the record. */
             tmp = malloc(sizeof(struct hid_device_info));
@@ -457,7 +456,7 @@ struct hid_device_info HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, u
 
             /* Fill out the record */
             cur_dev->next = NULL;
-            len           = make_path(dev, cbuf, sizeof(cbuf));
+            make_path(dev, cbuf, sizeof(cbuf));
             cur_dev->path = strdup(cbuf);
 
             /* Serial Number */
@@ -708,11 +707,10 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
     CFSetGetValues(device_set, (const void **)device_array);
     for (i = 0; i < num_devices; i++)
     {
-        char cbuf[BUF_LEN];
-        size_t len;
+        char cbuf[BUF_LEN];        
         IOHIDDeviceRef os_dev = device_array[i];
 
-        len = make_path(os_dev, cbuf, sizeof(cbuf));
+        make_path(os_dev, cbuf, sizeof(cbuf));
         if (!strcmp(cbuf, path))
         {
             // Matched Paths. Open this Device.
