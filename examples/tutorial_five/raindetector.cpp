@@ -56,14 +56,29 @@ bool RainDetector::initProperties()
     // Must init parent properties first!
     INDI::DefaultDevice::initProperties();
 
-    IUFillLight(&RainL[0], "Status", "", IPS_IDLE);
-    IUFillLightVector(&RainLP, RainL, 1, getDeviceName(), "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
+    mRainLight[0].fill("Status", "", IPS_IDLE);
+    mRainLight.fill(getDeviceName(), "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
 
-    IUFillSwitch(&RainS[0], "On", "", ISS_OFF);
-    IUFillSwitch(&RainS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&RainSP, RainS, 2, getDeviceName(), "Control Rain", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
-
+    mRainSwitch[0].fill("On", "");
+    mRainSwitch[1].fill("Off", "");
+    mRainSwitch.fill(getDeviceName(), "Control Rain", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    mRainSwitch.onUpdate([this]()
+    {
+        if (mRainSwitch[0].getState() == ISS_ON)
+        {
+            mRainLight[0].setState(IPS_ALERT);
+            mRainLight.setState(IPS_ALERT);
+            mRainLight.apply("Alert! Alert! Rain detected!");
+        }
+        else
+        {
+            mRainLight[0].setState(IPS_IDLE);
+            mRainLight.setState(IPS_OK);
+            mRainLight.apply("Rain threat passed. The skies are clear.");
+        }
+        mRainSwitch.setState(IPS_OK);
+        mRainSwitch.apply();
+    });
     return true;
 }
 
@@ -78,48 +93,15 @@ bool RainDetector::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&RainLP);
-        defineProperty(&RainSP);
+        defineProperty(mRainLight);
+        defineProperty(mRainSwitch);
     }
     else
         // We're disconnected
     {
-        deleteProperty(RainLP.name);
-        deleteProperty(RainSP.name);
+        deleteProperty(mRainLight);
+        deleteProperty(mRainSwitch);
     }
 
     return true;
-}
-
-/********************************************************************************************
-** Client is asking us to update a switch
-*********************************************************************************************/
-bool RainDetector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, RainSP.name) == 0)
-        {
-            IUUpdateSwitch(&RainSP, states, names, n);
-
-            if (RainS[0].s == ISS_ON)
-            {
-                RainL[0].s = IPS_ALERT;
-                RainLP.s   = IPS_ALERT;
-                IDSetLight(&RainLP, "Alert! Alert! Rain detected!");
-            }
-            else
-            {
-                RainL[0].s = IPS_IDLE;
-                RainLP.s   = IPS_OK;
-                IDSetLight(&RainLP, "Rain threat passed. The skies are clear.");
-            }
-
-            RainSP.s = IPS_OK;
-            IDSetSwitch(&RainSP, nullptr);
-            return true;
-        }
-    }
-
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }

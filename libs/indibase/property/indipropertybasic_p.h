@@ -22,20 +22,41 @@
 #include "indipropertyview.h"
 
 #include <vector>
+#include <functional>
+
+#define INDI_PROPERTY_RAW_CAST
 
 namespace INDI
 {
 
 template <typename T>
-class PropertyBasicPrivateTemplate: public PropertyPrivate
+struct PropertyContainer
+{
+#ifndef INDI_PROPERTY_RAW_CAST
+        PropertyView<T> typedProperty;
+#else
+        PropertyView<T> &typedProperty;
+#endif
+};
+template <typename T>
+class PropertyBasicPrivateTemplate: public PropertyContainer<T>, public PropertyPrivate
 {
     public:
+        using RawPropertyType = typename WidgetTraits<T>::PropertyType;
+        using BasicPropertyType = PropertyBasicPrivateTemplate<T>;
+
+    public:
         PropertyBasicPrivateTemplate(size_t count);
+#ifdef INDI_PROPERTY_RAW_CAST
+        PropertyBasicPrivateTemplate(RawPropertyType *rawProperty);
+#endif
         virtual ~PropertyBasicPrivateTemplate();
 
     public:
+#ifdef INDI_PROPERTY_RAW_CAST
+        bool raw;
+#endif
         std::vector<WidgetView<T>>  widgets;
-        PropertyView<T>             property;
 };
 
 }

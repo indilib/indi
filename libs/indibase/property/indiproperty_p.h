@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+               2022 Pawel Soja <kernel32.pl@gmail.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -21,6 +22,8 @@
 #include "indibase.h"
 #include "indiproperty.h"
 #include <memory>
+#include <functional>
+
 namespace INDI
 {
 
@@ -32,6 +35,22 @@ static inline std::shared_ptr<T> make_shared_weak(T *object)
 }
 #endif
 
+template <typename T, typename U>
+static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> &r)
+{
+    using S = std::remove_pointer_t<T>;
+    static struct Invalid
+    {
+        std::shared_ptr<T> instance {new S {size_t(16)}};
+        Invalid()
+        {
+            instance->type = INDI_UNKNOWN;
+        }
+    } invalid;
+    auto result = std::dynamic_pointer_cast<T>(r);
+    return result != nullptr ? result : invalid.instance;
+}
+
 class BaseDevice;
 class PropertyPrivate
 {
@@ -41,6 +60,8 @@ class PropertyPrivate
         INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
         bool registered = false;
         bool dynamic = false;
+
+        std::function<void()> onUpdateCallback;
 
         PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
         PropertyPrivate(ITextVectorProperty *property);

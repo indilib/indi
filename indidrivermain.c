@@ -32,7 +32,6 @@
 
 #include "base64.h"
 #include "eventloop.h"
-#include "indicom.h"
 #include "indidevapi.h"
 #include "indidriver.h"
 #include "lilxml.h"
@@ -80,7 +79,8 @@ static void clientMsgCB(int fd, void *arg)
     nr = read(fd, buf, sizeof(buf));
     if (nr < 0)
     {
-        if ((errno == EAGAIN) || (errno == EINTR)) {
+        if ((errno == EAGAIN) || (errno == EINTR))
+        {
             return;
         }
         fprintf(stderr, "%s: %s\n", me, strerror(errno));
@@ -98,7 +98,8 @@ static void clientMsgCB(int fd, void *arg)
         XMLEle *root = readXMLEle(clixml, *bp, msg);
         if (root)
         {
-            if (strcmp(tagXMLEle(root), "pingReply") == 0) {
+            if (strcmp(tagXMLEle(root), "pingReply") == 0)
+            {
                 handlePingReply(root);
                 delXMLEle(root);
                 continue;
@@ -110,7 +111,8 @@ static void clientMsgCB(int fd, void *arg)
     }
 }
 
-typedef struct DeferredMessage {
+typedef struct DeferredMessage
+{
     XMLEle * root;
     struct DeferredMessage * next;
     struct DeferredMessage * prev;
@@ -120,29 +122,37 @@ typedef struct DeferredMessage {
 static DeferredMessage * firstDeferredMessage = NULL;
 static DeferredMessage * lastDeferredMessage = NULL;
 
-static void flushDeferredMessages(void * arg) {
+static void flushDeferredMessages(void * arg)
+{
     DeferredMessage * p;
     char msg[MAXRBUF];
 
     (void) arg;
 
-    while((p = firstDeferredMessage)) {
+    while((p = firstDeferredMessage))
+    {
         firstDeferredMessage = p->next;
-        if (firstDeferredMessage) {
+        if (firstDeferredMessage)
+        {
             firstDeferredMessage->prev = NULL;
-        } else {
+        }
+        else
+        {
             lastDeferredMessage = NULL;
         }
 
         if (dispatch(p->root, msg) < 0)
             fprintf(stderr, "%s dispatch error: %s\n", me, msg);
+
         delXMLEle(p->root);
         free(p);
     }
 }
 
-static void deferMessage(XMLEle * root) {
-    if (firstDeferredMessage == NULL) {
+static void deferMessage(XMLEle * root)
+{
+    if (firstDeferredMessage == NULL)
+    {
         addImmediateWork(flushDeferredMessages, NULL);
     }
 
@@ -150,9 +160,12 @@ static void deferMessage(XMLEle * root) {
     newDeferredMessage->root = root;
     newDeferredMessage->next = NULL;
     newDeferredMessage->prev = lastDeferredMessage;
-    if (lastDeferredMessage == NULL) {
+    if (lastDeferredMessage == NULL)
+    {
         firstDeferredMessage = newDeferredMessage;
-    } else {
+    }
+    else
+    {
         lastDeferredMessage->next = newDeferredMessage;
     }
     lastDeferredMessage = newDeferredMessage;
@@ -160,7 +173,8 @@ static void deferMessage(XMLEle * root) {
 
 #define MAX_PING_UID_LEN 64
 
-typedef struct PingReply {
+typedef struct PingReply
+{
     struct PingReply * prev;
     struct PingReply * next;
     char uid[MAX_PING_UID_LEN + 1];
@@ -172,12 +186,13 @@ static PingReply * lastReceivedPing = NULL;
 static pthread_mutex_t pingReplyMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t pingReplyCond = PTHREAD_COND_INITIALIZER;
 
-static void handlePingReply(XMLEle * root) {
+static void handlePingReply(XMLEle * root)
+{
     XMLAtt *uidA = findXMLAtt(root, "uid");
 
-    if (!uidA) {
+    if (!uidA)
         return;
-    }
+
     char * uid = valuXMLAtt(uidA);
     if (!uid || !uid[0] || strlen(uid) > MAX_PING_UID_LEN) {
         return;
@@ -237,18 +252,18 @@ static void waitPingReplyFromEventLoopThread(const char * uid) {
 static void waitPingReplyFromOtherThread(const char * uid) {
     int fd = 0;
     fd_set rfd;
-    int ns;
 
     messageHandling = PROCEED_DEFERRED;
     pthread_mutex_lock(&pingReplyMutex);
-    while(!consumePingReply(uid)) {
+    while(!consumePingReply(uid))
+    {
 
         pthread_mutex_unlock(&pingReplyMutex);
 
         FD_ZERO(&rfd);
         FD_SET(fd, &rfd);
 
-        ns = select(fd + 1, &rfd, NULL, NULL, NULL);
+        int ns = select(fd + 1, &rfd, NULL, NULL, NULL);
         if (ns < 0)
         {
             perror("select");
@@ -277,9 +292,13 @@ void waitPingReply(const char * uid) {
 int main(int ac, char *av[])
 {
 #ifndef _WIN32
-    int ret = setgid(getgid());
+    int ret = 0;
 
-    ret = setuid(getuid());
+    if ( (ret = setgid(getgid())) != 0)
+        IDLog("setgid: %s", strerror(ret));
+
+    if ( (ret = setuid(getuid())) != 0)
+        IDLog("getuid: %s", strerror(ret));
 
     if (geteuid() != getuid())
         exit(255);

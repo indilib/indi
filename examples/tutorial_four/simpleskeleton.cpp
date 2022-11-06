@@ -35,6 +35,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 */
 
 #include "simpleskeleton.h"
+#include <indipropertyswitch.h>
+#include <indipropertynumber.h>
+#include <indipropertyblob.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -79,6 +82,66 @@ bool SimpleSkeleton::initProperties()
     for(const auto &oneProperty : *getProperties())
         IDLog("Property #%d: %s\n", i++, oneProperty->getName());
 
+    // Set the green light (IPS_OK) for a "Number Property" if changed
+    INDI::PropertyNumber number = getNumber("Number Property");
+    number.onUpdate([number, this]() mutable
+    {
+        if (!isConnected())
+        {
+            number.setState(IPS_ALERT);
+            number.apply("Cannot change property while device is disconnected.");
+            return;
+        }
+        number.setState(IPS_OK);
+        number.apply();
+    });
+
+    // Set random light state for selected switch index
+    INDI::PropertySwitch menu = getSwitch("Menu");
+    menu.onUpdate([menu, this]() mutable
+    {
+        if (!isConnected())
+        {
+            menu.setState(IPS_ALERT);
+            menu.apply("Cannot change property while device is disconnected.");
+            return;
+        }
+        auto index = menu.findOnSwitchIndex();
+        if (index < 0)
+            return;
+
+        menu.setState(IPS_OK);
+
+        INDI::PropertyLight light = getLight("Light Property");
+        light[index].setState(static_cast<IPState>(rand() % 4));
+        light.setState(IPS_OK);
+        light.apply();
+    });
+
+    // Show blob if changed
+    INDI::PropertyBlob blob = getBLOB("BLOB Test");
+    blob.onUpdate([blob, this]() mutable
+    {
+        if (!isConnected())
+        {
+            blob.setState(IPS_ALERT);
+            blob.apply("Cannot change property while device is disconnected.");
+            return;
+        }
+        IDLog("Received BLOB with name %s, format %s, and size %d, and bloblen %d\n",
+              blob[0].getName(), blob[0].getFormat(), blob[0].getSize(), blob[0].getBlobLen());
+
+        IDLog("BLOB Content:\n"
+              "##################################\n"
+              "%s\n"
+              "##################################\n",
+              blob[0].getBlobAsString().c_str());
+
+        blob[0].setSize(0);
+        blob.setState(IPS_OK);
+        blob.apply();
+    });
+
     return true;
 }
 
@@ -98,156 +161,6 @@ void SimpleSkeleton::ISGetProperties(const char *dev)
         loadConfig();
         configLoaded = 1;
     }
-}
-
-/**************************************************************************************
-** Process Text properties
-***************************************************************************************/
-bool SimpleSkeleton::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    INDI_UNUSED(name);
-    INDI_UNUSED(texts);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-    // Ignore if not ours
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return false;
-
-    return false;
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool SimpleSkeleton::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    // Ignore if not ours
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return false;
-
-    INumberVectorProperty *nvp = getNumber(name);
-
-    if (nvp == nullptr)
-        return false;
-
-    if (!isConnected())
-    {
-        nvp->s = IPS_ALERT;
-        IDSetNumber(nvp, "Cannot change property while device is disconnected.");
-        return false;
-    }
-
-    if (strcmp(nvp->name, "Number Property") != 0)
-    {
-        IUUpdateNumber(nvp, values, names, n);
-        nvp->s = IPS_OK;
-        IDSetNumber(nvp, nullptr);
-
-        return true;
-    }
-
-    return false;
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool SimpleSkeleton::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    int lightState = 0;
-    int lightIndex = 0;
-
-    // ignore if not ours
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return false;
-
-    if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n))
-        return true;
-
-    ISwitchVectorProperty *svp = getSwitch(name);
-    ILightVectorProperty *lvp  = getLight("Light Property");
-
-    if (!isConnected())
-    {
-        svp->s = IPS_ALERT;
-        IDSetSwitch(svp, "Cannot change property while device is disconnected.");
-        return false;
-    }
-
-    if (svp == nullptr || lvp == nullptr)
-        return false;
-
-    if (strcmp(svp->name, "Menu") == 0)
-    {
-        IUUpdateSwitch(svp, states, names, n);
-        ISwitch *onSW = IUFindOnSwitch(svp);
-        lightIndex    = IUFindOnSwitchIndex(svp);
-
-        if (lightIndex < 0 || lightIndex > lvp->nlp)
-            return false;
-
-        if (onSW != nullptr)
-        {
-            lightState            = rand() % 4;
-            svp->s                = IPS_OK;
-            lvp->s                = IPS_OK;
-            lvp->lp[lightIndex].s = (IPState)lightState;
-
-            IDSetSwitch(svp, "Setting to switch %s is successful. Changing corresponding light property to %s.",
-                        onSW->name, pstateStr(lvp->lp[lightIndex].s));
-            IDSetLight(lvp, nullptr);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool SimpleSkeleton::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                               char *formats[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return false;
-
-    IBLOBVectorProperty *bvp = getBLOB(name);
-
-    if (bvp == nullptr)
-        return false;
-
-    if (!isConnected())
-    {
-        bvp->s = IPS_ALERT;
-        IDSetBLOB(bvp, "Cannot change property while device is disconnected.");
-        return false;
-    }
-
-    if (strcmp(bvp->name, "BLOB Test") == 0)
-    {
-        IUUpdateBLOB(bvp, sizes, blobsizes, blobs, formats, names, n);
-
-        IBLOB *bp = IUFindBLOB(bvp, names[0]);
-
-        if (bp == nullptr)
-            return false;
-
-        IDLog("Received BLOB with name %s, format %s, and size %d, and bloblen %d\n", bp->name, bp->format, bp->size,
-              bp->bloblen);
-
-        char *blobBuffer = new char[bp->bloblen + 1];
-        strncpy(blobBuffer, ((char *)bp->blob), bp->bloblen);
-        blobBuffer[bp->bloblen] = '\0';
-
-        IDLog("BLOB Content:\n##################################\n%s\n##################################\n",
-              blobBuffer);
-
-        delete[] blobBuffer;
-
-        bp->size = 0;
-        bvp->s   = IPS_OK;
-        IDSetBLOB(bvp, nullptr);
-    }
-
-    return true;
 }
 
 /**************************************************************************************

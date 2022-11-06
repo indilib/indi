@@ -45,9 +45,7 @@ FilterIFW::FilterIFW()
 
     // We add an additional debug level so we can log verbose member function starting
     // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
-    int DBG_TAG = 0;
-
-    DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
+    INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
 /************************************************************************************
@@ -55,7 +53,7 @@ FilterIFW::FilterIFW()
 ************************************************************************************/
 const char *FilterIFW::getDefaultName()
 {
-    return (const char *)"Optec IFW";
+    return "Optec IFW";
 }
 
 /**************************************************************************************

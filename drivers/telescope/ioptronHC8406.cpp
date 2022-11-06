@@ -672,7 +672,7 @@ int ioptronHC8406::setioptronHC8406Longitude(double Long)
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }

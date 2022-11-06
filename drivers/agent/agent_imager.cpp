@@ -436,8 +436,8 @@ bool Imager::ISSnoopDevice(XMLEle *root)
 bool Imager::Connect()
 {
     setServer("localhost", 7624); // TODO configuration options
-    watchDevice(controlledCCD);
-    watchDevice(controlledFilterWheel);
+    BaseClient::watchDevice(controlledCCD);
+    BaseClient::watchDevice(controlledFilterWheel);
     connectServer();
     setBLOBMode(B_ALSO, controlledCCD, nullptr);
 

@@ -1214,20 +1214,18 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
-            long ret = 0;
-
             IUUpdateSwitch(&ReticSP, states, names, n);
             ReticSP.s = IPS_OK;
 
             if (ReticS[0].s == ISS_ON)
             {
-                ret = ReticPlus(PortFD);
+                ReticPlus(PortFD);
                 ReticS[0].s = ISS_OFF;
                 IDSetSwitch(&ReticSP, "Bright");
             }
             else
             {
-                ret = ReticMoins(PortFD);
+                ReticMoins(PortFD);
                 ReticS[1].s = ISS_OFF;
                 IDSetSwitch(&ReticSP, "Dark");
             }

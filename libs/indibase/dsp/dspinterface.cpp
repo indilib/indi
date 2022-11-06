@@ -423,9 +423,9 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     int status    = 0;
     int naxis    = static_cast<int>(BufferSizesQty);
     long *naxes = static_cast<long*>(malloc(sizeof(long) * BufferSizesQty));
-    long nelements = 0;
+    long nelements = 1;
 
-    for (uint32_t i = 0, nelements = 1; i < BufferSizesQty; nelements *= static_cast<long>(BufferSizes[i++]))
+    for (uint32_t i = 0; i < BufferSizesQty; nelements *= static_cast<long>(BufferSizes[i++]))
         naxes[i] = BufferSizes[i];
     char error_status[MAXINDINAME];
 

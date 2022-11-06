@@ -554,7 +554,6 @@ void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH,
 	// RGBRGBRGBRGBRGB row width = 3x width
 	// RGBRGBRGBRGBRGB each pixel = 3 bytes
 	
-	long int i;
 	long int row;
 	long int col;
 	long int width=WIDTH;
@@ -563,7 +562,6 @@ void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH,
 	int BLUE = 2;
 	for (row = 0; row < HEIGHT; row++) {
 		for (col = 0; col < WIDTH; col++) {
-			i=(row*WIDTH+col)*3;  //Output is in 3 bytes RGB, so convert a single pixel (3 bytes) each time. (USE RED, GREEN, BLUE as offsets 0, 1, 2 respectively) 
 			//General case:
 			if(row % 2 == 0) { //GRGRGR Row
 				if(col % 2 == 0) {//Over Green

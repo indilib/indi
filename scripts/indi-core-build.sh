@@ -21,7 +21,7 @@ fi
 mkdir -p build/indi-core
 pushd build/indi-core
 cmake \
-    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DCMAKE_INSTALL_PREFIX=/usr \
     -DFIX_WARNINGS=ON \
     -DCMAKE_BUILD_TYPE=$1 \
     -DINDI_BUILD_UNITTESTS=ON \

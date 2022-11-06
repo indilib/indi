@@ -33,13 +33,17 @@ PropertyNumber::PropertyNumber(size_t count)
     : PropertyBasic<INumber>(*new PropertyNumberPrivate(count))
 { }
 
+PropertyNumber::PropertyNumber(INDI::Property property)
+    : PropertyBasic<INumber>(property_private_cast<PropertyNumberPrivate>(property.d_ptr))
+{ }
+
 PropertyNumber::~PropertyNumber()
 { }
 
 bool PropertyNumber::update(const double values[], const char * const names[], int n)
 {
     D_PTR(PropertyNumber);
-    return d->property.update(values, names, n);
+    return d->typedProperty.update(values, names, n) && (emitUpdate(), true);
 }
 
 void PropertyNumber::fill(
@@ -48,14 +52,14 @@ void PropertyNumber::fill(
 )
 {
     D_PTR(PropertyNumber);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, permission, timeout, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, permission, timeout, state);
 }
 
 void PropertyNumber::updateMinMax()
 {
     D_PTR(PropertyNumber);
-    d->property.updateMinMax();
+    d->typedProperty.updateMinMax();
 }
 
 }
