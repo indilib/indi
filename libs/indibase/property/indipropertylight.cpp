@@ -33,6 +33,10 @@ PropertyLight::PropertyLight(size_t count)
     : PropertyBasic<ILight>(*new PropertyLightPrivate(count))
 { }
 
+PropertyLight::PropertyLight(INDI::Property property)
+    : PropertyBasic<ILight>(property_private_cast<PropertyLightPrivate>(property.d_ptr))
+{ }
+
 PropertyLight::~PropertyLight()
 { }
 
@@ -42,8 +46,8 @@ void PropertyLight::fill(
 )
 {
     D_PTR(PropertyLight);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, state);
 }
 
 }

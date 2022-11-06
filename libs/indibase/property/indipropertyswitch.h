@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indipropertybasic.h"
+#include <map>
 
 namespace INDI
 {
@@ -28,11 +29,26 @@ class PropertySwitch: public INDI::PropertyBasic<ISwitch>
 {
         DECLARE_PRIVATE(PropertySwitch)
     public:
+        struct NewValues: public std::map<std::string, ISState>
+        {
+            bool contains(const std::string &key, const ISState &state) const
+            {
+                auto it = this->find(key);
+                return it != this->cend() && it->second == state;
+            }
+        };
+
+    public:
         PropertySwitch(size_t count);
+        PropertySwitch(INDI::Property property);
         ~PropertySwitch();
 
     public:
+        void onNewValues(const std::function<void(const NewValues &)> &callback);
+
+    public:
         bool update(const ISState states[], const char * const names[], int n);
+        bool hasUpdateCallback() const;
 
         void fill(
             const char *device, const char *name, const char *label, const char *group,

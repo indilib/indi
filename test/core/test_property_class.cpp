@@ -25,6 +25,11 @@
 #include <cstring>
 
 #include "indiproperty.h"
+#include "indipropertynumber.h"
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+#include "indipropertylight.h"
+#include "indipropertyblob.h"
 
 TEST(CORE_PROPERTY_CLASS, Test_EmptyProperty)
 {
@@ -181,4 +186,323 @@ TEST(CORE_PROPERTY_CLASS, DISABLED_Test_Integrity)
     // A verification mechanism should protect the property from being associated to an invalid device
     p.setBaseDevice(corrupted_device);
     EXPECT_EQ(p.getBaseDevice(), nullptr);
+}
+
+
+TEST(CORE_PROPERTY_CLASS, Test_PropertyNumber)
+{
+    INDI::PropertyNumber p{1};
+
+    p[0].setName("widget name");
+    p[0].setLabel("widget label");
+    p[0].setValue(4);
+    p[0].setMinMax(-10, 10);
+
+    p.setDeviceName("property device");
+    p.setName("property name");
+    p.setLabel("property label");
+    p.setGroupName("property group");
+    p.setPermission(IP_RW);
+    p.setTimeout(1000);
+    p.setState(IPS_OK);
+
+    ASSERT_STREQ(p[0].getName(),  "widget name");
+    ASSERT_STREQ(p[0].getLabel(), "widget label");
+    ASSERT_EQ(p[0].getValue(),  4);
+    ASSERT_EQ(p[0].getMin(), -10);
+    ASSERT_EQ(p[0].getMax(),  10);
+
+    ASSERT_STREQ(p.getDeviceName(), "property device");
+    ASSERT_STREQ(p.getName(),       "property name");
+    ASSERT_STREQ(p.getLabel(),      "property label");
+    ASSERT_STREQ(p.getGroupName(),  "property group");
+    ASSERT_EQ(p.getPermission(), IP_RW);
+    ASSERT_EQ(p.getTimeout(), 1000);
+    ASSERT_EQ(p.getState(), IPS_OK);
+
+    // change values and test
+    p[0].setName("widget other name");
+    p[0].setLabel("widget other label");
+    p[0].setValue(40);
+    p[0].setMinMax(-100, 100);
+
+    p.setDeviceName("property other device");
+    p.setName("property other name");
+    p.setLabel("property other label");
+    p.setGroupName("property other group");
+    p.setPermission(IP_RO);
+    p.setTimeout(500);
+    p.setState(IPS_ALERT);
+
+    ASSERT_STREQ(p[0].getName(),  "widget other name");
+    ASSERT_STREQ(p[0].getLabel(), "widget other label");
+    ASSERT_EQ(p[0].getValue(),  40);
+    ASSERT_EQ(p[0].getMin(), -100);
+    ASSERT_EQ(p[0].getMax(),  100);
+
+    ASSERT_STREQ(p.getDeviceName(), "property other device");
+    ASSERT_STREQ(p.getName(),       "property other name");
+    ASSERT_STREQ(p.getLabel(),      "property other label");
+    ASSERT_STREQ(p.getGroupName(),  "property other group");
+    ASSERT_EQ(p.getPermission(), IP_RO);
+    ASSERT_EQ(p.getTimeout(), 500);
+    ASSERT_EQ(p.getState(), IPS_ALERT);
+
+    ASSERT_EQ(INDI::PropertyNumber(INDI::Property(p)).isValid(), true);
+    ASSERT_EQ(INDI::PropertySwitch(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyText(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyLight(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyBlob(INDI::Property(p)).isValid(), false);
+}
+
+TEST(CORE_PROPERTY_CLASS, Test_PropertySwitch)
+{
+    INDI::PropertySwitch p{1};
+
+    p[0].setName("widget name");
+    p[0].setLabel("widget label");
+    p[0].setState(ISS_ON);
+
+    p.setDeviceName("property device");
+    p.setName("property name");
+    p.setLabel("property label");
+    p.setGroupName("property group");
+    p.setPermission(IP_RW);
+    p.setTimeout(1000);
+    p.setState(IPS_OK);
+
+    ASSERT_STREQ(p[0].getName(),  "widget name");
+    ASSERT_STREQ(p[0].getLabel(), "widget label");
+    ASSERT_EQ(p[0].getState(),  IPS_OK);
+
+    ASSERT_STREQ(p.getDeviceName(), "property device");
+    ASSERT_STREQ(p.getName(),       "property name");
+    ASSERT_STREQ(p.getLabel(),      "property label");
+    ASSERT_STREQ(p.getGroupName(),  "property group");
+    ASSERT_EQ(p.getPermission(), IP_RW);
+    ASSERT_EQ(p.getTimeout(), 1000);
+    ASSERT_EQ(p.getState(), IPS_OK);
+
+    // change values and test
+    p[0].setName("widget other name");
+    p[0].setLabel("widget other label");
+    p[0].setState(ISS_OFF);
+
+    p.setDeviceName("property other device");
+    p.setName("property other name");
+    p.setLabel("property other label");
+    p.setGroupName("property other group");
+    p.setPermission(IP_RO);
+    p.setTimeout(500);
+    p.setState(IPS_ALERT);
+
+    ASSERT_STREQ(p[0].getName(),  "widget other name");
+    ASSERT_STREQ(p[0].getLabel(), "widget other label");
+    ASSERT_EQ(p[0].getState(),  ISS_OFF);
+
+    ASSERT_STREQ(p.getDeviceName(), "property other device");
+    ASSERT_STREQ(p.getName(),       "property other name");
+    ASSERT_STREQ(p.getLabel(),      "property other label");
+    ASSERT_STREQ(p.getGroupName(),  "property other group");
+    ASSERT_EQ(p.getPermission(), IP_RO);
+    ASSERT_EQ(p.getTimeout(), 500);
+    ASSERT_EQ(p.getState(), IPS_ALERT);
+
+    ASSERT_EQ(INDI::PropertyNumber(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertySwitch(INDI::Property(p)).isValid(), true);
+    ASSERT_EQ(INDI::PropertyText(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyLight(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyBlob(INDI::Property(p)).isValid(), false);
+}
+
+TEST(CORE_PROPERTY_CLASS, Test_PropertyText)
+{
+    INDI::PropertyText p{1};
+
+    p[0].setName("widget name");
+    p[0].setLabel("widget label");
+    p[0].setText("widget text");
+
+    p.setDeviceName("property device");
+    p.setName("property name");
+    p.setLabel("property label");
+    p.setGroupName("property group");
+    p.setPermission(IP_RW);
+    p.setTimeout(1000);
+    p.setState(IPS_OK);
+
+    ASSERT_STREQ(p[0].getName(),  "widget name");
+    ASSERT_STREQ(p[0].getLabel(), "widget label");
+    ASSERT_STREQ(p[0].getText(),  "widget text");
+
+    ASSERT_STREQ(p.getDeviceName(), "property device");
+    ASSERT_STREQ(p.getName(),       "property name");
+    ASSERT_STREQ(p.getLabel(),      "property label");
+    ASSERT_STREQ(p.getGroupName(),  "property group");
+    ASSERT_EQ(p.getPermission(), IP_RW);
+    ASSERT_EQ(p.getTimeout(), 1000);
+    ASSERT_EQ(p.getState(), IPS_OK);
+
+    // change values and test
+    p[0].setName("widget other name");
+    p[0].setLabel("widget other label");
+    p[0].setText("widget other text");
+
+    p.setDeviceName("property other device");
+    p.setName("property other name");
+    p.setLabel("property other label");
+    p.setGroupName("property other group");
+    p.setPermission(IP_RO);
+    p.setTimeout(500);
+    p.setState(IPS_ALERT);
+
+    ASSERT_STREQ(p[0].getName(),  "widget other name");
+    ASSERT_STREQ(p[0].getLabel(), "widget other label");
+    ASSERT_STREQ(p[0].getText(),  "widget other text");
+
+    ASSERT_STREQ(p.getDeviceName(), "property other device");
+    ASSERT_STREQ(p.getName(),       "property other name");
+    ASSERT_STREQ(p.getLabel(),      "property other label");
+    ASSERT_STREQ(p.getGroupName(),  "property other group");
+    ASSERT_EQ(p.getPermission(), IP_RO);
+    ASSERT_EQ(p.getTimeout(), 500);
+    ASSERT_EQ(p.getState(), IPS_ALERT);
+
+    ASSERT_EQ(INDI::PropertyNumber(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertySwitch(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyText(INDI::Property(p)).isValid(), true);
+    ASSERT_EQ(INDI::PropertyLight(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyBlob(INDI::Property(p)).isValid(), false);
+}
+
+TEST(CORE_PROPERTY_CLASS, Test_PropertyLight)
+{
+    INDI::PropertyLight p{1};
+
+    p[0].setName("widget name");
+    p[0].setLabel("widget label");
+    p[0].setState(IPS_OK);
+
+    p.setDeviceName("property device");
+    p.setName("property name");
+    p.setLabel("property label");
+    p.setGroupName("property group");
+    p.setPermission(IP_RW);
+    p.setTimeout(1000);
+    p.setState(IPS_OK);
+
+    ASSERT_STREQ(p[0].getName(),  "widget name");
+    ASSERT_STREQ(p[0].getLabel(), "widget label");
+    ASSERT_EQ(p[0].getState(),  IPS_OK);
+
+    ASSERT_STREQ(p.getDeviceName(), "property device");
+    ASSERT_STREQ(p.getName(),       "property name");
+    ASSERT_STREQ(p.getLabel(),      "property label");
+    ASSERT_STREQ(p.getGroupName(),  "property group");
+    ASSERT_EQ(p.getPermission(), IP_RO); // cannot change
+    ASSERT_EQ(p.getTimeout(), 0); // cannot change
+    ASSERT_EQ(p.getState(), IPS_OK);
+
+    // change values and test
+    p[0].setName("widget other name");
+    p[0].setLabel("widget other label");
+    p[0].setState(IPS_OK);
+
+    p.setDeviceName("property other device");
+    p.setName("property other name");
+    p.setLabel("property other label");
+    p.setGroupName("property other group");
+    p.setPermission(IP_RO);
+    p.setTimeout(500);
+    p.setState(IPS_ALERT);
+
+    ASSERT_STREQ(p[0].getName(),  "widget other name");
+    ASSERT_STREQ(p[0].getLabel(), "widget other label");
+    ASSERT_EQ(p[0].getState(),  IPS_OK);
+
+    ASSERT_STREQ(p.getDeviceName(), "property other device");
+    ASSERT_STREQ(p.getName(),       "property other name");
+    ASSERT_STREQ(p.getLabel(),      "property other label");
+    ASSERT_STREQ(p.getGroupName(),  "property other group");
+    ASSERT_EQ(p.getPermission(), IP_RO); // cannot change
+    ASSERT_EQ(p.getTimeout(), 0);
+    ASSERT_EQ(p.getState(), IPS_ALERT);
+
+    ASSERT_EQ(INDI::PropertyNumber(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertySwitch(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyText(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyLight(INDI::Property(p)).isValid(), true);
+    ASSERT_EQ(INDI::PropertyBlob(INDI::Property(p)).isValid(), false);
+}
+
+TEST(CORE_PROPERTY_CLASS, Test_PropertyBlob)
+{
+    INDI::PropertyBlob p{1};
+
+    p[0].setName("widget name");
+    p[0].setLabel("widget label");
+    p[0].setBlob(nullptr);
+    p[0].setBlobLen(8);
+    p[0].setSize(16);
+    p[0].setFormat("format");
+
+    p.setDeviceName("property device");
+    p.setName("property name");
+    p.setLabel("property label");
+    p.setGroupName("property group");
+    p.setPermission(IP_RW);
+    p.setTimeout(1000);
+    p.setState(IPS_OK);
+
+    ASSERT_STREQ(p[0].getName(),  "widget name");
+    ASSERT_STREQ(p[0].getLabel(), "widget label");
+    ASSERT_EQ(p[0].getBlob(), nullptr);
+    ASSERT_EQ(p[0].getBlobLen(), 8);
+    ASSERT_EQ(p[0].getSize(), 16);
+    ASSERT_STREQ(p[0].getFormat(), "format");
+
+    ASSERT_STREQ(p.getDeviceName(), "property device");
+    ASSERT_STREQ(p.getName(),       "property name");
+    ASSERT_STREQ(p.getLabel(),      "property label");
+    ASSERT_STREQ(p.getGroupName(),  "property group");
+    ASSERT_EQ(p.getPermission(), IP_RW);
+    ASSERT_EQ(p.getTimeout(), 1000);
+    ASSERT_EQ(p.getState(), IPS_OK);
+
+    // change values and test
+    p[0].setName("widget other name");
+    p[0].setLabel("widget other label");
+    p[0].setBlob(reinterpret_cast<void*>(0x10));
+    p[0].setBlobLen(16);
+    p[0].setSize(32);
+    p[0].setFormat("format 2");
+
+    p.setDeviceName("property other device");
+    p.setName("property other name");
+    p.setLabel("property other label");
+    p.setGroupName("property other group");
+    p.setPermission(IP_RO);
+    p.setTimeout(500);
+    p.setState(IPS_ALERT);
+
+    ASSERT_STREQ(p[0].getName(),  "widget other name");
+    ASSERT_STREQ(p[0].getLabel(), "widget other label");
+    ASSERT_EQ(p[0].getBlob(), reinterpret_cast<void*>(0x10));
+    ASSERT_EQ(p[0].getBlobLen(), 16);
+    ASSERT_EQ(p[0].getSize(), 32);
+    ASSERT_STREQ(p[0].getFormat(), "format 2");
+
+    ASSERT_STREQ(p.getDeviceName(), "property other device");
+    ASSERT_STREQ(p.getName(),       "property other name");
+    ASSERT_STREQ(p.getLabel(),      "property other label");
+    ASSERT_STREQ(p.getGroupName(),  "property other group");
+    ASSERT_EQ(p.getPermission(), IP_RO);
+    ASSERT_EQ(p.getTimeout(), 500);
+    ASSERT_EQ(p.getState(), IPS_ALERT);
+
+    ASSERT_EQ(INDI::PropertyNumber(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertySwitch(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyText(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyLight(INDI::Property(p)).isValid(), false);
+    ASSERT_EQ(INDI::PropertyBlob(INDI::Property(p)).isValid(), true);
 }

@@ -33,31 +33,52 @@ PropertySwitch::PropertySwitch(size_t count)
     : PropertyBasic<ISwitch>(*new PropertySwitchPrivate(count))
 { }
 
+PropertySwitch::PropertySwitch(INDI::Property property)
+    : PropertyBasic<ISwitch>(property_private_cast<PropertySwitchPrivate>(property.d_ptr))
+{ }
+
 PropertySwitch::~PropertySwitch()
 { }
 
 void PropertySwitch::reset()
 {
     D_PTR(PropertySwitch);
-    d->property.reset();
+    d->typedProperty.reset();
 }
 
 int PropertySwitch::findOnSwitchIndex() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.findOnSwitchIndex();
+    return d->typedProperty.findOnSwitchIndex();
 }
 
 INDI::WidgetView<ISwitch> *PropertySwitch::findOnSwitch() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.findOnSwitch();
+    return d->typedProperty.findOnSwitch();
 }
 
 bool PropertySwitch::update(const ISState states[], const char * const names[], int n)
 {
     D_PTR(PropertySwitch);
-    return d->property.update(states, names, n);
+    if (d->onNewValuesCallback)
+    {
+        NewValues newValues;
+        for (int i=0; i<n; ++i)
+        {
+            newValues[names[i]] = states[i];
+        }
+
+        d->onNewValuesCallback(newValues);
+        return true;
+    }
+    return d->typedProperty.update(states, names, n) && (emitUpdate(), true);
+}
+
+bool PropertySwitch::hasUpdateCallback() const
+{
+    D_PTR(const PropertySwitch);
+    return d->onNewValuesCallback != nullptr || d->onUpdateCallback != nullptr;
 }
 
 void PropertySwitch::fill(
@@ -66,26 +87,32 @@ void PropertySwitch::fill(
 )
 {
     D_PTR(PropertySwitch);
-    d->property.setWidgets(d->widgets.data(), d->widgets.size());
-    d->property.fill(device, name, label, group, permission, rule, timeout, state);
+    d->typedProperty.setWidgets(d->widgets.data(), d->widgets.size());
+    d->typedProperty.fill(device, name, label, group, permission, rule, timeout, state);
 }
 
 void PropertySwitch::setRule(ISRule rule)
 {
     D_PTR(PropertySwitch);
-    d->property.setRule(rule);
+    d->typedProperty.setRule(rule);
 }
 
 ISRule PropertySwitch::getRule() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.getRule();
+    return d->typedProperty.getRule();
 }
 
 const char * PropertySwitch::getRuleAsString() const
 {
     D_PTR(const PropertySwitch);
-    return d->property.getRuleAsString();
+    return d->typedProperty.getRuleAsString();
+}
+
+void PropertySwitch::onNewValues(const std::function<void(const INDI::PropertySwitch::NewValues &)> &callback)
+{
+    D_PTR(PropertySwitch);
+    d->onNewValuesCallback = callback;
 }
 
 }
