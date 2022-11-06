@@ -88,13 +88,12 @@ TEST(CORE_BASE64, Test_from64tobits_fast_time)
     const size_t out_len   = sizeof(out_msg) - 1;
 
     char   res_msg[out_len + 1] = {0,};
-    size_t res_len = 0;
 
     int i, iterations = 1000 * 1000 * 10;
 
     for (i = 0; i < iterations; i++)
     {
-        res_len = from64tobits_fast(res_msg, inp_msg, inp_len);
+        from64tobits_fast(res_msg, inp_msg, inp_len);
     }
 }
 
@@ -107,13 +106,12 @@ TEST(CORE_BASE64, Test_from64tobits_fast_with_bug_time)
     const size_t out_len   = sizeof(out_msg) - 1;
 
     char   res_msg[out_len + 1] = {0,};
-    size_t res_len = 0;
 
     int i, iterations = 1000 * 1000 * 10;
 
     for (i = 0; i < iterations; i++)
     {
-        res_len = from64tobits_fast_with_bug(res_msg, inp_msg, inp_len);
+        from64tobits_fast_with_bug(res_msg, inp_msg, inp_len);
     }
 }
 
