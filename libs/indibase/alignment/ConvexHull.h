@@ -250,7 +250,7 @@ class ConvexHull
              3 newfaces to the fourth point are constructed and the data structures
              are cleaned up.
             */
-        void DoubleTriangle();
+        bool DoubleTriangle();
 
         /** \brief EdgeOrderOnFaces: puts e0 between v0 and v1, e1 between v1 and v2,
               e2 between v2 and v0 on each face.  This should be unnecessary, alas.

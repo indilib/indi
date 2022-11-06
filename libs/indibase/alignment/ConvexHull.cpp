@@ -418,7 +418,7 @@ void ConvexHull::Convexity()
         std::cerr << "Checks: convex.\n";
 }
 
-void ConvexHull::DoubleTriangle()
+bool ConvexHull::DoubleTriangle()
 {
     tVertex v0, v1, v2, v3;
     tFace f0, f1 = nullptr;
@@ -429,8 +429,8 @@ void ConvexHull::DoubleTriangle()
     while (Collinear(v0, v0->next, v0->next->next))
         if ((v0 = v0->next) == vertices)
         {
-            std::cout << "DoubleTriangle:  All points are Collinear!\n";
-            exit(0);
+            std::cerr << "DoubleTriangle:  All points are Collinear!" << std::endl;
+            return false;
         }
     v1 = v0->next;
     v2 = v1->next;
@@ -459,19 +459,15 @@ void ConvexHull::DoubleTriangle()
     {
         if ((v3 = v3->next) == v0)
         {
-            std::cout << "DoubleTriangle:  All points are coplanar!\n";
-            exit(0);
+            std::cerr << "DoubleTriangle:  All points are coplanar!" << std::endl;
+            return false;
         }
         vol = VolumeSign(f0, v3);
     }
 
     /* Insure that v3 will be the first added. */
     vertices = v3;
-    if (debug)
-    {
-        std::cerr << "DoubleTriangle: finished. Head repositioned at v3.\n";
-        //PrintOut( vertices );
-    }
+    return true;
 }
 
 void ConvexHull::EdgeOrderOnFaces()
