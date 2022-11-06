@@ -385,7 +385,7 @@ bool Lakeside::LakesideOnline()
 // 1 = Reversed
 bool Lakeside::updateMoveDirection()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?D#";
 
@@ -403,7 +403,7 @@ bool Lakeside::updateMoveDirection()
 
     // direction is in form Dnnnnn#
     // where nnnnn is 0 for normal or 1 for reversed
-    rc = sscanf(resp, "D%5d#", &temp);
+    sscanf(resp, "D%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -623,7 +623,7 @@ bool Lakeside::updatePosition()
 // Get Backlash compensation
 bool Lakeside::updateBacklash()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?B#";
 
@@ -639,7 +639,7 @@ bool Lakeside::updateBacklash()
 
     // Backlash is in form Bnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "B%5d#", &temp);
+    sscanf(resp, "B%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -658,7 +658,7 @@ bool Lakeside::updateBacklash()
 // get Slope 1 Increments
 bool Lakeside::updateSlope1Inc()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN];
     char cmd[] = "?1#";
 
@@ -674,7 +674,7 @@ bool Lakeside::updateSlope1Inc()
 
     // Slope 1 Increment is in form 1nnnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "1%5d#", &temp);
+    sscanf(resp, "1%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -693,7 +693,7 @@ bool Lakeside::updateSlope1Inc()
 // get Slope 2 Increments
 bool Lakeside::updateSlope2Inc()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?2#";
 
@@ -709,7 +709,7 @@ bool Lakeside::updateSlope2Inc()
 
     // Slope 1 Increment is in form 1nnnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "2%5d#", &temp);
+    sscanf(resp, "2%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -728,7 +728,7 @@ bool Lakeside::updateSlope2Inc()
 // get Slope 1 direction : 0 or 1
 bool Lakeside::updateSlope1Dir()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?a#";
 
@@ -744,7 +744,7 @@ bool Lakeside::updateSlope1Dir()
 
     // Slope 1 Direction is in form annnnn#
     // where nnnnn is either 0 or 1, space left padded
-    rc = sscanf(resp, "a%5d#", &temp);
+    sscanf(resp, "a%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -767,7 +767,7 @@ bool Lakeside::updateSlope1Dir()
 // get Slope 2 direction : 0 or 1
 bool Lakeside::updateSlope2Dir()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?b#";
 
@@ -783,7 +783,7 @@ bool Lakeside::updateSlope2Dir()
 
     // Slope 2 Direction is in form annnnn#
     // where nnnnn is either 0 or 1, space left padded
-    rc = sscanf(resp, "b%5d#", &temp);
+    sscanf(resp, "b%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -806,7 +806,7 @@ bool Lakeside::updateSlope2Dir()
 // Get slope 1 deadband
 bool Lakeside::updateSlope1Deadband()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?c#";
 
@@ -822,7 +822,7 @@ bool Lakeside::updateSlope1Deadband()
 
     // Deadband is in form cnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "c%5d#", &temp);
+    sscanf(resp, "c%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -841,7 +841,7 @@ bool Lakeside::updateSlope1Deadband()
 // Get slope 2 deadband
 bool Lakeside::updateSlope2Deadband()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?d#";
 
@@ -857,7 +857,7 @@ bool Lakeside::updateSlope2Deadband()
 
     // Deadband is in form dnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "d%5d#", &temp);
+    sscanf(resp, "d%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -876,7 +876,7 @@ bool Lakeside::updateSlope2Deadband()
 // get Slope 1 time period
 bool Lakeside::updateSlope1Period()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?e#";
 
@@ -892,7 +892,7 @@ bool Lakeside::updateSlope1Period()
 
     // Slope 1 Period is in form ennnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "e%5d#", &temp);
+    sscanf(resp, "e%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -911,7 +911,7 @@ bool Lakeside::updateSlope1Period()
 // get Slope 2 time period
 bool Lakeside::updateSlope2Period()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?f#";
 
@@ -927,7 +927,7 @@ bool Lakeside::updateSlope2Period()
 
     // Slope 2 Period is in form ennnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "f%5d#", &temp);
+    sscanf(resp, "f%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -946,7 +946,7 @@ bool Lakeside::updateSlope2Period()
 // Get Max travel
 bool Lakeside::updateMaxTravel()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?I#";
 
@@ -962,7 +962,7 @@ bool Lakeside::updateMaxTravel()
 
     // MaxTravel is in form Innnnn#
     // where nnnnn is 0 - 65536, space left padded
-    rc = sscanf(resp, "I%5d#", &temp);
+    sscanf(resp, "I%5d#", &temp);
 
     if ( temp > 0)
     {
@@ -981,7 +981,7 @@ bool Lakeside::updateMaxTravel()
 // get step size
 bool Lakeside::updateStepSize()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?S#";
 
@@ -999,7 +999,7 @@ bool Lakeside::updateStepSize()
 
     // StepSize is in form Snnnnn#
     // where nnnnn is 0 - ??, space left padded
-    rc = sscanf(resp, "S%5d#", &temp);
+    sscanf(resp, "S%5d#", &temp);
 
     if ( temp > 0)
     {
