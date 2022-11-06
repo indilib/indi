@@ -164,33 +164,27 @@ void Axis::update()         // called about once a second to update the position
         double slowChange = fastChange / 5;
         //LOGF_DEBUG("slew: trc %f prc %f, delta %f", trc.Degrees(), prc.Degrees(), delta);
         // apply the change to the relative position
-        const char * b;
         if (delta < -fastChange)
         {
             change = -fastChange;
-            b = "--";
         }
         else if (delta < -slowChange)
         {
             change = -slowChange;
-            b = "-";
         }
         else if (delta > fastChange)
         {
             change = fastChange;
-            b = "++";
         }
         else if (delta > slowChange)
         {
             change = slowChange;
-            b = "+";
         }
         else
         {
             position = target;
             isSlewing = false;
             //OnMoveFinished();
-            b = "=";
         }
         position += change;
         //LOGF_DEBUG("move %s: change %f, position %f", b, change, position.Degrees());
