@@ -564,11 +564,11 @@ int TheoraRecorder::theora_write_frame(int last)
 bool TheoraRecorder::frac(double fps, uint32_t &num, uint32_t &den)
 {
     long m[2][2];
-    double x, startx;
+    double x;
     long maxden;
     long ai;
 
-    startx = x = fps;
+    x = fps;
     maxden = 100;
 
     /* initialize matrix */

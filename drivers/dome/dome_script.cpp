@@ -223,9 +223,7 @@ void DomeScript::TimerHit()
         int parked = 0, shutter = 0;
         float az   = 0;
         FILE *file = fopen(tmpfile, "r");
-        int ret    = 0;
-
-        ret = fscanf(file, "%d %d %f", &parked, &shutter, &az);
+        fscanf(file, "%d %d %f", &parked, &shutter, &az);
         fclose(file);
         unlink(tmpfile);
         DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;

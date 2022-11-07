@@ -37,8 +37,6 @@ void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &A
         const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
         gsl_matrix *pBetaToAlpha)
 {
-    int GslRetcode;
-
     // Set up the column vectors
     gsl_matrix *pAlphaMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pAlphaMatrix, 0, 0, Alpha1.x);
@@ -68,7 +66,7 @@ void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &A
     // http://www.control.auc.dk/~tb/best/aug23-Bak-svdalg.pdf
 
     // 1. Transpose the alpha matrix
-    GslRetcode = gsl_matrix_transpose(pAlphaMatrix);
+    gsl_matrix_transpose(pAlphaMatrix);
 
     // 2. Compute the first intermediate matrix
     gsl_matrix *pIntermediateMatrix1 = gsl_matrix_alloc(3, 3);
@@ -78,7 +76,7 @@ void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &A
     gsl_matrix *pV    = gsl_matrix_alloc(3, 3);
     gsl_vector *pS    = gsl_vector_alloc(3);
     gsl_vector *pWork = gsl_vector_alloc(3);
-    GslRetcode        = gsl_linalg_SV_decomp(pIntermediateMatrix1, pV, pS, pWork);
+    gsl_linalg_SV_decomp(pIntermediateMatrix1, pV, pS, pWork);
     // The intermediate matrix now contains the U matrix
     // The V matrix is untransposed
 

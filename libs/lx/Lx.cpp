@@ -494,7 +494,6 @@ bool Lx::startLxSerial()
     unsigned int speed = 0, wordsize = 0, parity = 0, stops = 0;
     const char *eol = nullptr;
     unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
-    int ret = 0;
 
     switch (index)
     {
@@ -523,8 +522,8 @@ bool Lx::startLxSerial()
             if (serialfd < 0)
                 return false;
 
-            ret = write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
-            ret = write(serialfd, eol, strlen(eol));
+            write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+            write(serialfd, eol, strlen(eol));
             break;
     }
     return true;
@@ -532,7 +531,6 @@ bool Lx::startLxSerial()
 
 int Lx::stopLxSerial()
 {
-    int ret = 0;
     const char *eol = nullptr;
     unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
 
@@ -551,9 +549,9 @@ int Lx::stopLxSerial()
                 setRTS(serialfd, 1);
             break;
         case 2:
-            ret = write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+            write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
             eol = getSerialEOL();
-            ret = write(serialfd, eol, strlen(eol));
+            write(serialfd, eol, strlen(eol));
             break;
     }
     close(serialfd);

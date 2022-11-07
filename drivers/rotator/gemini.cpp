@@ -867,7 +867,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
-    int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
+    int rc = sscanf(response, "%15[^=]=%15[^\n]s", key, nickname);
 
     if (rc != 2)
         return false;
@@ -896,7 +896,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
+    rc = sscanf(response, "%15[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
         FocusAbsPosN[0].max = maxPos;
@@ -951,7 +951,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCompOn;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCompOn);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCompOn);
     if (rc != 2)
         return false;
 
@@ -979,7 +979,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffA;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffA);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCoeffA);
     if (rc != 2)
         return false;
 
@@ -1003,7 +1003,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffB;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffB);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCoeffB);
     if (rc != 2)
         return false;
 
@@ -1027,7 +1027,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffC;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffC);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCoeffC);
     if (rc != 2)
         return false;
 
@@ -1051,7 +1051,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffD;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffD);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCoeffD);
     if (rc != 2)
         return false;
 
@@ -1075,7 +1075,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffE;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffE);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCoeffE);
     if (rc != 2)
         return false;
 
@@ -1102,7 +1102,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     char compensateMode;
-    rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
+    rc = sscanf(response, "%15[^=]= %c", key, &compensateMode);
     if (rc != 2)
         return false;
 
@@ -1138,7 +1138,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCCompensate);
     if (rc != 2)
         return false;
 
@@ -1165,7 +1165,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCValue);
     if (rc != 2)
         return false;
 
@@ -1190,7 +1190,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int TCOnStart;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
+    rc = sscanf(response, "%15[^=]=%d", key, &TCOnStart);
     if (rc != 2)
         return false;
 
@@ -1219,7 +1219,7 @@ bool Gemini::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int StartOnHome;
-    rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
+    rc = sscanf(response, "%15[^=]=%d", key, &StartOnHome);
     if (rc != 2)
         return false;
 
@@ -1326,7 +1326,7 @@ bool Gemini::getRotatorStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int currPos = 0;
-    int rc = sscanf(response, "%16[^=]=%d", key, &currPos);
+    int rc = sscanf(response, "%15[^=]=%d", key, &currPos);
     if (rc == 2)
     {
         // Do not spam unless there is an actual change
@@ -1376,7 +1376,7 @@ bool Gemini::getRotatorStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int currPA = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &currPA);
+    rc = sscanf(response, "%15[^=]=%d", key, &currPA);
     if (rc == 2)
     {
         // Only send when above a threshold
@@ -1429,7 +1429,7 @@ bool Gemini::getRotatorStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int isMoving;
-    rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
+    rc = sscanf(response, "%15[^=]=%d", key, &isMoving);
     if (rc != 2)
         return false;
 
@@ -1454,7 +1454,7 @@ bool Gemini::getRotatorStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int _isHoming;
-    rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
+    rc = sscanf(response, "%15[^=]=%d", key, &_isHoming);
     if (rc != 2)
         return false;
 
@@ -1483,7 +1483,7 @@ bool Gemini::getRotatorStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int isHomed;
-    rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
+    rc = sscanf(response, "%15[^=]=%d", key, &isHomed);
     if (rc != 2)
         return false;
 
@@ -1598,7 +1598,7 @@ bool Gemini::getRotatorConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
-    int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
+    int rc = sscanf(response, "%15[^=]=%15[^\n]s", key, nickname);
 
     if (rc != 2)
         return false;
@@ -1627,7 +1627,7 @@ bool Gemini::getRotatorConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
+    rc = sscanf(response, "%15[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
         RotatorAbsPosN[0].min = 0;
@@ -1679,7 +1679,7 @@ bool Gemini::getRotatorConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCCompensate);
     if (rc != 2)
         return false;
 
@@ -1708,7 +1708,7 @@ bool Gemini::getRotatorConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCValue);
     if (rc != 2)
         return false;
 
@@ -1735,7 +1735,7 @@ bool Gemini::getRotatorConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int StartOnHome;
-    rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
+    rc = sscanf(response, "%15[^=]=%d", key, &StartOnHome);
     if (rc != 2)
         return false;
 
@@ -1764,7 +1764,7 @@ bool Gemini::getRotatorConfig()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int reverse;
-    rc = sscanf(response, "%16[^=]=%d", key, &reverse);
+    rc = sscanf(response, "%15[^=]=%d", key, &reverse);
     if (rc != 2)
         return false;
 
@@ -1900,7 +1900,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     float temperature = 0;
-    int rc = sscanf(response, "%16[^=]=%f", key, &temperature);
+    int rc = sscanf(response, "%15[^=]=%f", key, &temperature);
     if (rc == 2)
     {
         TemperatureN[0].value = temperature;
@@ -1909,7 +1909,7 @@ bool Gemini::getFocusStatus()
     else
     {
         char np[8];
-        int rc = sscanf(response, "%16[^=]= %s", key, np);
+        int rc = sscanf(response, "%15[^=]= %s", key, np);
 
         if (rc != 2 || strcmp(np, "NP"))
         {
@@ -1941,7 +1941,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     uint32_t currPos = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &currPos);
+    rc = sscanf(response, "%15[^=]=%d", key, &currPos);
     if (rc == 2)
     {
         FocusAbsPosN[0].value = currPos;
@@ -1989,7 +1989,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int isMoving;
-    rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
+    rc = sscanf(response, "%15[^=]=%d", key, &isMoving);
     if (rc != 2)
         return false;
 
@@ -2014,7 +2014,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int _isHoming;
-    rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
+    rc = sscanf(response, "%15[^=]=%d", key, &_isHoming);
     if (rc != 2)
         return false;
 
@@ -2046,7 +2046,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int isHomed;
-    rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
+    rc = sscanf(response, "%15[^=]=%d", key, &isHomed);
     if (rc != 2)
         return false;
 
@@ -2074,7 +2074,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int TmpProbe;
-    rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
+    rc = sscanf(response, "%15[^=]=%d", key, &TmpProbe);
     if (rc != 2)
         return false;
 
@@ -2099,7 +2099,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int RemoteIO;
-    rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
+    rc = sscanf(response, "%15[^=]=%d", key, &RemoteIO);
     if (rc != 2)
         return false;
 
@@ -2124,7 +2124,7 @@ bool Gemini::getFocusStatus()
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     int HndCtlr;
-    rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
+    rc = sscanf(response, "%15[^=]=%d", key, &HndCtlr);
     if (rc != 2)
         return false;
 
@@ -3151,7 +3151,6 @@ bool Gemini::AbortFocuser()
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -3161,7 +3160,6 @@ bool Gemini::AbortFocuser()
     if (isSimulation())
     {
         strncpy(response, "!00", 16);
-        nbytes_read              = strlen(response) + 1;
         focuserSimStatus[STATUS_MOVING] = ISS_OFF;
         focuserSimStatus[STATUS_HOMING] = ISS_OFF;
     }
