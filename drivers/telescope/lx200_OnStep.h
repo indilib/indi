@@ -25,6 +25,8 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.17
+    - fixed setMaxElevationLimit / setMinElevationLimit
     Version 1.16
     - fixed uninitialized UTC structure thanks to Norikyu
     Version 1.15
@@ -271,7 +273,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         int getCommandDoubleResponse(int fd, double *value, char *data,
                                      const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
         int getCommandIntResponse(int fd, int *value, char *data, const char *cmd);
-        int  setMaxElevationLimit(int fd, int max);
+        int  setMinElevationLimit(int fd, int max);
         int OSUpdateFocuser(); //Return = 0 good, -1 = Communication error
         int OSUpdateRotator(); //Return = 0 good, -1 = Communication error
 
