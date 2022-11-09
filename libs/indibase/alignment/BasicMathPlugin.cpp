@@ -261,10 +261,14 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
                 VertexNumber++;
             }
             // I should only need to do this once but it is easier to do it twice
-            ActualConvexHull.DoubleTriangle();
+            if (!ActualConvexHull.DoubleTriangle())
+                return false;
             ActualConvexHull.ConstructHull();
             ActualConvexHull.EdgeOrderOnFaces();
-            ApparentConvexHull.DoubleTriangle();
+
+            if (!ApparentConvexHull.DoubleTriangle())
+                return false;
+
             ApparentConvexHull.ConstructHull();
             ApparentConvexHull.EdgeOrderOnFaces();
 
