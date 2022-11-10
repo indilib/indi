@@ -26,6 +26,7 @@
 namespace INDI
 {
 
+#ifndef _WINDOWS
 int mkpath(std::string s, mode_t mode)
 {
     size_t pre = 0, pos;
@@ -60,6 +61,7 @@ int mkpath(std::string s, mode_t mode)
     }
     return mdret;
 }
+#endif
 
 std::string format_time(const std::tm &tm, const char *format)
 {
