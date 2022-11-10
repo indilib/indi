@@ -102,7 +102,6 @@ bool ScopeDomeArduino::performCommand(const std::string &command, std::string &r
     {
         if (curl)
         {
-            CURLcode res;
             std::string readBuffer;
             char requestURL[MAXRBUF + 1];
 
@@ -113,7 +112,7 @@ bool ScopeDomeArduino::performCommand(const std::string &command, std::string &r
 
             curl_easy_setopt(curl, CURLOPT_URL, requestURL);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            res = curl_easy_perform(curl);
+            curl_easy_perform(curl);
 
             if(readBuffer.size() < 3)
             {

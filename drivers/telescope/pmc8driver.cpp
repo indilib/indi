@@ -834,28 +834,28 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode)
     int refmotor, tmotor;
 
     //get our current precise motor rate
-    bool rc = convert_precise_rate_to_motor(rate, &tmotor);
+    convert_precise_rate_to_motor(rate, &tmotor);
 
     //now check what sidereal would be
-    rc = convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
+    convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
     if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;
     else
     {
 
         //now check lunar
-        rc = convert_precise_rate_to_motor(PMC8_RATE_LUNAR, &refmotor);
+        convert_precise_rate_to_motor(PMC8_RATE_LUNAR, &refmotor);
         if (tmotor == refmotor) mode = PMC8_TRACK_LUNAR;
         else
         {
 
             //now check solar
-            rc = convert_precise_rate_to_motor(PMC8_RATE_SOLAR, &refmotor);
+            convert_precise_rate_to_motor(PMC8_RATE_SOLAR, &refmotor);
             if (tmotor == refmotor) mode = PMC8_TRACK_SOLAR;
             else
             {
 
                 //now check king
-                rc = convert_precise_rate_to_motor(PMC8_RATE_KING, &refmotor);
+                convert_precise_rate_to_motor(PMC8_RATE_KING, &refmotor);
                 if (tmotor == refmotor) mode = PMC8_TRACK_KING;
                 // must be custom
                 else mode = PMC8_TRACK_CUSTOM;

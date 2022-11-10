@@ -486,7 +486,7 @@ void Beaver::TimerHit()
     {
 
         // Dome Parked
-        if (rotatorIsParked() & (getDomeState() == DOME_PARKING))
+        if (rotatorIsParked() && (getDomeState() == DOME_PARKING))
         {
             SetParked(true);
             std::string rStatus = "Parked";

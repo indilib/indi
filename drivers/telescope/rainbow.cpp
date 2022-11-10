@@ -437,7 +437,6 @@ bool Rainbow::Handshake()
 bool Rainbow::getFirmwareVersion()
 {
     char res[DRIVER_LEN] = {0};
-    char fw[6], sn[6];
 
     if (sendCommand(":AV#", res) == false)
         return false;
@@ -448,6 +447,7 @@ bool Rainbow::getFirmwareVersion()
     // Write Firmware and Serial Number to INDI Control Panel
     if (isConnected()) // executed onlyafter properties are updated
     {
+        char fw[16] = {0}, sn[16] = {0};
         sscanf(res + 3, "%6s", fw);
         memset(res, 0, sizeof res);
         IUSaveText(&RSTVersionsT[FIRMWARE], fw);
