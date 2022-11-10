@@ -522,8 +522,9 @@ bool Lx::startLxSerial()
             if (serialfd < 0)
                 return false;
 
-            write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
-            write(serialfd, eol, strlen(eol));
+            int rc = write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+            rc = write(serialfd, eol, strlen(eol));
+            INDI_UNUSED(rc);
             break;
     }
     return true;
@@ -549,9 +550,10 @@ int Lx::stopLxSerial()
                 setRTS(serialfd, 1);
             break;
         case 2:
-            write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+            int rc = write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
             eol = getSerialEOL();
-            write(serialfd, eol, strlen(eol));
+            rc = write(serialfd, eol, strlen(eol));
+            INDI_UNUSED(rc);
             break;
     }
     close(serialfd);
