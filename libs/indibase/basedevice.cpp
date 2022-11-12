@@ -349,6 +349,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
         }
         case INDI_SWITCH: {
             INDI::PropertySwitch typedProperty {0};
+            typedProperty.setRule(root.getAttribute("rule"));
             for (const auto &element: root.getElementsByTagName("defSwitch"))
             {
                 INDI::WidgetView<ISwitch> widget;
