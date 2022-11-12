@@ -120,7 +120,7 @@ void V4L2_Builtin_Decoder::init()
     init_supported_formats();
 };
 
-void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
+void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf, bool native)
 {
     //LOG_INFO("Calling builtin decoder decode");
     //IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
@@ -469,8 +469,11 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 
         case V4L2_PIX_FMT_JPEG:
         case V4L2_PIX_FMT_MJPEG:
-            //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
-            mjpegtoyuv420p(yuvBuffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height, buf->bytesused);
+            if (native)
+                memcpy(yuvBuffer, frame, buf->bytesused);
+            else
+                mjpegtoyuv420p(yuvBuffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height, buf->bytesused);
+            m_Size = buf->bytesused;
             break;
         default:
         {
@@ -533,6 +536,11 @@ void V4L2_Builtin_Decoder::setformat(struct v4l2_format f, bool use_ext_pix_form
     IDLog("Decoder: Colorspace is %d, using default ycbcr encoding and quantization\n", fmt.fmt.pix.colorspace);
     doCrop = false;
     allocBuffers();
+}
+
+__u32 V4L2_Builtin_Decoder::getFormat()
+{
+    return fmt.fmt.pix.pixelformat;
 }
 
 void V4L2_Builtin_Decoder::setQuantization(bool doquantization)
@@ -790,6 +798,17 @@ unsigned char * V4L2_Builtin_Decoder::geColorBuffer()
     return colorBuffer;
 }
 #endif
+
+unsigned char *V4L2_Builtin_Decoder::getMJPEGBuffer(int &size)
+{
+    if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG)
+    {
+        size = m_Size;
+        return yuvBuffer;
+    }
+    else
+        return nullptr;
+}
 
 /* used for SER recorder */
 unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()

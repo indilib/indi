@@ -633,7 +633,7 @@ int V4L2_Base::read_frame(char * errmsg)
             {
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: [%p] decoding %d-byte buffer %p cropset %c",
                              __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset ? 'Y' : 'N');
-                decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
+                decoder->decode((unsigned char *)(buffers[buf.index].start), &buf, m_Native);
             }
 
             /*
@@ -1955,10 +1955,10 @@ unsigned char * V4L2_Base::getV()
     return decoder->getV();
 }
 
-/*unsigned char * V4L2_Base::getColorBuffer()
+unsigned char * V4L2_Base::getMJPEGBuffer(int &size)
 {
-  return decoder->geColorBuffer();
-}*/
+    return decoder->getMJPEGBuffer(size);
+}
 
 unsigned char * V4L2_Base::getRGBBuffer()
 {

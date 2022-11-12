@@ -282,6 +282,8 @@ void V4L2_Driver::ISGetProperties(const char * dev)
 
         defineProperty(&StackModeSP);
 
+        v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineProperty(&ImageDepthSP);
         defineProperty(&ColorProcessingSP);
@@ -467,6 +469,15 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             LOGF_INFO("Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
             return true;
         }
+    }
+
+    /* Encoder Format */
+    if (EncodeFormatSP.isNameMatch(name))
+    {
+        auto format = IUFindOnSwitchName(states, names, n);
+        v4l_base->setNative(strcmp(format, EncodeFormatSP[FORMAT_NATIVE].getName()) == 0);
+        // Let parent handle the rest
+        return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
     }
 
     /* Capture Format */
@@ -1364,6 +1375,21 @@ void V4L2_Driver::newFrame()
         unsigned char * buffer = nullptr;
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
+
+        if (v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
+        {
+            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
+            //            if (buffer)
+            //            {
+            //                PrimaryCCD.setFrameBufferSize(totalBytes);
+            //                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+            //            }
+            guard.unlock();
+            Streamer->setPixelFormat(INDI_JPG);
+            Streamer->newFrame(buffer, totalBytes);
+            return;
+        }
+
         if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
@@ -1474,8 +1500,20 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
-        //IDLog("Copying frame.\n");
-        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
+        if (EncodeFormatSP->findOnSwitchIndex() ==  FORMAT_NATIVE && v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
+        {
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+            int totalBytes = 0;
+            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
+            if (buffer)
+            {
+                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+                PrimaryCCD.setFrameBufferSize(totalBytes, false);
+            }
+            PrimaryCCD.setImageExtension("jpg");
+            guard.unlock();
+        }
+        else if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             if (!stackMode)
             {
@@ -1599,6 +1637,7 @@ void V4L2_Driver::newFrame()
                     }
                 }
             }
+            PrimaryCCD.setImageExtension("fits");
         }
         else
         {
@@ -1619,12 +1658,12 @@ void V4L2_Driver::newFrame()
             }
             guard.unlock();
 
+            PrimaryCCD.setImageExtension("fits");
         }
         frameCount += 1;
 
         if (lx->isEnabled())
         {
-            //if (!is_streaming && !is_recording)
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
