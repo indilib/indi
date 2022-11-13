@@ -302,11 +302,6 @@ class DefaultDevice : public BaseDevice
         virtual bool ISSnoopDevice(XMLEle *root);
 
         /**
-         * @return getInterface Return the interface declared by the driver.
-         */
-        virtual uint16_t getDriverInterface() override;
-
-        /**
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
          * You may send an ORed list of DeviceInterface values.
          * @param value ORed list of DeviceInterface values.

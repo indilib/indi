@@ -793,12 +793,6 @@ bool DefaultDevice::updateProperties()
     return true;
 }
 
-uint16_t DefaultDevice::getDriverInterface()
-{
-    D_PTR(DefaultDevice);
-    return d->interfaceDescriptor;
-}
-
 void DefaultDevice::setDriverInterface(uint16_t value)
 {
     D_PTR(DefaultDevice);
