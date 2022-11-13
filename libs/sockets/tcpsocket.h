@@ -110,6 +110,9 @@ class TcpSocket
         void emitErrorOccurred(SocketError error) const;
 
     protected:
+        void setSocketError(SocketError socketError);
+
+    protected:
         friend class TcpSocketPrivate;
         std::unique_ptr<TcpSocketPrivate> d_ptr;
         TcpSocket(std::unique_ptr<TcpSocketPrivate> &&d);

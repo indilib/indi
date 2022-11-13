@@ -206,7 +206,7 @@ void TcpSocketSharedBlobs::readyRead()
 
     if (n <= 0)
     {
-        disconnectFromHost();
+        setSocketError(TcpSocket::ConnectionRefusedError);
         return;
     }
 
