@@ -34,14 +34,14 @@ class WatchDeviceProperty
     public:
         struct DeviceInfo
         {
-            std::unique_ptr<BaseDevice> device;
+            BaseDevice device;
             std::function<void (BaseDevice)> newDeviceCallback; // call if device available
             std::set<std::string> properties; // watch only specific properties only
 
             void emitWatchDevice()
             {
                 if (newDeviceCallback)
-                    newDeviceCallback(*device.get());
+                    newDeviceCallback(device);
             }
         };
 
@@ -52,8 +52,8 @@ class WatchDeviceProperty
         }
 
     public:
-        std::vector<BaseDevice *> getDevices() const;
-        BaseDevice *getDeviceByName(const char *name) const;
+        std::vector<BaseDevice> getDevices() const;
+        BaseDevice getDeviceByName(const char *name) const;
         DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor);
 
     public:
@@ -77,7 +77,7 @@ class WatchDeviceProperty
 
         void clear();
         void clearDevices();
-        bool deleteDevice(const BaseDevice *device);
+        bool deleteDevice(const BaseDevice &device);
 
     public:
         int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor = [](){ return new BaseDevice(); } );

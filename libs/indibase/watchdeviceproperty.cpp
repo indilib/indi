@@ -21,31 +21,31 @@
 namespace INDI
 {
 
-std::vector<BaseDevice *> WatchDeviceProperty::getDevices() const
+std::vector<BaseDevice> WatchDeviceProperty::getDevices() const
 {
-    std::vector<BaseDevice *> result;
+    std::vector<BaseDevice> result;
     for (const auto &it : data)
     {
-        result.push_back(it.second.device.get());
+        result.push_back(it.second.device);
     }
     return result;
 }
 
-BaseDevice *WatchDeviceProperty::getDeviceByName(const char *name) const
+BaseDevice WatchDeviceProperty::getDeviceByName(const char *name) const
 {
     auto it = data.find(name);
-    return it != data.end() ? it->second.device.get() : nullptr;
+    return it != data.end() ? it->second.device : BaseDevice::invalid();
 }
 
 WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor)
 {
     auto &it = data[name];
-    if (it.device == nullptr)
+    if (!it.device.isValid())
     {
-        it.device.reset(constructor());
-        it.device->setDeviceName(name);
-        if (auto mediator = it.device->getMediator())
-            mediator->newDevice(it.device.get());
+        it.device = *constructor();
+        it.device.setDeviceName(name);
+        if (auto mediator = it.device.getMediator())
+            mediator->newDevice(it.device);
         it.emitWatchDevice();
     }
     return it;
@@ -92,15 +92,15 @@ void WatchDeviceProperty::clearDevices()
 {
     for (auto &deviceInfo : data)
     {
-        deviceInfo.second.device.reset(nullptr);
+        deviceInfo.second.device = BaseDevice::invalid();
     }
 }
 
-bool WatchDeviceProperty::deleteDevice(const BaseDevice *device)
+bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
 {
     for (auto it = data.begin(); it != data.end();)
     {
-        if (it->second.device.get() == device)
+        if (it->second.device == device)
         {
             it = data.erase(it);
             return true;
@@ -137,7 +137,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
 
     if (defVectors.find(root.tagName()) != defVectors.end())
     {
-        return deviceInfo.device->buildProp(root, errmsg);
+        return deviceInfo.device.buildProp(root, errmsg);
     }
 
     static const std::set<std::string> setVectors{
@@ -147,7 +147,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
 
     if (setVectors.find(root.tagName()) != setVectors.end())
     {
-        return deviceInfo.device->setValue(root, errmsg);
+        return deviceInfo.device.setValue(root, errmsg);
     }
 
     return INDI_DISPATCH_ERROR;
