@@ -69,7 +69,7 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
     // Ignore echoed newXXX
     if (root.tagName().find("new") == 0)
     {
-        return 0;
+        return 0;       
     }
 
     if (root.tagName() == "pingRequest")
@@ -111,8 +111,7 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
         return 0;
     }
 
-    return watchDevice.processXml(root, errmsg, [this]()   // create new device if nessesery
-    {
+    return watchDevice.processXml(root, errmsg, [this]() { // create new device if nessesery
         BaseDevice *device = new BaseDevice();
         device->setMediator(parent);
         return device;
@@ -121,12 +120,9 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
 
 int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
-    std::shared_ptr<BaseDevice> device;
-    if (watchDevice.getDeviceByName(devName, device))
+    if (auto device = watchDevice.getDeviceByName(devName))
     {
-        // Clients are expected to implement just one of them until deprecated version is removed in 2.0
         parent->removeDevice(device);
-        parent->removeDevice(device.get());
         watchDevice.deleteDevice(device);
         return 0;
     }
@@ -142,8 +138,9 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 int AbstractBaseClientPrivate::delPropertyCmd(const LilXmlElement &root, char *errmsg)
 {
     /* dig out device and optional property name */
-    std::shared_ptr<BaseDevice> dp;
-    if (!watchDevice.getDeviceByName(root.getAttribute("device"), dp))
+    BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+
+    if (dp == nullptr)
         return INDI_DEVICE_NOT_FOUND;
 
     dp->checkMessage(root.handle());
@@ -177,9 +174,10 @@ int AbstractBaseClientPrivate::delPropertyCmd(const LilXmlElement &root, char *e
 int AbstractBaseClientPrivate::messageCmd(const LilXmlElement &root, char *errmsg)
 {
     INDI_UNUSED(errmsg);
-    std::shared_ptr<BaseDevice> dp;
 
-    if (watchDevice.getDeviceByName(root.getAttribute("device"), dp))
+    BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+
+    if (dp)
     {
         dp->checkMessage(root.handle());
         return 0;
@@ -251,14 +249,16 @@ void AbstractBaseClientPrivate::userIoGetProperties()
 
 void AbstractBaseClientPrivate::setDriverConnection(bool status, const char *deviceName)
 {
-    std::shared_ptr<BaseDevice> drv;
-    if (!parent->getSharedDevice(deviceName, drv))
+    BaseDevice *drv                 = parent->getDevice(deviceName);
+    ISwitchVectorProperty *drv_connection = nullptr;
+
+    if (drv == nullptr)
     {
         IDLog("BaseClientQt: Error. Unable to find driver %s\n", deviceName);
         return;
     }
 
-    auto drv_connection = drv->getSwitch(SP::CONNECTION);
+    drv_connection = drv->getSwitch(SP::CONNECTION);
 
     if (drv_connection == nullptr)
         return;
@@ -389,10 +389,7 @@ void AbstractBaseClient::disconnectDevice(const char *deviceName)
 BaseDevice *AbstractBaseClient::getDevice(const char *deviceName)
 {
     D_PTR(AbstractBaseClient);
-    std::shared_ptr<BaseDevice> dp;
-    if (d->watchDevice.getDeviceByName(deviceName, dp))
-        return dp.get();
-    return nullptr;
+    return d->watchDevice.getDeviceByName(deviceName);
 }
 
 std::vector<BaseDevice *> AbstractBaseClient::getDevices() const
@@ -401,22 +398,10 @@ std::vector<BaseDevice *> AbstractBaseClient::getDevices() const
     return d->watchDevice.getDevices();
 }
 
-bool AbstractBaseClient::getSharedDevice(const char *deviceName, std::shared_ptr<BaseDevice> &dp)
-{
-    D_PTR(AbstractBaseClient);
-    return d->watchDevice.getDeviceByName(deviceName, dp);
-}
-
-std::vector<std::shared_ptr<BaseDevice>> AbstractBaseClient::getSharedDevices() const
-{
-    D_PTR(const AbstractBaseClient);
-    return d->watchDevice.getSharedDevices();
-}
-
 bool AbstractBaseClient::getDevices(std::vector<BaseDevice *> &deviceList, uint16_t driverInterface )
 {
     D_PTR(AbstractBaseClient);
-    for (auto &it : d->watchDevice)
+    for (auto &it: d->watchDevice)
     {
         if (it.second.device->getDriverInterface() & driverInterface)
             deviceList.push_back(it.second.device.get());
@@ -507,8 +492,9 @@ void AbstractBaseClient::sendNewText(INDI::Property pp)
 void AbstractBaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
                                      const char *text)
 {
-    std::shared_ptr<BaseDevice> drv;
-    if (!getSharedDevice(deviceName, drv))
+    INDI::BaseDevice *drv = getDevice(deviceName);
+
+    if (!drv)
         return;
 
     auto tvp = drv->getText(propertyName);
@@ -537,8 +523,9 @@ void AbstractBaseClient::sendNewNumber(INDI::Property pp)
 void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
                                        double value)
 {
-    std::shared_ptr<BaseDevice> drv;
-    if (!getSharedDevice(deviceName, drv))
+    INDI::BaseDevice *drv = getDevice(deviceName);
+
+    if (!drv)
         return;
 
     auto nvp = drv->getNumber(propertyName);
@@ -565,8 +552,9 @@ void AbstractBaseClient::sendNewSwitch(INDI::Property pp)
 
 void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
 {
-    std::shared_ptr<BaseDevice> drv;
-    if (!getSharedDevice(deviceName, drv))
+    BaseDevice *drv = getDevice(deviceName);
+
+    if (!drv)
         return;
 
     auto svp = drv->getSwitch(propertyName);
@@ -645,25 +633,13 @@ void AbstractBaseClient::newUniversalMessage(std::string message)
 void AbstractBaseClient::newDevice(INDI::BaseDevice *)
 { }
 
-void AbstractBaseClient::newDevice(const std::shared_ptr<BaseDevice> &)
-{ }
-
 void AbstractBaseClient::removeDevice(INDI::BaseDevice *)
-{ }
-
-void AbstractBaseClient::removeDevice(const std::shared_ptr<BaseDevice> &)
 { }
 
 void AbstractBaseClient::newProperty(INDI::Property *)
 { }
 
-void AbstractBaseClient::newProperty(INDI::Property)
-{ }
-
 void AbstractBaseClient::removeProperty(INDI::Property *)
-{ }
-
-void AbstractBaseClient::removeProperty(INDI::Property)
 { }
 
 void AbstractBaseClient::newBLOB(IBLOB *)

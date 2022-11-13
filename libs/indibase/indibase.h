@@ -4,7 +4,6 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibasetypes.h"
-#include <memory>
 
 #define MAXRBUF 2048
 
@@ -86,46 +85,22 @@ class INDI::BaseMediator
         /** @brief Emmited when a new device is created from INDI server.
          *  @param dp Pointer to the base device instance
          */
-        [[deprecated("Use newDevice(INDI::BaseDevice).")]]
         virtual void newDevice(INDI::BaseDevice *dp) = 0;
-
-        /** @brief Emmited when a new device is created from INDI server.
-         *  @param dp Shared Pointer to the base device instance
-         */
-        virtual void newDevice(const std::shared_ptr<INDI::BaseDevice> &dp) = 0;
 
         /** @brief Emmited when a device is deleted from INDI server.
          *  @param dp Pointer to the base device instance.
          */
-        [[deprecated("Use removeDevice(INDI::BaseDevice).")]]
         virtual void removeDevice(INDI::BaseDevice *dp) = 0;
-
-        /** @brief Emmited when a device is deleted from INDI server.
-         *  @param dp Shared Pointer to the base device instance.
-         */
-        virtual void removeDevice(const std::shared_ptr<INDI::BaseDevice> &dp) = 0;
 
         /** @brief Emmited when a new property is created for an INDI driver.
          *  @param property Pointer to the Property Container
          */
-        [[deprecated("Use newProperty(INDI::Property).")]]
         virtual void newProperty(INDI::Property *property) = 0;
-
-        /** @brief Emmited when a new property is created for an INDI driver.
-         *  @param property Shared Pointer to the Property Container
-         */
-        virtual void newProperty(INDI::Property property) = 0;
 
         /** @brief Emmited when a property is deleted for an INDI driver.
          *  @param property Pointer to the Property Container to remove.
          */
-        [[deprecated("Use removeProperty(INDI::Property).")]]
         virtual void removeProperty(INDI::Property *property) = 0;
-
-        /** @brief Emmited when a property is deleted for an INDI driver.
-         *  @param property Shared Pointer to the Property Container to remove.
-         */
-        virtual void removeProperty(INDI::Property property) = 0;
 
         /** @brief Emmited when a new BLOB value arrives from INDI server.
          *  @param bp Pointer to filled and process BLOB.

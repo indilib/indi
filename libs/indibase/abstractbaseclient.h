@@ -125,20 +125,10 @@ class AbstractBaseClient : public INDI::BaseMediator
         /** @param deviceName Name of device to search for in the list of devices owned by INDI server,
          *  @returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
          */
-        [[deprecated("Use getSharedDevice(const char *, std::shared_ptr<INDI::BaseDevice> &).")]]
         INDI::BaseDevice *getDevice(const char *deviceName);
 
-        /** @param deviceName Name of device to search for in the list of devices owned by INDI server,
-         *  @param dp shared pointer to device, if found.
-         *  @returns If \e deviceName exists, it returns true, otherwise false.
-         */
-        bool getSharedDevice(const char *deviceName, std::shared_ptr<BaseDevice> &dp);
-
         /** @returns Returns a vector of all devices created in the client. */
-        [[deprecated("Use getSharedDevices().")]]
         std::vector<INDI::BaseDevice *> getDevices() const;
-
-        std::vector<std::shared_ptr<INDI::BaseDevice>> getSharedDevices() const;
 
         /** @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
          *
@@ -233,29 +223,15 @@ class AbstractBaseClient : public INDI::BaseMediator
         virtual void newUniversalMessage(std::string message);
 
     protected: // override INDI::BaseMediator methods, when they are not needed
-
-        [[deprecated]]
         virtual void newDevice(INDI::BaseDevice *dp) override;
-        virtual void newDevice(const std::shared_ptr<INDI::BaseDevice> &dp) override;
-
-        [[deprecated]]
         virtual void removeDevice(INDI::BaseDevice *dp) override;
-        virtual void removeDevice(const std::shared_ptr<INDI::BaseDevice> &dp) override;
-
-        [[deprecated]]
         virtual void newProperty(INDI::Property *property) override;
-        virtual void newProperty(INDI::Property property) override;
-
-        [[deprecated]]
         virtual void removeProperty(INDI::Property *property) override;
-        virtual void removeProperty(INDI::Property property) override;
-
         virtual void newBLOB(IBLOB *bp) override;
         virtual void newSwitch(ISwitchVectorProperty *svp) override;
         virtual void newNumber(INumberVectorProperty *nvp) override;
         virtual void newText(ITextVectorProperty *tvp) override;
         virtual void newLight(ILightVectorProperty *lvp) override;
-
         virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
         virtual void serverConnected() override;
 

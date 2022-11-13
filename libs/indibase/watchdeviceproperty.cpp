@@ -31,31 +31,13 @@ std::vector<BaseDevice *> WatchDeviceProperty::getDevices() const
     return result;
 }
 
-std::vector<std::shared_ptr<BaseDevice>> WatchDeviceProperty::getSharedDevices() const
-{
-    std::vector<std::shared_ptr<BaseDevice>> result;
-    for (const auto &it : data)
-    {
-        result.push_back(it.second.device);
-    }
-    return result;
-}
-
-
-bool WatchDeviceProperty::getDeviceByName(const char *name, std::shared_ptr<BaseDevice> &device) const
+BaseDevice *WatchDeviceProperty::getDeviceByName(const char *name) const
 {
     auto it = data.find(name);
-    if (it != data.end())
-    {
-        device = it->second.device;
-        return true;
-    }
-
-    return false;
+    return it != data.end() ? it->second.device.get() : nullptr;
 }
 
-WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name,
-        const std::function<BaseDevice*()> &constructor)
+WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor)
 {
     auto &it = data[name];
     if (it.device == nullptr)
@@ -63,11 +45,7 @@ WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const c
         it.device.reset(constructor());
         it.device->setDeviceName(name);
         if (auto mediator = it.device->getMediator())
-        {
-            mediator->newDevice(it.device);
-            // Deprecated legacy call to be removed in 2.0
             mediator->newDevice(it.device.get());
-        }
         it.emitWatchDevice();
     }
     return it;
@@ -114,15 +92,15 @@ void WatchDeviceProperty::clearDevices()
 {
     for (auto &deviceInfo : data)
     {
-        deviceInfo.second.device.reset();
+        deviceInfo.second.device.reset(nullptr);
     }
 }
 
-bool WatchDeviceProperty::deleteDevice(const std::shared_ptr<BaseDevice> &device)
+bool WatchDeviceProperty::deleteDevice(const BaseDevice *device)
 {
     for (auto it = data.begin(); it != data.end();)
     {
-        if (it->second.device == device)
+        if (it->second.device.get() == device)
         {
             it = data.erase(it);
             return true;
@@ -133,8 +111,7 @@ bool WatchDeviceProperty::deleteDevice(const std::shared_ptr<BaseDevice> &device
     return false;
 }
 
-int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg,
-                                    const std::function<BaseDevice*()> &constructor)
+int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor)
 {
     auto deviceName = root.getAttribute("device");
     if (!deviceName.isValid() || deviceName.toString() == "" || !isDeviceWatched(deviceName))
@@ -153,8 +130,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
             return 0;
     }
 
-    static const std::set<std::string> defVectors
-    {
+    static const std::set<std::string> defVectors{
         "defTextVector",  "defNumberVector", "defSwitchVector",
         "defLightVector", "defBLOBVector"
     };
@@ -164,8 +140,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
         return deviceInfo.device->buildProp(root, errmsg);
     }
 
-    static const std::set<std::string> setVectors
-    {
+    static const std::set<std::string> setVectors{
         "setTextVector",  "setNumberVector", "setSwitchVector",
         "setLightVector", "setBLOBVector"
     };
