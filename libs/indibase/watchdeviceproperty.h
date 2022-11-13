@@ -34,7 +34,7 @@ class WatchDeviceProperty
     public:
         struct DeviceInfo
         {
-            std::unique_ptr<BaseDevice> device;
+            std::shared_ptr<BaseDevice> device;
             std::function<void (BaseDevice)> newDeviceCallback; // call if device available
             std::set<std::string> properties; // watch only specific properties only
 
@@ -52,8 +52,11 @@ class WatchDeviceProperty
         }
 
     public:
+        [[deprecated]]
         std::vector<BaseDevice *> getDevices() const;
-        BaseDevice *getDeviceByName(const char *name) const;
+        std::vector<std::shared_ptr<BaseDevice>> getSharedDevices() const;
+
+        bool getDeviceByName(const char *name, std::shared_ptr<BaseDevice> &device) const;
         DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor);
 
     public:
@@ -77,7 +80,7 @@ class WatchDeviceProperty
 
         void clear();
         void clearDevices();
-        bool deleteDevice(const BaseDevice *device);
+        bool deleteDevice(const std::shared_ptr<BaseDevice> &device);
 
     public:
         int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor = [](){ return new BaseDevice(); } );
