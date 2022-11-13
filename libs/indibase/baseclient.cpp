@@ -262,6 +262,13 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
             }
         }
     });
+
+    clientSocket.onErrorOccurred([this] (TcpSocket::SocketError)
+    {
+        this->parent->serverDisconnected(exitCode);
+        clear();
+        watchDevice.unwatchDevices();
+    });
 }
 
 BaseClientPrivate::~BaseClientPrivate()
@@ -304,6 +311,8 @@ bool BaseClient::connectServer()
         return false;
     }
 
+    d->exitCode = -1;
+
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
 #ifndef _WINDOWS
@@ -337,16 +346,9 @@ bool BaseClient::disconnectServer(int exit_code)
         return false;
     }
 
+    d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
-
-    // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
-    serverDisconnected(exit_code);
-
-    d->clear();
-
-    d->watchDevice.unwatchDevices();
-
-    return true;
+    return d->clientSocket.waitForDisconnected();
 }
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
