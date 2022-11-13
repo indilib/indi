@@ -55,7 +55,8 @@
 namespace INDI
 {
 
-BaseDevicePrivate::BaseDevicePrivate()
+BaseDevicePrivate::BaseDevicePrivate(BaseDevice *parent)
+    : parent(parent)
 {
     static char indidev[] = "INDIDEV=";
 
@@ -72,7 +73,7 @@ BaseDevicePrivate::~BaseDevicePrivate()
 }
 
 BaseDevice::BaseDevice()
-    : d_ptr(new BaseDevicePrivate)
+    : d_ptr(new BaseDevicePrivate(this))
 { }
 
 BaseDevice::~BaseDevice()
@@ -832,6 +833,19 @@ const std::string &BaseDevice::lastMessage() const
     return d->messageLog.back();
 }
 
+BaseDevice BaseDevice::invalid()
+{
+    static BaseDevice device;
+    device.d_ptr->valid = false;
+    return device;
+}
+
+bool BaseDevice::isValid() const
+{
+    D_PTR(const BaseDevice);
+    return d->valid;
+}
+
 void BaseDevice::watchProperty(const char *name, const std::function<void(INDI::Property)> &callback)
 {
     D_PTR(BaseDevice);
@@ -917,6 +931,18 @@ INDI::BaseMediator *BaseDevice::getMediator() const
 {
     D_PTR(const BaseDevice);
     return d->mediator;
+}
+
+BaseDevice *BaseDevice::operator->()
+{
+    D_PTR(BaseDevice);
+    return d->parent;
+}
+
+BaseDevice::operator BaseDevice*()
+{
+    D_PTR(BaseDevice);
+    return d->parent;
 }
 
 }

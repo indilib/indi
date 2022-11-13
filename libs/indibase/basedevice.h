@@ -175,6 +175,11 @@ class BaseDevice
         const std::string &lastMessage() const;
 
     public:
+        static BaseDevice invalid();
+
+    public:
+        bool isValid() const;
+
         /** @return True if the device is connected (CONNECT=ON), False otherwise */
         bool isConnected() const;
 
@@ -245,6 +250,14 @@ class BaseDevice
 
         /** @brief handle SetXXX commands from client */
         int setValue(const INDI::LilXmlElement &root, char *errmsg);
+
+    public:
+        operator BaseDevice*();
+        BaseDevice* operator->();
+
+        bool operator != (std::nullptr_t) const        { return  isValid(); }
+        bool operator == (std::nullptr_t) const        { return !isValid(); }
+        operator bool()                   const        { return  isValid(); }
 
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;

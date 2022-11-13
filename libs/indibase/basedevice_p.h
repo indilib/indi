@@ -34,10 +34,11 @@
 namespace INDI
 {
 
+class BaseDevice;
 class BaseDevicePrivate
 {
     public:
-        BaseDevicePrivate();
+        BaseDevicePrivate(BaseDevice *parent);
         virtual ~BaseDevicePrivate();
 
         /** @brief Parse and store BLOB in the respective vector */
@@ -58,6 +59,7 @@ class BaseDevicePrivate
         }
 
     public:
+        BaseDevice *parent;
         std::string deviceName;
         BaseDevice::Properties pAll;
         std::map<std::string, std::function<void(INDI::Property)>> watchPropertyMap;
@@ -66,6 +68,8 @@ class BaseDevicePrivate
         INDI::BaseMediator *mediator {nullptr};
         std::deque<std::string> messageLog;
         mutable std::mutex m_Lock;
+
+        bool valid = true;
 };
 
 }
