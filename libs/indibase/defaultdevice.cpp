@@ -123,7 +123,8 @@ namespace INDI
 {
 
 DefaultDevicePrivate::DefaultDevicePrivate(DefaultDevice *defaultDevice)
-    : defaultDevice(defaultDevice)
+    : BaseDevicePrivate(defaultDevice)
+    , defaultDevice(defaultDevice)
 {
     const std::unique_lock<std::recursive_mutex> lock(DefaultDevicePrivate::devicesLock);
     devices.push_back(this);
