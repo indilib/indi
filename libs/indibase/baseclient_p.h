@@ -26,7 +26,7 @@ class ClientSharedBlobs
         bool isDirectBlobAccess(const std::string &dev, const std::string &prop) const;
 
         static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
-                                            const std::string &dev, const std::string &prop);
+                                             const std::string &dev, const std::string &prop);
 
         void addIncomingSharedBuffer(int fd);
 
@@ -39,10 +39,10 @@ class ClientSharedBlobs
 
 class TcpSocketSharedBlobs : public TcpSocket
 {
-public:
-    void readyRead() override;
+    public:
+        void readyRead() override;
 
-    ClientSharedBlobs sharedBlobs;
+        ClientSharedBlobs sharedBlobs;
 };
 #endif
 

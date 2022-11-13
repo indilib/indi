@@ -73,7 +73,7 @@ bool ClientSharedBlobs::parseAttachedBlobs(const INDI::LilXmlElement &root, Clie
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
-    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
+    for (auto &blobContent : root.getElementsByTagName("oneBLOB"))
     {
         auto attached = blobContent.getAttribute("attached");
 
@@ -111,7 +111,7 @@ bool ClientSharedBlobs::parseAttachedBlobs(const INDI::LilXmlElement &root, Clie
 }
 
 bool ClientSharedBlobs::hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
-                                                 const std::string &dev, const std::string &prop)
+        const std::string &dev, const std::string &prop)
 {
     auto devAccess = directBlobAccess.find(dev);
     if (devAccess == directBlobAccess.end())
@@ -124,8 +124,8 @@ bool ClientSharedBlobs::hasDirectBlobAccessEntry(const std::map<std::string, std
 bool ClientSharedBlobs::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
 {
     return hasDirectBlobAccessEntry(directBlobAccess, "", "")
-        || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
-        || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
 }
 
 void ClientSharedBlobs::addIncomingSharedBuffer(int fd)
@@ -232,7 +232,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
             return;
         }
 
-        for (const auto &doc: documents)
+        for (const auto &doc : documents)
         {
             LilXmlElement root = doc.root();
 
