@@ -249,3 +249,7 @@ class AbstractBaseClient : public INDI::BaseMediator
 };
 
 }
+
+#ifdef SWIG
+%template(BaseDeviceVectorShared) std::vector<INDI::BaseDevice>;
+#endif
