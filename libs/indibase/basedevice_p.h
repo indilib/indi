@@ -50,11 +50,68 @@ class BaseDevicePrivate
                 std::unique_lock<std::mutex> lock(m_Lock);
                 pAll.push_back(property);
             }
-            
+
             auto it = watchPropertyMap.find(property.getName());
             if (it != watchPropertyMap.end())
             {
                 it->second(property);
+            }
+        }
+
+    public: // mediator
+        void mediate(PropertyNumber property)
+        {
+            if (mediator)
+            {
+                mediator->newNumber(property.getNumber());
+            }
+        }
+
+        void mediate(PropertySwitch property)
+        {
+            if (mediator)
+            {
+                mediator->newSwitch(property.getSwitch());
+            }
+        }
+
+        void mediate(PropertyText property)
+        {
+            if (mediator)
+            {
+                mediator->newText(property.getText());
+            }
+        }
+
+        void mediate(PropertyLight light)
+        {
+            if (mediator)
+            {
+                mediator->newLight(light.getLight());
+            }
+        }
+
+        void mediate(IBLOB *blob)
+        {
+            if (mediator)
+            {
+                mediator->newBLOB(blob);
+            }
+        }
+
+        void mediateMessage(int messageID)
+        {
+            if (mediator)
+            {
+                mediator->newMessage(parent, messageID);
+            }
+        }
+
+        void mediateProperty(Property property)
+        {
+            if (mediator)
+            {
+                mediator->newProperty(property);
             }
         }
 

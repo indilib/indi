@@ -463,8 +463,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
     d->addProperty(property);
 
     // IDLog("Adding number property %s to list.\n", property.getName());
-    if (d->mediator)
-        d->mediator->newProperty(property);
+    d->mediateProperty(property);
 
     return (0);
 }
@@ -583,7 +582,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
                 if (auto max = element.getAttribute("max")) item->setMax(max);
             });
             locale.Restore();
-            if (d->mediator) d->mediator->newNumber(property.getNumber());
+            d->mediate(INDI::PropertyNumber(property));
             break;
         }
 
@@ -591,7 +590,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             for_property<INDI::PropertySwitch>(root, property, [](const LilXmlElement &element, auto *item) {
                 item->setState(element.context());
             });
-            if (d->mediator) d->mediator->newSwitch(property.getSwitch());
+            d->mediate(INDI::PropertySwitch(property));
             break;
         }
 
@@ -599,7 +598,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             for_property<INDI::PropertyText>(root, property, [](const LilXmlElement &element, auto *item) {
                 item->setText(element.context());
             });
-            if (d->mediator) d->mediator->newText(property.getText());
+            d->mediate(INDI::PropertyText(property));
             break;
         }
 
@@ -607,7 +606,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             for_property<INDI::PropertyLight>(root, property, [](const LilXmlElement &element, auto *item) {
                 item->setState(element.context());
             });
-            if (d->mediator) d->mediator->newLight(property.getLight());
+            d->mediate(INDI::PropertyLight(property));
             break;
         }
 
@@ -685,7 +684,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
 
         if (size.toInt() == 0)
         {
-            if (mediator) mediator->newBLOB(widget);
+            mediate(widget);
             continue;
         }
 
@@ -737,7 +736,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
         }
 
         property.emitUpdate();
-        if (mediator) mediator->newBLOB(widget);
+        mediate(widget);
     }
 
     return 0;
@@ -813,8 +812,7 @@ void BaseDevice::addMessage(const std::string &msg)
     d->messageLog.push_back(msg);
     guard.unlock();
 
-    if (d->mediator)
-        d->mediator->newMessage(this, d->messageLog.size() - 1);
+    d->mediateMessage(d->messageLog.size() - 1);
 }
 
 const std::string &BaseDevice::messageQueue(size_t index) const
