@@ -85,59 +85,59 @@ class INDI::BaseMediator
         /** @brief Emmited when a new device is created from INDI server.
          *  @param dp Pointer to the base device instance
          */
-        virtual void newDevice(INDI::BaseDevice *dp) = 0;
+        virtual void newDevice(INDI::BaseDevice *dp);
 
         /** @brief Emmited when a device is deleted from INDI server.
          *  @param dp Pointer to the base device instance.
          */
-        virtual void removeDevice(INDI::BaseDevice *dp) = 0;
+        virtual void removeDevice(INDI::BaseDevice *dp);
 
         /** @brief Emmited when a new property is created for an INDI driver.
          *  @param property Pointer to the Property Container
          */
-        virtual void newProperty(INDI::Property *property) = 0;
+        virtual void newProperty(INDI::Property *property);
 
         /** @brief Emmited when a property is deleted for an INDI driver.
          *  @param property Pointer to the Property Container to remove.
          */
-        virtual void removeProperty(INDI::Property *property) = 0;
+        virtual void removeProperty(INDI::Property *property);
 
         /** @brief Emmited when a new BLOB value arrives from INDI server.
          *  @param bp Pointer to filled and process BLOB.
          */
-        virtual void newBLOB(IBLOB *bp) = 0;
+        virtual void newBLOB(IBLOB *bp);
 
         /** @brief Emmited when a new switch value arrives from INDI server.
          *  @param svp Pointer to a switch vector property.
          */
-        virtual void newSwitch(ISwitchVectorProperty *svp) = 0;
+        virtual void newSwitch(ISwitchVectorProperty *svp);
 
         /** @brief Emmited when a new number value arrives from INDI server.
          *  @param nvp Pointer to a number vector property.
          */
-        virtual void newNumber(INumberVectorProperty *nvp) = 0;
+        virtual void newNumber(INumberVectorProperty *nvp);
 
         /** @brief Emmited when a new text value arrives from INDI server.
          *  @param tvp Pointer to a text vector property.
          */
-        virtual void newText(ITextVectorProperty *tvp) = 0;
+        virtual void newText(ITextVectorProperty *tvp);
 
         /** @brief Emmited when a new light value arrives from INDI server.
          *  @param lvp Pointer to a light vector property.
          */
-        virtual void newLight(ILightVectorProperty *lvp) = 0;
+        virtual void newLight(ILightVectorProperty *lvp);
 
         /** @brief Emmited when a new message arrives from INDI server.
          *  @param dp pointer to the INDI device the message is sent to.
          *  @param messageID ID of the message that can be used to retrieve the message from the device's messageQueue() function.
          */
-        virtual void newMessage(INDI::BaseDevice *dp, int messageID) = 0;
+        virtual void newMessage(INDI::BaseDevice *dp, int messageID);
 
         /** @brief Emmited when the server is connected. */
-        virtual void serverConnected() = 0;
+        virtual void serverConnected();
 
         /** @brief Emmited when the server gets disconnected.
          *  @param exit_code 0 if client was requested to disconnect from server. -1 if connection to server is terminated due to remote server disconnection.
          */
-        virtual void serverDisconnected(int exit_code) = 0;
+        virtual void serverDisconnected(int exit_code);
 };

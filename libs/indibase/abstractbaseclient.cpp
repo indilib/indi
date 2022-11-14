@@ -614,45 +614,6 @@ void AbstractBaseClient::newUniversalMessage(std::string message)
     IDLog("%s\n", message.c_str());
 }
 
-void AbstractBaseClient::newDevice(INDI::BaseDevice *)
-{ }
-
-void AbstractBaseClient::removeDevice(INDI::BaseDevice *)
-{ }
-
-void AbstractBaseClient::newProperty(INDI::Property *)
-{ }
-
-void AbstractBaseClient::removeProperty(INDI::Property *)
-{ }
-
-void AbstractBaseClient::newBLOB(IBLOB *)
-{ }
-
-void AbstractBaseClient::newSwitch(ISwitchVectorProperty *)
-{ }
-
-void AbstractBaseClient::newNumber(INumberVectorProperty *)
-{ }
-
-void AbstractBaseClient::newText(ITextVectorProperty *)
-{ }
-
-void AbstractBaseClient::newLight(ILightVectorProperty *)
-{ }
-
-void AbstractBaseClient::newMessage(INDI::BaseDevice *, int)
-{ }
-
-void AbstractBaseClient::serverConnected()
-{ }
-
-// avoid calling pure virtual method from destructor
-void AbstractBaseClient::serverDisconnected(int exit_code)
-{
-    INDI_UNUSED(exit_code);
-}
-
 }
 
 #if defined(_MSC_VER)

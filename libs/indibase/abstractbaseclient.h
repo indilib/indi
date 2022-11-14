@@ -222,24 +222,9 @@ class AbstractBaseClient : public INDI::BaseMediator
          */
         virtual void newUniversalMessage(std::string message);
 
-    protected: // override INDI::BaseMediator methods, when they are not needed
-        virtual void newDevice(INDI::BaseDevice *dp) override;
-        virtual void removeDevice(INDI::BaseDevice *dp) override;
-        virtual void newProperty(INDI::Property *property) override;
-        virtual void removeProperty(INDI::Property *property) override;
-        virtual void newBLOB(IBLOB *bp) override;
-        virtual void newSwitch(ISwitchVectorProperty *svp) override;
-        virtual void newNumber(INumberVectorProperty *nvp) override;
-        virtual void newText(ITextVectorProperty *tvp) override;
-        virtual void newLight(ILightVectorProperty *lvp) override;
-        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
-        virtual void serverConnected() override;
-
     protected:
         friend class BaseClientPrivate;
         friend class BaseClientQtPrivate;
-        // avoid calling pure virtual method from destructor
-        void serverDisconnected(int exit_code) override;
 
     protected:
         AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&dd);
