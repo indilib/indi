@@ -44,14 +44,15 @@ class V4L2_Builtin_Decoder : public V4L2_Decoder
         virtual void resetcrop();
         virtual void usesoftcrop(bool c);
         virtual void setformat(struct v4l2_format f, bool use_ext_pix_format);
+        virtual __u32 getFormat();
         virtual bool issupportedformat(unsigned int format);
         virtual const std::vector<unsigned int> &getsupportedformats();
-        virtual void decode(unsigned char *frame, struct v4l2_buffer *buf);
+        virtual void decode(unsigned char *frame, struct v4l2_buffer *buf, bool native);
         virtual unsigned char *getY();
         virtual unsigned char *getU();
         virtual unsigned char *getV();
-        //virtual unsigned char * getColorBuffer();
         virtual unsigned char *getRGBBuffer();
+        virtual unsigned char *getMJPEGBuffer(int &size);
         virtual float *getLinearY();
         virtual int getBpp();
         virtual void setQuantization(bool);
@@ -86,4 +87,5 @@ class V4L2_Builtin_Decoder : public V4L2_Decoder
         char lut5[32];
         char lut6[64];
         unsigned char bpp;
+        int m_Size;
 };

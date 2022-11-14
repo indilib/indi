@@ -65,6 +65,7 @@ class LilXmlValue
         double      toDouble(safe_ptr<bool> ok = nullptr) const;
         const char *toCString() const;
         std::string toString() const;
+        ISRule      toISRule(safe_ptr<bool> ok = nullptr) const;
         ISState     toISState(safe_ptr<bool> ok = nullptr) const;
         IPState     toIPState(safe_ptr<bool> ok = nullptr) const;
         IPerm       toIPerm(safe_ptr<bool> ok = nullptr) const;
@@ -86,6 +87,7 @@ class LilXmlValue
         operator const char *() const { return toCString(); }
         operator double  () const { return toDouble();  }
         operator int     () const { return toInt();     }
+        operator ISRule  () const { return toISRule();  }
         operator ISState () const { return toISState(); }
         operator IPState () const { return toIPState(); }
         operator IPerm   () const { return toIPerm();   }
@@ -263,6 +265,13 @@ inline const char *LilXmlValue::toCString() const
 inline std::string LilXmlValue::toString() const
 {
     return isValid() ? mValue : "";
+}
+
+inline ISRule LilXmlValue::toISRule(safe_ptr<bool> ok) const
+{
+    ISRule rule = ISR_1OFMANY;
+    *ok = (isValid() && crackISRule(mValue, &rule) >= 0);
+    return rule;
 }
 
 inline ISState LilXmlValue::toISState(safe_ptr<bool> ok) const

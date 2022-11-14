@@ -282,6 +282,8 @@ void V4L2_Driver::ISGetProperties(const char * dev)
 
         defineProperty(&StackModeSP);
 
+        v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineProperty(&ImageDepthSP);
         defineProperty(&ColorProcessingSP);
@@ -469,6 +471,15 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         }
     }
 
+    /* Encoder Format */
+    if (EncodeFormatSP.isNameMatch(name))
+    {
+        auto format = IUFindOnSwitchName(states, names, n);
+        v4l_base->setNative(strcmp(format, EncodeFormatSP[FORMAT_NATIVE].getName()) == 0);
+        // Let parent handle the rest
+        return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+    }
+
     /* Capture Format */
     if (strcmp(name, CaptureFormatsSP.name) == 0)
     {
@@ -482,13 +493,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         }
         else
         {
-            unsigned int index, oldindex;
+            int index, oldindex;
             oldindex = IUFindOnSwitchIndex(&CaptureFormatsSP);
             IUResetSwitch(&CaptureFormatsSP);
             IUUpdateSwitch(&CaptureFormatsSP, states, names, n);
             index = IUFindOnSwitchIndex(&CaptureFormatsSP);
 
-            if (v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
+            if (index < 0 || v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
             {
                 LOGF_INFO("ERROR (setformat): %s", errmsg);
                 IUResetSwitch(&CaptureFormatsSP);
@@ -544,11 +555,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         }
         else
         {
-            unsigned int index, w, h;
+            int index{0}, w {0}, h {0};
             IUUpdateSwitch(&CaptureSizesSP, states, names, n);
             index = IUFindOnSwitchIndex(&CaptureSizesSP);
-            sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
-            if (v4l_base->setcapturesize(w, h, errmsg) == -1)
+
+            if (index >= 0)
+                sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
+            if (w == 0 || h == 0 || v4l_base->setcapturesize(w, h, errmsg) == -1)
             {
                 LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesSP.s = IPS_ALERT;
@@ -591,12 +604,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
         }
-        unsigned int index;
+        int index {0};
         struct v4l2_fract frate;
         IUUpdateSwitch(&FrameRatesSP, states, names, n);
         index = IUFindOnSwitchIndex(&FrameRatesSP);
-        sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
-        if ((v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
+        if (index >= 0)
+            sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
+        if (index < 0 || (v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
         {
             LOGF_INFO("ERROR (setframerate): %s", errmsg);
             FrameRatesSP.s = IPS_ALERT;
@@ -1364,6 +1378,22 @@ void V4L2_Driver::newFrame()
         unsigned char * buffer = nullptr;
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
+
+        if (v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
+        {
+            Streamer->setPixelFormat(INDI_JPG);
+            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
+            if (buffer)
+            {
+                PrimaryCCD.setFrameBufferSize(totalBytes);
+                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+            }
+            guard.unlock();
+
+            Streamer->newFrame(buffer, totalBytes);
+            return;
+        }
+
         if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
@@ -1474,8 +1504,20 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
-        //IDLog("Copying frame.\n");
-        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
+        if (EncodeFormatSP->findOnSwitchIndex() ==  FORMAT_NATIVE && v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
+        {
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+            int totalBytes = 0;
+            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
+            if (buffer)
+            {
+                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+                PrimaryCCD.setFrameBufferSize(totalBytes, false);
+            }
+            PrimaryCCD.setImageExtension("jpg");
+            guard.unlock();
+        }
+        else if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             if (!stackMode)
             {
@@ -1599,6 +1641,7 @@ void V4L2_Driver::newFrame()
                     }
                 }
             }
+            PrimaryCCD.setImageExtension("fits");
         }
         else
         {
@@ -1619,12 +1662,12 @@ void V4L2_Driver::newFrame()
             }
             guard.unlock();
 
+            PrimaryCCD.setImageExtension("fits");
         }
         frameCount += 1;
 
         if (lx->isEnabled())
         {
-            //if (!is_streaming && !is_recording)
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
@@ -1879,6 +1922,9 @@ bool V4L2_Driver::StartStreaming()
         return false;
     }
 
+    auto onSwitch = IUFindOnSwitch(&CaptureFormatsSP);
+    if (onSwitch && strstr(onSwitch->label, "JPEG"))
+        v4l_base->setNative(true);
     /* Callee will take care of checking states */
     return start_capturing(true);
 }
@@ -1893,6 +1939,7 @@ bool V4L2_Driver::StopStreaming()
         return false;
     }
 
+    v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
     return stop_capturing();
 }
 

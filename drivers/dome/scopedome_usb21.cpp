@@ -69,11 +69,9 @@ uint8_t ScopeDomeUSB21::CRC(uint8_t crc, uint8_t data)
 int ScopeDomeUSB21::writeBuf(Command cmd, uint8_t len, uint8_t *buff)
 {
     int BytesToWrite   = len + 4;
-    int BytesWritten   = 0;
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    BytesWritten = 0;
     uint8_t cbuf[BytesToWrite];
     cbuf[0] = header;
     cbuf[3] = CRC(0, cbuf[0]);

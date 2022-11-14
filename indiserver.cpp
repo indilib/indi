@@ -1678,7 +1678,7 @@ void Fifo::processLine(const char * line)
     // If remote driver
     if (remoteDriver)
     {
-        n = sscanf(line, "%s %512[^\n]", cmd, tDriver);
+        n = sscanf(line, "%s %511[^\n]", cmd, tDriver);
 
         // Remove quotes if any
         char *ptr = tDriver;
@@ -1692,7 +1692,7 @@ void Fifo::processLine(const char * line)
     // If local driver
     else
     {
-        n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd,
+        n = sscanf(line, "%s %s -%1c \"%511[^\"]\" -%1c \"%511[^\"]\" -%1c \"%511[^\"]\" -%1c \"%511[^\"]\"", cmd,
                    tDriver, arg[0], var[0], arg[1], var[1], arg[2], var[2], arg[3], var[3]);
     }
 

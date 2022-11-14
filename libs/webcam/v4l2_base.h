@@ -88,6 +88,7 @@ class V4L2_Base
         int getWidth();
         int getHeight();
         int getBpp();
+        void setNative(bool value) {m_Native = value;}
         virtual int setSize(int x, int y);
         virtual void getMaxMinSize(int &x_max, int &y_max, int &x_min, int &y_min);
 
@@ -98,8 +99,7 @@ class V4L2_Base
         unsigned char *getY();
         unsigned char *getU();
         unsigned char *getV();
-        // 2017-01-24 JM: Deprecated RGBA (32bit) buffer. Should use RGB24 buffer to save space
-        //unsigned char * getColorBuffer();
+        unsigned char * getMJPEGBuffer(int &size);
         unsigned char *getRGBBuffer();
         float *getLinearY();
 
@@ -204,6 +204,7 @@ class V4L2_Base
         void *uptr;
         char dev_name[64];
         const char *path;
+        bool m_Native {false};
         io_method io;
         int fd;
         struct buffer *buffers;
