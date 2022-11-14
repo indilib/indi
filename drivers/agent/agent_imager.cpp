@@ -462,9 +462,9 @@ void Imager::serverConnected()
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newDevice(INDI::BaseDevice *dp)
+void Imager::newDevice(INDI::BaseDevice baseDevice)
 {
-    std::string deviceName{dp->getDeviceName()};
+    std::string deviceName{baseDevice.getDeviceName()};
 
     LOGF_DEBUG("Device %s detected", deviceName.c_str());
     if (deviceName == controlledCCD)
@@ -475,13 +475,13 @@ void Imager::newDevice(INDI::BaseDevice *dp)
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newProperty(INDI::Property *property)
+void Imager::newProperty(INDI::Property property)
 {
-    std::string deviceName{property->getDeviceName()};
+    std::string deviceName{property.getDeviceName()};
 
-    if (strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
+    if (property.isNameMatch(INDI::SP::CONNECTION))
     {
-        bool state = property->getSwitch()->sp[0].s != ISS_OFF;
+        bool state = INDI::PropertySwitch(property)[0].getState() != ISS_OFF;
         if (deviceName == controlledCCD)
         {
             if (state)
@@ -508,16 +508,6 @@ void Imager::newProperty(INDI::Property *property)
         }
         IDSetLight(&StatusLP, nullptr);
     }
-}
-
-void Imager::removeProperty(INDI::Property *property)
-{
-    INDI_UNUSED(property);
-}
-
-void Imager::removeDevice(INDI::BaseDevice *dp)
-{
-    INDI_UNUSED(dp);
 }
 
 void Imager::newBLOB(IBLOB *bp)
@@ -558,111 +548,79 @@ void Imager::newBLOB(IBLOB *bp)
     }
 }
 
-void Imager::newSwitch(ISwitchVectorProperty *svp)
+void Imager::newSwitch(INDI::PropertySwitch property)
 {
-    std::string deviceName{svp->device};
-    bool state             = svp->sp[0].s != ISS_OFF;
+    std::string deviceName{property.getDeviceName()};
+    bool state = property[0].getState() != ISS_OFF;
 
-    if (strcmp(svp->name, INDI::SP::CONNECTION) == 0)
+    if (property.isNameMatch(INDI::SP::CONNECTION))
     {
         if (deviceName == controlledCCD)
         {
-            if (state)
-            {
-                StatusL[0].s = IPS_OK;
-            }
-            else
-            {
-                StatusL[0].s = IPS_BUSY;
-            }
+            StatusL[0].s = state ? IPS_OK : IPS_BUSY;
         }
+
         if (deviceName == controlledFilterWheel)
         {
-            if (state)
-            {
-                StatusL[1].s = IPS_OK;
-            }
-            else
-            {
-                StatusL[1].s = IPS_BUSY;
-            }
+            StatusL[1].s = state ? IPS_OK : IPS_BUSY;
         }
         IDSetLight(&StatusLP, nullptr);
     }
 }
 
-void Imager::newNumber(INumberVectorProperty *nvp)
+void Imager::newNumber(INDI::PropertyNumber property)
 {
-    std::string deviceName{nvp->device};
+    std::string deviceName{property.getDeviceName()};
 
-    if (deviceName == controlledCCD)
+    if (deviceName == controlledCCD && property.isNameMatch("CCD_EXPOSURE"))
     {
-        if (strcmp(nvp->name, "CCD_EXPOSURE") == 0)
-        {
-            ProgressN[2].value = nvp->np[0].value;
-            IDSetNumber(&ProgressNP, nullptr);
-        }
+        ProgressN[2].value = property[0].getValue();
+        IDSetNumber(&ProgressNP, nullptr);
     }
-    if (deviceName == controlledFilterWheel)
+
+    if (deviceName == controlledFilterWheel && property.isNameMatch("FILTER_SLOT"))
     {
-        if (strcmp(nvp->name, "FILTER_SLOT") == 0)
-        {
-            FilterSlotN[0].value = nvp->np->value;
-            if (nvp->s == IPS_OK)
-                initiateNextCapture();
-        }
+        FilterSlotN[0].value = property[0].getValue();
+        if (property.getState() == IPS_OK)
+            initiateNextCapture();
     }
 }
 
-void Imager::newText(ITextVectorProperty *tvp)
+void Imager::newText(INDI::PropertyText property)
 {
-    std::string deviceName{tvp->device};
+    std::string deviceName{property.getDeviceName()};
 
-    if (deviceName == controlledCCD)
+    if (deviceName == controlledCCD && property.isNameMatch("CCD_FILE_PATH"))
     {
-        if (strcmp(tvp->name, "CCD_FILE_PATH") == 0)
-        {
-            char name[128] = {0};
+        char name[128] = {0};
 
-            strncpy(format, strrchr(tvp->tp[0].text, '.'), sizeof(format));
-            sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-            rename(tvp->tp[0].text, name);
-            LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
-                       maxImage, name);
-            if (image == maxImage)
+        strncpy(format, strrchr(property[0].getText(), '.'), sizeof(format));
+        sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
+        rename(property[0].getText(), name);
+        LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
+                    maxImage, name);
+        if (image == maxImage)
+        {
+            if (group == maxGroup)
             {
-                if (group == maxGroup)
-                {
-                    batchDone();
-                }
-                else
-                {
-                    maxImage           = nextGroup()->count();
-                    ProgressN[0].value = group = group + 1;
-                    ProgressN[1].value = image = 1;
-                    IDSetNumber(&ProgressNP, nullptr);
-                    initiateNextFilter();
-                }
+                batchDone();
             }
             else
             {
-                ProgressN[1].value = image = image + 1;
+                maxImage           = nextGroup()->count();
+                ProgressN[0].value = group = group + 1;
+                ProgressN[1].value = image = 1;
                 IDSetNumber(&ProgressNP, nullptr);
                 initiateNextFilter();
             }
         }
+        else
+        {
+            ProgressN[1].value = image = image + 1;
+            IDSetNumber(&ProgressNP, nullptr);
+            initiateNextFilter();
+        }
     }
-}
-
-void Imager::newLight(ILightVectorProperty *lvp)
-{
-    INDI_UNUSED(lvp);
-}
-
-void Imager::newMessage(INDI::BaseDevice *dp, int messageID)
-{
-    INDI_UNUSED(dp);
-    INDI_UNUSED(messageID);
 }
 
 void Imager::serverDisconnected(int exit_code)
