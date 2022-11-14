@@ -64,6 +64,7 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newNumber(property.getNumber());
+                mediator->newNumber(property);
             }
         }
 
@@ -72,6 +73,7 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newSwitch(property.getSwitch());
+                mediator->newSwitch(property);
             }
         }
 
@@ -80,6 +82,7 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newText(property.getText());
+                mediator->newText(property);
             }
         }
 
@@ -88,6 +91,7 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newLight(light.getLight());
+                mediator->newLight(light);
             }
         }
 
@@ -96,6 +100,8 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newBLOB(blob);
+                // #PS: TODO - Blob requires complete refactoring,
+                //             there is no certainty how long the data is kept.
             }
         }
 
@@ -104,6 +110,7 @@ class BaseDevicePrivate
             if (mediator)
             {
                 mediator->newMessage(parent, messageID);
+                mediator->newMessage(*parent, messageID);
             }
         }
 
@@ -111,6 +118,7 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+                mediator->newProperty((Property *)property);
                 mediator->newProperty(property);
             }
         }
