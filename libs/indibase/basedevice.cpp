@@ -942,7 +942,7 @@ BaseDevice *BaseDevice::operator->()
 BaseDevice::operator BaseDevice*()
 {
     D_PTR(BaseDevice);
-    return d->parent;
+    return isValid() ? d->parent : nullptr;
 }
 
 }
