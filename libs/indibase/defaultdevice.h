@@ -308,7 +308,7 @@ class DefaultDevice : public BaseDevice
          * @warning This only updates the internal driver interface property and does not send it to the
          * client. To synchronize the client, use syncDriverInfo funciton.
          */
-        void setDriverInterface(uint16_t value);
+        void setDriverInterface(uint16_t value) override;
 
     public:
         /** @brief Add a device to the watch list.

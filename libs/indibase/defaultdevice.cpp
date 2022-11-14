@@ -798,9 +798,9 @@ void DefaultDevice::setDriverInterface(uint16_t value)
 {
     D_PTR(DefaultDevice);
     char interfaceStr[16];
-    d->interfaceDescriptor = value;
     snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
     d->DriverInfoTP[3].setText(interfaceStr);
+    BaseDevice::setDriverInterface(value);
 }
 
 void DefaultDevice::syncDriverInfo()
@@ -816,7 +816,7 @@ bool DefaultDevice::initProperties()
     char interfaceStr[16];
 
     snprintf(versionStr, 16, "%d.%d", d->majorVersion, d->minorVersion);
-    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
+    snprintf(interfaceStr, 16, "%d", getDriverInterface());
 
     // Connection Mode
     d->ConnectionModeSP.onUpdate([d](){

@@ -70,6 +70,7 @@ class BaseDevicePrivate
         mutable std::mutex m_Lock;
 
         bool valid = true;
+        uint16_t interfaceDescriptor {0};
 };
 
 }

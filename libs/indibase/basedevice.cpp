@@ -909,16 +909,16 @@ const char *BaseDevice::getDriverVersion() const
     return driverVersion ? driverVersion->getText() : nullptr;
 }
 
-uint16_t BaseDevice::getDriverInterface()
+uint16_t BaseDevice::getDriverInterface() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
+    D_PTR(const BaseDevice);
+    return d->interfaceDescriptor;
+}
 
-    if (!driverInfo)
-        return 0;
-
-    auto driverInterface = driverInfo->findWidgetByName("DRIVER_INTERFACE");
-
-    return driverInterface ? atoi(driverInterface->getText()) : 0;
+void BaseDevice::setDriverInterface(uint16_t value)
+{
+    D_PTR(BaseDevice);
+    d->interfaceDescriptor = value;
 }
 
 void BaseDevice::setMediator(INDI::BaseMediator *mediator)

@@ -226,7 +226,16 @@ class BaseDevice
          *       cout << "We received a camera!" << endl;
          *  @endcode
          */
-        uint16_t getDriverInterface();
+        uint16_t getDriverInterface() const;
+
+    protected:
+        /**
+         * @brief setInterface Set driver interface.
+         * @param value ORed list of DeviceInterface values.
+         * @warning This only updates the internal driver interface property and does not send it to the
+         * client. To synchronize the client, use DefaultDevice::syncDriverInfo funciton.
+         */
+        virtual void setDriverInterface(uint16_t value);
 
     public:
         /** @brief Build driver properties from a skeleton file.

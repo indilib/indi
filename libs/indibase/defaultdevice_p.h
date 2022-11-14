@@ -49,7 +49,6 @@ class DefaultDevicePrivate: public BaseDevicePrivate
 
         uint16_t majorVersion { 1 };
         uint16_t minorVersion { 0 };
-        uint16_t interfaceDescriptor { 0 };
         int m_ConfigConnectionMode {-1};
 
         PropertySwitch SimulationSP     { 2 };
