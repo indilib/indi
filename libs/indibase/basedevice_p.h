@@ -59,6 +59,24 @@ class BaseDevicePrivate
         }
 
     public: // mediator
+        void mediateNewDevice()
+        {
+            if (mediator)
+            {
+                mediator->newDevice(parent);
+                mediator->newDevice(*parent);
+            }
+        }
+
+        void mediateRemoveDevice()
+        {
+            if (mediator)
+            {
+                mediator->removeDevice(parent);
+                mediator->removeDevice(*parent);
+            }
+        }
+
         void mediate(PropertyNumber property)
         {
             if (mediator)
@@ -120,6 +138,15 @@ class BaseDevicePrivate
             {
                 mediator->newProperty((Property *)property);
                 mediator->newProperty(property);
+            }
+        }
+
+        void mediateRemoveProperty(Property property)
+        {
+            if (mediator)
+            {
+                mediator->removeProperty((Property *)property);
+                mediator->removeProperty(property);
             }
         }
 

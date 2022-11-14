@@ -22,6 +22,9 @@
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
+#include "basedevice.h"
+#include "basedevice_p.h"
+
 #include "indiuserio.h"
 #include "locale_compat.h"
 #include "indistandardproperty.h"
@@ -122,7 +125,7 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
     if (auto device = watchDevice.getDeviceByName(devName))
     {
-        parent->removeDevice(device);
+        device.d_ptr->mediateRemoveDevice();
         watchDevice.deleteDevice(device);
         return 0;
     }
@@ -157,7 +160,9 @@ int AbstractBaseClientPrivate::delPropertyCmd(const LilXmlElement &root, char *e
     if (auto property = dp.getProperty(propertyName))
     {
         if (sConnected)
-            parent->removeProperty(property);
+        {
+            dp.d_ptr->mediateRemoveProperty(property);
+        }
         return dp.removeProperty(propertyName, errmsg);
     }
 

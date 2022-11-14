@@ -279,6 +279,8 @@ class BaseDevice
         }
 
     protected:
+        friend class WatchDeviceProperty;
+        friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);
 };

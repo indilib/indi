@@ -17,6 +17,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "watchdeviceproperty.h"
+#include "basedevice.h"
+#include "basedevice_p.h"
 
 namespace INDI
 {
@@ -44,8 +46,7 @@ WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const c
     {
         it.device = *constructor();
         it.device.setDeviceName(name);
-        if (auto mediator = it.device.getMediator())
-            mediator->newDevice(it.device);
+        it.device.d_ptr->mediateNewDevice();
         it.emitWatchDevice();
     }
     return it;
