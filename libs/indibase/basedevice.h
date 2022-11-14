@@ -104,7 +104,8 @@ class BaseDevice
          *  @param property any property from the INDI::PropertyXXX family.
          */
         void registerProperty(const INDI::Property &property);
-        void registerProperty(const INDI::Property &property, INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
+        void registerProperty(const INDI::Property &property,
+                              INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
@@ -264,9 +265,18 @@ class BaseDevice
         operator BaseDevice*();
         BaseDevice* operator->();
 
-        bool operator != (std::nullptr_t) const        { return  isValid(); }
-        bool operator == (std::nullptr_t) const        { return !isValid(); }
-        operator bool()                   const        { return  isValid(); }
+        bool operator != (std::nullptr_t) const
+        {
+            return  isValid();
+        }
+        bool operator == (std::nullptr_t) const
+        {
+            return !isValid();
+        }
+        operator bool()                   const
+        {
+            return  isValid();
+        }
 
     protected:
         std::shared_ptr<BaseDevicePrivate> d_ptr;

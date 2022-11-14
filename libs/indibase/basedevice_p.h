@@ -86,12 +86,12 @@ class BaseDevicePrivate
             }
         }
 
-        void mediate(PropertyLight light)
+        void mediate(PropertyLight property)
         {
             if (mediator)
             {
-                mediator->newLight(light.getLight());
-                mediator->newLight(light);
+                mediator->newLight(property.getLight());
+                mediator->newLight(property);
             }
         }
 

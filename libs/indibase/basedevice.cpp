@@ -223,7 +223,7 @@ static std::string sGetSheletonFilePath(std::string fileName)
         return pathName;
     }
 
-    // absolute file path 
+    // absolute file path
     if (stat(fileName.c_str(), &st) == 0)
     {
         pathName = fileName;
@@ -262,7 +262,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
     D_PTR(BaseDevice);
 
     LilXmlDocument document = d->xmlParser.readFromFile(sGetSheletonFilePath(filename));
-    
+
     if(!document.isValid())
     {
         IDLog("Unable to parse skeleton XML: %s", d->xmlParser.errorMessage());
@@ -271,7 +271,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
 
     char errmsg[MAXRBUF];
 
-    for (const auto &element: document.root().getElements())
+    for (const auto &element : document.root().getElements())
     {
         buildProp(element, errmsg, true);
     }
@@ -291,16 +291,18 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
     }
 
     // find type of tag
-    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName = {
+    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName =
+    {
         {INDI_NUMBER, "defNumberVector"},
         {INDI_SWITCH, "defSwitchVector"},
         {INDI_TEXT,   "defTextVector"},
         {INDI_LIGHT,  "defLightVector"},
-        {INDI_BLOB,   "defBLOBVector"}        
+        {INDI_BLOB,   "defBLOBVector"}
     };
 
     const auto rootTagName = root.tagName();
-    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto &it) {
+    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto & it)
+    {
         return rootTagName == it.second;
     });
 
@@ -324,9 +326,10 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
     INDI::Property property;
     switch (rootTagType->first)
     {
-        case INDI_NUMBER: {
+        case INDI_NUMBER:
+        {
             INDI::PropertyNumber typedProperty {0};
-            for (const auto &element: root.getElementsByTagName("defNumber"))
+            for (const auto &element : root.getElementsByTagName("defNumber"))
             {
                 INDI::WidgetView<INumber> widget;
 
@@ -348,10 +351,11 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             property = typedProperty;
             break;
         }
-        case INDI_SWITCH: {
+        case INDI_SWITCH:
+        {
             INDI::PropertySwitch typedProperty {0};
             typedProperty.setRule(root.getAttribute("rule"));
-            for (const auto &element: root.getElementsByTagName("defSwitch"))
+            for (const auto &element : root.getElementsByTagName("defSwitch"))
             {
                 INDI::WidgetView<ISwitch> widget;
 
@@ -369,9 +373,10 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             break;
         }
 
-        case INDI_TEXT: {
+        case INDI_TEXT:
+        {
             INDI::PropertyText typedProperty {0};
-            for (const auto &element: root.getElementsByTagName("defText"))
+            for (const auto &element : root.getElementsByTagName("defText"))
             {
                 INDI::WidgetView<IText> widget;
 
@@ -388,10 +393,11 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             property = typedProperty;
             break;
         }
-        
-        case INDI_LIGHT: {
+
+        case INDI_LIGHT:
+        {
             INDI::PropertyLight typedProperty {0};
-            for (const auto &element: root.getElementsByTagName("defLight"))
+            for (const auto &element : root.getElementsByTagName("defLight"))
             {
                 INDI::WidgetView<ILight> widget;
 
@@ -409,9 +415,10 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             break;
         }
 
-        case INDI_BLOB: {
+        case INDI_BLOB:
+        {
             INDI::PropertyBlob typedProperty {0};
-            for (const auto &element: root.getElementsByTagName("defBLOB"))
+            for (const auto &element : root.getElementsByTagName("defBLOB"))
             {
                 INDI::WidgetView<IBLOB> widget;
 
@@ -429,7 +436,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             break;
         }
 
-        case INDI_UNKNOWN: // it will never happen 
+        case INDI_UNKNOWN: // it will never happen
             return -1;
     }
 
@@ -490,7 +497,7 @@ static void for_property(
 {
     TypedProperty typedProperty = property;
 
-    for (const auto &element: root.getElements())
+    for (const auto &element : root.getElements())
     {
         auto * item = typedProperty.findWidgetByName(element.getAttribute("name"));
         if (item)
@@ -517,16 +524,18 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
     checkMessage(root.handle());
 
     // find type of tag
-    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName = {
+    static const std::map<INDI_PROPERTY_TYPE, std::string> tagTypeName =
+    {
         {INDI_NUMBER, "setNumberVector"},
         {INDI_SWITCH, "setSwitchVector"},
         {INDI_TEXT,   "setTextVector"},
         {INDI_LIGHT,  "setLightVector"},
-        {INDI_BLOB,   "setBLOBVector"}        
+        {INDI_BLOB,   "setBLOBVector"}
     };
 
     const auto rootTagName = root.tagName();
-    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto &it) {
+    const auto rootTagType = std::find_if(tagTypeName.begin(), tagTypeName.end(), [&rootTagName](const auto & it)
+    {
         return rootTagName == it.second;
     });
 
@@ -554,7 +563,8 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
 
         if (!ok)
         {
-            snprintf(errmsg, MAXRBUF, "INDI: <%s> bogus state %s for %s", rootTagName.c_str(), root.getAttribute("state").toCString(), propertyName);
+            snprintf(errmsg, MAXRBUF, "INDI: <%s> bogus state %s for %s", rootTagName.c_str(), root.getAttribute("state").toCString(),
+                     propertyName);
             return -1;
         }
     }
@@ -572,9 +582,11 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
     // update specific values
     switch (rootTagType->first)
     {
-        case INDI_NUMBER: {
+        case INDI_NUMBER:
+        {
             AutoCNumeric locale;
-            for_property<INDI::PropertyNumber>(root, property, [](const LilXmlElement &element, auto *item) {
+            for_property<INDI::PropertyNumber>(root, property, [](const LilXmlElement & element, auto * item)
+            {
                 item->setValue(element.context());
 
                 // Permit changing of min/max
@@ -586,36 +598,43 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             break;
         }
 
-        case INDI_SWITCH: {
-            for_property<INDI::PropertySwitch>(root, property, [](const LilXmlElement &element, auto *item) {
+        case INDI_SWITCH:
+        {
+            for_property<INDI::PropertySwitch>(root, property, [](const LilXmlElement & element, auto * item)
+            {
                 item->setState(element.context());
             });
             d->mediate(INDI::PropertySwitch(property));
             break;
         }
 
-        case INDI_TEXT: {
-            for_property<INDI::PropertyText>(root, property, [](const LilXmlElement &element, auto *item) {
+        case INDI_TEXT:
+        {
+            for_property<INDI::PropertyText>(root, property, [](const LilXmlElement & element, auto * item)
+            {
                 item->setText(element.context());
             });
             d->mediate(INDI::PropertyText(property));
             break;
         }
 
-        case INDI_LIGHT: {
-            for_property<INDI::PropertyLight>(root, property, [](const LilXmlElement &element, auto *item) {
+        case INDI_LIGHT:
+        {
+            for_property<INDI::PropertyLight>(root, property, [](const LilXmlElement & element, auto * item)
+            {
                 item->setState(element.context());
             });
             d->mediate(INDI::PropertyLight(property));
             break;
         }
 
-        case INDI_BLOB: {
+        case INDI_BLOB:
+        {
             INDI::PropertyBlob typedProperty = property;
             return d->setBLOB(typedProperty, root, errmsg);
         }
 
-        case INDI_UNKNOWN: // it will never happen 
+        case INDI_UNKNOWN: // it will never happen
             return -1;
     }
 
@@ -666,7 +685,7 @@ static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetView<I
 */
 int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement &root, char *errmsg)
 {
-    for (const auto &element: root.getElementsByTagName("oneBLOB"))
+    for (const auto &element : root.getElementsByTagName("oneBLOB"))
     {
         auto name   = element.getAttribute("name");
         auto format = element.getAttribute("format");
@@ -677,8 +696,8 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
         if (!name || !format || !size)
         {
             snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s No valid members.",
-                property.getDeviceName(), property.getName(), name.toCString()
-            );
+                     property.getDeviceName(), property.getName(), name.toCString()
+                    );
             return -1;
         }
 
