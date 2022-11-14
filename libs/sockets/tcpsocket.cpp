@@ -87,7 +87,7 @@ ssize_t TcpSocketPrivate::write(const void *data, size_t size)
 
     if (ret < 0)
     {
-        aboutToClose();
+        setSocketError(TcpSocket::ConnectionRefusedError);
     }
 
     return std::max(ret, 0);
@@ -245,12 +245,6 @@ void TcpSocketPrivate::connectToHost(const std::string &hostName, unsigned short
         setSocketState(TcpSocket::ConnectedState);
         parent->connected();
         while (isAboutToClose == false && processSocket());
-
-        if (errno != 0 && errno != EINPROGRESS)
-        {
-            setSocketError(TcpSocket::ConnectionRefusedError);
-        }
-
         parent->disconnected();
 
     }, std::move(thread));
@@ -313,6 +307,7 @@ void TcpSocketPrivate::setSocketError(TcpSocket::SocketError error, ErrorType er
         this->errorString = errorString;
     }
     socketError = error;
+    isAboutToClose = true;
     parent->errorOccurred(error);
 }
 
@@ -503,7 +498,7 @@ void TcpSocket::readyRead()
 
     if (size <= 0)
     {
-        disconnectFromHost();
+        setSocketError(TcpSocket::ConnectionRefusedError);
         return;
     }
 
@@ -537,4 +532,9 @@ void TcpSocket::emitErrorOccurred(SocketError error) const
 {
     if (d_ptr->onErrorOccurred)
         d_ptr->onErrorOccurred(error);
+}
+
+void TcpSocket::setSocketError(SocketError socketError)
+{
+    d_ptr->setSocketError(socketError);
 }

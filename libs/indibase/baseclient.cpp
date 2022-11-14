@@ -73,7 +73,7 @@ bool ClientSharedBlobs::parseAttachedBlobs(const INDI::LilXmlElement &root, Clie
     // parse all elements in root that are attached.
     // Create for each a new GUID and associate it in a global map
     // modify the xml to add an attribute with the guid
-    for (auto &blobContent: root.getElementsByTagName("oneBLOB"))
+    for (auto &blobContent : root.getElementsByTagName("oneBLOB"))
     {
         auto attached = blobContent.getAttribute("attached");
 
@@ -111,7 +111,7 @@ bool ClientSharedBlobs::parseAttachedBlobs(const INDI::LilXmlElement &root, Clie
 }
 
 bool ClientSharedBlobs::hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> &directBlobAccess,
-                                                 const std::string &dev, const std::string &prop)
+        const std::string &dev, const std::string &prop)
 {
     auto devAccess = directBlobAccess.find(dev);
     if (devAccess == directBlobAccess.end())
@@ -124,8 +124,8 @@ bool ClientSharedBlobs::hasDirectBlobAccessEntry(const std::map<std::string, std
 bool ClientSharedBlobs::isDirectBlobAccess(const std::string &dev, const std::string &prop) const
 {
     return hasDirectBlobAccessEntry(directBlobAccess, "", "")
-        || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
-        || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+           || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
 }
 
 void ClientSharedBlobs::addIncomingSharedBuffer(int fd)
@@ -206,7 +206,7 @@ void TcpSocketSharedBlobs::readyRead()
 
     if (n <= 0)
     {
-        disconnectFromHost();
+        setSocketError(TcpSocket::ConnectionRefusedError);
         return;
     }
 
@@ -232,7 +232,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
             return;
         }
 
-        for (const auto &doc: documents)
+        for (const auto &doc : documents)
         {
             LilXmlElement root = doc.root();
 
@@ -261,6 +261,13 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
                 }
             }
         }
+    });
+
+    clientSocket.onErrorOccurred([this] (TcpSocket::SocketError)
+    {
+        this->parent->serverDisconnected(exitCode);
+        clear();
+        watchDevice.unwatchDevices();
     });
 }
 
@@ -304,6 +311,8 @@ bool BaseClient::connectServer()
         return false;
     }
 
+    d->exitCode = -1;
+
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
 #ifndef _WINDOWS
@@ -337,16 +346,9 @@ bool BaseClient::disconnectServer(int exit_code)
         return false;
     }
 
+    d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
-
-    // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
-    serverDisconnected(exit_code);
-
-    d->clear();
-
-    d->watchDevice.unwatchDevices();
-
-    return true;
+    return d->clientSocket.waitForDisconnected();
 }
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
