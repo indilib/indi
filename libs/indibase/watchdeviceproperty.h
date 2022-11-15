@@ -46,15 +46,9 @@ class WatchDeviceProperty
         };
 
     public:
-        static BaseDevice *baseDeviceConstructor()
-        {
-            return new BaseDevice;
-        }
-
-    public:
         std::vector<BaseDevice> getDevices() const;
         BaseDevice getDeviceByName(const char *name) const;
-        DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor);
+        DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice()> &constructor);
 
     public:
         bool isEmpty() const;
@@ -80,7 +74,7 @@ class WatchDeviceProperty
         bool deleteDevice(const BaseDevice &device);
 
     public:
-        int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor = [](){ return new BaseDevice(); } );
+        int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice()> &constructor = [] { return BaseDevice(); } );
 
     public:
         std::map<std::string, DeviceInfo>::iterator begin()

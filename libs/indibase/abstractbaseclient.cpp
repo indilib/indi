@@ -116,8 +116,8 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
 
     return watchDevice.processXml(root, errmsg, [this]  // create new device if nessesery
     {
-        BaseDevice *device = new BaseDevice();
-        device->setMediator(parent);
+        BaseDevice device;
+        device.setMediator(parent);
         return device;
     });
 }

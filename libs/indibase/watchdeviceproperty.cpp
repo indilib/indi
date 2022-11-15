@@ -39,12 +39,12 @@ BaseDevice WatchDeviceProperty::getDeviceByName(const char *name) const
     return it != data.end() ? it->second.device : BaseDevice::invalid();
 }
 
-WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor)
+WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice()> &constructor)
 {
     auto &it = data[name];
     if (!it.device.isValid())
     {
-        it.device = *constructor();
+        it.device = constructor();
         it.device.setDeviceName(name);
         it.device.d_ptr->mediateNewDevice();
         it.emitWatchDevice();
@@ -112,7 +112,7 @@ bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
     return false;
 }
 
-int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor)
+int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice()> &constructor)
 {
     auto deviceName = root.getAttribute("device");
     if (!deviceName.isValid() || deviceName.toString() == "" || !isDeviceWatched(deviceName))
