@@ -72,7 +72,7 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
     // Ignore echoed newXXX
     if (root.tagName().find("new") == 0)
     {
-        return 0;       
+        return 0;
     }
 
     if (root.tagName() == "pingRequest")
@@ -114,7 +114,8 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
         return 0;
     }
 
-    return watchDevice.processXml(root, errmsg, [this]() { // create new device if nessesery
+    return watchDevice.processXml(root, errmsg, [this]  // create new device if nessesery
+    {
         BaseDevice *device = new BaseDevice();
         device->setMediator(parent);
         return device;
@@ -405,7 +406,7 @@ std::vector<BaseDevice> AbstractBaseClient::getDevices() const
 bool AbstractBaseClient::getDevices(std::vector<BaseDevice> &deviceList, uint16_t driverInterface )
 {
     D_PTR(AbstractBaseClient);
-    for (auto &it: d->watchDevice)
+    for (auto &it : d->watchDevice)
     {
         if (it.second.device.getDriverInterface() & driverInterface)
             deviceList.push_back(it.second.device);
