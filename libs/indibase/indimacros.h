@@ -100,6 +100,14 @@
  */
 #if defined(__cplusplus)
 
+#include <memory>
+
+template <typename T>
+static inline std::shared_ptr<T> make_shared_weak(T *object)
+{
+    return std::shared_ptr<T>(object, [](T*) {});
+}
+
 template <typename T>
 static inline T *getPtrHelper(T *ptr)
 {

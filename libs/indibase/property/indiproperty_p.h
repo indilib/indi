@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "indimacros.h"
 #include "indibase.h"
 #include "indiproperty.h"
 #include <memory>
@@ -26,14 +27,6 @@
 
 namespace INDI
 {
-
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-template <typename T>
-static inline std::shared_ptr<T> make_shared_weak(T *object)
-{
-    return std::shared_ptr<T>(object, [](T*) {});
-}
-#endif
 
 template <typename T, typename U>
 static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> &r)
