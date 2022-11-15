@@ -176,9 +176,11 @@ class BaseDevice
         const std::string &lastMessage() const;
 
     public:
-        static BaseDevice invalid();
+        /** @return return device where isValid() == false */
+        static BaseDevice &invalid();
 
     public:
+        /** @return True if the device exists */
         bool isValid() const;
 
         /** @return True if the device is connected (CONNECT=ON), False otherwise */
@@ -283,6 +285,7 @@ class BaseDevice
         friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);
+        BaseDevice(const std::shared_ptr<BaseDevicePrivate> &dd);
 };
 
 }

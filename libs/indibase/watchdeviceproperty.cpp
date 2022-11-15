@@ -33,7 +33,7 @@ std::vector<BaseDevice> WatchDeviceProperty::getDevices() const
     return result;
 }
 
-BaseDevice WatchDeviceProperty::getDeviceByName(const char *name) const
+BaseDevice &WatchDeviceProperty::getDeviceByName(const char *name)
 {
     auto it = data.find(name);
     return it != data.end() ? it->second.device : BaseDevice::invalid();
@@ -46,7 +46,7 @@ WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const c
     {
         it.device = constructor();
         it.device.setDeviceName(name);
-        it.device.d_ptr->mediateNewDevice();
+        it.device.d_ptr->mediateNewDevice(it.device);
         it.emitWatchDevice();
     }
     return it;

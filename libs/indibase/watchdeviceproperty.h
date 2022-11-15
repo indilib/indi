@@ -34,7 +34,7 @@ class WatchDeviceProperty
     public:
         struct DeviceInfo
         {
-            BaseDevice device;
+            BaseDevice device {BaseDevice::invalid()};
             std::function<void (BaseDevice)> newDeviceCallback; // call if device available
             std::set<std::string> properties; // watch only specific properties only
 
@@ -47,7 +47,7 @@ class WatchDeviceProperty
 
     public:
         std::vector<BaseDevice> getDevices() const;
-        BaseDevice getDeviceByName(const char *name) const;
+        BaseDevice &getDeviceByName(const char *name);
         DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice()> &constructor);
 
     public:

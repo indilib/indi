@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "indimacros.h"
 #include "basedevice.h"
 #include "lilxml.h"
 #include "indibase.h"
@@ -38,7 +39,7 @@ class BaseDevice;
 class BaseDevicePrivate
 {
     public:
-        BaseDevicePrivate(BaseDevice *parent);
+        BaseDevicePrivate();
         virtual ~BaseDevicePrivate();
 
         /** @brief Parse and store BLOB in the respective vector */
@@ -59,29 +60,29 @@ class BaseDevicePrivate
         }
 
     public: // mediator
-        void mediateNewDevice()
+        void mediateNewDevice(BaseDevice &baseDevice)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newDevice(parent);
+                mediator->newDevice(&baseDevice);
 #endif
-                mediator->newDevice(*parent);
+                mediator->newDevice(baseDevice);
             }
         }
 
-        void mediateRemoveDevice()
+        void mediateRemoveDevice(BaseDevice &baseDevice)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->removeDevice(parent);
+                mediator->removeDevice(&baseDevice);
 #endif
-                mediator->removeDevice(*parent);
+                mediator->removeDevice(baseDevice);
             }
         }
 
-        void mediate(PropertyNumber property)
+        void mediateNewNumber(PropertyNumber property)
         {
             if (mediator)
             {
@@ -92,7 +93,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediate(PropertySwitch property)
+        void mediateNewSwitch(PropertySwitch property)
         {
             if (mediator)
             {
@@ -103,7 +104,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediate(PropertyText property)
+        void mediateNewText(PropertyText property)
         {
             if (mediator)
             {
@@ -114,7 +115,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediate(PropertyLight property)
+        void mediateNewLight(PropertyLight property)
         {
             if (mediator)
             {
@@ -125,7 +126,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediate(IBLOB *blob)
+        void mediateNewBlob(IBLOB *blob)
         {
             if (mediator)
             {
@@ -135,18 +136,18 @@ class BaseDevicePrivate
             }
         }
 
-        void mediateMessage(int messageID)
+        void mediateNewMessage(BaseDevice &baseDevice, int messageID)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newMessage(parent, messageID);
+                mediator->newMessage(&baseDevice, messageID);
 #endif
-                mediator->newMessage(*parent, messageID);
+                mediator->newMessage(baseDevice, messageID);
             }
         }
 
-        void mediateProperty(Property property)
+        void mediateNewProperty(Property &property)
         {
             if (mediator)
             {
@@ -157,7 +158,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediateRemoveProperty(Property property)
+        void mediateRemoveProperty(Property &property)
         {
             if (mediator)
             {
@@ -169,7 +170,7 @@ class BaseDevicePrivate
         }
 
     public:
-        BaseDevice *parent;
+        BaseDevice self {make_shared_weak(this)}; // backward compatibile (for operators as pointer)
         std::string deviceName;
         BaseDevice::Properties pAll;
         std::map<std::string, std::function<void(INDI::Property)>> watchPropertyMap;

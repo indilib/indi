@@ -55,8 +55,7 @@
 namespace INDI
 {
 
-BaseDevicePrivate::BaseDevicePrivate(BaseDevice *parent)
-    : parent(parent)
+BaseDevicePrivate::BaseDevicePrivate()
 {
     static char indidev[] = "INDIDEV=";
 
@@ -73,7 +72,7 @@ BaseDevicePrivate::~BaseDevicePrivate()
 }
 
 BaseDevice::BaseDevice()
-    : d_ptr(new BaseDevicePrivate(this))
+    : d_ptr(new BaseDevicePrivate)
 { }
 
 BaseDevice::~BaseDevice()
@@ -81,6 +80,10 @@ BaseDevice::~BaseDevice()
 
 BaseDevice::BaseDevice(BaseDevicePrivate &dd)
     : d_ptr(&dd)
+{ }
+
+BaseDevice::BaseDevice(const std::shared_ptr<BaseDevicePrivate> &dd)
+    : d_ptr(dd)
 { }
 
 INDI::PropertyNumber BaseDevice::getNumber(const char *name) const
@@ -470,7 +473,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
     d->addProperty(property);
 
     // IDLog("Adding number property %s to list.\n", property.getName());
-    d->mediateProperty(property);
+    d->mediateNewProperty(property);
 
     return (0);
 }
@@ -594,7 +597,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
                 if (auto max = element.getAttribute("max")) item->setMax(max);
             });
             locale.Restore();
-            d->mediate(INDI::PropertyNumber(property));
+            d->mediateNewNumber(property);
             break;
         }
 
@@ -604,7 +607,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setState(element.context());
             });
-            d->mediate(INDI::PropertySwitch(property));
+            d->mediateNewSwitch(property);
             break;
         }
 
@@ -614,7 +617,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setText(element.context());
             });
-            d->mediate(INDI::PropertyText(property));
+            d->mediateNewText(property);
             break;
         }
 
@@ -624,7 +627,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setState(element.context());
             });
-            d->mediate(INDI::PropertyLight(property));
+            d->mediateNewLight(property);
             break;
         }
 
@@ -703,7 +706,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
 
         if (size.toInt() == 0)
         {
-            mediate(widget);
+            mediateNewBlob(widget);
             continue;
         }
 
@@ -755,7 +758,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
         }
 
         property.emitUpdate();
-        mediate(widget);
+        mediateNewBlob(widget);
     }
 
     return 0;
@@ -831,7 +834,7 @@ void BaseDevice::addMessage(const std::string &msg)
     d->messageLog.push_back(msg);
     guard.unlock();
 
-    d->mediateMessage(d->messageLog.size() - 1);
+    d->mediateNewMessage(*this, d->messageLog.size() - 1);
 }
 
 const std::string &BaseDevice::messageQueue(size_t index) const
@@ -850,10 +853,16 @@ const std::string &BaseDevice::lastMessage() const
     return d->messageLog.back();
 }
 
-BaseDevice BaseDevice::invalid()
+BaseDevice &BaseDevice::invalid()
 {
-    static BaseDevice device;
-    device.d_ptr->valid = false;
+    static class BaseDeviceInvalid: public BaseDevice
+    {
+        public:
+            BaseDeviceInvalid()
+            {
+                d_ptr->valid = false;
+            }
+    } device;
     return device;
 }
 
@@ -953,13 +962,13 @@ INDI::BaseMediator *BaseDevice::getMediator() const
 BaseDevice *BaseDevice::operator->()
 {
     D_PTR(BaseDevice);
-    return d->parent;
+    return &d->self;
 }
 
 BaseDevice::operator BaseDevice*()
 {
     D_PTR(BaseDevice);
-    return isValid() ? d->parent : nullptr;
+    return isValid() ? &d->self : nullptr;
 }
 
 }
