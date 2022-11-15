@@ -126,7 +126,7 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
     if (auto device = watchDevice.getDeviceByName(devName))
     {
-        device.d_ptr->mediateRemoveDevice(device);
+        device.detach();
         watchDevice.deleteDevice(device);
         return 0;
     }

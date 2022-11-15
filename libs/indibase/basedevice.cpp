@@ -489,6 +489,18 @@ bool BaseDevice::isConnected() const
     return sp && sp->getState() == ISS_ON && svp->getState() == IPS_OK;
 }
 
+void BaseDevice::attach()
+{
+    D_PTR(BaseDevice);
+    d->mediateNewDevice(*this);
+}
+
+void BaseDevice::detach()
+{
+    D_PTR(BaseDevice);
+    d->mediateRemoveDevice(*this);
+}
+
 // helper for BaseDevice::setValue
 template <typename TypedProperty>
 static void for_property(

@@ -186,6 +186,16 @@ class BaseDevice
         /** @return True if the device is connected (CONNECT=ON), False otherwise */
         bool isConnected() const;
 
+        /** @brief indicates that the device is ready
+         *  @note the BaseMediator::newDevice method will be called
+         */
+        void attach();
+
+        /** @brief indicates that the device is being removed
+         *  @note the BaseMediator::removeDevice method will be called
+         */
+        void detach();
+
         /** @brief Set the driver's mediator to receive notification of news devices and updated property values. */
         void setMediator(INDI::BaseMediator *mediator);
 
@@ -281,7 +291,6 @@ class BaseDevice
         }
 
     protected:
-        friend class WatchDeviceProperty;
         friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);

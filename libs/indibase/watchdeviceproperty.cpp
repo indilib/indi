@@ -46,7 +46,7 @@ WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const c
     {
         it.device = constructor();
         it.device.setDeviceName(name);
-        it.device.d_ptr->mediateNewDevice(it.device);
+        it.device.attach();
         it.emitWatchDevice();
     }
     return it;
