@@ -493,13 +493,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         }
         else
         {
-            unsigned int index, oldindex;
+            int index, oldindex;
             oldindex = IUFindOnSwitchIndex(&CaptureFormatsSP);
             IUResetSwitch(&CaptureFormatsSP);
             IUUpdateSwitch(&CaptureFormatsSP, states, names, n);
             index = IUFindOnSwitchIndex(&CaptureFormatsSP);
 
-            if (v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
+            if (index < 0 || v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
             {
                 LOGF_INFO("ERROR (setformat): %s", errmsg);
                 IUResetSwitch(&CaptureFormatsSP);
@@ -555,11 +555,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         }
         else
         {
-            unsigned int index, w, h;
+            int index{0}, w {0}, h {0};
             IUUpdateSwitch(&CaptureSizesSP, states, names, n);
             index = IUFindOnSwitchIndex(&CaptureSizesSP);
-            sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
-            if (v4l_base->setcapturesize(w, h, errmsg) == -1)
+
+            if (index >= 0)
+                sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
+            if (w == 0 || h == 0 || v4l_base->setcapturesize(w, h, errmsg) == -1)
             {
                 LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesSP.s = IPS_ALERT;
@@ -602,12 +604,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
         }
-        unsigned int index;
+        int index {0};
         struct v4l2_fract frate;
         IUUpdateSwitch(&FrameRatesSP, states, names, n);
         index = IUFindOnSwitchIndex(&FrameRatesSP);
-        sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
-        if ((v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
+        if (index >= 0)
+            sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
+        if (index < 0 || (v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
         {
             LOGF_INFO("ERROR (setframerate): %s", errmsg);
             FrameRatesSP.s = IPS_ALERT;
@@ -1378,14 +1381,15 @@ void V4L2_Driver::newFrame()
 
         if (v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
         {
-            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
-            //            if (buffer)
-            //            {
-            //                PrimaryCCD.setFrameBufferSize(totalBytes);
-            //                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
-            //            }
-            guard.unlock();
             Streamer->setPixelFormat(INDI_JPG);
+            auto buffer = v4l_base->getMJPEGBuffer(totalBytes);
+            if (buffer)
+            {
+                PrimaryCCD.setFrameBufferSize(totalBytes);
+                memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+            }
+            guard.unlock();
+
             Streamer->newFrame(buffer, totalBytes);
             return;
         }
@@ -1918,6 +1922,9 @@ bool V4L2_Driver::StartStreaming()
         return false;
     }
 
+    auto onSwitch = IUFindOnSwitch(&CaptureFormatsSP);
+    if (onSwitch && strstr(onSwitch->label, "JPEG"))
+        v4l_base->setNative(true);
     /* Callee will take care of checking states */
     return start_capturing(true);
 }
@@ -1932,6 +1939,7 @@ bool V4L2_Driver::StopStreaming()
         return false;
     }
 
+    v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
     return stop_capturing();
 }
 
