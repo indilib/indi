@@ -41,6 +41,7 @@ void BaseMediator::serverDisconnected(int)
 { }
 
 // deprecated
+#if INDI_VERSION_MAJOR < 2
 void BaseMediator::newDevice(INDI::BaseDevice *)
 { }
 
@@ -67,5 +68,6 @@ void BaseMediator::newLight(ILightVectorProperty *)
 
 void BaseMediator::newMessage(INDI::BaseDevice *, int)
 { }
+#endif
 
 }

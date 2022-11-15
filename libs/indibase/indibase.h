@@ -5,6 +5,11 @@
 #include "indidevapi.h"
 #include "indibasetypes.h"
 
+#ifdef SWIG
+// api version for swig
+%include "indiapi.h"
+#endif
+
 #define MAXRBUF 2048
 
 /** @namespace INDI
@@ -146,6 +151,7 @@ class INDI::BaseMediator
         virtual void serverDisconnected(int exit_code);
 
     public: // deprecated interface
+#if INDI_VERSION_MAJOR < 2
         /** @brief Emmited when a new device is created from INDI server.
          *  @param dp Pointer to the base device instance
          */
@@ -191,4 +197,5 @@ class INDI::BaseMediator
          *  @param messageID ID of the message that can be used to retrieve the message from the device's messageQueue() function.
          */
         virtual void newMessage(INDI::BaseDevice *dp, int messageID); // deprecated
+#endif
 };

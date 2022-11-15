@@ -63,7 +63,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newDevice(parent);
+#endif
                 mediator->newDevice(*parent);
             }
         }
@@ -72,7 +74,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->removeDevice(parent);
+#endif
                 mediator->removeDevice(*parent);
             }
         }
@@ -81,7 +85,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newNumber(property.getNumber());
+#endif
                 mediator->newNumber(property);
             }
         }
@@ -90,7 +96,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newSwitch(property.getSwitch());
+#endif
                 mediator->newSwitch(property);
             }
         }
@@ -99,7 +107,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newText(property.getText());
+#endif
                 mediator->newText(property);
             }
         }
@@ -108,7 +118,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newLight(property.getLight());
+#endif
                 mediator->newLight(property);
             }
         }
@@ -127,7 +139,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newMessage(parent, messageID);
+#endif
                 mediator->newMessage(*parent, messageID);
             }
         }
@@ -136,7 +150,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->newProperty((Property *)property);
+#endif
                 mediator->newProperty(property);
             }
         }
@@ -145,7 +161,9 @@ class BaseDevicePrivate
         {
             if (mediator)
             {
+#if INDI_VERSION_MAJOR < 2
                 mediator->removeProperty((Property *)property);
+#endif
                 mediator->removeProperty(property);
             }
         }
