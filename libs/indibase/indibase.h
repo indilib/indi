@@ -91,6 +91,7 @@ class INDI::BaseMediator
     public:
         virtual ~BaseMediator() = default;
 
+    public:
         /** @brief Emmited when a new device is created from INDI server.
          *  @param baseDevice BaseDevice instance.
          */
@@ -101,47 +102,30 @@ class INDI::BaseMediator
          */
         virtual void removeDevice(INDI::BaseDevice baseDevice);        
 
+    public:
         /** @brief Emmited when a new property is created for an INDI driver.
          *  @param property Property container.
          */
         virtual void newProperty(INDI::Property property);
+
+        /** @brief Emmited when a new property value arrives from INDI server.
+         *  @param property Property container.
+         */
+        virtual void updateProperty(INDI::Property property);
 
         /** @brief Emmited when a property is deleted for an INDI driver.
          *  @param property Property container.
          */
         virtual void removeProperty(INDI::Property property);
 
-        /** @brief Emmited when a new BLOB value arrives from INDI server.
-         *  @param bp Pointer to filled and process BLOB.
-         */
-        virtual void newBLOB(IBLOB *bp);
-
-        /** @brief Emmited when a new switch value arrives from INDI server.
-         *  @param property PropertySwitch container.
-         */
-        virtual void newSwitch(INDI::PropertySwitch property);
-
-        /** @brief Emmited when a new number value arrives from INDI server.
-         *  @param property PropertyNumber container.
-         */
-        virtual void newNumber(INDI::PropertyNumber property);
-
-        /** @brief Emmited when a new text value arrives from INDI server.
-         *  @param property PropertyText container.
-         */
-        virtual void newText(INDI::PropertyText property);
-
-        /** @brief Emmited when a new light value arrives from INDI server.
-         *  @param property PropertyLight container.
-         */
-        virtual void newLight(INDI::PropertyLight property);
-
+    public:
         /** @brief Emmited when a new message arrives from INDI server.
          *  @param baseDevice BaseDevice instance the message is sent to.
          *  @param messageID ID of the message that can be used to retrieve the message from the device's messageQueue() function.
          */
         virtual void newMessage(INDI::BaseDevice baseDevice, int messageID);
 
+    public:
         /** @brief Emmited when the server is connected. */
         virtual void serverConnected();
 
@@ -191,6 +175,11 @@ class INDI::BaseMediator
          *  @param lvp Pointer to a light vector property.
          */
         virtual void newLight(ILightVectorProperty *lvp); // deprecated
+
+        /** @brief Emmited when a new property value arrives from INDI server.
+         *  @param bp Pointer to filled and process BLOB.
+         */
+        virtual void newBLOB(IBLOB *bp); // deprecated
 
         /** @brief Emmited when a new message arrives from INDI server.
          *  @param dp pointer to the INDI device the message is sent to.

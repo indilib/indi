@@ -609,7 +609,6 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
                 if (auto max = element.getAttribute("max")) item->setMax(max);
             });
             locale.Restore();
-            d->mediateNewNumber(property);
             break;
         }
 
@@ -619,7 +618,6 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setState(element.context());
             });
-            d->mediateNewSwitch(property);
             break;
         }
 
@@ -629,7 +627,6 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setText(element.context());
             });
-            d->mediateNewText(property);
             break;
         }
 
@@ -639,19 +636,21 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
             {
                 item->setState(element.context());
             });
-            d->mediateNewLight(property);
             break;
         }
 
         case INDI_BLOB:
         {
-            INDI::PropertyBlob typedProperty = property;
-            return d->setBLOB(typedProperty, root, errmsg);
+            if (d->setBLOB(PropertyBlob(property), root, errmsg) < 0)
+                return -1;
+            break;
         }
 
         case INDI_UNKNOWN: // it will never happen
             return -1;
     }
+
+    d->mediateUpdateProperty(property);
 
     return 0;
 }
@@ -698,7 +697,7 @@ static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetView<I
 /* Set BLOB vector. Process incoming data stream
  * Return 0 if okay, -1 if error
 */
-int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement &root, char *errmsg)
+int BaseDevicePrivate::setBLOB(INDI::PropertyBlob property, const LilXmlElement &root, char *errmsg)
 {
     for (const auto &element : root.getElementsByTagName("oneBLOB"))
     {
@@ -718,7 +717,6 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
 
         if (size.toInt() == 0)
         {
-            mediateNewBlob(widget);
             continue;
         }
 
@@ -770,7 +768,6 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob &property, const LilXmlElement
         }
 
         property.emitUpdate();
-        mediateNewBlob(widget);
     }
 
     return 0;

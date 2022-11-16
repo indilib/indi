@@ -510,51 +510,57 @@ void Imager::newProperty(INDI::Property property)
     }
 }
 
-void Imager::newBLOB(IBLOB *bp)
-{
-    if (ProgressNP.s == IPS_BUSY)
-    {
-        char name[128] = {0};
-        std::ofstream file;
-
-        strncpy(format, bp->format, 16);
-        sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-        file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
-        file.write(static_cast<char *>(bp->blob), bp->bloblen);
-        file.close();
-        LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
-                   name);
-        if (image == maxImage)
-        {
-            if (group == maxGroup)
-            {
-                batchDone();
-            }
-            else
-            {
-                maxImage           = nextGroup()->count();
-                ProgressN[0].value = group = group + 1;
-                ProgressN[1].value = image = 1;
-                IDSetNumber(&ProgressNP, nullptr);
-                initiateNextFilter();
-            }
-        }
-        else
-        {
-            ProgressN[1].value = image = image + 1;
-            IDSetNumber(&ProgressNP, nullptr);
-            initiateNextFilter();
-        }
-    }
-}
-
-void Imager::newSwitch(INDI::PropertySwitch property)
+void Imager::updateProperty(INDI::Property property)
 {
     std::string deviceName{property.getDeviceName()};
-    bool state = property[0].getState() != ISS_OFF;
+
+    if (property.getType() == INDI_BLOB)
+    {
+        for (auto &bp: INDI::PropertyBlob(property))
+        {
+            if (ProgressNP.s == IPS_BUSY)
+            {
+                char name[128] = {0};
+                std::ofstream file;
+
+                strncpy(format, bp.getFormat(), 16);
+                sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
+                file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
+                file.write(static_cast<char *>(bp.getBlob()), bp.getBlobLen());
+                file.close();
+                LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
+                        name);
+                if (image == maxImage)
+                {
+                    if (group == maxGroup)
+                    {
+                        batchDone();
+                    }
+                    else
+                    {
+                        maxImage           = nextGroup()->count();
+                        ProgressN[0].value = group = group + 1;
+                        ProgressN[1].value = image = 1;
+                        IDSetNumber(&ProgressNP, nullptr);
+                        initiateNextFilter();
+                    }
+                }
+                else
+                {
+                    ProgressN[1].value = image = image + 1;
+                    IDSetNumber(&ProgressNP, nullptr);
+                    initiateNextFilter();
+                }
+            }
+        }
+        return;
+    }
 
     if (property.isNameMatch(INDI::SP::CONNECTION))
     {
+        INDI::PropertySwitch propertySwitch{property};
+
+        bool state = propertySwitch[0].getState() != ISS_OFF;
         if (deviceName == controlledCCD)
         {
             StatusL[0].s = state ? IPS_OK : IPS_BUSY;
@@ -565,38 +571,34 @@ void Imager::newSwitch(INDI::PropertySwitch property)
             StatusL[1].s = state ? IPS_OK : IPS_BUSY;
         }
         IDSetLight(&StatusLP, nullptr);
+        return;
     }
-}
-
-void Imager::newNumber(INDI::PropertyNumber property)
-{
-    std::string deviceName{property.getDeviceName()};
 
     if (deviceName == controlledCCD && property.isNameMatch("CCD_EXPOSURE"))
     {
-        ProgressN[2].value = property[0].getValue();
+        INDI::PropertyNumber propertyNumber{property};
+        ProgressN[2].value = propertyNumber[0].getValue();
         IDSetNumber(&ProgressNP, nullptr);
+        return;
     }
 
     if (deviceName == controlledFilterWheel && property.isNameMatch("FILTER_SLOT"))
     {
-        FilterSlotN[0].value = property[0].getValue();
+        INDI::PropertyNumber propertyNumber{property};
+        FilterSlotN[0].value = propertyNumber[0].getValue();
         if (property.getState() == IPS_OK)
             initiateNextCapture();
+        return;
     }
-}
-
-void Imager::newText(INDI::PropertyText property)
-{
-    std::string deviceName{property.getDeviceName()};
 
     if (deviceName == controlledCCD && property.isNameMatch("CCD_FILE_PATH"))
     {
+        INDI::PropertyText propertyText(property);
         char name[128] = {0};
 
-        strncpy(format, strrchr(property[0].getText(), '.'), sizeof(format));
+        strncpy(format, strrchr(propertyText[0].getText(), '.'), sizeof(format));
         sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-        rename(property[0].getText(), name);
+        rename(propertyText[0].getText(), name);
         LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
                     maxImage, name);
         if (image == maxImage)
@@ -620,6 +622,7 @@ void Imager::newText(INDI::PropertyText property)
             IDSetNumber(&ProgressNP, nullptr);
             initiateNextFilter();
         }
+        return;
     }
 }
 

@@ -4,35 +4,31 @@
 namespace INDI
 {
 
+// device
+
 void BaseMediator::newDevice(INDI::BaseDevice)
 { }
 
 void BaseMediator::removeDevice(INDI::BaseDevice)
 { }
 
+// property
+
 void BaseMediator::newProperty(INDI::Property)
+{ }
+
+void BaseMediator::updateProperty(INDI::Property)
 { }
 
 void BaseMediator::removeProperty(INDI::Property)
 { }
 
-void BaseMediator::newBLOB(IBLOB *)
-{ }
-
-void BaseMediator::newSwitch(INDI::PropertySwitch)
-{ }
-
-void BaseMediator::newNumber(INDI::PropertyNumber)
-{ }
-
-void BaseMediator::newText(INDI::PropertyText)
-{ }
-
-void BaseMediator::newLight(INDI::PropertyLight)
-{ }
+// message
 
 void BaseMediator::newMessage(INDI::BaseDevice, int)
 { }
+
+// server
 
 void BaseMediator::serverConnected()
 { }
@@ -64,6 +60,9 @@ void BaseMediator::newText(ITextVectorProperty *)
 { }
 
 void BaseMediator::newLight(ILightVectorProperty *)
+{ }
+
+void BaseMediator::newBLOB(IBLOB *)
 { }
 
 void BaseMediator::newMessage(INDI::BaseDevice *, int)

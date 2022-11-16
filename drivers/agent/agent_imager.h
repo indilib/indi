@@ -47,10 +47,8 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
 
         virtual void newDevice(INDI::BaseDevice baseDevice) override;
         virtual void newProperty(INDI::Property property) override;
-        virtual void newBLOB(IBLOB *bp) override;
-        virtual void newSwitch(INDI::PropertySwitch property) override;
-        virtual void newNumber(INDI::PropertyNumber property) override;
-        virtual void newText(INDI::PropertyText property) override;
+        virtual void updateProperty(INDI::Property property) override;
+
         virtual void serverConnected() override;
         virtual void serverDisconnected(int exit_code) override;
 

@@ -43,7 +43,7 @@ class BaseDevicePrivate
         virtual ~BaseDevicePrivate();
 
         /** @brief Parse and store BLOB in the respective vector */
-        int setBLOB(INDI::PropertyBlob &propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
+        int setBLOB(INDI::PropertyBlob propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
 
         void addProperty(const INDI::Property &property)
         {
@@ -82,71 +82,6 @@ class BaseDevicePrivate
             }
         }
 
-        void mediateNewNumber(PropertyNumber property)
-        {
-            if (mediator)
-            {
-#if INDI_VERSION_MAJOR < 2
-                mediator->newNumber(property.getNumber());
-#endif
-                mediator->newNumber(property);
-            }
-        }
-
-        void mediateNewSwitch(PropertySwitch property)
-        {
-            if (mediator)
-            {
-#if INDI_VERSION_MAJOR < 2
-                mediator->newSwitch(property.getSwitch());
-#endif
-                mediator->newSwitch(property);
-            }
-        }
-
-        void mediateNewText(PropertyText property)
-        {
-            if (mediator)
-            {
-#if INDI_VERSION_MAJOR < 2
-                mediator->newText(property.getText());
-#endif
-                mediator->newText(property);
-            }
-        }
-
-        void mediateNewLight(PropertyLight property)
-        {
-            if (mediator)
-            {
-#if INDI_VERSION_MAJOR < 2
-                mediator->newLight(property.getLight());
-#endif
-                mediator->newLight(property);
-            }
-        }
-
-        void mediateNewBlob(IBLOB *blob)
-        {
-            if (mediator)
-            {
-                mediator->newBLOB(blob);
-                // #PS: TODO - Blob requires complete refactoring,
-                //             there is no certainty how long the data is kept.
-            }
-        }
-
-        void mediateNewMessage(BaseDevice &baseDevice, int messageID)
-        {
-            if (mediator)
-            {
-#if INDI_VERSION_MAJOR < 2
-                mediator->newMessage(&baseDevice, messageID);
-#endif
-                mediator->newMessage(baseDevice, messageID);
-            }
-        }
-
         void mediateNewProperty(Property &property)
         {
             if (mediator)
@@ -158,6 +93,39 @@ class BaseDevicePrivate
             }
         }
 
+        void mediateUpdateProperty(Property property)
+        {
+            if (mediator)
+            {
+                mediator->updateProperty(property);
+#if INDI_VERSION_MAJOR < 2
+                switch (property.getType())
+                {
+                    case INDI_NUMBER:
+                        mediator->newNumber(property.getNumber());
+                        break;
+                    case INDI_SWITCH:
+                        mediator->newSwitch(property.getSwitch());
+                        break;
+                    case INDI_TEXT:
+                        mediator->newText(property.getText());
+                        break;
+                    case INDI_LIGHT:
+                        mediator->newLight(property.getLight());
+                        break;
+                    case INDI_BLOB:
+                        for (auto &it : PropertySwitch(property))
+                        {
+                            mediator->newBLOB(&it);
+                        }
+                        break;
+                    case INDI_UNKNOWN:
+                        ;
+                }
+#endif
+            }
+        }
+
         void mediateRemoveProperty(Property &property)
         {
             if (mediator)
@@ -166,6 +134,17 @@ class BaseDevicePrivate
                 mediator->removeProperty((Property *)property);
 #endif
                 mediator->removeProperty(property);
+            }
+        }
+
+        void mediateNewMessage(BaseDevice &baseDevice, int messageID)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->newMessage(&baseDevice, messageID);
+#endif
+                mediator->newMessage(baseDevice, messageID);
             }
         }
 
