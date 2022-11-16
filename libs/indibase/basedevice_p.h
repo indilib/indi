@@ -114,7 +114,7 @@ class BaseDevicePrivate
                         mediator->newLight(property.getLight());
                         break;
                     case INDI_BLOB:
-                        for (auto &it : PropertySwitch(property))
+                        for (auto &it : PropertyBlob(property))
                         {
                             mediator->newBLOB(&it);
                         }
