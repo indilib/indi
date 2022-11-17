@@ -143,3 +143,10 @@ static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p)
 # endif
 #endif
 
+#ifdef SWIG
+# define INDI_DEPRECATED(message)
+#elif __cplusplus
+# define INDI_DEPRECATED(message) [[deprecated(message)]]
+#else
+# define INDI_DEPRECATED(message) __attribute__ ((deprecated))
+#endif
