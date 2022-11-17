@@ -136,17 +136,13 @@ DefaultDevicePrivate::~DefaultDevicePrivate()
 }
 
 DefaultDevice::DefaultDevice()
-    : BaseDevice(*new DefaultDevicePrivate(this))
+    : ParentDevice(std::shared_ptr<ParentDevicePrivate>(new DefaultDevicePrivate(this)))
 {
     D_PTR(DefaultDevice);
     d->m_MainLoopTimer.setSingleShot(true);
     d->m_MainLoopTimer.setInterval(getPollingPeriod());
     d->m_MainLoopTimer.callOnTimeout(std::bind(&DefaultDevice::TimerHit, this));
 }
-
-DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
-    : BaseDevice(dd)
-{ }
 
 bool DefaultDevice::loadConfig(INDI::Property &property)
 {

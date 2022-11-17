@@ -33,13 +33,13 @@ std::vector<BaseDevice> WatchDeviceProperty::getDevices() const
     return result;
 }
 
-BaseDevice &WatchDeviceProperty::getDeviceByName(const char *name)
+BaseDevice WatchDeviceProperty::getDeviceByName(const char *name)
 {
     auto it = data.find(name);
-    return it != data.end() ? it->second.device : BaseDevice::invalid();
+    return it != data.end() ? it->second.device : BaseDevice();
 }
 
-WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice()> &constructor)
+WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<ParentDevice()> &constructor)
 {
     auto &it = data[name];
     if (!it.device.isValid())
@@ -93,7 +93,7 @@ void WatchDeviceProperty::clearDevices()
 {
     for (auto &deviceInfo : data)
     {
-        deviceInfo.second.device = BaseDevice::invalid();
+        deviceInfo.second.device = ParentDevice(ParentDevice::Invalid);
     }
 }
 
@@ -112,7 +112,7 @@ bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
     return false;
 }
 
-int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice()> &constructor)
+int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<ParentDevice()> &constructor)
 {
     auto deviceName = root.getAttribute("device");
     if (!deviceName.isValid() || deviceName.toString() == "" || !isDeviceWatched(deviceName))

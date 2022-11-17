@@ -60,29 +60,29 @@ class BaseDevicePrivate
         }
 
     public: // mediator
-        void mediateNewDevice(BaseDevice &baseDevice)
+        void mediateNewDevice(BaseDevice baseDevice)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newDevice(&baseDevice);
+                mediator->newDevice((BaseDevice *)baseDevice);
 #endif
                 mediator->newDevice(baseDevice);
             }
         }
 
-        void mediateRemoveDevice(BaseDevice &baseDevice)
+        void mediateRemoveDevice(BaseDevice baseDevice)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->removeDevice(&baseDevice);
+                mediator->removeDevice((BaseDevice *)baseDevice);
 #endif
                 mediator->removeDevice(baseDevice);
             }
         }
 
-        void mediateNewProperty(Property &property)
+        void mediateNewProperty(Property property)
         {
             if (mediator)
             {
@@ -126,7 +126,7 @@ class BaseDevicePrivate
             }
         }
 
-        void mediateRemoveProperty(Property &property)
+        void mediateRemoveProperty(Property property)
         {
             if (mediator)
             {
@@ -137,15 +137,29 @@ class BaseDevicePrivate
             }
         }
 
-        void mediateNewMessage(BaseDevice &baseDevice, int messageID)
+        void mediateNewMessage(BaseDevice baseDevice, int messageID)
         {
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newMessage(&baseDevice, messageID);
+                mediator->newMessage((BaseDevice *)baseDevice, messageID);
 #endif
                 mediator->newMessage(baseDevice, messageID);
             }
+        }
+    public:
+        static std::shared_ptr<BaseDevicePrivate> invalid()
+        {
+            class InvalidBaseDevicePrivate : public BaseDevicePrivate
+            {
+                public:
+                    InvalidBaseDevicePrivate()
+                    {
+                        valid = false;
+                    }
+            };
+            static std::shared_ptr<BaseDevicePrivate> priv(new InvalidBaseDevicePrivate);
+            return priv;
         }
 
     public:
@@ -159,7 +173,7 @@ class BaseDevicePrivate
         std::deque<std::string> messageLog;
         mutable std::mutex m_Lock;
 
-        bool valid = true;
+        bool valid {true};
         uint16_t interfaceDescriptor {0};
 };
 

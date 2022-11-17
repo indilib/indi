@@ -22,6 +22,7 @@
 #include "indimacros.h"
 #include "indibase.h"
 #include "indiproperty.h"
+#include "basedevice.h"
 #include <memory>
 #include <functional>
 
@@ -49,7 +50,7 @@ class PropertyPrivate
 {
     public:
         void *property = nullptr;
-        BaseDevice *baseDevice = nullptr;
+        BaseDevice baseDevice;
         INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
         bool registered = false;
         bool dynamic = false;

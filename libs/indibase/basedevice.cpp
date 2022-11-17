@@ -72,7 +72,7 @@ BaseDevicePrivate::~BaseDevicePrivate()
 }
 
 BaseDevice::BaseDevice()
-    : d_ptr(new BaseDevicePrivate)
+    : d_ptr(BaseDevicePrivate::invalid())
 { }
 
 BaseDevice::~BaseDevice()
@@ -455,7 +455,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
         return 0;
     }
 
-    property.setBaseDevice (this);
+    property.setBaseDevice (*this);
     property.setName       (propertyName);
     property.setDynamic    (isDynamic);
     property.setDeviceName (getDeviceName());
@@ -860,19 +860,6 @@ const std::string &BaseDevice::lastMessage() const
     std::lock_guard<std::mutex> lock(d->m_Lock);
     assert(d->messageLog.size() != 0);
     return d->messageLog.back();
-}
-
-BaseDevice &BaseDevice::invalid()
-{
-    static class BaseDeviceInvalid: public BaseDevice
-    {
-        public:
-            BaseDeviceInvalid()
-            {
-                d_ptr->valid = false;
-            }
-    } device;
-    return device;
 }
 
 bool BaseDevice::isValid() const

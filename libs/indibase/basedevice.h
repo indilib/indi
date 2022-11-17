@@ -176,10 +176,6 @@ class BaseDevice
         const std::string &lastMessage() const;
 
     public:
-        /** @return return device where isValid() == false */
-        static BaseDevice &invalid();
-
-    public:
         /** @return True if the device exists */
         bool isValid() const;
 
@@ -291,6 +287,11 @@ class BaseDevice
         }
 
     protected:
+        BaseDevice *operator&()
+        {
+            return this;
+        }
+
         friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);

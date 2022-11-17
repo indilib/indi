@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "basedevice_p.h"
+#include "parentdevice_p.h"
 #include "defaultdevice.h"
 #include "watchdeviceproperty.h"
 
@@ -33,7 +33,7 @@
 
 namespace INDI
 {
-class DefaultDevicePrivate: public BaseDevicePrivate
+class DefaultDevicePrivate: public ParentDevicePrivate
 {
     public:
         DefaultDevicePrivate(DefaultDevice *defaultDevice);

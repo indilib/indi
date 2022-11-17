@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "basedevice.h"
+#include "parentdevice.h"
 #include "indidriver.h"
 #include "indilogger.h"
 
@@ -115,7 +115,7 @@ namespace INDI
 {
 
 class DefaultDevicePrivate;
-class DefaultDevice : public BaseDevice
+class DefaultDevice : public ParentDevice
 {
         DECLARE_PRIVATE(DefaultDevice)
 
@@ -561,7 +561,7 @@ class DefaultDevice : public BaseDevice
         friend class FocuserInterface;
 
     protected:
-        DefaultDevice(DefaultDevicePrivate &dd);
+        DefaultDevice(const std::shared_ptr<DefaultDevicePrivate> &dd);
 };
 
 }

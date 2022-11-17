@@ -19,6 +19,7 @@
 #pragma once
 
 #include "basedevice.h"
+#include "parentdevice.h"
 #include "indililxml.h"
 
 #include <functional>
@@ -34,7 +35,7 @@ class WatchDeviceProperty
     public:
         struct DeviceInfo
         {
-            BaseDevice device {BaseDevice::invalid()};
+            ParentDevice device{ParentDevice::Invalid};
             std::function<void (BaseDevice)> newDeviceCallback; // call if device available
             std::set<std::string> properties; // watch only specific properties only
 
@@ -47,8 +48,8 @@ class WatchDeviceProperty
 
     public:
         std::vector<BaseDevice> getDevices() const;
-        BaseDevice &getDeviceByName(const char *name);
-        DeviceInfo &ensureDeviceByName(const char *name, const std::function<BaseDevice()> &constructor);
+        BaseDevice getDeviceByName(const char *name);
+        DeviceInfo &ensureDeviceByName(const char *name, const std::function<ParentDevice()> &constructor);
 
     public:
         bool isEmpty() const;
@@ -74,7 +75,7 @@ class WatchDeviceProperty
         bool deleteDevice(const BaseDevice &device);
 
     public:
-        int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice()> &constructor = [] { return BaseDevice(); } );
+        int processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<ParentDevice()> &constructor = [] { return ParentDevice(ParentDevice::Valid); } );
 
     public:
         std::map<std::string, DeviceInfo>::iterator begin()

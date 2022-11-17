@@ -20,6 +20,8 @@
 #include "indiproperty.h"
 #include "indiproperty_p.h"
 
+#include "basedevice.h"
+
 #include "indipropertytext_p.h"
 #include "indipropertyswitch_p.h"
 #include "indipropertynumber_p.h"
@@ -181,7 +183,13 @@ void Property::setDynamic(bool dyn)
 void Property::setBaseDevice(BaseDevice *idp)
 {
     D_PTR(Property);
-    d->baseDevice = idp;
+    d->baseDevice = (idp == nullptr ? BaseDevice() : *idp);
+}
+
+void Property::setBaseDevice(BaseDevice baseDevice)
+{
+    D_PTR(Property);
+    d->baseDevice = baseDevice;
 }
 
 void *Property::getProperty() const
@@ -228,7 +236,7 @@ bool Property::isDynamic() const
     return d->dynamic;
 }
 
-BaseDevice *Property::getBaseDevice() const
+BaseDevice Property::getBaseDevice() const
 {
     D_PTR(const Property);
     return d->baseDevice;

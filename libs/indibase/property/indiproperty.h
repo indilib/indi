@@ -62,7 +62,11 @@ class Property
         void setType(INDI_PROPERTY_TYPE t);
         void setRegistered(bool r);
         void setDynamic(bool d);
+
+        INDI_DEPRECATED("Use setBaseDevice(BaseDevice).")
         void setBaseDevice(BaseDevice *idp);
+
+        void setBaseDevice(BaseDevice device);
 
     public:
         void *getProperty() const;
@@ -70,7 +74,7 @@ class Property
         const char *getTypeAsString() const;
         bool getRegistered() const;
         bool isDynamic() const;
-        BaseDevice *getBaseDevice() const;
+        BaseDevice getBaseDevice() const;
 
     public: // Convenience Functions
         void setName(const char *name);
