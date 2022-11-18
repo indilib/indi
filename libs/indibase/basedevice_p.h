@@ -150,16 +150,11 @@ class BaseDevicePrivate
     public:
         static std::shared_ptr<BaseDevicePrivate> invalid()
         {
-            class InvalidBaseDevicePrivate : public BaseDevicePrivate
+            static struct Invalid : public BaseDevicePrivate
             {
-                public:
-                    InvalidBaseDevicePrivate()
-                    {
-                        valid = false;
-                    }
-            };
-            static std::shared_ptr<BaseDevicePrivate> priv(new InvalidBaseDevicePrivate);
-            return priv;
+                Invalid() { valid = false; }
+            } invalid;
+            return make_shared_weak(&invalid);
         }
 
     public:

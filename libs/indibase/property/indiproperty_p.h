@@ -32,17 +32,12 @@ namespace INDI
 template <typename T, typename U>
 static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> &r)
 {
-    using S = std::remove_pointer_t<T>;
-    static struct Invalid
+    static struct Invalid : public T
     {
-        std::shared_ptr<T> instance {new S {size_t(16)}};
-        Invalid()
-        {
-            instance->type = INDI_UNKNOWN;
-        }
+        Invalid() : T(16) { this->type = INDI_UNKNOWN; }
     } invalid;
     auto result = std::dynamic_pointer_cast<T>(r);
-    return result != nullptr ? result : invalid.instance;
+    return result != nullptr ? result : make_shared_weak(&invalid);
 }
 
 class BaseDevice;
