@@ -789,13 +789,23 @@ bool DefaultDevice::updateProperties()
     return true;
 }
 
+// Early access to properties.
+// The `BaseDevice::getDriverInterface()` function will return a false value of 0
+// when the `DriverInfoTP` property has not yet been registered.
+//
+// The situation occurs in the case of drivers where the class that inherits from `DefaultDevice`
+// will call the `setDriverInterface` function in the constructor
+
+uint16_t DefaultDevice::getDriverInterface() const
+{
+    D_PTR(const DefaultDevice);
+    return atoi(d->DriverInfoTP[3 /* DRIVER_INTERFACE */].getText());
+}
+
 void DefaultDevice::setDriverInterface(uint16_t value)
 {
     D_PTR(DefaultDevice);
-    char interfaceStr[16];
-    snprintf(interfaceStr, 16, "%d", value);
-    d->DriverInfoTP[3].setText(interfaceStr);
-    BaseDevice::setDriverInterface(value);
+    d->DriverInfoTP[3 /* DRIVER_INTERFACE */].setText(std::to_string(value));
 }
 
 void DefaultDevice::syncDriverInfo()

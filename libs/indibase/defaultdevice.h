@@ -302,13 +302,18 @@ class DefaultDevice : public ParentDevice
         virtual bool ISSnoopDevice(XMLEle *root);
 
         /**
+         * @return getInterface Return the interface declared by the driver.
+         */
+        uint16_t getDriverInterface() const;
+
+        /**
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
          * You may send an ORed list of DeviceInterface values.
          * @param value ORed list of DeviceInterface values.
          * @warning This only updates the internal driver interface property and does not send it to the
          * client. To synchronize the client, use syncDriverInfo funciton.
          */
-        void setDriverInterface(uint16_t value) override;
+        void setDriverInterface(uint16_t value);
 
     public:
         /** @brief Add a device to the watch list.
