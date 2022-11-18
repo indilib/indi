@@ -793,7 +793,7 @@ void DefaultDevice::setDriverInterface(uint16_t value)
 {
     D_PTR(DefaultDevice);
     char interfaceStr[16];
-    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
+    snprintf(interfaceStr, 16, "%d", value);
     d->DriverInfoTP[3].setText(interfaceStr);
     BaseDevice::setDriverInterface(value);
 }
