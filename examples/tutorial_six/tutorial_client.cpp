@@ -159,12 +159,12 @@ void MyClient::takeExposure(double seconds)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
+void MyClient::newMessage(INDI::BaseDevice baseDevice, int messageID)
 {
-    if (!dp->isDeviceNameMatch("Simple CCD"))
+    if (!baseDevice.isDeviceNameMatch("Simple CCD"))
         return;
 
     IDLog("Recveing message from Server:\n"
           "    %s\n\n", 
-          dp->messageQueue(messageID).c_str());
+          baseDevice.messageQueue(messageID).c_str());
 }

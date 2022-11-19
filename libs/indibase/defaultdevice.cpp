@@ -136,17 +136,13 @@ DefaultDevicePrivate::~DefaultDevicePrivate()
 }
 
 DefaultDevice::DefaultDevice()
-    : BaseDevice(*new DefaultDevicePrivate(this))
+    : ParentDevice(std::shared_ptr<ParentDevicePrivate>(new DefaultDevicePrivate(this)))
 {
     D_PTR(DefaultDevice);
     d->m_MainLoopTimer.setSingleShot(true);
     d->m_MainLoopTimer.setInterval(getPollingPeriod());
     d->m_MainLoopTimer.callOnTimeout(std::bind(&DefaultDevice::TimerHit, this));
 }
-
-DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
-    : BaseDevice(dd)
-{ }
 
 bool DefaultDevice::loadConfig(INDI::Property &property)
 {
@@ -793,19 +789,23 @@ bool DefaultDevice::updateProperties()
     return true;
 }
 
-uint16_t DefaultDevice::getDriverInterface()
+// Early access to properties.
+// The `BaseDevice::getDriverInterface()` function will return a false value of 0
+// when the `DriverInfoTP` property has not yet been registered.
+//
+// The situation occurs in the case of drivers where the class that inherits from `DefaultDevice`
+// will call the `setDriverInterface` function in the constructor
+
+uint16_t DefaultDevice::getDriverInterface() const
 {
-    D_PTR(DefaultDevice);
-    return d->interfaceDescriptor;
+    D_PTR(const DefaultDevice);
+    return atoi(d->DriverInfoTP[3 /* DRIVER_INTERFACE */].getText());
 }
 
 void DefaultDevice::setDriverInterface(uint16_t value)
 {
     D_PTR(DefaultDevice);
-    char interfaceStr[16];
-    d->interfaceDescriptor = value;
-    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
-    d->DriverInfoTP[3].setText(interfaceStr);
+    d->DriverInfoTP[3 /* DRIVER_INTERFACE */].setText(std::to_string(value));
 }
 
 void DefaultDevice::syncDriverInfo()
@@ -821,7 +821,7 @@ bool DefaultDevice::initProperties()
     char interfaceStr[16];
 
     snprintf(versionStr, 16, "%d.%d", d->majorVersion, d->minorVersion);
-    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
+    snprintf(interfaceStr, 16, "%d", getDriverInterface());
 
     // Connection Mode
     d->ConnectionModeSP.onUpdate([d](){

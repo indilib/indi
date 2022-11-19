@@ -22,6 +22,9 @@
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
+#include "basedevice.h"
+#include "basedevice_p.h"
+
 #include "indiuserio.h"
 #include "locale_compat.h"
 #include "indistandardproperty.h"
@@ -111,10 +114,10 @@ int AbstractBaseClientPrivate::dispatchCommand(const LilXmlElement &root, char *
         return 0;
     }
 
-    return watchDevice.processXml(root, errmsg, [this]()   // create new device if nessesery
+    return watchDevice.processXml(root, errmsg, [this]  // create new device if nessesery
     {
-        BaseDevice *device = new BaseDevice();
-        device->setMediator(parent);
+        ParentDevice device(ParentDevice::Valid);
+        device.setMediator(parent);
         return device;
     });
 }
@@ -123,7 +126,7 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
     if (auto device = watchDevice.getDeviceByName(devName))
     {
-        parent->removeDevice(device);
+        device.detach();
         watchDevice.deleteDevice(device);
         return 0;
     }
@@ -139,27 +142,29 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 int AbstractBaseClientPrivate::delPropertyCmd(const LilXmlElement &root, char *errmsg)
 {
     /* dig out device and optional property name */
-    BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+    BaseDevice dp = watchDevice.getDeviceByName(root.getAttribute("device"));
 
-    if (dp == nullptr)
+    if (!dp.isValid())
         return INDI_DEVICE_NOT_FOUND;
 
-    dp->checkMessage(root.handle());
+    dp.checkMessage(root.handle());
 
     const auto propertyName = root.getAttribute("name");
 
     // Delete the whole device if propertyName does not exists
     if (!propertyName.isValid())
     {
-        return deleteDevice(dp->getDeviceName(), errmsg);
+        return deleteDevice(dp.getDeviceName(), errmsg);
     }
 
     // Delete property if it exists
-    if (auto property = dp->getProperty(propertyName))
+    if (auto property = dp.getProperty(propertyName))
     {
         if (sConnected)
-            parent->removeProperty(property);
-        return dp->removeProperty(propertyName, errmsg);
+        {
+            dp.d_ptr->mediateRemoveProperty(property);
+        }
+        return dp.removeProperty(propertyName, errmsg);
     }
 
     // Silently ignore B_ONLY clients.
@@ -176,11 +181,11 @@ int AbstractBaseClientPrivate::messageCmd(const LilXmlElement &root, char *errms
 {
     INDI_UNUSED(errmsg);
 
-    BaseDevice *dp = watchDevice.getDeviceByName(root.getAttribute("device"));
+    BaseDevice dp = watchDevice.getDeviceByName(root.getAttribute("device"));
 
-    if (dp)
+    if (dp.isValid())
     {
-        dp->checkMessage(root.handle());
+        dp.checkMessage(root.handle());
         return 0;
     }
 
@@ -250,44 +255,43 @@ void AbstractBaseClientPrivate::userIoGetProperties()
 
 void AbstractBaseClientPrivate::setDriverConnection(bool status, const char *deviceName)
 {
-    BaseDevice *drv                 = parent->getDevice(deviceName);
-    ISwitchVectorProperty *drv_connection = nullptr;
+    BaseDevice drv = parent->getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv.isValid())
     {
         IDLog("BaseClientQt: Error. Unable to find driver %s\n", deviceName);
         return;
     }
 
-    drv_connection = drv->getSwitch(SP::CONNECTION);
+    auto drv_connection = drv.getSwitch(SP::CONNECTION);
 
-    if (drv_connection == nullptr)
+    if (!drv_connection.isValid())
         return;
 
     // If we need to connect
     if (status)
     {
         // If there is no need to do anything, i.e. already connected.
-        if (drv_connection->sp[0].s == ISS_ON)
+        if (drv_connection[0].getState() == ISS_ON)
             return;
 
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_ON;
-        drv_connection->sp[1].s = ISS_OFF;
+        drv_connection.reset();
+        drv_connection.setState(IPS_BUSY);
+        drv_connection[0].setState(ISS_ON);
+        drv_connection[1].setState(ISS_OFF);
 
         parent->sendNewSwitch(drv_connection);
     }
     else
     {
         // If there is no need to do anything, i.e. already disconnected.
-        if (drv_connection->sp[1].s == ISS_ON)
+        if (drv_connection[1].getState() == ISS_ON)
             return;
 
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_OFF;
-        drv_connection->sp[1].s = ISS_ON;
+        drv_connection.reset();
+        drv_connection.setState(IPS_BUSY);
+        drv_connection[0].setState(ISS_OFF);
+        drv_connection[1].setState(ISS_ON);
 
         parent->sendNewSwitch(drv_connection);
     }
@@ -387,25 +391,25 @@ void AbstractBaseClient::disconnectDevice(const char *deviceName)
     d->setDriverConnection(false, deviceName);
 }
 
-BaseDevice *AbstractBaseClient::getDevice(const char *deviceName)
+BaseDevice AbstractBaseClient::getDevice(const char *deviceName)
 {
     D_PTR(AbstractBaseClient);
     return d->watchDevice.getDeviceByName(deviceName);
 }
 
-std::vector<BaseDevice *> AbstractBaseClient::getDevices() const
+std::vector<BaseDevice> AbstractBaseClient::getDevices() const
 {
     D_PTR(const AbstractBaseClient);
     return d->watchDevice.getDevices();
 }
 
-bool AbstractBaseClient::getDevices(std::vector<BaseDevice *> &deviceList, uint16_t driverInterface )
+bool AbstractBaseClient::getDevices(std::vector<BaseDevice> &deviceList, uint16_t driverInterface )
 {
     D_PTR(AbstractBaseClient);
     for (auto &it : d->watchDevice)
     {
-        if (it.second.device->getDriverInterface() & driverInterface)
-            deviceList.push_back(it.second.device.get());
+        if (it.second.device.getDriverInterface() & driverInterface)
+            deviceList.push_back(it.second.device);
     }
 
     return (deviceList.size() > 0);
@@ -493,14 +497,9 @@ void AbstractBaseClient::sendNewText(INDI::Property pp)
 void AbstractBaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
                                      const char *text)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
+    auto tvp = getDevice(deviceName).getText(propertyName);
 
-    if (!drv)
-        return;
-
-    auto tvp = drv->getText(propertyName);
-
-    if (!tvp)
+    if (!tvp.isValid())
         return;
 
     auto tp = tvp->findWidgetByName(elementName);
@@ -524,14 +523,9 @@ void AbstractBaseClient::sendNewNumber(INDI::Property pp)
 void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
                                        double value)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
+    auto nvp = getDevice(deviceName).getNumber(propertyName);
 
-    if (!drv)
-        return;
-
-    auto nvp = drv->getNumber(propertyName);
-
-    if (!nvp)
+    if (!nvp.isValid())
         return;
 
     auto np = nvp->findWidgetByName(elementName);
@@ -553,14 +547,9 @@ void AbstractBaseClient::sendNewSwitch(INDI::Property pp)
 
 void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
 {
-    BaseDevice *drv = getDevice(deviceName);
+    auto svp = getDevice(deviceName).getSwitch(propertyName);
 
-    if (!drv)
-        return;
-
-    auto svp = drv->getSwitch(propertyName);
-
-    if (!svp)
+    if (!svp.isValid())
         return;
 
     auto sp = svp->findWidgetByName(elementName);
@@ -629,45 +618,6 @@ void AbstractBaseClient::newPingReply(std::string uid)
 void AbstractBaseClient::newUniversalMessage(std::string message)
 {
     IDLog("%s\n", message.c_str());
-}
-
-void AbstractBaseClient::newDevice(INDI::BaseDevice *)
-{ }
-
-void AbstractBaseClient::removeDevice(INDI::BaseDevice *)
-{ }
-
-void AbstractBaseClient::newProperty(INDI::Property *)
-{ }
-
-void AbstractBaseClient::removeProperty(INDI::Property *)
-{ }
-
-void AbstractBaseClient::newBLOB(IBLOB *)
-{ }
-
-void AbstractBaseClient::newSwitch(ISwitchVectorProperty *)
-{ }
-
-void AbstractBaseClient::newNumber(INumberVectorProperty *)
-{ }
-
-void AbstractBaseClient::newText(ITextVectorProperty *)
-{ }
-
-void AbstractBaseClient::newLight(ILightVectorProperty *)
-{ }
-
-void AbstractBaseClient::newMessage(INDI::BaseDevice *, int)
-{ }
-
-void AbstractBaseClient::serverConnected()
-{ }
-
-// avoid calling pure virtual method from destructor
-void AbstractBaseClient::serverDisconnected(int exit_code)
-{
-    INDI_UNUSED(exit_code);
 }
 
 }
