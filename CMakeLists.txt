@@ -1941,6 +1941,15 @@ add_executable(indi_mbox_weather ${mbox_SRC})
 target_link_libraries(indi_mbox_weather indidriver)
 install(TARGETS indi_mbox_weather RUNTIME DESTINATION bin)
 
+########### Pegasus Uranus Meteo Driver ###############
+
+SET(uranusmeteo_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/uranusmeteo.cpp)
+
+add_executable(indi_uranus_weather ${uranusmeteo_SRC})
+target_link_libraries(indi_uranus_weather indidriver)
+install(TARGETS indi_uranus_weather RUNTIME DESTINATION bin)
+
 ########### Vantage Driver ###############
 
 SET(vantage_SRC

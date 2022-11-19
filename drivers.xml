@@ -755,6 +755,10 @@
             <driver name="Weather Safety Proxy">indi_weather_safety_proxy</driver>
             <version>1.0</version>
         </device>
+        <device label="Uranus Meteo Sensor" manufacturer="Pegasus Astro">
+            <driver name="Uranus Meteo Sensor">indi_uranus_weather</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Agent">
         <device label="Imager Agent" manufacturer="Others">
