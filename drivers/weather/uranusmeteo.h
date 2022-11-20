@@ -193,6 +193,7 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
          */
         bool sendCommand(const char *cmd, char *res);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
+        bool setSystemTime(time_t &raw_time);
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Variables
@@ -203,8 +204,9 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
         Connection::Serial *serialConnection { nullptr };
 
         std::vector<std::string> m_Sensors;
-        std::vector<std::string> lastConsumptionData;
-        std::vector<std::string> lastMetricsData;
+        std::vector<std::string> m_Clouds;
+        std::vector<std::string> m_SkyQuality;
+        std::vector<std::string> m_GPS;
 
         static constexpr const uint8_t PEGASUS_STOP_CHAR {0xA};
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
@@ -213,4 +215,5 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
         static constexpr const char *SKYQUALITY_TAB {"Sky Quality"};
         static constexpr const char *CLOUDS_TAB {"Clouds"};
         static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+        static constexpr const char *GPS_TAB {"GPS"};
 };

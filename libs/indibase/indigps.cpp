@@ -160,7 +160,7 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IDSetSwitch(&RefreshSP, nullptr);
 
             // Manual trigger
-            TimerHit();
+            GPS::TimerHit();
         }
     }
 
