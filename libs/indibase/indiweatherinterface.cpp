@@ -202,7 +202,7 @@ bool WeatherInterface::processSwitch(const char *dev, const char *name, ISState 
             IDSetLight(&critialParametersLP, nullptr);
         }
 
-        OverrideSP->setState(IPS_OK);
+        OverrideSP->apply();
         return true;
     }
 
