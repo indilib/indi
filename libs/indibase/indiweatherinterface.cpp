@@ -53,18 +53,18 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     m_ParametersGroup = paramsGroup;
 
     // Update Period
-    UpdatePeriodNP[0].fill("PERIOD", "Period (secs)", "%.f", 0, 3600, 60, 60);
-    UpdatePeriodNP.fill(m_defaultDevice->getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
+    UpdatePeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60, 60);
+    UpdatePeriodNP.fill(m_defaultDevice->getDeviceName(), "WEATHER_UPDATE", "Update", statusGroup,
                         IP_RW, 60, IPS_IDLE);
 
     // Refresh
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
-    RefreshSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_REFRESH", "Weather", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    RefreshSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_REFRESH", "Weather", statusGroup, IP_RW, ISR_ATMOST1, 0,
                    IPS_IDLE);
 
     // Override
     OverrideSP[0].fill("OVERRIDE", "Override Status", ISS_OFF);
-    OverrideSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_OVERRIDE", "Safety", MAIN_CONTROL_TAB, IP_RW,
+    OverrideSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_OVERRIDE", "Safety", statusGroup, IP_RW,
                     ISR_NOFMANY, 0, IPS_IDLE);
 
     // Parameters
