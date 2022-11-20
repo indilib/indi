@@ -256,7 +256,8 @@ IPState UranusMeteo::updateGPS()
             IUSaveText(&TimeT[0], ts);
 
             // Save UTC offset
-            snprintf(ts, sizeof(ts), "%.2f", GPSNP[UTCOffset].getValue());
+            struct tm *local = localtime(&raw_time);
+            snprintf(ts, sizeof(ts), "%.2f", (local->tm_gmtoff / 3600.0));
             IUSaveText(&TimeT[1], ts);
 
             setSystemTime(raw_time);
