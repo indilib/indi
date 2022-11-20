@@ -206,8 +206,10 @@ SET(indiclient_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indiclient_CXX_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
@@ -240,7 +242,7 @@ SET(indiclient_C_SRC ${indiclient_C_SRC}
 add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
 
 add_subdirectory(libs/sockets)
-target_link_libraries(indiclient sockets)
+target_link_libraries(indiclient sockets ${ZLIB_LIBRARY})
 
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -298,8 +300,10 @@ SET(indiclientqt_C_SRC
     
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
@@ -493,6 +497,7 @@ SET(indidriver_C_SRC
 
 SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
@@ -1936,6 +1941,15 @@ add_executable(indi_mbox_weather ${mbox_SRC})
 target_link_libraries(indi_mbox_weather indidriver)
 install(TARGETS indi_mbox_weather RUNTIME DESTINATION bin)
 
+########### Pegasus Uranus Meteo Driver ###############
+
+SET(uranusmeteo_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/uranusmeteo.cpp)
+
+add_executable(indi_uranus_weather ${uranusmeteo_SRC})
+target_link_libraries(indi_uranus_weather indidriver)
+install(TARGETS indi_uranus_weather RUNTIME DESTINATION bin)
+
 ########### Vantage Driver ###############
 
 SET(vantage_SRC
@@ -2196,6 +2210,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h

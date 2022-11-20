@@ -427,7 +427,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         }
         const char *getText()  const
         {
-            return this->text;
+            return this->text ? this->text : "";
         }
 
         void *getAux() const

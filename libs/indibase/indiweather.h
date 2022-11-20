@@ -95,13 +95,7 @@ class Weather : public DefaultDevice, public WeatherInterface
 
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    protected:
-        /**
-         * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
-         * connection.
-         */
-        virtual void TimerHit() override;
-
+    protected:        
         /** \brief Update weather station location
          *  \param latitude Site latitude in degrees.
          *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
@@ -136,23 +130,10 @@ class Weather : public DefaultDevice, public WeatherInterface
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[1] {};
 
-        // Update Period
-        INumber UpdatePeriodN[1];
-        INumberVectorProperty UpdatePeriodNP;
-
-        // Refresh data
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
-
-        // Override
-        ISwitch OverrideS[1];
-        ISwitchVectorProperty OverrideSP;
-
         Connection::Serial *serialConnection {nullptr};
         Connection::TCP *tcpConnection       {nullptr};
 
-        int PortFD = -1;
-        int updateTimerID { -1 };
+        int PortFD = -1;        
 
     private:
         bool processLocationInfo(double latitude, double longitude, double elevation);

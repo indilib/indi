@@ -24,6 +24,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "basedevice.h"
+
 #include "indiproperty.h"
 #include "indipropertynumber.h"
 #include "indipropertytext.h"
@@ -155,7 +157,8 @@ TEST(CORE_PROPERTY_CLASS, DISABLED_Test_Integrity)
     INDI::Property p;
 
     INumberVectorProperty * corrupted_property = (INumberVectorProperty*) (void*) 0x12345678;
-    INDI::BaseDevice * corrupted_device = (INDI::BaseDevice*) (void*) 0x87654321;
+    //INDI::BaseDevice * corrupted_device = (INDI::BaseDevice*) (void*) 0x87654321;
+    INDI::BaseDevice corrupted_device;
 
     p.setProperty(corrupted_property);
 

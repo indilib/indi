@@ -125,10 +125,10 @@ class AbstractBaseClient : public INDI::BaseMediator
         /** @param deviceName Name of device to search for in the list of devices owned by INDI server,
          *  @returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
          */
-        INDI::BaseDevice *getDevice(const char *deviceName);
+        INDI::BaseDevice getDevice(const char *deviceName);
 
         /** @returns Returns a vector of all devices created in the client. */
-        std::vector<INDI::BaseDevice *> getDevices() const;
+        std::vector<INDI::BaseDevice> getDevices() const;
 
         /** @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
          *
@@ -143,7 +143,7 @@ class AbstractBaseClient : public INDI::BaseMediator
          *  @param driverInterface ORed DRIVER_INTERFACE values to select the desired class of devices.
          *  @return True if one or more devices are found for the supplied driverInterface, false if no matching devices found.
          */
-        bool getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface);
+        bool getDevices(std::vector<INDI::BaseDevice> &deviceList, uint16_t driverInterface);
 
     public:
         /** @brief Set Binary Large Object policy mode
@@ -222,24 +222,9 @@ class AbstractBaseClient : public INDI::BaseMediator
          */
         virtual void newUniversalMessage(std::string message);
 
-    protected: // override INDI::BaseMediator methods, when they are not needed
-        virtual void newDevice(INDI::BaseDevice *dp) override;
-        virtual void removeDevice(INDI::BaseDevice *dp) override;
-        virtual void newProperty(INDI::Property *property) override;
-        virtual void removeProperty(INDI::Property *property) override;
-        virtual void newBLOB(IBLOB *bp) override;
-        virtual void newSwitch(ISwitchVectorProperty *svp) override;
-        virtual void newNumber(INumberVectorProperty *nvp) override;
-        virtual void newText(ITextVectorProperty *tvp) override;
-        virtual void newLight(ILightVectorProperty *lvp) override;
-        virtual void newMessage(INDI::BaseDevice *dp, int messageID) override;
-        virtual void serverConnected() override;
-
     protected:
         friend class BaseClientPrivate;
         friend class BaseClientQtPrivate;
-        // avoid calling pure virtual method from destructor
-        void serverDisconnected(int exit_code) override;
 
     protected:
         AbstractBaseClient(std::unique_ptr<AbstractBaseClientPrivate> &&dd);
@@ -249,3 +234,7 @@ class AbstractBaseClient : public INDI::BaseMediator
 };
 
 }
+
+#ifdef SWIG
+%template(BaseDeviceVectorShared) std::vector<INDI::BaseDevice>;
+#endif

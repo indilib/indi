@@ -104,7 +104,8 @@ class BaseDevice
          *  @param property any property from the INDI::PropertyXXX family.
          */
         void registerProperty(const INDI::Property &property);
-        void registerProperty(const INDI::Property &property, INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
+        void registerProperty(const INDI::Property &property,
+                              INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
@@ -175,8 +176,21 @@ class BaseDevice
         const std::string &lastMessage() const;
 
     public:
+        /** @return True if the device exists */
+        bool isValid() const;
+
         /** @return True if the device is connected (CONNECT=ON), False otherwise */
         bool isConnected() const;
+
+        /** @brief indicates that the device is ready
+         *  @note the BaseMediator::newDevice method will be called
+         */
+        void attach();
+
+        /** @brief indicates that the device is being removed
+         *  @note the BaseMediator::removeDevice method will be called
+         */
+        void detach();
 
         /** @brief Set the driver's mediator to receive notification of news devices and updated property values. */
         void setMediator(INDI::BaseMediator *mediator);
@@ -217,11 +231,11 @@ class BaseDevice
          *  @return driver device interface descriptor.
          *  @note For example, to know if the driver supports CCD interface, check the retruned value:
          *  @code{.cpp}
-         *  if (device->getDriverInterface() & CCD_INTERFACE)
+         *  if (device.getDriverInterface() & CCD_INTERFACE)
          *       cout << "We received a camera!" << endl;
          *  @endcode
          */
-        virtual uint16_t getDriverInterface();
+        uint16_t getDriverInterface() const;
 
     public:
         /** @brief Build driver properties from a skeleton file.
@@ -246,9 +260,33 @@ class BaseDevice
         /** @brief handle SetXXX commands from client */
         int setValue(const INDI::LilXmlElement &root, char *errmsg);
 
+    public:
+        operator BaseDevice*();
+        BaseDevice* operator->();
+
+        bool operator != (std::nullptr_t) const
+        {
+            return  isValid();
+        }
+        bool operator == (std::nullptr_t) const
+        {
+            return !isValid();
+        }
+        operator bool()                   const
+        {
+            return  isValid();
+        }
+
     protected:
+        BaseDevice *operator&()
+        {
+            return this;
+        }
+
+        friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);
+        BaseDevice(const std::shared_ptr<BaseDevicePrivate> &dd);
 };
 
 }

@@ -17,35 +17,36 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "watchdeviceproperty.h"
+#include "basedevice.h"
+#include "basedevice_p.h"
 
 namespace INDI
 {
 
-std::vector<BaseDevice *> WatchDeviceProperty::getDevices() const
+std::vector<BaseDevice> WatchDeviceProperty::getDevices() const
 {
-    std::vector<BaseDevice *> result;
+    std::vector<BaseDevice> result;
     for (const auto &it : data)
     {
-        result.push_back(it.second.device.get());
+        result.push_back(it.second.device);
     }
     return result;
 }
 
-BaseDevice *WatchDeviceProperty::getDeviceByName(const char *name) const
+BaseDevice WatchDeviceProperty::getDeviceByName(const char *name)
 {
     auto it = data.find(name);
-    return it != data.end() ? it->second.device.get() : nullptr;
+    return it != data.end() ? it->second.device : BaseDevice();
 }
 
-WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<BaseDevice*()> &constructor)
+WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<ParentDevice()> &constructor)
 {
     auto &it = data[name];
-    if (it.device == nullptr)
+    if (!it.device.isValid())
     {
-        it.device.reset(constructor());
-        it.device->setDeviceName(name);
-        if (auto mediator = it.device->getMediator())
-            mediator->newDevice(it.device.get());
+        it.device = constructor();
+        it.device.setDeviceName(name);
+        it.device.attach();
         it.emitWatchDevice();
     }
     return it;
@@ -92,15 +93,15 @@ void WatchDeviceProperty::clearDevices()
 {
     for (auto &deviceInfo : data)
     {
-        deviceInfo.second.device.reset(nullptr);
+        deviceInfo.second.device = ParentDevice(ParentDevice::Invalid);
     }
 }
 
-bool WatchDeviceProperty::deleteDevice(const BaseDevice *device)
+bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
 {
     for (auto it = data.begin(); it != data.end();)
     {
-        if (it->second.device.get() == device)
+        if (it->second.device == device)
         {
             it = data.erase(it);
             return true;
@@ -111,7 +112,7 @@ bool WatchDeviceProperty::deleteDevice(const BaseDevice *device)
     return false;
 }
 
-int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<BaseDevice*()> &constructor)
+int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<ParentDevice()> &constructor)
 {
     auto deviceName = root.getAttribute("device");
     if (!deviceName.isValid() || deviceName.toString() == "" || !isDeviceWatched(deviceName))
@@ -137,7 +138,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
 
     if (defVectors.find(root.tagName()) != defVectors.end())
     {
-        return deviceInfo.device->buildProp(root, errmsg);
+        return deviceInfo.device.buildProp(root, errmsg);
     }
 
     static const std::set<std::string> setVectors{
@@ -147,7 +148,7 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
 
     if (setVectors.find(root.tagName()) != setVectors.end())
     {
-        return deviceInfo.device->setValue(root, errmsg);
+        return deviceInfo.device.setValue(root, errmsg);
     }
 
     return INDI_DISPATCH_ERROR;

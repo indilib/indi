@@ -55,22 +55,6 @@ bool Weather::initProperties()
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    // Update Period
-    IUFillNumber(&UpdatePeriodN[0], "PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
-    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
-                       IP_RW, 60, IPS_IDLE);
-
-    // Refresh
-    IUFillSwitch(&RefreshS[0], "REFRESH", "Refresh", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "WEATHER_REFRESH", "Weather", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Override
-    IUFillSwitch(&OverrideS[0], "OVERRIDE", "Override Status", ISS_OFF);
-    IUFillSwitchVector(&OverrideSP, OverrideS, 1, getDeviceName(), "WEATHER_OVERRIDE", "Safety", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_NOFMANY, 0, IPS_IDLE);
-
-
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
 
     if (weatherConnection & CONNECTION_SERIAL)
@@ -106,23 +90,15 @@ bool Weather::updateProperties()
     {
         WI::updateProperties();
 
-        updateTimerID = -1;
-        defineProperty(&RefreshSP);
-        defineProperty(&UpdatePeriodNP);
-        defineProperty(&OverrideSP);
         defineProperty(&LocationNP);
         defineProperty(&ActiveDeviceTP);
 
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
-        TimerHit();
     }
     else
     {
         WI::updateProperties();
 
-        deleteProperty(RefreshSP.name);
-        deleteProperty(UpdatePeriodNP.name);
-        deleteProperty(OverrideSP.name);
         deleteProperty(LocationNP.name);
         deleteProperty(ActiveDeviceTP.name);
     }
@@ -134,40 +110,8 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Refresh
-        if (!strcmp(name, RefreshSP.name))
-        {
-            RefreshS[0].s = ISS_OFF;
-            RefreshSP.s   = IPS_OK;
-            IDSetSwitch(&RefreshSP, nullptr);
-
-            TimerHit();
-        }
-
-        // Override
-        if (!strcmp(name, OverrideSP.name))
-        {
-            IUUpdateSwitch(&OverrideSP, states, names, n);
-            if (OverrideS[0].s == ISS_ON)
-            {
-                LOG_WARN("Weather override is enabled. Observatory is not safe. Turn off override as soon as possible.");
-                OverrideSP.s = IPS_BUSY;
-
-                critialParametersLP.s = IPS_OK;
-                IDSetLight(&critialParametersLP, nullptr);
-            }
-            else
-            {
-                LOG_INFO("Weather override is disabled");
-                OverrideSP.s = IPS_IDLE;
-
-                syncCriticalParameters();
-                IDSetLight(&critialParametersLP, nullptr);
-            }
-
-            IDSetSwitch(&OverrideSP, nullptr);
+        if (processSwitch(dev, name, states, names, n))
             return true;
-        }
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -195,26 +139,6 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
             double targetElev = values[elevationindex];
 
             return processLocationInfo(targetLat, targetLong, targetElev);
-        }
-
-        // Update period
-        if (strcmp(name, "WEATHER_UPDATE") == 0)
-        {
-            IUUpdateNumber(&UpdatePeriodNP, values, names, n);
-
-            UpdatePeriodNP.s = IPS_OK;
-            IDSetNumber(&UpdatePeriodNP, nullptr);
-
-            if (UpdatePeriodN[0].value == 0)
-                DEBUG(Logger::DBG_SESSION, "Periodic updates are disabled.");
-            else
-            {
-                if (updateTimerID > 0)
-                    RemoveTimer(updateTimerID);
-
-                updateTimerID = SetTimer(UpdatePeriodN[0].value * 1000);
-            }
-            return true;
         }
 
         // Pass to weather interface
@@ -278,54 +202,6 @@ bool INDI::Weather::ISSnoopDevice(XMLEle *root)
     return DefaultDevice::ISSnoopDevice(root);
 }
 
-void Weather::TimerHit()
-{
-    if (!isConnected())
-        return;
-
-    if (updateTimerID > 0)
-        RemoveTimer(updateTimerID);
-
-    IPState state = updateWeather();
-
-    switch (state)
-    {
-        // Ok
-        case IPS_OK:
-
-            if (syncCriticalParameters())
-            {
-                // Override weather state if required
-                if (OverrideS[0].s == ISS_ON)
-                    critialParametersLP.s = IPS_OK;
-
-                IDSetLight(&critialParametersLP, nullptr);
-            }
-
-            ParametersNP.s = state;
-            IDSetNumber(&ParametersNP, nullptr);
-
-            // If update period is set, then set up the timer
-            if (UpdatePeriodN[0].value > 0)
-                updateTimerID = SetTimer(static_cast<int>(UpdatePeriodN[0].value * 1000));
-
-            return;
-
-        // Alert
-        // We retry every 5000 ms until we get OK
-        case IPS_ALERT:
-            ParametersNP.s = state;
-            IDSetNumber(&ParametersNP, nullptr);
-            break;
-
-        // Weather update is in progress
-        default:
-            break;
-    }
-
-    updateTimerID = SetTimer(5000);
-}
-
 bool Weather::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(latitude);
@@ -372,7 +248,6 @@ bool Weather::saveConfigItems(FILE *fp)
     WI::saveConfigItems(fp);
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigNumber(fp, &LocationNP);
-    IUSaveConfigNumber(fp, &UpdatePeriodNP);
     return true;
 }
 

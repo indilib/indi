@@ -48,7 +48,7 @@ class MyClient : public INDI::BaseClient
         void takeExposure(double seconds);
 
     protected:
-        void newMessage(INDI::BaseDevice *dp, int messageID) override;
+        void newMessage(INDI::BaseDevice baseDevice, int messageID) override;
 
     private:
         INDI::BaseDevice mSimpleCCD;

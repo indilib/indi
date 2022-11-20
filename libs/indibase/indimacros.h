@@ -100,6 +100,14 @@
  */
 #if defined(__cplusplus)
 
+#include <memory>
+
+template <typename T>
+static inline std::shared_ptr<T> make_shared_weak(T *object)
+{
+    return std::shared_ptr<T>(object, [](T*) {});
+}
+
 template <typename T>
 static inline T *getPtrHelper(T *ptr)
 {
@@ -135,3 +143,10 @@ static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p)
 # endif
 #endif
 
+#ifdef SWIG
+# define INDI_DEPRECATED(message)
+#elif __cplusplus
+# define INDI_DEPRECATED(message) [[deprecated(message)]]
+#else
+# define INDI_DEPRECATED(message) __attribute__ ((deprecated))
+#endif

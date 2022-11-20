@@ -19,36 +19,25 @@
 
 #pragma once
 
+#include "indimacros.h"
 #include "indibase.h"
 #include "indiproperty.h"
+#include "basedevice.h"
 #include <memory>
 #include <functional>
 
 namespace INDI
 {
 
-#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-template <typename T>
-static inline std::shared_ptr<T> make_shared_weak(T *object)
-{
-    return std::shared_ptr<T>(object, [](T*) {});
-}
-#endif
-
 template <typename T, typename U>
 static inline std::shared_ptr<T> property_private_cast(const std::shared_ptr<U> &r)
 {
-    using S = std::remove_pointer_t<T>;
-    static struct Invalid
+    static struct Invalid : public T
     {
-        std::shared_ptr<T> instance {new S {size_t(16)}};
-        Invalid()
-        {
-            instance->type = INDI_UNKNOWN;
-        }
+        Invalid() : T(16) { this->type = INDI_UNKNOWN; }
     } invalid;
     auto result = std::dynamic_pointer_cast<T>(r);
-    return result != nullptr ? result : invalid.instance;
+    return result != nullptr ? result : make_shared_weak(&invalid);
 }
 
 class BaseDevice;
@@ -56,7 +45,7 @@ class PropertyPrivate
 {
     public:
         void *property = nullptr;
-        BaseDevice *baseDevice = nullptr;
+        BaseDevice baseDevice;
         INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
         bool registered = false;
         bool dynamic = false;

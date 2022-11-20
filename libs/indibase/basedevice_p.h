@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "indimacros.h"
 #include "basedevice.h"
 #include "lilxml.h"
 #include "indibase.h"
@@ -34,6 +35,7 @@
 namespace INDI
 {
 
+class BaseDevice;
 class BaseDevicePrivate
 {
     public:
@@ -41,7 +43,7 @@ class BaseDevicePrivate
         virtual ~BaseDevicePrivate();
 
         /** @brief Parse and store BLOB in the respective vector */
-        int setBLOB(INDI::PropertyBlob &propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
+        int setBLOB(INDI::PropertyBlob propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
 
         void addProperty(const INDI::Property &property)
         {
@@ -49,7 +51,7 @@ class BaseDevicePrivate
                 std::unique_lock<std::mutex> lock(m_Lock);
                 pAll.push_back(property);
             }
-            
+
             auto it = watchPropertyMap.find(property.getName());
             if (it != watchPropertyMap.end())
             {
@@ -57,7 +59,106 @@ class BaseDevicePrivate
             }
         }
 
+    public: // mediator
+        void mediateNewDevice(BaseDevice baseDevice)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->newDevice((BaseDevice *)baseDevice);
+#endif
+                mediator->newDevice(baseDevice);
+            }
+        }
+
+        void mediateRemoveDevice(BaseDevice baseDevice)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->removeDevice((BaseDevice *)baseDevice);
+#endif
+                mediator->removeDevice(baseDevice);
+            }
+        }
+
+        void mediateNewProperty(Property property)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->newProperty((Property *)property);
+#endif
+                mediator->newProperty(property);
+            }
+        }
+
+        void mediateUpdateProperty(Property property)
+        {
+            if (mediator)
+            {
+                mediator->updateProperty(property);
+#if INDI_VERSION_MAJOR < 2
+                switch (property.getType())
+                {
+                    case INDI_NUMBER:
+                        mediator->newNumber(property.getNumber());
+                        break;
+                    case INDI_SWITCH:
+                        mediator->newSwitch(property.getSwitch());
+                        break;
+                    case INDI_TEXT:
+                        mediator->newText(property.getText());
+                        break;
+                    case INDI_LIGHT:
+                        mediator->newLight(property.getLight());
+                        break;
+                    case INDI_BLOB:
+                        for (auto &it : PropertyBlob(property))
+                        {
+                            mediator->newBLOB(&it);
+                        }
+                        break;
+                    case INDI_UNKNOWN:
+                        ;
+                }
+#endif
+            }
+        }
+
+        void mediateRemoveProperty(Property property)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->removeProperty((Property *)property);
+#endif
+                mediator->removeProperty(property);
+            }
+        }
+
+        void mediateNewMessage(BaseDevice baseDevice, int messageID)
+        {
+            if (mediator)
+            {
+#if INDI_VERSION_MAJOR < 2
+                mediator->newMessage((BaseDevice *)baseDevice, messageID);
+#endif
+                mediator->newMessage(baseDevice, messageID);
+            }
+        }
     public:
+        static std::shared_ptr<BaseDevicePrivate> invalid()
+        {
+            static struct Invalid : public BaseDevicePrivate
+            {
+                Invalid() { valid = false; }
+            } invalid;
+            return make_shared_weak(&invalid);
+        }
+
+    public:
+        BaseDevice self {make_shared_weak(this)}; // backward compatibile (for operators as pointer)
         std::string deviceName;
         BaseDevice::Properties pAll;
         std::map<std::string, std::function<void(INDI::Property)>> watchPropertyMap;
@@ -66,6 +167,8 @@ class BaseDevicePrivate
         INDI::BaseMediator *mediator {nullptr};
         std::deque<std::string> messageLog;
         mutable std::mutex m_Lock;
+
+        bool valid {true};
 };
 
 }

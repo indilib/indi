@@ -21,6 +21,9 @@
 #pragma once
 
 #include "indibase.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "inditimer.h"
 
 #include <stdint.h>
 #include <string>
@@ -73,8 +76,16 @@ class WeatherInterface
          */
         bool updateProperties();
 
-        /** \brief Process focus number properties */
+        /** \brief Process weather number properties */
         bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+        /** \brief Process weather switch properties */
+        bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+
+        /**
+         * @brief checkWeatherUpdate Calls updateWeather and update critical parameters accordingly.
+         */
+        void checkWeatherUpdate();
 
         /**
          * @brief updateWeather Update weather conditions from device or service. The function should
@@ -156,9 +167,19 @@ class WeatherInterface
         ILight *critialParametersL {nullptr};
         ILightVectorProperty critialParametersLP;
 
+        // Update Period
+        INDI::PropertyNumber UpdatePeriodNP {1};
+        // Refresh data
+        INDI::PropertySwitch RefreshSP {1};
+
+        // Override
+        INDI::PropertySwitch OverrideSP {1};
+
+
     private:
         void createParameterRange(std::string name, std::string label);
         DefaultDevice *m_defaultDevice { nullptr };
         std::string m_ParametersGroup;
+        INDI::Timer m_UpdateTimer;
 };
 }
