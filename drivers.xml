@@ -264,7 +264,11 @@
         <device label="AZ-GTi Alt-Az WiFi" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
             <version>1.7</version>
-        </device>        
+        </device>
+        <device label="AZ-GTi Alt-Az Wired" manufacturer="SkyWatcher">
+            <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
+            <version>1.7</version>
+        </device>
         <device label="Telescope Scripting Gateway" manufacturer="Gateways">
             <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
             <version>1.0</version>
