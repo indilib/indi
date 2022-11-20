@@ -40,6 +40,15 @@ static std::unique_ptr<UranusMeteo> ppba(new UranusMeteo());
 UranusMeteo::UranusMeteo() : WI(this)
 {
     setVersion(1, 0);
+    m_SkyQualityUpdateTimer.setInterval(60000);
+    m_SkyQualityUpdateTimer.callOnTimeout([this]()
+    {
+        LOG_DEBUG("Measuring sky quality...");
+        triggerSkyQuality();
+        readSkyQuality();
+        if (SkyQualityUpdateNP[0].getValue() > 0)
+            m_SkyQualityUpdateTimer.start(SkyQualityUpdateNP[0].getValue() * 1000);
+    });
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -93,6 +102,9 @@ bool UranusMeteo::initProperties()
     SkyQualityNP[VisualSpectrum].fill("VisualSpectrum",  "Visual Spectrum", "%.2f", -1000, 1000, 10, 0);
     SkyQualityNP[InfraredSpectrum].fill("InfraredSpectrum",  "Infrared Spectrum", "%.2f", 0, 1, 0.1, 0);
     SkyQualityNP.fill(getDeviceName(), "SKYQUALITY", "Sky Quality", SKYQUALITY_TAB, IP_RO, 60, IPS_IDLE);
+
+    SkyQualityUpdateNP[0].fill("VALUE", "Period (s)", "%.f", 0, 3600, 60, 60);
+    SkyQualityUpdateNP.fill(getDeviceName(), "SKYQUALITY_TIMER", "Update", SKYQUALITY_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// GPS
@@ -247,6 +259,8 @@ IPState UranusMeteo::updateGPS()
             snprintf(ts, sizeof(ts), "%.2f", GPSNP[UTCOffset].getValue());
             IUSaveText(&TimeT[1], ts);
 
+            setSystemTime(raw_time);
+
             return IPS_OK;
         }
         catch(...)
@@ -292,6 +306,25 @@ bool UranusMeteo::ISNewNumber(const char * dev, const char * name, double values
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
+        // Sky Quality Update
+        if (SkyQualityUpdateNP->isNameMatch(name))
+        {
+            SkyQualityUpdateNP.update(values, names, n);
+            auto value = SkyQualityUpdateNP[0].getValue();
+            if (value > 0)
+            {
+                m_SkyQualityUpdateTimer.start(value * 1000);
+                SkyQualityUpdateNP->setState(IPS_OK);
+            }
+            else
+            {
+                LOG_INFO("Sky Quality Update is disabled.");
+                SkyQualityUpdateNP->setState(IPS_IDLE);
+            }
+            SkyQualityUpdateNP->apply();
+            return true;
+        }
+
         if (processNumber(dev, name, values, names, n))
             return true;
     }
@@ -312,7 +345,6 @@ void UranusMeteo::TimerHit()
 
     readSensors();
     readClouds();
-    readSkyQuality();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -324,6 +356,7 @@ bool UranusMeteo::saveConfigItems(FILE * fp)
 {
     INDI::GPS::saveConfigItems(fp);
     WI::saveConfigItems(fp);
+    IUSaveConfigNumber(fp, &SkyQualityUpdateNP);
     return true;
 }
 
@@ -367,6 +400,15 @@ bool UranusMeteo::readSensors()
     }
 
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool UranusMeteo::triggerSkyQuality()
+{
+    char response[PEGASUS_LEN] = {0};
+    return sendCommand("SQ", response);
 }
 
 //////////////////////////////////////////////////////////////////////
