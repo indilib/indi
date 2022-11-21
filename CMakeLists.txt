@@ -663,7 +663,7 @@ if(INDI_BUILD_DRIVERS)
         # #################################################
         # ########## INDI Alignment Subsystem #############
         # #################################################
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/alignment)
 
         # #################################################
         # ########## INDI Drivers #########################
