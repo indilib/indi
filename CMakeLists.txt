@@ -845,6 +845,7 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indililxml.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
