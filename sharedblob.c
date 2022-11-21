@@ -23,31 +23,11 @@
 #include <linux/unistd.h>
 #endif
 
-#include "indidriver.h"
-
-#include "base64.h"
-#include "indicom.h"
-#include "indidevapi.h"
-#include "locale_compat.h"
-
-
-
-#include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-
-
+#include <errno.h>
+#include <stdio.h>
 #include <sys/mman.h>
-
-#include <assert.h>
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
 
@@ -308,4 +288,3 @@ static shared_buffer * sharedBufferFind(void * mapstart) {
     pthread_mutex_unlock(&shared_buffer_mutex);
     return sb;
 }
-
