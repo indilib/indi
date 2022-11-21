@@ -208,7 +208,8 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
     SET(indiclient_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
@@ -240,9 +241,6 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
         ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
         ENABLE_UNITY_BUILD(indiclient_cxx indiclient_CXX_SRC 10 cpp)
     ENDIF()
-
-    SET(indiclient_C_SRC ${indiclient_C_SRC}
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
     add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
 
@@ -307,7 +305,8 @@ if(INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
     SET(indiclientqt_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
@@ -339,9 +338,6 @@ if(INDI_BUILD_QT5_CLIENT)
         ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
         ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
     ENDIF()
-
-    SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
     add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
 
@@ -565,13 +561,12 @@ if(INDI_BUILD_DRIVERS)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
-
-            # ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp
+            # ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
         )
 
         IF(UNITY_BUILD)
@@ -583,34 +578,31 @@ if(INDI_BUILD_DRIVERS)
             ${indidriver_C_SRC}
             ${libdsp_C_SRC}
             ${fpack_C_SRC}
+            ${libstream_C_SRC}
+            ${hidapi_SRCS}
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
+
+        SET(indidriver_CXX_SRC
+            ${indidriver_CXX_SRC}
+            ${libstream_CXX_SRC})
 
         # #################################################
         # ######### INDI Default Driver Library ###########
         # #################################################
+
+        find_package(FFTW3 REQUIRED)
+
         if(CYGWIN)
             # # For Cygwin we only build static library
             add_definitions(-U__STRICT_ANSI__)
-            find_package(FFTW3 REQUIRED)
+            
             find_package(Iconv REQUIRED)
-            add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
-            target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
-            set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
-
-            IF(OGGTHEORA_FOUND)
-                target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-            ENDIF()
-
-            IF(HAVE_WEBSOCKET)
-                target_link_libraries(indidriver ${Boost_LIBRARIES})
-            ENDIF()
+            add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC})
 
             install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         else()
             # # Static indidriver Library
-            find_package(FFTW3 REQUIRED)
-            add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
+            add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
             set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
             target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
             set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
@@ -627,20 +619,8 @@ if(INDI_BUILD_DRIVERS)
             install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
             # # Dynamic indidriver Library
-            find_package(FFTW3 REQUIRED)
-            add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
+            add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
             set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
-            target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
-            set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
-
-            IF(OGGTHEORA_FOUND)
-                target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-            ENDIF()
-
-            IF(HAVE_WEBSOCKET)
-                target_link_libraries(indidriver ${Boost_LIBRARIES})
-            ENDIF()
 
             # IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
             # target_link_libraries(indidriver -lpthread)
@@ -648,6 +628,18 @@ if(INDI_BUILD_DRIVERS)
             install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
             set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
         endif(CYGWIN)
+
+        set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
+        target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+        target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
+
+        IF(OGGTHEORA_FOUND)
+            target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
+        ENDIF()
+
+        IF(HAVE_WEBSOCKET)
+            target_link_libraries(indidriver ${Boost_LIBRARIES})
+        ENDIF()
 
         IF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
             # FreeBSD needs to find the correct GNU iconv library.
