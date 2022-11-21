@@ -654,78 +654,8 @@ if(INDI_BUILD_DRIVERS)
         # ####################################
         # ########### INDI TOOLS #############
         # ####################################
-
-        # ########## getINDI ##############
-        SET(indi_get_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
-
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indi_get indi_get_SRC 10 c)
-        ENDIF()
-
-        SET(indi_get_SRC ${indi_get_SRC}
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
-
-        add_executable(indi_getprop ${indi_get_SRC})
-
-        target_link_libraries(indi_getprop eventloop base64 ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-
-        install(TARGETS indi_getprop RUNTIME DESTINATION bin)
-
-        # ################################################################################
-
-        # ########## setINDI ##############
-        SET(indi_set_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
-
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indi_set indi_set_SRC 10 c)
-        ENDIF()
-
-        SET(indi_set_SRC ${indi_set_SRC}
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
-
-        add_executable(indi_setprop ${indi_set_SRC})
-
-        target_link_libraries(indi_setprop eventloop base64 ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-
-        install(TARGETS indi_setprop RUNTIME DESTINATION bin)
-
-        # ################################################################################
-
-        # ########## evalINDI ##############
-        SET(indi_eval_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
-
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indi_eval indi_eval_SRC 10 c)
-        ENDIF()
-
-        SET(indi_eval_SRC ${indi_eval_SRC}
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
-
-        add_executable(indi_eval ${indi_eval_SRC})
-
-        target_link_libraries(indi_eval eventloop base64 ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-
-        install(TARGETS indi_eval RUNTIME DESTINATION bin)
-
+        add_subdirectory(tools)
+        
         # ########## HID Test ##############
         SET(indi_hid_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidtest.cpp
