@@ -306,3 +306,13 @@ SET(telescopescript_SRC
 add_executable(indi_script_telescope ${telescopescript_SRC})
 target_link_libraries(indi_script_telescope indidriver)
 install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
+
+# ########## Skywatcher Alt-Az Mount ##############
+set(skywatcherAltAzMount_SRCS
+    skywatcherAPIMount.cpp
+    skywatcherAPI.cpp)
+
+add_executable(indi_skywatcherAltAzMount ${skywatcherAltAzMount_SRCS})
+target_link_libraries(indi_skywatcherAltAzMount indidriver AlignmentDriver)
+
+install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)
