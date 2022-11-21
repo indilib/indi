@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/mman.h>
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
