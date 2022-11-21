@@ -484,11 +484,6 @@ if(INDI_BUILD_DRIVERS)
             ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
         ENDIF(UNIX)
 
-        set(fpack_C_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpack.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpackutil.c
-        )
-
         SET(indidriver_C_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
@@ -557,13 +552,12 @@ if(INDI_BUILD_DRIVERS)
         )
 
         IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC fpack_C_SRC 10 c)
+            ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
             ENABLE_UNITY_BUILD(indidriver_cxx indidriver_CXX_SRC 10 cpp)
         ENDIF()
 
         SET(indidriver_C_SRC
             ${indidriver_C_SRC}
-            ${fpack_C_SRC}
             ${libstream_C_SRC}
             ${hidapi_SRCS}
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
@@ -578,6 +572,7 @@ if(INDI_BUILD_DRIVERS)
 
         find_package(FFTW3 REQUIRED)
         add_subdirectory(libs/dsp)
+        add_subdirectory(libs/fpack)
 
         if(CYGWIN)
             # # For Cygwin we only build static library
@@ -593,7 +588,7 @@ if(INDI_BUILD_DRIVERS)
             set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
             target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
             set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriverstatic eventloop dsp ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+            target_link_libraries(indidriverstatic eventloop dsp fpack ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
             IF(OGGTHEORA_FOUND)
                 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
@@ -617,7 +612,7 @@ if(INDI_BUILD_DRIVERS)
         endif(CYGWIN)
 
         set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-        target_link_libraries(indidriver eventloop dsp ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+        target_link_libraries(indidriver eventloop dsp fpack ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
         target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 
         IF(OGGTHEORA_FOUND)
