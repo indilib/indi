@@ -21,15 +21,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
+#include "sharedblob_parse.h"
+
+#define INDI_SHARED_BLOB_SUPPORT
+#include "sharedblob.h"
+
 #include <map>
 #include <sstream>
 #include <mutex>
 #include <cstdint>
 
 #include <unistd.h>
-
-#include "indidevapi.h"
-#include "sharedblob_parse.h"
 
 namespace INDI
 {
