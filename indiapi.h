@@ -513,21 +513,7 @@ extern "C" {
 
 // Advertize support for shared blob on this platform
 #define INDI_SHARED_BLOB_SUPPORT
-
-/** \brief Allocate a buffer suitable for fast exchange over local links. Warning : the buffer will be sealed (readonly) once exchanged.
-    \param size_t size of the memory area to allocate
- */
-extern void * IDSharedBlobAlloc(size_t size);
-
-/** \brief Adjust the size of a buffer obtained using IDSharedBlobAlloc.
-    \param size_t size of the memory area to allocate
- */
-extern void * IDSharedBlobRealloc(void * ptr, size_t size);
-
-/** \brief Free a buffer allocated using IDSharedBlobAlloc. Fall back to free for buffer that are not shared blob
- * Must be used for IBLOB.data
- */
-extern void IDSharedBlobFree(void * ptr);
+#include "sharedblob.h"
 
 #ifdef __cplusplus
 }
