@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
 PROJECT(libindi C CXX)
 
 # As moc files are generated in the binary dir, tell CMake
