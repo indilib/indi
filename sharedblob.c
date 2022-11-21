@@ -1,22 +1,24 @@
-#if 0
-    INDI
-    Copyright (C) 2022 by Ludovic Pollet
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-#endif
+/** INDI
+ *  Copyright (C) 2022 by Ludovic Pollet
+ *
+ *  This library is free software;
+ *  you can redistribute it and / or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation;
+ *  either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *       but WITHOUT ANY WARRANTY;
+ *  without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library;
+ *  if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
+ */
 
 #ifdef __linux__
 #define _GNU_SOURCE
@@ -42,7 +44,8 @@ static int shm_open_anon(void);
 
 static pthread_mutex_t shared_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-typedef struct shared_buffer {
+typedef struct shared_buffer
+{
     void * mapstart;
     size_t size;
     size_t allocated;
@@ -52,8 +55,10 @@ typedef struct shared_buffer {
 } shared_buffer;
 
 /* Return the buffer size required for storage (rounded to next BLOB_SIZE_UNIT) */
-static size_t allocation(size_t storage) {
-    if (storage == 0) {
+static size_t allocation(size_t storage)
+{
+    if (storage == 0)
+    {
         return BLOB_SIZE_UNIT;
     }
     return (storage + BLOB_SIZE_UNIT - 1) & ~(BLOB_SIZE_UNIT - 1);
@@ -64,7 +69,8 @@ static shared_buffer * sharedBufferRemove(void * mapstart);
 static shared_buffer * sharedBufferFind(void * mapstart);
 
 
-void * IDSharedBlobAlloc(size_t size) {
+void * IDSharedBlobAlloc(size_t size)
+{
 #ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb = (shared_buffer*)malloc(sizeof(shared_buffer));
     if (sb == NULL) goto ERROR;
@@ -79,14 +85,15 @@ void * IDSharedBlobAlloc(size_t size) {
     if (ret == -1) goto ERROR;
 
     // FIXME: try to map far more than sb->allocated, to allow efficient mremap
-    sb->mapstart = mmap(0, sb->allocated, PROT_READ|PROT_WRITE, MAP_SHARED, sb->fd, 0);
+    sb->mapstart = mmap(0, sb->allocated, PROT_READ | PROT_WRITE, MAP_SHARED, sb->fd, 0);
     if (sb->mapstart == MAP_FAILED) goto ERROR;
 
     sharedBufferAdd(sb);
 
     return sb->mapstart;
 ERROR:
-    if (sb) {
+    if (sb)
+    {
         int e = errno;
         if (sb->fd != -1) close(sb->fd);
         free(sb);
@@ -98,7 +105,8 @@ ERROR:
 #endif
 }
 
-void * IDSharedBlobAttach(int fd, size_t size) {
+void * IDSharedBlobAttach(int fd, size_t size)
+{
     shared_buffer * sb = (shared_buffer*)malloc(sizeof(shared_buffer));
     if (sb == NULL) goto ERROR;
     sb->fd = fd;
@@ -113,7 +121,8 @@ void * IDSharedBlobAttach(int fd, size_t size) {
 
     return sb->mapstart;
 ERROR:
-    if (sb) {
+    if (sb)
+    {
         int e = errno;
         free(sb);
         errno = e;
@@ -122,64 +131,77 @@ ERROR:
 }
 
 
-void IDSharedBlobFree(void * ptr) {
+void IDSharedBlobFree(void * ptr)
+{
     shared_buffer * sb = sharedBufferRemove(ptr);
-    if (sb == NULL) {
+    if (sb == NULL)
+    {
         // Not a memory attached to a blob
         free(ptr);
         return;
     }
 
-    if (munmap(sb->mapstart, sb->allocated) == -1) {
+    if (munmap(sb->mapstart, sb->allocated) == -1)
+    {
         perror("shared buffer munmap");
         _exit(1);
     }
-    if (close(sb->fd) == -1) {
+    if (close(sb->fd) == -1)
+    {
         perror("shared buffer close");
     }
     free(sb);
 }
 
-void IDSharedBlobDettach(void * ptr) {
+void IDSharedBlobDettach(void * ptr)
+{
     shared_buffer * sb = sharedBufferRemove(ptr);
-    if (sb == NULL) {
+    if (sb == NULL)
+    {
         // Not a memory attached to a blob
         free(ptr);
         return;
     }
-    if (munmap(sb->mapstart, sb->allocated) == -1) {
+    if (munmap(sb->mapstart, sb->allocated) == -1)
+    {
         perror("shared buffer munmap");
         _exit(1);
     }
     free(sb);
 }
 
-void * IDSharedBlobRealloc(void * ptr, size_t size) {
-    if (ptr == NULL) {
+void * IDSharedBlobRealloc(void * ptr, size_t size)
+{
+    if (ptr == NULL)
+    {
         return IDSharedBlobAlloc(size);
     }
 
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
 
-    if (sb == NULL) {
+    if (sb == NULL)
+    {
         return realloc(ptr, size);
     }
 
-    if (sb->sealed) {
+    if (sb->sealed)
+    {
         IDSharedBlobFree(ptr);
         errno = EROFS;
         return NULL;
     }
 
-    if (sb->size >= size) {
+    if (sb->size >= size)
+    {
         // Shrinking is not implemented
         sb->size = size;
         return ptr;
     }
 
     size_t reallocated = allocation(size);
-    if (reallocated == sb->allocated) {
+    if (reallocated == sb->allocated)
+    {
         sb->size = size;
         return ptr;
     }
@@ -193,11 +215,12 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
 
 #else
     // compatibility path for MACOS
-    if (munmap(sb->mapstart, sb->allocated) == -1) {
+    if (munmap(sb->mapstart, sb->allocated) == -1)
+    {
         perror("shared buffer munmap");
         _exit(1);
     }
-    void * remaped = mmap(0, reallocated, PROT_READ|PROT_WRITE, MAP_SHARED, sb->fd, 0);
+    void * remaped = mmap(0, reallocated, PROT_READ | PROT_WRITE, MAP_SHARED, sb->fd, 0);
     if (remaped == MAP_FAILED) return NULL;
 #endif
     sb->size = size;
@@ -209,17 +232,20 @@ void * IDSharedBlobRealloc(void * ptr, size_t size) {
 
 static void seal(shared_buffer * sb)
 {
-    void * ret = mmap(sb->mapstart, sb->allocated, PROT_READ, MAP_SHARED|MAP_FIXED, sb->fd, 0);
-    if (ret == MAP_FAILED) {
+    void * ret = mmap(sb->mapstart, sb->allocated, PROT_READ, MAP_SHARED | MAP_FIXED, sb->fd, 0);
+    if (ret == MAP_FAILED)
+    {
         perror("remap readonly failed");
     }
     sb->sealed = 1;
 }
 
-int IDSharedBlobGetFd(void * ptr) {
+int IDSharedBlobGetFd(void * ptr)
+{
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
-    if (sb == NULL) {
+    if (sb == NULL)
+    {
         errno = EINVAL;
         return -1;
     }
@@ -230,7 +256,8 @@ int IDSharedBlobGetFd(void * ptr) {
     return sb->fd;
 }
 
-void IDSharedBlobSeal(void * ptr) {
+void IDSharedBlobSeal(void * ptr)
+{
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
     if (sb->sealed) return;
@@ -239,23 +266,30 @@ void IDSharedBlobSeal(void * ptr) {
 
 static shared_buffer * first = NULL, *last = NULL;
 
-static void sharedBufferAdd(shared_buffer * sb) {
+static void sharedBufferAdd(shared_buffer * sb)
+{
     pthread_mutex_lock(&shared_buffer_mutex);
     // Chained insert at start
     sb->prev = NULL;
     sb->next = first;
-    if (first) {
+    if (first)
+    {
         first->prev = sb;
-    } else {
+    }
+    else
+    {
         last = sb;
     }
     first = sb;
     pthread_mutex_unlock(&shared_buffer_mutex);
 }
-static shared_buffer * sharedBufferFindUnlocked(void * mapstart) {
+static shared_buffer * sharedBufferFindUnlocked(void * mapstart)
+{
     shared_buffer * sb = first;
-    while(sb) {
-        if (sb->mapstart == mapstart) {
+    while(sb)
+    {
+        if (sb->mapstart == mapstart)
+        {
             return sb;
         }
         sb = sb->next;
@@ -263,18 +297,26 @@ static shared_buffer * sharedBufferFindUnlocked(void * mapstart) {
     return NULL;
 }
 
-static shared_buffer * sharedBufferRemove(void * mapstart) {
+static shared_buffer * sharedBufferRemove(void * mapstart)
+{
     pthread_mutex_lock(&shared_buffer_mutex);
     shared_buffer * sb  = sharedBufferFindUnlocked(mapstart);
-    if (sb != NULL) {
-        if (sb->prev) {
+    if (sb != NULL)
+    {
+        if (sb->prev)
+        {
             sb->prev->next = sb->next;
-        } else {
+        }
+        else
+        {
             first = sb->next;
         }
-        if (sb->next) {
+        if (sb->next)
+        {
             sb->next->prev = sb->prev;
-        } else {
+        }
+        else
+        {
             last = sb->prev;
         }
     }
@@ -282,7 +324,8 @@ static shared_buffer * sharedBufferRemove(void * mapstart) {
     return sb;
 }
 
-static shared_buffer * sharedBufferFind(void * mapstart) {
+static shared_buffer * sharedBufferFind(void * mapstart)
+{
     pthread_mutex_lock(&shared_buffer_mutex);
     shared_buffer * sb  = sharedBufferFindUnlocked(mapstart);
     pthread_mutex_unlock(&shared_buffer_mutex);
