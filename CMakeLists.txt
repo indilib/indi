@@ -405,7 +405,6 @@ if(INDI_BUILD_DRIVERS)
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
         include_directories(${CMAKE_CURRENT_SOURCE_DIR})
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
         include_directories(${CFITSIO_INCLUDE_DIR})
@@ -485,19 +484,6 @@ if(INDI_BUILD_DRIVERS)
             ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
         ENDIF(UNIX)
 
-        SET(libdsp_C_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/filters.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/signals.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stats.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stream.c
-        )
-
         set(fpack_C_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpack.c
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpackutil.c
@@ -571,13 +557,12 @@ if(INDI_BUILD_DRIVERS)
         )
 
         IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC libdsp_C_SRC fpack_C_SRC 10 c)
+            ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC fpack_C_SRC 10 c)
             ENABLE_UNITY_BUILD(indidriver_cxx indidriver_CXX_SRC 10 cpp)
         ENDIF()
 
         SET(indidriver_C_SRC
             ${indidriver_C_SRC}
-            ${libdsp_C_SRC}
             ${fpack_C_SRC}
             ${libstream_C_SRC}
             ${hidapi_SRCS}
@@ -592,6 +577,7 @@ if(INDI_BUILD_DRIVERS)
         # #################################################
 
         find_package(FFTW3 REQUIRED)
+        add_subdirectory(libs/dsp)
 
         if(CYGWIN)
             # # For Cygwin we only build static library
@@ -607,7 +593,7 @@ if(INDI_BUILD_DRIVERS)
             set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
             target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
             set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriverstatic eventloop ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+            target_link_libraries(indidriverstatic eventloop dsp ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
             IF(OGGTHEORA_FOUND)
                 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
@@ -631,7 +617,7 @@ if(INDI_BUILD_DRIVERS)
         endif(CYGWIN)
 
         set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-        target_link_libraries(indidriver eventloop ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+        target_link_libraries(indidriver eventloop dsp ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
         target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 
         IF(OGGTHEORA_FOUND)
@@ -868,11 +854,6 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits_extensions.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/sdfits.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fitsidi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
