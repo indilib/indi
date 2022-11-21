@@ -63,7 +63,7 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "sharedblob.h"
-#include "libs/lilxml.h"
+#include "lilxml.h"
 #include "base64.h"
 
 #include <errno.h>
