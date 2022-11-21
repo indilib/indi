@@ -396,6 +396,8 @@ if(INDI_BUILD_DRIVERS)
         find_package(GSL REQUIRED)
         find_package(JPEG REQUIRED)
 
+        add_subdirectory(libs/eventloop)
+
         # Math Library
         FIND_LIBRARY(M_LIB m)
 
@@ -505,7 +507,6 @@ if(INDI_BUILD_DRIVERS)
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
@@ -606,7 +607,7 @@ if(INDI_BUILD_DRIVERS)
             set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
             target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
             set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+            target_link_libraries(indidriverstatic eventloop ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
             IF(OGGTHEORA_FOUND)
                 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
@@ -630,7 +631,7 @@ if(INDI_BUILD_DRIVERS)
         endif(CYGWIN)
 
         set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-        target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+        target_link_libraries(indidriver eventloop ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
         target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 
         IF(OGGTHEORA_FOUND)
@@ -669,7 +670,6 @@ if(INDI_BUILD_DRIVERS)
 
         # ########## getINDI ##############
         SET(indi_get_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
             ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
             ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
@@ -687,7 +687,7 @@ if(INDI_BUILD_DRIVERS)
 
         add_executable(indi_getprop ${indi_get_SRC})
 
-        target_link_libraries(indi_getprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+        target_link_libraries(indi_getprop eventloop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
         install(TARGETS indi_getprop RUNTIME DESTINATION bin)
 
@@ -695,7 +695,6 @@ if(INDI_BUILD_DRIVERS)
 
         # ########## setINDI ##############
         SET(indi_set_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
             ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
             ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.cpp
@@ -713,7 +712,7 @@ if(INDI_BUILD_DRIVERS)
 
         add_executable(indi_setprop ${indi_set_SRC})
 
-        target_link_libraries(indi_setprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+        target_link_libraries(indi_setprop eventloop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
         install(TARGETS indi_setprop RUNTIME DESTINATION bin)
 
@@ -721,7 +720,6 @@ if(INDI_BUILD_DRIVERS)
 
         # ########## evalINDI ##############
         SET(indi_eval_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
             ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
             ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
             ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
@@ -740,7 +738,7 @@ if(INDI_BUILD_DRIVERS)
 
         add_executable(indi_eval ${indi_eval_SRC})
 
-        target_link_libraries(indi_eval ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+        target_link_libraries(indi_eval eventloop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
         install(TARGETS indi_eval RUNTIME DESTINATION bin)
 
@@ -869,7 +867,6 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fits_extensions.h
