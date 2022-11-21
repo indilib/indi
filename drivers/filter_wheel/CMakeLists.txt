@@ -1,4 +1,3 @@
-
 # ########## XAGYL Wheel ##############
 SET(xagylwheel_SRC
     xagyl_wheel.cpp)

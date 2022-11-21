@@ -1,4 +1,3 @@
-
 # ############### Dome Simulator ################
 SET(domesimulator_SRC
     dome_simulator.cpp)
