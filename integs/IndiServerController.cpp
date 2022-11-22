@@ -29,7 +29,7 @@
 #define TO_STRING(x) STRINGIFY_TOK(x)
 
 void IndiServerController::start(const std::vector<std::string> & args) {
-    ProcessController::start("../indiserver", args);
+    ProcessController::start("../indiserver/indiserver", args);
 }
 
 void IndiServerController::startDriver(const std::string & path) {
