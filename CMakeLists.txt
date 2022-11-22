@@ -92,6 +92,7 @@ OPTION(INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION(INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION(INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+OPTION(INDI_BUILD_STATIC "Build static library" ON)
 
 if(UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
@@ -225,7 +226,11 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
-    add_library(indiclient STATIC ${indiclient_SRC})
+    if(INDI_BUILD_STATIC)
+        add_library(indiclient STATIC ${indiclient_SRC})
+    else()
+        add_library(indiclient SHARED ${indiclient_SRC})
+    endif()
 
     add_subdirectory(libs/sockets)
     target_link_libraries(indiclient indicore sockets ${ZLIB_LIBRARY})
@@ -301,7 +306,11 @@ if(INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
-    add_library(indiclientqt STATIC ${indiclientqt_SRC})
+    if(INDI_BUILD_STATIC)
+        add_library(indiclientqt STATIC ${indiclientqt_SRC})
+    else()
+        add_library(indiclientqt SHARED ${indiclientqt_SRC})
+    endif()
 
     if(NOT CYGWIN AND NOT WIN32)
         set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -515,22 +524,23 @@ if(INDI_BUILD_DRIVERS)
             install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         else()
             # # Static indidriver Library
-            add_library(indidriverstatic STATIC ${indidriver_SRC} ${libwebcam_SRC})
-            set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
-            target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
-            set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-            target_link_libraries(indidriverstatic indicore eventloop dsp fpack ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+            if(INDI_BUILD_STATIC)
+                add_library(indidriverstatic STATIC ${indidriver_SRC} ${libwebcam_SRC})
+                set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
+                target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
+                set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
+                target_link_libraries(indidriverstatic indicore eventloop dsp fpack ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
-            if(OGGTHEORA_FOUND)
-                target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
+                if(OGGTHEORA_FOUND)
+                    target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
+                endif()
+
+                if(HAVE_WEBSOCKET)
+                    target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
+                endif()
+
+                install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
             endif()
-
-            if(HAVE_WEBSOCKET)
-                target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
-            endif()
-
-            install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
             # # Dynamic indidriver Library
             add_library(indidriver SHARED ${indidriver_SRC} ${libwebcam_SRC})
             set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
