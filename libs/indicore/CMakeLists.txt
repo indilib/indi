@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(indicore C CXX)
 
-find_package(Nova)
+if(NOT WIN32)
+    find_package(Nova)
+endif()
 
 add_library(${PROJECT_NAME} OBJECT "")
 
@@ -12,7 +14,6 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     lilxml.h
     base64.h
     indicom.h
-    libastro.h
     sharedblob.h
 )
 
@@ -31,7 +32,6 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     userio.c
     indicom.c
     lilxml.cpp
-    libastro.cpp
     sharedblob.c
     sharedblob_parse.cpp
     indiuserio.c
@@ -47,6 +47,14 @@ endif()
 if(NOVA_FOUND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "-DHAVE_LIBNOVA")
     target_link_libraries(${PROJECT_NAME} ${NOVA_LIBRARIES})
+
+    list(APPEND ${PROJECT_NAME}_HEADERS
+        libastro.h
+    )
+
+    list(APPEND ${PROJECT_NAME}_SOURCES
+        libastro.cpp
+    )
 endif()
 
 # Setup Target
