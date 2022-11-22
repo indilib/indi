@@ -17,69 +17,119 @@
 */
 
 #include "indipropertyview.h"
-#include "indidriver.h"
+
+void (*WeakIDSetTextVA)(const ITextVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDDefTextVA)(const ITextVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDSetNumberVA)(const INumberVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDDefNumberVA)(const INumberVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDSetSwitchVA)(const ISwitchVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDDefSwitchVA)(const ISwitchVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDSetLightVA)(const ILightVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDDefLightVA)(const ILightVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDSetBLOBVA)(const IBLOBVectorProperty *, const char *, va_list) = nullptr;
+void (*WeakIDDefBLOBVA)(const IBLOBVectorProperty *, const char *, va_list) = nullptr;
+int (*WeakIUUpdateText)(ITextVectorProperty *, char *[], char *[], int) = nullptr;
+int (*WeakIUUpdateNumber)(INumberVectorProperty *, double[], char *[], int n) = nullptr;
+int (*WeakIUUpdateSwitch)(ISwitchVectorProperty *, ISState *, char *[], int n) = nullptr;
+int (*WeakIUUpdateBLOB)(IBLOBVectorProperty *, int [], int [], char *[], char *[], char *[], int n) = nullptr;
+void (*WeakIUUpdateMinMax)(const INumberVectorProperty *) = nullptr;
 
 namespace INDI
 {
 
+static void errorUnavailable(const char *function)
+{
+    fprintf(stderr, "%s method available only on driver side\n", function);
+}
+
 template <>
 void PropertyView<IText>::vapply(const char *format, va_list arg) const
 {
-    IDSetTextVA(this, format, arg);
+    if (WeakIDSetTextVA)
+        WeakIDSetTextVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<IText>::vdefine(const char *format, va_list arg) const
 {
-    IDDefTextVA(this, format, arg);
+    if (WeakIDDefTextVA)
+        WeakIDDefTextVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<INumber>::vapply(const char *format, va_list arg) const
 {
-    IDSetNumberVA(this, format, arg);
+    if (WeakIDSetNumberVA)
+        WeakIDSetNumberVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<INumber>::vdefine(const char *format, va_list arg) const
 {
-    IDDefNumberVA(this, format, arg);
+    if (WeakIDDefNumberVA)
+        WeakIDDefNumberVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<ISwitch>::vapply(const char *format, va_list arg) const
 {
-    IDSetSwitchVA(this, format, arg);
+    if (WeakIDSetSwitchVA)
+        WeakIDSetSwitchVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<ISwitch>::vdefine(const char *format, va_list arg) const
 {
-    IDDefSwitchVA(this, format, arg);
+    if (WeakIDDefSwitchVA)
+        WeakIDDefSwitchVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<ILight>::vapply(const char *format, va_list arg) const
 {
-    IDSetLightVA(this, format, arg);
+    if (WeakIDSetLightVA)
+        WeakIDSetLightVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<ILight>::vdefine(const char *format, va_list arg) const
 {
-    IDDefLightVA(this, format, arg);
+    if (WeakIDDefLightVA)
+        WeakIDDefLightVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<IBLOB>::vapply(const char *format, va_list arg) const
 {
-    IDSetBLOBVA(this, format, arg);
+    if (WeakIDSetBLOBVA)
+        WeakIDSetBLOBVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <>
 void PropertyView<IBLOB>::vdefine(const char *format, va_list arg) const
 {
-    IDDefBLOBVA(this, format, arg);
+    if (WeakIDDefBLOBVA)
+        WeakIDDefBLOBVA(this, format, arg);
+    else
+        errorUnavailable(__FUNCTION__);
 }
 
 template <typename T>
@@ -163,19 +213,31 @@ void PropertyView<IBLOB>::fill(
 template <> template<>
 bool PropertyView<IText>::update(const char * const texts[], const char * const names[], int n)
 {
-    return IUUpdateText(this, const_cast<char**>(texts), const_cast<char**>(names), n) == 0;
+    if (WeakIUUpdateText)
+        return WeakIUUpdateText(this, const_cast<char**>(texts), const_cast<char**>(names), n) == 0;
+
+    errorUnavailable(__FUNCTION__);
+    return false;
 }
 
 template <> template<>
 bool PropertyView<INumber>::update(const double values[], const char * const names[], int n)
 {
-    return IUUpdateNumber(this, const_cast<double*>(values), const_cast<char**>(names), n) == 0;
+    if (WeakIUUpdateNumber)
+        return WeakIUUpdateNumber(this, const_cast<double*>(values), const_cast<char**>(names), n) == 0;
+
+    errorUnavailable(__FUNCTION__);
+    return false;
 }
 
 template <> template<>
 bool PropertyView<ISwitch>::update(const ISState states[], const char * const names[], int n)
 {
-    return IUUpdateSwitch(this, const_cast<ISState*>(states), const_cast<char**>(names), n) == 0;
+    if (WeakIUUpdateSwitch)
+        return WeakIUUpdateSwitch(this, const_cast<ISState*>(states), const_cast<char**>(names), n) == 0;
+
+    errorUnavailable(__FUNCTION__);
+    return false;
 }
 
 template <> template<>
@@ -184,18 +246,23 @@ bool PropertyView<IBLOB>::update(
     const char * const names[], int n
 )
 {
-    return IUUpdateBLOB(
+    if (WeakIUUpdateBLOB)
+        return WeakIUUpdateBLOB(
                this,
                const_cast<int *>(sizes), const_cast<int *>(blobsizes),
                const_cast<char **>(blobs), const_cast<char **>(formats),
                const_cast<char **>(names), n
            ) == 0;
+
+    errorUnavailable(__FUNCTION__);
+    return false;
 }
 
 template <> template<>
 void PropertyView<INumber>::updateMinMax()
 {
-    IUUpdateMinMax(this);
+    if (WeakIUUpdateMinMax)
+        WeakIUUpdateMinMax(this);
 }
 
 void WidgetView<IText>::fill(const char *name, const char *label, const char *initialText)

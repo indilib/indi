@@ -142,6 +142,8 @@ endif(INDI_CALCULATE_MINMAX)
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
+
 # ###################################################################################################
 #
 # Component   : INDI Core
@@ -150,6 +152,15 @@ set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and
 #
 # ################################################################################################
 add_subdirectory(libs/indicore)
+
+# ###################################################################################################
+#
+# Component   : indidevice
+# Dependencies: indicore
+# Supported OS: All
+#
+# ################################################################################################
+add_subdirectory(libs/indidevice)
 
 # ###################################################################################################
 #
@@ -189,22 +200,8 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
 
     # 3. Build
     set(indiclient_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyswitch.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp)
 
     if(INDI_BUILD_STATIC)
         add_library(indiclient STATIC ${indiclient_SRC})
@@ -213,7 +210,7 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
     endif()
 
     add_subdirectory(libs/sockets)
-    target_link_libraries(indiclient indicore sockets ${ZLIB_LIBRARY})
+    target_link_libraries(indiclient indicore indidevice sockets ${ZLIB_LIBRARY})
 
     if(NOT CYGWIN AND NOT WIN32)
         set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -270,21 +267,8 @@ if(INDI_BUILD_QT5_CLIENT)
     # 3. Build
     message(STATUS "Building INDI Client with Qt5 support")
     set(indiclientqt_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyswitch.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp)
 
     if(INDI_BUILD_STATIC)
         add_library(indiclientqt STATIC ${indiclientqt_SRC})
@@ -296,7 +280,7 @@ if(INDI_BUILD_QT5_CLIENT)
         set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
     endif(NOT CYGWIN AND NOT WIN32)
 
-    target_link_libraries(indiclientqt indicore Qt5::Network)
+    target_link_libraries(indiclientqt indicore indidevice Qt5::Network)
 
     if(WIN32 OR ANDROID)
         install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
@@ -379,13 +363,7 @@ if(INDI_BUILD_DRIVERS)
         # ##################################################################################################
         # #######################################  Sources  ################################################
         # ##################################################################################################
-        if(APPLE)
-            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_mac.c)
-        elseif(WIN32)
-            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_win.c)
-        else()
-            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
-        endif()
+
 
         if(UNIX)
             find_package(OggTheora)
@@ -426,23 +404,10 @@ if(INDI_BUILD_DRIVERS)
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/watchdeviceproperty.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyswitch.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_driver.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
@@ -467,7 +432,6 @@ if(INDI_BUILD_DRIVERS)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
@@ -483,7 +447,6 @@ if(INDI_BUILD_DRIVERS)
         set(indidriver_SRC
             ${indidriver_SRC}
             ${libstream_SRC}
-            ${hidapi_SRCS}
             ${indidriver_SRC}
             ${libstream_SRC})
 
@@ -493,6 +456,7 @@ if(INDI_BUILD_DRIVERS)
         find_package(FFTW3 REQUIRED)
         add_subdirectory(libs/dsp)
         add_subdirectory(libs/fpack)
+        add_subdirectory(libs/hid)
 
         if(CYGWIN)
             # # For Cygwin we only build static library
@@ -509,7 +473,7 @@ if(INDI_BUILD_DRIVERS)
                 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
                 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
                 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-                target_link_libraries(indidriverstatic indicore eventloop dsp fpack ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+                target_link_libraries(indidriverstatic indicore indidevice eventloop dsp fpack hid ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
                 if(OGGTHEORA_FOUND)
                     target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
@@ -534,7 +498,7 @@ if(INDI_BUILD_DRIVERS)
         endif(CYGWIN)
 
         set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-        target_link_libraries(indidriver indicore eventloop dsp fpack ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
+        target_link_libraries(indidriver indicore indidevice eventloop dsp fpack hid ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
         target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 
         if(OGGTHEORA_FOUND)
@@ -571,25 +535,6 @@ if(INDI_BUILD_DRIVERS)
         # ########### INDI TOOLS #############
         # ####################################
         add_subdirectory(tools)
-
-        # ########## HID Test ##############
-        set(indi_hid_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidtest.cpp
-        )
-
-        if(APPLE)
-            set(LIBS "-framework IOKit -framework CoreFoundation")
-        elseif(CYGWIN)
-            set(LIBS ${ICONV_LIBRARIES})
-        endif(APPLE)
-
-        set(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
-
-        add_executable(indi_hid_test ${indi_hid_SRC})
-
-        target_link_libraries(indi_hid_test ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
-
-        install(TARGETS indi_hid_test RUNTIME DESTINATION bin)
 
         # ################################################################################
         # # Build Examples
@@ -688,10 +633,6 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
@@ -709,23 +650,9 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyswitch.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indimacros.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
@@ -734,7 +661,6 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
     if(HAVE_WEBSOCKET)

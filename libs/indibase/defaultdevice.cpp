@@ -105,6 +105,46 @@ extern "C"
 
 } // extern "C"
 
+
+// For drivers, indiproperty need access to ID/IU functions
+extern void (*WeakIDSetTextVA)(const ITextVectorProperty *, const char *, va_list);
+extern void (*WeakIDDefTextVA)(const ITextVectorProperty *, const char *, va_list);
+extern void (*WeakIDSetNumberVA)(const INumberVectorProperty *, const char *, va_list);
+extern void (*WeakIDDefNumberVA)(const INumberVectorProperty *, const char *, va_list);
+extern void (*WeakIDSetSwitchVA)(const ISwitchVectorProperty *, const char *, va_list);
+extern void (*WeakIDDefSwitchVA)(const ISwitchVectorProperty *, const char *, va_list);
+extern void (*WeakIDSetLightVA)(const ILightVectorProperty *, const char *, va_list);
+extern void (*WeakIDDefLightVA)(const ILightVectorProperty *, const char *, va_list);
+extern void (*WeakIDSetBLOBVA)(const IBLOBVectorProperty *, const char *, va_list);
+extern void (*WeakIDDefBLOBVA)(const IBLOBVectorProperty *, const char *, va_list);
+extern int (*WeakIUUpdateText)(ITextVectorProperty *, char *[], char *[], int);
+extern int (*WeakIUUpdateNumber)(INumberVectorProperty *, double[], char *[], int n);
+extern int (*WeakIUUpdateSwitch)(ISwitchVectorProperty *, ISState *, char *[], int n);
+extern int (*WeakIUUpdateBLOB)(IBLOBVectorProperty *, int [], int [], char *[], char *[], char *[], int n);
+extern void (*WeakIUUpdateMinMax)(const INumberVectorProperty *);
+
+static struct WeakIDLoader
+{
+    WeakIDLoader()
+    {
+        WeakIDSetTextVA = IDSetTextVA;
+        WeakIDDefTextVA = IDDefTextVA;
+        WeakIDSetNumberVA = IDSetNumberVA;
+        WeakIDDefNumberVA = IDDefNumberVA;
+        WeakIDSetSwitchVA = IDSetSwitchVA;
+        WeakIDDefSwitchVA = IDDefSwitchVA;
+        WeakIDSetLightVA = IDSetLightVA;
+        WeakIDDefLightVA = IDDefLightVA;
+        WeakIDSetBLOBVA = IDSetBLOBVA;
+        WeakIDDefBLOBVA = IDDefBLOBVA;
+        WeakIUUpdateText = IUUpdateText;
+        WeakIUUpdateNumber = IUUpdateNumber;
+        WeakIUUpdateSwitch = IUUpdateSwitch;
+        WeakIUUpdateBLOB = IUUpdateBLOB;
+        WeakIUUpdateMinMax = IUUpdateMinMax;
+    }
+} weakLoader;
+
 void timerfunc(void *t)
 {
     INDI::DefaultDevice *devPtr = static_cast<INDI::DefaultDevice *>(t);

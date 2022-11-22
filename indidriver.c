@@ -172,578 +172,6 @@ void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOB
     }
 }
 
-/* Update property switches in accord with states and names. */
-int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n)
-{
-    ISwitch *so = NULL; // On switch pointer
-
-    assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
-
-    /* store On switch pointer */
-    if (svp->r == ISR_1OFMANY)
-    {
-        so = IUFindOnSwitch(svp);
-        IUResetSwitch(svp);
-    }
-
-    for (int i = 0; i < n; i++)
-    {
-        ISwitch *sp = IUFindSwitch(svp, names[i]);
-
-        if (!sp)
-        {
-            svp->s = IPS_IDLE;
-            IDSetSwitch(svp, "Error: %s is not a member of %s (%s) property.", names[i], svp->label, svp->name);
-            return -1;
-        }
-
-        sp->s = states[i];
-    }
-
-    /* Consistency checks for ISR_1OFMANY after update. */
-    if (svp->r == ISR_1OFMANY)
-    {
-        int t_count = 0;
-        for (int i = 0; i < svp->nsp; i++)
-        {
-            if (svp->sp[i].s == ISS_ON)
-                t_count++;
-        }
-        if (t_count != 1)
-        {
-            IUResetSwitch(svp);
-
-            // restore previous state
-            if (so)
-                so->s = ISS_ON;
-            svp->s = IPS_IDLE;
-            IDSetSwitch(svp, "Error: invalid state switch for property %s (%s). %s.", svp->label, svp->name,
-                        t_count == 0 ? "No switch is on" : "Too many switches are on");
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/* Update property numbers in accord with values and names */
-int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
-{
-    assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
-
-    for (int i = 0; i < n; i++)
-    {
-        INumber *np = IUFindNumber(nvp, names[i]);
-        if (!np)
-        {
-            nvp->s = IPS_IDLE;
-            IDSetNumber(nvp, "Error: %s is not a member of %s (%s) property.", names[i], nvp->label, nvp->name);
-            return -1;
-        }
-
-        if (values[i] < np->min || values[i] > np->max)
-        {
-            nvp->s = IPS_ALERT;
-            IDSetNumber(nvp, "Error: Invalid range for %s (%s). Valid range is from %g to %g. Requested value is %g",
-                        np->label, np->name, np->min, np->max, values[i]);
-            return -1;
-        }
-    }
-
-    /* First loop checks for error, second loop set all values atomically*/
-    for (int i = 0; i < n; i++)
-    {
-        INumber *np = IUFindNumber(nvp, names[i]);
-        np->value = values[i];
-    }
-
-    return 0;
-}
-
-/* Update property text in accord with texts and names */
-int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
-{
-    assert(tvp != NULL && "IUUpdateText TVP is NULL");
-
-    for (int i = 0; i < n; i++)
-    {
-        IText *tp = IUFindText(tvp, names[i]);
-        if (!tp)
-        {
-            tvp->s = IPS_IDLE;
-            IDSetText(tvp, "Error: %s is not a member of %s (%s) property.", names[i], tvp->label, tvp->name);
-            return -1;
-        }
-    }
-
-    /* First loop checks for error, second loop set all values atomically*/
-    for (int i = 0; i < n; i++)
-    {
-        IText *tp = IUFindText(tvp, names[i]);
-        IUSaveText(tp, texts[i]);
-    }
-
-    return 0;
-}
-
-/* Update property BLOB in accord with BLOBs and names */
-int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[],
-                 int n)
-{
-    assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
-
-    for (int i = 0; i < n; i++)
-    {
-        IBLOB *bp = IUFindBLOB(bvp, names[i]);
-        if (!bp)
-        {
-            bvp->s = IPS_IDLE;
-            IDSetBLOB(bvp, "Error: %s is not a member of %s (%s) property.", names[i], bvp->label, bvp->name);
-            return -1;
-        }
-    }
-
-    /* First loop checks for error, second loop set all values atomically*/
-    for (int i = 0; i < n; i++)
-    {
-        IBLOB *bp = IUFindBLOB(bvp, names[i]);
-        IUSaveBLOB(bp, sizes[i], blobsizes[i], blobs[i], formats[i]);
-    }
-
-    return 0;
-}
-
-int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
-{
-    bp->bloblen = blobsize;
-    bp->size    = size;
-    bp->blob    = blob;
-    strncpy(bp->format, format, MAXINDIFORMAT);
-    return 0;
-}
-
-void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
-{
-    strncpy(sp->name, name, sizeof(sp->name));
-
-    if (label[0])
-        strncpy(sp->label, label, sizeof(sp->label));
-    else
-        strncpy(sp->label, name, sizeof(sp->label));
-
-    sp->s   = s;
-    sp->svp = NULL;
-    sp->aux = NULL;
-}
-
-void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
-{
-    strncpy(lp->name, name, sizeof(lp->name));
-
-    if (label[0])
-        strncpy(lp->label, label, sizeof(lp->label));
-    else
-        strncpy(lp->label, name, sizeof(lp->label));
-
-    lp->s   = s;
-    lp->lvp = NULL;
-    lp->aux = NULL;
-}
-
-void IUFillNumber(INumber *np, const char *name, const char *label, const char *format, double min, double max,
-                  double step, double value)
-{
-    strncpy(np->name, name, sizeof(np->name));
-
-    if (label[0])
-        strncpy(np->label, label, sizeof(np->label));
-    else
-        strncpy(np->label, name, sizeof(np->label));
-
-    strncpy(np->format, format, sizeof(np->format));
-
-    np->min   = min;
-    np->max   = max;
-    np->step  = step;
-    np->value = value;
-    np->nvp   = NULL;
-    np->aux0  = NULL;
-    np->aux1  = NULL;
-}
-
-void IUFillText(IText *tp, const char *name, const char *label, const char *initialText)
-{
-    strncpy(tp->name, name, sizeof(tp->name));
-
-    if (label[0])
-        strncpy(tp->label, label, sizeof(tp->label));
-    else
-        strncpy(tp->label, name, sizeof(tp->label));
-
-    if (tp->text && tp->text[0])
-        free(tp->text);
-    tp->text = NULL;
-
-    tp->tvp  = NULL;
-    tp->aux0 = NULL;
-    tp->aux1 = NULL;
-
-    if (initialText && initialText[0])
-        IUSaveText(tp, initialText);
-}
-
-void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *format)
-{
-    memset(bp, 0, sizeof(IBLOB));
-
-    strncpy(bp->name, name, sizeof(bp->name));
-
-    if (label[0])
-        strncpy(bp->label, label, sizeof(bp->label));
-    else
-        strncpy(bp->label, name, sizeof(bp->label));
-
-    strncpy(bp->format, format, sizeof(bp->format));
-
-    bp->blob    = 0;
-    bp->bloblen = 0;
-    bp->size    = 0;
-    bp->bvp     = 0;
-    bp->aux0    = 0;
-    bp->aux1    = 0;
-    bp->aux2    = 0;
-}
-
-void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
-                        const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
-{
-    strncpy(svp->device, dev, sizeof(svp->device));
-
-    strncpy(svp->name, name, sizeof(svp->name));
-
-    if (label[0])
-        strncpy(svp->label, label, sizeof(svp->label));
-    else
-        strncpy(svp->label, name, sizeof(svp->label));
-
-    strncpy(svp->group, group, sizeof(svp->group));
-    svp->timestamp[0] = '\0';
-
-    svp->p       = p;
-    svp->r       = r;
-    svp->timeout = timeout;
-    svp->s       = s;
-    svp->sp      = sp;
-    svp->nsp     = nsp;
-}
-
-void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char *dev, const char *name,
-                       const char *label, const char *group, IPState s)
-{
-    strncpy(lvp->device, dev, sizeof(lvp->device));
-
-    strncpy(lvp->name, name, sizeof(lvp->name));
-
-    if (label[0])
-        strncpy(lvp->label, label, sizeof(lvp->label));
-    else
-        strncpy(lvp->label, name, sizeof(lvp->label));
-
-    strncpy(lvp->group, group, sizeof(lvp->group));
-    lvp->timestamp[0] = '\0';
-
-    lvp->s   = s;
-    lvp->lp  = lp;
-    lvp->nlp = nlp;
-}
-
-void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char *dev, const char *name,
-                        const char *label, const char *group, IPerm p, double timeout, IPState s)
-{
-    strncpy(nvp->device, dev, sizeof(nvp->device));
-
-    strncpy(nvp->name, name, sizeof(nvp->name));
-
-    if (label[0])
-        strncpy(nvp->label, label, sizeof(nvp->label));
-    else
-        strncpy(nvp->label, name, sizeof(nvp->label));
-
-    strncpy(nvp->group, group, sizeof(nvp->group));
-    nvp->timestamp[0] = '\0';
-
-    nvp->p       = p;
-    nvp->timeout = timeout;
-    nvp->s       = s;
-    nvp->np      = np;
-    nvp->nnp     = nnp;
-}
-
-void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *dev, const char *name,
-                      const char *label, const char *group, IPerm p, double timeout, IPState s)
-{
-    strncpy(tvp->device, dev, sizeof(tvp->device));
-
-    strncpy(tvp->name, name, sizeof(tvp->name));
-
-    if (label[0])
-        strncpy(tvp->label, label, sizeof(tvp->label));
-    else
-        strncpy(tvp->label, name, sizeof(tvp->label));
-
-    strncpy(tvp->group, group, sizeof(tvp->group));
-    tvp->timestamp[0] = '\0';
-
-    tvp->p       = p;
-    tvp->timeout = timeout;
-    tvp->s       = s;
-    tvp->tp      = tp;
-    tvp->ntp     = ntp;
-}
-
-void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *dev, const char *name,
-                      const char *label, const char *group, IPerm p, double timeout, IPState s)
-{
-    memset(bvp, 0, sizeof(IBLOBVectorProperty));
-    strncpy(bvp->device, dev, sizeof(bvp->device));
-
-    strncpy(bvp->name, name, sizeof(bvp->name));
-
-    if (label[0])
-        strncpy(bvp->label, label, sizeof(bvp->label));
-    else
-        strncpy(bvp->label, name, sizeof(bvp->label));
-
-    strncpy(bvp->group, group, sizeof(bvp->group));
-    bvp->timestamp[0] = '\0';
-
-    bvp->p       = p;
-    bvp->timeout = timeout;
-    bvp->s       = s;
-    bvp->bp      = bp;
-    bvp->nbp     = nbp;
-}
-
-/*****************************************************************************
- * convenience functions for use in your implementation of ISSnoopDevice().
- */
-
-/* crack the snooped driver setNumberVector or defNumberVector message into
- * the given INumberVectorProperty.
- * return 0 if type, device and name match and all members are present, else
- * return -1
- */
-int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
-{
-    char *dev, *name;
-    XMLEle *ep;
-
-    /* check and crack type, device, name and state */
-    if (strcmp(tagXMLEle(root) + 3, "NumberVector") || crackDN(root, &dev, &name, NULL) < 0)
-        return (-1);
-    if (strcmp(dev, nvp->device) || strcmp(name, nvp->name))
-        return (-1); /* not this property */
-    (void)crackIPState(findXMLAttValu(root, "state"), &nvp->s);
-
-    /* match each INumber with a oneNumber */
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-        {
-            if (!strcmp(tagXMLEle(ep) + 3, "Number") && !strcmp(nvp->np[i].name, findXMLAttValu(ep, "name")))
-            {
-                if (f_scansexa(pcdataXMLEle(ep), &nvp->np[i].value) < 0)
-                {
-                    indi_locale_C_numeric_pop(orig);
-                    return (-1); /* bad number format */
-                }
-                break;
-            }
-        }
-        if (!ep)
-        {
-            indi_locale_C_numeric_pop(orig);
-            return (-1); /* element not found */
-        }
-    }
-    indi_locale_C_numeric_pop(orig);
-
-    /* ok */
-    return (0);
-}
-
-/* crack the snooped driver setTextVector or defTextVector message into
- * the given ITextVectorProperty.
- * return 0 if type, device and name match and all members are present, else
- * return -1
- */
-int IUSnoopText(XMLEle *root, ITextVectorProperty *tvp)
-{
-    char *dev, *name;
-    XMLEle *ep;
-
-    /* check and crack type, device, name and state */
-    if (strcmp(tagXMLEle(root) + 3, "TextVector") || crackDN(root, &dev, &name, NULL) < 0)
-        return (-1);
-    if (strcmp(dev, tvp->device) || strcmp(name, tvp->name))
-        return (-1); /* not this property */
-    (void)crackIPState(findXMLAttValu(root, "state"), &tvp->s);
-
-    /* match each IText with a oneText */
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-        {
-            if (!strcmp(tagXMLEle(ep) + 3, "Text") && !strcmp(tvp->tp[i].name, findXMLAttValu(ep, "name")))
-            {
-                IUSaveText(&tvp->tp[i], pcdataXMLEle(ep));
-                break;
-            }
-        }
-        if (!ep)
-            return (-1); /* element not found */
-    }
-
-    /* ok */
-    return (0);
-}
-
-/* crack the snooped driver setLightVector or defLightVector message into
- * the given ILightVectorProperty. it is not necessary that all ILight names
- * be found.
- * return 0 if type, device and name match, else return -1.
- */
-int IUSnoopLight(XMLEle *root, ILightVectorProperty *lvp)
-{
-    char *dev, *name;
-    XMLEle *ep;
-
-    /* check and crack type, device, name and state */
-    if (strcmp(tagXMLEle(root) + 3, "LightVector") || crackDN(root, &dev, &name, NULL) < 0)
-        return (-1);
-    if (strcmp(dev, lvp->device) || strcmp(name, lvp->name))
-        return (-1); /* not this property */
-
-    (void)crackIPState(findXMLAttValu(root, "state"), &lvp->s);
-
-    /* match each oneLight with one ILight */
-    for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-    {
-        if (!strcmp(tagXMLEle(ep) + 3, "Light"))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-            for (int i = 0; i < lvp->nlp; i++)
-            {
-                if (!strcmp(lvp->lp[i].name, name))
-                {
-                    if (crackIPState(pcdataXMLEle(ep), &lvp->lp[i].s) < 0)
-                    {
-                        return (-1); /* unrecognized state */
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    /* ok */
-    return (0);
-}
-
-/* crack the snooped driver setSwitchVector or defSwitchVector message into the
- * given ISwitchVectorProperty. it is not necessary that all ISwitch names be
- * found.
- * return 0 if type, device and name match, else return -1.
- */
-int IUSnoopSwitch(XMLEle *root, ISwitchVectorProperty *svp)
-{
-    char *dev, *name;
-    XMLEle *ep;
-
-    /* check and crack type, device, name and state */
-    if (strcmp(tagXMLEle(root) + 3, "SwitchVector") || crackDN(root, &dev, &name, NULL) < 0)
-        return (-1);
-    if (strcmp(dev, svp->device) || strcmp(name, svp->name))
-        return (-1); /* not this property */
-    (void)crackIPState(findXMLAttValu(root, "state"), &svp->s);
-
-    /* match each oneSwitch with one ISwitch */
-    for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-    {
-        if (!strcmp(tagXMLEle(ep) + 3, "Switch"))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-            for (int i = 0; i < svp->nsp; i++)
-            {
-                if (!strcmp(svp->sp[i].name, name))
-                {
-                    if (crackISState(pcdataXMLEle(ep), &svp->sp[i].s) < 0)
-                    {
-                        return (-1); /* unrecognized state */
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    /* ok */
-    return (0);
-}
-
-/* crack the snooped driver setBLOBVector message into the given
- * IBLOBVectorProperty. it is not necessary that all IBLOB names be found.
- * return 0 if type, device and name match, else return -1.
- * N.B. we assume any existing blob in bvp has been malloced, which we free
- *   and replace with a newly malloced blob if found.
- */
-int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
-{
-    char *dev, *name;
-    XMLEle *ep;
-
-    /* check and crack type, device, name and state */
-    if (strcmp(tagXMLEle(root), "setBLOBVector") || crackDN(root, &dev, &name, NULL) < 0)
-        return (-1);
-
-    if (strcmp(dev, bvp->device) || strcmp(name, bvp->name))
-        return (-1); /* not this property */
-
-    crackIPState(findXMLAttValu(root, "state"), &bvp->s);
-
-    for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
-    {
-        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
-        {
-            XMLAtt *na = findXMLAtt(ep, "name");
-            if (na == NULL)
-                return (-1);
-
-            IBLOB *bp = IUFindBLOB(bvp, valuXMLAtt(na));
-
-            if (bp == NULL)
-                return (-1);
-
-            XMLAtt *fa = findXMLAtt(ep, "format");
-            XMLAtt *sa = findXMLAtt(ep, "size");
-            XMLAtt *ec = findXMLAtt(ep, "enclen");
-            if (fa && sa && ec)
-            {
-                int enclen  = atoi(valuXMLAtt(ec));
-                assert_mem(bp->blob = realloc(bp->blob, 3 * enclen / 4));
-                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
-                strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
-                bp->size = atoi(valuXMLAtt(sa));
-            }
-        }
-    }
-
-    /* ok */
-    return (0);
-}
-
-
 /* crack the given INDI XML element and call driver's IS* entry points as they
  *   are recognized.
  * return 0 if ok else -1 with reason in msg[].
@@ -1876,12 +1304,143 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
     driverio_finish(&io);
 }
 
-int IUFindIndex(const char *needle, char **hay, unsigned int n)
+/* Update property switches in accord with states and names. */
+int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n)
 {
-    for (int i = 0; i < (int)n; i++)
+    ISwitch *so = NULL; // On switch pointer
+
+    assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
+
+    /* store On switch pointer */
+    if (svp->r == ISR_1OFMANY)
     {
-        if (!strcmp(hay[i], needle))
-            return i;
+        so = IUFindOnSwitch(svp);
+        IUResetSwitch(svp);
     }
-    return -1;
+
+    for (int i = 0; i < n; i++)
+    {
+        ISwitch *sp = IUFindSwitch(svp, names[i]);
+
+        if (!sp)
+        {
+            svp->s = IPS_IDLE;
+            IDSetSwitch(svp, "Error: %s is not a member of %s (%s) property.", names[i], svp->label, svp->name);
+            return -1;
+        }
+
+        sp->s = states[i];
+    }
+
+    /* Consistency checks for ISR_1OFMANY after update. */
+    if (svp->r == ISR_1OFMANY)
+    {
+        int t_count = 0;
+        for (int i = 0; i < svp->nsp; i++)
+        {
+            if (svp->sp[i].s == ISS_ON)
+                t_count++;
+        }
+        if (t_count != 1)
+        {
+            IUResetSwitch(svp);
+
+            // restore previous state
+            if (so)
+                so->s = ISS_ON;
+            svp->s = IPS_IDLE;
+            IDSetSwitch(svp, "Error: invalid state switch for property %s (%s). %s.", svp->label, svp->name,
+                        t_count == 0 ? "No switch is on" : "Too many switches are on");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/* Update property numbers in accord with values and names */
+int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
+{
+    assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
+
+    for (int i = 0; i < n; i++)
+    {
+        INumber *np = IUFindNumber(nvp, names[i]);
+        if (!np)
+        {
+            nvp->s = IPS_IDLE;
+            IDSetNumber(nvp, "Error: %s is not a member of %s (%s) property.", names[i], nvp->label, nvp->name);
+            return -1;
+        }
+
+        if (values[i] < np->min || values[i] > np->max)
+        {
+            nvp->s = IPS_ALERT;
+            IDSetNumber(nvp, "Error: Invalid range for %s (%s). Valid range is from %g to %g. Requested value is %g",
+                        np->label, np->name, np->min, np->max, values[i]);
+            return -1;
+        }
+    }
+
+    /* First loop checks for error, second loop set all values atomically*/
+    for (int i = 0; i < n; i++)
+    {
+        INumber *np = IUFindNumber(nvp, names[i]);
+        np->value = values[i];
+    }
+
+    return 0;
+}
+
+/* Update property text in accord with texts and names */
+int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
+{
+    assert(tvp != NULL && "IUUpdateText TVP is NULL");
+
+    for (int i = 0; i < n; i++)
+    {
+        IText *tp = IUFindText(tvp, names[i]);
+        if (!tp)
+        {
+            tvp->s = IPS_IDLE;
+            IDSetText(tvp, "Error: %s is not a member of %s (%s) property.", names[i], tvp->label, tvp->name);
+            return -1;
+        }
+    }
+
+    /* First loop checks for error, second loop set all values atomically*/
+    for (int i = 0; i < n; i++)
+    {
+        IText *tp = IUFindText(tvp, names[i]);
+        IUSaveText(tp, texts[i]);
+    }
+
+    return 0;
+}
+
+/* Update property BLOB in accord with BLOBs and names */
+int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[],
+                 int n)
+{
+    assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
+
+    for (int i = 0; i < n; i++)
+    {
+        IBLOB *bp = IUFindBLOB(bvp, names[i]);
+        if (!bp)
+        {
+            bvp->s = IPS_IDLE;
+            IDSetBLOB(bvp, "Error: %s is not a member of %s (%s) property.", names[i], bvp->label, bvp->name);
+            return -1;
+        }
+    }
+
+    /* First loop checks for error, second loop set all values atomically*/
+    for (int i = 0; i < n; i++)
+    {
+        IBLOB *bp = IUFindBLOB(bvp, names[i]);
+        IUSaveBLOB(bp, sizes[i], blobsizes[i], blobs[i], formats[i]);
+    }
+
+    return 0;
 }

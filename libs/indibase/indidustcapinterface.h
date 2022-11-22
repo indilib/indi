@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indibase.h"
+#include "indidriver.h"
 
 /**
  * \class DustCapInterface

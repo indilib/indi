@@ -24,8 +24,6 @@
 
 #include "indipropertyview.h"
 
-#include "indidriver.h"
-
 #include <memory>
 #include <cstdarg>
 #include <functional>

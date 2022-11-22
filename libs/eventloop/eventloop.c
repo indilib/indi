@@ -42,7 +42,6 @@
 #include <sys/time.h>
 
 #include "eventloop.h"
-#include "indidevapi.h"
 
 /* info about one registered callback.
  * the malloced array cback is never shrunk, entries are reused. new id's are
@@ -565,6 +564,10 @@ void runImmediates() {
 }
 
 /* "INDI" wrappers to the more generic eventloop facility. */
+
+typedef void(IE_CBF)(int readfiledes, void *userpointer);
+typedef void(IE_TCF)(void *userpointer);
+typedef void(IE_WPF)(void *userpointer);
 
 int IEAddCallback(int readfiledes, IE_CBF *fp, void *p)
 {

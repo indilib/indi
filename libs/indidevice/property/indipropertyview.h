@@ -21,9 +21,6 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indiwidgettraits.h"
-
-#include "indidriver.h" // IUSaveConfigXXX (indicom.c)
-
 #include "indiwidgetview.h"
 
 #include <string>

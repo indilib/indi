@@ -21,7 +21,6 @@ list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
     base64_luts.h
     indililxml.h
     indiuserio.h
-    locale_compat.h
     userio.h
 )
 
@@ -30,6 +29,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     base64.c
     userio.c
     indicom.c
+    indidevapi.c
     lilxml.cpp
     indiuserio.c
 )

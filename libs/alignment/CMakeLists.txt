@@ -48,6 +48,8 @@ ELSE()
     ENDIF()
 ENDIF()
 
+target_link_libraries(AlignmentDriver indicore indidevice)
+
 if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
 endif(INDI_BUILD_QT5)
@@ -96,6 +98,8 @@ if(NOT CYGWIN AND NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
 
+target_link_libraries(AlignmentClient indicore indidevice)
+
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
@@ -103,8 +107,8 @@ install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # ########### LoaderCLient test program ###########
 # #################################################
 # set(LoaderClient_SRCS
-#   LoaderClient.cpp
-#   LoaderMain.cpp
+# LoaderClient.cpp
+# LoaderMain.cpp
 # )
 
 # add_executable(LoaderClient ${LoaderClient_SRCS})
@@ -117,8 +121,8 @@ install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # ######## MathPluginManager test program #########
 # #################################################
 # set(MathPluginManagerClient_SRCS
-#   MathPluginManagerClient.cpp
-#   MathPluginManagerMain.cpp
+# MathPluginManagerClient.cpp
+# MathPluginManagerMain.cpp
 # )
 
 # add_executable(MathPluginManagerClient ${MathPluginManagerClient_SRCS})
@@ -131,7 +135,7 @@ install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # ########## Dummy math plugin example ############
 # #################################################
 # set(DummyMathPlugin_SRCS
-#   DummyMathPlugin.cpp
+# DummyMathPlugin.cpp
 # )
 
 # add_library(indi_Dummy_MathPlugin SHARED ${DummyMathPlugin_SRCS})
