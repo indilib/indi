@@ -19,27 +19,27 @@ include(CMakeCommon)
 include(CheckFunctionExists)
 
 # Clang Format support
-IF(UNIX OR APPLE)
-    SET(FORMAT_CODE OFF CACHE BOOL "Enable Clang Format")
+if(UNIX OR APPLE)
+    set(FORMAT_CODE OFF CACHE BOOL "Enable Clang Format")
 
-    IF(FORMAT_CODE MATCHES ON)
+    if(FORMAT_CODE MATCHES ON)
         FILE(GLOB_RECURSE ALL_SOURCE_FILES *.c *.cpp *.h)
 
         FOREACH(SOURCE_FILE ${ALL_SOURCE_FILES})
             STRING(FIND ${SOURCE_FILE} ${CMAKE_SOURCE_DIR} DIR_FOUND)
 
-            IF(NOT ${DIR_FOUND} EQUAL 0)
+            if(NOT ${DIR_FOUND} EQUAL 0)
                 LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
-            ENDIF()
+            endif()
         ENDFOREACH()
 
         FIND_PROGRAM(CLANGFORMAT_EXE NAMES clang-format-5.0)
 
-        IF(CLANGFORMAT_EXE)
+        if(CLANGFORMAT_EXE)
             ADD_CUSTOM_TARGET(clang-format COMMAND ${CLANGFORMAT_EXE} -style=file -i ${ALL_SOURCE_FILES})
-        ENDIF()
-    ENDIF()
-ENDIF()
+        endif()
+    endif()
+endif()
 
 # ####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
@@ -70,9 +70,9 @@ set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
-IF(APPLE)
+if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
-ENDIF(APPLE)
+endif(APPLE)
 
 # #################################  Install Directories  ###########################################
 # # the following are directories where stuff will be installed to
@@ -111,10 +111,10 @@ endif()
 # ##################################################################################################
 # ########################################  Fast Blob  #############################################
 # ##################################################################################################
-IF(INDI_FAST_BLOB)
+if(INDI_FAST_BLOB)
     # Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
     add_definitions(-DWITH_ENCLEN)
-ENDIF(INDI_FAST_BLOB)
+endif(INDI_FAST_BLOB)
 
 # ##################################################################################################
 # ###################################  UNIX protocol / SHM  ########################################
@@ -130,10 +130,10 @@ endif()
 # ##################################################################################################
 # #####################################  Calculate Min/Max #########################################
 # ##################################################################################################
-IF(INDI_CALCULATE_MINMAX)
+if(INDI_CALCULATE_MINMAX)
     # Calculate Min/Max values to store them in FITS header
     add_definitions(-DWITH_MINMAX)
-ENDIF(INDI_CALCULATE_MINMAX)
+endif(INDI_CALCULATE_MINMAX)
 
 # ##################################################################################################
 # ####################################  Components  ################################################
@@ -169,12 +169,8 @@ if(INDI_BUILD_SERVER)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
         # 3. Build
-        SET(indiserver_SRC
+        set(indiserver_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.cpp)
-
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indiserver indiserver_SRC 10 c)
-        ENDIF()
 
         add_executable(indiserver ${indiserver_SRC})
         target_link_libraries(indiserver indicore ${CMAKE_THREAD_LIBS_INIT})
@@ -211,9 +207,7 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
     include_directories(${CFITSIO_INCLUDE_DIR})
 
     # 3. Build
-    SET(indiclient_C_SRC)
-
-    SET(indiclient_CXX_SRC
+    set(indiclient_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
@@ -231,18 +225,7 @@ if(INDI_BUILD_CLIENT AND NOT ANDROID)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
-    if(INDI_SHARED_MEMORY)
-        SET(indiclient_C_SRC ${indiclient_C_SRC})
-
-        SET(indiclient_CXX_SRC ${indiclient_CXX_SRC})
-    endif()
-
-    IF(UNITY_BUILD)
-        ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
-        ENABLE_UNITY_BUILD(indiclient_cxx indiclient_CXX_SRC 10 cpp)
-    ENDIF()
-
-    add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
+    add_library(indiclient STATIC ${indiclient_SRC})
 
     add_subdirectory(libs/sockets)
     target_link_libraries(indiclient indicore sockets ${ZLIB_LIBRARY})
@@ -301,9 +284,7 @@ if(INDI_BUILD_QT5_CLIENT)
 
     # 3. Build
     message(STATUS "Building INDI Client with Qt5 support")
-    SET(indiclientqt_C_SRC)
-
-    SET(indiclientqt_CXX_SRC
+    set(indiclientqt_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
@@ -320,20 +301,7 @@ if(INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_client.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
-    if(INDI_SHARED_MEMORY)
-#        SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
-#            ${CMAKE_CURRENT_SOURCE_DIR}/sharedblob.c)
-#
-#        SET(indiclientqt_CXX_SRC ${indiclientqt_CXX_SRC}
-#            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/sharedblob_parse.cpp)
-    endif()
-
-    IF(UNITY_BUILD)
-        ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
-        ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
-    ENDIF()
-
-    add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
+    add_library(indiclientqt STATIC ${indiclientqt_SRC})
 
     if(NOT CYGWIN AND NOT WIN32)
         set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -365,7 +333,7 @@ if(INDI_BUILD_WEBSOCKET)
     find_package(Boost COMPONENTS system thread)
     include_directories(${Boost_INCLUDE_DIRS})
     add_definitions(-DHAVE_WEBSOCKET)
-    SET(HAVE_WEBSOCKET 1)
+    set(HAVE_WEBSOCKET 1)
 endif(INDI_BUILD_WEBSOCKET)
 
 # ################################################################################################
@@ -393,7 +361,7 @@ if(INDI_BUILD_DRIVERS)
         add_subdirectory(libs/eventloop)
 
         # Math Library
-        FIND_LIBRARY(M_LIB m)
+        find_library(M_LIB m)
 
         # 2. Includes
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -407,9 +375,9 @@ if(INDI_BUILD_DRIVERS)
         include_directories(${GSL_INCLUDE_DIRS})
         include_directories(${JPEG_INCLUDE_DIR})
 
-        IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+        if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
             include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
-        ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+        endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
@@ -422,24 +390,24 @@ if(INDI_BUILD_DRIVERS)
         # ##################################################################################################
         # #######################################  Sources  ################################################
         # ##################################################################################################
-        IF(APPLE)
-            SET(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_mac.c)
-        ELSEIF(WIN32)
-            SET(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_win.c)
-        ELSE()
-            SET(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
-        ENDIF()
+        if(APPLE)
+            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_mac.c)
+        elseif(WIN32)
+            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_win.c)
+        else()
+            set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
+        endif()
 
-        IF(UNIX)
+        if(UNIX)
             find_package(OggTheora)
 
-            IF(OGGTHEORA_FOUND)
+            if(OGGTHEORA_FOUND)
                 INCLUDE_DIRECTORIES(${THEORA_INCLUDE_DIRS})
-                SET(HAVE_THEORA 1)
-                SET(theorarecorder_CXX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
-            ENDIF(OGGTHEORA_FOUND)
+                set(HAVE_THEORA 1)
+                set(theorarecorder_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
+            endif(OGGTHEORA_FOUND)
 
-            SET(libstream_CXX_SRC
+            set(libstream_SRC
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
@@ -450,41 +418,25 @@ if(INDI_BUILD_DRIVERS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
-                ${theorarecorder_CXX_SRC}
-            )
-            SET(libstream_C_SRC
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c
                 ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_c2.c
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_misc.c)
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_misc.c
+                ${theorarecorder_SRC})
 
-            IF(UNITY_BUILD)
-                ENABLE_UNITY_BUILD(libstream libstream_C_SRC 10 c)
-                ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
-            ENDIF()
-
-            IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-                SET(libwebcam_C_SRC
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c)
-                SET(libwebcam_CXX_SRC
+            if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+                set(libwebcam_SRC
+                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp
                 )
+            endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+        endif(UNIX)
 
-                IF(UNITY_BUILD)
-                    ENABLE_UNITY_BUILD(libwebcam libwebcam_C_SRC 10 c)
-                    ENABLE_UNITY_BUILD(libwebcam libwebcam_CXX_SRC 10 cpp)
-                ENDIF(UNITY_BUILD)
-            ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-        ENDIF(UNIX)
-
-        SET(indidriver_C_SRC
+        set(indidriver_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
             ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
-        )
-
-        SET(indidriver_CXX_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/parentdevice.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
@@ -535,27 +487,20 @@ if(INDI_BUILD_DRIVERS)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp
+
             # ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
         )
 
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
-            ENABLE_UNITY_BUILD(indidriver_cxx indidriver_CXX_SRC 10 cpp)
-        ENDIF()
-
-        SET(indidriver_C_SRC
-            ${indidriver_C_SRC}
-            ${libstream_C_SRC}
-            ${hidapi_SRCS})
-
-        SET(indidriver_CXX_SRC
-            ${indidriver_CXX_SRC}
-            ${libstream_CXX_SRC})
+        set(indidriver_SRC
+            ${indidriver_SRC}
+            ${libstream_SRC}
+            ${hidapi_SRCS}
+            ${indidriver_SRC}
+            ${libstream_SRC})
 
         # #################################################
         # ######### INDI Default Driver Library ###########
         # #################################################
-
         find_package(FFTW3 REQUIRED)
         add_subdirectory(libs/dsp)
         add_subdirectory(libs/fpack)
@@ -563,31 +508,31 @@ if(INDI_BUILD_DRIVERS)
         if(CYGWIN)
             # # For Cygwin we only build static library
             add_definitions(-U__STRICT_ANSI__)
-            
+
             find_package(Iconv REQUIRED)
-            add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC})
+            add_library(indidriver STATIC ${indidriver_SRC})
 
             install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         else()
             # # Static indidriver Library
-            add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
+            add_library(indidriverstatic STATIC ${indidriver_SRC} ${libwebcam_SRC})
             set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
             target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
             set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
             target_link_libraries(indidriverstatic indicore eventloop dsp fpack ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 
-            IF(OGGTHEORA_FOUND)
+            if(OGGTHEORA_FOUND)
                 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-            ENDIF()
+            endif()
 
-            IF(HAVE_WEBSOCKET)
+            if(HAVE_WEBSOCKET)
                 target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
-            ENDIF()
+            endif()
 
             install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
             # # Dynamic indidriver Library
-            add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
+            add_library(indidriver SHARED ${indidriver_SRC} ${libwebcam_SRC})
             set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 
             # IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -601,22 +546,22 @@ if(INDI_BUILD_DRIVERS)
         target_link_libraries(indidriver indicore eventloop dsp fpack ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
         target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 
-        IF(OGGTHEORA_FOUND)
+        if(OGGTHEORA_FOUND)
             target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-        ENDIF()
+        endif()
 
-        IF(HAVE_WEBSOCKET)
+        if(HAVE_WEBSOCKET)
             target_link_libraries(indidriver ${Boost_LIBRARIES})
-        ENDIF()
+        endif()
 
-        IF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+        if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
             # FreeBSD needs to find the correct GNU iconv library.
             find_package(Iconv REQUIRED)
 
             # The indidriver library is defined earlier in the file before the
             # find has been run. Add an explicit link to avoid runtime errors.
             target_link_libraries(indidriver ${ICONV_LIBRARIES})
-        ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+        endif(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
         CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
 
@@ -635,15 +580,11 @@ if(INDI_BUILD_DRIVERS)
         # ########### INDI TOOLS #############
         # ####################################
         add_subdirectory(tools)
-        
+
         # ########## HID Test ##############
-        SET(indi_hid_SRC
+        set(indi_hid_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidtest.cpp
         )
-
-        IF(UNITY_BUILD)
-            ENABLE_UNITY_BUILD(indi_hid indi_hid_SRC 10 cpp)
-        ENDIF()
 
         if(APPLE)
             set(LIBS "-framework IOKit -framework CoreFoundation")
@@ -651,7 +592,7 @@ if(INDI_BUILD_DRIVERS)
             set(LIBS ${ICONV_LIBRARIES})
         endif(APPLE)
 
-        SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
+        set(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
 
         add_executable(indi_hid_test ${indi_hid_SRC})
 
@@ -661,11 +602,11 @@ if(INDI_BUILD_DRIVERS)
 
         # ################################################################################
         # # Build Examples
-        IF(INDI_BUILD_CLIENT)
+        if(INDI_BUILD_CLIENT)
             add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
-        ELSE()
+        else()
             message(WARNING "Skipping build of examples since INDI POSIX client is not built")
-        ENDIF()
+        endif()
 
         # ################################################################################
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
@@ -699,41 +640,41 @@ if(INDI_BUILD_DRIVERS)
                     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
                     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
                     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-            ENDIF()
-        ENDIF()
+            endif()
+        endif()
 
         # ##################################################################################################
         # ########################################  Tests  #################################################
         # ##################################################################################################
-        IF(DEFINED GTEST_ROOT)
+        if(DEFINED GTEST_ROOT)
             MESSAGE(STATUS "Using GTEST from ${GTEST_ROOT}")
             add_subdirectory(${GTEST_ROOT}
                 "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
             set(GTEST_FOUND true)
-        ELSE(DEFINED GTEST_ROOT)
+        else(DEFINED GTEST_ROOT)
             find_package(GTest)
-        ENDIF()
+        endif()
 
         find_package(GMock)
 
-        IF(GTEST_FOUND)
-            IF(INDI_BUILD_UNITTESTS)
+        if(GTEST_FOUND)
+            if(INDI_BUILD_UNITTESTS)
                 MESSAGE(STATUS "Building unit tests")
                 ADD_SUBDIRECTORY(test)
-            ELSE(INDI_BUILD_UNITTESTS)
+            else(INDI_BUILD_UNITTESTS)
                 MESSAGE(STATUS "Not building unit tests")
-            ENDIF(INDI_BUILD_UNITTESTS)
+            endif(INDI_BUILD_UNITTESTS)
 
-            IF(INDI_BUILD_INTEGTESTS)
+            if(INDI_BUILD_INTEGTESTS)
                 MESSAGE(STATUS "Building integration tests")
                 ADD_SUBDIRECTORY(integs)
-            ELSE(INDI_BUILD_INTEGTESTS)
+            else(INDI_BUILD_INTEGTESTS)
                 MESSAGE(STATUS "Not building integration tests")
-            ENDIF(INDI_BUILD_INTEGTESTS)
+            endif(INDI_BUILD_INTEGTESTS)
 
-        ELSE()
+        else()
             MESSAGE(STATUS "GTEST not found, not building tests")
-        ENDIF(GTEST_FOUND)
+        endif(GTEST_FOUND)
     endif(WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
 
