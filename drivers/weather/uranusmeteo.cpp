@@ -409,7 +409,7 @@ bool UranusMeteo::readSensors()
 bool UranusMeteo::triggerSkyQuality()
 {
     char response[PEGASUS_LEN] = {0};
-    return sendCommand("SQ", response);
+    return sendCommand("SQ:1", response);
 }
 
 //////////////////////////////////////////////////////////////////////
