@@ -19,7 +19,7 @@
 extern "C" {
     // Load shm_open_anon but force it to have static symbol only
     static int shm_open_anon(void);
-#include "../shm_open_anon.c"
+    #include "../libs/indicore/shm_open_anon.c"
 }
 
 #include <system_error>

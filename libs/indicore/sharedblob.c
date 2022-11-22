@@ -33,11 +33,7 @@
 #include <sys/mman.h>
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
-
-// Load shm_open_anon but force it to have static symbol only
-static int shm_open_anon(void);
-#include "shm_open_anon.c"
-
+#include "shm_open_anon.h"
 #endif
 
 // A shared buffer will be allocated by chunk of at least 1M (must be ^ 2)
