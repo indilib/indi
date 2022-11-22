@@ -22,7 +22,6 @@ list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
     indililxml.h
     indiuserio.h
     locale_compat.h
-    sharedblob_parse.h
     userio.h
 )
 
@@ -32,15 +31,16 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     userio.c
     indicom.c
     lilxml.cpp
-    sharedblob.c
-    sharedblob_parse.cpp
     indiuserio.c
 )
 
-if(INDI_SHARED_MEMORY)
+if(NOT WIN32)
     list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
+        sharedblob_parse.h
         shm_open_anon.h)
     list(APPEND ${PROJECT_NAME}_SOURCES
+        sharedblob.c
+        sharedblob_parse.cpp
         shm_open_anon.c)
 endif()
 
