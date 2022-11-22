@@ -540,6 +540,8 @@ bool UranusMeteo::setSystemTime(time_t &raw_time)
 #else
     stime(&raw_time);
 #endif
+#else
+    INDI_UNUSED(raw_time);
 #endif
     return true;
 }
