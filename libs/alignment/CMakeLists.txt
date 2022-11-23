@@ -29,9 +29,7 @@ IF(UNITY_BUILD)
 ENDIF()
 
 IF(CYGWIN)
-    SET(AlignmentDriver_SRC ${AlignmentDriver_SRC}
-        ${CMAKE_SOURCE_DIR}/libs/lilxml.c
-        ${CMAKE_SOURCE_DIR}/libs/indicom.c)
+    SET(AlignmentDriver_SRC ${AlignmentDriver_SRC})
 
     add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
     target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
@@ -48,7 +46,7 @@ ELSE()
     ENDIF()
 ENDIF()
 
-target_link_libraries(AlignmentDriver indicore indidevice)
+target_link_libraries(AlignmentDriver indicore indidevice indiclient)
 
 if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
@@ -98,7 +96,7 @@ if(NOT CYGWIN AND NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
 
-target_link_libraries(AlignmentClient indicore indidevice)
+target_link_libraries(AlignmentClient indicore indidevice indiclient)
 
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
