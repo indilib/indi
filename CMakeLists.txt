@@ -245,33 +245,7 @@ if(INDI_BUILD_DRIVERS)
         find_package(CURL REQUIRED)
         find_package(GSL REQUIRED)
         find_package(JPEG REQUIRED)
-
-        add_subdirectory(libs/eventloop)
-
-        # Math Library
         find_library(M_LIB m)
-
-        # 2. Includes (#PS: TODO)
-        include_directories(${CMAKE_CURRENT_BINARY_DIR})
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indiabstractclient)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indiclient)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread)
-        include_directories(${CFITSIO_INCLUDE_DIR})
-        include_directories(${NOVA_INCLUDE_DIR})
-        include_directories(${USB1_INCLUDE_DIRS})
-        include_directories(${GSL_INCLUDE_DIRS})
-        include_directories(${JPEG_INCLUDE_DIR})
-
-        if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-            include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
-        endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
         if(CMAKE_VERSION VERSION_LESS 3.12.0)
             set(CURL ${CURL_LIBRARIES})
@@ -279,168 +253,30 @@ if(INDI_BUILD_DRIVERS)
             set(CURL CURL::libcurl)
         endif()
 
-        # ##################################################################################################
-        # #######################################  Sources  ################################################
-        # ##################################################################################################
-        if(UNIX)
-            find_package(OggTheora)
+        include_directories(${CFITSIO_INCLUDE_DIR})
+        include_directories(${NOVA_INCLUDE_DIR})
+        include_directories(${USB1_INCLUDE_DIRS})
+        include_directories(${GSL_INCLUDE_DIRS})
+        include_directories(${JPEG_INCLUDE_DIR})
+        include_directories(libs/indibase)
+        include_directories(libs/indibase/timer)
 
-            if(OGGTHEORA_FOUND)
-                INCLUDE_DIRECTORIES(${THEORA_INCLUDE_DIRS})
-                set(HAVE_THEORA 1)
-                set(theorarecorder_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
-            endif(OGGTHEORA_FOUND)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
-            set(libstream_SRC
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_c2.c
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_misc.c
-                ${theorarecorder_SRC})
-
-            if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-                set(libwebcam_SRC
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp
-                )
-            endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-        endif(UNIX)
-
-        set(indidriver_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp
-
-            # ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
-        )
-
-        set(indidriver_SRC
-            ${indidriver_SRC}
-            ${libstream_SRC}
-            ${indidriver_SRC}
-            ${libstream_SRC})
-
-        # #################################################
-        # ######### INDI Default Driver Library ###########
-        # #################################################
-        find_package(FFTW3 REQUIRED)
+        add_subdirectory(libs/eventloop)
         add_subdirectory(libs/dsp)
         add_subdirectory(libs/fpack)
         add_subdirectory(libs/hid)
 
-        if(CYGWIN)
-            # # For Cygwin we only build static library
-            add_definitions(-U__STRICT_ANSI__)
-
-            find_package(Iconv REQUIRED)
-            add_library(indidriver STATIC ${indidriver_SRC})
-
-            install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-        else()
-            # # Static indidriver Library
-            if(INDI_BUILD_STATIC)
-                add_library(indidriverstatic STATIC ${indidriver_SRC} ${libwebcam_SRC})
-                set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
-                target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
-                set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-                target_link_libraries(indidriverstatic indicore indidevice eventloop dsp fpack hid ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
-
-                if(OGGTHEORA_FOUND)
-                    target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-                endif()
-
-                if(HAVE_WEBSOCKET)
-                    target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
-                endif()
-
-                install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-            endif()
-
-            # # Dynamic indidriver Library
-            add_library(indidriver SHARED ${indidriver_SRC} ${libwebcam_SRC})
-            set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
-
-            # IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-            # target_link_libraries(indidriver -lpthread)
-            # ENDIF ()
-            install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-            set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
-        endif(CYGWIN)
-
-        set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-        target_link_libraries(indidriver indicore indidevice eventloop dsp fpack hid ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
-        target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
-
-        if(OGGTHEORA_FOUND)
-            target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
-        endif()
-
-        if(HAVE_WEBSOCKET)
-            target_link_libraries(indidriver ${Boost_LIBRARIES})
-        endif()
-
-        if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-            # FreeBSD needs to find the correct GNU iconv library.
-            find_package(Iconv REQUIRED)
-
-            # The indidriver library is defined earlier in the file before the
-            # find has been run. Add an explicit link to avoid runtime errors.
-            target_link_libraries(indidriver ${ICONV_LIBRARIES})
-        endif(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-
-        CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+        # #################################################
+        # ########## INDI Driver Library ##################
+        # #################################################
+        add_subdirectory(libs/indibase)
 
         # #################################################
         # ########## INDI Alignment Subsystem #############
         # #################################################
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/alignment)
+        add_subdirectory(libs/alignment)
 
         # #################################################
         # ########## INDI Drivers #########################
@@ -456,7 +292,7 @@ if(INDI_BUILD_DRIVERS)
         # ################################################################################
         # # Build Examples
         if(INDI_BUILD_CLIENT)
-            add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
+            add_subdirectory(examples)
         else()
             message(WARNING "Skipping build of examples since INDI POSIX client is not built")
         endif()
@@ -467,31 +303,31 @@ if(INDI_BUILD_DRIVERS)
 
         if(UNIX)
             INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/streammanager.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/fpsmeter.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/uniquequeue.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/gammalut16.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/jpegutils.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/ccvt.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/ccvt_types.h
                 DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
             INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/encodermanager.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/encoderinterface.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/rawencoder.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/mjpegencoder.h
                 DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/encoder COMPONENT Devel)
             INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/recordermanager.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/recorderinterface.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/serrecorder.h
                 DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
 
             if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
                 INSTALL(FILES
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
+                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_decode/v4l2_decode.h
+                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_decode/v4l2_builtin_decoder.h
+                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_colorspace.h
                     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
             endif()
         endif()
@@ -548,7 +384,7 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidriver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h

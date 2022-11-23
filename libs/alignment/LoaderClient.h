@@ -1,10 +1,10 @@
 
 #pragma once
 
-#include "indibase/baseclient.h"
-#include "indibase/basedevice.h"
+#include "baseclient.h"
+#include "basedevice.h"
 
-#include "indibase/alignment/AlignmentSubsystemForClients.h"
+#include "alignment/AlignmentSubsystemForClients.h"
 
 class LoaderClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
 {

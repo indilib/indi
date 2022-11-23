@@ -21,7 +21,7 @@
 *******************************************************************************/
 #pragma once
 
-#include "indibase/indidome.h"
+#include "indidome.h"
 
 class RigelDome : public INDI::Dome
 {

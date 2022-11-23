@@ -21,7 +21,7 @@
 
 #define INDI_DEBUG_LOGGING
 #ifdef INDI_DEBUG_LOGGING
-#include "indibase/inditelescope.h"
+#include "inditelescope.h"
 #define MYDEBUG(priority, msg) \
     INDI::Logger::getInstance().print(pChildTelescope->getDeviceName(), priority, __FILE__, __LINE__, msg)
 #define MYDEBUGF(priority, msg, ...) \

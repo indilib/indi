@@ -7,6 +7,8 @@ endif()
 
 add_library(${PROJECT_NAME} OBJECT "")
 
+CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
     indiapi.h
