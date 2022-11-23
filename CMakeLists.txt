@@ -164,6 +164,17 @@ add_subdirectory(libs/indidevice)
 
 # ###################################################################################################
 #
+# Component   : indiabstractclient
+# Dependencies: indicore, indidevice
+# Supported OS: All
+#
+# ################################################################################################
+if(INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
+    add_subdirectory(libs/indiabstractclient)
+endif()
+
+# ###################################################################################################
+#
 # Component   : INDI Server
 # Dependencies: pthreads
 # Supported OS: Linux, BSD, MacOS, Cygwin
@@ -181,47 +192,9 @@ endif()
 # N.B. Windows support pending migration of networking code
 # ################################################################################################
 if(INDI_BUILD_CLIENT AND NOT ANDROID)
-    # 1. Dependencies
-    find_package(Threads REQUIRED)
-    find_package(ZLIB REQUIRED)
-    find_package(CFITSIO REQUIRED)
-
-    # 2. Includes
-    include_directories(${CMAKE_CURRENT_BINARY_DIR})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indicore)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread)
-    include_directories(${ZLIB_INCLUDE_DIR})
-    include_directories(${CFITSIO_INCLUDE_DIR})
-
-    # 3. Build
-    set(indiclient_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp)
-
-    if(INDI_BUILD_STATIC)
-        add_library(indiclient STATIC ${indiclient_SRC})
-    else()
-        add_library(indiclient SHARED ${indiclient_SRC})
-    endif()
-
+    message(STATUS "Building INDI Client")
     add_subdirectory(libs/sockets)
-    target_link_libraries(indiclient indicore indidevice sockets ${ZLIB_LIBRARY})
-
-    if(NOT CYGWIN AND NOT WIN32)
-        set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-    endif(NOT CYGWIN AND NOT WIN32)
-
-    target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
-    install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+    add_subdirectory(libs/indiclient)
 endif(INDI_BUILD_CLIENT AND NOT ANDROID)
 
 # ################################################################################################
@@ -232,66 +205,8 @@ endif(INDI_BUILD_CLIENT AND NOT ANDROID)
 #
 # ################################################################################################
 if(INDI_BUILD_QT5_CLIENT)
-    set(QT_ANDROID "" CACHE path "Qt Android path")
-
-    # Tell CMake to run moc when necessary:
-    set(CMAKE_AUTOMOC ON)
-
-    # 1. Dependencies
-    if(ANDROID)
-        set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")
-        include(${QT_ANDROID}/lib/cmake/Qt5/Qt5Config.cmake)
-        include(${QT_ANDROID}/lib/cmake/Qt5Core/Qt5CoreConfig.cmake)
-        include(${QT_ANDROID}/lib/cmake/Qt5Network/Qt5NetworkConfig.cmake)
-
-        if(NOT CFITSIO_DIR)
-            message(FATAL_ERROR CFITSIO_DIR must be set)
-        else()
-            set(CFITSIO_INCLUDE_DIR ${CFITSIO_DIR})
-            set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
-        endif()
-    else()
-        find_package(Qt5Core REQUIRED)
-        find_package(Qt5Network REQUIRED)
-        find_package(ZLIB REQUIRED)
-        find_package(CFITSIO REQUIRED)
-    endif()
-
-    # 2. Includes
-    include_directories(${CMAKE_CURRENT_BINARY_DIR})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
-    include_directories(${CFITSIO_INCLUDE_DIR})
-
-    # 3. Build
     message(STATUS "Building INDI Client with Qt5 support")
-    set(indiclientqt_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.cpp)
-
-    if(INDI_BUILD_STATIC)
-        add_library(indiclientqt STATIC ${indiclientqt_SRC})
-    else()
-        add_library(indiclientqt SHARED ${indiclientqt_SRC})
-    endif()
-
-    if(NOT CYGWIN AND NOT WIN32)
-        set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
-    endif(NOT CYGWIN AND NOT WIN32)
-
-    target_link_libraries(indiclientqt indicore indidevice Qt5::Network)
-
-    if(WIN32 OR ANDROID)
-        install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
-    else(WIN32 OR ANDROID)
-        install(TARGETS indiclientqt ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    endif(WIN32 OR ANDROID)
-
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/abstractbaseclient.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+    add_subdirectory(libs/indiclientqt)
 endif(INDI_BUILD_QT5_CLIENT)
 
 # ###################################################################################################
@@ -336,12 +251,16 @@ if(INDI_BUILD_DRIVERS)
         # Math Library
         find_library(M_LIB m)
 
-        # 2. Includes
+        # 2. Includes (#PS: TODO)
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
         include_directories(${CMAKE_CURRENT_SOURCE_DIR})
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indiabstractclient)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indiclient)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread)
         include_directories(${CFITSIO_INCLUDE_DIR})
         include_directories(${NOVA_INCLUDE_DIR})
         include_directories(${USB1_INCLUDE_DIRS})
@@ -363,8 +282,6 @@ if(INDI_BUILD_DRIVERS)
         # ##################################################################################################
         # #######################################  Sources  ################################################
         # ##################################################################################################
-
-
         if(UNIX)
             find_package(OggTheora)
 
