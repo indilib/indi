@@ -40,7 +40,7 @@ case "$OS" in
                 $(command -v sudo) dnf install -y \
                     git \
                     cmake gcc-c++ zlib-devel \
-                    cfitsio-devel libnova-devel libusb-devel libcurl-devel \
+                    cfitsio-devel libnova-devel libusb1-devel libcurl-devel \
                     gsl-devel libjpeg-devel fftw-devel rtl-sdr-devel libev-devel \
                     qt5-qtbase-devel
                 ;;

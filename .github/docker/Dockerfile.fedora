@@ -5,8 +5,9 @@ WORKDIR /tmp
 RUN dnf -y upgrade && dnf -y install \
     git \
     cmake gcc-c++ zlib-devel \
-    cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-    gsl-devel libjpeg-devel fftw-devel libev-devel
+    cfitsio-devel libnova-devel libusb1-devel libcurl-devel \
+    gsl-devel libjpeg-devel fftw-devel rtl-sdr-devel libev-devel \
+    qt5-qtbase-devel
 
 RUN git clone https://github.com/google/googletest.git googletest && \
     cd googletest && \
