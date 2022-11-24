@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(indiclientqt CXX)
 
-set(QT_ANDROID "" CACHE path "Qt Android path")
+set(QT_ANDROID "" CACHE STRING "Qt Android path")
 
 if(ANDROID)
     set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")
