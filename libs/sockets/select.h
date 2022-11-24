@@ -19,7 +19,6 @@
 #pragma once
 
 #include <stdio.h>
-#include <unistd.h>
 #include <algorithm>
 
 #ifdef _WIN32
@@ -31,6 +30,7 @@ typedef SOCKET SocketFileDescriptor;
 static const int SocketInvalid = INVALID_SOCKET;
 #else
 #define HAS_EVENT_FD
+#include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h> // select
 typedef int SocketFileDescriptor;
