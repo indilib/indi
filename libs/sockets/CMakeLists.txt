@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.0)
 project(sockets CXX)
 
 find_package(Threads REQUIRED)
@@ -6,25 +6,25 @@ add_library(${PROJECT_NAME} STATIC "")
 
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
-    tcpsocket.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket.h
 )
 
 list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
-    tcpsocket_p.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket_p.h
 )
 
 # Sources
 list(APPEND ${PROJECT_NAME}_SOURCES
-    tcpsocket.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket.cpp
 )
 
 if(WIN32)
     list(APPEND ${PROJECT_NAME}_SOURCES
-        tcpsocket_win.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket_win.cpp
     )
 else()
     list(APPEND ${PROJECT_NAME}_SOURCES
-        tcpsocket_unix.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket_unix.cpp
     )
 endif()
 
@@ -38,7 +38,7 @@ target_sources(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC ./
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
 target_link_libraries(${PROJECT_NAME} Threads::Threads)
