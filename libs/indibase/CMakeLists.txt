@@ -6,16 +6,10 @@ include_directories(timer)
 include_directories(thread)
 include_directories(stream)
 
-# Build object to easy build static/shared library
-add_library(indidriverobject OBJECT)
-
-# Shared libraries need PIC
-set_property(TARGET indidriverobject PROPERTY POSITION_INDEPENDENT_CODE 1)
-
 # Dependency
 find_package(FFTW3 REQUIRED)
 
-list(APPEND indidriver_LIBS
+list(APPEND ${PROJECT_NAME}_LIBS
     indicore
     indidevice
     eventloop
@@ -32,19 +26,17 @@ list(APPEND indidriver_LIBS
     ${M_LIB}
 )
 
-target_compile_definitions(indidriverobject PRIVATE "-DHAVE_LIBNOVA")
-
 # Add Iconv
 if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     # FreeBSD needs to find the correct GNU iconv library.
     find_package(Iconv REQUIRED)
-    list(APPEND indidriver_LIBS ${ICONV_LIBRARIES})
+    list(APPEND ${PROJECT_NAME}_LIBS ${ICONV_LIBRARIES})
 endif()
 
 # Add WebSocket
 if(HAVE_WEBSOCKET)
-    list(APPEND indidriver_LIBS ${Boost_LIBRARIES})
-    list(APPEND indidriver_HEADERS indiwsserver.h)
+    list(APPEND ${PROJECT_NAME}_LIBS ${Boost_LIBRARIES})
+    list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
 endif()
 
 # Add OggTheora, StreamManager, v4l2
@@ -54,13 +46,13 @@ if(UNIX)
     if(OGGTHEORA_FOUND)
         include_directories(${THEORA_INCLUDE_DIRS})
         set(HAVE_THEORA 1)
-        list(APPEND indidriver_SOURCES
+        list(APPEND ${PROJECT_NAME}_SOURCES
             stream/recorder/theorarecorder.cpp
         )
-        list(APPEND indidriver_LIBS ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
+        list(APPEND ${PROJECT_NAME}_LIBS ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
     endif()
 
-    list(APPEND indidriver_SOURCES
+    list(APPEND ${PROJECT_NAME}_SOURCES
         stream/streammanager.cpp
         stream/fpsmeter.cpp
         stream/gammalut16.cpp
@@ -106,7 +98,7 @@ if(UNIX)
     )
 
     if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-        list(APPEND indidriver_SOURCES
+        list(APPEND ${PROJECT_NAME}_SOURCES
             webcam/v4l2_colorspace.c
             webcam/v4l2_base.cpp
             webcam/v4l2_decode/v4l2_decode.cpp
@@ -125,7 +117,8 @@ if(UNIX)
     endif()
 endif()
 
-list(APPEND indidriver_SOURCES
+# Sources
+list(APPEND ${PROJECT_NAME}_SOURCES
     indidriver.c
     indidriverio.c
     indidrivermain.c
@@ -169,7 +162,8 @@ list(APPEND indidriver_SOURCES
     # connectionplugins/ttybase.cpp
 )
 
-list(APPEND indidriver_HEADERS
+# Headers
+list(APPEND ${PROJECT_NAME}_HEADERS
     indidriver.h
     pid/pid.h
     defaultdevice.h
@@ -202,18 +196,32 @@ list(APPEND indidriver_HEADERS
     indiusbdevice.h
 )
 
-target_sources(indidriverobject
-    PUBLIC
-    ${indidriver_HEADERS}
-    PRIVATE
-    ${indidriver_SOURCES}
+# Private Headers
+list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
+
+    # TODO
 )
 
-target_link_libraries(indidriverobject ${indidriver_LIBS})
+# Build Object Library
+add_library(${PROJECT_NAME}_OBJECT OBJECT)
+set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
+
+target_sources(${PROJECT_NAME}_OBJECT
+    PUBLIC
+    ${${PROJECT_NAME}_HEADERS}
+    PRIVATE
+    ${${PROJECT_NAME}_SOURCES}
+    ${${PROJECT_NAME}_PRIVATE_HEADERS}
+)
+
+target_link_libraries(${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
 
 install(FILES
-    ${indidriver_HEADERS}
-    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi
+    ${${PROJECT_NAME}_HEADERS}
+    DESTINATION
+    ${INCLUDE_INSTALL_DIR}/libindi
     COMPONENT Devel
 )
 
@@ -234,19 +242,34 @@ install(FILES
     COMPONENT Devel
 )
 
-# #################################################
-# ######### INDI Default Driver Library ###########
-# #################################################
-
-# Static indidriver Library
+# Build Static Library
 if(INDI_BUILD_STATIC)
-    add_library(indidriverstatic STATIC)
-    target_link_libraries(indidriverstatic indidriverobject ${indidriver_LIBS})
-    install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    add_library(${PROJECT_NAME}static STATIC)
+    target_link_libraries(${PROJECT_NAME}static ${${PROJECT_NAME}_OBJECT} ${${PROJECT_NAME}_LIBS})
+
+    set_target_properties(${PROJECT_NAME}static PROPERTIES
+        VERSION ${CMAKE_INDI_VERSION_STRING}
+        SOVERSION ${INDI_SOVERSION}
+        OUTPUT_NAME ${PROJECT_NAME} # this same name like shared library - backwards compatibility
+    )
+
+    install(TARGETS ${PROJECT_NAME}static
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
 endif()
 
-# Shared indidriver Library
-add_library(indidriver SHARED)
-target_link_libraries(indidriver indidriverobject ${indidriver_LIBS})
-set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# Build Shared Library
+if(INDI_BUILD_SHARED)
+    add_library(${PROJECT_NAME} SHARED)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VERSION ${CMAKE_INDI_VERSION_STRING}
+        SOVERSION ${INDI_SOVERSION}
+        OUTPUT_NAME ${PROJECT_NAME}
+    )
+
+    install(TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()

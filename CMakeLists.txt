@@ -92,6 +92,7 @@ OPTION(INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION(INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
 OPTION(INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
 
 if(UNIX AND NOT APPLE)

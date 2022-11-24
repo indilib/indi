@@ -22,19 +22,12 @@ else()
     find_package(CFITSIO REQUIRED)
 endif()
 
-if(INDI_BUILD_STATIC)
-    add_library(${PROJECT_NAME} STATIC)
-else()
-    add_library(${PROJECT_NAME} SHARED)
-endif()
-
-# Headers
-list(APPEND ${PROJECT_NAME}_HEADERS
-    baseclientqt.h
-)
-
-list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
-    baseclientqt_p.h
+list(APPEND ${PROJECT_NAME}_LIBS
+    indicore
+    indidevice
+    indiabstractclient
+    Qt5::Network
+    ${ZLIB_LIBRARY}
 )
 
 # Sources
@@ -42,8 +35,25 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     baseclientqt.cpp
 )
 
-# Setup Target
-target_sources(${PROJECT_NAME}
+# Headers
+list(APPEND ${PROJECT_NAME}_HEADERS
+    baseclientqt.h
+)
+
+# Private Headers
+list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
+    baseclientqt_p.h
+)
+
+# Build Object Library
+add_library(${PROJECT_NAME}_OBJECT OBJECT)
+set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+target_include_directories(${PROJECT_NAME}_OBJECT
+    PUBLIC .
+)
+
+target_sources(${PROJECT_NAME}_OBJECT
     PUBLIC
     ${${PROJECT_NAME}_HEADERS}
     PRIVATE
@@ -51,28 +61,7 @@ target_sources(${PROJECT_NAME}
     ${${PROJECT_NAME}_PRIVATE_HEADERS}
 )
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC .
-)
-
-target_link_libraries(${PROJECT_NAME}
-    indicore
-    indidevice
-    indiabstractclient
-    Qt5::Network
-    ${ZLIB_LIBRARY})
-
-if(WIN32 OR ANDROID)
-    install(TARGETS ${PROJECT_NAME}
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-    )
-else()
-    install(TARGETS ${PROJECT_NAME}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    )
-endif()
+target_link_libraries(${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
 
 install(FILES
     ${${PROJECT_NAME}_HEADERS}
@@ -80,3 +69,35 @@ install(FILES
     ${INCLUDE_INSTALL_DIR}/libindi
     COMPONENT Devel
 )
+
+# Build Static Library
+if(INDI_BUILD_STATIC)
+    add_library(${PROJECT_NAME}static STATIC)
+    target_link_libraries(${PROJECT_NAME}static ${${PROJECT_NAME}_OBJECT} ${${PROJECT_NAME}_LIBS})
+
+    set_target_properties(${PROJECT_NAME}static PROPERTIES
+        VERSION ${CMAKE_INDI_VERSION_STRING}
+        SOVERSION ${INDI_SOVERSION}
+        OUTPUT_NAME ${PROJECT_NAME} # this same name like shared library - backwards compatibility
+    )
+
+    install(TARGETS ${PROJECT_NAME}static
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
+
+# Build Shared Library
+if(INDI_BUILD_SHARED)
+    add_library(${PROJECT_NAME} SHARED)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VERSION ${CMAKE_INDI_VERSION_STRING}
+        SOVERSION ${INDI_SOVERSION}
+        OUTPUT_NAME ${PROJECT_NAME}
+    )
+
+    install(TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
