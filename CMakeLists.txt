@@ -289,8 +289,9 @@ if(INDI_BUILD_DRIVERS)
         # ####################################
         add_subdirectory(tools)
 
-        # ################################################################################
-        # # Build Examples
+        # ####################################
+        # ########### EXamples ###############
+        # ####################################
         if(INDI_BUILD_CLIENT)
             add_subdirectory(examples)
         else()
@@ -300,37 +301,6 @@ if(INDI_BUILD_DRIVERS)
         # ################################################################################
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
         install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
-
-        if(UNIX)
-            INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/streammanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/fpsmeter.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/uniquequeue.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/gammalut16.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/jpegutils.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/ccvt.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/ccvt_types.h
-                DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
-            INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/encodermanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/encoderinterface.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/rawencoder.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/encoder/mjpegencoder.h
-                DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/encoder COMPONENT Devel)
-            INSTALL(FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/recordermanager.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/recorderinterface.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/stream/recorder/serrecorder.h
-                DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
-
-            if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-                INSTALL(FILES
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_decode/v4l2_decode.h
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_decode/v4l2_builtin_decoder.h
-                    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/webcam/v4l2_colorspace.h
-                    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-            endif()
-        endif()
 
         # ##################################################################################################
         # ########################################  Tests  #################################################
@@ -384,55 +354,15 @@ if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidriver.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
+    )
 
     if(HAVE_WEBSOCKET)
-        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiwsserver.h
-            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+        install(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiwsserver.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
+        )
     endif()
-
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins COMPONENT Devel)
-
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/dsp COMPONENT Devel)
 endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
