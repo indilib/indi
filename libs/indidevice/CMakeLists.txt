@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.13)
 project(indidevice C CXX)
 
 add_library(${PROJECT_NAME} OBJECT "")

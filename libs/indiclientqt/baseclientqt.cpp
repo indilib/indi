@@ -93,7 +93,11 @@ BaseClientQt::BaseClientQt(QObject *parent)
         d->listenINDI();
     });
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
     connect(&d->clientSocket, &QTcpSocket::errorOccurred, this, [d, this](QAbstractSocket::SocketError socketError)
+#else
+    connect(&d->clientSocket, qOverload<QAbstractSocket::SocketError>(&QTcpSocket::error), this, [d, this](QAbstractSocket::SocketError socketError)
+#endif
     {
         if (d->sConnected == false)
             return;

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.13)
 project(indiclientqt CXX)
 
 set(QT_ANDROID "" CACHE STRING "Qt Android path")
