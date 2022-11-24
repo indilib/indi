@@ -159,72 +159,73 @@ install(FILES
 # Dependencies:
 # Supported OS: All
 #
-# ################################################################################################
+# ##################################################################################################
 add_subdirectory(libs/indicore)
 
-# ###################################################################################################
+# ##################################################################################################
 #
 # Component   : indidevice
 # Dependencies: indicore
 # Supported OS: All
 #
-# ################################################################################################
+# ##################################################################################################
 add_subdirectory(libs/indidevice)
 
-# ###################################################################################################
+# ##################################################################################################
 #
 # Component   : indiabstractclient
 # Dependencies: indicore, indidevice
 # Supported OS: All
 #
-# ################################################################################################
+# ##################################################################################################
 if(INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     add_subdirectory(libs/indiabstractclient)
 endif()
 
-# ###################################################################################################
+# ##################################################################################################
 #
 # Component   : INDI Server
 # Dependencies: pthreads
 # Supported OS: Linux, BSD, MacOS, Cygwin
 #
-# ################################################################################################
+# ##################################################################################################
 if(INDI_BUILD_SERVER)
     add_subdirectory(indiserver)
 endif()
 
-# ################################################################################################
+# ##################################################################################################
 #
 # Component   : INDI Client
 # Dependencies: zlib, cfitsio
 # Supported OS: Linux, BSD, MacOS, Windows, Cygwin
 # N.B. Windows support pending migration of networking code
-# ################################################################################################
+#
+# ##################################################################################################
 if(INDI_BUILD_CLIENT AND NOT ANDROID)
     message(STATUS "Building INDI Client")
     add_subdirectory(libs/sockets)
     add_subdirectory(libs/indiclient)
 endif(INDI_BUILD_CLIENT AND NOT ANDROID)
 
-# ################################################################################################
+# ##################################################################################################
 #
 # Component   : INDI Qt5 Client
 # Dependencies: Qt5Network, zlib, cfitsio, Qt5Core
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
-# ################################################################################################
+# ##################################################################################################
 if(INDI_BUILD_QT5_CLIENT)
     message(STATUS "Building INDI Client with Qt5 support")
     add_subdirectory(libs/indiclientqt)
 endif(INDI_BUILD_QT5_CLIENT)
 
-# ###################################################################################################
+# ##################################################################################################
 #
 # Component   : Websocket
 # Dependencies: libwebsocketpp, libboost, asio
 # Supported OS: Linux, BSD, MacOS, Cygwin
 #
-# ################################################################################################
+# ##################################################################################################
 if(INDI_BUILD_WEBSOCKET)
     find_package(websocketpp REQUIRED)
     find_package(Boost COMPONENTS system thread)
@@ -233,14 +234,14 @@ if(INDI_BUILD_WEBSOCKET)
     set(HAVE_WEBSOCKET 1)
 endif(INDI_BUILD_WEBSOCKET)
 
-# ################################################################################################
+# ##################################################################################################
 #
 # Component   : INDI Drivers, Tools, and Examples
 # Dependencies: pthreads, usb1, zLib, cfitsio, nova, curl, jpeg (Linux Only)
 # Supported OS: Linux, BSD, MacOS, Cygwin
 # N.B. Webcam drivers only supported under Linux (Video4Linux2). Joystick support only under Linux
 #
-# ################################################################################################
+# ##################################################################################################
 if(INDI_BUILD_DRIVERS)
     if(WIN32 OR ANDROID)
         message(WARNING "INDI drivers are only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
@@ -315,7 +316,7 @@ if(INDI_BUILD_DRIVERS)
         # ########################################  Tests  #################################################
         # ##################################################################################################
         if(DEFINED GTEST_ROOT)
-            MESSAGE(STATUS "Using GTEST from ${GTEST_ROOT}")
+            message(STATUS "Using GTEST from ${GTEST_ROOT}")
             add_subdirectory(${GTEST_ROOT}
                 "${CMAKE_CURRENT_BINARY_DIR}/googletest" EXCLUDE_FROM_ALL)
             set(GTEST_FOUND true)
@@ -327,21 +328,21 @@ if(INDI_BUILD_DRIVERS)
 
         if(GTEST_FOUND)
             if(INDI_BUILD_UNITTESTS)
-                MESSAGE(STATUS "Building unit tests")
-                ADD_SUBDIRECTORY(test)
+                message(STATUS "Building unit tests")
+                add_subdirectory(test)
             else(INDI_BUILD_UNITTESTS)
-                MESSAGE(STATUS "Not building unit tests")
+                message(STATUS "Not building unit tests")
             endif(INDI_BUILD_UNITTESTS)
 
             if(INDI_BUILD_INTEGTESTS)
-                MESSAGE(STATUS "Building integration tests")
-                ADD_SUBDIRECTORY(integs)
+                message(STATUS "Building integration tests")
+                add_subdirectory(integs)
             else(INDI_BUILD_INTEGTESTS)
-                MESSAGE(STATUS "Not building integration tests")
+                message(STATUS "Not building integration tests")
             endif(INDI_BUILD_INTEGTESTS)
 
         else()
-            MESSAGE(STATUS "GTEST not found, not building tests")
+            message(STATUS "GTEST not found, not building tests")
         endif(GTEST_FOUND)
     endif(WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
@@ -360,18 +361,11 @@ endif()
 
 # Install common dev files for all except server
 if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
+        ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
     )
-
-    if(HAVE_WEBSOCKET)
-        install(FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiwsserver.h
-            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
-        )
-    endif()
 endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
