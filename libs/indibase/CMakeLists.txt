@@ -44,6 +44,7 @@ endif()
 # Add WebSocket
 if(HAVE_WEBSOCKET)
     list(APPEND indidriver_LIBS ${Boost_LIBRARIES})
+    list(APPEND indidriver_HEADERS indiwsserver.h)
 endif()
 
 # Add OggTheora, StreamManager, v4l2
@@ -83,7 +84,7 @@ if(UNIX)
         stream/jpegutils.h
         stream/ccvt.h
         stream/ccvt_types.h
-        DESTINATION ${INCLUDE_install_DIR}/libindi/stream
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream
         COMPONENT Devel
     )
 
@@ -92,7 +93,7 @@ if(UNIX)
         stream/encoder/encoderinterface.h
         stream/encoder/rawencoder.h
         stream/encoder/mjpegencoder.h
-        DESTINATION ${INCLUDE_install_DIR}/libindi/stream/encoder
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/encoder
         COMPONENT Devel
     )
 
@@ -100,7 +101,7 @@ if(UNIX)
         stream/recorder/recordermanager.h
         stream/recorder/recorderinterface.h
         stream/recorder/serrecorder.h
-        DESTINATION ${INCLUDE_install_DIR}/libindi/stream/recorder
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder
         COMPONENT Devel
     )
 
@@ -116,7 +117,7 @@ if(UNIX)
             webcam/v4l2_decode/v4l2_decode.h
             webcam/v4l2_decode/v4l2_builtin_decoder.h
             webcam/v4l2_colorspace.h
-            DESTINATION ${INCLUDE_install_DIR}/libindi
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi
             COMPONENT Devel
         )
 
@@ -212,7 +213,7 @@ target_link_libraries(indidriverobject ${indidriver_LIBS})
 
 install(FILES
     ${indidriver_HEADERS}
-    DESTINATION ${INCLUDE_install_DIR}/libindi
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi
     COMPONENT Devel
 )
 
@@ -220,7 +221,7 @@ install(FILES
     connectionplugins/connectioninterface.h
     connectionplugins/connectionserial.h
     connectionplugins/connectiontcp.h
-    DESTINATION ${INCLUDE_install_DIR}/libindi/connectionplugins
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins
     COMPONENT Devel
 )
 
@@ -229,7 +230,7 @@ install(FILES
     dsp/dspinterface.h
     dsp/transforms.h
     dsp/convolution.h
-    DESTINATION ${INCLUDE_install_DIR}/libindi/dsp
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/dsp
     COMPONENT Devel
 )
 
