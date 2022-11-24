@@ -49,6 +49,7 @@ endif()
 if(NOVA_FOUND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "-DHAVE_LIBNOVA")
     target_link_libraries(${PROJECT_NAME} ${NOVA_LIBRARIES})
+    target_include_directories(${PROJECT_NAME} ${NOVA_INCLUDE_DIR})
 
     list(APPEND ${PROJECT_NAME}_HEADERS
         libastro.h
