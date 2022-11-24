@@ -6,11 +6,11 @@ add_library(${PROJECT_NAME} STATIC "")
 
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
-    tcpsocket.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket.h
 )
 
 list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
-    tcpsocket_p.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpsocket_p.h
 )
 
 # Sources
