@@ -248,4 +248,5 @@ endif()
 # Shared indidriver Library
 add_library(indidriver SHARED)
 target_link_libraries(indidriver indidriverobject ${indidriver_LIBS})
+set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
