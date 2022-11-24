@@ -40,6 +40,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "indimacros.h"
+
 /* Barrier implementation because Mac OSX doesn't have pthread_barrier.
    It also doesn't have clock_gettime(). So much for POSIX and SUSv2.
    This implementation came from Brent Priddy and was posted on

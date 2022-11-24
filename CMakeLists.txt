@@ -142,7 +142,16 @@ endif(INDI_CALCULATE_MINMAX)
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
+# ##################################################################################################
+# ####################################  Common Files  ##############################################
+# ##################################################################################################
+include_directories(libs)
+install(FILES
+    libs/indimacros.h
+    DESTINATION
+    ${INCLUDE_INSTALL_DIR}/libindi
+    COMPONENT Devel
+)
 
 # ###################################################################################################
 #

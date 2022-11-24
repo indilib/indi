@@ -7,7 +7,6 @@ add_library(${PROJECT_NAME} OBJECT "")
 list(APPEND ${PROJECT_NAME}_HEADERS
     indibase.h
     indibasetypes.h
-    indimacros.h
     indiutility.h
 
     basedevice.h
