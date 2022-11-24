@@ -13,15 +13,7 @@ add_library(indidriverobject OBJECT)
 set_property(TARGET indidriverobject PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 # Dependency
-find_package(USB1 REQUIRED)
-find_package(Nova REQUIRED)
-find_package(Threads REQUIRED)
-find_package(CFITSIO REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(JPEG REQUIRED)
 find_package(FFTW3 REQUIRED)
-
-find_library(M_LIB m)
 
 list(APPEND indidriver_LIBS
     indicore
