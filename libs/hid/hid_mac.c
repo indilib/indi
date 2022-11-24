@@ -31,8 +31,6 @@
 
 #include "hidapi.h"
 
-#include "indidevapi.h"
-
 #include <IOKit/hid/IOHIDManager.h>
 #include <IOKit/hid/IOHIDKeys.h>
 #include <CoreFoundation/CoreFoundation.h>
