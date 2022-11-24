@@ -85,6 +85,7 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
         /// Sky Quality
         ////////////////////////////////////////////////////////////////////////////////////
         bool readSkyQuality();
+        void measureSkyQuality();
         enum
         {
             MPAS,
@@ -94,6 +95,7 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
             InfraredSpectrum,
         };
         INDI::PropertyNumber SkyQualityNP {5};
+        INDI::PropertyNumber SkyQualityUpdateNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Cloud Report
@@ -112,7 +114,6 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
         ////////////////////////////////////////////////////////////////////////////////////
         /// GPS Report
         ////////////////////////////////////////////////////////////////////////////////////
-        bool readGPS();
         enum
         {
             GPSFix,
@@ -203,6 +204,7 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
         bool m_SetupComplete { false };
         Connection::Serial *serialConnection { nullptr };
 
+        INDI::Timer m_SkyQualityUpdateTimer;
         std::vector<std::string> m_Sensors;
         std::vector<std::string> m_Clouds;
         std::vector<std::string> m_SkyQuality;
