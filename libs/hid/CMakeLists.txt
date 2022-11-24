@@ -48,5 +48,5 @@ elseif(CYGWIN)
 endif()
 
 add_executable(indi_hid_test hidtest.cpp)
-target_link_libraries(indi_hid_test hid ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+target_link_libraries(indi_hid_test hid ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin)
