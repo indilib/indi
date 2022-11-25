@@ -73,7 +73,11 @@ install(FILES
 # Build Static Library
 if(INDI_BUILD_STATIC)
     add_library(${PROJECT_NAME}static STATIC)
-    target_link_libraries(${PROJECT_NAME}static ${${PROJECT_NAME}_OBJECT} ${${PROJECT_NAME}_LIBS})
+
+    target_link_libraries(${PROJECT_NAME}static ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+    target_include_directories(${PROJECT_NAME}static
+        PUBLIC .
+    )
 
     set_target_properties(${PROJECT_NAME}static PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
@@ -89,7 +93,11 @@ endif()
 # Build Shared Library
 if(INDI_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED)
+
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC .
+    )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
