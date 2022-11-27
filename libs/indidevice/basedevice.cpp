@@ -129,12 +129,6 @@ IPerm BaseDevice::getPropertyPermission(const char *name) const
     return IP_RO;
 }
 
-void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) const
-{
-    INDI::Property *prop = getProperty(name, type);
-    return prop != nullptr ? prop->getProperty() : nullptr;
-}
-
 INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
     D_PTR(const BaseDevice);
