@@ -35,7 +35,7 @@
 
 #include "stvdriver.h"
 
-#include <libnova.h>
+#include <libnova/libnova.h>
 
 #ifndef _WIN32
 #include <termios.h>

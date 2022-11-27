@@ -41,14 +41,7 @@ UranusMeteo::UranusMeteo() : WI(this)
 {
     setVersion(1, 0);
     m_SkyQualityUpdateTimer.setInterval(60000);
-    m_SkyQualityUpdateTimer.callOnTimeout([this]()
-    {
-        LOG_DEBUG("Measuring sky quality...");
-        triggerSkyQuality();
-        readSkyQuality();
-        if (SkyQualityUpdateNP[0].getValue() > 0)
-            m_SkyQualityUpdateTimer.start(SkyQualityUpdateNP[0].getValue() * 1000);
-    });
+    m_SkyQualityUpdateTimer.callOnTimeout(std::bind(&UranusMeteo::measureSkyQuality, this));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -157,7 +150,10 @@ bool UranusMeteo::updateProperties()
     {
         defineProperty(SensorNP);
         defineProperty(CloudsNP);
+
         defineProperty(SkyQualityNP);
+        defineProperty(SkyQualityUpdateNP);
+
         defineProperty(GPSNP);
 
         WI::updateProperties();
@@ -165,14 +161,18 @@ bool UranusMeteo::updateProperties()
 
         readSensors();
         readClouds();
-        readSkyQuality();
+
+        measureSkyQuality();
     }
     else
     {
 
         deleteProperty(SensorNP);
         deleteProperty(CloudsNP);
+
         deleteProperty(SkyQualityNP);
+        deleteProperty(SkyQualityUpdateNP);
+
         deleteProperty(GPSNP);
 
         WI::updateProperties();
@@ -259,6 +259,11 @@ IPState UranusMeteo::updateGPS()
             struct tm *local = localtime(&raw_time);
             snprintf(ts, sizeof(ts), "%.2f", (local->tm_gmtoff / 3600.0));
             IUSaveText(&TimeT[1], ts);
+
+            // Set UTC in device
+            char command[PEGASUS_LEN] = {0};
+            snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>((local->tm_gmtoff / 3600.0)));
+            sendCommand(command, response);
 
             setSystemTime(raw_time);
 
@@ -406,15 +411,6 @@ bool UranusMeteo::readSensors()
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool UranusMeteo::triggerSkyQuality()
-{
-    char response[PEGASUS_LEN] = {0};
-    return sendCommand("SQ", response);
-}
-
-//////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////
 bool UranusMeteo::readSkyQuality()
 {
     char response[PEGASUS_LEN] = {0};
@@ -491,9 +487,16 @@ bool UranusMeteo::readClouds()
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool UranusMeteo::readGPS()
+void UranusMeteo::measureSkyQuality()
 {
-    return false;
+    char response[PEGASUS_LEN] = {0};
+    LOG_DEBUG("Measuring sky quality...");
+    if (sendCommand("SQ:1", response))
+    {
+        readSkyQuality();
+        if (SkyQualityUpdateNP[0].getValue() > 0)
+            m_SkyQualityUpdateTimer.start(SkyQualityUpdateNP[0].getValue() * 1000);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -537,6 +540,8 @@ bool UranusMeteo::setSystemTime(time_t &raw_time)
 #else
     stime(&raw_time);
 #endif
+#else
+    INDI_UNUSED(raw_time);
 #endif
     return true;
 }

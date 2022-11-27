@@ -21,7 +21,7 @@
 #ifndef TEENASTRO_FOCUSER_H
 #define TEENASTRO_FOCUSER_H
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class TeenAstroFocuser : public INDI::Focuser
 {

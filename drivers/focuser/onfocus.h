@@ -20,7 +20,7 @@
 #ifndef ONFOCUS_H
 #define ONFOCUS_H
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class OnFocus : public INDI::Focuser
 {

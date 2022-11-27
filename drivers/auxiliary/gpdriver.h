@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "libs/indibase/indiusbdevice.h"
+#include "indiusbdevice.h"
 
 enum
 {
