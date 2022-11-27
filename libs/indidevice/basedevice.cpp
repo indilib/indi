@@ -478,9 +478,9 @@ bool BaseDevice::isConnected() const
     if (!svp)
         return false;
 
-    auto sp = svp->findWidgetByName("CONNECT");
+    auto sp = svp.findWidgetByName("CONNECT");
 
-    return sp && sp->getState() == ISS_ON && svp->getState() == IPS_OK;
+    return sp && sp->getState() == ISS_ON && svp.getState() == IPS_OK;
 }
 
 void BaseDevice::attach()
@@ -891,37 +891,19 @@ void BaseDevice::registerProperty(const INDI::Property &property, INDI_PROPERTY_
 
 const char *BaseDevice::getDriverName() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverName = driverInfo->findWidgetByName("DRIVER_NAME");
-
+    auto driverName = getText("DRIVER_INFO").findWidgetByName("DRIVER_NAME");
     return driverName ? driverName->getText() : nullptr;
 }
 
 const char *BaseDevice::getDriverExec() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverExec = driverInfo->findWidgetByName("DRIVER_EXEC");
-
+    auto driverExec = getText("DRIVER_INFO").findWidgetByName("DRIVER_EXEC");
     return driverExec ? driverExec->getText() : nullptr;
 }
 
 const char *BaseDevice::getDriverVersion() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverVersion = driverInfo->findWidgetByName("DRIVER_VERSION");
-
+    auto driverVersion = getText("DRIVER_INFO").findWidgetByName("DRIVER_VERSION");
     return driverVersion ? driverVersion->getText() : nullptr;
 }
 
