@@ -625,7 +625,7 @@ bool LX200_10MICRON::flip()
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
     char data[64];
     snprintf(data, sizeof(data), "#:FLIP#");
-    return 0 == setStandardProcedureAndExpect(fd, data, "1");
+    return 0 == setStandardProcedureAndExpectChar(fd, data, "1");
 }
 
 bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
@@ -660,7 +660,7 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
     char data[64];
     snprintf(data, sizeof(data), ":SC%04d-%02d-%02d#", years, months, days);
-    return 0 == setStandardProcedureAndExpect(fd, data, "1");
+    return 0 == setStandardProcedureAndExpectChar(fd, data, "1");
 }
 
 bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
@@ -1118,7 +1118,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // Returns:
                     // the string "V#" (this is always successful).
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:newalig#", "V"))
                     {
                         LOG_ERROR("New alignment start error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1138,7 +1138,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // the string "E#" if the alignment couldn't be computed successfully with the current
                     // alignment specification. In this case the previous alignment is retained.
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:endalig#", "V"))
                     {
                         LOG_ERROR("New alignment end error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1154,7 +1154,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // Deletes the current alignment model and stars.
                     // Returns: an empty string terminated by '#'.
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:delalig#", "#"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:delalig#", "#"))
                     {
                         LOG_ERROR("Delete current alignment error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1340,32 +1340,37 @@ int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
     int nbytes_write = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
+    tcflush(fd, TCIFLUSH);
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
     {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
     }
     tcflush(fd, TCIFLUSH);
     return 0;
 }
-int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, const char *expect)
+
+int LX200_10MICRON::setStandardProcedureAndExpectChar(int fd, const char *data, const char *expect)
 {
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-
     tcflush(fd, TCIFLUSH);
-
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
-
+    }
     error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
-
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
+    {
+        LOGF_ERROR("CMD <%s> read ERROR %d", data, error_type);
         return error_type;
+    }
 
     if (bool_return[0] != expect[0])
     {
@@ -1384,18 +1389,20 @@ int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *da
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-
     tcflush(fd, TCIFLUSH);
-
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
-
+    }
     error_type = tty_read(fd, response, max_response_length, LX200_TIMEOUT, &nbytes_read);
-
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
+    {
+        LOGF_ERROR("CMD <%s> read ERROR %d", data, error_type);
         return error_type;
+    }
 
     return 0;
 }
