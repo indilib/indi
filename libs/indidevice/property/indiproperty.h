@@ -32,7 +32,11 @@
 namespace INDI
 {
 class BaseDevice;
-
+class PropertyNumber;
+class PropertyText;
+class PropertySwitch;
+class PropertyLight;
+class PropertyBlob;
 /**
  * \class INDI::Property
    \brief Provides generic container for INDI properties
@@ -47,6 +51,13 @@ class Property
         Property();
         ~Property();
 
+    public:
+        Property(INDI::PropertyNumber property);
+        Property(INDI::PropertyText   property);
+        Property(INDI::PropertySwitch property);
+        Property(INDI::PropertyLight  property);
+        Property(INDI::PropertyBlob   property);
+
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
     public:
         Property(INumberVectorProperty *property);
@@ -54,6 +65,14 @@ class Property
         Property(ISwitchVectorProperty *property);
         Property(ILightVectorProperty  *property);
         Property(IBLOBVectorProperty   *property);
+
+    public:
+        Property(INDI::PropertyView<INumber> *property);
+        Property(INDI::PropertyView<IText>   *property);
+        Property(INDI::PropertyView<ISwitch> *property);
+        Property(INDI::PropertyView<ILight>  *property);
+        Property(INDI::PropertyView<IBLOB>   *property);
+
 #endif
     public:
         void setProperty(void *);
