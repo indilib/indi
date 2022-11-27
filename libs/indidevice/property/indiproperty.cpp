@@ -22,6 +22,12 @@
 
 #include "basedevice.h"
 
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+#include "indipropertynumber.h"
+#include "indipropertylight.h"
+#include "indipropertyblob.h"
+
 #include "indipropertytext_p.h"
 #include "indipropertyswitch_p.h"
 #include "indipropertynumber_p.h"
@@ -120,8 +126,48 @@ Property::Property()
     : d_ptr(new PropertyPrivate(nullptr, INDI_UNKNOWN))
 { }
 
+Property::Property(INDI::PropertyNumber property)
+    : d_ptr(property.d_ptr)
+{ }
+
+Property::Property(INDI::PropertyText   property)
+    : d_ptr(property.d_ptr)
+{ }
+
+Property::Property(INDI::PropertySwitch property)
+    : d_ptr(property.d_ptr)
+{ }
+
+Property::Property(INDI::PropertyLight  property)
+    : d_ptr(property.d_ptr)
+{ }
+
+Property::Property(INDI::PropertyBlob   property)
+    : d_ptr(property.d_ptr)
+{ }
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+
+Property::Property(INDI::PropertyView<INumber> *property)
+    : d_ptr(new PropertyNumberPrivate(property))
+{ }
+
+Property::Property(INDI::PropertyView<IText>   *property)
+    : d_ptr(new PropertyTextPrivate(property))
+{ }
+
+Property::Property(INDI::PropertyView<ISwitch> *property)
+    : d_ptr(new PropertySwitchPrivate(property))
+{ }
+
+Property::Property(INDI::PropertyView<ILight>  *property)
+    : d_ptr(new PropertyLightPrivate(property))
+{ }
+
+Property::Property(INDI::PropertyView<IBLOB>   *property)
+    : d_ptr(new PropertyBlobPrivate(property))
+{ }
+
 Property::Property(INumberVectorProperty *property)
     : d_ptr(new PropertyNumberPrivate(property))
 { }
