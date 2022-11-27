@@ -13,7 +13,7 @@ configure_file(indiapi.h.in indiapi.h @ONLY)
 
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
-    indiapi.h
+    ${CMAKE_CURRENT_BINARY_DIR}/indiapi.h
     indidevapi.h
     lilxml.h
     base64.h
