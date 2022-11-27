@@ -35,7 +35,7 @@
 #include <strings.h>
 #include <termios.h>
 #include <math.h>
-#include <libnova.h>
+#include <libnova/libnova.h>
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"

@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "indibase/indidome.h"
+#include "indidome.h"
 
 class BaaderDome : public INDI::Dome
 {

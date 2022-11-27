@@ -37,7 +37,7 @@
 
 static void startIndiSetProp(ProcessController & indiSetProp, const std::vector<std::string>& args) {
     setupSigPipe();
-    std::string indiSetPropPath = getTestExePath("../indi_setprop");
+    std::string indiSetPropPath = getTestExePath("../tools/indi_setprop");
 
     indiSetProp.start(indiSetPropPath, args);
 }

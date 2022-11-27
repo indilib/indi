@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indiapi.h"
+#include "indidriver.h"
 
 #include <sys/time.h>
 #include <stdint.h>

@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.13)
 project(sockets CXX)
 
 find_package(Threads REQUIRED)
-add_library(${PROJECT_NAME} STATIC "")
+add_library(${PROJECT_NAME} OBJECT "")
 
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
@@ -31,9 +31,9 @@ endif()
 # Setup Target
 target_sources(${PROJECT_NAME}
     PUBLIC
-    ${${PROJECT_NAME}_SOURCES}
     ${${PROJECT_NAME}_HEADERS}
     PRIVATE
+    ${${PROJECT_NAME}_SOURCES}
     ${${PROJECT_NAME}_PRIVATE_HEADERS}
 )
 
