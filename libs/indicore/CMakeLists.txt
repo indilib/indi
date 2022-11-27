@@ -9,6 +9,8 @@ add_library(${PROJECT_NAME} OBJECT "")
 
 CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
 
+configure_file(indiapi.h.in indiapi.h @ONLY)
+
 # Headers
 list(APPEND ${PROJECT_NAME}_HEADERS
     indiapi.h
@@ -70,7 +72,10 @@ target_sources(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC . ${CMAKE_CURRENT_BINARY_DIR}/../..
+    PUBLIC
+    .
+    ${CMAKE_CURRENT_BINARY_DIR}/../.. # config.h
+    ${CMAKE_CURRENT_BINARY_DIR}       # indiapi.h
 )
 
 install(FILES
