@@ -78,7 +78,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
