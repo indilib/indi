@@ -210,14 +210,6 @@ void Property::setBaseDevice(BaseDevice baseDevice)
     d->baseDevice = baseDevice;
 }
 
-#if 0
-void *Property::getProperty() const
-{
-    D_PTR(const Property);
-    return d->property;
-}
-#endif
-
 INDI_PROPERTY_TYPE Property::getType() const
 {
     D_PTR(const Property);
