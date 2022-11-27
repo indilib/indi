@@ -439,7 +439,7 @@ template <typename T>
 PropertyBasic<T>::operator INDI::PropertyView<T> *() const
 {
     D_PTR(const Property);
-    return static_cast<PropertyView<T> *>(d->property);
+    return isValid() ? static_cast<PropertyView<T> *>(d->property) : nullptr;
 }
 
 #endif
