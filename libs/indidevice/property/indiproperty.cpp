@@ -34,6 +34,12 @@
 #include "indipropertylight_p.h"
 #include "indipropertyblob_p.h"
 
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+#include "indipropertynumber.h"
+#include "indipropertylight.h"
+#include "indipropertyblob.h"
+
 #include <cstdlib>
 #include <cstring>
 
@@ -98,6 +104,13 @@ Property::operator const INDI::Property *() const
     D_PTR(const Property);
     return isValid() ? &d->self : nullptr;
 }
+
+Property::operator INDI::PropertyView<INumber> *() const { return this->getNumber(); }
+Property::operator INDI::PropertyView<IText>   *() const { return this->getText(); }
+Property::operator INDI::PropertyView<ISwitch> *() const { return this->getSwitch(); }
+Property::operator INDI::PropertyView<ILight>  *() const { return this->getLight(); }
+Property::operator INDI::PropertyView<IBLOB>   *() const { return this->getBLOB(); }
+
 #endif
 
 #define PROPERTY_CASE(CODE) \
@@ -200,20 +213,6 @@ Property::Property(const std::shared_ptr<PropertyPrivate> &dd)
     : d_ptr(dd)
 { }
 
-void Property::setProperty(void *p)
-{
-    D_PTR(Property);
-    d->type       = p ? d->type : INDI_UNKNOWN;
-    d->registered = p != nullptr;
-    d->property   = p;
-}
-
-void Property::setType(INDI_PROPERTY_TYPE t)
-{
-    D_PTR(Property);
-    d->type = t;
-}
-
 void Property::setRegistered(bool r)
 {
     D_PTR(Property);
@@ -236,12 +235,6 @@ void Property::setBaseDevice(BaseDevice baseDevice)
 {
     D_PTR(Property);
     d->baseDevice = baseDevice;
-}
-
-void *Property::getProperty() const
-{
-    D_PTR(const Property);
-    return d->property;
 }
 
 INDI_PROPERTY_TYPE Property::getType() const
@@ -431,49 +424,29 @@ bool Property::isLabelMatch(const std::string &otherLabel) const
     return false;
 }
 
-PropertyView<INumber> *Property::getNumber() const
+INDI::PropertyNumber Property::getNumber() const
 {
-    D_PTR(const Property);
-    if (d->type == INDI_NUMBER)
-        return static_cast<PropertyView<INumber>*>(d->property);
-
-    return nullptr;
+    return *this;
 }
 
-PropertyView<IText> *Property::getText() const
+INDI::PropertyText Property::getText() const
 {
-    D_PTR(const Property);
-    if (d->type == INDI_TEXT)
-        return static_cast<PropertyView<IText>*>(d->property);
-
-    return nullptr;
+    return *this;
 }
 
-PropertyView<ILight> *Property::getLight() const
+INDI::PropertyLight Property::getLight() const
 {
-    D_PTR(const Property);
-    if (d->type == INDI_LIGHT)
-        return static_cast<PropertyView<ILight>*>(d->property);
-
-    return nullptr;
+    return *this;
 }
 
-PropertyView<ISwitch> *Property::getSwitch() const
+INDI::PropertySwitch Property::getSwitch() const
 {
-    D_PTR(const Property);
-    if (d->type == INDI_SWITCH)
-        return static_cast<PropertyView<ISwitch>*>(d->property);
-
-    return nullptr;
+    return *this;
 }
 
-PropertyView<IBLOB> *Property::getBLOB() const
+INDI::PropertyBlob Property::getBLOB() const
 {
-    D_PTR(const Property);
-    if (d->type == INDI_BLOB)
-        return static_cast<PropertyView<IBLOB>*>(d->property);
-
-    return nullptr;
+    return *this;
 }
 
 void Property::save(FILE *fp) const

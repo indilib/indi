@@ -422,19 +422,33 @@ PropertyView<T> * PropertyBasic<T>::operator &()
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
 template <typename T>
-PropertyView<T> *PropertyBasic<T>::operator ->()
+PropertyView<T> *PropertyBasic<T>::operator ->() const
 {
-    D_PTR(PropertyBasic);
-    return static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
+    D_PTR(const Property);
+    return static_cast<PropertyView<T> *>(d->property);
 }
 
 template <typename T>
-INDI::PropertyView<T> PropertyBasic<T>::operator*()
+INDI::PropertyView<T> PropertyBasic<T>::operator*() const
 {
-    D_PTR(PropertyBasic);
-    return *static_cast<PropertyView<T> *>(static_cast<INDI::PropertyPrivate*>(d)->property);
+    D_PTR(const Property);
+    return *static_cast<PropertyView<T> *>(d->property);
 }
+
+template <typename T>
+PropertyBasic<T>::operator INDI::PropertyView<T> *() const
+{
+    D_PTR(const Property);
+    return isValid() ? static_cast<PropertyView<T> *>(d->property) : nullptr;
+}
+
 #endif
+
+template <typename T>
+PropertyBasic<T>::operator bool() const
+{
+    return isValid();
+}
 
 template class PropertyBasicPrivateTemplate<IText>;
 template class PropertyBasicPrivateTemplate<INumber>;

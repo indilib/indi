@@ -86,7 +86,7 @@ class PropertyBasic : public INDI::Property
 
     public:
         void save(FILE *f) const;
-
+#ifndef SWIG
         void vapply(const char *format, va_list args) const;
         void vdefine(const char *format, va_list args) const;
 
@@ -95,7 +95,7 @@ class PropertyBasic : public INDI::Property
 
         void apply() const;
         void define() const;
-
+#endif
     public:
         PropertyView<T> * operator &();
 
@@ -141,11 +141,16 @@ class PropertyBasic : public INDI::Property
         PropertyBasic(PropertyBasicPrivate &dd);
         PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd);
 
+#ifndef SWIG
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
     public: // deprecated
-        INDI::PropertyView<T> *operator->();
-        INDI::PropertyView<T>  operator*();
+        INDI::PropertyView<T> *operator->() const;
+        INDI::PropertyView<T>  operator*() const;
+        operator INDI::PropertyView<T> *() const;
 #endif
+#endif
+    public:
+        operator bool() const;
 };
 
 }
