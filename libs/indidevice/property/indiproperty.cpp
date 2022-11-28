@@ -46,31 +46,31 @@ PropertyPrivate::PropertyPrivate(void *property, INDI_PROPERTY_TYPE type)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ITextVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyView<IText> *property)
     : property(property)
     , type(property ? INDI_TEXT : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(INumberVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyView<INumber> *property)
     : property(property)
     , type(property ? INDI_NUMBER : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ISwitchVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyView<ISwitch> *property)
     : property(property)
     , type(property ? INDI_SWITCH : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ILightVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyView<ILight> *property)
     : property(property)
     , type(property ? INDI_LIGHT : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyView<IBLOB> *property)
     : property(property)
     , type(property ? INDI_BLOB : INDI_UNKNOWN)
     , registered(property != nullptr)

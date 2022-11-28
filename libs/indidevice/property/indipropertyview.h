@@ -320,6 +320,11 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
             //free(widget()); // #PS: do not delete items, they may be on the stack.
             memset(this, 0, sizeof(*this));
         }
+    public:
+        static PropertyView<T> *cast(PropertyType *raw)
+        {
+            return static_cast<PropertyView<T>*>(raw);
+        }
 };
 
 template <typename>
