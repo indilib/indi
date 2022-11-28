@@ -220,7 +220,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
 
     public: // only driver side
         void save(FILE *f) const;                              /* outside implementation */
-#ifndef SWIG
+
         void vapply(const char *format, va_list args)
         const;   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
         void vdefine(const char *format, va_list args)
@@ -239,7 +239,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
         {
             define(nullptr);
         }
-#endif
+
     public:
         template <typename X = T, enable_if_is_same_t<X, IText> = true>
         void fill(

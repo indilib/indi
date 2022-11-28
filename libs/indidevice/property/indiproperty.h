@@ -75,6 +75,8 @@ class Property
 
 #endif
     public:
+        void setProperty(void *);
+        void setType(INDI_PROPERTY_TYPE t);
         void setRegistered(bool r);
         void setDynamic(bool d);
 
@@ -84,6 +86,7 @@ class Property
         void setBaseDevice(BaseDevice device);
 
     public:
+        void *getProperty() const;
         INDI_PROPERTY_TYPE getType() const;
         const char *getTypeAsString() const;
         bool getRegistered() const;
@@ -131,7 +134,6 @@ class Property
         void save(FILE *fp) const;
 
     public:
-#ifndef SWIG
         void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
         void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
@@ -143,17 +145,17 @@ class Property
         {
             define(nullptr);
         }
+
+    public:
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+        INDI::PropertyView<INumber> *getNumber() const;
+        INDI::PropertyView<IText>   *getText() const;
+        INDI::PropertyView<ISwitch> *getSwitch() const;
+        INDI::PropertyView<ILight>  *getLight() const;
+        INDI::PropertyView<IBLOB>   *getBLOB() const;
 #endif
 
     public:
-        INDI::PropertyNumber getNumber() const;
-        INDI::PropertyText   getText() const;
-        INDI::PropertySwitch getSwitch() const;
-        INDI::PropertyLight  getLight() const;
-        INDI::PropertyBlob   getBLOB() const;
-
-    public:
-#ifndef SWIG
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
         INDI::Property* operator->();
         const INDI::Property* operator->() const;
@@ -161,16 +163,15 @@ class Property
         operator INDI::Property *();
         operator const INDI::Property *() const;
 
-        operator INDI::PropertyView<INumber> *() const;
-        operator INDI::PropertyView<IText>   *() const;
-        operator INDI::PropertyView<ISwitch> *() const;
-        operator INDI::PropertyView<ILight>  *() const;
-        operator INDI::PropertyView<IBLOB>   *() const;
+        operator INDI::PropertyView<INumber> *() const { return getNumber(); }
+        operator INDI::PropertyView<IText>   *() const { return getText(); }
+        operator INDI::PropertyView<ISwitch> *() const { return getSwitch(); }
+        operator INDI::PropertyView<ILight>  *() const { return getLight(); }
+        operator INDI::PropertyView<IBLOB>   *() const { return getBLOB(); }
         bool operator != (std::nullptr_t) const        { return  isValid(); }
         bool operator == (std::nullptr_t) const        { return !isValid(); }
-#endif
-#endif
         operator bool()                   const        { return  isValid(); }
+#endif
 
     protected:
         std::shared_ptr<PropertyPrivate> d_ptr;

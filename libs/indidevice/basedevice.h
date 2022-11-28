@@ -150,6 +150,17 @@ class BaseDevice
         /** @return Return property permission */
         IPerm getPropertyPermission(const char *name) const;
 
+        /** @brief Return a property and its type given its name.
+         *  @param name of property to be found.
+         *  @param type of property found.
+         *  @return If property is found, the raw void * pointer to the IXXXVectorProperty is returned. To be used you must use static_cast with given the type of property
+         *  returned. For example, INumberVectorProperty *num = static_cast<INumberVectorProperty> getRawProperty("FOO", INDI_NUMBER);
+         *
+         *  @note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
+         *  is the property type (Number, Text, Switch..etc).
+         */
+        void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+
     public:
         /** @brief Add message to the driver's message queue.
          *  @param msg Message to add.

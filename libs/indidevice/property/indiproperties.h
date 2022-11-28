@@ -84,7 +84,6 @@ class Properties
         iterator erase_if(Predicate predicate);
 
     public:
-#ifndef SWIG
 #ifdef INDI_PROPERTIES_BACKWARD_COMPATIBILE
         INDI::Properties operator *();
         const INDI::Properties operator *() const;
@@ -97,7 +96,6 @@ class Properties
 
         operator Properties *();
         operator const Properties *() const;
-#endif
 #endif
 
     protected:
