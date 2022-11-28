@@ -568,7 +568,7 @@ void AbstractBaseClient::startBlob(const char *devName, const char *propName, co
     IUUserIONewBLOBStart(&d->io, d, devName, propName, timestamp);
 }
 
-void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
+void AbstractBaseClient::sendOneBlob(INDI::WidgetViewBlob *blob)
 {
     D_PTR(AbstractBaseClient);
     IUUserIOBLOBContextOne(
@@ -579,7 +579,7 @@ void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
 
 void AbstractBaseClient::sendOneBlob(IBLOB *bp)
 {
-    sendOneBlob(INDI::WidgetView<IBLOB>::cast(bp));
+    sendOneBlob(INDI::WidgetViewBlob::cast(bp));
 }
 
 void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,

@@ -65,7 +65,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
 {
     INDI::Property p;
 
-    INDI::PropertyView<INumber> nvp;
+    INDI::PropertyViewNumber nvp;
     nvp.setDeviceName("device field");
     nvp.setName("name field");
     nvp.setLabel("label field");

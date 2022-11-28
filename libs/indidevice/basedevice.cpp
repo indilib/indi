@@ -334,7 +334,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyNumber typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defNumber"))
             {
-                INDI::WidgetView<INumber> widget;
+                INDI::WidgetViewNumber widget;
 
                 widget.setParent(typedProperty.getNumber());
 
@@ -360,7 +360,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             typedProperty.setRule(root.getAttribute("rule"));
             for (const auto &element : root.getElementsByTagName("defSwitch"))
             {
-                INDI::WidgetView<ISwitch> widget;
+                INDI::WidgetViewSwitch widget;
 
                 widget.setParent(typedProperty.getSwitch());
 
@@ -381,7 +381,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyText typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defText"))
             {
-                INDI::WidgetView<IText> widget;
+                INDI::WidgetViewText widget;
 
                 widget.setParent(typedProperty.getText());
 
@@ -402,7 +402,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyLight typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defLight"))
             {
-                INDI::WidgetView<ILight> widget;
+                INDI::WidgetViewLight widget;
 
                 widget.setParent(typedProperty.getLight());
 
@@ -423,7 +423,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyBlob typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defBLOB"))
             {
-                INDI::WidgetView<IBLOB> widget;
+                INDI::WidgetViewBlob widget;
 
                 widget.setParent(typedProperty.getBLOB());
 
@@ -656,7 +656,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
 }
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
-static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetView<IBLOB> &widget)
+static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetViewBlob &widget)
 {
     auto attachementId = element.getAttribute("attached-data-id");
 

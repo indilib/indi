@@ -58,7 +58,7 @@ class PropertySwitch: public INDI::PropertyBasic<ISwitch>
     public:
         void reset();
         int findOnSwitchIndex() const;
-        INDI::WidgetView<ISwitch> *findOnSwitch() const;
+        INDI::WidgetViewSwitch *findOnSwitch() const;
 
     public:
         void setRule(ISRule rule);

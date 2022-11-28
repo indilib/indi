@@ -67,11 +67,11 @@ class Property
         Property(IBLOBVectorProperty   *property);
 
     public:
-        Property(INDI::PropertyView<INumber> *property);
-        Property(INDI::PropertyView<IText>   *property);
-        Property(INDI::PropertyView<ISwitch> *property);
-        Property(INDI::PropertyView<ILight>  *property);
-        Property(INDI::PropertyView<IBLOB>   *property);
+        Property(INDI::PropertyViewNumber *property);
+        Property(INDI::PropertyViewText   *property);
+        Property(INDI::PropertyViewSwitch *property);
+        Property(INDI::PropertyViewLight  *property);
+        Property(INDI::PropertyViewBlob   *property);
 
 #endif
     public:
@@ -148,11 +148,11 @@ class Property
 
     public:
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-        INDI::PropertyView<INumber> *getNumber() const;
-        INDI::PropertyView<IText>   *getText() const;
-        INDI::PropertyView<ISwitch> *getSwitch() const;
-        INDI::PropertyView<ILight>  *getLight() const;
-        INDI::PropertyView<IBLOB>   *getBLOB() const;
+        INDI::PropertyViewNumber *getNumber() const;
+        INDI::PropertyViewText   *getText() const;
+        INDI::PropertyViewSwitch *getSwitch() const;
+        INDI::PropertyViewLight  *getLight() const;
+        INDI::PropertyViewBlob   *getBLOB() const;
 #endif
 
     public:
@@ -163,14 +163,14 @@ class Property
         operator INDI::Property *();
         operator const INDI::Property *() const;
 
-        operator INDI::PropertyView<INumber> *() const { return getNumber(); }
-        operator INDI::PropertyView<IText>   *() const { return getText(); }
-        operator INDI::PropertyView<ISwitch> *() const { return getSwitch(); }
-        operator INDI::PropertyView<ILight>  *() const { return getLight(); }
-        operator INDI::PropertyView<IBLOB>   *() const { return getBLOB(); }
-        bool operator != (std::nullptr_t) const        { return  isValid(); }
-        bool operator == (std::nullptr_t) const        { return !isValid(); }
-        operator bool()                   const        { return  isValid(); }
+        operator INDI::PropertyViewNumber *() const { return getNumber(); }
+        operator INDI::PropertyViewText   *() const { return getText(); }
+        operator INDI::PropertyViewSwitch *() const { return getSwitch(); }
+        operator INDI::PropertyViewLight  *() const { return getLight(); }
+        operator INDI::PropertyViewBlob   *() const { return getBLOB(); }
+        bool operator != (std::nullptr_t) const     { return  isValid(); }
+        bool operator == (std::nullptr_t) const     { return !isValid(); }
+        operator bool()                   const     { return  isValid(); }
 #endif
 
     protected:

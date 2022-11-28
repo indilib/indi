@@ -72,5 +72,5 @@ class WatchDogClient : public INDI::BaseClient
         std::string dome, mount;
         bool isReady, isRunning, domeOnline, mountOnline;
 
-        INDI::PropertyView<ISwitch> *mountParkSP, *domeParkSP;
+        INDI::PropertyViewSwitch *mountParkSP, *domeParkSP;
 };

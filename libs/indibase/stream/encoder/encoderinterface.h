@@ -53,7 +53,7 @@ class EncoderInterface
 
         virtual bool setSize(uint16_t width, uint16_t height);
 
-        virtual bool upload(INDI::WidgetView<IBLOB> *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) = 0;
+        virtual bool upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) = 0;
 
         const char *getName();
 

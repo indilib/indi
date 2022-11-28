@@ -52,7 +52,7 @@ int PropertySwitch::findOnSwitchIndex() const
     return d->typedProperty.findOnSwitchIndex();
 }
 
-INDI::WidgetView<ISwitch> *PropertySwitch::findOnSwitch() const
+INDI::WidgetViewSwitch *PropertySwitch::findOnSwitch() const
 {
     D_PTR(const PropertySwitch);
     return d->typedProperty.findOnSwitch();

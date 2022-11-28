@@ -35,6 +35,18 @@ namespace INDI
 template <typename> struct WidgetView;
 template <typename> struct PropertyView;
 
+typedef PropertyView<IText>   PropertyViewText;
+typedef PropertyView<INumber> PropertyViewNumber;
+typedef PropertyView<ISwitch> PropertyViewSwitch;
+typedef PropertyView<ILight>  PropertyViewLight;
+typedef PropertyView<IBLOB>   PropertyViewBlob;
+
+typedef WidgetView<IText>     WidgetViewText;
+typedef WidgetView<INumber>   WidgetViewNumber;
+typedef WidgetView<ISwitch>   WidgetViewSwitch;
+typedef WidgetView<ILight>    WidgetViewLight;
+typedef WidgetView<IBLOB>     WidgetViewBlob;
+
 #define PROPERTYVIEW_BASE_ACCESS public
 // don't use direct access to low-level property
 //#define PROPERTYVIEW_BASE_ACCESS protected // future
@@ -46,22 +58,22 @@ template <typename> struct PropertyView;
  * INDI::PropertyView
  *
  * A class that will allow a easy transition to the new widget handling interface (future).
- * - Use PropertyView<IText>   instead of ITextVectorProperty
- * - Use PropertyView<INumber> instead of INumberVectorProperty
- * - Use PropertyView<ISwitch> instead of ISwitchVectorProperty
- * - Use PropertyView<ILight>  instead of ILightVectorProperty
- * - Use PropertyView<IBLOB>   instead of IBLOBVectorProperty
+ * - Use PropertyViewText   instead of ITextVectorProperty
+ * - Use PropertyViewNumber instead of INumberVectorProperty
+ * - Use PropertyViewSwitch instead of ISwitchVectorProperty
+ * - Use PropertyViewLight  instead of ILightVectorProperty
+ * - Use PropertyViewBlob   instead of IBLOBVectorProperty
  *
  * The PropertyView<IXXX> class is compatible with low-level IXXXVectorProperty structures.
  *
  * INDI::WidgetView
  *
  * A class that will allow a easy transition to the new widget handling interface (future).
- * - Use WidgetView<IText>   instead of IText
- * - Use WidgetView<INumber> instead of INumber
- * - Use WidgetView<ISwitch> instead of ISwitch
- * - Use WidgetView<ILight>  instead of ILight
- * - Use WidgetView<IBLOB>   instead of IBLOB
+ * - Use WidgetViewText   instead of IText
+ * - Use WidgetViewNumber instead of INumber
+ * - Use WidgetViewSwitch instead of ISwitch
+ * - Use WidgetViewLight  instead of ILight
+ * - Use WidgetViewBlob   instead of IBLOB
  *
  * The WidgetView<IXXX> class is compatible with low-level IXXX structures.
  */

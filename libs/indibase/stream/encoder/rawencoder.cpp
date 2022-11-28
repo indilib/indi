@@ -42,7 +42,7 @@ const char *RawEncoder::getDeviceName()
     return currentDevice->getDeviceName();
 }
 
-bool RawEncoder::upload(INDI::WidgetView<IBLOB> *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
+bool RawEncoder::upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // Do we want to compress ?
     if (isCompressed)

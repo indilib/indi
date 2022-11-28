@@ -37,7 +37,7 @@ class MJPEGEncoder : public EncoderInterface
         MJPEGEncoder();
         ~MJPEGEncoder();
 
-        virtual bool upload(INDI::WidgetView<IBLOB> *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) override;
+        virtual bool upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) override;
 
     private:
         const char *getDeviceName();

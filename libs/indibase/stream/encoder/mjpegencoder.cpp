@@ -64,7 +64,7 @@ const char *MJPEGEncoder::getDeviceName()
     return currentDevice->getDeviceName();
 }
 
-bool MJPEGEncoder::upload(INDI::WidgetView<IBLOB> *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
+bool MJPEGEncoder::upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // We do not support compression
     if (isCompressed)
