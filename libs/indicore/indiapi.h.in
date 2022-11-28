@@ -459,8 +459,6 @@ typedef struct _IBLOB/* one BLOB descriptor */
     void *aux0;
     /** Helper info */
     void *aux1;
-    /** Helper info */
-    void *aux2;
 } IBLOB;
 
 /**

@@ -241,7 +241,6 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
     bp->bvp     = 0;
     bp->aux0    = 0;
     bp->aux1    = 0;
-    bp->aux2    = 0;
 }
 
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
