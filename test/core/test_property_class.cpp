@@ -79,14 +79,17 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
 {
     INumberVectorProperty nvp
     {
-        "device field",
-        "name field",
-        "label field",
-        "group field",
-        IP_RW, 42, IPS_BUSY,
-        nullptr, 0,
-        "timestamp field",
-        nullptr
+        nullptr,           // aux
+        "device field",    // group
+        "name field",      // name
+        "label field",     // label
+        "group field",     // group
+        IPS_BUSY,          // s
+        nullptr,           // nvp
+        0,                 // nnp
+        "timestamp field", // timestamp
+        42,                // timeout
+        IP_RW              // p
     };
 
     // Setting a property

@@ -125,7 +125,9 @@ For a full list of contributors, please check <a href="https://github.com/indili
     \brief Constants and Data structure definitions for the interface to the reference INDI C API implementation.
     \author Elwood C. Downey
 */
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /*******************************************************************************
  * INDI wire protocol version implemented by this API.
  * N.B. this is indepedent of the API itself.
@@ -224,16 +226,16 @@ IP_RW  /*!< Read & Write */
  */
 typedef struct _IText
 {
-/** Index name */
-char name[MAXINDINAME];
+    /** Helper info */
+    void *aux;
+    /** Pointer to parent */
+    struct _ITextVectorProperty *tvp;
+    /** Index name */
+    char name[MAXINDINAME];
     /** Short description */
     char label[MAXINDILABEL];
     /** Allocated text string */
     char *text;
-    /** Pointer to parent */
-    struct _ITextVectorProperty *tvp;
-    /** Helper info */
-    void *aux;
 } IText;
 
 /**
@@ -242,6 +244,8 @@ char name[MAXINDINAME];
  */
 typedef struct _ITextVectorProperty
 {
+    /** Helper info */
+    void *aux;
     /** Device name */
     char device[MAXINDIDEVICE];
     /** Property name */
@@ -250,10 +254,6 @@ typedef struct _ITextVectorProperty
     char label[MAXINDILABEL];
     /** GUI grouping hint */
     char group[MAXINDIGROUP];
-    /** Client accessibility hint */
-    IPerm p;
-    /** Current max time to change, secs */
-    double timeout;
     /** Current property state */
     IPState s;
     /** Texts comprising this vector */
@@ -262,8 +262,10 @@ typedef struct _ITextVectorProperty
     int ntp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
-    /** Helper info */
-    void *aux;
+    /** Current max time to change, secs */
+    double timeout;
+    /** Client accessibility hint */
+    IPerm p;
 } ITextVectorProperty;
 
 /**
@@ -272,6 +274,10 @@ typedef struct _ITextVectorProperty
  */
 typedef struct _INumber
 {
+    /** Helper info */
+    void *aux;
+    /** Pointer to parent */
+    struct _INumberVectorProperty *nvp;
     /** Index name */
     char name[MAXINDINAME];
     /** Short description */
@@ -286,10 +292,6 @@ typedef struct _INumber
     double step;
     /** Current value */
     double value;
-    /** Pointer to parent */
-    struct _INumberVectorProperty *nvp;
-    /** Helper info */
-    void *aux;
 } INumber;
 
 /**
@@ -313,6 +315,8 @@ typedef struct _INumber
  */
 typedef struct _INumberVectorProperty
 {
+    /** Helper info */
+    void *aux;
     /** Device name */
     char device[MAXINDIDEVICE];
     /** Property name */
@@ -321,11 +325,7 @@ typedef struct _INumberVectorProperty
     char label[MAXINDILABEL];
     /** GUI grouping hint */
     char group[MAXINDIGROUP];
-    /** Client accessibility hint */
-    IPerm p;
-    /** Current max time to change, secs */
-    double timeout;
-    /** current property state */
+    /** Current property state */
     IPState s;
     /** Numbers comprising this vector */
     INumber *np;
@@ -333,8 +333,10 @@ typedef struct _INumberVectorProperty
     int nnp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
-    /** Helper info */
-    void *aux;
+    /** Current max time to change, secs */
+    double timeout;
+    /** Client accessibility hint */
+    IPerm p;
 } INumberVectorProperty;
 
 /**
@@ -343,16 +345,16 @@ typedef struct _INumberVectorProperty
  */
 typedef struct _ISwitch
 {
+    /** Helper info */
+    void *aux;
+    /** Pointer to parent */
+    struct _ISwitchVectorProperty *svp;
     /** Index name */
     char name[MAXINDINAME];
     /** Switch label */
     char label[MAXINDILABEL];
     /** Switch state */
     ISState s;
-    /** Pointer to parent */
-    struct _ISwitchVectorProperty *svp;
-    /** Helper info */
-    void *aux;
 } ISwitch;
 
 /**
@@ -361,6 +363,8 @@ typedef struct _ISwitch
  */
 typedef struct _ISwitchVectorProperty
 {
+    /** Helper info */
+    void *aux;
     /** Device name */
     char device[MAXINDIDEVICE];
     /** Property name */
@@ -369,12 +373,6 @@ typedef struct _ISwitchVectorProperty
     char label[MAXINDILABEL];
     /** GUI grouping hint */
     char group[MAXINDIGROUP];
-    /** Client accessibility hint */
-    IPerm p;
-    /** Switch behavior hint */
-    ISRule r;
-    /** Current max time to change, secs */
-    double timeout;
     /** Current property state */
     IPState s;
     /** Switches comprising this vector */
@@ -383,8 +381,12 @@ typedef struct _ISwitchVectorProperty
     int nsp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
-    /** Helper info */
-    void *aux;
+    /** Current max time to change, secs */
+    double timeout;
+    /** Client accessibility hint */
+    IPerm p;
+   /** Switch behavior hint */
+    ISRule r;
 } ISwitchVectorProperty;
 
 /**
@@ -393,16 +395,16 @@ typedef struct _ISwitchVectorProperty
  */
 typedef struct _ILight
 {
+    /** Helper info */
+    void *aux;
+    /** Pointer to parent */
+    struct _ILightVectorProperty *lvp;
     /** Index name */
     char name[MAXINDINAME];
     /** Light labels */
     char label[MAXINDILABEL];
     /** Light state */
     IPState s;
-    /** Pointer to parent */
-    struct _ILightVectorProperty *lvp;
-    /** Helper info */
-    void *aux;
 } ILight;
 
 /**
@@ -411,6 +413,8 @@ typedef struct _ILight
  */
 typedef struct _ILightVectorProperty
 {
+    /** Helper info */
+    void *aux;
     /** Device name */
     char device[MAXINDIDEVICE];
     /** Property name */
@@ -427,16 +431,22 @@ typedef struct _ILightVectorProperty
     int nlp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
-    /** Helper info */
-    void *aux;
+    /** Reserved **/
+    double unused2;
+    /** Reserved **/
+    IPerm unused1;
 } ILightVectorProperty;
 
 /**
  * @struct IBLOB
  * @brief One Blob (Binary Large Object) descriptor.
  */
-typedef struct _IBLOB/* one BLOB descriptor */
+typedef struct _IBLOB
 {
+    /** Helper info */
+    void *aux;
+    /** Pointer to parent */
+    struct _IBLOBVectorProperty *bvp;
     /** Index name */
     char name[MAXINDINAME];
     /** Blob label */
@@ -449,18 +459,16 @@ typedef struct _IBLOB/* one BLOB descriptor */
     int bloblen;
     /** N uncompressed bytes */
     int size;
-    /** Pointer to parent */
-    struct _IBLOBVectorProperty *bvp;
-    /** Helper info */
-    void *aux;
 } IBLOB;
 
 /**
  * @struct _IBLOBVectorProperty
  * @brief BLOB (Binary Large Object) vector property descriptor.
  */
-typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
+typedef struct _IBLOBVectorProperty
 {
+    /** Helper info */
+    void *aux;
     /** Device name */
     char device[MAXINDIDEVICE];
     /** Property name */
@@ -469,10 +477,6 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
     char label[MAXINDILABEL];
     /** GUI grouping hint */
     char group[MAXINDIGROUP];
-    /** Client accessibility hint */
-    IPerm p;
-    /** Current max time to change, secs */
-    double timeout;
     /** Current property state */
     IPState s;
     /** BLOBs comprising this vector */
@@ -481,8 +485,10 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
     int nbp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
-    /** Helper info */
-    void *aux;
+    /** Current max time to change, secs */
+    double timeout;
+    /** Client accessibility hint */
+    IPerm p;
 } IBLOBVectorProperty;
 
 /**
@@ -495,11 +501,6 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
  * @brief Bails out if memory pointer is 0. Prints file and function.
  */
 #define assert_mem(p) if((p) == 0) { fprintf(stderr, "%s(%s): Failed to allocate memory\n", __FILE__, __func__); exit(1); }
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // FIXME: duplicated from indidevapi.h. Can we share ?
 
