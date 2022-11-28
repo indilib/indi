@@ -579,7 +579,7 @@ void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
 
 void AbstractBaseClient::sendOneBlob(IBLOB *bp)
 {
-    sendOneBlob(static_cast<INDI::WidgetView<IBLOB>*>(bp));
+    sendOneBlob(INDI::WidgetView<IBLOB>::cast(bp));
 }
 
 void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,

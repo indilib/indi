@@ -42,7 +42,7 @@ const char *RawEncoder::getDeviceName()
     return currentDevice->getDeviceName();
 }
 
-bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
+bool RawEncoder::upload(INDI::WidgetView<IBLOB> *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // Do we want to compress ?
     if (isCompressed)
@@ -60,18 +60,18 @@ bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool 
         }
 
         // Send it compressed
-        bp->blob    = compressedFrame.data();
-        bp->bloblen = compressedBytes;
-        bp->size    = nbytes;
-        strcpy(bp->format, ".stream.z");
+        bp->setBlob(compressedFrame.data());
+        bp->setBlobLen(compressedBytes);
+        bp->setSize(nbytes);
+        bp->setFormat(".stream.z");
     }
     else
     {
         // Send it uncompressed
-        bp->blob    = (const_cast<uint8_t *>(buffer));
-        bp->bloblen = nbytes;
-        bp->size    = nbytes;
-        strcpy(bp->format, ".stream");
+        bp->setBlob((const_cast<uint8_t *>(buffer)));
+        bp->setBlobLen(nbytes);
+        bp->setSize(nbytes);
+        bp->setFormat(".stream");
     }
 
     return true;

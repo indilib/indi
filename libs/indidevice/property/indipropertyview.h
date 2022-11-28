@@ -1046,6 +1046,16 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             fill(name.c_str(), label.c_str(), format.c_str());
         }
+
+    public: // internal use only
+        static WidgetView<Type> *cast(Type *blob)
+        {
+            return static_cast<WidgetView<Type>*>(blob);
+        }
+        Type *cast()
+        {
+            return this;
+        }
 };
 
 

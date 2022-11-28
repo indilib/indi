@@ -102,21 +102,21 @@ class BaseDevicePrivate
                 switch (property.getType())
                 {
                     case INDI_NUMBER:
-                        mediator->newNumber(property.getNumber());
+                        mediator->newNumber(property.getNumber()->cast());
                         break;
                     case INDI_SWITCH:
-                        mediator->newSwitch(property.getSwitch());
+                        mediator->newSwitch(property.getSwitch()->cast());
                         break;
                     case INDI_TEXT:
-                        mediator->newText(property.getText());
+                        mediator->newText(property.getText()->cast());
                         break;
                     case INDI_LIGHT:
-                        mediator->newLight(property.getLight());
+                        mediator->newLight(property.getLight()->cast());
                         break;
                     case INDI_BLOB:
                         for (auto &it : PropertyBlob(property))
                         {
-                            mediator->newBLOB(&it);
+                            mediator->newBLOB(it.cast());
                         }
                         break;
                     case INDI_UNKNOWN:
