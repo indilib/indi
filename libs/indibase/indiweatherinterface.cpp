@@ -38,7 +38,7 @@ WeatherInterface::~WeatherInterface()
 {
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
-        free(ParametersN[i].aux0);
+        free(ParametersN[i].aux);
         free(ParametersRangeNP[i].np);
     }
 
@@ -239,7 +239,7 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
 
                 ParametersN[i].min               = ParametersRangeNP[i].np[0].value;
                 ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
-                *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
+                *(static_cast<double *>(ParametersN[i].aux)) = ParametersRangeNP[i].np[2].value;
 
                 if (syncCriticalParameters())
                     IDSetLight(&critialParametersLP, nullptr);
@@ -278,7 +278,7 @@ void WeatherInterface::addParameter(std::string name, std::string label, double 
 
     IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
 
-    ParametersN[ParametersNP.nnp].aux0 = warn;
+    ParametersN[ParametersNP.nnp].aux = warn;
 
     ParametersNP.np = ParametersN;
     ParametersNP.nnp++;
@@ -326,7 +326,7 @@ bool WeatherInterface::setCriticalParameter(std::string param)
 
 IPState WeatherInterface::checkParameterState(const INumber &parameter) const
 {
-    double warn = *(static_cast<double *>(parameter.aux0));
+    double warn = *(static_cast<double *>(parameter.aux));
     double rangeWarn = (parameter.max - parameter.min) * (warn / 100);
 
     if ((parameter.value < parameter.min) || (parameter.value > parameter.max))
@@ -429,7 +429,7 @@ void WeatherInterface::createParameterRange(std::string name, std::string label)
     IUFillNumber(&rangesN[0], "MIN_OK", "OK range min", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
     IUFillNumber(&rangesN[1], "MAX_OK", "OK range max", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
     IUFillNumber(&rangesN[2], "PERC_WARN", "% for Warning", "%g", 0, 100, 1,
-                 *(static_cast<double *>(ParametersN[nRanges].aux0)));
+                 *(static_cast<double *>(ParametersN[nRanges].aux)));
 
     char propName[MAXINDINAME];
     char propLabel[MAXINDILABEL];

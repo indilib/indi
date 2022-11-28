@@ -2229,7 +2229,7 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                 if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                     numbers[nnum].value = control.value;
 
-                /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+                /* Store ID info in INumber. This is the first time ever I make use of aux!! */
                 num_ctrls[nnum] = queryctrl.id;
 
                 cerr << "Adding " << queryctrl.name << " -- min: " << queryctrl.minimum << " max: " << queryctrl.maximum
@@ -2383,7 +2383,7 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
                 if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                     numbers[nnum].value = control.value;
 
-                /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+                /* Store ID info in INumber. This is the first time ever I make use of aux!! */
                 num_ctrls[nnum] = queryctrl.id;
                 cerr << "Adding ext. " << queryctrl.name << " -- min: " << queryctrl.minimum
                      << " max: " << queryctrl.maximum << " step: " << queryctrl.step
@@ -2496,9 +2496,9 @@ void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumbe
             break;
     }
 
-    /* Store numbers in aux0 */
+    /* Store numbers in aux */
     for (int i = 0; i < nnum; i++)
-        numbers[i].aux0 = &num_ctrls[i];
+        numbers[i].aux = &num_ctrls[i];
 
     nvp->np  = numbers;
     nvp->nnp = nnum;
@@ -2550,7 +2550,7 @@ int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
                 if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                     numbers[nnum].value = control.value;
 
-                /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+                /* Store ID info in INumber. This is the first time ever I make use of aux!! */
                 num_ctrls[nnum] = queryctrl.id;
 
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%.*s -- min: %d max: %d step: %d value: %d",
@@ -2601,7 +2601,7 @@ int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
                 if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                     numbers[nnum].value = control.value;
 
-                /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+                /* Store ID info in INumber. This is the first time ever I make use of aux!! */
                 num_ctrls[nnum] = queryctrl.id;
 
                 nnum++;
@@ -2611,9 +2611,9 @@ int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
             break;
     }
 
-    /* Store numbers in aux0 */
+    /* Store numbers in aux */
     for (int i = 0; i < nnum; i++)
-        numbers[i].aux0 = &num_ctrls[i];
+        numbers[i].aux = &num_ctrls[i];
 
     nvp->np  = numbers;
     nvp->nnp = nnum;
@@ -2822,7 +2822,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
             if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                 numbers[nnum].value = control.value;
 
-            /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+            /* Store ID info in INumber. This is the first time ever I make use of aux!! */
             num_ctrls[nnum] = queryctrl.id;
 
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding %.*s -- min: %d max: %d step: %d value: %d",
@@ -2961,9 +2961,9 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnu
         queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
     }
 
-    /* Store numbers in aux0 */
+    /* Store numbers in aux */
     for (int i = 0; i < nnum; i++)
-        numbers[i].aux0 = &num_ctrls[i];
+        numbers[i].aux = &num_ctrls[i];
 
     nvp->np  = numbers;
     nvp->nnp = nnum;

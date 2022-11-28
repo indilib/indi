@@ -233,7 +233,7 @@ char name[MAXINDINAME];
     /** Pointer to parent */
     struct _ITextVectorProperty *tvp;
     /** Helper info */
-    void *aux0;
+    void *aux;
 } IText;
 
 /**
@@ -289,7 +289,7 @@ typedef struct _INumber
     /** Pointer to parent */
     struct _INumberVectorProperty *nvp;
     /** Helper info */
-    void *aux0;
+    void *aux;
 } INumber;
 
 /**
@@ -452,7 +452,7 @@ typedef struct _IBLOB/* one BLOB descriptor */
     /** Pointer to parent */
     struct _IBLOBVectorProperty *bvp;
     /** Helper info */
-    void *aux0;
+    void *aux;
 } IBLOB;
 
 /**

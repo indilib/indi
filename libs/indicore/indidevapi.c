@@ -197,7 +197,7 @@ void IUFillNumber(INumber *np, const char *name, const char *label, const char *
     np->step  = step;
     np->value = value;
     np->nvp   = NULL;
-    np->aux0  = NULL;
+    np->aux  = NULL;
 }
 
 void IUFillText(IText *tp, const char *name, const char *label, const char *initialText)
@@ -214,7 +214,7 @@ void IUFillText(IText *tp, const char *name, const char *label, const char *init
     tp->text = NULL;
 
     tp->tvp  = NULL;
-    tp->aux0 = NULL;
+    tp->aux = NULL;
 
     if (initialText && initialText[0])
         IUSaveText(tp, initialText);
@@ -237,7 +237,7 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
     bp->bloblen = 0;
     bp->size    = 0;
     bp->bvp     = 0;
-    bp->aux0    = 0;
+    bp->aux    = 0;
 }
 
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,

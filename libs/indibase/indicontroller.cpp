@@ -37,7 +37,7 @@ Controller::Controller(DefaultDevice *cdevice)
 Controller::~Controller()
 {
     for (int i = 0; i < JoystickSettingTP.ntp; i++)
-        free(JoystickSettingT[i].aux0);
+        free(JoystickSettingT[i].aux);
 
     free(JoystickSettingT);
 }
@@ -71,7 +71,7 @@ void Controller::mapController(const char *propertyName, const char *propertyLab
     memset(JoystickSettingT + JoystickSettingTP.ntp, 0, sizeof(IText));
     IUFillText(&JoystickSettingT[JoystickSettingTP.ntp], propertyName, propertyLabel, initialValue);
 
-    JoystickSettingT[JoystickSettingTP.ntp++].aux0 = ctype;
+    JoystickSettingT[JoystickSettingTP.ntp++].aux = ctype;
 
     IUFillTextVector(&JoystickSettingTP, JoystickSettingT, JoystickSettingTP.ntp, device->getDeviceName(),
                      "JOYSTICKSETTINGS", "Settings", "Joystick", IP_RW, 0, IPS_IDLE);
@@ -81,7 +81,7 @@ void Controller::clearMap()
 {
     for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {
-        free(JoystickSettingT[i].aux0);
+        free(JoystickSettingT[i].aux);
         free(JoystickSettingT[i].text);
     }
 
@@ -192,7 +192,7 @@ bool Controller::ISNewText(const char *dev, const char *name, char *texts[], cha
                 if (tp)
                 {
                     ControllerType cType  = getControllerType(texts[i]);
-                    ControllerType myType = *(static_cast<ControllerType *>(JoystickSettingT[i].aux0));
+                    ControllerType myType = *(static_cast<ControllerType *>(JoystickSettingT[i].aux));
                     if (cType != myType)
                     {
                         JoystickSettingTP.s = IPS_ALERT;
