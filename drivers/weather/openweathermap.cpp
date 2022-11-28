@@ -69,7 +69,7 @@ const char *OpenWeatherMap::getDefaultName()
 void OpenWeatherMap::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
-    defineProperty(&owmAPIKeyTP);
+    defineProperty(owmAPIKeyTP);
 }
 
 bool OpenWeatherMap::Connect()
@@ -282,7 +282,7 @@ bool OpenWeatherMap::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &owmAPIKeyTP);
+    owmAPIKeyTP.save(fp);
 
     return true;
 }

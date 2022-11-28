@@ -114,7 +114,7 @@ bool SkywatcherAPIMount::initProperties()
     InitAlignmentProperties(this);
 
     // Force the alignment system to always be on
-    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")[0].setState(ISS_ON);
 
     // Set up property variables
     IUFillText(&BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
@@ -810,7 +810,7 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 {
     SaveAlignmentConfigProperties(fp);
 
-    IUSaveConfigNumber(fp, &TrackFactorNP);
+    TrackFactorNP.save(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
@@ -1192,14 +1192,14 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuidingRatesNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&TrackFactorNP);
+        defineProperty(TrackFactorNP);
 
         if (HasAuxEncoders())
         {
             LOG_WARN("AUX encoders detected. Turning off...");
             TurnRAEncoder(false);
             TurnDEEncoder(false);
-            defineProperty(&AUXEncoderSP);
+            defineProperty(AUXEncoderSP);
         }
 
         if (InitPark())

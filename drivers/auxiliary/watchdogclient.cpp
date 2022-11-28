@@ -98,15 +98,15 @@ bool WatchDogClient::parkDome()
     if (domeParkSP == nullptr)
         return false;
 
-    ISwitch *sw = IUFindSwitch(domeParkSP, "PARK");
+    auto sw = domeParkSP->findWidgetByName("PARK");
 
     if (sw == nullptr)
         return false;
 
-    IUResetSwitch(domeParkSP);
-    sw->s = ISS_ON;
+    domeParkSP->reset();
+    sw->setState(ISS_ON);
 
-    domeParkSP->s = IPS_BUSY;
+    domeParkSP->setState(IPS_BUSY);
 
     sendNewSwitch(domeParkSP);
 
@@ -121,15 +121,15 @@ bool WatchDogClient::parkMount()
     if (mountParkSP == nullptr)
         return false;
 
-    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
+    auto sw = mountParkSP->findWidgetByName("PARK");
 
     if (sw == nullptr)
         return false;
 
-    IUResetSwitch(mountParkSP);
-    sw->s = ISS_ON;
+    mountParkSP->reset();
+    sw->setState(ISS_ON);
 
-    mountParkSP->s = IPS_BUSY;
+    mountParkSP->setState(IPS_BUSY);
 
     sendNewSwitch(mountParkSP);
 
@@ -141,7 +141,7 @@ bool WatchDogClient::parkMount()
 ***************************************************************************************/
 IPState WatchDogClient::getDomeParkState()
 {
-    return domeParkSP->s;
+    return domeParkSP->getState();
 }
 
 /**************************************************************************************
@@ -149,5 +149,5 @@ IPState WatchDogClient::getDomeParkState()
 ***************************************************************************************/
 IPState WatchDogClient::getMountParkState()
 {
-    return mountParkSP->s;
+    return mountParkSP->getState();
 }

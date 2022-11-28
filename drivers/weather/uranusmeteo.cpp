@@ -362,7 +362,7 @@ bool UranusMeteo::saveConfigItems(FILE * fp)
 {
     INDI::GPS::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &SkyQualityUpdateNP);
+    SkyQualityUpdateNP.save(fp);
     return true;
 }
 

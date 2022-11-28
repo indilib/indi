@@ -23,10 +23,10 @@ bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &Ava
 
     AvailableMathPlugins.clear();
 
-    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
+    auto pPlugins = MathPlugins->getSwitch();
 
-    for (int i = 0; i < pPlugins->nsp; i++)
-        AvailableMathPlugins.emplace_back(std::string(pPlugins->sp[i].label));
+    for (int i = 0; i < pPlugins->count(); i++)
+        AvailableMathPlugins.emplace_back(std::string(pPlugins->at(i)->getLabel()));
 
     return true;
 }
@@ -81,25 +81,25 @@ bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathP
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
+    auto pPlugins = MathPlugins->getSwitch();
 
     int i;
-    for (i = 0; i < pPlugins->nsp; i++)
+    for (i = 0; i < pPlugins->count(); i++)
     {
-        if (0 == strcmp(MathPluginName.c_str(), pPlugins->sp[i].label))
+        if (0 == strcmp(MathPluginName.c_str(), pPlugins->at(i)->getLabel()))
             break;
     }
-    if (i >= pPlugins->nsp)
+    if (i >= pPlugins->count())
         return false;
 
-    IUResetSwitch(pPlugins);
-    pPlugins->sp[i].s = ISS_ON;
+    pPlugins->reset();
+    pPlugins->at(i)->setState(ISS_ON);
     SetDriverBusy();
     BaseClient->sendNewSwitch(pPlugins);
     WaitForDriverCompletion();
-    if (IPS_OK != pPlugins->s)
+    if (IPS_OK != pPlugins->getState())
     {
-        IDLog("SelectMathPlugin - Bad MathPlugins switch state %s\n", pstateStr(pPlugins->s));
+        IDLog("SelectMathPlugin - Bad MathPlugins switch state %s\n", pPlugins->getStateAsString());
         return false;
     }
     return true;
@@ -110,16 +110,16 @@ bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pPluginInitialise = PluginInitialise->getSwitch();
+    auto pPluginInitialise = PluginInitialise->getSwitch();
 
-    IUResetSwitch(pPluginInitialise);
-    pPluginInitialise->sp[0].s = ISS_ON;
+    pPluginInitialise->reset();
+    pPluginInitialise->at(0)->setState(ISS_ON);
     SetDriverBusy();
     BaseClient->sendNewSwitch(pPluginInitialise);
     WaitForDriverCompletion();
-    if (IPS_OK != pPluginInitialise->s)
+    if (IPS_OK != pPluginInitialise->getState())
     {
-        IDLog("ReInitialiseMathPlugin - Bad PluginInitialise switch state %s\n", pstateStr(pPluginInitialise->s));
+        IDLog("ReInitialiseMathPlugin - Bad PluginInitialise switch state %s\n", pPluginInitialise->getStateAsString());
         return false;
     }
     return true;
