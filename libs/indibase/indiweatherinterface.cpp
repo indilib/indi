@@ -39,7 +39,6 @@ WeatherInterface::~WeatherInterface()
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
         free(ParametersN[i].aux0);
-        free(ParametersN[i].aux1);
         free(ParametersRangeNP[i].np);
     }
 

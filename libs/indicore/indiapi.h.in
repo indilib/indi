@@ -234,8 +234,6 @@ char name[MAXINDINAME];
     struct _ITextVectorProperty *tvp;
     /** Helper info */
     void *aux0;
-    /** Helper info */
-    void *aux1;
 } IText;
 
 /**
@@ -292,8 +290,6 @@ typedef struct _INumber
     struct _INumberVectorProperty *nvp;
     /** Helper info */
     void *aux0;
-    /** Helper info */
-    void *aux1;
 } INumber;
 
 /**
@@ -457,8 +453,6 @@ typedef struct _IBLOB/* one BLOB descriptor */
     struct _IBLOBVectorProperty *bvp;
     /** Helper info */
     void *aux0;
-    /** Helper info */
-    void *aux1;
 } IBLOB;
 
 /**
