@@ -113,7 +113,7 @@ class PropertyBasic : public INDI::Property
 
         const WidgetView<T> *at(size_t index) const;
 
-        WidgetView<T> &operator[](size_t index) const;
+        WidgetView<T> &operator[](ssize_t index) const;
 
     public: // STL-style iterators
         WidgetView<T> *begin();

@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["ubuntu", "debian", "debian-buster", "fedora"]
+        container: ["ubuntu", "debian", "debian-buster", "debian-i386", "fedora"]
 
     container:
       image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
