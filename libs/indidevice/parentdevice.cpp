@@ -22,8 +22,8 @@ static std::shared_ptr<ParentDevicePrivate> create(bool valid)
 
     if (valid == false)
     {
-        static std::shared_ptr<ParentDevicePrivate> invalidDevice(new InvalidParentDevicePrivate);
-        return invalidDevice;
+        static ParentDevicePrivate invalidDevice;
+        return make_shared_weak(&invalidDevice);
     }
     else
     {
