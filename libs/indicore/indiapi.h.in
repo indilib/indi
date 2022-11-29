@@ -134,9 +134,9 @@ For a full list of contributors, please check <a href="https://github.com/indili
 #define INDIV 1.7
 
 /* INDI Library version */
-#define INDI_VERSION_MAJOR   1
-#define INDI_VERSION_MINOR   9
-#define INDI_VERSION_RELEASE 9
+#define INDI_VERSION_MAJOR   @CMAKE_INDI_VERSION_MAJOR@
+#define INDI_VERSION_MINOR   @CMAKE_INDI_VERSION_MINOR@
+#define INDI_VERSION_RELEASE @CMAKE_INDI_VERSION_RELEASE@
 
 /*******************************************************************************
  * Manifest constants
