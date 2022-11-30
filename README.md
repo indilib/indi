@@ -1,7 +1,9 @@
 # INDI Core Library
 [![Linux](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![Linux Deb Package](https://github.com/indilib/indi/actions/workflows/package.yml/badge.svg)](https://github.com/indilib/indi/actions)
 [![MacOS](https://github.com/indilib/indi/actions/workflows/macos.yml/badge.svg)](https://github.com/indilib/indi/actions)
 [![PyIndi](https://github.com/indilib/indi/actions/workflows/pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![Windows Client](https://github.com/indilib/indi/actions/workflows/windows.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
