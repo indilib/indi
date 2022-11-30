@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indiproperty.h"
+#include "indimacros.h"
 #include <algorithm>
 
 namespace INDI
