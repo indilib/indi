@@ -1,3 +1,5 @@
+usr/lib/*/libindiclient.so.1
+usr/lib/*/libindiclient.so.1.9.*
 usr/lib/*/libindidriver.so.1
 usr/lib/*/libindidriver.so.1.9.*
 usr/lib/*/libindilx200.so.1
