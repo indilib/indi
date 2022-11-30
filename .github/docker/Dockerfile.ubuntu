@@ -24,3 +24,7 @@ RUN apt-get install -y \
 # Install Qt5
 RUN apt-get install -y \
     qtbase5-dev
+
+# Install deb package tools
+RUN apt-get install -y \
+    cdbs
