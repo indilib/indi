@@ -197,10 +197,10 @@ IPState OpenWeatherMap::updateWeather()
     double clouds = 0;
     int code = 0;
 
-    json weatherReport = json::parse(readBuffer);
-
     try
     {
+        json weatherReport = json::parse(readBuffer);
+
         weatherReport["weather"][0]["id"].get_to(code);
         if (code >= 200 && code < 300)
         {

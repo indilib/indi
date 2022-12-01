@@ -4,6 +4,8 @@ project(indiclient CXX)
 # Dependency
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
+include_directories(${ZLIB_INCLUDE_DIR})
+
 list(APPEND ${PROJECT_NAME}_LIBS
     indicore
     indidevice

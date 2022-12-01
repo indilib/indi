@@ -269,6 +269,7 @@ if(INDI_BUILD_DRIVERS)
         include_directories(${USB1_INCLUDE_DIRS})
         include_directories(${GSL_INCLUDE_DIRS})
         include_directories(${JPEG_INCLUDE_DIR})
+        include_directories(${ZLIB_INCLUDE_DIR})
         include_directories(libs/indibase)
         include_directories(libs/indibase/timer)
 
