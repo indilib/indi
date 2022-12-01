@@ -151,6 +151,10 @@ set(NearestMathPlugin_SRCS
 
 if(CYGWIN)
     add_library(indi_Nearest_MathPlugin STATIC ${NearestMathPlugin_SRCS})
+    target_include_directories(indi_Nearest_MathPlugin
+        PRIVATE
+            ${libindi_SOURCE_DIR}/libs/indicore
+    )
     target_link_libraries(indi_Nearest_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
 else(CYGWIN)
     add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
