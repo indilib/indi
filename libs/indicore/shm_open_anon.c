@@ -61,6 +61,10 @@
 #define IMPL_SHM_MKSTEMP
 #endif
 
+#ifdef __CYGWIN__
+#define IMPL_POSIX
+#endif
+
 #ifdef IMPL_POSIX
 #define IMPL_UNLINK_OR_CLOSE
 #endif
