@@ -977,6 +977,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     if (t_fd == -1)
         return TTY_PORT_BUSY;
 
+#if !defined(__CYGWIN__)
     // Set port in exclusive mode to prevent other non-root processes from opening it.
     // JM 2019-08-12: Do not set it when ignored
     if (ignore_exclusive_close == 0 && ioctl(t_fd, TIOCEXCL) == -1)
@@ -985,6 +986,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         close(t_fd);
         return TTY_PORT_FAILURE;
     }
+#endif
 
     // Get the current options and save them so we can restore the default settings later.
     if (tcgetattr(t_fd, &tty_setting) == -1)
