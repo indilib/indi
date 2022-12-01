@@ -175,6 +175,13 @@ set(SVDMathPlugin_SRCS
 
 if(CYGWIN)
     add_library(indi_SVD_MathPlugin STATIC ${SVDMathPlugin_SRCS})
+    target_include_directories(indi_SVD_MathPlugin
+        PRIVATE
+            ${libindi_SOURCE_DIR}/libs/indidevice
+            ${libindi_SOURCE_DIR}/libs/indidevice/property
+            ${libindi_SOURCE_DIR}/libs/indicore
+            ${libindi_BINARY_DIR}/libs/indicore
+    )
     target_link_libraries(indi_SVD_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
 else(CYGWIN)
     add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
