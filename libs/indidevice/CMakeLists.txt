@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 project(indidevice C CXX)
 
+# Dependency
+find_package(ZLIB REQUIRED)
+include_directories(${ZLIB_INCLUDE_DIR})
+
 add_library(${PROJECT_NAME} OBJECT "")
 
 # Headers
