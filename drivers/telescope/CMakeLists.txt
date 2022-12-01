@@ -14,10 +14,10 @@ if(NOT CYGWIN AND NOT WIN32)
     set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
 
-target_compile_definitions(indilx200 PRIVATE "-DHAVE_LIBNOVA")
+target_compile_definitions(indilx200 PRIVATE _XOPEN_SOURCE=700 HAVE_LIBNOVA)
 set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)
 
-target_link_libraries(indilx200 indidevice)
+target_link_libraries(indilx200 indidevice $<${CYGWIN}:indidriver>)
 
 install(TARGETS indilx200 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES
