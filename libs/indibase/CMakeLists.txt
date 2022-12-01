@@ -24,6 +24,7 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${JPEG_LIBRARY}
     ${FFTW3_LIBRARIES}
     ${M_LIB}
+    $<${CYGWIN}:${ICONV_LIBRARIES}>
 )
 
 # Add Iconv
