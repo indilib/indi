@@ -44,6 +44,7 @@ add_executable(indi_lx200_TeenAstro
     lx200driver.cpp
     lx200_TeenAstro.cpp)
 
+target_compile_definitions(indi_lx200_TeenAstro PRIVATE _XOPEN_SOURCE=700)
 target_link_libraries(indi_lx200_TeenAstro indidriver)
 
 install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)

@@ -418,7 +418,8 @@ bool LX200_TeenAstro::Goto(double r, double d)
         IDSetNumber(&EqNP, nullptr);
 
         // sleep for 100 mseconds
-        usleep(100000);
+        const struct timespec ms100_delay = {.tv_sec = 0, .tv_nsec = 100000000};
+        nanosleep(&ms100_delay, NULL);
     }
 
     if (!isSimulation())
