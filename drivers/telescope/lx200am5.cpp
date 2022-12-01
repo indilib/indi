@@ -155,7 +155,8 @@ bool LX200AM5::checkConnection()
         if (getLX200RA(PortFD, &targetRA) == 0)
             return true;
 
-        usleep(250000);
+        const struct timespec ms250_delay = {.tv_sec = 0, .tv_nsec = 250000000};
+        nanosleep(&ms250_delay, NULL);
     }
 
     return false;
