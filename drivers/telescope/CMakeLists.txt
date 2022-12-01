@@ -126,6 +126,8 @@ add_executable(indi_rainbow_telescope
     rainbow.cpp
     lx200driver.cpp)
 
+target_compile_definitions(indi_rainbow_telescope PRIVATE _XOPEN_SOURCE=700)
+
 target_link_libraries(indi_rainbow_telescope indidriver)
 
 install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
