@@ -16,14 +16,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["ubuntu", "debian", "debian-buster", "debian-i386", "fedora"]
+        container: ["ubuntu", "debian", "debian-buster", "fedora"]
 
     container:
       image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
 
     steps:
       - name: Get INDI Sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
         with:
           path: 'indi'
 

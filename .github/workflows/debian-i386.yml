@@ -1,0 +1,37 @@
+name: Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ["debian-i386"]
+
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
+
+    steps:
+      - name: Get INDI Sources
+        uses: actions/checkout@v1
+
+      - name: Build INDI Core
+        run: |
+          scripts/indi-core-build.sh
+          scripts/indi-core-package-build.sh
+
+      - name: Install INDI Core
+        run: scripts/indi-core-install.sh
+
+      - name: Run INDI Core Test
+        run: scripts/indi-core-test.sh
