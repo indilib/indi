@@ -581,6 +581,10 @@
             <driver name="Manual Filter">indi_manual_wheel</driver>
             <version>1.0</version>
         </device>
+        <device label="Pegasus INDIGO" manufacturer="Pegasus Astro">
+            <driver name="Pegasus INDIGO">indi_pegasusindigo_wheel</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Auxiliary">
         <device label="Astrometry" manufacturer="Others">

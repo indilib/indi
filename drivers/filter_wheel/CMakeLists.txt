@@ -69,3 +69,12 @@ SET(qhycfw3_SRC
 add_executable(indi_qhycfw3_wheel ${qhycfw3_SRC})
 target_link_libraries(indi_qhycfw3_wheel indidriver)
 install(TARGETS indi_qhycfw3_wheel RUNTIME DESTINATION bin)
+
+# ############### Pegasus INDIGO Filter Wheel ################
+SET(pegasus_indigo_SRC
+    pegasus_indigo.cpp)
+
+add_executable(indi_pegasusindigo_wheel ${pegasus_indigo_SRC})
+
+target_link_libraries(indi_pegasusindigo_wheel indidriver)
+install(TARGETS indi_pegasusindigo_wheel RUNTIME DESTINATION bin)
