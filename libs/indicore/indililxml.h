@@ -230,7 +230,7 @@ inline int LilXmlValue::toInt(safe_ptr<bool> ok) const
 {
     int result = 0;
     try {
-        result = std::stoi(mValue);
+        result = std::stoi(toString());
         *ok = true;
     } catch (...) {
         *ok = false;
@@ -249,7 +249,7 @@ inline double LilXmlValue::toDouble(safe_ptr<bool> ok) const
 {
     double result = 0;
     try {
-        result = std::stod(mValue);
+        result = std::stod(toString());
         *ok = true;
     } catch (...) {
         *ok = false;
