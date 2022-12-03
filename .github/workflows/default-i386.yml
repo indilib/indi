@@ -1,4 +1,4 @@
-name: Linux
+name: Linux i386
 
 on:
   workflow_dispatch:
