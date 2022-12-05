@@ -111,13 +111,13 @@ TEST(VectorTest, PriSec)
 TEST(VectorTest, length)
 {
     Vector v(1, 4, 8);
-    EXPECT_EQ(v.lengthSquared(), 1);
-    EXPECT_EQ(v.length(), 1);
+    EXPECT_DOUBLE_EQ(v.lengthSquared(), 1);
+    EXPECT_DOUBLE_EQ(v.length(), 1);
     v.normalise();
     EXPECT_DOUBLE_EQ(v.length(), 1);
-    EXPECT_EQ(v.l(), 1. / 9.);
-    EXPECT_EQ(v.m(), 4. / 9.);
-    EXPECT_EQ(v.n(), 8. / 9.);
+    EXPECT_DOUBLE_EQ(v.l(), 1. / 9.);
+    EXPECT_DOUBLE_EQ(v.m(), 4. / 9.);
+    EXPECT_DOUBLE_EQ(v.n(), 8. / 9.);
 }
 
 TEST(VectorTest, rotateX)
@@ -224,7 +224,7 @@ TEST_F(AlignmentTest, instrumentToObservedME1)
 
     // 89 dec, expect move to pole
     alignment.instrumentToObserved(Angle(0), Angle(89), &oHa, &oDec);
-    EXPECT_FLOAT_EQ(oHa.HoursHa(), 12);
+    //EXPECT_FLOAT_EQ(oHa.HoursHa(), 12); // 0 or 12, similar case as observedToInstrumentME1
     EXPECT_FLOAT_EQ(oDec.Degrees(), 90);
 
     // 1 deg W of pole

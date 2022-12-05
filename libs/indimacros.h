@@ -31,6 +31,17 @@
 #endif
 
 /**
+ * @brief The POSIX C type "ssize_t" is available on Unix-like systems in unistd.h.
+ * For Windows Visual Studio based compilers without unistd.h, the following stanza allows use of ssize_t.
+ */
+#ifdef _MSC_VER
+# include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+# include <unistd.h>
+#endif
+
+/**
  * @brief Expressions to test whether the attribute is recognized by the C++ compiler
  */
 #ifndef INDI_HAS_CPP_ATTRIBUTE

@@ -379,9 +379,10 @@ const WidgetView<T> *PropertyBasic<T>::at(size_t index) const
 }
 
 template <typename T>
-WidgetView<T> &PropertyBasic<T>::operator[](size_t index) const
+WidgetView<T> &PropertyBasic<T>::operator[](ssize_t index) const
 {
     D_PTR(const PropertyBasic);
+    assert(index >= 0);
     return *d->typedProperty.at(index);
 }
 

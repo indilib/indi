@@ -3998,7 +3998,7 @@ static int readFdError(int fd)
     /* Receive auxiliary data in msgh */
     for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg))
     {
-        fprintf(stderr, "cmsg_len=%lu, cmsg_level=%u, cmsg_type=%u\n", cmsg->cmsg_len, cmsg->cmsg_level, cmsg->cmsg_type);
+        fprintf(stderr, "cmsg_len=%zu, cmsg_level=%u, cmsg_type=%u\n", cmsg->cmsg_len, cmsg->cmsg_level, cmsg->cmsg_type);
 
         if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR)
         {
