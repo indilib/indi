@@ -839,7 +839,7 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
+            unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux);
             double const value = ImageAdjustNP.np[i].value;
 
             LOGF_DEBUG("  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
@@ -1107,7 +1107,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         LOGF_DEBUG("%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
                    duration, ticks);
 
-        unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux0);
+        unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux);
 
         char errmsg[MAXRBUF];
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)

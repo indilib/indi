@@ -409,7 +409,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 
         void setAux(void *user)
         {
-            this->aux0 = user;
+            this->aux = user;
         }
         // don't use any other aux!
 
@@ -429,7 +429,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 
         void *getAux() const
         {
-            return this->aux0;
+            return this->aux;
         }
 
     public: //tests
@@ -554,7 +554,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
         void setAux(void *user)
         {
-            this->aux0 = user;
+            this->aux = user;
         }
         // don't use any other aux!
 
@@ -591,7 +591,7 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
         void *getAux() const
         {
-            return this->aux0;
+            return this->aux;
         }
 
     public: //tests
@@ -967,7 +967,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
         void setAux(void *user)
         {
-            this->aux0 = user;
+            this->aux = user;
         }
         // don't use any other aux!
 
@@ -1007,7 +1007,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
         void *getAux() const
         {
-            return this->aux0;
+            return this->aux;
         }
 
     public: //tests
