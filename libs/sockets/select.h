@@ -37,10 +37,7 @@ typedef int SocketFileDescriptor;
 static const int SocketInvalid = -1;
 #endif
 
-#ifdef _MSC_VER
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
+#include "indimacros.h"
 
 #ifdef HAS_EVENT_FD
 class EventFd
