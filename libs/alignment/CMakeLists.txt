@@ -46,7 +46,7 @@ ELSE()
     ENDIF()
 ENDIF()
 
-target_link_libraries(AlignmentDriver indicore indidevice indiclient)
+target_link_libraries(AlignmentDriver indidevice indiclient)
 
 if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
@@ -96,7 +96,7 @@ if(NOT CYGWIN AND NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
 
-target_link_libraries(AlignmentClient indicore indidevice indiclient)
+target_link_libraries(AlignmentClient indidevice indiclient)
 
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
