@@ -231,7 +231,7 @@ Focuser::Focuser(const std::string &name, int port)
 *******************************************************************************************************/
 bool Focuser::goAbsolutePosition(uint32_t position)
 {
-    return m_Communication->command(MOT_1, {{"MOVE_ABS", {{"STEPS", position}}}});
+    return m_Communication->command(MOT_1, {{"MOVE_ABS", {{"STEP", position}}}});
 }
 
 /******************************************************************************************************
@@ -489,6 +489,22 @@ bool SestoSenso2::setMotorHold(bool hold)
 }
 
 /******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::setBacklash(uint32_t steps)
+{
+    return m_Communication->set(MOT_1, {{"BKLASH", steps}});
+}
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool SestoSenso2::getBacklash(uint32_t &steps)
+{
+    return m_Communication->get(MOT_1, "BKLASH", steps);
+}
+
+/******************************************************************************************************
  * Esatto functions
 *******************************************************************************************************/
 Esatto::Esatto(const std::string &name, int port) : Focuser(name, port) {}
@@ -555,7 +571,7 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
             command = {{"POSITION", "ARCSEC"}};
             break;
         case UNIT_STEPS:
-            command = {{"POSITION", "STEPS"}};
+            command = {{"POSITION", "STEP"}};
             break;
     }
 
@@ -593,7 +609,7 @@ bool Arco::moveAbsolutePoition(Units unit, double value)
             command = {{"MOVE_ABS", {{"ARCSEC", value}}}};
             break;
         case UNIT_STEPS:
-            command = {{"MOVE_ABS", {{"STEPS", static_cast<int>(value)}}}};
+            command = {{"MOVE_ABS", {{"STEP", static_cast<int>(value)}}}};
             break;
     }
 
@@ -615,7 +631,7 @@ bool Arco::sync(Units unit, double value)
             command = {{"SYNC_POS", {{"ARCSEC", value}}}};
             break;
         case UNIT_STEPS:
-            command = {{"SYNC_POS", {{"STEPS", static_cast<int>(value)}}}};
+            command = {{"SYNC_POS", {{"STEP", static_cast<int>(value)}}}};
             break;
     }
 

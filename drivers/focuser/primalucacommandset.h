@@ -178,6 +178,10 @@ class SestoSenso2 : public Focuser
         bool setMotorCurrents(const MotorCurrents &currents);
         bool setMotorHold(bool hold);
 
+        // Backlash
+        bool setBacklash(uint32_t steps);
+        bool getBacklash(uint32_t &steps);
+
         // Calibration
         bool initCalibration();
         bool storeAsMaxPosition();
