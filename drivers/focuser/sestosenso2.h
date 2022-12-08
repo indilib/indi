@@ -38,7 +38,6 @@ class SestoSenso2 : public INDI::Focuser
 
     protected:
         virtual bool Handshake() override;
-        virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual bool ReverseFocuser(bool enabled) override;
@@ -169,10 +168,7 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_SAVE_USER3
         };
 
-        INDI::PropertySwitch HomeSP {1};
-
         INDI::PropertyText CalibrationMessageTP {1};
-
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 

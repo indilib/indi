@@ -121,7 +121,9 @@ install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 
 # ############### Sesto Senso 2 Focuser ################
 SET(sesto2_SRC
-    sestosenso2.cpp)
+    sestosenso2.cpp
+    primalucacommandset.cpp
+)
 
 add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver)
