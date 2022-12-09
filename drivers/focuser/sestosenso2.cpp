@@ -85,10 +85,6 @@ bool SestoSenso2::initProperties()
     TemperatureNP[TEMPERATURE_EXTERNAL].fill("TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Current Speed
-    SpeedNP[0].fill("SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
-    SpeedNP.fill(getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
     // Focuser calibration
     CalibrationMessageTP[0].fill("CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
     CalibrationMessageTP.fill(getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -137,13 +133,15 @@ bool SestoSenso2::initProperties()
     MotorApplyUserPresetSP[MOTOR_APPLY_USER1].fill("MOTOR_APPLY_USER1", "User 1", ISS_OFF);
     MotorApplyUserPresetSP[MOTOR_APPLY_USER2].fill("MOTOR_APPLY_USER2", "User 2", ISS_OFF);
     MotorApplyUserPresetSP[MOTOR_APPLY_USER3].fill("MOTOR_APPLY_USER3", "User 3", ISS_OFF);
-    MotorApplyUserPresetSP.fill(getDeviceName(), "MOTOR_APPLY_USER_PRESET", "Apply Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    MotorApplyUserPresetSP.fill(getDeviceName(), "MOTOR_APPLY_USER_PRESET", "Apply Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0,
+                                IPS_IDLE);
 
     // Save user preset
     MotorSaveUserPresetSP[MOTOR_SAVE_USER1].fill("MOTOR_SAVE_USER1", "User 1", ISS_OFF);
     MotorSaveUserPresetSP[MOTOR_SAVE_USER2].fill("MOTOR_SAVE_USER2", "User 2", ISS_OFF);
     MotorSaveUserPresetSP[MOTOR_SAVE_USER3].fill("MOTOR_SAVE_USER3", "User 3", ISS_OFF);
-    MotorSaveUserPresetSP.fill(getDeviceName(), "MOTOR_SAVE_USER_PRESET", "Save Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    MotorSaveUserPresetSP.fill(getDeviceName(), "MOTOR_SAVE_USER_PRESET", "Save Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0,
+                               IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -180,7 +178,6 @@ bool SestoSenso2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(SpeedNP);
         defineProperty(CalibrationMessageTP);
         defineProperty(CalibrationSP);
         defineProperty(MotorRateNP);
@@ -211,7 +208,6 @@ bool SestoSenso2::updateProperties()
         deleteProperty(VoltageInNP);
         deleteProperty(CalibrationMessageTP);
         deleteProperty(CalibrationSP);
-        deleteProperty(SpeedNP);
         deleteProperty(MotorRateNP);
         deleteProperty(MotorCurrentNP);
         deleteProperty(MotorHoldSP);
@@ -498,25 +494,10 @@ bool SestoSenso2::isMotionComplete()
             nextPos = FocusAbsPosN[0].max;
 
         FocusAbsPosN[0].value = nextPos;
-    }
-    else
-    {
-        uint32_t speed {0};
-        if(m_SestoSenso2->getCurrentSpeed(speed))
-        {
-            SpeedNP[0].setValue(speed);
-            SpeedNP->setState(IPS_OK);
-
-            uint32_t position {0};
-            if(m_SestoSenso2->getAbsolutePosition(position))
-            {
-                FocusAbsPosN[0].value = position;
-            }
-        }
-
+        return (std::abs(nextPos - static_cast<int32_t>(targetPos)) == 0);
     }
 
-    return false;
+    return !m_SestoSenso2->isBusy();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -728,7 +709,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 LOG_INFO("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
                 if (MotorCurrentNP[MOTOR_CURR_HOLD].getValue() < 2.0)
                 {
-                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficent to hold focus", MotorCurrentNP[MOTOR_CURR_HOLD].getValue());
+                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficent to hold focus",
+                              MotorCurrentNP[MOTOR_CURR_HOLD].getValue());
                 }
             }
 
@@ -917,14 +899,8 @@ void SestoSenso2::checkMotionProgressCallback()
     {
         FocusAbsPosNP.s = IPS_OK;
         FocusRelPosNP.s = IPS_OK;
-        SpeedNP.setState(IPS_OK);
-        SpeedNP[0].value = 0;
-        IDSetNumber(&SpeedNP, nullptr);
-
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);
-
-
         lastPos = FocusAbsPosN[0].value;
 
         if (CalibrationSP.getState() == IPS_BUSY)
@@ -942,11 +918,7 @@ void SestoSenso2::checkMotionProgressCallback()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    SpeedNP.setState(IPS_BUSY);
-    IDSetNumber(&SpeedNP, nullptr);
-
     lastPos = FocusAbsPosN[0].value;
-
     m_MotionProgressTimer.start(500);
 }
 
