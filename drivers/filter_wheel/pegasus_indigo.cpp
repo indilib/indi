@@ -205,8 +205,8 @@ bool PegasusINDIGO::sendCommand(const char * cmd, char * res, int cmd_len, int r
     }
     else
     {
-        // Remove extra \r
-        res[nbytes_read - 1] = 0;
+        // terminate string
+        res[nbytes_read] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
