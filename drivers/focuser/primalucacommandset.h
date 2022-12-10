@@ -150,6 +150,10 @@ class Focuser
         bool getSerialNumber(std::string &response);
         bool getFirmwareVersion(std::string &response);
 
+        // Backlash
+        bool setBacklash(uint32_t steps);
+        bool getBacklash(uint32_t &steps);
+
         // Sensors
         bool getMotorTemp(double &value);
         bool getExternalTemp(double &value);
@@ -177,10 +181,6 @@ class SestoSenso2 : public Focuser
         bool setMotorRates(const MotorRates &rates);
         bool setMotorCurrents(const MotorCurrents &currents);
         bool setMotorHold(bool hold);
-
-        // Backlash
-        bool setBacklash(uint32_t steps);
-        bool getBacklash(uint32_t &steps);
 
         // Calibration
         bool initCalibration();

@@ -129,6 +129,16 @@ add_executable(indi_sestosenso2_focus ${sesto2_SRC})
 target_link_libraries(indi_sestosenso2_focus indidriver)
 install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 
+# ############### Esatto Focuser ################
+SET(esatto_SRC
+    esatto.cpp
+    primalucacommandset.cpp
+)
+
+add_executable(indi_esatto_focus ${esatto_SRC})
+target_link_libraries(indi_esatto_focus indidriver)
+install(TARGETS indi_esatto_focus RUNTIME DESTINATION bin)
+
 # ############### Esatto with Arco Focuser ################
 SET(esarc_SRC
     esattoarco.cpp
