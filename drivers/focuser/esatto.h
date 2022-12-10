@@ -37,6 +37,7 @@ class Esatto : public INDI::Focuser
 
     protected:
         virtual bool Handshake() override;
+        virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual bool ReverseFocuser(bool enabled) override;
