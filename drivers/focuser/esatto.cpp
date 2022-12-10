@@ -345,7 +345,9 @@ bool Esatto::getStartupValues()
     if (rc2)
         FocusBacklashN[0].value = steps;
 
-    return rc1 && rc2;
+    auto rc3 = updateMaxLimit();
+
+    return rc1 && rc2 && rc3;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,3 +400,38 @@ bool Esatto::SetFocuserBacklash(int32_t steps)
     return m_Esatto->setBacklash(steps);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::updateMaxLimit()
+{
+    uint32_t maxLimit = 0;
+
+    if (m_Esatto->getMaxPosition(maxLimit) == false)
+        return false;
+
+    FocusMaxPosN[0].max = maxLimit;
+    if (FocusMaxPosN[0].value > maxLimit)
+        FocusMaxPosN[0].value = maxLimit;
+
+    FocusAbsPosN[0].min   = 0;
+    FocusAbsPosN[0].max   = maxLimit;
+    FocusAbsPosN[0].value = 0;
+    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+    FocusRelPosN[0].min   = 0.;
+    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
+    FocusRelPosN[0].value = 0;
+    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+    PresetN[0].max = maxLimit;
+    PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+    PresetN[1].max = maxLimit;
+    PresetN[1].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+    PresetN[2].max = maxLimit;
+    PresetN[2].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+
+    FocusMaxPosNP.s = IPS_OK;
+    return true;
+}

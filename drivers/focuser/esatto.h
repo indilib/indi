@@ -50,6 +50,7 @@ class Esatto : public INDI::Focuser
 
         bool updateTemperature();        
         bool updatePosition();
+        bool updateMaxLimit();
 
         void setConnectionParams();
         bool initCommandSet();
