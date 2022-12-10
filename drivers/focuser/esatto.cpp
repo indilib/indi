@@ -95,7 +95,7 @@ bool Esatto::initProperties()
     FocusAbsPosN[0].min   = 0.;
     FocusAbsPosN[0].max   = 200000.;
     FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosN[0].step  = 10000;
 
     FocusMaxPosN[0].value = 2097152;
     PresetN[0].max = FocusMaxPosN[0].value;
