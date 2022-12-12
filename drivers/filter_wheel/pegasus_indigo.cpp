@@ -95,7 +95,7 @@ bool PegasusINDIGO::Handshake()
     char res[DRIVER_LEN] = {0};
     if (sendCommand("W#", res))
     {
-        return !strcmp(res, "FW_OK");
+        return strstr(res, "FW_OK");
     }
 
     return false;
@@ -205,7 +205,7 @@ bool PegasusINDIGO::sendCommand(const char * cmd, char * res, int cmd_len, int r
     }
     else
     {
-        // Remove extra \r
+        // Remove new line
         res[nbytes_read - 1] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }

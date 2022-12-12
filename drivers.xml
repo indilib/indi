@@ -448,8 +448,8 @@
             <version>0.7</version>
         </device>
         <device label="Esatto" manufacturer="Primaluce Lab">
-            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>0.7</version>
+            <driver name="Esatto">indi_esatto_focus</driver>
+            <version>1.0</version>
         </device>
         <device label="Esatto Arco" manufacturer="Primaluce Lab">
             <driver name="Esatto Arco">indi_esattoarco_focus</driver>

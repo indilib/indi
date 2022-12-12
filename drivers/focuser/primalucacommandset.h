@@ -150,6 +150,10 @@ class Focuser
         bool getSerialNumber(std::string &response);
         bool getFirmwareVersion(std::string &response);
 
+        // Backlash
+        bool setBacklash(uint32_t steps);
+        bool getBacklash(uint32_t &steps);
+
         // Sensors
         bool getMotorTemp(double &value);
         bool getExternalTemp(double &value);
