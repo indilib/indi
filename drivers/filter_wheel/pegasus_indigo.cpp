@@ -107,7 +107,7 @@ bool PegasusINDIGO::Handshake()
 bool PegasusINDIGO::getFirmware()
 {
     char res[DRIVER_LEN] = {0};
-    if (sendCommand("FV", res))
+    if (sendCommand("WV", res))
     {
         FirmwareTP[0].setText(res);
         return true;
@@ -205,8 +205,8 @@ bool PegasusINDIGO::sendCommand(const char * cmd, char * res, int cmd_len, int r
     }
     else
     {
-        // Remove new line
-        res[nbytes_read - 1] = 0;
+        // Remove \r\n
+        res[nbytes_read - 2] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
