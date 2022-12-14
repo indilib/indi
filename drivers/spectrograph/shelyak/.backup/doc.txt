@@ -1,0 +1,3 @@
+eco@raspberrypi:~/dev/indi-3rdparty/indi-usis-shelyak/build>
+	sudo make -j4 install	
+	indiserver -p 1456 indi_shelyak_usis

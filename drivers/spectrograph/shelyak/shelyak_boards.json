@@ -1,0 +1,44 @@
+{
+	"version": "1.0",
+	"boards": [
+		{
+			"name": "uvex",
+			"version": 1.0,
+			"description": "Shelyak Uvex Board",
+			"signature": "UVEX",
+			
+			"categories": {
+				"Uvex": {
+					"grating density": {
+						"command": "GRATING_DENSITY",
+						"type": "number",
+						"actions": ["SET"],
+						"min": 50,
+						"max": 1200.0
+					},
+					"light source": {
+						"command": "LIGHT_SOURCE",
+						"type": "enum",
+						"values": ["DARK","CALIB","FLAT"],
+						"actions": ["SET"]
+					},
+					"grating angle": {
+						"command": "GRATING_ANGLE",
+						"type": "number",
+						"actions": ["SET","STOP","CALIB"]
+					},
+					"wavelength": {
+						"command": "GRATING_WAVELENGTH",
+						"type": "number",
+						"actions": ["SET","STOP","CALIB"]
+					},
+					"focus position": {
+						"command": "FOCUS_POSITION",
+						"type": "number",
+						"actions": ["SET","STOP","CALIB"]
+					}
+				}
+			}
+		}
+	]
+}
