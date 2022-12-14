@@ -107,9 +107,9 @@ bool PegasusINDIGO::Handshake()
 bool PegasusINDIGO::getFirmware()
 {
     char res[DRIVER_LEN] = {0};
-    if (sendCommand("FV", res))
+    if (sendCommand("WV", res))
     {
-        FirmwareTP[0].setText(res);
+        FirmwareTP[0].setText(res + 3);
         return true;
     }
 
@@ -121,6 +121,7 @@ bool PegasusINDIGO::getFirmware()
 //////////////////////////////////////////////////////////////////////
 bool PegasusINDIGO::SelectFilter(int position)
 {
+    TargetFilter = position;
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, "WM:%d", position);
     return sendCommand(command, response);
@@ -131,7 +132,7 @@ bool PegasusINDIGO::SelectFilter(int position)
 //////////////////////////////////////////////////////////////////////
 void PegasusINDIGO::TimerHit()
 {
-    if (FilterSlotNP.s == IPS_BUSY)
+    if (isConnected() && FilterSlotNP.s == IPS_BUSY)
     {
         char response[DRIVER_LEN] = {0};
         if (sendCommand("WF"))
@@ -205,8 +206,8 @@ bool PegasusINDIGO::sendCommand(const char * cmd, char * res, int cmd_len, int r
     }
     else
     {
-        // Remove new line
-        res[nbytes_read - 1] = 0;
+        // Remove \r\n
+        res[nbytes_read - 2] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
