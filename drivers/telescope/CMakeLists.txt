@@ -10,9 +10,9 @@ add_library(indilx200 SHARED
     lx200driver.cpp
     lx200telescope.cpp)
 
-if(NOT CYGWIN AND NOT WIN32)
+if(NOT WIN32)
     set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT CYGWIN AND NOT WIN32)
+endif(NOT WIN32)
 
 target_compile_definitions(indilx200 PRIVATE _XOPEN_SOURCE=700 HAVE_LIBNOVA)
 set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)

@@ -87,9 +87,9 @@ if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentClient Qt5::Network)
 endif(INDI_BUILD_QT5)
 
-if(NOT CYGWIN AND NOT WIN32)
+if(NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT CYGWIN AND NOT WIN32)
+endif(NOT WIN32)
 
 target_link_libraries(AlignmentClient indidevice indiclient)
 
@@ -144,17 +144,15 @@ set(NearestMathPlugin_SRCS
     NearestMathPlugin.cpp
 )
 
-if(CYGWIN)
-    add_library(indi_Nearest_MathPlugin STATIC ${NearestMathPlugin_SRCS})
-    target_include_directories(indi_Nearest_MathPlugin
-        PRIVATE
-            ${libindi_SOURCE_DIR}/libs/indicore
-    )
-    target_link_libraries(indi_Nearest_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
-else(CYGWIN)
-    add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
-    target_link_libraries(indi_Nearest_MathPlugin indidriver)
-endif(CYGWIN)
+add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
+target_include_directories(indi_Nearest_MathPlugin
+    PRIVATE
+        ${libindi_SOURCE_DIR}/libs/indicore
+)
+target_link_libraries(indi_Nearest_MathPlugin
+    indidriver
+    $<$<PLATFORM_ID:CYGWIN>:AlignmentDriver>
+)
 
 install(TARGETS indi_Nearest_MathPlugin
     ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
@@ -168,21 +166,12 @@ set(SVDMathPlugin_SRCS
     SVDMathPlugin.cpp
 )
 
-if(CYGWIN)
-    add_library(indi_SVD_MathPlugin STATIC ${SVDMathPlugin_SRCS})
-    target_include_directories(indi_SVD_MathPlugin
-        PRIVATE
-            ${libindi_SOURCE_DIR}/libs/indidevice
-            ${libindi_SOURCE_DIR}/libs/indidevice/property
-            ${libindi_SOURCE_DIR}/libs/indicore
-            ${libindi_BINARY_DIR}/libs/indicore
-    )
-    target_link_libraries(indi_SVD_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
-else(CYGWIN)
-    add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
-    set_property(TARGET indi_SVD_MathPlugin APPEND PROPERTY COMPILE_DEFINITIONS SVD_TRANSFORM_MATRIX)
-    target_link_libraries(indi_SVD_MathPlugin indidriver)
-endif(CYGWIN)
+add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
+set_property(TARGET indi_SVD_MathPlugin APPEND PROPERTY COMPILE_DEFINITIONS SVD_TRANSFORM_MATRIX)
+target_link_libraries(indi_SVD_MathPlugin
+    indidriver
+    $<$<PLATFORM_ID:CYGWIN>:AlignmentDriver>
+)
 
 install(TARGETS indi_SVD_MathPlugin
     ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
