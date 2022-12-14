@@ -2,31 +2,29 @@ Source: libindi
 Section: misc
 Priority: optional
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 8.1.3~),
- cdbs,
- cmake (>= 2.4.7),
- libcfitsio3-dev|libcfitsio-dev,
- libnova-dev,
- libusb-1.0-0-dev,
- zlib1g-dev,
- libjpeg-dev | libjpeg9-dev | libjpeg8-dev,
- libgsl0-dev | libgsl-dev,
- libcurl4-gnutls-dev,
- libtheora-dev,
- libogg-dev,
- libfftw3-dev,
- libev-dev,
- librtlsdr-dev,
-Standards-Version: 3.9.5
+Build-Depends: debhelper-compact (>= 12),
+               cdbs,
+               cmake (>= 2.6),
+               libcfitsio-dev,
+               libnova-dev,
+               libusb-1.0-0-dev,
+               zlib1g-dev,
+               libjpeg-dev,
+               libgsl-dev,
+               libcurl4-gnutls-dev,
+               libtheora-dev,
+               libogg-dev,
+               libfftw3-dev,
+               libev-dev,
+               librtlsdr-dev,
+Standards-Version: 4.5.0
 Homepage: http://www.indilib.org/
 Vcs-Git: git://github.com/indilib/indi.git
 
-Package: libindi1
+Package: libindi2
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
- libindi-data (>= ${source:Version}),
- indi-bin (>= ${source:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi-data (>= ${source:Version}), indi-bin (>= ${source:Version})
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
 conflicts: libindi0, libindi-plugins, libindialignmentdriver1, libindidriver1
@@ -43,7 +41,7 @@ Description: Instrument-Neutral Device Interface library -- shared library
 Package: libindi-dev
 Section: libdevel
 Architecture: any
-Depends: libindi1 (= ${binary:Version}), ${misc:Depends}, libusb-1.0-0-dev
+Depends: libindi2 (= ${binary:Version}), ${misc:Depends}, libusb-1.0-0-dev
 Description: Instrument-Neutral Device Interface library -- development files
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
@@ -83,7 +81,7 @@ Package: indi-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: libindi1 (= ${binary:Version}), ${misc:Depends}
+Depends: libindi2 (= ${binary:Version}), ${misc:Depends}
 Suggests: indi-bin (= ${binary:Version})
 Pre-Depends: ${misc:Pre-Depends}
 Description: Instrument-Neutral Device Interface library -- debug symbols
