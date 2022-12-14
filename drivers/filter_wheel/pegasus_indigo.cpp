@@ -121,6 +121,7 @@ bool PegasusINDIGO::getFirmware()
 //////////////////////////////////////////////////////////////////////
 bool PegasusINDIGO::SelectFilter(int position)
 {
+    TargetFilter = position;
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, "WM:%d", position);
     return sendCommand(command, response);
