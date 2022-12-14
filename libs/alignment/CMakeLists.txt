@@ -28,22 +28,17 @@ IF(UNITY_BUILD)
     ENABLE_UNITY_BUILD(AlignmentDriver AlignmentDriver_SRC 15 cpp)
 ENDIF()
 
-IF(CYGWIN)
-    SET(AlignmentDriver_SRC ${AlignmentDriver_SRC})
+add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
+set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
 
-    add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
-    target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+IF(APPLE)
+    target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
 ELSE()
-    add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
-    set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
-
-    IF(APPLE)
-        target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
-    ELSE()
-        # Force linking all referenced libraries because of libgsl is not linked against cblas library on Linux
-        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
-        target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
-    ENDIF()
+    # Force linking all referenced libraries because of libgsl is not linked against cblas library on Linux
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
+    target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES}
+        $<$<PLATFORM_ID:CYGWIN>:indidriver>
+    )
 ENDIF()
 
 target_link_libraries(AlignmentDriver indidevice indiclient)
