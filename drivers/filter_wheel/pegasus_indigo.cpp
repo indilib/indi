@@ -109,7 +109,7 @@ bool PegasusINDIGO::getFirmware()
     char res[DRIVER_LEN] = {0};
     if (sendCommand("WV", res))
     {
-        FirmwareTP[0].setText(res);
+        FirmwareTP[0].setText(res + 3);
         return true;
     }
 
@@ -131,7 +131,7 @@ bool PegasusINDIGO::SelectFilter(int position)
 //////////////////////////////////////////////////////////////////////
 void PegasusINDIGO::TimerHit()
 {
-    if (FilterSlotNP.s == IPS_BUSY)
+    if (isConnected() && FilterSlotNP.s == IPS_BUSY)
     {
         char response[DRIVER_LEN] = {0};
         if (sendCommand("WF"))
