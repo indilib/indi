@@ -3,13 +3,13 @@
  	<devGroup group="Spectrographs">
         <device label="Shelyak Usis" manufacturer="Shelyak">
             <driver name="Shelyak Usis">shelyak_usis</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
 	</devGroup>
     <devGroup group="Telescopes">
 		<device label="Shelyak Usis" manufacturer="Shelyak">
             <driver name="Shelyak Usis">shelyak_usis</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>
