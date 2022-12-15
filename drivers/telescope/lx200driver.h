@@ -298,7 +298,7 @@ int selectTrackingMode(int fd, int trackMode);
 /* Is Slew complete? 0 if complete, 1 if in progress, otherwise return an error */
 int isSlewComplete(int fd);
 /* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
-int SendPulseCmd(int fd, int direction, int duration_msec);
+int SendPulseCmd(int fd, int direction, int duration_msec, bool wait_after_command=false, int max_wait_ms=1000);
 
 /**************************************************************************
  Other Commands
