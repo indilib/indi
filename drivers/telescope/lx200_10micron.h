@@ -128,7 +128,7 @@ class LX200_10MICRON : public LX200Generic
         // TODO move these things elsewhere
         int monthToNumber(const char *monthName);
         int setStandardProcedureWithoutRead(int fd, const char *data);
-        int setStandardProcedureAndExpect(int fd, const char *data, const char *expect);
+        int setStandardProcedureAndExpectChar(int fd, const char *data, const char *expect);
         int setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length);
 
     protected:
