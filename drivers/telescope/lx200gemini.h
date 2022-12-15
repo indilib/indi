@@ -61,7 +61,7 @@ class LX200Gemini : public LX200Generic
         virtual bool saveConfigItems(FILE *fp) override;
 
           // Guide Pulse Commands
-        virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec);
+        virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     private:
         void syncPec();
