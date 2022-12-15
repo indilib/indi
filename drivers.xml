@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <driversList>
+ 	<devGroup group="Spectrographs">
+        <device label="Shelyak Usis" manufacturer="Shelyak">
+            <driver name="Shelyak Usis">shelyak_usis</driver>
+            <version>1.2</version>
+        </device>
+	</devGroup>
     <devGroup group="Telescopes">
+		<device label="Shelyak Usis" manufacturer="Shelyak">
+            <driver name="Shelyak Usis">shelyak_usis</driver>
+            <version>1.2</version>
+        </device>
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>
             <version>2.1</version>
