@@ -135,7 +135,7 @@ void PegasusINDIGO::TimerHit()
     if (isConnected() && FilterSlotNP.s == IPS_BUSY)
     {
         char response[DRIVER_LEN] = {0};
-        if (sendCommand("WF"))
+        if (sendCommand("WF", response))
         {
             int position = -1;
             if (sscanf(response, "WF:%d", &position) == 1)
