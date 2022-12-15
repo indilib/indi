@@ -26,17 +26,12 @@
 #include "defaultdevice.h"
 #include "json.h"
 
+using json = nlohmann::json;
 
 #define MAX_FRAME_LENGTH 150
 #define MAX_NAME_LENGTH 25
 #define MAX_VALUE_LENGTH 125
 
-enum UsisPropType {
-	_undefined = -1,
-	_text = 0,
-	_enum = 1,
-	_number = 2,
-};
 
 struct UsisResponse {
 	char buffer[MAX_FRAME_LENGTH];
@@ -44,93 +39,125 @@ struct UsisResponse {
 	int pcount;
 };
 
-struct UsisEnum {
-	char name[MAX_NAME_LENGTH];
-	int  value;
-	ISwitch _val;
-	UsisEnum* next;
+#define 	ACTION_STOP		1
+#define 	ACTION_CALIB	2
+
+#define 	MAX_ACTION		8
+#define 	MAX_ENUMS		8
+
+struct Action;
+
+struct TextValue {
+	ITextVectorProperty _vec;
+	IText 	_val;
 };
 
-#define 	ACTION_SET		1
-#define 	ACTION_STOP		2
-#define 	ACTION_CALIB	3
+struct EnumValue {
+	ISwitchVectorProperty _vec;
+	ISwitch _vals[MAX_ENUMS];
+};
 
-struct UsisProperty {
-	UsisPropType type;
-	char name[MAX_NAME_LENGTH+1];
-	char title[MAX_NAME_LENGTH+1];
-	uint32_t actions;
+struct NumValue {
+	INumberVectorProperty _vec;
+	INumber _val;
+	EnumValue _act;
+};
 
-	UsisProperty* next;
+struct EnumItem {
+	Action* parent;
+	int index;
+	std::string val;
+};
 
+struct CmdItem {
+	Action* parent;
+	std::string cmd;
+	std::string name;
+};
+
+enum PropType {
+	_text 	= 0x10,
+	_enum 	= 0x11,
+	_number = 0x12,
+
+	_eitm 	= 0x01,
+	_ecmd 	= 0x02,
+};
+
+class Action {
+public:
+	char  uid[8];
+	std::string  name;
+	
+	PropType type;
 	union {
-		struct {
-			ITextVectorProperty _vec;
-			IText 	_val;
-			char 	value[MAX_VALUE_LENGTH+1];
-		} text;
-
-		struct {
-			INumberVectorProperty _vec;
-			ISwitchVectorProperty _btn;
-    		INumber _val;
-
-			float value;		
-			float minVal;
-			float maxVal;
-			float prec;
-		} num;
-
-		struct {
-			ISwitchVectorProperty _vec;
-    		char value[MAX_VALUE_LENGTH+1];
-			UsisEnum* _evals;
-		} enm;
+		TextValue text;
+		NumValue  num;
+		EnumValue enm;
+		EnumItem itm;		
+		CmdItem  cmd;
 	};
+
+public:
+	Action( uint32_t _uid, const std::string& _cmd, PropType _type ) {
+		sprintf( uid, "%04x", _uid );
+		name = _cmd;
+		type = _type;
+	}
 };
 
 
-class ShelyakUsis 
+
+
+
+
+class ShelyakDriver 
 	: public INDI::DefaultDevice
 {
 public:
-    ShelyakUsis();
-    ~ShelyakUsis();
+    ShelyakDriver();
+    ~ShelyakDriver();
 
     void ISGetProperties(const char *dev) override;
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 	bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-protected:
+	void update( );
+	static void __update( void* ptr );
+
     const char *getDefaultName() override;
+
+private:
+	void genCatProps( const char* catName, json& categ );
 
     bool initProperties() override;
     bool updateProperties() override;
-	void genCatProps( const char* catName, json_value* categ );
-
+	void clearProperties( );
+	
     bool Connect() override;
     bool Disconnect() override;
 
 private:
     int 	_serialPort; 	// file descriptor for serial port
-	UsisProperty* _props;
+	json    _config;		// json configuration
+
+	uint32_t _guid;
+	std::vector<Action*> _actions;
 
 	// 0: port
 	ITextVectorProperty _text_line[1];
 	IText 	_text_settings[1];
 		
-	/*
-	INumberVectorProperty _settings_tab;
-    INumber _num_settings[2];
-	*/
-
 	bool sendCmd( UsisResponse* rsp, const char* text, ... );
     bool _send( const char* text, va_list lst );
 	bool _receive( UsisResponse* response );
 	void scanProperties( );
-	void createProperty( const char* catName, UsisProperty* prop );
-	void releaseProperty( UsisProperty* prop );
+
+	bool readConfig( );
+	bool findBoard( const char* boardName, json* board_def );
+
+	Action* createAction( PropType type, const std::string& command );
 };
 
 #endif // SHELYAK_USIS_INDI_H

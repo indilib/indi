@@ -35,82 +35,91 @@ double _atof( const char* in )
 
 
 
-/**
- * read the given filename 
- * return null on error or the file content (zero term)
- */
 
-char* readFile( const char* name ) {
-	FILE* f = fopen( name, "rt" );
-	if( !f ) {
-		return NULL;
+
+
+// :: Driver ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ShelyakDriver::ShelyakDriver( )
+{
+	_guid = 1;
+	_serialPort = -1;
+
+	setVersion( SHELYAK_USIS_VERSION_MAJOR, SHELYAK_USIS_VERSION_MINOR );
+}
+
+ShelyakDriver::~ShelyakDriver( )
+{
+	if ( _serialPort != -1 ) {
+		clearProperties( );
+		tty_disconnect( _serialPort );
 	}
-
-	fseek( f, 0, SEEK_END );
-	size_t size = ftell( f );
-	fseek( f, 0, SEEK_SET );
-
-	char* json = (char*)malloc( size+1 );
-	if( fread( json, 1, size, f )!=size ) {
-		return NULL;
-	}
-
-	fclose( f );
-
-	json[size] = 0;
-	return json;
 }
 
 
+
+
 /**
- * seach a board by it's name
+ * read the configuration file
  */
 
-json_value* json_config = NULL;
+bool ShelyakDriver::readConfig( ) {
 
+	const char* fname = INSTALL_FOLDER"/bin/shelyak_boards.json";
 
-json_value* get_item( json_value* object, const char* name ) {
+	try {
+		std::ifstream file( fname );
+		file >> _config;
 
-	if( object->type==json_object ) {
-		
-		int length = object->u.object.length;
-        for (int x = 0; x < length; x++) {
-			json_object_entry& item = object->u.object.values[x];
-			if( strcmp(item.name,name)==0 ) {
-				return item.value;
-			}
-		}
+		fprintf( stderr, "loaded json file\n" );
+		return true;
 	}
-
-	return NULL;
+	catch( const std::ifstream::failure& e ) {
+		LOGF_ERROR( "File not found: %s", fname );
+		fprintf( stderr, "file not found\n" );
+		return false;
+	}
+	catch( json::exception& ) {
+		LOGF_ERROR( "Bad json file format: %s", fname );
+		fprintf( stderr, "bad json\n" );
+		return false;
+	}
 }
 
 /**
  * 
  */
 
-json_value* findBoard( json_value* json, const char* sigName ) {
+bool ShelyakDriver::findBoard( const char* boardName, json* result ) {
 
-	size_t sigLen = strlen( sigName );
-
-	json_value* boards = get_item( json, "boards" );
-	if( !boards || boards->type!=json_array ) {
-		_ERROR( "Cannot find boards definition in json.", "" );
-		return NULL;
+	if( !_config.is_object() ) {
+		return false;
 	}
 
-	int length = boards->u.array.length;
-    for ( int x = 0; x < length; x++) {
-		json_value* item = boards->u.array.values[x];
-		if( item->type==json_object ) {
-			json_value* sig = get_item( item, "signature" );
-			if( sig && sig->type==json_string && strncmp(sig->u.string.ptr,sigName,sigLen)==0 ) {
-				return item;
-			}
+	json boards = _config["boards"];
+	if( !boards.is_array() ) {
+		return false;
+	}
+
+	for( json::iterator it = boards.begin(); it != boards.end(); ++it) {
+  		
+		if( !it->is_object() ) {
+			continue;
+		}
+
+		json sig = (*it)["signature"];
+		if( !sig.is_string() ) {
+			continue;
+		}
+
+		std::string s = sig;
+		if( s==boardName ) {
+			*result = *it;
+			return true;
 		}
 	}
 
-	return NULL;
+	return false;
 }
 
 
@@ -118,31 +127,22 @@ json_value* findBoard( json_value* json, const char* sigName ) {
 
 
 
-// :: Driver ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-ShelyakUsis::ShelyakUsis( )
-{
-	_props = nullptr;
-	_serialPort = -1;
-	setVersion( SHELYAK_USIS_VERSION_MAJOR, SHELYAK_USIS_VERSION_MINOR );
-}
 
-ShelyakUsis::~ShelyakUsis( )
-{
-	if ( _serialPort != -1 ) {
-		tty_disconnect( _serialPort );
-	}
-}
+
+
+
+
+
 
 /* Returns the name of the device. */
-const char* ShelyakUsis::getDefaultName( )
+const char* ShelyakDriver::getDefaultName( )
 {
 	return DEFAULT_NAME;
 }
 
-
 /* */
-bool ShelyakUsis::Connect( )
+bool ShelyakDriver::Connect( )
 {
 	int rc;
 	if ( ( rc = tty_connect( PORT_SETTING.text, 2400, 8, 0, 1, &_serialPort ) ) != TTY_OK ) {
@@ -156,25 +156,25 @@ bool ShelyakUsis::Connect( )
 	return true;
 }
 
-bool ShelyakUsis::Disconnect( )
+bool ShelyakDriver::Disconnect( )
 {
 	if ( _serialPort != -1 ) {
 		tty_disconnect( _serialPort );
 		LOGF_INFO( "%s is offline.", getDeviceName( ) );
 	}
 
+	clearProperties( );
+
 	return true;
 }
 
+
+
 /* Initialize and setup all properties on startup. */
-bool ShelyakUsis::initProperties( )
+bool ShelyakDriver::initProperties( )
 {
 	INDI::DefaultDevice::initProperties( );
 
-
-
-
-	
 	//--------------------------------------------------------------------------------
 	// Options
 	//--------------------------------------------------------------------------------
@@ -183,171 +183,36 @@ bool ShelyakUsis::initProperties( )
 	IUFillText( &PORT_SETTING, "PORT", "Port", "/dev/ttyACM0" );
 	IUFillTextVector( &PORT_LINE, &PORT_SETTING, 1, getDeviceName( ), "DEVICE_PORT", "Ports", COMMUNICATION_TAB, IP_RW, 60, IPS_IDLE );
 
-
 	// read the usis.json file
-	const char* fname = INSTALL_FOLDER"/bin/shelyak_boards.json";
-		
-	char* json = readFile( fname );
-	if( !json ) {
-		LOGF_ERROR( "Failed to read file %s.", fname );
-	}
-	else {
-		json_config = json_parse(json,strlen(json) );
-		if (json_config == NULL) {
-			LOGF_ERROR( "Bad json content, file %s.", fname );
-		}
-		
-		free( json );
-	}
-
-	//--------------------------------------------------------------------------------
-	// Spectrograph Settings
-	//--------------------------------------------------------------------------------
-
-	// IUFillNumber(&_settings_num[0], "GRATING", "Grating [lines/mm]", "%.2f", 0, 1000, 0, 79);
-	// IUFillNumber(&_settings_num[1], "INCIDENCE_ANGLE_ALPHA", "Incidence angle alpha [degrees]", "%.2f", 0, 90, 0, 62.2);
-	// IUFillNumberVector(&SettingsNP, SettingsN, 5, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Settings", "Spectrograph settings", IP_RW, 60, IPS_IDLE);
+	readConfig(  );
 
 	setDriverInterface( SPECTROGRAPH_INTERFACE );
 	return true;
 }
 
-void ShelyakUsis::ISGetProperties( const char* dev )
+void ShelyakDriver::ISGetProperties( const char* dev )
 {
 	INDI::DefaultDevice::ISGetProperties( dev );
 	defineProperty( &PORT_LINE );
 	loadConfig( true, PORT_SETTING.name );
 }
 
-void ShelyakUsis::genCatProps( const char* catName, json_value* categ ) {
 
-	//we scan different properties
+Action* ShelyakDriver::createAction( PropType type, const std::string& command ) {
 	
-	int len = categ->u.object.length;
-	for( int x=0; x<len; x++ ) {
-
-		json_object_entry& item = categ->u.object.values[x];
-
-		json_value* type = get_item( item.value, "type" );
-		if( !type || type->type!=json_string ) {
-			LOGF_ERROR( "expected property type", "" );
-			continue;
-		}
-
-		json_value* cmd = get_item( item.value, "command" );
-		if( !cmd || cmd->type!=json_string ) {
-			LOGF_ERROR( "expected property command", "" );
-			continue;
-		}
-
-		json_value* actions = get_item( item.value, "actions" );
-		if( !actions || actions->type!=json_array ) {
-			LOGF_ERROR( "expected property actions", "" );
-			continue;
-		}
-
-		// we create a internal property
-		UsisProperty* p = new UsisProperty;
-		p->type = _undefined;
-		p->actions = 0;
-		p->next = _props;
-		_props = p;
-
-		strncpy( p->title, item.name, MAX_NAME_LENGTH + 1 );
-		strncpy( p->name, cmd->u.string.ptr, MAX_NAME_LENGTH + 1 );
-		
-		// allowed actions
-		for( unsigned a=0; a<actions->u.array.length; a++ ) {
-			json_value* action = actions->u.array.values[a];
-			if( action->type==json_string ) {
-
-				if( strcmp(action->u.string.ptr,"SET")==0 ) {
-					p->actions |= ACTION_SET;
-				}
-				else if( strcmp(action->u.string.ptr,"CALIB")==0 ) {
-					p->actions |= ACTION_CALIB;
-				}
-				else if( strcmp(action->u.string.ptr,"STOP")==0 ) {
-					p->actions |= ACTION_STOP;
-				}
-				else {
-					LOGF_ERROR( "Unknown action: %s", action->u.string.ptr );
-				}
-			}
-		}
-
-		// switch property type...
-
-		if ( strcmp( type->u.string.ptr, "string" ) == 0 ) {
-			p->type = _text;
-		}
-		else if ( strcmp( type->u.string.ptr, "enum" ) == 0 ) {
-			p->type = _enum;
-			p->actions |= ACTION_SET;
-			p->enm._evals = nullptr;
-		}
-		else if ( strcmp( type->u.string.ptr, "number" ) == 0 ) {
-			p->type = _number;
-			p->num.minVal = -9999.0;
-			p->num.maxVal = +9999.0;
-			p->num.prec = 0.01;
-
-			// fix min / max
-			json_value* min_ = get_item( item.value, "min" );
-			if( min_ ) {
-				if( min_->type==json_integer ) {
-					p->num.minVal = min_->u.integer;
-				} 
-				else if( min_->type==json_double ) {
-					p->num.minVal = min_->u.dbl;
-				}
-			}
-
-			json_value* max_ = get_item( item.value, "max" );
-			if( max_ ) {
-				if( max_->type==json_integer ) {
-					p->num.maxVal = max_->u.integer;
-				} 
-				else if( max_->type==json_double ) {
-					p->num.maxVal = max_->u.dbl;
-				}
-			}
-
-			json_value* prec_ = get_item( item.value, "prec" );
-			if( prec_ ) {
-				if( prec_->type==json_integer ) {
-					p->num.prec = prec_->u.integer;
-				} 
-				else if( prec_->type==json_double ) {
-					p->num.prec = prec_->u.dbl;
-				}
-			}
-		}
-		else {
-			LOGF_ERROR( "bad property type %s", type->u.string.ptr );
-			p->type = _text;
-		}
-
-		UsisResponse rsp;
-		sendCmd( &rsp, "GET;%s;VALUE", p->name );
-
-		if ( p->type == _text ) {
-			strncpy( p->text.value, rsp.parts[4], sizeof(p->text.value) );
-		}
-		else if ( p->type == _enum ) {
-			strncpy( p->enm.value, rsp.parts[4], sizeof(p->enm.value) );
-		}
-		else if ( p->type == _number ) {
-			p->num.value = _atof( rsp.parts[4] );
-		}
-
-		createProperty( catName, p );
-	}
+	Action* act = new Action( _guid++, command, type );
+	_actions.push_back( act );
+	return act;
 }
 
-void ShelyakUsis::scanProperties( )
+
+/**
+ * 
+*/
+
+void ShelyakDriver::scanProperties( )
 {
-	if( !json_config ) {
+	if( !_config.is_object() ) {
 		return;
 	}
 
@@ -357,196 +222,287 @@ void ShelyakUsis::scanProperties( )
 	if ( sendCmd( &rsp, "GET;DEVICE_NAME;VALUE" ) ) {
 		
 		// try to find dthe device definition in the .json
-		json_value* device = findBoard( json_config, rsp.parts[4] );
-		if( !device ) {
+		json device;
+		if( !findBoard( rsp.parts[4], &device ) ) {
 			LOGF_ERROR( "unknown device: %s", rsp.parts[4] );
+			fprintf( stderr, "device not found %s\n", rsp.parts[4] );
+			return;
 		}
 		else {
 			LOGF_DEBUG( "found device: %s", rsp.parts[4] );
+			fprintf( stderr, "found device %s\n", rsp.parts[4] );
 
 			// ok, found:
 			//	enumerate categories and build properties
 
-			json_value* categs = get_item( device, "categories" );
-			if( categs && categs->type==json_object ) {
+			json categs = device["categories"];
+			if( categs.is_object() ) {
+				for (json::iterator it = categs.begin(); it != categs.end(); ++it) {
+					fprintf( stderr, "category %s\n", it.key().c_str() );
+					genCatProps( it.key().c_str(), it.value() );
+				}
+			}
+		}
+	}
 
-				int length = categs->u.object.length;
-				for ( int x = 0; x < length; x++) {
-					json_object_entry& item = categs->u.object.values[x];
+}
+
+/**
+ * 
+*/
+
+void ShelyakDriver::genCatProps( const char* catName, json& category ) {
+
+	//we scan different properties
+	if( !category.is_array() ) {
+		return;
+	}
+
+	for ( auto it = category.begin(); it != category.end(); ++it) {
+	
+		json item = *it;
+		if( !item.is_object( ) ) {
+			continue;
+		}
+
+		json jname = item["name"];
+		if( !jname.is_string( ) ) {
+			LOGF_ERROR( "expected property name", "" );
+			continue;
+		}
+		
+		json jtype = item["type"];
+		if( !jtype.is_string() ) {
+			LOGF_ERROR( "expected property type", "" );
+			continue;
+		}
+
+		json jcmd = item["command"];
+		if( !jcmd.is_string() ) {
+			LOGF_ERROR( "expected property command", "" );
+			continue;
+		}
+
+		// we create a internal action
+		
+		Action* act;
+
+		std::string name = jname;
+		std::string type = jtype;
+		std::string cmd = jcmd;
+
+		fprintf( stderr, "        name: %s\n", name.c_str() );
+		
+		// ------------------------------------------------------
+		if ( type == "string" ) {
+
+			fprintf( stderr, "        type: string\n" );
+			
+			act = createAction( _text, type.c_str() );
+			
+			TextValue& text = act->text;
+			IUFillText( &text._val, act->uid, cmd.c_str(), "" );
+			IUFillTextVector( &text._vec, &text._val, 1, getDeviceName( ), act->uid, name.c_str(), catName, IP_RW, 60, IPS_OK );
+
+			defineProperty( &act->text._vec );
+		}
+		// ------------------------------------------------------
+		else if ( type == "enum" ) {
+
+			fprintf( stderr, "        type: enum\n" );
+
+			json values = item["values"];
+			if( !values.is_array() ) {
+				LOGF_ERROR( "expected enum values", "" );
+				continue;
+			}
+
+			act = createAction( _enum, cmd.c_str() );
+			EnumValue& enm = act->enm;
+
+			ISwitch* sws = enm._vals;
+			unsigned nsw = 0;
+
+			// allowed values
+			for (json::iterator it = values.begin(); it != values.end() && nsw<MAX_ENUMS; ++it, ++nsw) {
+				json jvalue = (*it);
+
+				if( jvalue.is_string() ) {
+					std::string value = jvalue;
+
+					Action* sub_act = createAction( _eitm, cmd.c_str() );
+					sub_act->itm.parent = act;
+					sub_act->itm.index = nsw;
+					sub_act->itm.val = value;
+					IUFillSwitch( &sws[nsw], sub_act->uid, value.c_str(), ISS_OFF );
+				}
+			}
+
+			IUFillSwitchVector( &enm._vec, sws, nsw, getDeviceName( ), act->uid, name.c_str(), catName, IP_RW, ISR_1OFMANY, 60, IPS_OK );
+			defineProperty( &enm._vec );
+		}
+		// ------------------------------------------------------
+		else if ( type == "number" ) {
+
+			fprintf( stderr, "        type: number\n" );
+
+			double minVal = -9999.0;
+			double maxVal = +9999.0;
+			double precVal = 0.01;
+
+			// fix min / max
+			json min = item["min"];
+			if( min.is_number() ) {
+				minVal = min;
+				fprintf( stderr, "            min: %lf\n", minVal );
+			}
+
+			json max = item["max"];
+			if( max.is_number() ) {
+				maxVal = max;
+				fprintf( stderr, "            max: %lf\n", maxVal );
+			}
+
+			json prec = item["prec"];
+			if( prec.is_number() ) {
+				precVal = prec;
+				fprintf( stderr, "            prec: %lf\n", precVal );
+			}
+		
+			act = createAction( _number, cmd );
+			
+			NumValue&  num = act->num;
+			IUFillNumber( &num._val, act->uid, name.c_str(), "%.2f", minVal, maxVal, precVal, 0 );
+			IUFillNumberVector( &num._vec, &num._val, 1, getDeviceName( ), act->uid, name.c_str(), catName, IP_RW, 5, IPS_OK );
+
+			defineProperty( &num._vec );
+
+
+			json actions = item["actions"];
+			if( actions.is_array() ) {
+				fprintf( stderr, "        actions:\n" );
+
+				uint32_t flags = 0;
+				for (json::iterator it = actions.begin(); it != actions.end(); ++it) {
 					
-					const char* catName = item.name;
-					LOGF_DEBUG( "building category: %s", catName );
-
-					json_value* categ = item.value;
-					if( categ->type!=json_object )
-						continue;
-
-					genCatProps( catName, categ );
-				}
-			}
-		}
-	}
-
-
-
-	/*
-	UsisResponse rsp;
-
-	if ( sendCmd( &rsp, "INFO;PROPERTY_COUNT;" ) ) {
-		int nprops = atoi( rsp.parts[4] );
-		// LOGF_INFO("driver has %d properties.", nprops );
-
-		for ( int i = 0; i < nprops; i++ ) {
-			// if the value is readonly, skip it.
-			sendCmd( &rsp, "INFO;PROPERTY_ATTR_MODE;%d;0", i );
-			if ( strcmp( rsp.parts[4], "RO" ) == 0 ) {
-				continue;
-			}
-
-			UsisProperty* p = new UsisProperty;
-			p->type = _undefined;
-			p->next = _props;
-			_props = p;
-
-			sendCmd( &rsp, "INFO;PROPERTY_NAME;%d", i );
-			strncpy( p->name, rsp.parts[4], MAX_NAME_LENGTH + 1 );
-
-			sendCmd( &rsp, "INFO;PROPERTY_TYPE;%d", i );
-			if ( strcmp( rsp.parts[4], "TEXT" ) == 0 ) {
-				p->type = _text;
-			}
-			else if ( strcmp( rsp.parts[4], "ENUM" ) == 0 ) {
-				p->type = _enum;
-				p->enm._evals = nullptr;
-			}
-			else if ( strcmp( rsp.parts[4], "FLOAT" ) == 0 ) {
-				p->type = _number;
-				p->num.minVal = -9999.0;
-				p->num.maxVal = +9999.0;
-			}
-			else {
-				// unknown type
-				delete p;
-				continue;
-			}
-
-			if ( sendCmd( &rsp, "INFO;PROPERTY_ATTR_COUNT;%d", i ) ) {
-				int nattr = atoi( rsp.parts[4] );
-				// fprintf( stderr, "property %s has %d attrs.\n", p->name, nattr );
-				// LOGF_INFO("property %s has %d attrs.", p->name, nattr );
-
-				for ( int j = 0; j < nattr; j++ ) {
-					sendCmd( &rsp, "INFO;PROPERTY_ATTR_NAME;%d;%d", i, j );
-
-					if ( p->type == _number ) { // float
-
-						if ( strcmp( rsp.parts[4], "MIN" ) == 0 ) {
-							sendCmd( &rsp, "GET;%s;MIN", p->name );
-							p->num.minVal = _atof( rsp.parts[4] );
+					json value = (*it);			
+					if( value.is_string() ) {
+						std::string n = value;
+						if( n == "STOP" ) {
+							flags |= ACTION_STOP;
+							fprintf( stderr, "            stop\n" );
 						}
-						else if ( strcmp( rsp.parts[4], "MAX" ) == 0 ) {
-							sendCmd( &rsp, "GET;%s;MAX", p->name );
-							p->num.maxVal = _atof( rsp.parts[4] );
-						}
-					}
-					else if ( p->type == _enum ) {
-						sendCmd( &rsp, "INFO;PROPERTY_ATTR_ENUM_COUNT;%d;%d", i, j );
-						int nenum = atoi( rsp.parts[4] );
-
-						
-						
-
-						for( int k=0; k<nenum; k++ ) {
-							sendCmd( &rsp, "INFO;PROPERTY_ATTR_ENUM_VALUE;%d;%d", i, k );
-
-							UsisEnum* e = new UsisEnum;
-							strncpy( e->name, rsp.parts[4], sizeof(e->name) );
-							e->value = k;
-							e->next = p->enm._evals;
-							p->enm._evals = e; 
+						else if( n == "CALIB" ) {
+							flags |= ACTION_CALIB;
+							fprintf( stderr, "            calib\n" );
 						}
 					}
 				}
-			}
+						
+				if( flags ) {
 
-			// get value
-			sendCmd( &rsp, "GET;%s;VALUE", p->name );
+					act = createAction( _enum, cmd );
+					EnumValue& enm = act->enm;
+					
+					ISwitch* sws = enm._vals;
+					unsigned nsw = 0;
 
-			if ( p->type == _text ) {
-				strncpy( p->text.value, rsp.parts[4], sizeof(p->text.value) );
-			}
-			else if ( p->type == _enum ) {
-				strncpy( p->enm.value, rsp.parts[4], sizeof(p->enm.value) );
-			}
-			else if ( p->type == _number ) {
-				p->num.value = _atof( rsp.parts[4] );
-			}
+					if( flags&ACTION_STOP ) {			
+						Action* sub_act = createAction( _ecmd, "" );
+						sub_act->cmd.cmd = "STOP";
+						sub_act->cmd.name = cmd;
+						sub_act->cmd.parent = act;
+						IUFillSwitch( &sws[nsw++], sub_act->uid, "STOP", ISS_OFF );
+					}
 
-			createProperty( p );
+					if( flags&ACTION_CALIB ) {
+						Action* sub_act = createAction( _ecmd, "" );
+						sub_act->cmd.cmd = "CALIB";
+						sub_act->cmd.name = cmd;
+						sub_act->cmd.parent = act;
+						IUFillSwitch( &sws[nsw++], sub_act->uid, "CALIB", ISS_OFF );
+					}
+
+					IUFillSwitchVector( &enm._vec, sws, nsw, getDeviceName( ), act->uid, " ", catName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
+					defineProperty( &enm._vec );
+				}
+			}
+		}
+		else {
+			LOGF_ERROR( "bad property type %s", type.c_str() );
 		}
 	}
-	*/
 }
 
-void ShelyakUsis::createProperty( const char* catName, UsisProperty* prop )
-{
-	if ( prop->type == _text ) {
-		IUFillText( &prop->text._val, prop->name, prop->name, prop->text.value );
-		IUFillTextVector( &prop->text._vec, &prop->text._val, 1, getDeviceName( ), prop->name, prop->name, catName, IP_RW, 60, IPS_IDLE );
+/**
+ * 
+*/
+
+void ShelyakDriver::__update( void* ptr ) {
+	((ShelyakDriver*)ptr)->update( );
+}
+
+void ShelyakDriver::update( ) {
+	
+	if ( isConnected( ) ) {
+		//fprintf( stderr, "updating --------------------------------------\n" );
 		
-		defineProperty( &prop->text._vec );
-	}
-	else if( prop->type==_enum ) {
-		ISwitch switches[32];
-		UsisEnum* e = prop->enm._evals;
-		int nsw = 0;
-		
-		while( nsw<32 && e ) {
-			IUFillSwitch( &e->_val, e->name, e->name, ISS_ON );
-			switches[nsw] = e->_val;
-			nsw++;
-			e = e->next;
+		for( auto it=_actions.cbegin(); it!=_actions.cend(); ++it ) {
+
+			Action* p = (*it);
+			if( !(p->type&0x10) ) {
+				continue;
+			}
+
+			//fprintf( stderr, "test: %s\n", p->name );
+				
+			UsisResponse rsp;
+			if( sendCmd( &rsp, "GET;%s;VALUE", p->name.c_str() ) ) {
+				
+				if ( p->type == _text ) {
+					p->text._vec.s = strcmp( rsp.parts[3],"BUSY")==0 ? IPS_BUSY : IPS_OK;
+					
+					p->text._vec.tp->text = rsp.parts[4];
+					IDSetText( &p->text._vec, NULL );
+				}	
+				else if( p->type==_enum ) {
+					p->enm._vec.s = strcmp( rsp.parts[3],"BUSY")==0 ? IPS_BUSY : IPS_OK;
+					
+					ISwitch* values = p->enm._vals;
+					for( int i=0; i<p->enm._vec.nsp; i++ ) {
+						values[i].s = ISS_OFF;
+					}
+
+					for( auto it2=_actions.cbegin(); it2!=_actions.cend(); ++it2 ) {
+						Action* c=(*it2);
+						if( c->type==_eitm && c->itm.parent==p && c->itm.val==rsp.parts[4] ) {
+							values[c->itm.index].s = ISS_ON;
+							IDSetSwitch( &p->enm._vec, NULL );
+							break;
+						}
+					}
+				}
+				else if ( p->type == _number ) {
+					p->num._vec.s = strcmp( rsp.parts[3],"BUSY")==0 ? IPS_BUSY : IPS_OK;
+					
+					double value = _atof( rsp.parts[4] );
+					p->num._vec.np->value = value;
+					IDSetNumber( &p->num._vec, NULL );
+				}
+			}
 		}
 
-		IUFillSwitchVector( &prop->enm._vec, switches, nsw, getDeviceName( ), "value", prop->name, catName, IP_RW, ISR_1OFMANY, 60, IPS_IDLE );
-		defineProperty( &prop->enm._vec );
-	}
-	else if ( prop->type == _number ) {
-		IUFillNumber( &prop->num._val, prop->name, "value", "%.2f", prop->num.minVal, prop->num.maxVal, prop->num.prec, prop->num.value );
-		IUFillNumberVector( &prop->num._vec, &prop->num._val, 1, getDeviceName( ), prop->name, prop->title, catName, IP_RW, 5, IPS_IDLE );
-		defineProperty( &prop->num._vec );
-
-		if( prop->actions&(ACTION_CALIB|ACTION_STOP) ) {
-
-			ISwitch switches[2];
-			IUFillSwitch( &switches[0], "STOP", "STOP", ISS_OFF );
-			IUFillSwitch( &switches[1], "CALIB", "CALIB", ISS_OFF );
-
-			IUFillSwitchVector( &prop->num._btn, switches, 2, getDeviceName( ), "actions", prop->name, catName, IP_RW, ISR_ATMOST1, 5, IPS_IDLE );
-			defineProperty( &prop->num._btn );
-		}
+		IEAddTimer( 1000, __update, this );
 	}
 }
 
 
-void ShelyakUsis::releaseProperty( UsisProperty* p ) {
-
-	if( p->type==_enum ) {
-		UsisEnum* e = p->enm._evals;
-		while( e ) {
-			UsisEnum* n = e->next;
-			deleteProperty( e->name );
-			delete e;
-			e = n;
-		}
-	}
-
-	deleteProperty( p->name );
-}
 
 
+// :: SERIAL ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-bool ShelyakUsis::sendCmd( UsisResponse* rsp, const char* text, ... )
+
+bool ShelyakDriver::sendCmd( UsisResponse* rsp, const char* text, ... )
 {
 	va_list lst;
 	va_start( lst, text );
@@ -557,13 +513,13 @@ bool ShelyakUsis::sendCmd( UsisResponse* rsp, const char* text, ... )
 	return rc;
 }
 
-bool ShelyakUsis::_send( const char* text, va_list lst )
+bool ShelyakDriver::_send( const char* text, va_list lst )
 {
 	char buf[MAX_FRAME_LENGTH+1];
 	vsnprintf( buf, MAX_FRAME_LENGTH, text, lst );
 
 	fprintf( stderr, "> sending %s\n", buf );
-	LOGF_INFO("> sending %s", buf );
+	//LOGF_INFO("> sending %s", buf );
 
 	strcat( buf, "\n" );
 
@@ -572,6 +528,7 @@ bool ShelyakUsis::_send( const char* text, va_list lst )
 	{
 		char errmsg[MAXRBUF];
 		tty_error_msg( rc, errmsg, MAXRBUF );
+		LOGF_ERROR("> sending %s", buf );
 		LOGF_ERROR( "error: %s.", errmsg );
 		return false;
 	}
@@ -579,7 +536,7 @@ bool ShelyakUsis::_send( const char* text, va_list lst )
 	return true;
 }
 
-bool ShelyakUsis::_receive( UsisResponse* rsp )
+bool ShelyakDriver::_receive( UsisResponse* rsp )
 {
 	int rc, nread;
 	if ( ( rc = tty_nread_section( _serialPort, rsp->buffer, sizeof( rsp->buffer ), '\n', 100, &nread ) ) != TTY_OK ) // send the bytes to the spectrograph
@@ -593,7 +550,7 @@ bool ShelyakUsis::_receive( UsisResponse* rsp )
 	rsp->buffer[nread] = 0;
 
 	fprintf( stderr, "< received %s\n", rsp->buffer );
-	LOGF_INFO("< received %s", rsp->buffer );
+	//LOGF_INFO("< received %s", rsp->buffer );
 
 	char* p = rsp->buffer;
 	char* e = p + nread;
@@ -617,59 +574,77 @@ bool ShelyakUsis::_receive( UsisResponse* rsp )
 	}
 
 	if ( strcmp( rsp->parts[0], "M00" ) != 0 ) {
+		LOGF_ERROR( "response error: %s", rsp->parts[1] );
 		return false;
 	}
 
 	return true;
 }
 
-/**
- *
- */
 
-bool ShelyakUsis::updateProperties( )
+// :: PROPERTIES ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+bool ShelyakDriver::updateProperties( )
 {
 	INDI::DefaultDevice::updateProperties( );
 	if ( isConnected( ) ) {
+		//fprintf( stderr, "update request --------------------------------------\n" );
 		scanProperties( );
+		update( );
 	}
 	else {
-		UsisProperty* p = _props;
-		while ( p ) {
-			UsisProperty* n = p->next;
-			releaseProperty( p );
-			delete p;
-			p = n;
-		}
-
-		_props = nullptr;
+		clearProperties( );
 	}
 
 	return true;
 }
 
+void ShelyakDriver::clearProperties( ) {
+	fprintf( stderr, "clear properties --------------------------------------\n" );
+	for( auto it = _actions.cbegin(); it!=_actions.cend(); ++it ) {
+		Action* p = *it;
+		deleteProperty( p->uid );
+	}
+	
+	_actions.clear();
+}
+
+
+
+
+
+
 /**
  * Handle a request to change a switch. 
  **/
 
-bool ShelyakUsis::ISNewSwitch( const char* dev, const char* name, ISState* states, char* names[], int n )
+bool ShelyakDriver::ISNewSwitch( const char* dev, const char* name, ISState* states, char* names[], int n )
 {
-	//for( int i=0; i<n; i++ ) {
-	//	fprintf( stderr, "set switch: %s = %d\n", names[i], states[i] ) ;
-	//}
+//	fprintf( stderr, "new switch %s (%d)\n", name, n );
+//	for( int i=0; i<n; i++ ) {
+//		fprintf( stderr, "    %s = (%d)\n", names[i], states[i] );
+//	}
 
-	if ( n==1 && dev && strcmp( dev, getDeviceName( ) ) == 0 ) {
-		for ( UsisProperty* p = _props; p; p = p->next ) {
-			if ( p->type == _enum && strcmp( p->name, name ) == 0 ) {
+	if ( dev && strcmp( dev, getDeviceName( ) ) == 0 ) {
+				
+		for( auto it = _actions.cbegin(); it!=_actions.cend(); ++it ) {
+			Action* p = *it;
 
-				for( UsisEnum* e = p->enm._evals; e; e=e->next ) {
+			if( p->type==_eitm && strcmp( p->uid, names[0] ) == 0 ) {
+				UsisResponse rsp;
+				sendCmd( &rsp, "SET;%s;VALUE;%s", p->name.c_str(), p->itm.val.c_str() );
+				return true;
+			}
+			else if( p->type==_ecmd && strcmp( p->uid, names[0] ) == 0 ) {
+				UsisResponse rsp;
+				sendCmd( &rsp, "%s;%s;", p->cmd.cmd.c_str(), p->cmd.name.c_str() );
 
-					if( strcmp( e->name, names[0] )==0 ) {
-						UsisResponse rsp;
-						sendCmd( &rsp, "SET;%s;VALUE;%s", name, names[0] );
-						return true;
-					}
-				}
+				EnumValue& enm = p->cmd.parent->enm;
+				IUResetSwitch( &enm._vec );
+            	enm._vec.s = IPS_IDLE;
+            	IDSetSwitch(&enm._vec, nullptr);
+				return true;
 			}
 		}
 	}
@@ -681,7 +656,7 @@ bool ShelyakUsis::ISNewSwitch( const char* dev, const char* name, ISState* state
  * Handle a request to change text.
  **/
 
-bool ShelyakUsis::ISNewText( const char* dev, const char* name, char* texts[], char* names[], int n )
+bool ShelyakDriver::ISNewText( const char* dev, const char* name, char* texts[], char* names[], int n )
 {
 	if ( dev && strcmp( dev, getDeviceName( ) ) == 0 ) {
 		if ( strcmp( PORT_SETTING.name, name ) == 0 ) {
@@ -689,6 +664,15 @@ bool ShelyakUsis::ISNewText( const char* dev, const char* name, char* texts[], c
 			PORT_LINE.s = IPS_OK;
 			IDSetText( &PORT_LINE, nullptr );
 			return true;
+		}
+
+		for( auto it = _actions.cbegin(); it!=_actions.cend(); ++it ) {
+			Action* p = *it;
+			if ( p->type == _text && strcmp( p->uid, names[0] ) == 0 ) {
+				UsisResponse rsp;
+				sendCmd( &rsp, "SET;%s;VALUE;%s", p->name.c_str(), texts[0] );
+				return true;
+			}
 		}
 	}
 
@@ -699,14 +683,15 @@ bool ShelyakUsis::ISNewText( const char* dev, const char* name, char* texts[], c
  *
  */
 
-bool ShelyakUsis::ISNewNumber( const char* dev, const char* name, double values[], char* names[], int n )
+bool ShelyakDriver::ISNewNumber( const char* dev, const char* name, double values[], char* names[], int n )
 {
 	if ( dev && strcmp( dev, getDeviceName( ) ) == 0 && n == 1 ) {
 
-		for ( UsisProperty* p = _props; p; p = p->next ) {
-			if ( p->type == _number && strcmp( p->name, names[0] ) == 0 ) {
+		for( auto it = _actions.cbegin(); it!=_actions.cend(); ++it ) {
+			Action* p = *it;
+			if ( p->type == _number && strcmp( p->uid, names[0] ) == 0 ) {
 				UsisResponse rsp;
-				sendCmd( &rsp, "SET;%s;VALUE;%lf", names[0], values[0] );
+				sendCmd( &rsp, "SET;%s;VALUE;%lf", p->name.c_str(), values[0] );
 				return true;
 			}
 		}
@@ -715,7 +700,6 @@ bool ShelyakUsis::ISNewNumber( const char* dev, const char* name, double values[
 	return INDI::DefaultDevice::ISNewNumber( dev, name, values, names, n );
 }
 
-
-ShelyakUsis* usis = new ShelyakUsis( );
+ShelyakDriver* usis = new ShelyakDriver( );
 
 

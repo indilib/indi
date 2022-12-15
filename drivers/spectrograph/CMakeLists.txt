@@ -12,7 +12,6 @@
 
 set( shelyak_usis_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/shelyak/indi_shelyak_usis.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/shelyak/json.c
 )
 
 
