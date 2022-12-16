@@ -405,6 +405,7 @@ bool LX200Gemini::updateProperties()
         if (gemini_software_level_ >= 5.0 && gemini_software_level_ < 6.0)
         {
 	    defineProperty(&PECControlSP);
+	    PECControlSP.s = IPS_OK;
 	}
         if (gemini_software_level_ >= 5.0 && getGeminiProperty(PEC_COUNTER_ID, value))
         {
@@ -413,7 +414,6 @@ bool LX200Gemini::updateProperties()
 	    sscanf(value, "%u", &pec_counter);
 	    snprintf(valueString, 32, "%i", pec_counter);
 
-	    PECControlSP.s = IPS_OK;
 	    IUSaveText(&PECCounterT[0], valueString);
 	    defineProperty(&PECCounterTP);
 	}
