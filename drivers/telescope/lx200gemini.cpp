@@ -1527,6 +1527,11 @@ bool LX200Gemini::getGeminiProperty(uint32_t propertyNumber, char* value)
     return true;
 }
 
+int LX200Gemini::SendPulseCmd(int8_t direction, uint32_t duration_msec)
+{
+    return ::SendPulseCmd(PortFD, direction, duration_msec, true, 1000);
+}
+
 bool LX200Gemini::setGeminiProperty(uint32_t propertyNumber, char* value)
 {
     int rc = TTY_OK;
