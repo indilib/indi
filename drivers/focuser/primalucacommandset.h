@@ -119,7 +119,7 @@ class Communication
         int m_PortFD {-1};
 
         // Maximum buffer for sending/receving.
-        static constexpr const int DRIVER_LEN {1024};
+        static constexpr const int DRIVER_LEN {4096};
         static const char DRIVER_STOP_CHAR { 0xD };
         static const char DRIVER_TIMEOUT { 5 };
 };

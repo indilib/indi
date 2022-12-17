@@ -260,6 +260,11 @@ class BaseDevice
         /** @brief handle SetXXX commands from client */
         int setValue(const INDI::LilXmlElement &root, char *errmsg);
 
+        /** @brief Return full path to shared INDI file (typically installed to /usr/share/indi on Linux)
+         *  @example On Linux, calling getSharedFilePath("drivers.xml") will return /usr/share/indi/drivers.xml
+         */
+        static std::string getSharedFilePath(std::string fileName);
+
     public:
         operator BaseDevice*();
         BaseDevice* operator->();

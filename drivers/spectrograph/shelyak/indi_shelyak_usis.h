@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017 Simon Holmbo. All rights reserved.
+  Copyright(c) 2022 Etienne Cochard. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -20,10 +20,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SHELYAK_USIS_INDI_H
-#define SHELYAK_USIS_INDI_H
+#pragma once
 
 #include "defaultdevice.h"
+#include "connectionplugins/connectionserial.h"
 #include "json.h"
 
 using json = nlohmann::json;
@@ -31,7 +31,6 @@ using json = nlohmann::json;
 #define MAX_FRAME_LENGTH 150
 #define MAX_NAME_LENGTH 25
 #define MAX_VALUE_LENGTH 125
-
 
 struct UsisResponse {
 	char buffer[MAX_FRAME_LENGTH];
@@ -45,7 +44,7 @@ struct UsisResponse {
 #define 	MAX_ACTION		8
 #define 	MAX_ENUMS		8
 
-struct Action;
+class Action;
 
 struct TextValue {
 	ITextVectorProperty _vec;
@@ -106,19 +105,12 @@ public:
 	}
 };
 
-
-
-
-
-
-class ShelyakDriver 
-	: public INDI::DefaultDevice
+class ShelyakDriver : public INDI::DefaultDevice
 {
 public:
     ShelyakDriver();
     ~ShelyakDriver();
 
-    void ISGetProperties(const char *dev) override;
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 	bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -144,10 +136,6 @@ private:
 
 	uint32_t _guid;
 	std::vector<Action*> _actions;
-
-	// 0: port
-	ITextVectorProperty _text_line[1];
-	IText 	_text_settings[1];
 		
 	bool sendCmd( UsisResponse* rsp, const char* text, ... );
     bool _send( const char* text, va_list lst );
@@ -158,6 +146,7 @@ private:
 	bool findBoard( const char* boardName, json* board_def );
 
 	Action* createAction( PropType type, const std::string& command );
+
+    Connection::Serial *serialConnection = nullptr;
 };
 
-#endif // SHELYAK_USIS_INDI_H

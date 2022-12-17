@@ -210,6 +210,45 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
     return result;
 }
 
+std::string BaseDevice::getSharedFilePath(std::string fileName)
+{
+    std::string pathName;
+
+    struct stat st;
+
+    // absolute file path
+    if (stat(fileName.c_str(), &st) == 0)
+    {
+        pathName = fileName;
+        return pathName;
+    }
+
+    // get base name of file
+    const size_t lastSlashIdx = fileName.find_last_of("\\/");
+    if (std::string::npos != lastSlashIdx)
+    {
+        fileName.erase(0, lastSlashIdx + 1);
+    }
+
+    const char * indiprefix = getenv("INDIPREFIX");
+    if (indiprefix)
+    {
+#if defined(OSX_EMBEDED_MODE)
+        pathName  = std::string(indiprefix) + "/Contents/Resources/" + fileName;
+#elif defined(__APPLE__)
+        pathName  = std::string(indiprefix) + "/Contents/Resources/DriverSupport/" + fileName;
+#else
+        pathName  = std::string(indiprefix) + "/share/indi/" + fileName;
+#endif
+    }
+    else
+    {
+        pathName = std::string(DATA_INSTALL_DIR) + "/" + fileName;
+    }
+    return pathName;
+}
+
+
 static std::string sGetSheletonFilePath(std::string fileName)
 {
     std::string pathName;
