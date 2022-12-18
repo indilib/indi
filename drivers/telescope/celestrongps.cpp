@@ -502,6 +502,7 @@ bool CelestronGPS::updateProperties()
                 // focuser move capability is only set if the focus limits are valid
                 FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
                 setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+                syncDriverInfo();
 
                 LOG_INFO("Auxiliary focuser is connected.");
             }
