@@ -418,7 +418,7 @@ bool SestoSenso2::initCalibration()
 *******************************************************************************************************/
 bool SestoSenso2::applyMotorPreset(const std::string &name)
 {
-    return m_Communication->command(MOT_1, {{"RUNPRESET", name}});
+    return m_Communication->command(MOT_NONE, {{"RUNPRESET", name}});
 }
 
 /******************************************************************************************************
@@ -447,7 +447,16 @@ bool SestoSenso2::setMotorUserPreset(uint32_t index, const MotorRates &rates, co
 *******************************************************************************************************/
 bool SestoSenso2::getMotorSettings(MotorRates &rates, MotorCurrents &currents, bool &motorHoldActive)
 {
-    json jsonRequest = {{"req", {{"get", {{"MOT1", ""}}}}}};
+    json jsonRequest = {{"req", {{"get", {{"MOT1", { {"FnRUN_ACC", ""},
+                                {"FnRUN_DEC", ""}, {"FnRUN_SPD", ""}, {"FnRUN_CURR_ACC", ""},
+                                {"FnRUN_CURR_DEC", ""}, {"FnRUN_CURR_SPD", ""}, {"FnRUN_CURR_HOLD", ""}, {"HOLDCURR_STATUS", ""}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
     json jsonResponse;
 
     if (m_Communication->sendRequest(jsonRequest, &jsonResponse))
@@ -460,7 +469,10 @@ bool SestoSenso2::getMotorSettings(MotorRates &rates, MotorCurrents &currents, b
         jsonResponse["get"]["MOT1"]["FnRUN_CURR_DEC"].get_to(currents.decCurrent);
         jsonResponse["get"]["MOT1"]["FnRUN_CURR_SPD"].get_to(currents.runCurrent);
         jsonResponse["get"]["MOT1"]["FnRUN_CURR_HOLD"].get_to(currents.holdCurrent);
-        jsonResponse["get"]["MOT1"]["HOLDCURR_STATUS"].get_to(motorHoldActive);
+
+        int status = 0;
+        jsonResponse["get"]["MOT1"]["HOLDCURR_STATUS"].get_to(status);
+        motorHoldActive = ( status == 1 );
         return true;
     }
     return false;
