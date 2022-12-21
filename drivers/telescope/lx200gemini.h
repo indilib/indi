@@ -64,7 +64,7 @@ class LX200Gemini : public LX200Generic
         virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     private:
-        void syncPec();
+        void syncState();
         void syncSideOfPier();
         bool sleepMount();
         bool wakeupMount();
@@ -108,11 +108,14 @@ class LX200Gemini : public LX200Generic
         INumber PECMaxStepsN[1];
         INumberVectorProperty PECMaxStepsNP;
   
-        INumber ServoPrecisionN[2];
-        INumberVectorProperty ServoPrecisionNP;
+        ISwitch ServoPrecisionS[2];
+        ISwitchVectorProperty ServoPrecisionSP;
 
         INumber PECEnableAtBootN[1];
         INumberVectorProperty PECEnableAtBootNP;
+
+        ISwitch PECEnableAtBootS[1];
+        ISwitchVectorProperty PECEnableAtBootSP;
 
         INumber PECGuidingSpeedN[1];
         INumberVectorProperty PECGuidingSpeedNP;
@@ -213,9 +216,16 @@ class LX200Gemini : public LX200Generic
 
         enum FlipPointState
 	{
-	    DISABLED,
+	    FLIP_DISABLED,
 	    FLIP_EAST,
 	    FLIP_WEST
+	};
+
+        enum ServoPrecisionState
+	{
+	    PRECISION_DISABLED,
+	    RA_PRECISION_ENABLED,
+	    DEC_PRECISION_ENABLED
 	};
 
         enum FlipPointControl

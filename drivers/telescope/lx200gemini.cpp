@@ -189,57 +189,33 @@ bool LX200Gemini::initProperties()
     IUFillNumberVector(&PECMaxStepsNP, PECMaxStepsN, 1, getDeviceName(), "PEC_MAX_STEPS",
                        "PEC Steps", MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&ServoPrecisionN[SERVO_RA], "SERVO_RA", "4x RA Precision", "%f", 0, 1, 1, 0);
-    IUFillNumber(&ServoPrecisionN[SERVO_DEC], "SERVO_DEC", "4x DEC Precision", "%f", 0, 1, 1, 0);
-    IUFillNumberVector(&ServoPrecisionNP, ServoPrecisionN, 2, getDeviceName(), "SERVO",
-                       "Servo", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillSwitch(&ServoPrecisionS[SERVO_RA], "SERVO_RA", "4x RA Precision", ISS_OFF);
+    IUFillSwitch(&ServoPrecisionS[SERVO_DEC], "SERVO_DEC", "4x DEC Precision", ISS_OFF);
+    IUFillSwitchVector(&ServoPrecisionSP, ServoPrecisionS, 2, getDeviceName(), "SERVO",
+		       "Servo", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     
     IUFillNumber(&PECGuidingSpeedN[0], "PEC_GUIDING_SPEED", "PEC GuidingSpeed", "%f", 0.2, 0.8, 0.1, 0);
     IUFillNumberVector(&PECGuidingSpeedNP, PECGuidingSpeedN, 1, getDeviceName(), "PEC_GUIDING_SPEED",
                        "PEC Speed", MOTION_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&PECEnableAtBootN[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", "%f", 0, 1, 1, 0);
-    IUFillNumberVector(&PECEnableAtBootNP, PECEnableAtBootN, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
-                       "PEC Setting", MOTION_TAB, IP_RW, 0, IPS_IDLE);
-
+    IUFillSwitch(&PECEnableAtBootS[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", ISS_OFF);
+    IUFillSwitchVector(&PECEnableAtBootSP, PECEnableAtBootS, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
+                       "PEC Setting", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    
     gemini_software_level_ = 0.0;
     
     return true;
 }
 
-void LX200Gemini::syncPec(){
+void LX200Gemini::syncState(){
         const int MAX_VALUE_LENGTH = 32;
         char value[MAX_VALUE_LENGTH] = {0};
 
 
 	// Gemini Firmware > 4
-	if(gemini_software_level_ >= 6.0)
+	if (gemini_software_level_ >= 5.0)
 	{
-	    if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
-	    {
-	        uint8_t servo_value;
-		sscanf(value, "%c", &servo_value);
-		ServoPrecisionN[SERVO_RA].value = servo_value & 1;
-		ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
-		IDSetNumber(&ServoPrecisionNP, nullptr);
-	    } else {
-	        ServoPrecisionNP.s = IPS_ALERT;
-		IDSetNumber(&ServoPrecisionNP, nullptr);
-	    }	  
-	} else if (gemini_software_level_ >= 5.2)
-	{
-	    if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
-	    {
-	        uint32_t pec_at_boot_value;
-		sscanf(value, "%i", &pec_at_boot_value);
-		PECEnableAtBootN[0].value = pec_at_boot_value;
-		IDSetNumber(&PECEnableAtBootNP, nullptr);
-	    } else {
-	        PECEnableAtBootNP.s = IPS_ALERT;
-		IDSetNumber(&PECEnableAtBootNP, nullptr);
-	    }
-	} else if (gemini_software_level_ >= 5.0)
-	{
+	  LOGF_DEBUG("%s %s %i", __FILE__, __FUNCTION__, __LINE__);
 	    if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
 	    {
 	        float guiding_value;
@@ -260,6 +236,52 @@ void LX200Gemini::syncPec(){
 	        GuidingSpeedNP.s = IPS_ALERT;
 		IDSetNumber(&GuidingSpeedNP, nullptr);
 	    }	  
+	}
+	if (gemini_software_level_ >= 5.2)
+	{ 
+	    if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
+	    {
+	        uint32_t pec_at_boot_value;
+		sscanf(value, "%u", &pec_at_boot_value);
+		if(pec_at_boot_value)
+		{
+		    PECEnableAtBootS[0].s = ISS_ON;
+		} else {
+		    PECEnableAtBootS[0].s = ISS_OFF;
+		}
+	        PECEnableAtBootSP.s = IPS_OK;
+	    } else {
+	        PECEnableAtBootSP.s = IPS_ALERT;
+	    }
+	    PECEnableAtBootSP.s = IPS_OK;
+	    IDSetSwitch(&PECEnableAtBootSP, nullptr);
+	}
+	if(gemini_software_level_ >= 6.0)
+	{
+	    if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+	    {
+	        uint8_t servo_value;
+	    	sscanf(value, "%c", &servo_value);
+	    	if(servo_value & RA_PRECISION_ENABLED)
+		{
+	    	    ServoPrecisionS[SERVO_RA].s = ISS_ON;
+	    	} else {
+	    	    ServoPrecisionS[SERVO_RA].s = ISS_OFF;
+	    	}
+	    	if(servo_value & DEC_PRECISION_ENABLED)
+		{
+	    	    ServoPrecisionS[SERVO_DEC].s = ISS_ON;
+	    	} else {
+	    	    ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
+	    	}
+	    	IDSetSwitch(&ServoPrecisionSP, nullptr);
+		ServoPrecisionSP.s = IPS_OK;
+	    		
+	    } else {
+	      ServoPrecisionSP.s = IPS_ALERT;
+	    }
+	    
+	    IDSetSwitch(&ServoPrecisionSP, nullptr);
 	}
 	// Gemini Firmware > 4
 
@@ -313,8 +335,10 @@ void LX200Gemini::syncPec(){
 	    sscanf(value, "%u", &pec_status);
 	    if(pec_status & 1){ // PEC_ACTIVE
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+	      setPECState(PEC_ON);
 	    } else {
 	      IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+	      setPECState(PEC_OFF);
 	    }
     	    if(pec_status & 2){ // Freshly_Trained
 	      IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
@@ -383,17 +407,14 @@ bool LX200Gemini::updateProperties()
         {
 	    uint32_t pec_at_boot_value;
             sscanf(value, "%i", &pec_at_boot_value);
-            PECEnableAtBootN[0].value = pec_at_boot_value;
-	    IDSetNumber(&PECEnableAtBootNP, nullptr);
-            defineProperty(&PECEnableAtBootNP);
-        }
-        if (gemini_software_level_ >= 6.0 && getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
-        {
-	    uint8_t servo_value;
-            sscanf(value, "%c", &servo_value);
-            ServoPrecisionN[SERVO_RA].value = servo_value & 1;
-            ServoPrecisionN[SERVO_DEC].value = (servo_value & 2)>>1;
-            defineProperty(&ServoPrecisionNP);
+	    if(pec_at_boot_value)
+            {
+	        PECEnableAtBootS[0].s = ISS_ON;
+	    } else {
+	        PECEnableAtBootS[0].s = ISS_ON;
+	    }
+	    IDSetSwitch(&PECEnableAtBootSP, nullptr);
+	    defineProperty(&PECEnableAtBootSP);
         }
         if (getGeminiProperty(PEC_GUIDING_SPEED_ID, value))
         {
@@ -520,6 +541,24 @@ bool LX200Gemini::updateProperties()
 
 	    defineProperty(&PECStateTP);
         }
+        if (gemini_software_level_ >= 6.0 && getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+        {
+	    uint8_t servo_value;
+            sscanf(value, "%c", &servo_value);
+	    if(servo_value &  RA_PRECISION_ENABLED){
+	        ServoPrecisionS[SERVO_RA].s = ISS_ON;
+	    } else {
+	        ServoPrecisionS[SERVO_RA].s = ISS_OFF;
+	    }
+	    if(servo_value & DEC_PRECISION_ENABLED){
+	        ServoPrecisionS[SERVO_DEC].s = ISS_ON;
+	    } else {
+	        ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
+	    }
+	    
+	    IDSetSwitch(&ServoPrecisionSP, nullptr);
+            defineProperty(&ServoPrecisionSP);
+        }
         if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
@@ -582,8 +621,8 @@ bool LX200Gemini::updateProperties()
 	deleteProperty(PECCounterTP.name);
         deleteProperty(PECMaxStepsNP.name);
         deleteProperty(PECGuidingSpeedNP.name);
-        deleteProperty(ServoPrecisionNP.name);
-        deleteProperty(PECEnableAtBootNP.name);
+        deleteProperty(ServoPrecisionSP.name);
+        deleteProperty(PECEnableAtBootSP.name);
         deleteProperty(PECGuidingSpeedNP.name);
         deleteProperty(VersionTP.name);
 	deleteProperty(FlipPositionNP.name);
@@ -638,83 +677,193 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 
         if (gemini_software_level_ >= 5.0 && !strcmp(name, PECStateSP.name))
         {
-	  IUUpdateSwitch(&PECStateSP, states, names, n);
-	  IDSetSwitch(&PECStateSP, nullptr);
+	    IUUpdateSwitch(&PECStateSP, states, names, n);
 	    for(int i = 0; i<n; ++i)
 	    {
 	        if (!strcmp(names[i], PECStateS[PEC_ON].name))
 	        {
 		    if(PECStateS[PEC_ON].s == ISS_ON)
 		    {
+			LOG_INFO("PEC State.s ON.");
 		        char valueString[16] = {0};
-			setGeminiProperty(PEC_REPLAY_ON_ID, valueString);
+			if(!setGeminiProperty(PEC_REPLAY_ON_ID, valueString))
+			{
+			    PECStateSP.s = IPS_ALERT;
+			    IDSetSwitch(&PECStateSP, nullptr);
+			    return false;
+			} 
+			return true;
 		    }
 	        }
 	        if (!strcmp(names[i], PECStateS[PEC_OFF].name))
 	        {
 		    if(PECStateS[PEC_OFF].s == ISS_ON)
 		    {
+			LOG_INFO("PEC State.s ON.");
 		        char valueString[16] = {0};
-			setGeminiProperty(PEC_REPLAY_OFF_ID, valueString);
+			if(!setGeminiProperty(PEC_REPLAY_OFF_ID, valueString))
+			{
+			    PECStateSP.s = IPS_ALERT;
+			    IDSetSwitch(&PECStateSP, nullptr);
+			    return false;
+			}
+			return true;
 		    }
 	        }
 	    }
+	    PECStateSP.s = IPS_OK;
+	    IDSetSwitch(&PECStateSP, nullptr);
+	    return true;
 	}
+	
 
+        if (gemini_software_level_ >= 6.0 && !strcmp(name, ServoPrecisionSP.name))
+        {
+	    IUUpdateSwitch(&ServoPrecisionSP, states, names, n);
+	    ServoPrecisionSP.s = IPS_BUSY;
+
+	    uint8_t precisionEnabled = 0;
+	    for(int i = 0; i<n; ++i){
+	      if (!strcmp(names[i], ServoPrecisionS[SERVO_RA].name))
+		  {
+		    if(ServoPrecisionS[SERVO_RA].s == ISS_ON)
+		    {
+		        precisionEnabled |= 1;
+			LOGF_INFO("ServoPrecision: RA ON  <%i>", (int)precisionEnabled);
+		    }
+	      }
+	      
+	      if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name)){
+		if(ServoPrecisionS[SERVO_DEC].s == ISS_ON){		
+		  precisionEnabled |= 2;
+		  LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
+		}
+	      }
+	    }
+	    char valueString[16] = {0};
+
+            snprintf(valueString, 16, "%u", precisionEnabled);
+	    if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
+	    {
+	        ServoPrecisionSP.s = IPS_ALERT;
+		IDSetSwitch(&ServoPrecisionSP, nullptr);
+		return false;
+	    } else {
+	        ServoPrecisionSP.s = IPS_OK;
+		IDSetSwitch(&ServoPrecisionSP, nullptr);
+		return true;
+	    }
+        }
+
+        if (gemini_software_level_ >= 5.2 && !strcmp(name, PECEnableAtBootSP.name))
+        {
+
+	    PECEnableAtBootSP.s = IPS_BUSY;
+	    IUUpdateSwitch(&PECEnableAtBootSP, states, names, n);
+	    IDSetSwitch(&PECEnableAtBootSP, nullptr);
+
+	    uint8_t enablePECAtBoot = 0;
+	    for(int i = 0; i<n; ++i){
+	      if (!strcmp(names[i], PECEnableAtBootS[0].name)){
+		if(PECEnableAtBootS[0].s == ISS_ON){
+		  enablePECAtBoot = 1;
+		  LOGF_INFO("PECEnable: ON  <%i>", enablePECAtBoot);
+		} else {
+		  enablePECAtBoot = 0;
+		  LOGF_INFO("PECEnable: OFF  <%i>", enablePECAtBoot);
+		}
+	      }
+	    }
+	    char valueString[16] = {0};
+	    
+            snprintf(valueString, 16, "%u", enablePECAtBoot);
+	    if(!setGeminiProperty(PEC_ENABLE_AT_BOOT_ID, valueString))
+	    {
+	        PECEnableAtBootSP.s = IPS_ALERT;
+		IDSetSwitch(&PECEnableAtBootSP, nullptr);
+		return false;
+	    } else {
+	        PECEnableAtBootSP.s = IPS_OK;
+		IDSetSwitch(&PECEnableAtBootSP, nullptr);
+		return true;
+	    }
+        }
+	
         if (gemini_software_level_ >= 6.0 && !strcmp(name, FlipControlSP.name))
         {
 	    IUUpdateSwitch(&FlipControlSP, states, names, n);
 	    FlipControlSP.s = IPS_OK;
 	    IDSetSwitch(&FlipControlSP, nullptr);
 	    int32_t flipEnabled = 0;
-	    for(int i = 0; i<n; ++i){
+	    for(int i = 0; i<n; ++i)
+	    {
 	        if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name)){
-		    if(FlipControlS[FLIP_EAST_CONTROL].s == ISS_ON){
+		    if(FlipControlS[FLIP_EAST_CONTROL].s == ISS_ON)
+		    {
 		        flipEnabled |= 1;
-		        LOGF_INFO("FlipControl: EAST ON  <%i>", flipEnabled);
+			LOGF_INFO("FlipControl: EAST ON  <%i>", flipEnabled);
 		    } else {
 		        flipEnabled &= 0xfffffffe;
-		        LOGF_INFO("FlipControl: EAST OFF  <%i>", flipEnabled);
+		       LOGF_INFO("FlipControl: EAST OFF  <%i>", flipEnabled);
 		    }
-	      }
-	    
-	    if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name)){
-	        if(FlipControlS[FLIP_WEST_CONTROL].s == ISS_ON){		
-		    flipEnabled |= 2;
-		    LOGF_INFO("FlipControl: WEST ON  <%i>", flipEnabled);
-		} else {
-		    flipEnabled &= 0xfffffffd;
-		    LOGF_INFO("FlipControl: WEST OFF  <%i>", flipEnabled);
 		}
+	      
+	      if (!strcmp(names[i], FlipControlS[FLIP_WEST_CONTROL].name)){
+	          if(FlipControlS[FLIP_WEST_CONTROL].s == ISS_ON)
+		  {		
+		      flipEnabled |= 2;
+		      LOGF_INFO("FlipControl: WEST ON  <%i>", flipEnabled);
+		  } else {
+		      flipEnabled &= 0xfffffffd;
+		      LOGF_INFO("FlipControl: WEST OFF  <%i>", flipEnabled);
+		  }
+	      }
 	    }
-	  }
-	  char valueString[32] = {0};
-	  snprintf(valueString, 32, "%i", flipEnabled);
-	  LOGF_INFO("FlipControl: <%s>", valueString);
-	  setGeminiProperty(FLIP_POINTS_ENABLED_ID, valueString);
+	    char valueString[16] = {0};
+	    snprintf(valueString, 16, "%i", flipEnabled);
+	    LOGF_INFO("FlipControl: <%s>", valueString);
+	    if(!setGeminiProperty(FLIP_POINTS_ENABLED_ID, valueString))
+	    {
+	        FlipControlSP.s = IPS_ALERT;
+		IDSetSwitch(&FlipControlSP, nullptr);
+		return false;
+	    } else {
+	        FlipControlSP.s = IPS_OK;
+		IDSetSwitch(&FlipControlSP, nullptr);
+		return true;
+	    }
 	}
 	
         if (gemini_software_level_ >= 5.0 && gemini_software_level_ < 6.0 && !strcmp(name, PECControlSP.name))
         {
+	    IUUpdateSwitch(&PECControlSP, states, names, n);
 	    for(int i = 0; i<n; ++i){
 	        if (!strcmp(names[i], PECControlS[PEC_START_TRAINING].name))
 	        {
 		    char valueString[16] = {0};
-		    setGeminiProperty(PEC_START_TRAINING_ID, valueString);
+		    if(!setGeminiProperty(PEC_START_TRAINING_ID, valueString))
+		    {
+		        PECControlSP.s = IPS_ALERT;
+			IDSetSwitch(&PECControlSP, nullptr);
+			return false;
+		    }
 	        } else if (!strcmp(names[i], PECControlS[PEC_ABORT_TRAINING].name))
 	        {
 		    char valueString[16] = {0};
-		    setGeminiProperty(PEC_ABORT_TRAINING_ID, valueString);
+		    if(!setGeminiProperty(PEC_ABORT_TRAINING_ID, valueString))
+		    {
+		        PECControlSP.s = IPS_ALERT;
+			IDSetSwitch(&PECControlSP, nullptr);
+			return false;
+		    }
+		    
 	        }
 
 	    }
-	    IUUpdateSwitch(&PECControlSP, states, names, n);
 	    PECControlSP.s = IPS_OK;
 	    IDSetSwitch(&PECControlSP, nullptr);
             return true;
         }
-
-
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -849,16 +998,20 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 	  
 	  
 	    for(int i = 0; i<n; ++i){
-		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_DEGREE_VALUE].name)){
+		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_DEGREE_VALUE].name))
+		{
 		    eastD = values[i];
 		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_MIN_VALUE].name)){
+		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_MIN_VALUE].name))
+		{
 		    eastM = values[i];
 		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_DEGREE_VALUE].name)){
+		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_DEGREE_VALUE].name))
+		{
 		    westD = values[i];
 		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_MIN_VALUE].name)){
+		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_MIN_VALUE].name))
+		{
 		    westM = values[i];
 		}
 	    }
@@ -874,7 +1027,8 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
 	    if (!isSimulation() &&
 		!setGeminiProperty(FLIP_POINT_EAST_ID, east) &&
-		!setGeminiProperty(FLIP_POINT_WEST_ID, west)){
+		!setGeminiProperty(FLIP_POINT_WEST_ID, west))
+	    {
 	        FlipPositionNP.s = IPS_ALERT;
 	        IDSetNumber(&FlipPositionNP, "Error Setting Guiding WE");
 	    }
@@ -912,57 +1066,6 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             PECGuidingSpeedNP.s       = IPS_OK;
             PECGuidingSpeedN[0].value = values[0];
             IDSetNumber(&PECGuidingSpeedNP, "Guiding Speed set to %f", values[0]);
-            return true;
-        }
-        if (gemini_software_level_ >= 6.0 && !strcmp(name, ServoPrecisionNP.name))
-        {
-
-	    for(int i = 0; i<n; ++i){
-	        if (!strcmp(names[i], ServoPrecisionN[SERVO_RA].name))
-		{
-		    uint8_t servo_value = static_cast<uint8_t>(values[i]);
-		    ServoPrecisionN[SERVO_RA].value = (float)(servo_value & 1);
-		}
-	        if (!strcmp(names[i], ServoPrecisionN[SERVO_DEC].name))
-		{
-		    uint8_t servo_value = static_cast<uint8_t>(values[i]);
-		    ServoPrecisionN[SERVO_DEC].value = (float)((servo_value));
-		}
-	    }
-
-	    uint8_t pointingValue;
-	    pointingValue  = static_cast<uint8_t>(ServoPrecisionN[SERVO_RA].value);
-	    pointingValue |= static_cast<uint8_t>(ServoPrecisionN[SERVO_DEC].value) << 1;
-
-            snprintf(valueString, 16, "%u", pointingValue);
-
-	    if (!isSimulation() && !setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
-            {
-                ServoPrecisionNP.s = IPS_ALERT;
-                IDSetNumber(&ServoPrecisionNP, "Error setting servo speed");
-                return false;
-            }
-            ServoPrecisionNP.s       = IPS_OK;
-            ServoPrecisionN[0].value = values[0];
-            IDSetNumber(&ServoPrecisionNP, "Servo Precision %f", values[0]);
-            return true;
-        }
-        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECEnableAtBootNP.name))
-        {
-
-	    uint32_t enable_pec_value = static_cast<uint32_t>(values[0]);
-	    PECEnableAtBootN[0].value = (float)(enable_pec_value);
-            snprintf(valueString, 16, "%u", enable_pec_value);
-
-	    if (!isSimulation() && !setGeminiProperty(PEC_ENABLE_AT_BOOT_ID, valueString))
-            {
-                PECEnableAtBootNP.s = IPS_ALERT;
-                IDSetNumber(&PECEnableAtBootNP, "Error setting pec at boot");
-                return false;
-            }
-            PECEnableAtBootNP.s       = IPS_OK;
-            PECEnableAtBootN[0].value = values[0];
-            IDSetNumber(&PECEnableAtBootNP, "PEC at boot %f", values[0]);
             return true;
         }
     }
@@ -1129,7 +1232,7 @@ bool LX200Gemini::ReadScopeStatus()
     NewRaDec(currentRA, currentDEC);
 
     syncSideOfPier();
-    syncPec();
+    syncState();
     return true;
 }
 
