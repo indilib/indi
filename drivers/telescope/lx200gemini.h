@@ -111,9 +111,6 @@ class LX200Gemini : public LX200Generic
         ISwitch ServoPrecisionS[2];
         ISwitchVectorProperty ServoPrecisionSP;
 
-        INumber PECEnableAtBootN[1];
-        INumberVectorProperty PECEnableAtBootNP;
-
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
 
