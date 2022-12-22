@@ -348,7 +348,7 @@ bool FocusSim::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &DelayNP);
+    DelayNP.save(fp);
 
     return true;
 }

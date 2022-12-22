@@ -385,7 +385,7 @@ bool Telescope::updateProperties()
         {
             defineProperty(&MovementNSSP);
             defineProperty(&MovementWESP);
-            defineProperty(&ReverseMovementSP);
+            defineProperty(ReverseMovementSP);
             if (nSlewRate >= 4)
                 defineProperty(&SlewRateSP);
             defineProperty(&TargetNP);
@@ -496,12 +496,12 @@ bool Telescope::updateProperties()
     {
         controller->updateProperties();
 
-        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+        auto useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick)
         {
             if (isConnected())
             {
-                if (useJoystick->sp[0].s == ISS_ON)
+                if (useJoystick[0].getState() == ISS_ON)
                 {
                     defineProperty(&MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
@@ -667,7 +667,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     }
 
     if (CanGOTO())
-        IUSaveConfigSwitch(fp, &ReverseMovementSP);
+        ReverseMovementSP.save(fp);
 
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
@@ -1593,8 +1593,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     bool rc = controller->ISNewSwitch(dev, name, states, names, n);
     if (rc)
     {
-        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
-        if (useJoystick && useJoystick->sp[0].s == ISS_ON)
+        auto useJoystick = getSwitch("USEJOYSTICK");
+        if (useJoystick && useJoystick[0].getState() == ISS_ON)
         {
             defineProperty(&MotionControlModeTP);
             defineProperty(&LockAxisSP);
@@ -2339,10 +2339,10 @@ void Telescope::processButton(const char *button_n, ISState state)
 
     if (!strcmp(button_n, "ABORTBUTTON"))
     {
-        ISwitchVectorProperty *trackSW = getSwitch("TELESCOPE_TRACK_MODE");
+        auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
         if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY ||
-                (trackSW && trackSW->s == IPS_BUSY))
+                (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };

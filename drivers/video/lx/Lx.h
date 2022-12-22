@@ -74,8 +74,8 @@ class Lx
         const char *getSerialEOL();
         INDI::Property *findbyLabel(INDI::DefaultDevice *dev, char *label);
         // PWC Cameras
-        ISwitchVectorProperty *FlashStrobeSP;
-        ISwitchVectorProperty *FlashStrobeStopSP;
+        INDI::PropertyViewSwitch *FlashStrobeSP;
+        INDI::PropertyViewSwitch *FlashStrobeStopSP;
         enum pwcledmethod
         {
             PWCIOCTL,

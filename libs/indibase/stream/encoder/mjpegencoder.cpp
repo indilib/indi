@@ -64,7 +64,7 @@ const char *MJPEGEncoder::getDeviceName()
     return currentDevice->getDeviceName();
 }
 
-bool MJPEGEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
+bool MJPEGEncoder::upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // We do not support compression
     if (isCompressed)
@@ -90,10 +90,10 @@ bool MJPEGEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, boo
     else
         jpeg_compress_8u_gray(buffer, rawWidth, rawHeight, rawWidth, scale, jpegBuffer, &bufsize, 85);
 
-    bp->blob    = jpegBuffer;
-    bp->bloblen = bufsize;
-    bp->size    = bufsize;
-    strcpy(bp->format, ".stream_jpg");
+    bp->setBlob(jpegBuffer);
+    bp->setBlobLen(bufsize);
+    bp->setSize(bufsize);
+    bp->setFormat(".stream_jpg");
 
     return true;
 }

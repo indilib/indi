@@ -46,31 +46,31 @@ PropertyPrivate::PropertyPrivate(void *property, INDI_PROPERTY_TYPE type)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ITextVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyViewText *property)
     : property(property)
     , type(property ? INDI_TEXT : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(INumberVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyViewNumber *property)
     : property(property)
     , type(property ? INDI_NUMBER : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ISwitchVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyViewSwitch *property)
     : property(property)
     , type(property ? INDI_SWITCH : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(ILightVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyViewLight *property)
     : property(property)
     , type(property ? INDI_LIGHT : INDI_UNKNOWN)
     , registered(property != nullptr)
 { }
 
-PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
+PropertyPrivate::PropertyPrivate(PropertyViewBlob *property)
     : property(property)
     , type(property ? INDI_BLOB : INDI_UNKNOWN)
     , registered(property != nullptr)
@@ -103,11 +103,11 @@ Property::operator const INDI::Property *() const
 #define PROPERTY_CASE(CODE) \
     switch (d->property != nullptr ? d->type : INDI_UNKNOWN) \
     { \
-        case INDI_NUMBER: { auto property = static_cast<PropertyView<INumber> *>(d->property); CODE } break; \
-        case INDI_TEXT:   { auto property = static_cast<PropertyView<IText>   *>(d->property); CODE } break; \
-        case INDI_SWITCH: { auto property = static_cast<PropertyView<ISwitch> *>(d->property); CODE } break; \
-        case INDI_LIGHT:  { auto property = static_cast<PropertyView<ILight>  *>(d->property); CODE } break; \
-        case INDI_BLOB:   { auto property = static_cast<PropertyView<IBLOB>   *>(d->property); CODE } break; \
+        case INDI_NUMBER: { auto property = static_cast<PropertyViewNumber *>(d->property); CODE } break; \
+        case INDI_TEXT:   { auto property = static_cast<PropertyViewText   *>(d->property); CODE } break; \
+        case INDI_SWITCH: { auto property = static_cast<PropertyViewSwitch *>(d->property); CODE } break; \
+        case INDI_LIGHT:  { auto property = static_cast<PropertyViewLight  *>(d->property); CODE } break; \
+        case INDI_BLOB:   { auto property = static_cast<PropertyViewBlob   *>(d->property); CODE } break; \
         default:; \
     }
 
@@ -148,23 +148,23 @@ Property::Property(INDI::PropertyBlob   property)
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
 
-Property::Property(INDI::PropertyView<INumber> *property)
+Property::Property(INDI::PropertyViewNumber *property)
     : d_ptr(new PropertyNumberPrivate(property))
 { }
 
-Property::Property(INDI::PropertyView<IText>   *property)
+Property::Property(INDI::PropertyViewText   *property)
     : d_ptr(new PropertyTextPrivate(property))
 { }
 
-Property::Property(INDI::PropertyView<ISwitch> *property)
+Property::Property(INDI::PropertyViewSwitch *property)
     : d_ptr(new PropertySwitchPrivate(property))
 { }
 
-Property::Property(INDI::PropertyView<ILight>  *property)
+Property::Property(INDI::PropertyViewLight  *property)
     : d_ptr(new PropertyLightPrivate(property))
 { }
 
-Property::Property(INDI::PropertyView<IBLOB>   *property)
+Property::Property(INDI::PropertyViewBlob   *property)
     : d_ptr(new PropertyBlobPrivate(property))
 { }
 
@@ -431,47 +431,47 @@ bool Property::isLabelMatch(const std::string &otherLabel) const
     return false;
 }
 
-PropertyView<INumber> *Property::getNumber() const
+PropertyViewNumber *Property::getNumber() const
 {
     D_PTR(const Property);
     if (d->type == INDI_NUMBER)
-        return static_cast<PropertyView<INumber>*>(d->property);
+        return static_cast<PropertyViewNumber*>(d->property);
 
     return nullptr;
 }
 
-PropertyView<IText> *Property::getText() const
+PropertyViewText *Property::getText() const
 {
     D_PTR(const Property);
     if (d->type == INDI_TEXT)
-        return static_cast<PropertyView<IText>*>(d->property);
+        return static_cast<PropertyViewText*>(d->property);
 
     return nullptr;
 }
 
-PropertyView<ILight> *Property::getLight() const
+PropertyViewLight *Property::getLight() const
 {
     D_PTR(const Property);
     if (d->type == INDI_LIGHT)
-        return static_cast<PropertyView<ILight>*>(d->property);
+        return static_cast<PropertyViewLight*>(d->property);
 
     return nullptr;
 }
 
-PropertyView<ISwitch> *Property::getSwitch() const
+PropertyViewSwitch *Property::getSwitch() const
 {
     D_PTR(const Property);
     if (d->type == INDI_SWITCH)
-        return static_cast<PropertyView<ISwitch>*>(d->property);
+        return static_cast<PropertyViewSwitch*>(d->property);
 
     return nullptr;
 }
 
-PropertyView<IBLOB> *Property::getBLOB() const
+PropertyViewBlob *Property::getBLOB() const
 {
     D_PTR(const Property);
     if (d->type == INDI_BLOB)
-        return static_cast<PropertyView<IBLOB>*>(d->property);
+        return static_cast<PropertyViewBlob*>(d->property);
 
     return nullptr;
 }

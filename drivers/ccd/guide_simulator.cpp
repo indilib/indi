@@ -218,7 +218,7 @@ void GuideSim::ISGetProperties(const char * dev)
     defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
-    defineProperty(&ToggleTimeoutSP);
+    defineProperty(ToggleTimeoutSP);
 }
 
 bool GuideSim::updateProperties()

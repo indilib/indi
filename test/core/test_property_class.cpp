@@ -33,6 +33,8 @@
 #include "indipropertylight.h"
 #include "indipropertyblob.h"
 
+#include <indipropertyview.h>
+
 TEST(CORE_PROPERTY_CLASS, Test_EmptyProperty)
 {
     INDI::Property p;
@@ -63,16 +65,18 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
 {
     INDI::Property p;
 
-    INumberVectorProperty nvp
-    {
-        "device field",
-        "name field",
-        "label field",
-        "group field",
-        IP_RW, 42, IPS_BUSY,
-        nullptr, 0,
-        "timestamp field",
-        nullptr };
+    INDI::PropertyViewNumber nvp;
+    nvp.setDeviceName("device field");
+    nvp.setName("name field");
+    nvp.setLabel("label field");
+    nvp.setGroupName("group field");
+    nvp.setPermission(IP_RW);
+    nvp.setState(IPS_BUSY);
+    nvp.setTimestamp("timestamp field");
+    nvp.setAux(nullptr);
+    nvp.setWidgets(nullptr, 0);
+    nvp.setTimeout(42);
+
 
     // Setting a property makes it registered but NOT meaningful
     p.setProperty(&nvp);

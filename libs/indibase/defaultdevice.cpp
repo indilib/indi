@@ -1059,31 +1059,31 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
 void DefaultDevice::defineProperty(INumberVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<INumber>*>(property)->define();
+    static_cast<PropertyViewNumber*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ITextVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<IText>*>(property)->define();
+    static_cast<PropertyViewText*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ISwitchVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<ISwitch>*>(property)->define();
+    static_cast<PropertyViewSwitch*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ILightVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<ILight>*>(property)->define();
+    static_cast<PropertyViewLight*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<IBLOB>*>(property)->define();
+    static_cast<PropertyViewBlob*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(INDI::Property &property)

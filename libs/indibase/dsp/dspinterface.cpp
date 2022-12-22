@@ -196,10 +196,10 @@ bool Interface::processBLOB(uint8_t* buffer, uint32_t ndims, int* dims, int bits
     bool success = false;
     if(PluginActive)
     {
-        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON
-                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON
-                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")[0].getState() == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")[2].getState() == ISS_ON);
+        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")[1].getState() == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")[2].getState() == ISS_ON);
 
         if (sendCapture || saveCapture)
         {
@@ -254,23 +254,23 @@ void Interface::addFITSKeywords(fitsfile *fptr)
     char fitsString[MAXINDIDEVICE];
 
     // Telescope
-    strncpy(fitsString, m_Device->getText("ACTIVE_DEVICES")->tp[0].text, MAXINDIDEVICE);
+    strncpy(fitsString, m_Device->getText("ACTIVE_DEVICES")[0].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
 
     // Observer
-    strncpy(fitsString, m_Device->getText("FITS_HEADER")->tp[0].text, MAXINDIDEVICE);
+    strncpy(fitsString, m_Device->getText("FITS_HEADER")[0].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name", &status);
 
     // Object
-    strncpy(fitsString, m_Device->getText("FITS_HEADER")->tp[1].text, MAXINDIDEVICE);
+    strncpy(fitsString, m_Device->getText("FITS_HEADER")[1].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
 
-    INumberVectorProperty *nv = m_Device->getNumber("GEOGRAPHIC_COORDS");
-    if(nv != nullptr)
+    auto nv = m_Device->getNumber("GEOGRAPHIC_COORDS");
+    if(!nv)
     {
-        double Lat = nv->np[0].value;
-        double Lon = nv->np[1].value;
-        double El = nv->np[2].value;
+        double Lat = nv[0].getValue();
+        double Lon = nv[1].getValue();
+        double El = nv[2].getValue();
 
         char lat_str[MAXINDIFORMAT];
         char lon_str[MAXINDIFORMAT];
@@ -286,8 +286,8 @@ void Interface::addFITSKeywords(fitsfile *fptr)
     nv = m_Device->getNumber("EQUATORIAL_EOD_COORDS");
     if(nv != nullptr)
     {
-        double RA = nv->np[0].value;
-        double Dec = nv->np[1].value;
+        double RA = nv[0].getValue();
+        double Dec = nv[1].getValue();
 
         INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
         epochPos.rightascension  = RA;
@@ -501,14 +501,14 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
         FILE *fp = nullptr;
 
-        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[1].text;
+        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")[1].getText();
 
-        int maxIndex = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
+        int maxIndex = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")[0].getText(), prefix.c_str(),
                                     format);
 
         if (maxIndex < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text,
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", m_Device->getText("UPLOAD_SETTINGS")[0].getText(),
                    strerror(errno));
             return false;
         }
@@ -533,7 +533,7 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
         char processedFileName[MAXINDINAME];
 
-        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
+        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")[0].getText(), prefix.c_str(),
                  m_Name, format);
 
         fp = fopen(processedFileName, "w");

@@ -605,25 +605,26 @@ void Lx::pwcsetLed(int on, int off)
 void Lx::pwcsetflashon()
 {
     ISState states[2]    = { ISS_ON, ISS_OFF };
-    const char *names[2] = { FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name };
-    dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
+    const char *names[2] = { FlashStrobeSP->at(0)->getName(), FlashStrobeStopSP->at(0)->getName() };
+    dev->ISNewSwitch(device_name, FlashStrobeSP->getName(), &(states[0]), (char **)names, 1);
     //dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
-    FlashStrobeSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeSP, nullptr);
-    FlashStrobeStopSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeStopSP, nullptr);
+    FlashStrobeSP->setState(IPS_OK);
+    FlashStrobeSP->apply();
+    FlashStrobeStopSP->setState(IPS_IDLE);
+    FlashStrobeStopSP->apply();
 }
 
 void Lx::pwcsetflashoff()
 {
     ISState states[2]    = { ISS_OFF, ISS_ON };
-    const char *names[2] = { FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name };
+    const char *names[2] = { FlashStrobeSP->at(0)->getName(), FlashStrobeStopSP->at(0)->getName()};
     //dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
-    dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
-    FlashStrobeStopSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeStopSP, nullptr);
-    FlashStrobeSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeSP, nullptr);
+    dev->ISNewSwitch(device_name, FlashStrobeStopSP->getName(), &(states[1]), (char **)(names + 1), 1);
+    FlashStrobeStopSP->setState(IPS_OK);
+    FlashStrobeStopSP->apply();
+
+    FlashStrobeSP->setState(IPS_IDLE);
+    FlashStrobeSP->apply();
 }
 
 bool Lx::startLxPWC()

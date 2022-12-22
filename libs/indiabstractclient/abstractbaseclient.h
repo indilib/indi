@@ -191,7 +191,7 @@ class AbstractBaseClient : public INDI::BaseMediator
         void startBlob(const char *devName, const char *propName, const char *timestamp);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(IBLOB *bp);
-        void sendOneBlob(INDI::WidgetView<IBLOB> *blob);
+        void sendOneBlob(INDI::WidgetViewBlob *blob);
         /** @brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
         void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
         /** @brief Send closing tag for BLOB command to server */

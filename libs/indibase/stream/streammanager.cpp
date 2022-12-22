@@ -280,8 +280,8 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
     // N is StreamExposureNP[STREAM_DIVISOR].getValue()
     ++frameCountDivider;
     if (
-        (StreamExposureNP[STREAM_DIVISOR].value > 1) &&
-        (frameCountDivider % static_cast<int>(StreamExposureNP[STREAM_DIVISOR].value)) == 0
+        (StreamExposureNP[STREAM_DIVISOR].getValue() > 1) &&
+        (frameCountDivider % static_cast<int>(StreamExposureNP[STREAM_DIVISOR].getValue())) == 0
     )
     {
         return;
@@ -323,8 +323,8 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
         // captured all frames, stream should be close
         if (
-            (RecordStreamSP[RECORD_FRAME].getState() == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP[1].value)) ||
-            (RecordStreamSP[RECORD_TIME ].getState() == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP[0].value * 1000.0))
+            (RecordStreamSP[RECORD_FRAME].getState() == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP[1].getValue())) ||
+            (RecordStreamSP[RECORD_TIME ].getState() == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP[0].getValue() * 1000.0))
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
@@ -503,7 +503,7 @@ void StreamManagerPrivate::asyncStreamThread()
 
 void StreamManagerPrivate::setSize(uint16_t width, uint16_t height)
 {
-    if (width != StreamFrameNP[CCDChip::FRAME_W].value || height != StreamFrameNP[CCDChip::FRAME_H].getValue())
+    if (width != StreamFrameNP[CCDChip::FRAME_W].getValue() || height != StreamFrameNP[CCDChip::FRAME_H].getValue())
     {
         if (PixelFormat == INDI_JPG)
             LOG_WARN("Cannot subframe JPEG streams.");
@@ -643,14 +643,14 @@ bool StreamManagerPrivate::startRecording()
         }
     }
 
-    recorder->setFPS(FpsNP[FPS_AVERAGE].value);
+    recorder->setFPS(FpsNP[FPS_AVERAGE].getValue());
 
     /* pattern substitution */
-    recordfiledir.assign(RecordFileTP[0].text);
+    recordfiledir.assign(RecordFileTP[0].getText());
     expfiledir = expand(recordfiledir, patterns);
     if (expfiledir.at(expfiledir.size() - 1) != '/')
         expfiledir += '/';
-    recordfilename.assign(RecordFileTP[1].text);
+    recordfilename.assign(RecordFileTP[1].getText());
     expfilename = expand(recordfilename, patterns);
     if (expfilename.size() < 4 || expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
         expfilename += recorder->getExtension();
@@ -813,10 +813,10 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
             if (!isRecording)
             {
                 RecordStreamSP.setState(IPS_BUSY);
-                if (RecordStreamSP[RECORD_TIME].s == ISS_ON)
+                if (RecordStreamSP[RECORD_TIME].getState() == ISS_ON)
                     LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP[0].getValue());
-                else if (RecordStreamSP[RECORD_FRAME].s == ISS_ON)
-                    LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP[1].value));
+                else if (RecordStreamSP[RECORD_FRAME].getState() == ISS_ON)
+                    LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP[1].getValue()));
                 else
                     LOG_INFO("Starting video record.");
 
@@ -851,7 +851,7 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         EncoderSP.update(states, names, n);
         EncoderSP.setState(IPS_ALERT);
 
-        const char * selectedEncoder = EncoderSP.findOnSwitch()->name;
+        const char * selectedEncoder = EncoderSP.findOnSwitch()->getName();
 
         for (EncoderInterface * oneEncoder : encoderManager.getEncoderList())
         {
@@ -876,7 +876,7 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         RecorderSP.update(states, names, n);
         RecorderSP.setState(IPS_ALERT);
 
-        const char * selectedRecorder = RecorderSP.findOnSwitch()->name;
+        const char * selectedRecorder = RecorderSP.findOnSwitch()->getName();
 
         for (RecorderInterface * oneRecorder : recorderManager.getRecorderList())
         {
@@ -913,8 +913,8 @@ bool StreamManagerPrivate::ISNewText(const char * dev, const char * name, char *
 
     if (RecordFileTP.isNameMatch(name))
     {
-        IText * tp = RecordFileTP.findWidgetByName("RECORD_FILE_NAME");
-        if (strchr(tp->text, '/'))
+        auto tp = RecordFileTP.findWidgetByName("RECORD_FILE_NAME");
+        if (strchr(tp->getText(), '/'))
         {
             LOG_WARN("Dir. separator (/) not allowed in filename.");
             return true;
@@ -1003,10 +1003,10 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
         double subW = srcFrameInfo.w - StreamFrameNP[CCDChip::FRAME_X].getValue();
         double subH = srcFrameInfo.h - StreamFrameNP[CCDChip::FRAME_Y].getValue();
 
-        StreamFrameNP[CCDChip::FRAME_W].setValue(std::min(StreamFrameNP[CCDChip::FRAME_W].value, subW));
-        StreamFrameNP[CCDChip::FRAME_H].setValue(std::min(StreamFrameNP[CCDChip::FRAME_H].value, subH));
+        StreamFrameNP[CCDChip::FRAME_W].setValue(std::min(StreamFrameNP[CCDChip::FRAME_W].getValue(), subW));
+        StreamFrameNP[CCDChip::FRAME_H].setValue(std::min(StreamFrameNP[CCDChip::FRAME_H].getValue(), subH));
 
-        setSize(StreamFrameNP[CCDChip::FRAME_W].value, StreamFrameNP[CCDChip::FRAME_H].getValue());
+        setSize(StreamFrameNP[CCDChip::FRAME_W].getValue(), StreamFrameNP[CCDChip::FRAME_H].getValue());
 
         StreamFrameNP.apply();
         return true;

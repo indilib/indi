@@ -23,6 +23,7 @@
 
 #include "indidevapi.h"
 #include "indibasetypes.h"
+#include "indiwidgetview.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -52,7 +53,7 @@ class EncoderInterface
 
         virtual bool setSize(uint16_t width, uint16_t height);
 
-        virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) = 0;
+        virtual bool upload(INDI::WidgetViewBlob *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed = false) = 0;
 
         const char *getName();
 

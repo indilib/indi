@@ -446,7 +446,7 @@ void WeatherInterface::createParameterRange(std::string name, std::string label)
 
 bool WeatherInterface::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigNumber(fp, &UpdatePeriodNP);
+    UpdatePeriodNP.save(fp);
     for (int i = 0; i < nRanges; i++)
         IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
     return true;
