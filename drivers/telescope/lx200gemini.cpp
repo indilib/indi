@@ -423,15 +423,12 @@ bool LX200Gemini::updateProperties()
             PECGuidingSpeedN[0].value = guiding_speed_value;
             defineProperty(&PECGuidingSpeedNP);
         }
-        if (gemini_software_level_ >= 5.0 && gemini_software_level_ < 6.0)
-        {
-	    defineProperty(&PECControlSP);
-	    PECControlSP.s = IPS_OK;
-	}
         if (gemini_software_level_ >= 5.0 && getGeminiProperty(PEC_COUNTER_ID, value))
         {
 	    char valueString[32] = {0};
 	    uint32_t pec_counter = 0;
+	    defineProperty(&PECControlSP);
+	    PECControlSP.s = IPS_OK;
 	    sscanf(value, "%u", &pec_counter);
 	    snprintf(valueString, 32, "%i", pec_counter);
 
@@ -626,10 +623,8 @@ bool LX200Gemini::updateProperties()
         deleteProperty(PECGuidingSpeedNP.name);
         deleteProperty(VersionTP.name);
 	deleteProperty(FlipPositionNP.name);
-        if (gemini_software_level_ >= 5.0 && gemini_software_level_ < 6.0)
-        {
-	  deleteProperty(PECControlSP.name);
-	}
+	deleteProperty(FlipControlSP.name);
+	deleteProperty(PECControlSP.name);
     }
 
     return true;
@@ -834,7 +829,7 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 	    }
 	}
 	
-        if (gemini_software_level_ >= 5.0 && gemini_software_level_ < 6.0 && !strcmp(name, PECControlSP.name))
+        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECControlSP.name))
         {
 	    IUUpdateSwitch(&PECControlSP, states, names, n);
 	    for(int i = 0; i<n; ++i){
