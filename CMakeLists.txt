@@ -144,6 +144,15 @@ set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double pr
 set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
 
 # ##################################################################################################
+# #########  Put runtime files together in PE/COFF platforms to enable in-tree execution  ##########
+# ##################################################################################################
+if (WIN32 OR CYGWIN)
+    if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+    endif ()
+endif ()
+
+# ##################################################################################################
 # ####################################  Common Files  ##############################################
 # ##################################################################################################
 include_directories(libs)
