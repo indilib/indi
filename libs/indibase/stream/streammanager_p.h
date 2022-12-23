@@ -201,7 +201,7 @@ class StreamManagerPrivate
         INDI::PropertyNumber StreamFrameNP {4};
 
         /* BLOBs */
-        INDI::PropertyView<IBLOB> *imageBP {nullptr};
+        INDI::PropertyViewBlob *imageBP {nullptr};
 
         // Encoder Selector. It's static now but should this implemented as plugin interface?
         INDI::PropertySwitch EncoderSP {2};

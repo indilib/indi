@@ -116,7 +116,7 @@ bool AstroTrac::initProperties()
     Initialise(this);
 
     // Force the alignment system to always be on
-    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")[0].setState(ISS_ON);
 
     return true;
 }
@@ -128,7 +128,7 @@ void AstroTrac::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
 
-    defineProperty(&MountTypeSP);
+    defineProperty(MountTypeSP);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -145,12 +145,12 @@ bool AstroTrac::updateProperties()
         getVelocity(AXIS_RA);
         getVelocity(AXIS_DE);
 
-        defineProperty(&FirmwareTP);
-        defineProperty(&AccelerationNP);
-        defineProperty(&EncoderNP);
+        defineProperty(FirmwareTP);
+        defineProperty(AccelerationNP);
+        defineProperty(EncoderNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
         // Initial AZ/AL parking position.
         if (InitPark())
@@ -1068,7 +1068,7 @@ bool AstroTrac::SetTrackEnabled(bool enabled)
 bool AstroTrac::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &MountTypeSP);
+    MountTypeSP.save(fp);
     SaveAlignmentConfigProperties(fp);
     return true;
 }

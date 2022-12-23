@@ -282,7 +282,7 @@ void V4L2_Driver::ISGetProperties(const char * dev)
 
         defineProperty(&StackModeSP);
 
-        v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
+        v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].getState() == ISS_ON);
 
 #ifdef WITH_V4L2_EXPERIMENTS
         defineProperty(&ImageDepthSP);
@@ -1939,7 +1939,7 @@ bool V4L2_Driver::StopStreaming()
         return false;
     }
 
-    v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].s == ISS_ON);
+    v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].getState() == ISS_ON);
     return stop_capturing();
 }
 
@@ -1958,17 +1958,16 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     // Format
     auto format = getProperty("V4L2_FORMAT");
     if (format.isValid())
-        IUSaveConfigSwitch(fp, format.getSwitch());
+        format.save(fp);
 
     // Size
     auto size = getProperty("V4L2_SIZE_DISCRETE");
     if (size.isValid())
-        IUSaveConfigSwitch(fp, size.getSwitch());
+        size.save(fp);
 
     auto fps = getProperty("V4L2_FRAMEINT_DISCRETE");
     if (fps.isValid())
-        IUSaveConfigSwitch(fp, fps.getSwitch());
-
+        fps.save(fp);
 
     return Streamer->saveConfigItems(fp);
 }

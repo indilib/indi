@@ -44,31 +44,31 @@ class SkySafariClient : public INDI::BaseClient
 
         void setMount(const std::string &value);
 
-        INumberVectorProperty *getEquatorialCoords()
+        INDI::PropertyViewNumber *getEquatorialCoords()
         {
             return eqCoordsNP;
         }
         bool sendEquatorialCoords();
 
-        INumberVectorProperty *getGeographiCoords()
+        INDI::PropertyViewNumber *getGeographiCoords()
         {
             return geoCoordsNP;
         }
         bool sendGeographicCoords();
 
-        ISwitchVectorProperty *getGotoMode()
+        INDI::PropertyViewSwitch *getGotoMode()
         {
             return gotoModeSP;
         }
         bool sendGotoMode();
 
-        ISwitchVectorProperty *getMotionNS()
+        INDI::PropertyViewSwitch *getMotionNS()
         {
             return motionNSSP;
         }
         bool setMotionNS();
 
-        ISwitchVectorProperty *getMotionWE()
+        INDI::PropertyViewSwitch *getMotionWE()
         {
             return motionWESP;
         }
@@ -81,7 +81,7 @@ class SkySafariClient : public INDI::BaseClient
 
         bool abort();
 
-        ITextVectorProperty *getTimeUTC()
+        INDI::PropertyViewText *getTimeUTC()
         {
             return timeUTC;
         }
@@ -105,13 +105,13 @@ class SkySafariClient : public INDI::BaseClient
         std::string mount;
         bool isReady, mountOnline;
 
-        ISwitchVectorProperty *mountParkSP = nullptr;
-        ISwitchVectorProperty *gotoModeSP  = nullptr;
-        INumberVectorProperty *eqCoordsNP  = nullptr;
-        INumberVectorProperty *geoCoordsNP = nullptr;
-        ISwitchVectorProperty *abortSP     = nullptr;
-        ISwitchVectorProperty *slewRateSP  = nullptr;
-        ISwitchVectorProperty *motionNSSP  = nullptr;
-        ISwitchVectorProperty *motionWESP  = nullptr;
-        ITextVectorProperty *timeUTC       = nullptr;
+        INDI::PropertyViewSwitch *mountParkSP = nullptr;
+        INDI::PropertyViewSwitch *gotoModeSP  = nullptr;
+        INDI::PropertyViewNumber *eqCoordsNP  = nullptr;
+        INDI::PropertyViewNumber *geoCoordsNP = nullptr;
+        INDI::PropertyViewSwitch *abortSP     = nullptr;
+        INDI::PropertyViewSwitch *slewRateSP  = nullptr;
+        INDI::PropertyViewSwitch *motionNSSP  = nullptr;
+        INDI::PropertyViewSwitch *motionWESP  = nullptr;
+        INDI::PropertyViewText   *timeUTC     = nullptr;
 };

@@ -449,7 +449,7 @@ void SkySafari::processCommand(std::string cmd)
     // Get RA
     else if (cmd == "GR")
     {
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        auto eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
             LOG_WARN("Unable to communicate with mount, is mount turned on and connected?");
@@ -458,14 +458,14 @@ void SkySafari::processCommand(std::string cmd)
 
         int hh, mm, ss;
         char output[32] = { 0 };
-        getSexComponents(eqCoordsNP->np[AXIS_RA].value, &hh, &mm, &ss);
+        getSexComponents(eqCoordsNP->at(AXIS_RA)->getValue(), &hh, &mm, &ss);
         snprintf(output, 32, "%02d:%02d:%02d#", hh, mm, ss);
         sendSkySafari(output);
     }
     // Get DE
     else if (cmd == "GD")
     {
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        auto eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
             LOG_WARN("Unable to communicate with mount, is mount turned on and connected?");
@@ -473,8 +473,8 @@ void SkySafari::processCommand(std::string cmd)
         }
         int dd, mm, ss;
         char output[32] = { 0 };
-        getSexComponents(eqCoordsNP->np[AXIS_DE].value, &dd, &mm, &ss);
-        snprintf(output, 32, "%c%02d:%02d:%02d#", (eqCoordsNP->np[AXIS_DE].value >= 0) ? '+' : '-',
+        getSexComponents(eqCoordsNP->at(AXIS_DE)->getValue(), &dd, &mm, &ss);
+        snprintf(output, 32, "%c%02d:%02d:%02d#", (eqCoordsNP->at(AXIS_DE)->getValue() >= 0) ? '+' : '-',
                  std::abs(dd), mm, ss);
         sendSkySafari(output);
     }
@@ -495,7 +495,7 @@ void SkySafari::processCommand(std::string cmd)
     // GOTO
     else if (cmd == "MS")
     {
-        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        auto gotoModeSP = skySafariClient->getGotoMode();
         if (gotoModeSP == nullptr)
         {
             sendSkySafari("2<Not Supported>#");
@@ -503,20 +503,20 @@ void SkySafari::processCommand(std::string cmd)
         }
 
         // Set mode first
-        ISwitch *trackSW = IUFindSwitch(gotoModeSP, "TRACK");
+        auto trackSW = gotoModeSP->findWidgetByName("TRACK");
         if (trackSW == nullptr)
         {
             sendSkySafari("2<Not Supported>#");
             return;
         }
 
-        IUResetSwitch(gotoModeSP);
-        trackSW->s = ISS_ON;
+        gotoModeSP->reset();
+        trackSW->setState(ISS_ON);
         skySafariClient->sendGotoMode();
 
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
-        eqCoordsNP->np[AXIS_RA].value     = RA;
-        eqCoordsNP->np[AXIS_DE].value     = DE;
+        auto eqCoordsNP = skySafariClient->getEquatorialCoords();
+        eqCoordsNP->at(AXIS_RA)->setValue(RA);
+        eqCoordsNP->at(AXIS_DE)->setValue(DE);
         skySafariClient->sendEquatorialCoords();
 
         sendSkySafari("0");
@@ -524,7 +524,7 @@ void SkySafari::processCommand(std::string cmd)
     // Sync
     else if (cmd == "CM")
     {
-        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        auto gotoModeSP = skySafariClient->getGotoMode();
         if (gotoModeSP == nullptr)
         {
             sendSkySafari("Not Supported#");
@@ -532,20 +532,20 @@ void SkySafari::processCommand(std::string cmd)
         }
 
         // Set mode first
-        ISwitch *syncSW = IUFindSwitch(gotoModeSP, "SYNC");
+        auto syncSW = gotoModeSP->findWidgetByName("SYNC");
         if (syncSW == nullptr)
         {
             sendSkySafari("Not Supported#");
             return;
         }
 
-        IUResetSwitch(gotoModeSP);
-        syncSW->s = ISS_ON;
+        gotoModeSP->reset();
+        syncSW->setState(ISS_ON);
         skySafariClient->sendGotoMode();
 
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
-        eqCoordsNP->np[AXIS_RA].value     = RA;
-        eqCoordsNP->np[AXIS_DE].value     = DE;
+        auto eqCoordsNP = skySafariClient->getEquatorialCoords();
+        eqCoordsNP->at(AXIS_RA)->setValue(RA);
+        eqCoordsNP->at(AXIS_DE)->setValue(DE);
         skySafariClient->sendEquatorialCoords();
 
         sendSkySafari(" M31 EX GAL MAG 3.5 SZ178.0'#");
@@ -578,84 +578,84 @@ void SkySafari::processCommand(std::string cmd)
     // Mn
     else if (cmd == "Mn")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        auto motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
-            IUResetSwitch(motionNSNP);
-            motionNSNP->sp[0].s = ISS_ON;
+            motionNSNP->reset();
+            motionNSNP->at(0)->setState(ISS_ON);
             skySafariClient->setMotionNS();
         }
     }
     // Qn
     else if (cmd == "Qn")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        auto motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
-            IUResetSwitch(motionNSNP);
+            motionNSNP->reset();
             skySafariClient->setMotionNS();
         }
     }
     // Ms
     else if (cmd == "Ms")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        auto motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
-            IUResetSwitch(motionNSNP);
-            motionNSNP->sp[1].s = ISS_ON;
+            motionNSNP->reset();
+            motionNSNP->at(1)->setState(ISS_ON);
             skySafariClient->setMotionNS();
         }
     }
     // Qs
     else if (cmd == "Qs")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        auto motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
-            IUResetSwitch(motionNSNP);
+            motionNSNP->reset();
             skySafariClient->setMotionNS();
         }
     }
     // Mw
     else if (cmd == "Mw")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        auto motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
-            IUResetSwitch(motionWENP);
-            motionWENP->sp[0].s = ISS_ON;
+            motionWENP->reset();
+            motionWENP->at(0)->setState(ISS_ON);
             skySafariClient->setMotionWE();
         }
     }
     // Qw
     else if (cmd == "Qw")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        auto motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
-            IUResetSwitch(motionWENP);
+            motionWENP->reset();
             skySafariClient->setMotionWE();
         }
     }
     // Me
     else if (cmd == "Me")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        auto motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
-            IUResetSwitch(motionWENP);
-            motionWENP->sp[1].s = ISS_ON;
+            motionWENP->reset();
+            motionWENP->at(1)->setState(ISS_ON);
             skySafariClient->setMotionWE();
         }
     }
     // Qe
     else if (cmd == "Qe")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        auto motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
-            IUResetSwitch(motionWENP);
+            motionWENP->reset();
             skySafariClient->setMotionWE();
         }
     }
@@ -663,15 +663,15 @@ void SkySafari::processCommand(std::string cmd)
 
 void SkySafari::sendGeographicCoords()
 {
-    INumberVectorProperty *geographicCoords = skySafariClient->getGeographiCoords();
+    auto geographicCoords = skySafariClient->getGeographiCoords();
     if (geographicCoords && haveLatitude && haveLongitude)
     {
-        INumber *latitude  = IUFindNumber(geographicCoords, "LAT");
-        INumber *longitude = IUFindNumber(geographicCoords, "LONG");
+        auto latitude  = geographicCoords->findWidgetByName("LAT");
+        auto longitude = geographicCoords->findWidgetByName("LONG");
         if (latitude && longitude)
         {
-            latitude->value  = siteLatitude;
-            longitude->value = siteLongitude;
+            latitude->setValue(siteLatitude);
+            longitude->setValue(siteLongitude);
             skySafariClient->sendGeographicCoords();
 
             // Reset
@@ -703,7 +703,7 @@ bool SkySafari::sendSkySafari(const char *message)
 
 void SkySafari::sendUTCtimedate()
 {
-    ITextVectorProperty *timeUTC = skySafariClient->getTimeUTC();
+    auto timeUTC = skySafariClient->getTimeUTC();
     if (timeUTC && haveUTCoffset && haveUTCtime && haveUTCdate)
     {
         int yyyy = timeYear;
@@ -730,8 +730,8 @@ void SkySafari::sendUTCtimedate()
                  utcdate.minutes, (int)(utcdate.seconds));
         snprintf(bufOff, 8, "%4.2f", timeUTCOffset);
 
-        IUSaveText(IUFindText(timeUTC, "UTC"), bufDT);
-        IUSaveText(IUFindText(timeUTC, "OFFSET"), bufOff);
+        timeUTC->findWidgetByName("UTC")->setText(bufDT);
+        timeUTC->findWidgetByName("OFFSET")->setText(bufOff);
 
         LOGF_DEBUG("send to timedate. %s, %s", bufDT, bufOff);
 

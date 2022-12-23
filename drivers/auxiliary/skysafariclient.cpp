@@ -100,15 +100,15 @@ bool SkySafariClient::parkMount()
     if (mountParkSP == nullptr)
         return false;
 
-    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
+    auto sw = mountParkSP->findWidgetByName("PARK");
 
     if (sw == nullptr)
         return false;
 
-    IUResetSwitch(mountParkSP);
-    sw->s = ISS_ON;
+    mountParkSP->reset();
+    sw->setState(ISS_ON);
 
-    mountParkSP->s = IPS_BUSY;
+    mountParkSP->setState(IPS_BUSY);
 
     sendNewSwitch(mountParkSP);
 
@@ -120,7 +120,7 @@ bool SkySafariClient::parkMount()
 ***************************************************************************************/
 IPState SkySafariClient::getMountParkState()
 {
-    return mountParkSP->s;
+    return mountParkSP->getState();
 }
 
 /**************************************************************************************
@@ -131,7 +131,7 @@ bool SkySafariClient::sendEquatorialCoords()
     if (eqCoordsNP == nullptr)
         return false;
 
-    eqCoordsNP->s = IPS_BUSY;
+    eqCoordsNP->setState(IPS_BUSY);
     sendNewNumber(eqCoordsNP);
     return true;
 }
@@ -144,7 +144,7 @@ bool SkySafariClient::sendGeographicCoords()
     if (geoCoordsNP == nullptr)
         return false;
 
-    geoCoordsNP->s = IPS_BUSY;
+    geoCoordsNP->setState(IPS_BUSY);
     sendNewNumber(geoCoordsNP);
     return true;
 }
@@ -169,7 +169,7 @@ bool SkySafariClient::abort()
     if (abortSP == nullptr)
         return false;
 
-    abortSP->sp[0].s = ISS_ON;
+    abortSP->at(0)->setState(ISS_ON);
 
     sendNewSwitch(abortSP);
     return true;
@@ -183,7 +183,7 @@ bool SkySafariClient::setSlewRate(int slewRate)
     if (slewRateSP == nullptr)
         return false;
 
-    int maxSlewRate = slewRateSP->nsp - 1;
+    int maxSlewRate = slewRateSP->count() - 1;
 
     int finalSlewRate = slewRate;
 
@@ -191,8 +191,8 @@ bool SkySafariClient::setSlewRate(int slewRate)
     if (slewRate > 0 && slewRate < maxSlewRate)
         finalSlewRate = static_cast<int>(ceil(slewRate * maxSlewRate / 3.0));
 
-    IUResetSwitch(slewRateSP);
-    slewRateSP->sp[finalSlewRate].s = ISS_ON;
+    slewRateSP->reset();
+    slewRateSP->at(finalSlewRate)->setState(ISS_ON);
 
     sendNewSwitch(slewRateSP);
 

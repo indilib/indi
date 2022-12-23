@@ -40,8 +40,8 @@ PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
 #ifdef INDI_PROPERTY_RAW_CAST
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(RawPropertyType *rawProperty)
-    : PropertyContainer<T>{*static_cast<PropertyView<T>*>(rawProperty)}
-    , PropertyPrivate(rawProperty)
+    : PropertyContainer<T>{*PropertyView<T>::cast(rawProperty)}
+    , PropertyPrivate(PropertyView<T>::cast(rawProperty))
     , raw{true}
 { }
 #endif

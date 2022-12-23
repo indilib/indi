@@ -53,11 +53,11 @@ class PropertyPrivate
         std::function<void()> onUpdateCallback;
 
         PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
-        PropertyPrivate(ITextVectorProperty *property);
-        PropertyPrivate(INumberVectorProperty *property);
-        PropertyPrivate(ISwitchVectorProperty *property);
-        PropertyPrivate(ILightVectorProperty *property);
-        PropertyPrivate(IBLOBVectorProperty *property);
+        PropertyPrivate(PropertyViewText *property);
+        PropertyPrivate(PropertyViewNumber *property);
+        PropertyPrivate(PropertyViewSwitch *property);
+        PropertyPrivate(PropertyViewLight *property);
+        PropertyPrivate(PropertyViewBlob *property);
 
         virtual ~PropertyPrivate();
 
