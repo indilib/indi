@@ -57,6 +57,10 @@
 #define IMPL_POSIX
 #endif
 
+#ifdef __GNU__
+#define IMPL_POSIX
+#endif
+
 #ifdef __OpenBSD__
 #define IMPL_SHM_MKSTEMP
 #endif
