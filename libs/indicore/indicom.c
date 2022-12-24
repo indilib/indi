@@ -71,6 +71,10 @@
 #include <sys/ioctl.h>
 #endif
 
+#ifdef __GNU__
+#include <sys/ioctl.h>
+#endif
+
 #ifdef _WIN32
 #undef CX
 #undef CY
