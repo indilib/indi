@@ -16,7 +16,7 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
 endif()
 
 include(CMakeCommon)
-include(CheckFunctionExists)
+include(CheckSymbolExists)
 
 # Clang Format support
 if(UNIX OR APPLE)
@@ -103,7 +103,8 @@ endif()
 
 OPTION(INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
-CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
 
 if(HAVE_MREMAP)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MREMAP")

@@ -7,9 +7,10 @@ endif()
 
 add_library(${PROJECT_NAME} OBJECT "")
 
-CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
-CHECK_FUNCTION_EXISTS(timespec_get HAVE_TIMESPEC_GET)
-CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
+check_symbol_exists(timespec_get time.h HAVE_TIMESPEC_GET)
+check_symbol_exists(clock_gettime time.h HAVE_CLOCK_GETTIME)
 
 configure_file(indiapi.h.in indiapi.h @ONLY)
 
