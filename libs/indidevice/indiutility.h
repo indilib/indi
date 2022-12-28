@@ -67,7 +67,7 @@ namespace INDI
  * @brief Create a path directory - this function uses 'mkdir'
  * @note Not available on Windows. Need to use C++17 cross-platform std::filesystem later.
  */
-#ifndef _WINDOWS
+#ifndef _WIN32
 int mkpath(std::string path, mode_t mode);
 #endif
 /**

@@ -26,7 +26,7 @@
 namespace INDI
 {
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 int mkpath(std::string s, mode_t mode)
 {
     size_t pre = 0, pos;
