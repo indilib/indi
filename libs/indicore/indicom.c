@@ -322,7 +322,11 @@ void IDLog(const char *fmt, ...)
 double time_ns()
 {
     struct timespec ts;
-#ifdef __APPLE__ // OS X does not have clock_gettime, use clock_get_time
+#if defined(HAVE_TIMESPEC_GET)
+    timespec_get(&ts, TIME_UTC);
+#elif defined(HAVE_CLOCK_GETTIME)
+    clock_gettime(CLOCK_REALTIME, &ts);
+#elif defined(__APPLE__) // OS X does not have clock_gettime, use clock_get_time
     clock_serv_t cclock;
     mach_timespec_t mts;
     host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
@@ -331,7 +335,7 @@ double time_ns()
     ts.tv_sec = mts.tv_sec;
     ts.tv_nsec = mts.tv_nsec;
 #else
-    timespec_get(&ts, TIME_UTC);
+    #error "Unsupported platform"
 #endif
     return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
 }
@@ -382,24 +386,24 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
     INDI_UNUSED(timeout_microseconds);
     return TTY_ERRNO;
     #else
-    
+
     if (fd == -1)
         return TTY_ERRNO;
-    
+
     struct timeval tv;
     fd_set readout;
     int retval;
-    
+
     FD_ZERO(&readout);
     FD_SET(fd, &readout);
-    
+
     /* wait for 'timeout' seconds + microseconds */
     tv.tv_sec  = timeout_seconds;
     tv.tv_usec = timeout_microseconds;
-    
+
     /* Wait till we have a change in the fd status */
     retval = select(fd + 1, &readout, NULL, NULL, &tv);
-    
+
     /* Return 0 on successful fd change */
     if (retval > 0)
         return TTY_OK;
@@ -409,7 +413,7 @@ int tty_timeout_microseconds(int fd, long timeout_seconds, long timeout_microsec
     /* Return -2 if time expires before anything interesting happens */
     else
         return TTY_TIME_OUT;
-    
+
     #endif
 }
 
@@ -471,7 +475,7 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
     return tty_write(fd, buf, nbytes, nbytes_written);
 }
 
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) 
+int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 {
     return tty_read_expanded(fd, buf, nbytes, timeout, 0, nbytes_read);
 }
@@ -973,6 +977,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     if (t_fd == -1)
         return TTY_PORT_BUSY;
 
+#if !defined(__CYGWIN__)
     // Set port in exclusive mode to prevent other non-root processes from opening it.
     // JM 2019-08-12: Do not set it when ignored
     if (ignore_exclusive_close == 0 && ioctl(t_fd, TIOCEXCL) == -1)
@@ -981,6 +986,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         close(t_fd);
         return TTY_PORT_FAILURE;
     }
+#endif
 
     // Get the current options and save them so we can restore the default settings later.
     if (tcgetattr(t_fd, &tty_setting) == -1)

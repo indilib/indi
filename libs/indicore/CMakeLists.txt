@@ -7,7 +7,10 @@ endif()
 
 add_library(${PROJECT_NAME} OBJECT "")
 
-CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
+check_symbol_exists(timespec_get time.h HAVE_TIMESPEC_GET)
+check_symbol_exists(clock_gettime time.h HAVE_CLOCK_GETTIME)
 
 configure_file(indiapi.h.in indiapi.h @ONLY)
 
@@ -48,8 +51,13 @@ if(NOT WIN32)
         shm_open_anon.c)
 endif()
 
+target_compile_definitions(${PROJECT_NAME}
+  PUBLIC
+    $<$<BOOL:${NOVA_FOUND}>:HAVE_LIBNOVA>
+    $<$<BOOL:${HAVE_TIMESPEC_GET}>:HAVE_TIMESPEC_GET>
+    $<$<BOOL:${HAVE_CLOCK_GETTIME}>:HAVE_CLOCK_GETTIME>
+)
 if(NOVA_FOUND)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC "-DHAVE_LIBNOVA")
     target_link_libraries(${PROJECT_NAME} ${NOVA_LIBRARIES})
     target_include_directories(${PROJECT_NAME} PRIVATE ${NOVA_INCLUDE_DIR})
 

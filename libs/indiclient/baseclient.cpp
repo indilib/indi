@@ -36,6 +36,10 @@
 # include <unistd.h>
 #endif
 
+#ifndef __linux__
+# include <fcntl.h>
+#endif
+
 namespace INDI
 {
 
