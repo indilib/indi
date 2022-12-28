@@ -251,20 +251,27 @@ IPState UranusMeteo::updateGPS()
             time_t raw_time = GPSNP[GPSTime].getValue();
 
             // Convert to UTC
-            struct tm *utc = gmtime(&raw_time);
+            // JM 2022.12.28: Uranus returns LOCAL TIME, not UTC.
+            struct tm *local = localtime(&raw_time);
+            // Get UTC Offset
+            auto utcOffset = local->tm_gmtoff / 3600.0;
+            // Convert to UTC time
+            time_t utcTime = raw_time - utcOffset * 3600.0;
+            // Get tm struct in UTC
+            struct tm *utc = gmtime(&utcTime);
+            // Format it
             strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
             IUSaveText(&TimeT[0], ts);
 
-            // Save UTC offset
-            struct tm *local = localtime(&raw_time);
-            snprintf(ts, sizeof(ts), "%.2f", (local->tm_gmtoff / 3600.0));
+            snprintf(ts, sizeof(ts), "%.2f", utcOffset);
             IUSaveText(&TimeT[1], ts);
 
-            // Set UTC in device
+            // Set UTC offset in device
             char command[PEGASUS_LEN] = {0};
-            snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>((local->tm_gmtoff / 3600.0)));
+            snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>(utcOffset));
             sendCommand(command, response);
 
+            // N.B. FIXME, does not work.
             setSystemTime(raw_time);
 
             return IPS_OK;
@@ -533,7 +540,9 @@ bool UranusMeteo::setSystemTime(time_t &raw_time)
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
     timespec sTime = {};
     sTime.tv_sec = raw_time;
-    clock_settime(CLOCK_REALTIME, &sTime);
+    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
+    if (rc)
+        LOGF_WARN("Failed to update system time: %s", strerror(rc));
 #else
     stime(&raw_time);
 #endif
