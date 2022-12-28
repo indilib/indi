@@ -348,7 +348,10 @@ bool BaseClient::disconnectServer(int exit_code)
 
     d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
-    return d->clientSocket.waitForDisconnected();
+    bool ret = d->clientSocket.waitForDisconnected();
+    // same behavior as in `BaseClientQt::disconnectServer`
+    serverDisconnected(exit_code);
+    return ret;
 }
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
