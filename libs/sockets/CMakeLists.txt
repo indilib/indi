@@ -18,14 +18,15 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     tcpsocket.cpp
 )
 
-if(WIN32)
-    list(APPEND ${PROJECT_NAME}_SOURCES
-        tcpsocket_win.cpp
-    )
-else()
+if(UNIX)
     list(APPEND ${PROJECT_NAME}_SOURCES
         tcpsocket_unix.cpp
     )
+else()
+    list(APPEND ${PROJECT_NAME}_SOURCES
+        tcpsocket_win.cpp
+    )
+    target_link_libraries(${PROJECT_NAME} -lws2_32)
 endif()
 
 # Setup Target
