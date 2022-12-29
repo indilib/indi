@@ -18,7 +18,9 @@
 #include "tcpsocket.h"
 #include "tcpsocket_p.h"
 
+#ifdef _MSC_VER
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 bool TcpSocketPrivate::createSocket(int domain)
 {
