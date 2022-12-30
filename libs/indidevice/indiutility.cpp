@@ -23,10 +23,31 @@
 #include "indiutility.h"
 #include <cerrno>
 
+#ifdef _MSC_VER
+
+#include <direct.h>
+
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
+#endif
+
+#define mkdir _mkdir
+
+#endif
+
 namespace INDI
 {
 
-#ifndef _WINDOWS
+int mkdir(const char *path, mode_t mode)
+{
+#ifdef _WIN32
+    INDI_UNUSED(mode);
+    return ::mkdir(path);
+#else
+    return ::mkdir(path, mode);
+#endif
+}
+
 int mkpath(std::string s, mode_t mode)
 {
     size_t pre = 0, pos;
@@ -61,7 +82,6 @@ int mkpath(std::string s, mode_t mode)
     }
     return mdret;
 }
-#endif
 
 std::string format_time(const std::tm &tm, const char *format)
 {

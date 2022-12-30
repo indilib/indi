@@ -41,7 +41,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indiuserio.c
 )
 
-if(NOT WIN32)
+if(UNIX)
     list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
         sharedblob_parse.h
         shm_open_anon.h)
