@@ -1,4 +1,4 @@
-name: Package
+name: Debian Packages
 
 on:
   workflow_dispatch:
@@ -27,6 +27,6 @@ jobs:
         with:
           path: 'indi'
 
-      - name: Build INDI Core Package
+      - name: Build INDI Core Packages
         run: |
           indi/scripts/indi-core-deb.sh
