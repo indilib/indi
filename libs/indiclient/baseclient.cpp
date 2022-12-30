@@ -16,9 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
