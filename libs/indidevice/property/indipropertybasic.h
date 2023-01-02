@@ -102,6 +102,7 @@ class PropertyBasic : public INDI::Property
 
     public:
         size_t size() const;
+        size_t count() const { return size(); }
 
     public:
         void reserve(size_t size);
