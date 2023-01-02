@@ -56,8 +56,8 @@ bool UranusMeteo::initProperties()
     WI::initProperties(MAIN_CONTROL_TAB, ENVIRONMENT_TAB);
 
     // To distinguish them from GPS properties.
-    WI::UpdatePeriodNP->setLabel("Weather Update");
-    WI::RefreshSP->setLabel("Weahter Refresh");
+    WI::UpdatePeriodNP.setLabel("Weather Update");
+    WI::RefreshSP.setLabel("Weahter Refresh");
 
     addAuxControls();
 
@@ -232,8 +232,8 @@ IPState UranusMeteo::updateGPS()
             GPSNP[GPSSpeed].setValue(std::stod(result[GPSSpeed]));
             GPSNP[GPSBearing].setValue(std::stod(result[GPSBearing]));
 
-            GPSNP->setState(IPS_OK);
-            GPSNP->apply();
+            GPSNP.setState(IPS_OK);
+            GPSNP.apply();
 
             if (GPSNP[GPSFix].getValue() < 3)
                 return IPS_BUSY;
@@ -320,21 +320,21 @@ bool UranusMeteo::ISNewNumber(const char * dev, const char * name, double values
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Sky Quality Update
-        if (SkyQualityUpdateNP->isNameMatch(name))
+        if (SkyQualityUpdateNP.isNameMatch(name))
         {
             SkyQualityUpdateNP.update(values, names, n);
             auto value = SkyQualityUpdateNP[0].getValue();
             if (value > 0)
             {
                 m_SkyQualityUpdateTimer.start(value * 1000);
-                SkyQualityUpdateNP->setState(IPS_OK);
+                SkyQualityUpdateNP.setState(IPS_OK);
             }
             else
             {
                 LOG_INFO("Sky Quality Update is disabled.");
-                SkyQualityUpdateNP->setState(IPS_IDLE);
+                SkyQualityUpdateNP.setState(IPS_IDLE);
             }
-            SkyQualityUpdateNP->apply();
+            SkyQualityUpdateNP.apply();
             return true;
         }
 
@@ -401,8 +401,8 @@ bool UranusMeteo::readSensors()
             SensorNP[BatteryUsage].setValue(std::stod(result[BatteryUsage]));
             SensorNP[BatteryVoltage].setValue(std::stod(result[BatteryVoltage]));
 
-            SensorNP->setState(IPS_OK);
-            SensorNP->apply();
+            SensorNP.setState(IPS_OK);
+            SensorNP.apply();
             return true;
         }
         catch(...)
@@ -439,8 +439,8 @@ bool UranusMeteo::readSkyQuality()
             SkyQualityNP[VisualSpectrum].setValue(std::stod(result[VisualSpectrum]));
             SkyQualityNP[InfraredSpectrum].setValue(std::stod(result[InfraredSpectrum]));
 
-            SkyQualityNP->setState(IPS_OK);
-            SkyQualityNP->apply();
+            SkyQualityNP.setState(IPS_OK);
+            SkyQualityNP.apply();
             return true;
         }
         catch(...)
@@ -477,8 +477,8 @@ bool UranusMeteo::readClouds()
             CloudsNP[CloudAmbientTemperature].setValue(std::stod(result[CloudAmbientTemperature]));
             CloudsNP[InfraredEmissivity].setValue(std::stod(result[InfraredEmissivity]));
 
-            CloudsNP->setState(IPS_OK);
-            CloudsNP->apply();
+            CloudsNP.setState(IPS_OK);
+            CloudsNP.apply();
             return true;
         }
         catch(...)

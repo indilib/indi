@@ -1190,12 +1190,12 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             return true;
         }
 #endif
-        imageBP->at(0)->setBlob(const_cast<uint8_t *>(buffer));
-        imageBP->at(0)->setBlobLen(nbytes);
-        imageBP->at(0)->setSize(nbytes);
-        imageBP->at(0)->setFormat(".stream_jpg");
-        imageBP->setState(IPS_OK);
-        imageBP->apply();
+        imageBP[0].setBlob(const_cast<uint8_t *>(buffer));
+        imageBP[0].setBlobLen(nbytes);
+        imageBP[0].setSize(nbytes);
+        imageBP[0].setFormat(".stream_jpg");
+        imageBP.setState(IPS_OK);
+        imageBP.apply();
         return true;
     }
 
@@ -1211,7 +1211,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
-        if (encoder->upload(imageBP->at(0), buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
+        if (encoder->upload(&imageBP[0], buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
 #ifdef HAVE_WEBSOCKET
             if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
@@ -1228,19 +1228,19 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             }
 #endif
             // Upload to client now
-            imageBP->setState(IPS_OK);
-            imageBP->apply();
+            imageBP.setState(IPS_OK);
+            imageBP.apply();
             return true;
         }
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (encoder->upload(imageBP->at(0), buffer, nbytes,
+        if (encoder->upload(&imageBP[0], buffer, nbytes,
                             false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             // Upload to client now
-            imageBP->setState(IPS_OK);
-            imageBP->apply();
+            imageBP.setState(IPS_OK);
+            imageBP.apply();
             return true;
         }
     }

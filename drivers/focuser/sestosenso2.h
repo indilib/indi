@@ -137,7 +137,6 @@ class SestoSenso2 : public INDI::Focuser
         };
 
         INDI::PropertySwitch MotorHoldSP {2};
-        ISwitch MotorHoldS[2];
         enum
         {
             MOTOR_HOLD_ON,

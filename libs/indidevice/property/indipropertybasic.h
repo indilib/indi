@@ -97,7 +97,7 @@ class PropertyBasic : public INDI::Property
         void apply() const;
         void define() const;
 
-    public:
+    protected:
         PropertyView<T> * operator &();
 
     public:
@@ -145,7 +145,10 @@ class PropertyBasic : public INDI::Property
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
     public: // deprecated
+        INDI_DEPRECATED("Do not use INDI::PropertyXXX as pointer.")
         INDI::PropertyView<T> *operator->();
+
+        INDI_DEPRECATED("Do not use INDI::PropertyXXX as pointer.")
         INDI::PropertyView<T>  operator*();
 #endif
 };

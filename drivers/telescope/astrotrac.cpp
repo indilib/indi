@@ -170,12 +170,12 @@ bool AstroTrac::updateProperties()
     }
     else
     {
-        deleteProperty(FirmwareTP.getName());
-        deleteProperty(AccelerationNP.getName());
-        deleteProperty(EncoderNP.getName());
+        deleteProperty(FirmwareTP);
+        deleteProperty(AccelerationNP);
+        deleteProperty(EncoderNP);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP->getName());
+        deleteProperty(GuideRateNP);
     }
 
     return true;

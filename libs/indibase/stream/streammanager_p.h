@@ -42,6 +42,7 @@
 #include "indipropertytext.h"
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
+#include "indipropertyblob.h"
 namespace INDI
 {
 
@@ -201,7 +202,7 @@ class StreamManagerPrivate
         INDI::PropertyNumber StreamFrameNP {4};
 
         /* BLOBs */
-        INDI::PropertyViewBlob *imageBP {nullptr};
+        INDI::PropertyBlob imageBP{INDI::Property()};
 
         // Encoder Selector. It's static now but should this implemented as plugin interface?
         INDI::PropertySwitch EncoderSP {2};
