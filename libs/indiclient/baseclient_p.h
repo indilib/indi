@@ -59,7 +59,7 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
         bool connectToHostAndWait(std::string hostname, unsigned short port);
 
     public:
-        size_t sendData(const void *data, size_t size) override;
+        ssize_t sendData(const void *data, size_t size) override;
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
         TcpSocketSharedBlobs clientSocket;

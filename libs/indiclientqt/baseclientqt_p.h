@@ -35,7 +35,7 @@ class BaseClientQtPrivate : public AbstractBaseClientPrivate
         ~BaseClientQtPrivate() = default;
 
     public:
-        size_t sendData(const void *data, size_t size) override;
+        ssize_t sendData(const void *data, size_t size) override;
 
     public:
         void listenINDI();

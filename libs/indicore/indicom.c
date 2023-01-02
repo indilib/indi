@@ -194,7 +194,7 @@ int fs_sexa(char *out, double a, int w, int fracbase)
         return -1;
     }
 
-    return (out - out0);
+    return (int)(out - out0);
 }
 
 /* convert sexagesimal string str AxBxC to double.
@@ -473,8 +473,8 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 
 int tty_write_string(int fd, const char *buf, int *nbytes_written)
 {
-    unsigned int nbytes;
-    nbytes = strlen(buf);
+    int nbytes;
+    nbytes = (int)strlen(buf);
 
     return tty_write(fd, buf, nbytes, nbytes_written);
 }

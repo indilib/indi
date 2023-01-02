@@ -275,7 +275,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 BaseClientPrivate::~BaseClientPrivate()
 { }
 
-size_t BaseClientPrivate::sendData(const void *data, size_t size)
+ssize_t BaseClientPrivate::sendData(const void *data, size_t size)
 {
     return clientSocket.write(static_cast<const char *>(data), size);
 }
