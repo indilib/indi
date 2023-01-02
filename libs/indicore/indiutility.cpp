@@ -87,7 +87,7 @@ std::string format_time(const std::tm &tm, const char *format)
 {
     char cstr[32];
 
-    int size = strftime(cstr, sizeof(cstr), format, &tm);
+    size_t size = strftime(cstr, sizeof(cstr), format, &tm);
 
     return std::string(cstr, size);
 }

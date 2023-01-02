@@ -18,6 +18,7 @@ configure_file(indiapi.h.in indiapi.h @ONLY)
 list(APPEND ${PROJECT_NAME}_HEADERS
     ${CMAKE_CURRENT_BINARY_DIR}/indiapi.h
     indidevapi.h
+    indiutility.h
     lilxml.h
     base64.h
     indicom.h
@@ -33,6 +34,7 @@ list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
 
 # Sources
 list(APPEND ${PROJECT_NAME}_SOURCES
+    indiutility.cpp
     base64.c
     userio.c
     indicom.c
