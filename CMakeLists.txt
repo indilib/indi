@@ -44,10 +44,11 @@ endif()
 # ####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
 # Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
-set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 9)
 set(CMAKE_INDI_VERSION_RELEASE 9)
+
+set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
