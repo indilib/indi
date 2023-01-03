@@ -22,19 +22,21 @@
 #include <algorithm>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <ws2tcpip.h>
 #include <winsock2.h>
 #include <windows.h>
 typedef SOCKET SocketFileDescriptor;
-static const int SocketInvalid = INVALID_SOCKET;
+static const SocketFileDescriptor SocketInvalid = INVALID_SOCKET;
 #else
 #define HAS_EVENT_FD
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h> // select
 typedef int SocketFileDescriptor;
-static const int SocketInvalid = -1;
+static const SocketFileDescriptor SocketInvalid = -1;
 #endif
 
 #include "indimacros.h"
@@ -131,7 +133,7 @@ class Select
 #ifdef HAS_EVENT_FD
             setReadEvent(eventFd.fd());
 #endif
-            readyDesc = ::select(fdMax + 1, &readEvent, &writeEvent, &exceptionEvent, &ts);
+            readyDesc = ::select(int(fdMax) + 1, &readEvent, &writeEvent, &exceptionEvent, &ts);
 #ifdef HAS_EVENT_FD
             if (isReadEvent(eventFd.fd()))
             {

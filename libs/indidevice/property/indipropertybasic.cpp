@@ -310,7 +310,7 @@ template <typename T>
 int PropertyBasic<T>::findWidgetIndexByName(const char *name) const
 {
     auto it = findWidgetByName(name);
-    return it == nullptr ? -1 : it - begin();
+    return int(it == nullptr ? -1 : it - begin());
 }
 
 template <typename T>

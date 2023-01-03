@@ -767,7 +767,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob property, const LilXmlElement 
             size_t base64_encoded_size = element.context().size();
             size_t base64_decoded_size = 3 * base64_encoded_size / 4;
             widget->setBlob(realloc(widget->getBlob(), base64_decoded_size));
-            size_t blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), element.context(), base64_encoded_size);
+            int blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), element.context(), base64_encoded_size);
             widget->setBlobLen(blobLen);
         }
 
@@ -882,7 +882,7 @@ void BaseDevice::addMessage(const std::string &msg)
     d->messageLog.push_back(msg);
     guard.unlock();
 
-    d->mediateNewMessage(*this, d->messageLog.size() - 1);
+    d->mediateNewMessage(*this, int(d->messageLog.size() - 1));
 }
 
 const std::string &BaseDevice::messageQueue(size_t index) const

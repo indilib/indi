@@ -46,7 +46,7 @@ userio AbstractBaseClientPrivate::io;
 AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
     : parent(parent)
 {
-    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    io.write = [](void *user, const void * ptr, size_t count) -> ssize_t
     {
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         return self->sendData(ptr, count);
@@ -57,7 +57,7 @@ AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
-        return self->sendData(message, strlen(message));
+        return int(self->sendData(message, strlen(message)));
     };
 }
 

@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t s_file_write(void *user, const void * ptr, size_t count)
+static ssize_t s_file_write(void *user, const void * ptr, size_t count)
 {
     return fwrite(ptr, 1, count, (FILE *)user);
 }
@@ -41,7 +41,7 @@ const struct userio *userio_file()
     return &s_userio_file;
 }
 
-int userio_printf(const struct userio *io, void *user, const char * format, ...)
+ssize_t userio_printf(const struct userio *io, void *user, const char * format, ...)
 {
     int ret;
     va_list ap;
@@ -51,22 +51,22 @@ int userio_printf(const struct userio *io, void *user, const char * format, ...)
     return ret;
 }
 
-int userio_vprintf(const struct userio *io, void *user, const char * format, va_list arg)
+ssize_t userio_vprintf(const struct userio *io, void *user, const char * format, va_list arg)
 {
     return io->vprintf(user, format, arg);
 }
 
-size_t userio_write(const struct userio *io, void *user, const void * ptr, size_t count)
+ssize_t userio_write(const struct userio *io, void *user, const void * ptr, size_t count)
 {
     return io->write(user, ptr, count);
 }
 
-int userio_prints(const struct userio *io, void *user, const char *str)
+ssize_t userio_prints(const struct userio *io, void *user, const char *str)
 {
     return io->write(user, str, strlen(str));
 }
 
-int userio_putc(const struct userio *io, void *user, int ch)
+ssize_t userio_putc(const struct userio *io, void *user, int ch)
 {
     char c = ch;
     return io->write(user, &c, sizeof(c));

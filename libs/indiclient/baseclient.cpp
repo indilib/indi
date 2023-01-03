@@ -16,9 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
@@ -278,7 +275,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 BaseClientPrivate::~BaseClientPrivate()
 { }
 
-size_t BaseClientPrivate::sendData(const void *data, size_t size)
+ssize_t BaseClientPrivate::sendData(const void *data, size_t size)
 {
     return clientSocket.write(static_cast<const char *>(data), size);
 }

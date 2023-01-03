@@ -48,14 +48,14 @@ bool TcpSocketPrivate::setNonblockSocket()
     return iResult == NO_ERROR;
 }
 
-int TcpSocketPrivate::recvSocket(void *dst, size_t size)
+ssize_t TcpSocketPrivate::recvSocket(void *dst, size_t size)
 {
-    return ::recv(socketFd, static_cast<char *>(dst), size, 0);
+    return ::recv(socketFd, static_cast<char *>(dst), int(size), 0);
 }
 
-int TcpSocketPrivate::sendSocket(const void *src, size_t size)
+ssize_t TcpSocketPrivate::sendSocket(const void *src, size_t size)
 {
-    return ::send(socketFd, static_cast<const char *>(src), size, 0);
+    return ::send(socketFd, static_cast<const char *>(src), int(size), 0);
 }
 
 SocketAddress SocketAddress::afUnix(const std::string &)
