@@ -100,6 +100,12 @@ Property::operator const INDI::Property *() const
 }
 #endif
 
+INDI::Property *Property::self()
+{
+    D_PTR(Property);
+    return isValid() ? &d->self : nullptr;
+}
+
 #define PROPERTY_CASE(CODE) \
     switch (d->property != nullptr ? d->type : INDI_UNKNOWN) \
     { \

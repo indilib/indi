@@ -149,7 +149,8 @@ class DefaultDevice : public ParentDevice
          * save configuration files.
          * \param nvp The number vector property to be defined
          */
-        void defineNumber(INumberVectorProperty *nvp) __attribute__((deprecated));
+        INDI_DEPRECATED("Use defineProperty(INDI::Property &).")
+        void defineNumber(INumberVectorProperty *nvp);
         void defineProperty(INumberVectorProperty *property);
 
         /**
@@ -158,7 +159,8 @@ class DefaultDevice : public ParentDevice
          * configuration files.
          * \param tvp The text vector property to be defined
          */
-        void defineText(ITextVectorProperty *tvp) __attribute__((deprecated));
+        INDI_DEPRECATED("Use defineProperty(INDI::Property &).")
+        void defineText(ITextVectorProperty *tvp);
         void defineProperty(ITextVectorProperty *property);
 
         /**
@@ -167,7 +169,8 @@ class DefaultDevice : public ParentDevice
          * configuration files.
          * \param svp The switch vector property to be defined
          */
-        void defineSwitch(ISwitchVectorProperty *svp) __attribute__((deprecated));
+        INDI_DEPRECATED("Use defineProperty(INDI::Property &).")
+        void defineSwitch(ISwitchVectorProperty *svp);
         void defineProperty(ISwitchVectorProperty *property);
 
         /**
@@ -176,7 +179,8 @@ class DefaultDevice : public ParentDevice
          * configuration files.
          * \param lvp The light vector property to be defined
          */
-        void defineLight(ILightVectorProperty *lvp) __attribute__((deprecated));
+        INDI_DEPRECATED("Use defineProperty(INDI::Property &).")
+        void defineLight(ILightVectorProperty *lvp);
         void defineProperty(ILightVectorProperty *property);
 
         /**
@@ -185,7 +189,8 @@ class DefaultDevice : public ParentDevice
          * save configuration files.
          * \param bvp The BLOB vector property to be defined
          */
-        void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
+        INDI_DEPRECATED("Use defineProperty(INDI::Property &).")
+        void defineBLOB(IBLOBVectorProperty *bvp);
         void defineProperty(IBLOBVectorProperty *property);
 
         void defineProperty(INDI::Property &property);

@@ -79,8 +79,8 @@ bool SimpleSkeleton::initProperties()
 
     // Let's print a list of all device properties
     int i = 0;
-    for(const auto &oneProperty : *getProperties())
-        IDLog("Property #%d: %s\n", i++, oneProperty->getName());
+    for(const auto &oneProperty : getProperties())
+        IDLog("Property #%d: %s\n", i++, oneProperty.getName());
 
     // Set the green light (IPS_OK) for a "Number Property" if changed
     INDI::PropertyNumber number = getNumber("Number Property");
