@@ -171,7 +171,7 @@ extern "C" {
 
 /** \brief read buffer from terminal
  *  \param fd file descriptor
- *  \param buf pointer to store data. Must be initilized and big enough to hold data.
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
  *  \param nbytes number of bytes to read.
  *  \param timeout number of seconds to wait for terminal before a timeout error is issued.
  *  \param nbytes_read the number of bytes read.
@@ -181,7 +181,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
  *  \param fd file descriptor
- *  \param buf pointer to store data. Must be initilized and big enough to hold data.
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
  *  \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
  *  \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued.
  *
@@ -196,7 +196,7 @@ int tty_read_expanded(int fd, char *buf, int nbytes, long timeout_seconds, long 
 
 /** \brief read buffer from terminal with a delimiter
  *  \param fd file descriptor
- *  \param buf pointer to store data. Must be initilized and big enough to hold data.
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
  *  \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
  *  \param timeout number of seconds to wait for terminal before a timeout error is issued.
  *  \param nbytes_read the number of bytes read.
@@ -206,7 +206,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
 
 /** \brief read buffer from terminal with a delimiter
  *  \param fd file descriptor
- *  \param buf pointer to store data. Must be initilized and big enough to hold data.
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
  *  \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
  *  \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
  *  \param timeout_seconds number of seconds to wait for terminal before a timeout error is issued.
@@ -223,7 +223,7 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
 
 /** \brief read buffer from terminal with a delimiter
  *  \param fd file descriptor
- *  \param buf pointer to store data. Must be initilized and big enough to hold data.
+ *  \param buf pointer to store data. Must be initialized and big enough to hold data.
  *  \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
  *  \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
  *  \param timeout number of seconds to wait for terminal before a timeout error is issued.

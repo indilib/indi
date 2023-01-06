@@ -1110,7 +1110,7 @@ int V4L2_Base::check_device(char * errmsg)
                      cropcap.defrect.left, cropcap.defrect.width, cropcap.defrect.height);
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, " Crop capabilities: pixelaspect = %d / %d",
                      cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Explicitely resetting crop area to default...");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Explicitly resetting crop area to default...");
         crop.c.top    = cropcap.defrect.top;
         crop.c.left   = cropcap.defrect.left;
         crop.c.width  = cropcap.defrect.width;

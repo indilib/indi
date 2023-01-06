@@ -57,7 +57,7 @@
  *              changes the custom tracking rates while the mount is tracking, it it sent to the child class via SetTrackRate(...) function.
  *              The base class will reject any track rates that switch from positive to negative (reverse) tracking rates as the mount must be stopped before
  *              such change takes place.
- * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropiate TrackMode and TrackRate
+ * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropriate TrackMode and TrackRate
  *               properties before or after engaging tracking as governed by the mount protocol.
  *
  * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class

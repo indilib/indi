@@ -875,7 +875,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 
         //  We were NOT initialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
-        LOGF_DEBUG("Temma is initilized. Latitude: %.2f LST: %.2f", latitude, lst);
+        LOGF_DEBUG("Temma is initialized. Latitude: %.2f LST: %.2f", latitude, lst);
         SetAxis1Park(lst);
 
         LOGF_INFO("Syncing to default home position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());

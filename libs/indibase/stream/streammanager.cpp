@@ -378,7 +378,7 @@ StreamManagerPrivate::FrameInfo StreamManagerPrivate::updateSourceFrameInfo()
                        );
     }
 
-    // If stream frame was not yet initilized, let's do that now
+    // If stream frame was not yet initialized, let's do that now
     if (dstFrameInfo.pixels() == 0)
     {
         //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)

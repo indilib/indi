@@ -520,7 +520,7 @@ bool LX200_TeenAstro::SetCurrentPark()
     }
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
-    LOG_WARN("Park Value set to current postion");
+    LOG_WARN("Park Value set to current position");
     return true;
 }
 

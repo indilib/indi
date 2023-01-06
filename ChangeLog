@@ -302,7 +302,7 @@
     6bdb76b8 2021-10-20 Jasem Mutlaq         Set max possible position to 1317500. Hopefully fixes #1545
     8b0174c3 2021-10-20 Jasem Mutlaq         Fix switch rule
     b218950c 2021-10-15 Jim                  usbfs_memory_mb_fix: exit with TRUE even if the memory is already set (#1546)
-    7ec08c40 2021-10-14 Jasem Mutlaq         Increase maximum possible postion to 1500000. Fixes #1545
+    7ec08c40 2021-10-14 Jasem Mutlaq         Increase maximum possible position to 1500000. Fixes #1545
     2ea67102 2021-10-08 james-lan            OnStep: Update to 1.12 (#1543)
     a4c0a0c5 2021-10-07 nouspiro             Force using hour angle when mount is slewing (#1539)
     463dc8a4 2021-10-07 Michael              Correction the amplification values to spec. (#1541)

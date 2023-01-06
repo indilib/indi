@@ -2421,7 +2421,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     if ((capabilities | TELESCOPE_HAS_PEC) != capabilities)
                     {
                         LOG_INFO("Telescope detected having PEC, setting that capability");
-                        LOGF_DEBUG("capabilites = %x", capabilities);
+                        LOGF_DEBUG("capabilities = %x", capabilities);
                         capabilities |= TELESCOPE_HAS_PEC;
                         SetTelescopeCapability(capabilities, 10 );
                         LX200_OnStep::updateProperties();
@@ -2478,7 +2478,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 if ((capabilities | TELESCOPE_HAS_PIER_SIDE) != capabilities)
                 {
                     LOG_INFO("Telescope detected having Pier Side, adding that capability (many messages duplicated)");
-                    LOGF_DEBUG("capabilites = %x", capabilities);
+                    LOGF_DEBUG("capabilities = %x", capabilities);
                     capabilities |= TELESCOPE_HAS_PIER_SIDE;
                     SetTelescopeCapability(capabilities, 10 );
                     LX200_OnStep::updateProperties();
