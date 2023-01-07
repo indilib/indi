@@ -248,7 +248,7 @@ class Correlator : public SensorInterface
         }
 
         /**
-         * @brief SetCorrelatorCapability Set the Correlator capabilities. Al fields must be initilized.
+         * @brief SetCorrelatorCapability Set the Correlator capabilities. Al fields must be initialized.
          * @param cap pointer to CorrelatorCapability struct.
          */
         void SetCorrelatorCapability(uint32_t cap);

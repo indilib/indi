@@ -60,7 +60,7 @@ class TTYBase
 
         /** \brief read buffer from terminal
             \param fd file descriptor
-            \param buf pointer to store data. Must be initilized and big enough to hold data.
+            \param buf pointer to store data. Must be initialized and big enough to hold data.
             \param nbytes number of bytes to read.
             \param timeout number of seconds to wait for terminal before a timeout error is issued.
             \param nbytes_read the number of bytes read.
