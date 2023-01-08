@@ -36,6 +36,7 @@ class PegasusFlatMaster : public INDI::DefaultDevice, public INDI::LightBoxInter
         virtual ~PegasusFlatMaster() override = default;
 
         const char *getDefaultName() override;
+        void ISGetProperties(const char *dev) override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 

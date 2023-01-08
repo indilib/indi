@@ -77,6 +77,13 @@ bool PegasusFlatMaster::initProperties()
     return true;
 }
 
+void PegasusFlatMaster::ISGetProperties(const char *dev)
+{
+    INDI::DefaultDevice::ISGetProperties(dev);
+
+    // Get Light box properties
+    isGetLightBoxProperties(dev);
+}
 
 bool PegasusFlatMaster::updateProperties()
 {
