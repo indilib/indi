@@ -95,7 +95,7 @@ bool ArduinoST4::Handshake()
 {
     if (isSimulation())
     {
-        LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
+        LOGF_INFO("Connected successfully to simulated %s.", getDeviceName());
         return true;
     }
 

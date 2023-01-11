@@ -485,7 +485,7 @@ inline LilXmlDocument LilXmlParser::readFromFile(const std::string &fileName)
 inline std::list<LilXmlDocument> LilXmlParser::parseChunk(const char *data, size_t size)
 {
     std::list<LilXmlDocument> result;
-    XMLEle ** nodes = parseXMLChunk(mHandle.get(), const_cast<char*>(data), size, mErrorMessage);
+    XMLEle ** nodes = parseXMLChunk(mHandle.get(), const_cast<char*>(data), int(size), mErrorMessage);
     if (nodes != nullptr)
     {    
         for (auto it = nodes; *it; ++it)

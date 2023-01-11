@@ -32,7 +32,7 @@ BaseClientQtPrivate::BaseClientQtPrivate(BaseClientQt *parent)
     : AbstractBaseClientPrivate(parent)
 { }
 
-size_t BaseClientQtPrivate::sendData(const void *data, size_t size)
+ssize_t BaseClientQtPrivate::sendData(const void *data, size_t size)
 {
     return clientSocket.write(static_cast<const char *>(data), size);
 }

@@ -49,7 +49,7 @@ class AbstractBaseClientPrivate
         virtual ~AbstractBaseClientPrivate() = default;
 
     public:
-        virtual size_t sendData(const void *data, size_t size) = 0;
+        virtual ssize_t sendData(const void *data, size_t size) = 0;
 
     public:
         void clear();

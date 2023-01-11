@@ -284,7 +284,7 @@ void Interface::addFITSKeywords(fitsfile *fptr)
     }
 
     nv = m_Device->getNumber("EQUATORIAL_EOD_COORDS");
-    if(nv != nullptr)
+    if(nv)
     {
         double RA = nv[0].getValue();
         double Dec = nv[1].getValue();

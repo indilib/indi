@@ -83,8 +83,8 @@ class TcpSocketPrivate
     public: // platform dependent
         bool createSocket(int domain);
         void closeSocket();
-        int recvSocket(void *dst, size_t size);
-        int sendSocket(const void *src, size_t size);
+        ssize_t recvSocket(void *dst, size_t size);
+        ssize_t sendSocket(const void *src, size_t size);
         bool setNonblockSocket();
 
     public: // low level helpers

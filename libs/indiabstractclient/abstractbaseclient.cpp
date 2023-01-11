@@ -46,7 +46,7 @@ userio AbstractBaseClientPrivate::io;
 AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
     : parent(parent)
 {
-    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    io.write = [](void *user, const void * ptr, size_t count) -> ssize_t
     {
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         return self->sendData(ptr, count);
@@ -57,7 +57,7 @@ AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
-        return self->sendData(message, strlen(message));
+        return int(self->sendData(message, strlen(message)));
     };
 }
 
@@ -502,7 +502,7 @@ void AbstractBaseClient::sendNewText(const char *deviceName, const char *propert
     if (!tvp.isValid())
         return;
 
-    auto tp = tvp->findWidgetByName(elementName);
+    auto tp = tvp.findWidgetByName(elementName);
 
     if (!tp)
         return;
@@ -528,7 +528,7 @@ void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *prope
     if (!nvp.isValid())
         return;
 
-    auto np = nvp->findWidgetByName(elementName);
+    auto np = nvp.findWidgetByName(elementName);
 
     if (!np)
         return;
@@ -552,7 +552,7 @@ void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *prope
     if (!svp.isValid())
         return;
 
-    auto sp = svp->findWidgetByName(elementName);
+    auto sp = svp.findWidgetByName(elementName);
 
     if (!sp)
         return;

@@ -1,0 +1,60 @@
+name: MinGW
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Debug
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
+#         - { sys: mingw32, env: i686 }
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        update: true
+        install: >-
+          mingw-w64-${{matrix.env}}-openssl
+
+          base-devel
+          mingw-w64-${{matrix.env}}-cmake
+          mingw-w64-${{matrix.env}}-gcc
+          mingw-w64-${{matrix.env}}-libnova
+          zlib-devel
+
+    - name: Get INDI Sources
+      uses: actions/checkout@v3
+
+    - name: Build INDI Core
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DINDI_BUILD_SERVER=OFF -DINDI_BUILD_DRIVERS=OFF
+        cmake --build .

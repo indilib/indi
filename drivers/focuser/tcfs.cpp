@@ -512,7 +512,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             {
                 svp.setState(IPS_IDLE);
                 LOG_WARN("Focuser is still in sleep mode. Wake up in order to issue commands.");
-                svp->apply();
+                svp.apply();
             }
             return true;
         }

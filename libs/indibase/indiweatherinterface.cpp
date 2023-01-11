@@ -171,18 +171,18 @@ bool WeatherInterface::processSwitch(const char *dev, const char *name, ISState 
     INDI_UNUSED(dev);
 
     // Refresh
-    if (RefreshSP->isNameMatch(name))
+    if (RefreshSP.isNameMatch(name))
     {
         RefreshSP[0].setState(ISS_OFF);
         RefreshSP.setState(IPS_OK);
-        RefreshSP->apply();
+        RefreshSP.apply();
 
         checkWeatherUpdate();
         return true;
     }
 
     // Override
-    if (OverrideSP->isNameMatch(name))
+    if (OverrideSP.isNameMatch(name))
     {
         OverrideSP.update(states, names, n);
         if (OverrideSP[0].getState() == ISS_ON)
@@ -202,7 +202,7 @@ bool WeatherInterface::processSwitch(const char *dev, const char *name, ISState 
             IDSetLight(&critialParametersLP, nullptr);
         }
 
-        OverrideSP->apply();
+        OverrideSP.apply();
         return true;
     }
 
@@ -214,11 +214,11 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
     INDI_UNUSED(dev);
 
     // Update period
-    if (UpdatePeriodNP->isNameMatch(name))
+    if (UpdatePeriodNP.isNameMatch(name))
     {
         UpdatePeriodNP.update(values, names, n);
-        UpdatePeriodNP->setState(IPS_OK);
-        UpdatePeriodNP->apply();
+        UpdatePeriodNP.setState(IPS_OK);
+        UpdatePeriodNP.apply();
 
         if (UpdatePeriodNP[0].getValue() == 0)
             DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Periodic updates are disabled.");

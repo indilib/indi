@@ -407,7 +407,7 @@ class SensorInterface : public DefaultDevice
         }
 
         /**
-         * @brief SetCapability Set the Sensor capabilities. Al fields must be initilized.
+         * @brief SetCapability Set the Sensor capabilities. Al fields must be initialized.
          * @param cap pointer to SensorCapability struct.
          */
         void SetCapability(uint32_t cap);

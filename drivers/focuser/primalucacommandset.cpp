@@ -88,7 +88,7 @@ bool Communication::sendRequest(const json &command, json *response)
     {
         if (strstr(read_buf, "Error:"))
         {
-            LOGF_ERROR("Requred %s failed: %s", command.dump().c_str(), read_buf);
+            LOGF_ERROR("Required %s failed: %s", command.dump().c_str(), read_buf);
             return false;
         }
         *response = json::parse(read_buf)["res"];

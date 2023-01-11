@@ -160,7 +160,7 @@ class Receiver : public virtual SensorInterface
         }
 
         /**
-         * @brief SetReceiverCapability Set the Receiver capabilities. Al fields must be initilized.
+         * @brief SetReceiverCapability Set the Receiver capabilities. Al fields must be initialized.
          * @param cap pointer to ReceiverCapability struct.
          */
         void SetReceiverCapability(uint32_t cap);

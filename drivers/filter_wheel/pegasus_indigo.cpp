@@ -71,7 +71,7 @@ bool PegasusINDIGO::updateProperties()
     {
         // Main Control
         getFirmware();
-        defineProperty(&FirmwareTP);
+        defineProperty(FirmwareTP);
     }
     else
     {

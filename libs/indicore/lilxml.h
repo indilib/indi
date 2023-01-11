@@ -286,12 +286,12 @@ extern void prXMLEle(FILE *fp, XMLEle *e, int level);
 *   N.B. set level = 0 on first call.
 *   \return return length of resulting string (sans trailing @\0@)
 */
-extern int sprXMLEle(char *s, XMLEle *ep, int level);
+extern size_t sprXMLEle(char *s, XMLEle *ep, int level);
 
 /** \brief return number of bytes in a string guaranteed able to hold result of sprXLMEle(ep) (sans trailing @\0@).
 *   N.B. set level = 0 on first call.
 */
-extern int sprlXMLEle(XMLEle *ep, int level);
+extern size_t sprlXMLEle(XMLEle *ep, int level);
 
 /** \brief return exact position of cdata of child in printed representation of root
 *   N.B. set level = 0 on first call.

@@ -5,8 +5,8 @@ ADD_EXECUTABLE(test_alignment
 )
 
 TARGET_LINK_LIBRARIES(test_alignment
-    indidriver
     AlignmentDriver
+    indidriver
     ${GTEST_BOTH_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )

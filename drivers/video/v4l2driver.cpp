@@ -1504,7 +1504,7 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
-        if (EncodeFormatSP->findOnSwitchIndex() ==  FORMAT_NATIVE && v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
+        if (EncodeFormatSP.findOnSwitchIndex() ==  FORMAT_NATIVE && v4l_base->getFormat() == V4L2_PIX_FMT_MJPEG)
         {
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             int totalBytes = 0;
