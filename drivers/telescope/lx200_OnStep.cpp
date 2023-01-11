@@ -511,7 +511,7 @@ bool LX200_OnStep::updateProperties()
                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
             defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
         }
-        else     //For OnStepX, up to 9 focusers
+        else     //For OnStepX, up to 6 focusers
         {
             LOG_INFO("Focuser 2 NOT found");
             OSFocuser2 = false;
@@ -1220,13 +1220,13 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             if (ReticS[0].s == ISS_ON)
             {
-                ret = ReticPlus(PortFD);
+                ret = increaseReticleBrightness(PortFD);    //in lx200driver
                 ReticS[0].s = ISS_OFF;
                 IDSetSwitch(&ReticSP, "Bright");
             }
             else
             {
-                ret = ReticMoins(PortFD);
+                ret = decreaseReticleBrightness(PortFD);    //in lx200driver
                 ReticS[1].s = ISS_OFF;
                 IDSetSwitch(&ReticSP, "Dark");
             }
