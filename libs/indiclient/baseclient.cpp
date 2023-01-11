@@ -16,9 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
@@ -34,6 +31,10 @@
 # include <sys/socket.h>
 # include <sys/un.h>
 # include <unistd.h>
+#endif
+
+#ifndef __linux__
+# include <fcntl.h>
 #endif
 
 namespace INDI
@@ -274,7 +275,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 BaseClientPrivate::~BaseClientPrivate()
 { }
 
-size_t BaseClientPrivate::sendData(const void *data, size_t size)
+ssize_t BaseClientPrivate::sendData(const void *data, size_t size)
 {
     return clientSocket.write(static_cast<const char *>(data), size);
 }
@@ -348,7 +349,10 @@ bool BaseClient::disconnectServer(int exit_code)
 
     d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
-    return d->clientSocket.waitForDisconnected();
+    bool ret = d->clientSocket.waitForDisconnected();
+    // same behavior as in `BaseClientQt::disconnectServer`
+    serverDisconnected(exit_code);
+    return ret;
 }
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)

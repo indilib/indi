@@ -20,8 +20,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
  */
 
-#ifdef __linux__
 #define _GNU_SOURCE
+
+#ifdef __linux__
 #include <linux/unistd.h>
 #endif
 

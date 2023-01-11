@@ -21,6 +21,8 @@
 #include <memory>
 #include <functional>
 
+#include "indimacros.h"
+
 class TcpSocketPrivate;
 class TcpSocket
 {
@@ -77,8 +79,8 @@ class TcpSocket
         void disconnectFromHost();
 
     public:
-        int write(const char *data, int size);
-        int write(const std::string &data);
+        ssize_t write(const char *data, size_t size);
+        ssize_t write(const std::string &data);
 
     public:
         SocketError error() const;

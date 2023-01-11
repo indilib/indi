@@ -42,12 +42,12 @@ bool TcpSocketPrivate::setNonblockSocket()
     return true;
 }
 
-int TcpSocketPrivate::recvSocket(void *dst, size_t size)
+ssize_t TcpSocketPrivate::recvSocket(void *dst, size_t size)
 {
     return ::read(socketFd, dst, size);
 }
 
-int TcpSocketPrivate::sendSocket(const void *src, size_t size)
+ssize_t TcpSocketPrivate::sendSocket(const void *src, size_t size)
 {
     return ::write(socketFd, src, size);
 }

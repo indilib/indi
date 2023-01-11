@@ -105,7 +105,7 @@ const char *SkywatcherAPI::mountTypeToString(uint8_t type)
         case AZGTI:
             return "AZ-GTi";
         default:
-            return "Uknown";
+            return "Unknown";
     }
 }
 

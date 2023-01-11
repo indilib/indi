@@ -132,7 +132,7 @@ bool FlipFlat::Handshake()
 {
     if (isSimulation())
     {
-        LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
+        LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...", getDeviceName());
 
         SetTimer(getCurrentPollingPeriod());
 

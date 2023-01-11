@@ -1307,35 +1307,35 @@ template <>
 inline void PropertyView<IText>::setWidgets(WidgetType *w, size_t size)
 {
     this->tp = w;
-    this->ntp = size;
+    this->ntp = int(size);
 }
 
 template <>
 inline void PropertyView<INumber>::setWidgets(WidgetType *w, size_t size)
 {
     this->np = w;
-    this->nnp = size;
+    this->nnp = int(size);
 }
 
 template <>
 inline void PropertyView<ISwitch>::setWidgets(WidgetType *w, size_t size)
 {
     this->sp = w;
-    this->nsp = size;
+    this->nsp = int(size);
 }
 
 template <>
 inline void PropertyView<ILight>::setWidgets(WidgetType *w, size_t size)
 {
     this->lp = w;
-    this->nlp = size;
+    this->nlp = int(size);
 }
 
 template <>
 inline void PropertyView<IBLOB>::setWidgets(WidgetType *w, size_t size)
 {
     this->bp = w;
-    this->nbp = size;
+    this->nbp = int(size);
 }
 
 template <>

@@ -1757,7 +1757,7 @@ bool PegasusUPB::setupParams()
             uint32_t value = std::stol(res);
             if (value == UINT16_MAX)
             {
-                LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
+                LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropriate for your motor focus type (0-900)",
                           value);
                 FocuserSettingsNP.s = IPS_ALERT;
             }

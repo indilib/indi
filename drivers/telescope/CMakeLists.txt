@@ -10,14 +10,14 @@ add_library(indilx200 SHARED
     lx200driver.cpp
     lx200telescope.cpp)
 
-if(NOT CYGWIN AND NOT WIN32)
+if(NOT WIN32)
     set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT CYGWIN AND NOT WIN32)
+endif(NOT WIN32)
 
-target_compile_definitions(indilx200 PRIVATE "-DHAVE_LIBNOVA")
+target_compile_definitions(indilx200 PRIVATE _XOPEN_SOURCE=700 HAVE_LIBNOVA)
 set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)
 
-target_link_libraries(indilx200 indidevice)
+target_link_libraries(indilx200 indidevice $<$<PLATFORM_ID:CYGWIN>:indidriver>)
 
 install(TARGETS indilx200 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES
@@ -44,6 +44,7 @@ add_executable(indi_lx200_TeenAstro
     lx200driver.cpp
     lx200_TeenAstro.cpp)
 
+target_compile_definitions(indi_lx200_TeenAstro PRIVATE _XOPEN_SOURCE=700)
 target_link_libraries(indi_lx200_TeenAstro indidriver)
 
 install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)
@@ -125,6 +126,8 @@ add_executable(indi_rainbow_telescope
     rainbow.cpp
     lx200driver.cpp)
 
+target_compile_definitions(indi_rainbow_telescope PRIVATE _XOPEN_SOURCE=700)
+
 target_link_libraries(indi_rainbow_telescope indidriver)
 
 install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
@@ -157,7 +160,7 @@ install(TARGETS indi_paramount_telescope RUNTIME DESTINATION bin)
 add_executable(indi_astrotrac_telescope
     astrotrac.cpp)
 
-target_link_libraries(indi_astrotrac_telescope indidriver AlignmentDriver)
+target_link_libraries(indi_astrotrac_telescope AlignmentDriver indidriver)
 
 install(TARGETS indi_astrotrac_telescope RUNTIME DESTINATION bin)
 
@@ -191,7 +194,7 @@ install(TARGETS indi_skycommander_telescope RUNTIME DESTINATION bin)
 add_executable(indi_dsc_telescope
     dsc.cpp)
 
-target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
+target_link_libraries(indi_dsc_telescope AlignmentDriver indidriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
@@ -253,6 +256,6 @@ add_executable(indi_skywatcherAltAzMount
     skywatcherAPIMount.cpp
     skywatcherAPI.cpp)
 
-target_link_libraries(indi_skywatcherAltAzMount indidriver AlignmentDriver)
+target_link_libraries(indi_skywatcherAltAzMount AlignmentDriver indidriver)
 
 install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)

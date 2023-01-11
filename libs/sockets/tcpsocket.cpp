@@ -73,7 +73,7 @@ TcpSocket::TcpSocket(std::unique_ptr<TcpSocketPrivate> &&d)
 
 ssize_t TcpSocketPrivate::write(const void *data, size_t size)
 {
-    int ret;
+    ssize_t ret;
     do
     {
         std::unique_lock<std::mutex> locker(socketStateMutex);
@@ -88,9 +88,10 @@ ssize_t TcpSocketPrivate::write(const void *data, size_t size)
     if (ret < 0)
     {
         setSocketError(TcpSocket::ConnectionRefusedError);
+        return 0;
     }
 
-    return std::max(ret, 0);
+    return ret;
 }
 
 bool TcpSocketPrivate::connectSocket(const std::string &hostName, unsigned short port)
@@ -119,7 +120,7 @@ bool TcpSocketPrivate::connectSocket(const std::string &hostName, unsigned short
     }
 
     // connect to host
-    if (::connect(socketFd, &sockAddr, sockAddr.size()) < 0 && errno != EINPROGRESS)
+    if (::connect(socketFd, &sockAddr, int(sockAddr.size())) < 0 && errno != EINPROGRESS)
     {
         setSocketError(TcpSocket::UnknownSocketError);
         return false;
@@ -348,12 +349,12 @@ void TcpSocket::disconnectFromHost()
     d_ptr->aboutToClose();
 }
 
-int TcpSocket::write(const char *data, int size)
+ssize_t TcpSocket::write(const char *data, size_t size)
 {
     return d_ptr->write(data, size);
 }
 
-int TcpSocket::write(const std::string &data)
+ssize_t TcpSocket::write(const std::string &data)
 {
     return write(data.data(), data.size());
 }

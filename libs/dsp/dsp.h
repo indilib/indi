@@ -27,7 +27,7 @@ extern "C" {
 #define DLL_EXPORT extern
 #endif
 
-#ifdef __linux__
+#if defined __linux__ || defined __CYGWIN__
 #include <endian.h>
 #else
 #define __bswap_16(a) __builtin_bswap16(a)

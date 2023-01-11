@@ -157,7 +157,7 @@ class Dome : public DefaultDevice
             DOME_CAN_ABS_MOVE       = 1 << 1, /*!< Can the dome move to an absolute azimuth position? */
             DOME_CAN_REL_MOVE       = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
             DOME_CAN_PARK           = 1 << 3, /*!< Can the dome park and unpark itself? */
-            DOME_CAN_SYNC           = 1 << 4, /*!< Can the dome sync to arbitrary postion? */
+            DOME_CAN_SYNC           = 1 << 4, /*!< Can the dome sync to arbitrary position? */
             DOME_HAS_SHUTTER        = 1 << 5, /*!< Does the dome has a shutter than can be opened and closed electronically? */
             DOME_HAS_VARIABLE_SPEED = 1 << 6, /*!< Can the dome move in different configurable speeds? */
             DOME_HAS_BACKLASH       = 1 << 7  /*!< Can the dome compensate for backlash? */
@@ -221,7 +221,7 @@ class Dome : public DefaultDevice
         }
 
         /**
-             * @return True if dome has absolute postion encoders.
+             * @return True if dome has absolute position encoders.
              */
         bool CanAbsMove()
         {

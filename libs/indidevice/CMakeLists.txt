@@ -11,7 +11,6 @@ add_library(${PROJECT_NAME} OBJECT "")
 list(APPEND ${PROJECT_NAME}_HEADERS
     indibase.h
     indibasetypes.h
-    indiutility.h
 
     basedevice.h
     parentdevice.h
@@ -51,7 +50,6 @@ list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
 # Sources
 list(APPEND ${PROJECT_NAME}_SOURCES
     indibase.cpp
-    indiutility.cpp
 
     parentdevice.cpp
     basedevice.cpp

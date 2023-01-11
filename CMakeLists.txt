@@ -16,7 +16,7 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
 endif()
 
 include(CMakeCommon)
-include(CheckFunctionExists)
+include(CheckSymbolExists)
 
 # Clang Format support
 if(UNIX OR APPLE)
@@ -42,12 +42,11 @@ if(UNIX OR APPLE)
 endif()
 
 # ####################################  INDI version  ################################################
-# N.B. DO NOT Forget to update version also in indiapi.h
-# Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
-set(INDI_SOVERSION "1")
-set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 9)
+set(CMAKE_INDI_VERSION_MAJOR 2)
+set(CMAKE_INDI_VERSION_MINOR 0)
+set(CMAKE_INDI_VERSION_RELEASE 0)
+
+set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -103,7 +102,8 @@ endif()
 
 OPTION(INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
-CHECK_FUNCTION_EXISTS(mremap HAVE_MREMAP)
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
 
 if(HAVE_MREMAP)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MREMAP")
@@ -142,6 +142,15 @@ endif(INDI_CALCULATE_MINMAX)
 # ##################################################################################################
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
+
+# ##################################################################################################
+# #########  Put runtime files together in PE/COFF platforms to enable in-tree execution  ##########
+# ##################################################################################################
+if (WIN32 OR CYGWIN)
+    if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+    endif ()
+endif ()
 
 # ##################################################################################################
 # ####################################  Common Files  ##############################################
@@ -257,6 +266,9 @@ if(INDI_BUILD_DRIVERS)
         find_package(GSL REQUIRED)
         find_package(JPEG REQUIRED)
         find_library(M_LIB m)
+        if(CYGWIN)
+            find_package(Iconv REQUIRED)
+        endif()
 
         if(CMAKE_VERSION VERSION_LESS 3.12.0)
             set(CURL ${CURL_LIBRARIES})
