@@ -466,27 +466,17 @@ bool LX200Gemini::updateProperties()
 	    getGeminiProperty(FLIP_POINT_EAST_ID, value) &&
 	    getGeminiProperty(FLIP_POINT_WEST_ID, value2))
         {
-	    uint32_t eastDegree = 0;
-	    uint32_t eastMin = 0;
-
-	    uint32_t westDegree = 0;
-	    uint32_t westMin = 0;
+	    double eastSexa;
+	    double westSexa;
 	    
-	    sscanf(value, " %ud%u ", &eastDegree, &eastMin);
-	    IUFillNumber(&FlipPositionN[FLIP_EAST_DEGREE_VALUE], "FLIP_EAST_DEGREE_VALUE", "East Degrees", "%g", 0, 360, 1, eastDegree);
-	    IUFillNumber(&FlipPositionN[FLIP_EAST_MIN_VALUE], "FLIP_EAST_MIN_VALUE", "East Minutes", "%g", 0, 360, 1, eastMin);
+	    f_scansexa(value, &eastSexa);
+	    IUFillNumber(&FlipPositionN[FLIP_EAST_VALUE], "FLIP_EAST_VALUE", "East (dd:mm)", "%060.4m", 0, 90, 0, eastSexa);
 	    
-	    sscanf(value2, " %ud%u ", &westDegree, &westMin);
-	    IUFillNumber(&FlipPositionN[FLIP_WEST_DEGREE_VALUE], "FLIP_WEST_DEGREE_VALUE", "West Degrees", "%g", 0, 360, 1, westDegree);
-	    IUFillNumber(&FlipPositionN[FLIP_WEST_MIN_VALUE], "FLIP_WEST_MIN_VALUE", "West Minutes", "%g", 0, 360, 1, westMin);
+	    f_scansexa(value2, &westSexa);
+	    IUFillNumber(&FlipPositionN[FLIP_WEST_VALUE], "FLIP_WEST_VALUE", "West (dd:mm)", "%060.4m", 0, 90, 0, westSexa);
 
-	    IUFillNumberVector(&FlipPositionNP, FlipPositionN, 4, getDeviceName(), "FLIP_POSITION",
+	    IUFillNumberVector(&FlipPositionNP, FlipPositionN, 2, getDeviceName(), "FLIP_POSITION",
 	     		       "Flip Position", MOTION_TAB, IP_RW, 0, IPS_IDLE);
-	    
-	    LOGF_INFO("FlipValueEastD: <%i>", eastDegree);
-	    LOGF_INFO("FlipValueEastM: <%i>", eastMin);
-	    LOGF_INFO("FlipValueWestD: <%i>", westDegree);
-	    LOGF_INFO("FlipValueWestM: <%i>", westMin);
 
 	    defineProperty(&FlipPositionNP);
 	}
@@ -986,49 +976,44 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (gemini_software_level_ >= 6.0 && !strcmp(name, FlipPositionNP.name))
         {
-	  int eastD = 0;
-	  int eastM = 0;
-	  int westD = 0;
-	  int westM = 0;
-	  
+	    double eastD = 0;
+	    double westD = 0;
 	  
 	    for(int i = 0; i<n; ++i){
-		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_DEGREE_VALUE].name))
+		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_VALUE].name))
 		{
 		    eastD = values[i];
 		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_EAST_MIN_VALUE].name))
-		{
-		    eastM = values[i];
-		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_DEGREE_VALUE].name))
+		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_VALUE].name))
 		{
 		    westD = values[i];
 		}
-		if (!strcmp(names[i], FlipPositionN[FLIP_WEST_MIN_VALUE].name))
-		{
-		    westM = values[i];
-		}
 	    }
-	    char east[16] = {0};
-	    snprintf(east, 16, "%id%i", eastD, eastM);
-	    FlipPositionN[FLIP_EAST_DEGREE_VALUE].value = eastD;
-	    FlipPositionN[FLIP_EAST_MIN_VALUE].value = eastM;
+	    char east[32] = {0};
+	    FlipPositionN[FLIP_EAST_VALUE].value = eastD;
+	    fs_sexa(east, eastD, 2, 60);
 
-	    char west[16] = {0};
-	    snprintf(west, 16, "%id%i", westD, westM);
-	    FlipPositionN[FLIP_WEST_DEGREE_VALUE].value = westD;
-	    FlipPositionN[FLIP_WEST_MIN_VALUE].value = westM;
+	    char west[32] = {0};
+	    FlipPositionN[FLIP_WEST_VALUE].value = westD;
+	    fs_sexa(west, westD, 2, 60);
 
+	    char *colon = strchr(east, ':');
+	    if(colon){
+	      *colon = 'd';
+	    }
+	    colon = strchr(west, ':');
+	    if(colon){
+	      *colon = 'd';
+	    }
 	    if (!isSimulation() &&
-		!setGeminiProperty(FLIP_POINT_EAST_ID, east) &&
-		!setGeminiProperty(FLIP_POINT_WEST_ID, west))
-	    {
-	        FlipPositionNP.s = IPS_ALERT;
-	        IDSetNumber(&FlipPositionNP, "Error Setting Guiding WE");
-	    }
-	    
-	    IDSetNumber(&FlipPositionNP, "OK");
+	    	!setGeminiProperty(FLIP_POINT_EAST_ID, east) ||
+	     	!setGeminiProperty(FLIP_POINT_WEST_ID, west))
+	        {
+		    FlipPositionNP.s = IPS_ALERT;
+		    IDSetNumber(&FlipPositionNP, "Error Setting Flip Points");
+		    return false;
+		}
+	    IDSetNumber(&FlipPositionNP, "FlipPoints East:%s, West:%s", east, west);
             FlipPositionNP.s = IPS_OK;
             return true;
         }
