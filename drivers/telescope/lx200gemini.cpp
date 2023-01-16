@@ -1006,8 +1006,8 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 	      *colon = 'd';
 	    }
 	    if (!isSimulation() &&
-	    	!setGeminiProperty(FLIP_POINT_EAST_ID, east) ||
-	     	!setGeminiProperty(FLIP_POINT_WEST_ID, west))
+	    	(!setGeminiProperty(FLIP_POINT_EAST_ID, east) ||
+		 !setGeminiProperty(FLIP_POINT_WEST_ID, west)))
 	        {
 		    FlipPositionNP.s = IPS_ALERT;
 		    IDSetNumber(&FlipPositionNP, "Error Setting Flip Points");
