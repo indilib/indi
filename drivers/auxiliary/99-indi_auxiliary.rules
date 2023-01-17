@@ -1,8 +1,7 @@
 # Increase usbfs memory to 256MB IF it was less than that.
 # This is general rule for all cameras
-ACTION=="add", SUBSYSTEM=="usb", RUN+="/bin/sh -c 'test -f /sys/module/usbcore/parameters/usbfs_memory_mb && \
-test $$(cat /sys/module/usbcore/parameters/usbfs_memory_mb) -lt 256 && \
-echo 256 > /sys/module/usbcore/parameters/usbfs_memory_mb||true'"
+ACTION=="add", SUBSYSTEM=="usb", RUN+="/bin/sh -c 'FILE=/sys/module/usbcore/parameters/usbfs_memory_mb; \
+test -f $$FILE && MEM=$$(cat $$FILE) && test \"$$MEM\" -lt 256 -a \"$$MEM\" -ne 0 && echo 256 > $$FILE || true'"
 # All FTDI chips
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="134a", MODE="0666"
 # More FTDI chips
