@@ -21,7 +21,6 @@
 #include "indibase.h"
 #include "indiproperty.h"
 #include "indiproperties.h"
-#include "indiutility.h"
 
 #include <string>
 #include <vector>
