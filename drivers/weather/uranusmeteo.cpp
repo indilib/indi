@@ -238,13 +238,13 @@ IPState UranusMeteo::updateGPS()
             if (GPSNP[GPSFix].getValue() < 3)
                 return IPS_BUSY;
 
-            LocationN[LOCATION_LATITUDE].value  = GPSNP[Latitude].getValue();
-            LocationN[LOCATION_LONGITUDE].value = GPSNP[Longitude].getValue();
+            LocationNP[LOCATION_LATITUDE].value  = GPSNP[Latitude].getValue();
+            LocationNP[LOCATION_LONGITUDE].value = GPSNP[Longitude].getValue();
             // 2017-11-15 Jasem: INDI Longitude is 0 to 360 East+
-            if (LocationN[LOCATION_LONGITUDE].value < 0)
-                LocationN[LOCATION_LONGITUDE].value += 360;
+            if (LocationNP[LOCATION_LONGITUDE].value < 0)
+                LocationNP[LOCATION_LONGITUDE].value += 360;
 
-            LocationN[LOCATION_ELEVATION].value = SensorNP[BarometricAltitude].getValue();
+            LocationNP[LOCATION_ELEVATION].value = SensorNP[BarometricAltitude].getValue();
 
             // Get GPS Time
             char ts[32] = {0};
@@ -261,10 +261,10 @@ IPState UranusMeteo::updateGPS()
             struct tm *utc = gmtime(&utcTime);
             // Format it
             strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-            IUSaveText(&TimeT[0], ts);
+            IUSaveText(&TimeTP[0], ts);
 
             snprintf(ts, sizeof(ts), "%.2f", utcOffset);
-            IUSaveText(&TimeT[1], ts);
+            IUSaveText(&TimeTP[1], ts);
 
             // Set UTC offset in device
             char command[PEGASUS_LEN] = {0};
