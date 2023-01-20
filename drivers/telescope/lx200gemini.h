@@ -111,6 +111,9 @@ class LX200Gemini : public LX200Generic
         ISwitch ServoPrecisionS[2];
         ISwitchVectorProperty ServoPrecisionSP;
 
+        INumber PECEnableAtBootN[1];
+        INumberVectorProperty PECEnableAtBootNP;
+
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
 
@@ -120,9 +123,12 @@ class LX200Gemini : public LX200Generic
         ISwitch FlipControlS[2];
         ISwitchVectorProperty FlipControlSP;
 
-        INumber FlipPositionN[4];
+        INumber FlipPositionN[2];
         INumberVectorProperty FlipPositionNP;
-  
+
+        INumber RAFlipPositionN[2];
+        INumberVectorProperty RAFlipPositionNP;
+
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
@@ -233,10 +239,8 @@ class LX200Gemini : public LX200Generic
 
         enum FlipPointValue
 	{
-	    FLIP_EAST_DEGREE_VALUE,
-	    FLIP_EAST_MIN_VALUE,
-	    FLIP_WEST_DEGREE_VALUE,
-	    FLIP_WEST_MIN_VALUE
+	    FLIP_EAST_VALUE,
+	    FLIP_WEST_VALUE
 	};
 
         const uint8_t GEMINI_TIMEOUT = 3;

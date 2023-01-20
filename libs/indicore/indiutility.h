@@ -46,11 +46,14 @@ extern "C"
 inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 {
     const size_t srclen = strlen(src);
-    if (srclen + 1 < maxlen) {
+    if (srclen + 1 < maxlen)
+    {
         memcpy(dst, src, srclen + 1);
-    } else if (maxlen != 0) {
+    }
+    else if (maxlen != 0)
+    {
         memcpy(dst, src, maxlen - 1);
-        dst[maxlen-1] = '\0';
+        dst[maxlen - 1] = '\0';
     }
     return srclen;
 }
@@ -62,7 +65,7 @@ inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 #ifdef __cplusplus
 
 #ifdef _WINDOWS
-typedef unsigned int mode_t;
+typedef int mode_t;
 #endif
 
 namespace INDI
