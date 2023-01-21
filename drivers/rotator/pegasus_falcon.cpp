@@ -20,6 +20,9 @@
 
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
+
+  Corrections by T. Schriber 2022 following
+  'Falcon Rotator Serial Command Language Firmware >=v.1.3 (review Sep 2020)'
 *******************************************************************************/
 
 #include "pegasus_falcon.h"
@@ -136,8 +139,16 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
             IDSetNumber(&DerotateNP, nullptr);
             return true;
         }
+        // Firmware 1.4 bug:
+        // If new angle differs 0.01° the rotator sometimes reports success even though there was no movement!
+        if (!strcmp(name, "ABS_ROTATOR_ANGLE"))
+            if (std::abs(values[0] - GotoRotatorN[0].value) <= 0.01)
+            {
+                GotoRotatorNP.s = IPS_OK;
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                return true;
+            }
     }
-
     return Rotator::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -162,7 +173,7 @@ bool PegasusFalcon::ISNewSwitch(const char * dev, const char * name, ISState * s
 }
 
 //////////////////////////////////////////////////////////////////////
-///
+/// move to degrees (Commmand "MD:nn.nn"; Response "MD:nn.nn")
 //////////////////////////////////////////////////////////////////////
 IPState PegasusFalcon::MoveRotator(double angle)
 {
@@ -170,7 +181,8 @@ IPState PegasusFalcon::MoveRotator(double angle)
     snprintf(cmd, DRIVER_LEN, "MD:%.2f", angle);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
+        return (!strncmp(res, cmd, 8) ? IPS_BUSY : IPS_ALERT);
+        //Restrict length to 8 chars for correct compare
     }
 
     return IPS_ALERT;
@@ -191,7 +203,7 @@ bool PegasusFalcon::AbortRotator()
 }
 
 //////////////////////////////////////////////////////////////////////
-/// Command for reverse action ("FN:0" disabled, "FN:1" enabled)
+/// reverse action ("FN:0" disabled, "FN:1" enabled)
 //////////////////////////////////////////////////////////////////////
 bool PegasusFalcon::ReverseRotator(bool enabled)
 {
