@@ -1,7 +1,7 @@
 /*
     USB Focus V3
     Copyright (C) 2016 G. Schmidt
-    Copyright (C) 2018 Jarno Paananen
+    Copyright (C) 2018-2023 Jarno Paananen
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -158,42 +158,13 @@ class USBFocusV3 : public INDI::Focuser
         };
         float focusMoveRequest{ 0 };
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
-
-        ISwitch StepModeS[2];
-        ISwitchVectorProperty StepModeSP;
-
-        ISwitch RotDirS[2];
-        ISwitchVectorProperty RotDirSP;
-
-        INumber MaxPositionN[1];
-        INumberVectorProperty MaxPositionNP;
-
-        INumber TemperatureSettingN[2];
-        INumberVectorProperty TemperatureSettingNP;
-
-        ISwitch TempCompSignS[2];
-        ISwitchVectorProperty TempCompSignSP;
-
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
-
-        //    INumber BacklashSettingN[1];
-        //    INumberVectorProperty BacklashSettingNP;
-
-        typedef enum
-        {
-            BACKLASH_IN  = 0,
-            BACKLASH_OUT = 1
-        } BacklashDirection;
-
-        //    ISwitch BacklashDirectionS[2];
-        //    ISwitchVectorProperty BacklashDirectionSP;
-
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
-
-        INumber FWversionN[1];
-        INumberVectorProperty FWversionNP;
+        INDI::PropertyNumber TemperatureNP{1};
+        INDI::PropertySwitch StepModeSP{2};
+        INDI::PropertySwitch RotDirSP{2};
+        INDI::PropertyNumber MaxPositionNP{1};
+        INDI::PropertyNumber TemperatureSettingNP{2};
+        INDI::PropertySwitch TempCompSignSP{2};
+        INDI::PropertySwitch TemperatureCompensateSP{2};
+        INDI::PropertySwitch ResetSP{1};
+        INDI::PropertyNumber FWversionNP{1};
 };
