@@ -111,8 +111,8 @@ class LX200Gemini : public LX200Generic
         ISwitch ServoPrecisionS[2];
         ISwitchVectorProperty ServoPrecisionSP;
 
-        INumber PECEnableAtBootN[1];
-        INumberVectorProperty PECEnableAtBootNP;
+//        INumber PECEnableAtBootN[1];
+//        INumberVectorProperty PECEnableAtBootNP;
 
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
@@ -126,8 +126,8 @@ class LX200Gemini : public LX200Generic
         INumber FlipPositionN[2];
         INumberVectorProperty FlipPositionNP;
 
-        INumber RAFlipPositionN[2];
-        INumberVectorProperty RAFlipPositionNP;
+//        INumber RAFlipPositionN[2];
+//        INumberVectorProperty RAFlipPositionNP;
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
