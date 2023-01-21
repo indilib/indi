@@ -81,21 +81,17 @@ class GPS : public DefaultDevice
          */
         virtual bool saveConfigItems(FILE *fp) override;
 
-        //  A number vector that stores lattitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        //  A number vector that stores latitude, longitude and altitude.
+        INDI::PropertyNumber LocationNP {3};
 
         // UTC and UTC Offset
-        IText TimeT[2] {};
-        ITextVectorProperty TimeTP;
+        INDI::PropertyText TimeTP {2};
 
         // Refresh data
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
+        INDI::PropertySwitch RefreshSP {1};
 
         // Refresh Period
-        INumber PeriodN[1];
-        INumberVectorProperty PeriodNP;
+        INDI::PropertyNumber PeriodNP {1};
 
         int timerID = -1;
 };
