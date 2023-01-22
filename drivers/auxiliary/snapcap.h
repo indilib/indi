@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017 Jarno Paananen. All right reserved.
+  Copyright(c) 2017-2023 Jarno Paananen. All right reserved.
 
   Driver for SnapCap dust cap / flat panel
 
@@ -31,8 +31,6 @@
 #include "defaultdevice.h"
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
-
-#include <stdint.h>
 
 namespace Connection
 {
@@ -82,20 +80,16 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         IPState Abort();
 
         // Status
-        ITextVectorProperty StatusTP;
-        IText StatusT[3] {};
+        INDI::PropertyText StatusTP{3};
 
         // Firmware version
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1] {};
+        INDI::PropertyText FirmwareTP{1};
 
         // Abort
-        ISwitch AbortS[1];
-        ISwitchVectorProperty AbortSP;
+        INDI::PropertySwitch AbortSP{1};
 
         // Force open & close
-        ISwitch ForceS[2];
-        ISwitchVectorProperty ForceSP;
+        INDI::PropertySwitch ForceSP{2};
 
         int PortFD{ -1 };
         bool hasLight{ true };

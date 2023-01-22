@@ -1,7 +1,7 @@
 /*
     USB Focus V3
     Copyright (C) 2016 G. Schmidt
-    Copyright (C) 2018 Jarno Paananen
+    Copyright (C) 2018-2023 Jarno Paananen
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,6 +38,7 @@ static std::unique_ptr<USBFocusV3> usbFocusV3(new USBFocusV3());
 
 USBFocusV3::USBFocusV3()
 {
+    setVersion(1, 1);
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -67,55 +68,44 @@ bool USBFocusV3::initProperties()
     FocusSpeedN[0].value = 2;
 
     // Step Mode
-    IUFillSwitch(&StepModeS[UFOPHSTEPS], "HALF", "Half Step", ISS_ON);
-    IUFillSwitch(&StepModeS[UFOPFSTEPS], "FULL", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "STEP_MODE", "Step Mode", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    StepModeSP[UFOPHSTEPS].fill("HALF", "Half Step", ISS_ON);
+    StepModeSP[UFOPFSTEPS].fill("FULL", "Full Step", ISS_OFF);
+    StepModeSP.fill(getDeviceName(), "STEP_MODE", "Step Mode", OPTIONS_TAB, IP_RW,
+                    ISR_1OFMANY, 0, IPS_IDLE);
 
     // Direction
-    IUFillSwitch(&RotDirS[UFOPSDIR], "STANDARD", "Standard rotation", ISS_ON);
-    IUFillSwitch(&RotDirS[UFOPRDIR], "REVERSE", "Reverse rotation", ISS_OFF);
-    IUFillSwitchVector(&RotDirSP, RotDirS, 2, getDeviceName(), "ROTATION_MODE", "Rotation Mode", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    RotDirSP[UFOPSDIR].fill("STANDARD", "Standard rotation", ISS_ON);
+    RotDirSP[UFOPRDIR].fill("REVERSE", "Reverse rotation", ISS_OFF);
+    RotDirSP.fill(getDeviceName(), "ROTATION_MODE", "Rotation Mode", OPTIONS_TAB, IP_RW,
+                  ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Maximum Position
-    IUFillNumber(&MaxPositionN[0], "MAXPOSITION", "Maximum position", "%5.0f", 1., 65535., 0., 65535.);
-    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "FOCUS_MAXPOSITION", "Max. Position",
+    MaxPositionNP[0].fill("MAXPOSITION", "Maximum position", "%5.0f", 1., 65535., 0., 65535.);
+    MaxPositionNP.fill(getDeviceName(), "FOCUS_MAXPOSITION", "Max. Position",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "COEFFICIENT", "Coefficient", "%3.0f", 0., 999., 1., 15.);
-    IUFillNumber(&TemperatureSettingN[1], "THRESHOLD", "Threshold", "%3.0f", 0., 999., 1., 10.);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "TEMPERATURE_SETTINGS",
-                       "Temp. Settings", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    TemperatureSettingNP[0].fill("COEFFICIENT", "Coefficient", "%3.0f", 0., 999., 1., 15.);
+    TemperatureSettingNP[1].fill("THRESHOLD", "Threshold", "%3.0f", 0., 999., 1., 10.);
+    TemperatureSettingNP.fill(getDeviceName(), "TEMPERATURE_SETTINGS",
+                              "Temp. Settings", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Temperature Compensation Sign
-    IUFillSwitch(&TempCompSignS[UFOPNSIGN], "NEGATIVE", "Negative", ISS_OFF);
-    IUFillSwitch(&TempCompSignS[UFOPPSIGN], "POSITIVE", "Positive", ISS_ON);
-    IUFillSwitchVector(&TempCompSignSP, TempCompSignS, 2, getDeviceName(), "TCOMP_SIGN", "TComp. Sign", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    TempCompSignSP[UFOPNSIGN].fill("NEGATIVE", "Negative", ISS_OFF);
+    TempCompSignSP[UFOPPSIGN].fill("POSITIVE", "Positive", ISS_ON);
+    TempCompSignSP.fill(getDeviceName(), "TCOMP_SIGN", "TComp. Sign", OPTIONS_TAB,
+                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "TEMP_COMPENSATION",
-                       "Temp. Comp.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Compensate for temperature
-    //    IUFillSwitch(&BacklashDirectionS[BACKLASH_IN], "IN", "In", ISS_OFF);
-    //    IUFillSwitch(&BacklashDirectionS[BACKLASH_OUT], "OUT", "Out", ISS_ON);
-    //    IUFillSwitchVector(&BacklashDirectionSP, BacklashDirectionS, 2, getDeviceName(), "BACKLASH_DIRECTION",
-    //                       "Backlash direction", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    //    // Backlash compensation steps
-    //    IUFillNumber(&BacklashSettingN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%5.0f", 0., 65535., 1., 0.);
-    //    IUFillNumberVector(&BacklashSettingNP, BacklashSettingN, 1, getDeviceName(), "FOCUS_BACKLASH_STEPS", "Backlash steps",
-    //                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    TemperatureCompensateSP[0].fill("ENABLE", "Enable", ISS_OFF);
+    TemperatureCompensateSP[1].fill("DISABLE", "Disable", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "TEMP_COMPENSATION",
+                                 "Temp. Comp.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     FocusBacklashN[0].min = -65535.;
     FocusBacklashN[0].max = 65535.;
@@ -123,14 +113,14 @@ bool USBFocusV3::initProperties()
     FocusBacklashN[0].value = 0.;
 
     // Reset
-    IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    ResetSP[0].fill("RESET", "Reset", ISS_OFF);
+    ResetSP.fill(getDeviceName(), "RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                 IPS_IDLE);
 
     // Firmware version
-    IUFillNumber(&FWversionN[0], "FIRMWARE", "Firmware Version", "%5.0f", 0., 65535., 1., 0.);
-    IUFillNumberVector(&FWversionNP, FWversionN, 1, getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0,
-                       IPS_IDLE);
+    FWversionNP[0].fill("FIRMWARE", "Firmware Version", "%5.0f", 0., 65535., 1., 0.);
+    FWversionNP.fill(getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
@@ -156,18 +146,16 @@ bool USBFocusV3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&MaxPositionNP);
-        defineProperty(&StepModeSP);
-        defineProperty(&RotDirSP);
-        defineProperty(&MaxPositionNP);
-        defineProperty(&TemperatureSettingNP);
-        defineProperty(&TempCompSignSP);
-        defineProperty(&TemperatureCompensateSP);
-        //        defineProperty(&BacklashDirectionSP);
-        //        defineProperty(&BacklashSettingNP);
-        defineProperty(&ResetSP);
-        defineProperty(&FWversionNP);
+        defineProperty(TemperatureNP);
+        defineProperty(MaxPositionNP);
+        defineProperty(StepModeSP);
+        defineProperty(RotDirSP);
+        defineProperty(MaxPositionNP);
+        defineProperty(TemperatureSettingNP);
+        defineProperty(TempCompSignSP);
+        defineProperty(TemperatureCompensateSP);
+        defineProperty(ResetSP);
+        defineProperty(FWversionNP);
 
         GetFocusParams();
 
@@ -177,17 +165,15 @@ bool USBFocusV3::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(MaxPositionNP.name);
-        deleteProperty(StepModeSP.name);
-        deleteProperty(RotDirSP.name);
-        deleteProperty(TemperatureSettingNP.name);
-        deleteProperty(TempCompSignSP.name);
-        deleteProperty(TemperatureCompensateSP.name);
-        //        deleteProperty(BacklashDirectionSP.name);
-        //        deleteProperty(BacklashSettingNP.name);
-        deleteProperty(ResetSP.name);
-        deleteProperty(FWversionNP.name);
+        deleteProperty(TemperatureNP);
+        deleteProperty(MaxPositionNP);
+        deleteProperty(StepModeSP);
+        deleteProperty(RotDirSP);
+        deleteProperty(TemperatureSettingNP);
+        deleteProperty(TempCompSignSP);
+        deleteProperty(TemperatureCompensateSP);
+        deleteProperty(ResetSP);
+        deleteProperty(FWversionNP);
     }
 
     return true;
@@ -375,29 +361,28 @@ bool USBFocusV3::getControllerStatus()
 
 bool USBFocusV3::updateStepMode()
 {
-    IUResetSwitch(&StepModeSP);
+    StepModeSP.reset();
 
     if (stepmode == UFOPHSTEPS)
-        StepModeS[UFOPHSTEPS].s = ISS_ON;
+        StepModeSP[UFOPHSTEPS].setState(ISS_ON);
     else if (stepmode == UFOPFSTEPS)
-        StepModeS[UFOPFSTEPS].s = ISS_ON;
+        StepModeSP[UFOPFSTEPS].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%d)", stepmode);
         return false;
     }
-
     return true;
 }
 
 bool USBFocusV3::updateRotDir()
 {
-    IUResetSwitch(&RotDirSP);
+    RotDirSP.reset();
 
     if (direction == UFOPSDIR)
-        RotDirS[UFOPSDIR].s = ISS_ON;
+        RotDirSP[UFOPSDIR].setState(ISS_ON);
     else if (direction == UFOPRDIR)
-        RotDirS[UFOPRDIR].s = ISS_ON;
+        RotDirSP[UFOPRDIR].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: rotation direction  (%d)", direction);
@@ -425,7 +410,7 @@ bool USBFocusV3::updateTemperature()
 
             if (rc > 0)
             {
-                TemperatureN[0].value = temp;
+                TemperatureNP[0].setValue(temp);
                 break;
             }
             else
@@ -446,7 +431,7 @@ bool USBFocusV3::updateTemperature()
 
 bool USBFocusV3::updateFWversion()
 {
-    FWversionN[0].value = firmware;
+    FWversionNP[0].setValue(firmware);
     return true;
 }
 
@@ -489,15 +474,15 @@ bool USBFocusV3::updatePosition()
 
 bool USBFocusV3::updateMaxPos()
 {
-    MaxPositionN[0].value = maxpos;
+    MaxPositionNP[0].setValue(maxpos);
     FocusAbsPosN[0].max   = maxpos;
     return true;
 }
 
 bool USBFocusV3::updateTempCompSettings()
 {
-    TemperatureSettingN[0].value = stepsdeg;
-    TemperatureSettingN[1].value = tcomp_thr;
+    TemperatureSettingNP[0].setValue(stepsdeg);
+    TemperatureSettingNP[1].setValue(tcomp_thr);
     return true;
 }
 
@@ -515,12 +500,12 @@ bool USBFocusV3::updateTempCompSign()
 
     if (rc > 0)
     {
-        IUResetSwitch(&TempCompSignSP);
+        TempCompSignSP.reset();
 
         if (sign == UFOPNSIGN)
-            TempCompSignS[UFOPNSIGN].s = ISS_ON;
+            TempCompSignSP[UFOPNSIGN].setState(ISS_ON);
         else if (sign == UFOPPSIGN)
-            TempCompSignS[UFOPPSIGN].s = ISS_ON;
+            TempCompSignSP[UFOPPSIGN].setState(ISS_ON);
         else
         {
             LOGF_ERROR("Unknown error: temp. comp. sign  (%d)", sign);
@@ -632,9 +617,9 @@ bool USBFocusV3::MoveFocuserUF(FocusDirection dir, unsigned int rticks)
         ticks = FocusAbsPosN[0].value;
         LOGF_WARN("Requested %u ticks but inward movement has been limited to %u ticks", rticks, ticks);
     }
-    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + rticks) > MaxPositionN[0].value))
+    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + rticks) > MaxPositionNP[0].getValue()))
     {
-        ticks = MaxPositionN[0].value - FocusAbsPosN[0].value;
+        ticks = MaxPositionNP[0].getValue() - FocusAbsPosN[0].value;
         LOGF_WARN("Requested %u ticks but outward movement has been limited to %u ticks", rticks, ticks);
     }
     else
@@ -815,21 +800,17 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
 
 bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(StepModeSP.name, name) == 0)
-        {
-            bool rc          = false;
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
-            IUUpdateSwitch(&StepModeSP, states, names, n);
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
-            if (current_mode == target_mode)
-            {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
-                return true;
-            }
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
 
+    if (StepModeSP.isNameMatch(name))
+    {
+        int current_mode = StepModeSP.findOnSwitchIndex();
+        StepModeSP.update(states, names, n);
+        int target_mode = StepModeSP.findOnSwitchIndex();
+        if (current_mode != target_mode)
+        {
+            bool rc;
             if (target_mode == UFOPHSTEPS)
                 rc = setStepMode(FOCUS_HALF_STEP);
             else
@@ -837,174 +818,132 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
-
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
-            return true;
         }
-
-        if (strcmp(RotDirSP.name, name) == 0)
-        {
-            bool rc          = false;
-            int current_mode = IUFindOnSwitchIndex(&RotDirSP);
-            IUUpdateSwitch(&RotDirSP, states, names, n);
-            int target_mode = IUFindOnSwitchIndex(&RotDirSP);
-            if (current_mode == target_mode)
-            {
-                RotDirSP.s = IPS_OK;
-                IDSetSwitch(&RotDirSP, nullptr);
-                return true;
-            }
-
-            rc = setRotDir(target_mode);
-            if (!rc)
-            {
-                IUResetSwitch(&RotDirSP);
-                RotDirS[current_mode].s = ISS_ON;
-                RotDirSP.s              = IPS_ALERT;
-                IDSetSwitch(&RotDirSP, nullptr);
-                return false;
-            }
-
-            RotDirSP.s = IPS_OK;
-            IDSetSwitch(&RotDirSP, nullptr);
-            return true;
-        }
-
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
-        {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
-
-            bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
-
-            if (!rc)
-            {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
-                return false;
-            }
-
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
-            return true;
-        }
-
-        if (strcmp(TempCompSignSP.name, name) == 0)
-        {
-            bool rc          = false;
-            int current_mode = IUFindOnSwitchIndex(&TempCompSignSP);
-            IUUpdateSwitch(&TempCompSignSP, states, names, n);
-            int target_mode = IUFindOnSwitchIndex(&TempCompSignSP);
-            if (current_mode == target_mode)
-            {
-                TempCompSignSP.s = IPS_OK;
-                IDSetSwitch(&TempCompSignSP, nullptr);
-                return true;
-            }
-
-            rc = setTempCompSign(target_mode);
-            if (!rc)
-            {
-                IUResetSwitch(&TempCompSignSP);
-                TempCompSignS[current_mode].s = ISS_ON;
-                TempCompSignSP.s              = IPS_ALERT;
-                IDSetSwitch(&TempCompSignSP, nullptr);
-                return false;
-            }
-
-            TempCompSignSP.s = IPS_OK;
-            IDSetSwitch(&TempCompSignSP, nullptr);
-            return true;
-        }
-
-        //        if (strcmp(BacklashDirectionSP.name, name) == 0)
-        //        {
-        //            IUUpdateSwitch(&BacklashDirectionSP, states, names, n);
-        //            int target_direction  = IUFindOnSwitchIndex(&BacklashDirectionSP);
-        //            backlashIn            = (target_direction == BACKLASH_IN);
-        //            BacklashDirectionSP.s = IPS_OK;
-        //            IDSetSwitch(&BacklashDirectionSP, nullptr);
-        //            return true;
-        //        }
-
-        if (strcmp(ResetSP.name, name) == 0)
-        {
-            IUResetSwitch(&ResetSP);
-
-            if (reset())
-                ResetSP.s = IPS_OK;
-            else
-                ResetSP.s = IPS_ALERT;
-
-            IDSetSwitch(&ResetSP, nullptr);
-            return true;
-        }
+        StepModeSP.setState(IPS_OK);
+        StepModeSP.apply();
+        return true;
     }
 
+    if (RotDirSP.isNameMatch(name))
+    {
+        int current_mode = RotDirSP.findOnSwitchIndex();
+        RotDirSP.update(states, names, n);
+        int target_mode = RotDirSP.findOnSwitchIndex();
+        if (current_mode != target_mode)
+        {
+            if (!setRotDir(target_mode))
+            {
+                RotDirSP.reset();
+                RotDirSP[current_mode].setState(ISS_ON);
+                RotDirSP.setState(IPS_ALERT);
+                RotDirSP.apply();
+                return false;
+            }
+        }
+
+        RotDirSP.setState(IPS_OK);
+        RotDirSP.apply();
+        return true;
+    }
+
+    if (TemperatureCompensateSP.isNameMatch(name))
+    {
+        int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+        TemperatureCompensateSP.update(states, names, n);
+        int target_index = TemperatureCompensateSP.findOnSwitchIndex();
+
+        if (last_index != target_index)
+        {
+            if (!setTemperatureCompensation((TemperatureCompensateSP[0].getState() == ISS_ON)))
+            {
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
+                return false;
+            }
+        }
+        TemperatureCompensateSP.setState(IPS_OK);
+        TemperatureCompensateSP.apply();
+        return true;
+    }
+
+    if (TempCompSignSP.isNameMatch(name))
+    {
+        int current_mode = TempCompSignSP.findOnSwitchIndex();
+        TempCompSignSP.update(states, names, n);
+        int target_mode = TempCompSignSP.findOnSwitchIndex();
+        if (current_mode != target_mode)
+        {
+            if (!setTempCompSign(target_mode))
+            {
+                TempCompSignSP.reset();
+                TempCompSignSP[current_mode].setState(ISS_ON);
+                TempCompSignSP.setState(IPS_ALERT);
+                TempCompSignSP.apply();
+                return false;
+            }
+        }
+        TempCompSignSP.setState(IPS_OK);
+        TempCompSignSP.apply();
+        return true;
+    }
+
+    if (ResetSP.isNameMatch(name))
+    {
+        ResetSP.reset();
+
+        if (reset())
+            ResetSP.setState(IPS_OK);
+        else
+            ResetSP.setState(IPS_ALERT);
+
+        ResetSP.apply();
+        return true;
+    }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (MaxPositionNP.isNameMatch(name))
     {
-        if (strcmp(name, MaxPositionNP.name) == 0)
+        MaxPositionNP.update(values, names, n);
+        if (!setMaxPos(MaxPositionNP[0].getValue()))
         {
-            IUUpdateNumber(&MaxPositionNP, values, names, n);
-            if (!setMaxPos(MaxPositionN[0].value))
-            {
-                MaxPositionNP.s = IPS_ALERT;
-                IDSetNumber(&MaxPositionNP, nullptr);
-                return false;
-            }
-            MaxPositionNP.s = IPS_OK;
-            IDSetNumber(&MaxPositionNP, nullptr);
-            return true;
+            MaxPositionNP.setState(IPS_ALERT);
+            MaxPositionNP.apply();
+            return false;
         }
-
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
-        {
-            IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setAutoTempCompThreshold(TemperatureSettingN[1].value) ||
-                    !setTemperatureCoefficient(TemperatureSettingN[UFOPNSIGN].value))
-            {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
-                return false;
-            }
-
-            TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, nullptr);
-            return true;
-        }
-
-        //        if (strcmp(name, BacklashSettingNP.name) == 0)
-        //        {
-        //            IUUpdateNumber(&BacklashSettingNP, values, names, n);
-        //            backlashSteps       = std::round(BacklashSettingN[0].value);
-        //            BacklashSettingNP.s = IPS_OK;
-        //            IDSetNumber(&BacklashSettingNP, nullptr);
-        //            return true;
-        //        }
-
-        if (strcmp(name, FWversionNP.name) == 0)
-        {
-            IUUpdateNumber(&FWversionNP, values, names, n);
-            FWversionNP.s = IPS_OK;
-            IDSetNumber(&FWversionNP, nullptr);
-            return true;
-        }
+        MaxPositionNP.setState(IPS_OK);
+        MaxPositionNP.apply();
+        return true;
     }
 
+    if (TemperatureSettingNP.isNameMatch(name))
+    {
+        TemperatureSettingNP.update(values, names, n);
+        if (!setAutoTempCompThreshold(TemperatureSettingNP[1].getValue()) ||
+                !setTemperatureCoefficient(TemperatureSettingNP[UFOPNSIGN].getValue()))
+        {
+            TemperatureSettingNP.setState(IPS_ALERT);
+            TemperatureSettingNP.apply();
+            return false;
+        }
+
+        TemperatureSettingNP.setState(IPS_OK);
+        TemperatureSettingNP.apply();
+        return true;
+    }
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -1017,39 +956,35 @@ void USBFocusV3::GetFocusParams()
 
     if (updateMaxPos())
     {
-        IDSetNumber(&MaxPositionNP, nullptr);
+        MaxPositionNP.apply();
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
     if (updateTempCompSettings())
-        IDSetNumber(&TemperatureSettingNP, nullptr);
+        TemperatureSettingNP.apply();
 
     if (updateTempCompSign())
-        IDSetSwitch(&TempCompSignSP, nullptr);
+        TempCompSignSP.apply();
 
     if (updateSpeed())
         IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (updateStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
+        StepModeSP.apply();
 
     if (updateRotDir())
-        IDSetSwitch(&RotDirSP, nullptr);
+        RotDirSP.apply();
 
     if (updateFWversion())
-        IDSetNumber(&FWversionNP, nullptr);
+        FWversionNP.apply();
 }
 
 bool USBFocusV3::SetFocuserSpeed(int speed)
 {
-    bool rc = false;
-
-    rc = setSpeed(speed);
-
-    if (!rc)
+    if (!setSpeed(speed))
         return false;
 
     currentSpeed = speed;
@@ -1085,7 +1020,6 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    bool rc = false;
     uint32_t aticks;
 
     if ((dir == FOCUS_INWARD) && (ticks > FocusAbsPosN[0].value))
@@ -1095,17 +1029,15 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
                "Requested %u ticks but relative inward movement has been limited to %u ticks", ticks, aticks);
         ticks = aticks;
     }
-    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + ticks) > MaxPositionN[0].value))
+    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + ticks) > MaxPositionNP[0].getValue()))
     {
-        aticks = MaxPositionN[0].value - FocusAbsPosN[0].value;
+        aticks = MaxPositionNP[0].getValue() - FocusAbsPosN[0].value;
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Requested %u ticks but relative outward movement has been limited to %u ticks", ticks, aticks);
         ticks = aticks;
     }
 
-    rc = MoveFocuserUF(dir, (unsigned int)ticks);
-
-    if (!rc)
+    if (!MoveFocuserUF(dir, (unsigned int)ticks))
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
@@ -1121,9 +1053,7 @@ void USBFocusV3::TimerHit()
         return;
     }
 
-    bool rc = updatePosition();
-
-    if (rc)
+    if (updatePosition())
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
         {
@@ -1132,14 +1062,12 @@ void USBFocusV3::TimerHit()
         }
     }
 
-    rc = updateTemperature();
-
-    if (rc)
+    if (updateTemperature())
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
@@ -1223,12 +1151,3 @@ bool USBFocusV3::SetFocuserBacklash(int32_t steps)
 
     return true;
 }
-
-//bool USBFocusV3::saveConfigItems(FILE *fp)
-//{
-//    INDI::Focuser::saveConfigItems(fp);
-
-//    IUSaveConfigNumber(fp, &BacklashSettingNP);
-//    IUSaveConfigSwitch(fp, &BacklashDirectionSP);
-//    return true;
-//}
