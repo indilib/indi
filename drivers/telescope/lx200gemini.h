@@ -35,6 +35,8 @@ class LX200Gemini : public LX200Generic
         ~LX200Gemini() override = default;
 
         virtual void ISGetProperties(const char *dev) override;
+    
+        /* Return True if any property was successfully processed, false otherwise.*/
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char **texts, char **names, int n) override;
@@ -111,8 +113,8 @@ class LX200Gemini : public LX200Generic
         ISwitch ServoPrecisionS[2];
         ISwitchVectorProperty ServoPrecisionSP;
 
-//        INumber PECEnableAtBootN[1];
-//        INumberVectorProperty PECEnableAtBootNP;
+        INumber PECEnableAtBootN[1];
+        INumberVectorProperty PECEnableAtBootNP;
 
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
@@ -126,8 +128,8 @@ class LX200Gemini : public LX200Generic
         INumber FlipPositionN[2];
         INumberVectorProperty FlipPositionNP;
 
-//        INumber RAFlipPositionN[2];
-//        INumberVectorProperty RAFlipPositionNP;
+        INumber RAFlipPositionN[2];
+        INumberVectorProperty RAFlipPositionNP;
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
