@@ -21,6 +21,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 
 typedef enum { GPS_OFF, GPS_ON, GPS_DATA_OK } IEQ_GPS_STATUS;
 typedef enum
