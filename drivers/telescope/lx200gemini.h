@@ -110,26 +110,20 @@ class LX200Gemini : public LX200Generic
         INumber PECMaxStepsN[1];
         INumberVectorProperty PECMaxStepsNP;
   
-        ISwitch ServoPrecisionS[2];
-        ISwitchVectorProperty ServoPrecisionSP;
-
-        INumber PECEnableAtBootN[1];
-        INumberVectorProperty PECEnableAtBootNP;
-
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
 
         INumber PECGuidingSpeedN[1];
         INumberVectorProperty PECGuidingSpeedNP;
 
+        ISwitch ServoPrecisionS[2];
+        ISwitchVectorProperty ServoPrecisionSP;
+
         ISwitch FlipControlS[2];
         ISwitchVectorProperty FlipControlSP;
 
         INumber FlipPositionN[2];
         INumberVectorProperty FlipPositionNP;
-
-        INumber RAFlipPositionN[2];
-        INumberVectorProperty RAFlipPositionNP;
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
