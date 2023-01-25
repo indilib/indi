@@ -31,6 +31,7 @@ Updated driver to use INDI::Telescope (JM)
 
 #include "lx200_10micron.h"
 #include "lx200_16.h"
+#include "lx200tcs.h"
 #include "lx200_OnStep.h"
 #include "lx200_OpenAstroTech.h"
 #include "lx200ap.h"
@@ -79,6 +80,11 @@ static class Loader
             {
                 IDLog("initializing from LX200 OnStep device...\n");
                 telescope.reset(new LX200_OnStep());
+            }
+            else if (strstr(__progname, "indi_lx200tcs"))
+            {
+                IDLog("initializing from LX200 TCS device...\n");
+                telescope.reset(new TCSBase());
             }
             else if (strstr(__progname, "indi_lx200gps"))
             {

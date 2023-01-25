@@ -31,6 +31,10 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.17</version>
         </device>
+        <device label="LX200 TCS" manufacturer="Astro-Alliance">
+            <driver name="LX200 TCS">indi_lx200tcs</driver>
+            <version>1.0</version>
+        </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
             <version>0.9</version>
