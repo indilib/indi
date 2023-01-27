@@ -31,7 +31,6 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
 #include "lx200gemini.h"
 
 #include "indicom.h"
@@ -198,10 +197,138 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&PECEnableAtBootS[0], "ENABLE_PEC_AT_BOOT", "Enable PEC at boot", ISS_OFF);
     IUFillSwitchVector(&PECEnableAtBootSP, PECEnableAtBootS, 1, getDeviceName(), "ENABLE_PEC_AT_BOOT",
                        "PEC Setting", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    // Flip points
+    IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_OFF);
+    IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_OFF);
+    IUFillSwitchVector(&FlipControlSP, FlipControlS, 2, getDeviceName(), "FLIP_CONTROL",
+                       "Flip Control", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
+    IUFillNumber(&FlipPositionN[FLIP_EAST_VALUE], "FLIP_EAST_VALUE", "East (dd:mm)", "%060.4m", 0, 90, 0, 0.0);
+    IUFillNumber(&FlipPositionN[FLIP_WEST_VALUE], "FLIP_WEST_VALUE", "West (dd:mm)", "%060.4m", 0, 90, 0, 0.0);
+    IUFillNumberVector(&FlipPositionNP, FlipPositionN, 2, getDeviceName(), "FLIP_POSITION",
+                       "Flip Position", MOTION_TAB, IP_RW, 0, IPS_IDLE);
     
+    // Refraction
+    IUFillSwitch(&RefractionControlS[0], "REF_COORDS", "Refract Coords", ISS_OFF);
+    IUFillSwitchVector(&RefractionControlSP, RefractionControlS, 1, getDeviceName(), "REFRACT",
+                       "Refraction", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+
     gemini_software_level_ = 0.0;
     
     return true;
+}
+
+bool LX200Gemini::getRefractionJNOW(int &data)
+{
+    if (isSimulation())
+        return true;
+
+    // Response
+    char response[2] =  { 0 };
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
+
+
+    tcflush(PortFD, TCIFLUSH);
+
+    const char *cmd = ":p?#";
+    data = 0;
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    // Read response
+    if ((rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
+        return false;
+    }
+    tcflush(PortFD, TCIFLUSH);
+    response[1] = '\0';
+
+    data = atoi(response);
+    return true;
+}
+
+bool LX200Gemini::getRefraction(bool &on)
+{
+    if (isSimulation())
+        return true;
+
+    int data=0;
+
+    bool success = getRefractionJNOW(data);
+
+    if(data & 2)
+    {
+        on = true;
+        if((data != 2) && (data != 0))
+        {
+            LOGF_WARN("Mount Precess being reset to JNOW: %i", data);
+        }
+        return setRefraction(2);
+    } else {
+        on = false;
+        if((data != 2) && (data != 0)){
+            LOGF_WARN("Mount Precess being reset to JNOW: %i", data);
+        }
+        return setRefraction(0);
+    }
+    
+    return success;
+}
+
+bool LX200Gemini::setRefraction(int data)
+{
+    if (isSimulation())
+        return true;
+    
+    int rc = 0, nbytes_written = 0;
+
+    tcflush(PortFD, TCIFLUSH);
+
+    char cmd[5] = { 0 };
+    snprintf(cmd, 5, ":p%i#", data);
+    data = 0;
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+}
+
+bool LX200Gemini::setRefraction(bool on)
+{
+    if (isSimulation())
+        return true;
+
+    int data;
+
+    getRefractionJNOW(data);
+
+    if(on){
+        if((data != 2) && (data != 0))
+        {
+            LOGF_WARN("Mount Precess being reset to JNOW %i ", data);
+        } 
+        return setRefraction(2);
+    } else {
+        if((data != 2) && (data != 0)){
+            LOGF_WARN("Mount Precess being reset to JNOW %i", data);
+        }
+        return setRefraction(0);
+    }
 }
 
 void LX200Gemini::syncState(){
@@ -212,7 +339,6 @@ void LX200Gemini::syncState(){
         // Gemini Firmware > 4
         if (gemini_software_level_ >= 5.0)
         {
-            LOGF_DEBUG("%s %s %i", __FILE__, __FUNCTION__, __LINE__);
             if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
             {
                 float guiding_value;
@@ -460,18 +586,18 @@ bool LX200Gemini::updateProperties()
                 
                 if(flip_value){
                     if(flip_value & FLIP_EAST){
-                        IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_ON);
+                        FlipControlS[FLIP_EAST_CONTROL].s = ISS_ON;
                     } else {
-                        IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_OFF);
+                        FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
                     }
                     if(flip_value & FLIP_WEST){
-                        IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_ON);
+                        FlipControlS[FLIP_WEST_CONTROL].s = ISS_ON;
                     } else {
-                        IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_OFF);
+                        FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
                     }
                 } else {
-                    IUFillSwitch(&FlipControlS[FLIP_EAST_CONTROL], "FLIP_EAST_CONTROL", "East", ISS_OFF);
-                    IUFillSwitch(&FlipControlS[FLIP_WEST_CONTROL], "FLIP_WEST_CONTROL", "West", ISS_OFF);
+                    FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
+                    FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
                 }
                 FlipControlSP.s = IPS_OK;
                 IDSetSwitch(&FlipControlSP, nullptr);
@@ -491,13 +617,11 @@ bool LX200Gemini::updateProperties()
                 double westSexa;
                 
                 f_scansexa(value, &eastSexa);
-                IUFillNumber(&FlipPositionN[FLIP_EAST_VALUE], "FLIP_EAST_VALUE", "East (dd:mm)", "%060.4m", 0, 90, 0, eastSexa);
+                FlipPositionN[FLIP_EAST_VALUE].value = eastSexa;
                 
                 f_scansexa(value2, &westSexa);
-                IUFillNumber(&FlipPositionN[FLIP_WEST_VALUE], "FLIP_WEST_VALUE", "West (dd:mm)", "%060.4m", 0, 90, 0, westSexa);
+                FlipPositionN[FLIP_WEST_VALUE].value = westSexa;
                 
-                IUFillNumberVector(&FlipPositionNP, FlipPositionN, 2, getDeviceName(), "FLIP_POSITION",
-                                   "Flip Position", MOTION_TAB, IP_RW, 0, IPS_IDLE);
                 FlipPositionNP.s = IPS_OK;
                 IDSetNumber(&FlipPositionNP, nullptr);
             } else {
@@ -586,6 +710,24 @@ bool LX200Gemini::updateProperties()
                 IDSetSwitch(&ServoPrecisionSP, nullptr);
             }
             defineProperty(&ServoPrecisionSP);
+            
+            bool refractionSetting = false;
+            if(getRefraction(refractionSetting))
+            {
+                if(refractionSetting)
+                {
+                    RefractionControlS[0].s = ISS_ON;
+                } else {
+                    RefractionControlS[0].s = ISS_OFF;
+                }
+                RefractionControlSP.s = IPS_OK;
+                IDSetSwitch(&RefractionControlSP, nullptr);
+            } else {
+                RefractionControlSP.s = IPS_ALERT;
+                IDSetSwitch(&RefractionControlSP, nullptr);
+            }
+            defineProperty(&RefractionControlSP);
+            
         }
         if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
@@ -627,10 +769,10 @@ bool LX200Gemini::updateProperties()
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
             GuidingSpeedBothN[GUIDING_BOTH].value = guidingSpeed;
-            GuidingSpeedBothNP.s = IPS_ALERT;
+            GuidingSpeedBothNP.s = IPS_OK;
             IDSetNumber(&GuidingSpeedBothNP, nullptr);
         } else {
-            GuidingSpeedBothNP.s = IPS_OK;
+            GuidingSpeedBothNP.s = IPS_ALERT;
             IDSetNumber(&GuidingSpeedBothNP, nullptr);
         }
         defineProperty(&GuidingSpeedBothNP);
@@ -786,76 +928,75 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             return true;
         }
         
-
         if (gemini_software_level_ >= 6.0 && !strcmp(name, ServoPrecisionSP.name))
         {
             IUUpdateSwitch(&ServoPrecisionSP, states, names, n);
             ServoPrecisionSP.s = IPS_BUSY;
-
+            
             uint8_t precisionEnabled = 0;
             for(int i = 0; i<n; ++i){
-              if (!strcmp(names[i], ServoPrecisionS[SERVO_RA].name))
-                  {
+                if (!strcmp(names[i], ServoPrecisionS[SERVO_RA].name))
+                {
                     if(ServoPrecisionS[SERVO_RA].s == ISS_ON)
                     {
                         precisionEnabled |= 1;
                         LOGF_INFO("ServoPrecision: RA ON  <%i>", (int)precisionEnabled);
                     }
-              }
-              
-              if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name)){
-                if(ServoPrecisionS[SERVO_DEC].s == ISS_ON){             
-                  precisionEnabled |= 2;
-                  LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
                 }
-              }
-            }
-            char valueString[16] = {0};
-
-            snprintf(valueString, 16, "%u", precisionEnabled);
-            if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
-            {
-                ServoPrecisionSP.s = IPS_ALERT;
-                IDSetSwitch(&ServoPrecisionSP, nullptr);
-                return false;
-            } else {
-                ServoPrecisionSP.s = IPS_OK;
-                IDSetSwitch(&ServoPrecisionSP, nullptr);
-                return true;
+                
+                if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name)){
+                    if(ServoPrecisionS[SERVO_DEC].s == ISS_ON){             
+                        precisionEnabled |= 2;
+                        LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
+                    }
+                }
+                char valueString[16] = {0};
+                
+                snprintf(valueString, 16, "%u", precisionEnabled);
+                if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
+                {
+                    ServoPrecisionSP.s = IPS_ALERT;
+                    IDSetSwitch(&ServoPrecisionSP, nullptr);
+                    return false;
+                } else {
+                    ServoPrecisionSP.s = IPS_OK;
+                    IDSetSwitch(&ServoPrecisionSP, nullptr);
+                    return true;
+                }
             }
         }
 
-        if (gemini_software_level_ >= 5.2 && !strcmp(name, PECEnableAtBootSP.name))
+        if (gemini_software_level_ >= 6.0 && !strcmp(name, RefractionControlSP.name))
         {
-
-            PECEnableAtBootSP.s = IPS_BUSY;
-            IUUpdateSwitch(&PECEnableAtBootSP, states, names, n);
-            IDSetSwitch(&PECEnableAtBootSP, nullptr);
-
-            uint8_t enablePECAtBoot = 0;
+            IUUpdateSwitch(&RefractionControlSP, states, names, n);
             for(int i = 0; i<n; ++i){
-              if (!strcmp(names[i], PECEnableAtBootS[0].name)){
-                if(PECEnableAtBootS[0].s == ISS_ON){
-                  enablePECAtBoot = 1;
-                  LOGF_INFO("PECEnable: ON  <%i>", enablePECAtBoot);
-                } else {
-                  enablePECAtBoot = 0;
-                  LOGF_INFO("PECEnable: OFF  <%i>", enablePECAtBoot);
+                if (!strcmp(names[i], RefractionControlS[0].name))
+                {
+                    if(RefractionControlS[0].s == ISS_ON)
+                    {
+                        if(!setRefraction(true))
+                        {
+                            RefractionControlSP.s = IPS_ALERT;
+                            IDSetSwitch(&RefractionControlSP, nullptr);
+                            return false;
+                        } else {
+                            RefractionControlSP.s = IPS_OK;
+                            IDSetSwitch(&RefractionControlSP, nullptr);
+                            return true;
+                        }
+                    } else if(RefractionControlS[0].s == ISS_OFF) {
+                        if(!setRefraction(false))
+                        {
+                            RefractionControlSP.s = IPS_ALERT;
+                            IDSetSwitch(&RefractionControlSP, nullptr);
+                            return false;
+                        } else {
+                            RefractionControlSP.s = IPS_OK;
+                            IDSetSwitch(&RefractionControlSP, nullptr);
+                            return true;
+                        }
+                    }
                 }
-              }
-            }
-            char valueString[16] = {0};
-            
-            snprintf(valueString, 16, "%u", enablePECAtBoot);
-            if(!setGeminiProperty(PEC_ENABLE_AT_BOOT_ID, valueString))
-            {
-                PECEnableAtBootSP.s = IPS_ALERT;
-                IDSetSwitch(&PECEnableAtBootSP, nullptr);
-                return false;
-            } else {
-                PECEnableAtBootSP.s = IPS_OK;
-                IDSetSwitch(&PECEnableAtBootSP, nullptr);
-                return true;
             }
         }
         

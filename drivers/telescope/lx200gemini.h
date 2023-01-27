@@ -68,6 +68,10 @@ class LX200Gemini : public LX200Generic
     private:
         void syncState();
         void syncSideOfPier();
+        bool getRefraction(bool &on);
+        bool getRefractionJNOW(int &data);
+        bool setRefraction(int data);
+        bool setRefraction(bool on);
         bool sleepMount();
         bool wakeupMount();
 
@@ -128,6 +132,9 @@ class LX200Gemini : public LX200Generic
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
+        ISwitch RefractionControlS[1];
+        ISwitchVectorProperty RefractionControlSP;
+    
         float gemini_software_level_;
 
         enum
