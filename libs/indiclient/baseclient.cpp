@@ -266,7 +266,10 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 
     clientSocket.onErrorOccurred([this] (TcpSocket::SocketError)
     {
-        this->parent->serverDisconnected(exitCode);
+        if (sConnected == false)
+            return;
+
+        this->parent->serverDisconnected(-1);
         clear();
         watchDevice.unwatchDevices();
     });
@@ -306,13 +309,11 @@ bool BaseClient::connectServer()
 {
     D_PTR(BaseClient);
 
-    if (d->sConnected.exchange(true) == true)
+    if (d->sConnected == true)
     {
         IDLog("INDI::BaseClient::connectServer: Already connected.\n");
         return false;
     }
-
-    d->exitCode = -1;
 
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
@@ -329,6 +330,8 @@ bool BaseClient::connectServer()
     }
 
     d->clear();
+
+    d->sConnected = true;
 
     serverConnected();
 
@@ -347,7 +350,6 @@ bool BaseClient::disconnectServer(int exit_code)
         return false;
     }
 
-    d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
     bool ret = d->clientSocket.waitForDisconnected();
     // same behavior as in `BaseClientQt::disconnectServer`
