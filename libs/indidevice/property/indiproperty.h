@@ -67,11 +67,11 @@ class Property
         Property(IBLOBVectorProperty   *property);
 
     public:
-        Property(INDI::PropertyView<INumber> *property);
-        Property(INDI::PropertyView<IText>   *property);
-        Property(INDI::PropertyView<ISwitch> *property);
-        Property(INDI::PropertyView<ILight>  *property);
-        Property(INDI::PropertyView<IBLOB>   *property);
+        Property(INDI::PropertyViewNumber *property);
+        Property(INDI::PropertyViewText   *property);
+        Property(INDI::PropertyViewSwitch *property);
+        Property(INDI::PropertyViewLight  *property);
+        Property(INDI::PropertyViewBlob   *property);
 
 #endif
     public:
@@ -148,29 +148,50 @@ class Property
 
     public:
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-        INDI::PropertyView<INumber> *getNumber() const;
-        INDI::PropertyView<IText>   *getText() const;
-        INDI::PropertyView<ISwitch> *getSwitch() const;
-        INDI::PropertyView<ILight>  *getLight() const;
-        INDI::PropertyView<IBLOB>   *getBLOB() const;
+        INDI::PropertyViewNumber *getNumber() const;
+        INDI::PropertyViewText   *getText() const;
+        INDI::PropertyViewSwitch *getSwitch() const;
+        INDI::PropertyViewLight  *getLight() const;
+        INDI::PropertyViewBlob   *getBLOB() const;
 #endif
 
     public:
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
         INDI::Property* operator->();
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
         const INDI::Property* operator->() const;
 
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
         operator INDI::Property *();
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
         operator const INDI::Property *() const;
 
-        operator INDI::PropertyView<INumber> *() const { return getNumber(); }
-        operator INDI::PropertyView<IText>   *() const { return getText(); }
-        operator INDI::PropertyView<ISwitch> *() const { return getSwitch(); }
-        operator INDI::PropertyView<ILight>  *() const { return getLight(); }
-        operator INDI::PropertyView<IBLOB>   *() const { return getBLOB(); }
-        bool operator != (std::nullptr_t) const        { return  isValid(); }
-        bool operator == (std::nullptr_t) const        { return !isValid(); }
-        operator bool()                   const        { return  isValid(); }
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
+        operator INDI::PropertyViewNumber *() const { return getNumber(); }
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
+        operator INDI::PropertyViewText   *() const { return getText(); }
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
+        operator INDI::PropertyViewSwitch *() const { return getSwitch(); }
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
+        operator INDI::PropertyViewLight  *() const { return getLight(); }
+
+        INDI_DEPRECATED("Do not use INDI::Property as pointer.")
+        operator INDI::PropertyViewBlob   *() const { return getBLOB(); }
+
+        INDI_DEPRECATED("Use comparison to true.")
+        bool operator != (std::nullptr_t) const     { return  isValid(); }
+
+        INDI_DEPRECATED("Use comparison to false.")
+        bool operator == (std::nullptr_t) const     { return !isValid(); }
+
+        operator bool()                   const     { return  isValid(); }
+        operator bool()                             { return  isValid(); }
 #endif
 
     protected:
@@ -182,6 +203,10 @@ class Property
         friend class PropertySwitch;
         friend class PropertyLight;
         friend class PropertyBlob;
+
+    protected:
+        friend class BaseDevicePrivate;
+        INDI::Property *self();
 };
 
 } // namespace INDI

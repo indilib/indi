@@ -2,6 +2,8 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indiproperty.h"
+#include "indipropertyswitch.h"
 
 //For SPC900 Led control
 #include "webcam/pwc-ioctl.h"
@@ -72,10 +74,12 @@ class Lx
         int stopLxSerial();
         void getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned int *parity, unsigned int *stops);
         const char *getSerialEOL();
-        INDI::Property *findbyLabel(INDI::DefaultDevice *dev, char *label);
+        INDI::Property findByLabel(INDI::DefaultDevice *dev, const char *label);
+        
         // PWC Cameras
-        ISwitchVectorProperty *FlashStrobeSP;
-        ISwitchVectorProperty *FlashStrobeStopSP;
+        INDI::PropertySwitch FlashStrobeSP     {INDI::Property()};
+        INDI::PropertySwitch FlashStrobeStopSP {INDI::Property()};
+
         enum pwcledmethod
         {
             PWCIOCTL,

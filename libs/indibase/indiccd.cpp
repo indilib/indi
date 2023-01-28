@@ -550,11 +550,11 @@ bool CCD::updateProperties()
         if (HasCooler())
         {
             defineProperty(&TemperatureNP);
-            defineProperty(&TemperatureRampNP);
+            defineProperty(TemperatureRampNP);
         }
 
-        defineProperty(&CaptureFormatSP);
-        defineProperty(&EncodeFormatSP);
+        defineProperty(CaptureFormatSP);
+        defineProperty(EncodeFormatSP);
 
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
@@ -2585,11 +2585,11 @@ bool CCD::saveConfigItems(FILE * fp)
     if (PrimaryCCD.getCCDInfo()->p != IP_RO)
         IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
 
-    IUSaveConfigSwitch(fp, &CaptureFormatSP);
-    IUSaveConfigSwitch(fp, &EncodeFormatSP);
+    CaptureFormatSP.save(fp);
+    EncodeFormatSP.save(fp);
 
     if (HasCooler())
-        IUSaveConfigNumber(fp, &TemperatureRampNP);
+        TemperatureRampNP.save(fp);
 
     if (HasGuideHead())
     {
@@ -2815,25 +2815,25 @@ void CCD::checkTemperatureTarget()
 {
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].value)
+        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
         {
             TemperatureNP.s = IPS_OK;
             m_TemperatureCheckTimer.stop();
             IDSetNumber(&TemperatureNP, nullptr);
         }
         // If we are beyond a minute, check for next step
-        else if (TemperatureRampNP[RAMP_SLOPE].value > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
+        else if (TemperatureRampNP[RAMP_SLOPE].getValue() > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;
             // Going down
             if (m_TargetTemperature < TemperatureN[0].value)
             {
-                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].value);
+                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
             }
             // Going up
             else
             {
-                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].value);
+                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
             }
 
             m_TemperatureElapsedTimer.restart();

@@ -190,13 +190,13 @@ bool EsattoArco::updateProperties()
         defineProperty(&SpeedNP);
         defineProperty(&BacklashMessageTP);
         defineProperty(&BacklashMeasurementSP);
-        defineProperty(&FirmwareTP);
+        defineProperty(FirmwareTP);
 
         if (updateTemperature())
             defineProperty(&TemperatureNP);
 
         if (updateVoltageIn())
-            defineProperty(&VoltageNP);
+            defineProperty(VoltageNP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
@@ -727,8 +727,8 @@ bool EsattoArco::Ack()
 
     if (rc1 && rc2)
     {
-        IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_SN], serial.c_str());
-        IUSaveText(&FirmwareTP[ESATTO_FIRMWARE_VERSION], firmware.c_str());
+        FirmwareTP[ESATTO_FIRMWARE_SN].setText(serial);
+        FirmwareTP[ESATTO_FIRMWARE_VERSION].setText(firmware);
         LOGF_INFO("Esatto SN: %s Firmware version: %s", FirmwareTP[ESATTO_FIRMWARE_SN].getText(),
                   FirmwareTP[ESATTO_FIRMWARE_VERSION].getText());
     }
@@ -740,8 +740,8 @@ bool EsattoArco::Ack()
 
     if (rc1 && rc2)
     {
-        IUSaveText(&FirmwareTP[ARCO_FIRMWARE_SN], serial.c_str());
-        IUSaveText(&FirmwareTP[ARCO_FIRMWARE_VERSION], firmware.c_str());
+        FirmwareTP[ARCO_FIRMWARE_SN].setText(serial);
+        FirmwareTP[ARCO_FIRMWARE_VERSION].setText(firmware);
         LOGF_INFO("Arco SN: %s Firmware version: %s", FirmwareTP[ARCO_FIRMWARE_SN].getText(),
                   FirmwareTP[ARCO_FIRMWARE_VERSION].getText());
     }

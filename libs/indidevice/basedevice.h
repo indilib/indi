@@ -21,7 +21,6 @@
 #include "indibase.h"
 #include "indiproperty.h"
 #include "indiproperties.h"
-#include "indiutility.h"
 
 #include <string>
 #include <vector>
@@ -266,18 +265,29 @@ class BaseDevice
         static std::string getSharedFilePath(std::string fileName);
 
     public:
+        INDI_DEPRECATED("Do not use BaseDevice as pointer.")
         operator BaseDevice*();
+
+        INDI_DEPRECATED("Do not use BaseDevice as pointer.")
         BaseDevice* operator->();
 
+        INDI_DEPRECATED("Use comparison to true.")
         bool operator != (std::nullptr_t) const
         {
             return  isValid();
         }
+
+        INDI_DEPRECATED("Use comparison to false.")
         bool operator == (std::nullptr_t) const
         {
             return !isValid();
         }
+
         operator bool()                   const
+        {
+            return  isValid();
+        }
+        operator bool()
         {
             return  isValid();
         }

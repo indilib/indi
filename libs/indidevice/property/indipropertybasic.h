@@ -25,11 +25,11 @@
 namespace INDI
 {
 
-using WidgetText   = INDI::WidgetView<IText>;
-using WidgetNumber = INDI::WidgetView<INumber>;
-using WidgetSwitch = INDI::WidgetView<ISwitch>;
-using WidgetLight  = INDI::WidgetView<ILight>;
-using WidgetBlob   = INDI::WidgetView<IBLOB>;
+using WidgetText   = INDI::WidgetViewText;
+using WidgetNumber = INDI::WidgetViewNumber;
+using WidgetSwitch = INDI::WidgetViewSwitch;
+using WidgetLight  = INDI::WidgetViewLight;
+using WidgetBlob   = INDI::WidgetViewBlob;
 
 template <typename>
 class PropertyBasicPrivateTemplate;
@@ -97,11 +97,12 @@ class PropertyBasic : public INDI::Property
         void apply() const;
         void define() const;
 
-    public:
+    protected:
         PropertyView<T> * operator &();
 
     public:
         size_t size() const;
+        size_t count() const { return size(); }
 
     public:
         void reserve(size_t size);
@@ -144,7 +145,10 @@ class PropertyBasic : public INDI::Property
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
     public: // deprecated
+        INDI_DEPRECATED("Do not use INDI::PropertyXXX as pointer.")
         INDI::PropertyView<T> *operator->();
+
+        INDI_DEPRECATED("Do not use INDI::PropertyXXX as pointer.")
         INDI::PropertyView<T>  operator*();
 #endif
 };

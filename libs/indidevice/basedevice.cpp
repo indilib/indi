@@ -131,8 +131,8 @@ IPerm BaseDevice::getPropertyPermission(const char *name) const
 
 void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
-    INDI::Property *prop = getProperty(name, type);
-    return prop != nullptr ? prop->getProperty() : nullptr;
+    INDI::Property prop = getProperty(name, type);
+    return prop ? prop.getProperty() : nullptr;
 }
 
 INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
@@ -373,7 +373,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyNumber typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defNumber"))
             {
-                INDI::WidgetView<INumber> widget;
+                INDI::WidgetViewNumber widget;
 
                 widget.setParent(typedProperty.getNumber());
 
@@ -399,7 +399,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             typedProperty.setRule(root.getAttribute("rule"));
             for (const auto &element : root.getElementsByTagName("defSwitch"))
             {
-                INDI::WidgetView<ISwitch> widget;
+                INDI::WidgetViewSwitch widget;
 
                 widget.setParent(typedProperty.getSwitch());
 
@@ -420,7 +420,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyText typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defText"))
             {
-                INDI::WidgetView<IText> widget;
+                INDI::WidgetViewText widget;
 
                 widget.setParent(typedProperty.getText());
 
@@ -441,7 +441,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyLight typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defLight"))
             {
-                INDI::WidgetView<ILight> widget;
+                INDI::WidgetViewLight widget;
 
                 widget.setParent(typedProperty.getLight());
 
@@ -462,7 +462,7 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
             INDI::PropertyBlob typedProperty {0};
             for (const auto &element : root.getElementsByTagName("defBLOB"))
             {
-                INDI::WidgetView<IBLOB> widget;
+                INDI::WidgetViewBlob widget;
 
                 widget.setParent(typedProperty.getBLOB());
 
@@ -523,9 +523,9 @@ bool BaseDevice::isConnected() const
     if (!svp)
         return false;
 
-    auto sp = svp->findWidgetByName("CONNECT");
+    auto sp = svp.findWidgetByName("CONNECT");
 
-    return sp && sp->getState() == ISS_ON && svp->getState() == IPS_OK;
+    return sp && sp->getState() == ISS_ON && svp.getState() == IPS_OK;
 }
 
 void BaseDevice::attach()
@@ -695,7 +695,7 @@ int BaseDevice::setValue(const INDI::LilXmlElement &root, char *errmsg)
 }
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
-static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetView<IBLOB> &widget)
+static bool sSharedToBlob(const INDI::LilXmlElement &element, INDI::WidgetViewBlob &widget)
 {
     auto attachementId = element.getAttribute("attached-data-id");
 
@@ -767,7 +767,7 @@ int BaseDevicePrivate::setBLOB(INDI::PropertyBlob property, const LilXmlElement 
             size_t base64_encoded_size = element.context().size();
             size_t base64_decoded_size = 3 * base64_encoded_size / 4;
             widget->setBlob(realloc(widget->getBlob(), base64_decoded_size));
-            size_t blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), element.context(), base64_encoded_size);
+            int blobLen = from64tobits_fast(static_cast<char *>(widget->getBlob()), element.context(), base64_encoded_size);
             widget->setBlobLen(blobLen);
         }
 
@@ -882,7 +882,7 @@ void BaseDevice::addMessage(const std::string &msg)
     d->messageLog.push_back(msg);
     guard.unlock();
 
-    d->mediateNewMessage(*this, d->messageLog.size() - 1);
+    d->mediateNewMessage(*this, int(d->messageLog.size() - 1));
 }
 
 const std::string &BaseDevice::messageQueue(size_t index) const
@@ -936,37 +936,20 @@ void BaseDevice::registerProperty(const INDI::Property &property, INDI_PROPERTY_
 
 const char *BaseDevice::getDriverName() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverName = driverInfo->findWidgetByName("DRIVER_NAME");
+    auto driverName = getText("DRIVER_INFO").findWidgetByName("DRIVER_NAME");
 
     return driverName ? driverName->getText() : nullptr;
 }
 
 const char *BaseDevice::getDriverExec() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverExec = driverInfo->findWidgetByName("DRIVER_EXEC");
-
+    auto driverExec = getText("DRIVER_INFO").findWidgetByName("DRIVER_EXEC");
     return driverExec ? driverExec->getText() : nullptr;
 }
 
 const char *BaseDevice::getDriverVersion() const
 {
-    auto driverInfo = getText("DRIVER_INFO");
-
-    if (!driverInfo)
-        return nullptr;
-
-    auto driverVersion = driverInfo->findWidgetByName("DRIVER_VERSION");
-
+    auto driverVersion = getText("DRIVER_INFO").findWidgetByName("DRIVER_VERSION");
     return driverVersion ? driverVersion->getText() : nullptr;
 }
 

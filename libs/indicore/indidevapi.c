@@ -4,6 +4,7 @@
 #include "base64.h"
 #include "userio.h"
 #include "indiuserio.h"
+#include "indiutility.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -35,7 +36,9 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 void IUSaveText(IText *tp, const char *newtext)
 {
     /* copy in fresh string */
-    tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
+    size_t size = strlen(newtext) + 1;
+    tp->text = realloc(tp->text, size);
+    memcpy(tp->text, newtext, size);
 }
 
 int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
@@ -43,7 +46,7 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
     bp->bloblen = blobsize;
     bp->size    = size;
     bp->blob    = blob;
-    strncpy(bp->format, format, MAXINDIFORMAT);
+    indi_strlcpy(bp->format, format, MAXINDIFORMAT);
     return 0;
 }
 
@@ -154,12 +157,9 @@ void IUResetSwitch(ISwitchVectorProperty *svp)
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
 {
-    strncpy(sp->name, name, sizeof(sp->name));
+    indi_strlcpy(sp->name, name, sizeof(sp->name));
 
-    if (label[0])
-        strncpy(sp->label, label, sizeof(sp->label));
-    else
-        strncpy(sp->label, name, sizeof(sp->label));
+    indi_strlcpy(sp->label, label[0] ? label : name, sizeof(sp->label));
 
     sp->s   = s;
     sp->svp = NULL;
@@ -168,12 +168,9 @@ void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
 
 void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
 {
-    strncpy(lp->name, name, sizeof(lp->name));
+    indi_strlcpy(lp->name, name, sizeof(lp->name));
 
-    if (label[0])
-        strncpy(lp->label, label, sizeof(lp->label));
-    else
-        strncpy(lp->label, name, sizeof(lp->label));
+    indi_strlcpy(lp->label, label[0] ? label : name, sizeof(lp->label));
 
     lp->s   = s;
     lp->lvp = NULL;
@@ -183,14 +180,11 @@ void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
 void IUFillNumber(INumber *np, const char *name, const char *label, const char *format, double min, double max,
                   double step, double value)
 {
-    strncpy(np->name, name, sizeof(np->name));
+    indi_strlcpy(np->name, name, sizeof(np->name));
 
-    if (label[0])
-        strncpy(np->label, label, sizeof(np->label));
-    else
-        strncpy(np->label, name, sizeof(np->label));
+    indi_strlcpy(np->label, label[0] ? label : name, sizeof(np->label));
 
-    strncpy(np->format, format, sizeof(np->format));
+    indi_strlcpy(np->format, format, sizeof(np->format));
 
     np->min   = min;
     np->max   = max;
@@ -203,12 +197,9 @@ void IUFillNumber(INumber *np, const char *name, const char *label, const char *
 
 void IUFillText(IText *tp, const char *name, const char *label, const char *initialText)
 {
-    strncpy(tp->name, name, sizeof(tp->name));
+    indi_strlcpy(tp->name, name, sizeof(tp->name));
 
-    if (label[0])
-        strncpy(tp->label, label, sizeof(tp->label));
-    else
-        strncpy(tp->label, name, sizeof(tp->label));
+    indi_strlcpy(tp->label, label[0] ? label : name, sizeof(tp->label));
 
     if (tp->text && tp->text[0])
         free(tp->text);
@@ -226,14 +217,11 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
 {
     memset(bp, 0, sizeof(IBLOB));
 
-    strncpy(bp->name, name, sizeof(bp->name));
+    indi_strlcpy(bp->name, name, sizeof(bp->name));
 
-    if (label[0])
-        strncpy(bp->label, label, sizeof(bp->label));
-    else
-        strncpy(bp->label, name, sizeof(bp->label));
+    indi_strlcpy(bp->label, label[0] ? label : name, sizeof(bp->label));
 
-    strncpy(bp->format, format, sizeof(bp->format));
+    indi_strlcpy(bp->format, format, sizeof(bp->format));
 
     bp->blob    = 0;
     bp->bloblen = 0;
@@ -247,16 +235,13 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
 {
-    strncpy(svp->device, dev, sizeof(svp->device));
+    indi_strlcpy(svp->device, dev, sizeof(svp->device));
 
-    strncpy(svp->name, name, sizeof(svp->name));
+    indi_strlcpy(svp->name, name, sizeof(svp->name));
 
-    if (label[0])
-        strncpy(svp->label, label, sizeof(svp->label));
-    else
-        strncpy(svp->label, name, sizeof(svp->label));
+    indi_strlcpy(svp->label, label[0] ? label : name, sizeof(svp->label));
 
-    strncpy(svp->group, group, sizeof(svp->group));
+    indi_strlcpy(svp->group, group, sizeof(svp->group));
     svp->timestamp[0] = '\0';
 
     svp->p       = p;
@@ -270,16 +255,13 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
 void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char *dev, const char *name,
                        const char *label, const char *group, IPState s)
 {
-    strncpy(lvp->device, dev, sizeof(lvp->device));
+    indi_strlcpy(lvp->device, dev, sizeof(lvp->device));
 
-    strncpy(lvp->name, name, sizeof(lvp->name));
+    indi_strlcpy(lvp->name, name, sizeof(lvp->name));
 
-    if (label[0])
-        strncpy(lvp->label, label, sizeof(lvp->label));
-    else
-        strncpy(lvp->label, name, sizeof(lvp->label));
+    indi_strlcpy(lvp->label, label[0] ? label : name, sizeof(lvp->label));
 
-    strncpy(lvp->group, group, sizeof(lvp->group));
+    indi_strlcpy(lvp->group, group, sizeof(lvp->group));
     lvp->timestamp[0] = '\0';
 
     lvp->s   = s;
@@ -290,16 +272,13 @@ void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const cha
 void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    strncpy(nvp->device, dev, sizeof(nvp->device));
+    indi_strlcpy(nvp->device, dev, sizeof(nvp->device));
 
-    strncpy(nvp->name, name, sizeof(nvp->name));
+    indi_strlcpy(nvp->name, name, sizeof(nvp->name));
 
-    if (label[0])
-        strncpy(nvp->label, label, sizeof(nvp->label));
-    else
-        strncpy(nvp->label, name, sizeof(nvp->label));
+    indi_strlcpy(nvp->label, label[0] ? label : name, sizeof(nvp->label));
 
-    strncpy(nvp->group, group, sizeof(nvp->group));
+    indi_strlcpy(nvp->group, group, sizeof(nvp->group));
     nvp->timestamp[0] = '\0';
 
     nvp->p       = p;
@@ -312,16 +291,13 @@ void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const 
 void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *dev, const char *name,
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    strncpy(tvp->device, dev, sizeof(tvp->device));
+    indi_strlcpy(tvp->device, dev, sizeof(tvp->device));
 
-    strncpy(tvp->name, name, sizeof(tvp->name));
+    indi_strlcpy(tvp->name, name, sizeof(tvp->name));
 
-    if (label[0])
-        strncpy(tvp->label, label, sizeof(tvp->label));
-    else
-        strncpy(tvp->label, name, sizeof(tvp->label));
+    indi_strlcpy(tvp->label, label[0] ? label : name, sizeof(tvp->label));
 
-    strncpy(tvp->group, group, sizeof(tvp->group));
+    indi_strlcpy(tvp->group, group, sizeof(tvp->group));
     tvp->timestamp[0] = '\0';
 
     tvp->p       = p;
@@ -335,16 +311,13 @@ void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
     memset(bvp, 0, sizeof(IBLOBVectorProperty));
-    strncpy(bvp->device, dev, sizeof(bvp->device));
+    indi_strlcpy(bvp->device, dev, sizeof(bvp->device));
 
-    strncpy(bvp->name, name, sizeof(bvp->name));
+    indi_strlcpy(bvp->name, name, sizeof(bvp->name));
 
-    if (label[0])
-        strncpy(bvp->label, label, sizeof(bvp->label));
-    else
-        strncpy(bvp->label, name, sizeof(bvp->label));
+    indi_strlcpy(bvp->label, label[0] ? label : name, sizeof(bvp->label));
 
-    strncpy(bvp->group, group, sizeof(bvp->group));
+    indi_strlcpy(bvp->group, group, sizeof(bvp->group));
     bvp->timestamp[0] = '\0';
 
     bvp->p       = p;
@@ -561,7 +534,7 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
                 int enclen  = atoi(valuXMLAtt(ec));
                 assert_mem(bp->blob = realloc(bp->blob, 3 * enclen / 4));
                 bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
-                strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
+                indi_strlcpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
                 bp->size = atoi(valuXMLAtt(sa));
             }
         }

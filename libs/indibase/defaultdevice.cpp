@@ -186,7 +186,7 @@ DefaultDevice::DefaultDevice()
 
 bool DefaultDevice::loadConfig(INDI::Property &property)
 {
-    return loadConfig(true, property->getName());
+    return loadConfig(true, property.getName());
 }
 
 bool DefaultDevice::loadConfig(bool silent, const char *property)
@@ -233,11 +233,11 @@ bool DefaultDevice::saveConfigItems(FILE *fp)
 
 bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
-    for (const auto &oneProperty : *getProperties())
+    for (const auto &oneProperty : getProperties())
     {
-        if (oneProperty->getType() == INDI_SWITCH)
+        if (oneProperty.getType() == INDI_SWITCH)
         {
-            const auto &svp = oneProperty->getSwitch();
+            const auto &svp = oneProperty.getSwitch();
             /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
             if (
                 (svp->isNameMatch(INDI::SP::CONNECTION)) ||
@@ -245,7 +245,7 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
             )
                 continue;
         }
-        oneProperty->save(fp);
+        oneProperty.save(fp);
     }
     return true;
 }
@@ -265,7 +265,7 @@ bool DefaultDevice::purgeConfig()
 
 bool DefaultDevice::saveConfig(INDI::Property &property)
 {
-    return saveConfig(true, property->getName());
+    return saveConfig(true, property.getName());
 }
 
 bool DefaultDevice::saveConfig(bool silent, const char *property)
@@ -339,7 +339,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             if (!strcmp(tagName, "newSwitchVector"))
             {
                 auto svp = getSwitch(elemName);
-                if (svp == nullptr)
+                if (!svp)
                 {
                     delXMLEle(root);
                     return false;
@@ -348,8 +348,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                 XMLEle *sw = nullptr;
                 for (sw = nextXMLEle(ep, 1); sw != nullptr; sw = nextXMLEle(ep, 0))
                 {
-                    auto oneSwitch = svp->findWidgetByName(findXMLAttValu(sw, "name"));
-                    if (oneSwitch == nullptr)
+                    auto oneSwitch = svp.findWidgetByName(findXMLAttValu(sw, "name"));
+                    if (!oneSwitch)
                     {
                         delXMLEle(root);
                         return false;
@@ -365,7 +365,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             else if (!strcmp(tagName, "newNumberVector"))
             {
                 auto nvp = getNumber(elemName);
-                if (nvp == nullptr)
+                if (!nvp)
                 {
                     delXMLEle(root);
                     return false;
@@ -374,8 +374,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                 XMLEle *np = nullptr;
                 for (np = nextXMLEle(ep, 1); np != nullptr; np = nextXMLEle(ep, 0))
                 {
-                    auto oneNumber = nvp->findWidgetByName(findXMLAttValu(np, "name"));
-                    if (oneNumber == nullptr)
+                    auto oneNumber = nvp.findWidgetByName(findXMLAttValu(np, "name"));
+                    if (!oneNumber)
                         return false;
 
                     char formatString[MAXRBUF];
@@ -389,7 +389,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             else if (!strcmp(tagName, "newTextVector"))
             {
                 auto tvp = getText(elemName);
-                if (tvp == nullptr)
+                if (!tvp)
                 {
                     delXMLEle(root);
                     return false;
@@ -398,8 +398,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
                 XMLEle *tp = nullptr;
                 for (tp = nextXMLEle(ep, 1); tp != nullptr; tp = nextXMLEle(ep, 0))
                 {
-                    auto oneText = tvp->findWidgetByName(findXMLAttValu(tp, "name"));
-                    if (oneText == nullptr)
+                    auto oneText = tvp.findWidgetByName(findXMLAttValu(tp, "name"));
+                    if (!oneText)
                         return false;
 
                     char formatString[MAXRBUF];
@@ -710,10 +710,10 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
     for (const auto &oneProperty : *getProperties())
     {
-        if (d->defineDynamicProperties == false && oneProperty->isDynamic())
+        if (d->defineDynamicProperties == false && oneProperty.isDynamic())
             continue;
 
-        oneProperty->define();
+        oneProperty.define();
     }
 
     // Remember debug & logging settings
@@ -773,10 +773,10 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
 void DefaultDevice::resetProperties()
 {
-    for (auto &oneProperty : *getProperties())
+    for (auto &oneProperty : getProperties())
     {
-        oneProperty->setState(IPS_IDLE);
-        oneProperty->apply();
+        oneProperty.setState(IPS_IDLE);
+        oneProperty.apply();
     }
 }
 
@@ -786,14 +786,14 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
     if (!svp)
         return;
 
-    svp->at(INDI_ENABLED)->setState(status ? ISS_ON : ISS_OFF);
-    svp->at(INDI_DISABLED)->setState(status ? ISS_OFF : ISS_ON);
-    svp->setState(state);
+    svp[INDI_ENABLED].setState(status ? ISS_ON : ISS_OFF);
+    svp[INDI_DISABLED].setState(status ? ISS_OFF : ISS_ON);
+    svp.setState(state);
 
     if (msg == nullptr)
-        svp->apply();
+        svp.apply();
     else
-        svp->apply("%s", msg);
+        svp.apply("%s", msg);
 }
 
 // Set the timeout for the TimerHit function.
@@ -1039,8 +1039,8 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
     // Keep dynamic properties in existing property list so they can be reused
     if (d->deleteDynamicProperties == false)
     {
-        INDI::Property *prop = getProperty(propertyName);
-        if (prop && prop->isDynamic())
+        INDI::Property prop = getProperty(propertyName);
+        if (prop && prop.isDynamic())
         {
             IDDelete(getDeviceName(), propertyName, nullptr);
             return true;
@@ -1059,31 +1059,31 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
 void DefaultDevice::defineProperty(INumberVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<INumber>*>(property)->define();
+    static_cast<PropertyViewNumber*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ITextVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<IText>*>(property)->define();
+    static_cast<PropertyViewText*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ISwitchVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<ISwitch>*>(property)->define();
+    static_cast<PropertyViewSwitch*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(ILightVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<ILight>*>(property)->define();
+    static_cast<PropertyViewLight*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
 {
     registerProperty(INDI::Property(property));
-    static_cast<PropertyView<IBLOB>*>(property)->define();
+    static_cast<PropertyViewBlob*>(property)->define();
 }
 
 void DefaultDevice::defineProperty(INDI::Property &property)
@@ -1260,8 +1260,8 @@ void DefaultDevice::setActiveConnection(Connection::Interface *existingConnectio
                 d->ConnectionModeSP[index].setState(ISS_ON);
                 d->ConnectionModeSP.setState(IPS_OK);
                 // If property is registerned then send back response to client
-                INDI::Property *connectionProperty = getProperty(d->ConnectionModeSP.getName(), INDI_SWITCH);
-                if (connectionProperty && connectionProperty->getRegistered())
+                INDI::Property connectionProperty = getProperty(d->ConnectionModeSP.getName(), INDI_SWITCH);
+                if (connectionProperty && connectionProperty.getRegistered())
                     d->ConnectionModeSP.apply();
             }
         }

@@ -65,7 +65,7 @@ class BaseDevicePrivate
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newDevice((BaseDevice *)baseDevice);
+                mediator->newDevice(&self);
 #endif
                 mediator->newDevice(baseDevice);
             }
@@ -76,7 +76,7 @@ class BaseDevicePrivate
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->removeDevice((BaseDevice *)baseDevice);
+                mediator->removeDevice(&self);
 #endif
                 mediator->removeDevice(baseDevice);
             }
@@ -87,7 +87,7 @@ class BaseDevicePrivate
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newProperty((Property *)property);
+                mediator->newProperty(property.self());
 #endif
                 mediator->newProperty(property);
             }
@@ -102,21 +102,21 @@ class BaseDevicePrivate
                 switch (property.getType())
                 {
                     case INDI_NUMBER:
-                        mediator->newNumber(property.getNumber());
+                        mediator->newNumber(property.getNumber()->cast());
                         break;
                     case INDI_SWITCH:
-                        mediator->newSwitch(property.getSwitch());
+                        mediator->newSwitch(property.getSwitch()->cast());
                         break;
                     case INDI_TEXT:
-                        mediator->newText(property.getText());
+                        mediator->newText(property.getText()->cast());
                         break;
                     case INDI_LIGHT:
-                        mediator->newLight(property.getLight());
+                        mediator->newLight(property.getLight()->cast());
                         break;
                     case INDI_BLOB:
                         for (auto &it : PropertyBlob(property))
                         {
-                            mediator->newBLOB(&it);
+                            mediator->newBLOB(it.cast());
                         }
                         break;
                     case INDI_UNKNOWN:
@@ -131,7 +131,7 @@ class BaseDevicePrivate
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->removeProperty((Property *)property);
+                mediator->removeProperty(property.self());
 #endif
                 mediator->removeProperty(property);
             }
@@ -142,7 +142,7 @@ class BaseDevicePrivate
             if (mediator)
             {
 #if INDI_VERSION_MAJOR < 2
-                mediator->newMessage((BaseDevice *)baseDevice, messageID);
+                mediator->newMessage(&self, messageID);
 #endif
                 mediator->newMessage(baseDevice, messageID);
             }

@@ -35,6 +35,18 @@ namespace INDI
 template <typename> struct WidgetView;
 template <typename> struct PropertyView;
 
+typedef PropertyView<IText>   PropertyViewText;
+typedef PropertyView<INumber> PropertyViewNumber;
+typedef PropertyView<ISwitch> PropertyViewSwitch;
+typedef PropertyView<ILight>  PropertyViewLight;
+typedef PropertyView<IBLOB>   PropertyViewBlob;
+
+typedef WidgetView<IText>     WidgetViewText;
+typedef WidgetView<INumber>   WidgetViewNumber;
+typedef WidgetView<ISwitch>   WidgetViewSwitch;
+typedef WidgetView<ILight>    WidgetViewLight;
+typedef WidgetView<IBLOB>     WidgetViewBlob;
+
 #define PROPERTYVIEW_BASE_ACCESS public
 // don't use direct access to low-level property
 //#define PROPERTYVIEW_BASE_ACCESS protected // future
@@ -46,22 +58,22 @@ template <typename> struct PropertyView;
  * INDI::PropertyView
  *
  * A class that will allow a easy transition to the new widget handling interface (future).
- * - Use PropertyView<IText>   instead of ITextVectorProperty
- * - Use PropertyView<INumber> instead of INumberVectorProperty
- * - Use PropertyView<ISwitch> instead of ISwitchVectorProperty
- * - Use PropertyView<ILight>  instead of ILightVectorProperty
- * - Use PropertyView<IBLOB>   instead of IBLOBVectorProperty
+ * - Use PropertyViewText   instead of ITextVectorProperty
+ * - Use PropertyViewNumber instead of INumberVectorProperty
+ * - Use PropertyViewSwitch instead of ISwitchVectorProperty
+ * - Use PropertyViewLight  instead of ILightVectorProperty
+ * - Use PropertyViewBlob   instead of IBLOBVectorProperty
  *
  * The PropertyView<IXXX> class is compatible with low-level IXXXVectorProperty structures.
  *
  * INDI::WidgetView
  *
  * A class that will allow a easy transition to the new widget handling interface (future).
- * - Use WidgetView<IText>   instead of IText
- * - Use WidgetView<INumber> instead of INumber
- * - Use WidgetView<ISwitch> instead of ISwitch
- * - Use WidgetView<ILight>  instead of ILight
- * - Use WidgetView<IBLOB>   instead of IBLOB
+ * - Use WidgetViewText   instead of IText
+ * - Use WidgetViewNumber instead of INumber
+ * - Use WidgetViewSwitch instead of ISwitch
+ * - Use WidgetViewLight  instead of ILight
+ * - Use WidgetViewBlob   instead of IBLOB
  *
  * The WidgetView<IXXX> class is compatible with low-level IXXX structures.
  */
@@ -319,6 +331,15 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
             }
             //free(widget()); // #PS: do not delete items, they may be on the stack.
             memset(this, 0, sizeof(*this));
+        }
+    public: // internal use only
+        static PropertyView<T> *cast(PropertyType *raw)
+        {
+            return static_cast<PropertyView<T>*>(raw);
+        }
+        PropertyType *cast()
+        {
+            return this;
         }
 };
 
@@ -1037,6 +1058,16 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             fill(name.c_str(), label.c_str(), format.c_str());
         }
+
+    public: // internal use only
+        static WidgetView<Type> *cast(Type *blob)
+        {
+            return static_cast<WidgetView<Type>*>(blob);
+        }
+        Type *cast()
+        {
+            return this;
+        }
 };
 
 
@@ -1276,35 +1307,35 @@ template <>
 inline void PropertyView<IText>::setWidgets(WidgetType *w, size_t size)
 {
     this->tp = w;
-    this->ntp = size;
+    this->ntp = int(size);
 }
 
 template <>
 inline void PropertyView<INumber>::setWidgets(WidgetType *w, size_t size)
 {
     this->np = w;
-    this->nnp = size;
+    this->nnp = int(size);
 }
 
 template <>
 inline void PropertyView<ISwitch>::setWidgets(WidgetType *w, size_t size)
 {
     this->sp = w;
-    this->nsp = size;
+    this->nsp = int(size);
 }
 
 template <>
 inline void PropertyView<ILight>::setWidgets(WidgetType *w, size_t size)
 {
     this->lp = w;
-    this->nlp = size;
+    this->nlp = int(size);
 }
 
 template <>
 inline void PropertyView<IBLOB>::setWidgets(WidgetType *w, size_t size)
 {
     this->bp = w;
-    this->nbp = size;
+    this->nbp = int(size);
 }
 
 template <>

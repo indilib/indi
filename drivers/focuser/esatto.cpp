@@ -46,7 +46,7 @@ Esatto::Esatto()
         auto lastValue = TemperatureNP[0].value;
         auto rc = updateTemperature();
         if (rc && std::abs(lastValue - TemperatureNP[0].value) >= 0.1)
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
     });
     m_TemperatureTimer.setInterval(10000);
 }
@@ -128,7 +128,7 @@ bool Esatto::updateProperties()
     }
     else
     {
-        if (TemperatureNP->getState() == IPS_OK)
+        if (TemperatureNP.getState() == IPS_OK)
             deleteProperty(TemperatureNP);
         deleteProperty(FirmwareTP);
     }
@@ -225,10 +225,10 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Fast motion
-        if (FastMoveSP->isNameMatch(name))
+        if (FastMoveSP.isNameMatch(name))
         {
             FastMoveSP.update(states, names, n);
-            auto current_switch = IUFindOnSwitchIndex(&FastMoveSP);
+            auto current_switch = FastMoveSP.findOnSwitchIndex();
 
             switch (current_switch)
             {
@@ -246,7 +246,7 @@ bool Esatto::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             }
 
             FastMoveSP.setState(IPS_BUSY);
-            FastMoveSP->apply();
+            FastMoveSP.apply();
             return true;
         }
     }

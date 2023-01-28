@@ -16,9 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-
 #include "abstractbaseclient.h"
 #include "abstractbaseclient_p.h"
 
@@ -34,6 +31,10 @@
 # include <sys/socket.h>
 # include <sys/un.h>
 # include <unistd.h>
+#endif
+
+#ifndef __linux__
+# include <fcntl.h>
 #endif
 
 namespace INDI
@@ -265,7 +266,10 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 
     clientSocket.onErrorOccurred([this] (TcpSocket::SocketError)
     {
-        this->parent->serverDisconnected(exitCode);
+        if (sConnected == false)
+            return;
+
+        this->parent->serverDisconnected(-1);
         clear();
         watchDevice.unwatchDevices();
     });
@@ -274,7 +278,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 BaseClientPrivate::~BaseClientPrivate()
 { }
 
-size_t BaseClientPrivate::sendData(const void *data, size_t size)
+ssize_t BaseClientPrivate::sendData(const void *data, size_t size)
 {
     return clientSocket.write(static_cast<const char *>(data), size);
 }
@@ -305,13 +309,11 @@ bool BaseClient::connectServer()
 {
     D_PTR(BaseClient);
 
-    if (d->sConnected.exchange(true) == true)
+    if (d->sConnected == true)
     {
         IDLog("INDI::BaseClient::connectServer: Already connected.\n");
         return false;
     }
-
-    d->exitCode = -1;
 
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
@@ -328,6 +330,8 @@ bool BaseClient::connectServer()
     }
 
     d->clear();
+
+    d->sConnected = true;
 
     serverConnected();
 
@@ -346,9 +350,11 @@ bool BaseClient::disconnectServer(int exit_code)
         return false;
     }
 
-    d->exitCode = exit_code;
     d->clientSocket.disconnectFromHost();
-    return d->clientSocket.waitForDisconnected();
+    bool ret = d->clientSocket.waitForDisconnected();
+    // same behavior as in `BaseClientQt::disconnectServer`
+    serverDisconnected(exit_code);
+    return ret;
 }
 
 void BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)

@@ -46,11 +46,14 @@ extern "C"
 inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 {
     const size_t srclen = strlen(src);
-    if (srclen + 1 < maxlen) {
+    if (srclen + 1 < maxlen)
+    {
         memcpy(dst, src, srclen + 1);
-    } else if (maxlen != 0) {
+    }
+    else if (maxlen != 0)
+    {
         memcpy(dst, src, maxlen - 1);
-        dst[maxlen-1] = '\0';
+        dst[maxlen - 1] = '\0';
     }
     return srclen;
 }
@@ -60,16 +63,23 @@ inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 
 // C++
 #ifdef __cplusplus
+
+#ifdef _WINDOWS
+typedef int mode_t;
+#endif
+
 namespace INDI
 {
+/**
+ * @brief Create directory.
+ */
+int mkdir(const char *path, mode_t mode);
 
 /**
  * @brief Create a path directory - this function uses 'mkdir'
- * @note Not available on Windows. Need to use C++17 cross-platform std::filesystem later.
  */
-#ifndef _WINDOWS
 int mkpath(std::string path, mode_t mode);
-#endif
+
 /**
  * @brief Converts the date and time to string - this function uses 'strftime'
  */

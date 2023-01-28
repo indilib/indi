@@ -40,8 +40,8 @@ PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
 #ifdef INDI_PROPERTY_RAW_CAST
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(RawPropertyType *rawProperty)
-    : PropertyContainer<T>{*static_cast<PropertyView<T>*>(rawProperty)}
-    , PropertyPrivate(rawProperty)
+    : PropertyContainer<T>{*PropertyView<T>::cast(rawProperty)}
+    , PropertyPrivate(PropertyView<T>::cast(rawProperty))
     , raw{true}
 { }
 #endif
@@ -310,7 +310,7 @@ template <typename T>
 int PropertyBasic<T>::findWidgetIndexByName(const char *name) const
 {
     auto it = findWidgetByName(name);
-    return it == nullptr ? -1 : it - begin();
+    return int(it == nullptr ? -1 : it - begin());
 }
 
 template <typename T>

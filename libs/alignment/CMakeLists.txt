@@ -28,25 +28,20 @@ IF(UNITY_BUILD)
     ENABLE_UNITY_BUILD(AlignmentDriver AlignmentDriver_SRC 15 cpp)
 ENDIF()
 
-IF(CYGWIN)
-    SET(AlignmentDriver_SRC ${AlignmentDriver_SRC})
+add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
+set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
 
-    add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
-    target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+IF(APPLE)
+    target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
 ELSE()
-    add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
-    set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
-
-    IF(APPLE)
-        target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
-    ELSE()
-        # Force linking all referenced libraries because of libgsl is not linked against cblas library on Linux
-        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
-        target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
-    ENDIF()
+    # Force linking all referenced libraries because of libgsl is not linked against cblas library on Linux
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
+    target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES}
+        $<$<PLATFORM_ID:CYGWIN>:indidriver>
+    )
 ENDIF()
 
-target_link_libraries(AlignmentDriver indicore indidevice indiclient)
+target_link_libraries(AlignmentDriver indidevice indiclient)
 
 if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentDriver Qt5::Network)
@@ -92,11 +87,11 @@ if(INDI_BUILD_QT5)
     target_link_libraries(AlignmentClient Qt5::Network)
 endif(INDI_BUILD_QT5)
 
-if(NOT CYGWIN AND NOT WIN32)
+if(NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT CYGWIN AND NOT WIN32)
+endif(NOT WIN32)
 
-target_link_libraries(AlignmentClient indicore indidevice indiclient)
+target_link_libraries(AlignmentClient indidevice indiclient)
 
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -149,13 +144,15 @@ set(NearestMathPlugin_SRCS
     NearestMathPlugin.cpp
 )
 
-if(CYGWIN)
-    add_library(indi_Nearest_MathPlugin STATIC ${NearestMathPlugin_SRCS})
-    target_link_libraries(indi_Nearest_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
-else(CYGWIN)
-    add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
-    target_link_libraries(indi_Nearest_MathPlugin indidriver)
-endif(CYGWIN)
+add_library(indi_Nearest_MathPlugin SHARED ${NearestMathPlugin_SRCS})
+target_include_directories(indi_Nearest_MathPlugin
+    PRIVATE
+        ${libindi_SOURCE_DIR}/libs/indicore
+)
+target_link_libraries(indi_Nearest_MathPlugin
+    indidriver
+    $<$<PLATFORM_ID:CYGWIN>:AlignmentDriver>
+)
 
 install(TARGETS indi_Nearest_MathPlugin
     ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
@@ -169,14 +166,12 @@ set(SVDMathPlugin_SRCS
     SVDMathPlugin.cpp
 )
 
-if(CYGWIN)
-    add_library(indi_SVD_MathPlugin STATIC ${SVDMathPlugin_SRCS})
-    target_link_libraries(indi_SVD_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
-else(CYGWIN)
-    add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
-    set_property(TARGET indi_SVD_MathPlugin APPEND PROPERTY COMPILE_DEFINITIONS SVD_TRANSFORM_MATRIX)
-    target_link_libraries(indi_SVD_MathPlugin indidriver)
-endif(CYGWIN)
+add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
+set_property(TARGET indi_SVD_MathPlugin APPEND PROPERTY COMPILE_DEFINITIONS SVD_TRANSFORM_MATRIX)
+target_link_libraries(indi_SVD_MathPlugin
+    indidriver
+    $<$<PLATFORM_ID:CYGWIN>:AlignmentDriver>
+)
 
 install(TARGETS indi_SVD_MathPlugin
     ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}

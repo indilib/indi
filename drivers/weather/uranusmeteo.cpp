@@ -56,8 +56,8 @@ bool UranusMeteo::initProperties()
     WI::initProperties(MAIN_CONTROL_TAB, ENVIRONMENT_TAB);
 
     // To distinguish them from GPS properties.
-    WI::UpdatePeriodNP->setLabel("Weather Update");
-    WI::RefreshSP->setLabel("Weahter Refresh");
+    WI::UpdatePeriodNP.setLabel("Weather Update");
+    WI::RefreshSP.setLabel("Weahter Refresh");
 
     addAuxControls();
 
@@ -232,39 +232,46 @@ IPState UranusMeteo::updateGPS()
             GPSNP[GPSSpeed].setValue(std::stod(result[GPSSpeed]));
             GPSNP[GPSBearing].setValue(std::stod(result[GPSBearing]));
 
-            GPSNP->setState(IPS_OK);
-            GPSNP->apply();
+            GPSNP.setState(IPS_OK);
+            GPSNP.apply();
 
             if (GPSNP[GPSFix].getValue() < 3)
                 return IPS_BUSY;
 
-            LocationN[LOCATION_LATITUDE].value  = GPSNP[Latitude].getValue();
-            LocationN[LOCATION_LONGITUDE].value = GPSNP[Longitude].getValue();
+            LocationNP[LOCATION_LATITUDE].value  = GPSNP[Latitude].getValue();
+            LocationNP[LOCATION_LONGITUDE].value = GPSNP[Longitude].getValue();
             // 2017-11-15 Jasem: INDI Longitude is 0 to 360 East+
-            if (LocationN[LOCATION_LONGITUDE].value < 0)
-                LocationN[LOCATION_LONGITUDE].value += 360;
+            if (LocationNP[LOCATION_LONGITUDE].value < 0)
+                LocationNP[LOCATION_LONGITUDE].value += 360;
 
-            LocationN[LOCATION_ELEVATION].value = SensorNP[BarometricAltitude].getValue();
+            LocationNP[LOCATION_ELEVATION].value = SensorNP[BarometricAltitude].getValue();
 
             // Get GPS Time
             char ts[32] = {0};
             time_t raw_time = GPSNP[GPSTime].getValue();
 
             // Convert to UTC
-            struct tm *utc = gmtime(&raw_time);
-            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-            IUSaveText(&TimeT[0], ts);
-
-            // Save UTC offset
+            // JM 2022.12.28: Uranus returns LOCAL TIME, not UTC.
             struct tm *local = localtime(&raw_time);
-            snprintf(ts, sizeof(ts), "%.2f", (local->tm_gmtoff / 3600.0));
-            IUSaveText(&TimeT[1], ts);
+            // Get UTC Offset
+            auto utcOffset = local->tm_gmtoff / 3600.0;
+            // Convert to UTC time
+            time_t utcTime = raw_time - utcOffset * 3600.0;
+            // Get tm struct in UTC
+            struct tm *utc = gmtime(&utcTime);
+            // Format it
+            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+            IUSaveText(&TimeTP[0], ts);
 
-            // Set UTC in device
+            snprintf(ts, sizeof(ts), "%.2f", utcOffset);
+            IUSaveText(&TimeTP[1], ts);
+
+            // Set UTC offset in device
             char command[PEGASUS_LEN] = {0};
-            snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>((local->tm_gmtoff / 3600.0)));
+            snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>(utcOffset));
             sendCommand(command, response);
 
+            // N.B. FIXME, does not work.
             setSystemTime(raw_time);
 
             return IPS_OK;
@@ -313,21 +320,21 @@ bool UranusMeteo::ISNewNumber(const char * dev, const char * name, double values
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Sky Quality Update
-        if (SkyQualityUpdateNP->isNameMatch(name))
+        if (SkyQualityUpdateNP.isNameMatch(name))
         {
             SkyQualityUpdateNP.update(values, names, n);
             auto value = SkyQualityUpdateNP[0].getValue();
             if (value > 0)
             {
                 m_SkyQualityUpdateTimer.start(value * 1000);
-                SkyQualityUpdateNP->setState(IPS_OK);
+                SkyQualityUpdateNP.setState(IPS_OK);
             }
             else
             {
                 LOG_INFO("Sky Quality Update is disabled.");
-                SkyQualityUpdateNP->setState(IPS_IDLE);
+                SkyQualityUpdateNP.setState(IPS_IDLE);
             }
-            SkyQualityUpdateNP->apply();
+            SkyQualityUpdateNP.apply();
             return true;
         }
 
@@ -362,7 +369,7 @@ bool UranusMeteo::saveConfigItems(FILE * fp)
 {
     INDI::GPS::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &SkyQualityUpdateNP);
+    SkyQualityUpdateNP.save(fp);
     return true;
 }
 
@@ -394,8 +401,8 @@ bool UranusMeteo::readSensors()
             SensorNP[BatteryUsage].setValue(std::stod(result[BatteryUsage]));
             SensorNP[BatteryVoltage].setValue(std::stod(result[BatteryVoltage]));
 
-            SensorNP->setState(IPS_OK);
-            SensorNP->apply();
+            SensorNP.setState(IPS_OK);
+            SensorNP.apply();
             return true;
         }
         catch(...)
@@ -432,8 +439,8 @@ bool UranusMeteo::readSkyQuality()
             SkyQualityNP[VisualSpectrum].setValue(std::stod(result[VisualSpectrum]));
             SkyQualityNP[InfraredSpectrum].setValue(std::stod(result[InfraredSpectrum]));
 
-            SkyQualityNP->setState(IPS_OK);
-            SkyQualityNP->apply();
+            SkyQualityNP.setState(IPS_OK);
+            SkyQualityNP.apply();
             return true;
         }
         catch(...)
@@ -470,8 +477,8 @@ bool UranusMeteo::readClouds()
             CloudsNP[CloudAmbientTemperature].setValue(std::stod(result[CloudAmbientTemperature]));
             CloudsNP[InfraredEmissivity].setValue(std::stod(result[InfraredEmissivity]));
 
-            CloudsNP->setState(IPS_OK);
-            CloudsNP->apply();
+            CloudsNP.setState(IPS_OK);
+            CloudsNP.apply();
             return true;
         }
         catch(...)
@@ -533,7 +540,9 @@ bool UranusMeteo::setSystemTime(time_t &raw_time)
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
     timespec sTime = {};
     sTime.tv_sec = raw_time;
-    clock_settime(CLOCK_REALTIME, &sTime);
+    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
+    if (rc)
+        LOGF_WARN("Failed to update system time: %s", strerror(rc));
 #else
     stime(&raw_time);
 #endif

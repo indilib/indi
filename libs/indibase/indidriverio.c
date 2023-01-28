@@ -74,7 +74,7 @@ static void outBuffGrow(struct driverio * dio, int required)
     }
 }
 
-static size_t driverio_write(void *user, const void * ptr, size_t count)
+static ssize_t driverio_write(void *user, const void * ptr, size_t count)
 {
     struct driverio * dio = (struct driverio*) user;
 

@@ -3,20 +3,20 @@ Section: misc
 Priority: optional
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 8.1.3~),
- cdbs,
- cmake (>= 2.4.7),
- libcfitsio3-dev|libcfitsio-dev,
- libnova-dev,
- libusb-1.0-0-dev,
- zlib1g-dev,
- libjpeg-dev | libjpeg9-dev | libjpeg8-dev,
- libgsl0-dev | libgsl-dev,
- libcurl4-gnutls-dev,
- libtheora-dev,
- libogg-dev,
- libfftw3-dev,
- libev-dev,
- librtlsdr-dev,
+               cdbs,
+               cmake (>= 2.6),
+               libcfitsio-dev,
+               libnova-dev,
+               libusb-1.0-0-dev,
+               zlib1g-dev,
+               libjpeg-dev,
+               libgsl-dev,
+               libcurl4-gnutls-dev,
+               libtheora-dev,
+               libogg-dev,
+               libfftw3-dev,
+               libev-dev,
+               librtlsdr-dev,
 Standards-Version: 3.9.5
 Homepage: http://www.indilib.org/
 Vcs-Git: git://github.com/indilib/indi.git
@@ -24,9 +24,7 @@ Vcs-Git: git://github.com/indilib/indi.git
 Package: libindi1
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
- libindi-data (>= ${source:Version}),
- indi-bin (>= ${source:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi-data (>= ${source:Version}), indi-bin (>= ${source:Version})
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
 conflicts: libindi0, libindi-plugins, libindialignmentdriver1, libindidriver1

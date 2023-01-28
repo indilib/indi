@@ -231,3 +231,13 @@ SET(deepskydad_fp1_SRC
 add_executable(indi_deepskydad_fp1 ${deepskydad_fp1_SRC})
 target_link_libraries(indi_deepskydad_fp1 indidriver)
 install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
+
+# ########## GIOTTO ###############
+SET(giotto_SRC
+    giotto.cpp
+    ../focuser/primalucacommandset.cpp
+)
+
+add_executable(indi_giotto ${giotto_SRC})
+target_link_libraries(indi_giotto indidriver)
+install(TARGETS indi_giotto RUNTIME DESTINATION bin)

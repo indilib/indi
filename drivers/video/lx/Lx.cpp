@@ -97,8 +97,8 @@ bool Lx::initProperties(INDI::DefaultDevice *device)
     IUFillSwitch(&LxSerialAddeolS[3], "CR+LF", "", ISS_OFF);
     IUFillSwitchVector(&LxSerialAddeolSP, LxSerialAddeolS, NARRAY(LxSerialAddeolS), device_name, "Add EOL", "", LX_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    FlashStrobeSP     = nullptr;
-    FlashStrobeStopSP = nullptr;
+    FlashStrobeSP     = INDI::Property();
+    FlashStrobeStopSP = INDI::Property();
     ledmethod         = PWCIOCTL;
     return true;
 }
@@ -107,7 +107,6 @@ bool Lx::updateProperties()
 {
     if (dev->isConnected())
     {
-        INDI::Property *pfound;
         dev->defineProperty(&LxEnableSP);
         dev->defineProperty(&LxModeSP);
         dev->defineProperty(&LxPortTP);
@@ -120,12 +119,13 @@ bool Lx::updateProperties()
         dev->defineProperty(&LxSerialParitySP);
         dev->defineProperty(&LxSerialStopSP);
         dev->defineProperty(&LxSerialAddeolSP);
-        pfound = findbyLabel(dev, (char *)"Strobe");
+
+        INDI::Property pfound = findByLabel(dev, "Strobe");
         if (pfound)
         {
-            FlashStrobeSP     = dev->getSwitch(pfound->getName());
-            pfound            = findbyLabel(dev, (char *)"Stop Strobe");
-            FlashStrobeStopSP = dev->getSwitch(pfound->getName());
+            FlashStrobeSP     = dev->getSwitch(pfound.getName());
+            pfound            = findByLabel(dev, "Stop Strobe");
+            FlashStrobeStopSP = dev->getSwitch(pfound.getName());
         }
     }
     else
@@ -142,8 +142,8 @@ bool Lx::updateProperties()
         dev->deleteProperty(LxSerialParitySP.name);
         dev->deleteProperty(LxSerialStopSP.name);
         dev->deleteProperty(LxSerialAddeolSP.name);
-        FlashStrobeSP     = nullptr;
-        FlashStrobeStopSP = nullptr;
+        FlashStrobeSP     = INDI::Property();
+        FlashStrobeStopSP = INDI::Property();
     }
     return true;
 }
@@ -560,12 +560,12 @@ int Lx::stopLxSerial()
     return 0;
 }
 
-INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
+INDI::Property Lx::findByLabel(INDI::DefaultDevice *dev, const char *label)
 {
-    for(auto &oneProperty : *dev->getProperties())
-        if (oneProperty->isLabelMatch(label))
+    for(auto &oneProperty : dev->getProperties())
+        if (oneProperty.isLabelMatch(label))
             return oneProperty;
-    return nullptr;
+    return INDI::Property();
 }
 
 // PWC Stuff
@@ -605,25 +605,26 @@ void Lx::pwcsetLed(int on, int off)
 void Lx::pwcsetflashon()
 {
     ISState states[2]    = { ISS_ON, ISS_OFF };
-    const char *names[2] = { FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name };
-    dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
-    //dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
-    FlashStrobeSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeSP, nullptr);
-    FlashStrobeStopSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeStopSP, nullptr);
+    const char *names[2] = { FlashStrobeSP[0].getName(), FlashStrobeStopSP[0].getName() };
+    dev->ISNewSwitch(device_name, FlashStrobeSP.getName(), &(states[0]), (char **)names, 1);
+    //dev->ISNewSwitch(device_name, FlashStrobeStopSP.name, &(states[1]), (char **)(names + 1), 1);
+    FlashStrobeSP.setState(IPS_OK);
+    FlashStrobeSP.apply();
+    FlashStrobeStopSP.setState(IPS_IDLE);
+    FlashStrobeStopSP.apply();
 }
 
 void Lx::pwcsetflashoff()
 {
     ISState states[2]    = { ISS_OFF, ISS_ON };
-    const char *names[2] = { FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name };
-    //dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
-    dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
-    FlashStrobeStopSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeStopSP, nullptr);
-    FlashStrobeSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeSP, nullptr);
+    const char *names[2] = { FlashStrobeSP[0].getName(), FlashStrobeStopSP[0].getName()};
+    //dev->ISNewSwitch(device_name, FlashStrobeSP.name, &(states[0]), (char **)names, 1);
+    dev->ISNewSwitch(device_name, FlashStrobeStopSP.getName(), &(states[1]), (char **)(names + 1), 1);
+    FlashStrobeStopSP.setState(IPS_OK);
+    FlashStrobeStopSP.apply();
+
+    FlashStrobeSP.setState(IPS_IDLE);
+    FlashStrobeSP.apply();
 }
 
 bool Lx::startLxPWC()

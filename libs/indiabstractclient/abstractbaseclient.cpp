@@ -46,7 +46,7 @@ userio AbstractBaseClientPrivate::io;
 AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
     : parent(parent)
 {
-    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    io.write = [](void *user, const void * ptr, size_t count) -> ssize_t
     {
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         return self->sendData(ptr, count);
@@ -57,7 +57,7 @@ AbstractBaseClientPrivate::AbstractBaseClientPrivate(AbstractBaseClient *parent)
         auto self = static_cast<AbstractBaseClientPrivate *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
-        return self->sendData(message, strlen(message));
+        return int(self->sendData(message, strlen(message)));
     };
 }
 
@@ -465,19 +465,19 @@ void AbstractBaseClient::sendNewProperty(INDI::Property pp)
     switch (pp.getType())
     {
         case INDI_NUMBER:
-            IUUserIONewNumber(&d->io, d, pp.getNumber());
+            IUUserIONewNumber(&d->io, d, pp.getNumber()->cast());
             break;
         case INDI_SWITCH:
-            IUUserIONewSwitch(&d->io, d, pp.getSwitch());
+            IUUserIONewSwitch(&d->io, d, pp.getSwitch()->cast());
             break;
         case INDI_TEXT:
-            IUUserIONewText(&d->io, d, pp.getText());
+            IUUserIONewText(&d->io, d, pp.getText()->cast());
             break;
         case INDI_LIGHT:
             IDLog("Light type is not supported to send\n");
             break;
         case INDI_BLOB:
-            IUUserIONewBLOB(&d->io, d, pp.getBLOB());
+            IUUserIONewBLOB(&d->io, d, pp.getBLOB()->cast());
             break;
         case INDI_UNKNOWN:
             IDLog("Unknown type of property to send\n");
@@ -491,7 +491,7 @@ void AbstractBaseClient::sendNewText(INDI::Property pp)
     AutoCNumeric locale;
 
     pp.setState(IPS_BUSY);
-    IUUserIONewText(&d->io, d, pp.getText());
+    IUUserIONewText(&d->io, d, pp.getText()->cast());
 }
 
 void AbstractBaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -502,7 +502,7 @@ void AbstractBaseClient::sendNewText(const char *deviceName, const char *propert
     if (!tvp.isValid())
         return;
 
-    auto tp = tvp->findWidgetByName(elementName);
+    auto tp = tvp.findWidgetByName(elementName);
 
     if (!tp)
         return;
@@ -517,7 +517,7 @@ void AbstractBaseClient::sendNewNumber(INDI::Property pp)
     D_PTR(AbstractBaseClient);
     AutoCNumeric locale;
     pp.setState(IPS_BUSY);
-    IUUserIONewNumber(&d->io, d, pp.getNumber());
+    IUUserIONewNumber(&d->io, d, pp.getNumber()->cast());
 }
 
 void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -528,7 +528,7 @@ void AbstractBaseClient::sendNewNumber(const char *deviceName, const char *prope
     if (!nvp.isValid())
         return;
 
-    auto np = nvp->findWidgetByName(elementName);
+    auto np = nvp.findWidgetByName(elementName);
 
     if (!np)
         return;
@@ -542,7 +542,7 @@ void AbstractBaseClient::sendNewSwitch(INDI::Property pp)
 {
     D_PTR(AbstractBaseClient);
     pp.setState(IPS_BUSY);
-    IUUserIONewSwitch(&d->io, d, pp.getSwitch());
+    IUUserIONewSwitch(&d->io, d, pp.getSwitch()->cast());
 }
 
 void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -552,7 +552,7 @@ void AbstractBaseClient::sendNewSwitch(const char *deviceName, const char *prope
     if (!svp.isValid())
         return;
 
-    auto sp = svp->findWidgetByName(elementName);
+    auto sp = svp.findWidgetByName(elementName);
 
     if (!sp)
         return;
@@ -568,7 +568,7 @@ void AbstractBaseClient::startBlob(const char *devName, const char *propName, co
     IUUserIONewBLOBStart(&d->io, d, devName, propName, timestamp);
 }
 
-void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
+void AbstractBaseClient::sendOneBlob(INDI::WidgetViewBlob *blob)
 {
     D_PTR(AbstractBaseClient);
     IUUserIOBLOBContextOne(
@@ -579,7 +579,7 @@ void AbstractBaseClient::sendOneBlob(INDI::WidgetView<IBLOB> *blob)
 
 void AbstractBaseClient::sendOneBlob(IBLOB *bp)
 {
-    sendOneBlob(static_cast<INDI::WidgetView<IBLOB>*>(bp));
+    sendOneBlob(INDI::WidgetViewBlob::cast(bp));
 }
 
 void AbstractBaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,

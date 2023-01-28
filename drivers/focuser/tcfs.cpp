@@ -507,12 +507,12 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         // Do not process any command if focuser is asleep
         if (isConnected() && FocusPowerSP.sp[0].s == ISS_ON)
         {
-            ISwitchVectorProperty *svp = getSwitch(name);
+            auto svp = getSwitch(name);
             if (svp)
             {
-                svp->s = IPS_IDLE;
+                svp.setState(IPS_IDLE);
                 LOG_WARN("Focuser is still in sleep mode. Wake up in order to issue commands.");
-                IDSetSwitch(svp, nullptr);
+                svp.apply();
             }
             return true;
         }
@@ -599,12 +599,12 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         // Do not process any other command if focuser is in auto mode
         if (isConnected() && FocusModeSP.sp[0].s != ISS_ON)
         {
-            ISwitchVectorProperty *svp = getSwitch(name);
+            auto svp = getSwitch(name);
             if (svp)
             {
-                svp->s = IPS_IDLE;
+                svp.setState(IPS_IDLE);
                 LOG_WARN("Focuser is in auto mode. Change to manual in order to issue commands.");
-                IDSetSwitch(svp, nullptr);
+                svp.apply();
             }
             return true;
         }

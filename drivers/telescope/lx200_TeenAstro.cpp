@@ -418,7 +418,8 @@ bool LX200_TeenAstro::Goto(double r, double d)
         IDSetNumber(&EqNP, nullptr);
 
         // sleep for 100 mseconds
-        usleep(100000);
+        const struct timespec ms100_delay = {.tv_sec = 0, .tv_nsec = 100000000};
+        nanosleep(&ms100_delay, NULL);
     }
 
     if (!isSimulation())
@@ -519,7 +520,7 @@ bool LX200_TeenAstro::SetCurrentPark()
     }
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
-    LOG_WARN("Park Value set to current postion");
+    LOG_WARN("Park Value set to current position");
     return true;
 }
 

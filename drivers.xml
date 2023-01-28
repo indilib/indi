@@ -247,6 +247,10 @@
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
         </device>
+        <device label="iOptron AZ Pro" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.6</version>
+        </device>
         <device label="Pulsar2" manufacturer="GTD">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
             <version>1.3</version>
@@ -383,7 +387,7 @@
         </device>
         <device label="USBFocusV3" manufacturer="USB_Focus">
             <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
-            <version>0.1</version>
+            <version>1.1</version>
         </device>
         <device label="Pegasus DMFC" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
@@ -651,10 +655,14 @@
         </device>
         <device label="SnapCap" manufacturer="GTD">
             <driver name="SnapCap">indi_snapcap</driver>
-            <version>1.0</version>
+            <version>1.2</version>
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
+            <version>1.0</version>
+        </device>
+        <device label="GIOTTO" manufacturer="Primaluce Lab">
+            <driver name="GIOTTO">indi_giotto</driver>
             <version>1.0</version>
         </device>
         <device label="Light Panel Simulator" manufacturer="Simulator">
@@ -679,7 +687,7 @@
         </device>
         <device label="USB_Dewpoint" manufacturer="USB_Focus">
             <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
-            <version>1.0</version>
+            <version>1.2</version>
         </device>
 		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>

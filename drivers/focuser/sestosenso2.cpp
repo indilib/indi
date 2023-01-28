@@ -101,9 +101,9 @@ bool SestoSenso2::initProperties()
     FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Hold state
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_ON], "HOLD_ON", "Hold On", ISS_OFF);
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_OFF], "HOLD_OFF", "Hold Off", ISS_OFF);
-    IUFillSwitchVector(&MotorHoldSP, MotorHoldS, 2, getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
+    MotorHoldSP[MOTOR_HOLD_ON].fill("HOLD_ON", "Hold On", ISS_OFF);
+    MotorHoldSP[MOTOR_HOLD_OFF].fill("HOLD_OFF", "Hold Off", ISS_OFF);
+    MotorHoldSP.fill(getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
@@ -202,7 +202,7 @@ bool SestoSenso2::updateProperties()
     }
     else
     {
-        if (TemperatureNP->getState() == IPS_OK)
+        if (TemperatureNP.getState() == IPS_OK)
             deleteProperty(TemperatureNP);
         deleteProperty(FirmwareTP);
         deleteProperty(VoltageInNP);
@@ -391,25 +391,25 @@ bool SestoSenso2::fetchMotorSettings()
     MotorRateNP[MOTOR_RATE_RUN].setValue(ms.runSpeed);
     MotorRateNP[MOTOR_RATE_DEC].setValue(ms.decRate);
     MotorRateNP.setState(IPS_OK);
-    MotorRateNP->apply();
+    MotorRateNP.apply();
 
     MotorCurrentNP[MOTOR_CURR_ACC].setValue(mc.accCurrent);
     MotorCurrentNP[MOTOR_CURR_RUN].setValue(mc.runCurrent);
     MotorCurrentNP[MOTOR_CURR_DEC].setValue(mc.decCurrent);
     MotorCurrentNP[MOTOR_CURR_HOLD].setValue(mc.holdCurrent);
     MotorCurrentNP.setState(IPS_OK);
-    MotorCurrentNP->apply();
+    MotorCurrentNP.apply();
 
     // Also update motor hold switch
     auto activeSwitchID = motorHoldActive ? "HOLD_ON" : "HOLD_OFF";
-    auto sp = MotorHoldSP->findWidgetByName(activeSwitchID);
+    auto sp = MotorHoldSP.findWidgetByName(activeSwitchID);
     assert(sp != nullptr && "Motor hold switch not found");
     if (sp)
     {
         MotorHoldSP.reset();
-        sp->s = ISS_ON;
+        sp->setState(ISS_ON);
         MotorHoldSP.setState(motorHoldActive ? IPS_OK : IPS_ALERT);
-        MotorHoldSP->apply();
+        MotorHoldSP.apply();
     }
 
     if (motorHoldActive && mc.holdCurrent == 0)
@@ -508,12 +508,12 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Calibrate focuser
-        if (CalibrationSP->isNameMatch(name))
+        if (CalibrationSP.isNameMatch(name))
         {
             CalibrationSP.update(states, names, n);
-            auto current_switch = IUFindOnSwitchIndex(&CalibrationSP);
+            auto current_switch = CalibrationSP.findOnSwitchIndex();
             CalibrationSP[current_switch].setState(ISS_ON);
-            CalibrationSP->apply();
+            CalibrationSP.apply();
 
             if (current_switch == CALIBRATION_START)
             {
@@ -522,7 +522,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     // Start the calibration process
                     LOG_INFO("Start Calibration");
                     CalibrationSP.setState(IPS_BUSY);
-                    CalibrationSP->apply();
+                    CalibrationSP.apply();
 
                     //
                     // Init
@@ -531,7 +531,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         return false;
 
                     CalibrationMessageTP[0].setText("Set focus in MIN position and then press NEXT.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
 
                     // Motor hold disabled during calibration init, so fetch new hold state
                     fetchMotorSettings();
@@ -543,21 +543,21 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 {
                     LOG_INFO("Already started calibration. Proceed to next step.");
                     CalibrationMessageTP[0].setText("Already started. Proceed to NEXT.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
                 }
             }
             else if (current_switch == CALIBRATION_NEXT)
             {
                 if (cStage == GoToMiddle)
                 {
-                    defineProperty(&FastMoveSP);
+                    defineProperty(FastMoveSP);
                     if (m_IsSestoSenso2)
                     {
                         if (m_SestoSenso2->storeAsMinPosition() == false)
                             return false;
 
                         CalibrationMessageTP[0].setText("Press MOVE OUT to move focuser out (CAUTION!)");
-                        CalibrationMessageTP->apply();
+                        CalibrationMessageTP.apply();
                         cStage = GoMinimum;
                     }
                     // For Esatto, start moving out immediately
@@ -576,7 +576,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         return false;
 
                     CalibrationMessageTP[0].setText("Press NEXT to finish.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
                     cStage = GoMaximum;
                 }
                 else if (cStage == GoMaximum)
@@ -615,14 +615,14 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     IUUpdateMinMax(&FocusMaxPosNP);
 
                     CalibrationMessageTP[0].setText("Calibration Completed.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
 
                     deleteProperty(FastMoveSP);
                     cStage = Complete;
 
                     LOG_INFO("Calibration completed");
-                    CalibrationSP->setState(IPS_OK);
-                    CalibrationSP->apply();
+                    CalibrationSP.setState(IPS_OK);
+                    CalibrationSP.apply();
                     CalibrationSP[current_switch].setState(ISS_OFF);
                     CalibrationSP.apply();
 
@@ -632,17 +632,17 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 else
                 {
                     CalibrationMessageTP[0].setText("Calibration not in progress.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
                 }
 
             }
             return true;
         }
         // Fast motion
-        else if (FastMoveSP->isNameMatch(name))
+        else if (FastMoveSP.isNameMatch(name))
         {
             FastMoveSP.update(states, names, n);
-            auto current_switch = IUFindOnSwitchIndex(&FastMoveSP);
+            auto current_switch = FastMoveSP.findOnSwitchIndex();
 
             switch (current_switch)
             {
@@ -670,7 +670,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                             m_MotionProgressTimer.start(500);
                         }
                     }
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP.apply();
                     break;
                 case FASTMOVE_STOP:
                     if (m_SestoSenso2->stop() == false)
@@ -678,21 +678,21 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         return false;
                     }
                     CalibrationMessageTP[0].setText("Press NEXT to store max limit.");
-                    CalibrationMessageTP->apply();
+                    CalibrationMessageTP.apply();
                     break;
                 default:
                     break;
             }
 
             FastMoveSP.setState(IPS_BUSY);
-            FastMoveSP->apply();
+            FastMoveSP.apply();
             return true;
         }
         // Homing
-        else if (MotorHoldSP->isNameMatch(name))
+        else if (MotorHoldSP.isNameMatch(name))
         {
             MotorHoldSP.update(states, names, n);
-            auto sp = IUFindOnSwitch(&MotorHoldSP);
+            auto sp = MotorHoldSP.findOnSwitch();
             assert(sp != nullptr);
 
             // NOTE: Default to HOLD_ON as a safety feature
@@ -714,13 +714,13 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 }
             }
 
-            IDSetSwitch(&MotorHoldSP, nullptr);
+            MotorHoldSP.apply();
             return true;
         }
-        else if (MotorApplyPresetSP->isNameMatch(name))
+        else if (MotorApplyPresetSP.isNameMatch(name))
         {
             MotorApplyPresetSP.update(states, names, n);
-            auto index = IUFindOnSwitchIndex(&MotorApplyPresetSP);
+            auto index = MotorApplyPresetSP.findOnSwitchIndex();
             assert(index >= 0 && index < 3);
 
             const char* presetName = MOTOR_PRESET_NAMES[index];
@@ -736,8 +736,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 MotorApplyPresetSP.setState(IPS_ALERT);
             }
 
-            MotorApplyPresetSP[index].s = ISS_OFF;
-            IDSetSwitch(&MotorApplyPresetSP, nullptr);
+            MotorApplyPresetSP[index].setState(ISS_OFF);
+            MotorApplyPresetSP.apply();
 
             fetchMotorSettings();
             return true;
@@ -813,18 +813,18 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
 
     if (MotorRateNP.isNameMatch(name))
     {
-        IUUpdateNumber(&MotorRateNP, values, names, n);
+        MotorRateNP.update(values, names, n);
         MotorRateNP.setState(IPS_OK);
         applyMotorRates();
-        IDSetNumber(&MotorRateNP, nullptr);
+        MotorRateNP.apply();
         return true;
     }
-    else if (MotorCurrentNP->isNameMatch(name))
+    else if (MotorCurrentNP.isNameMatch(name))
     {
-        IUUpdateNumber(&MotorCurrentNP, values, names, n);
+        MotorCurrentNP.update(values, names, n);
         MotorCurrentNP.setState(IPS_OK);
         applyMotorCurrents();
-        IDSetNumber(&MotorCurrentNP, nullptr);
+        MotorCurrentNP.apply();
         return true;
     }
 
@@ -907,7 +907,7 @@ void SestoSenso2::checkMotionProgressCallback()
         {
             ISState states[2] = { ISS_OFF, ISS_ON };
             const char * names[2] = { CalibrationSP[CALIBRATION_START].getName(), CalibrationSP[CALIBRATION_NEXT].getName() };
-            ISNewSwitch(getDeviceName(), CalibrationSP.getName(), states, const_cast<char **>(names), CalibrationSP->count());
+            ISNewSwitch(getDeviceName(), CalibrationSP.getName(), states, const_cast<char **>(names), CalibrationSP.count());
         }
         else
             LOG_INFO("Focuser reached requested position.");
@@ -978,10 +978,10 @@ void SestoSenso2::TimerHit()
         rc = updateTemperature();
         if (rc)
         {
-            if (fabs(lastTemperature - TemperatureNP[0].value) >= 0.1)
+            if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.1)
             {
-                IDSetNumber(&TemperatureNP, nullptr);
-                lastTemperature = TemperatureNP[0].value;
+                TemperatureNP.apply();
+                lastTemperature = TemperatureNP[0].getValue();
             }
         }
 
@@ -989,12 +989,12 @@ void SestoSenso2::TimerHit()
         rc = updateVoltageIn();
         if (rc)
         {
-            if (fabs(lastVoltageIn - VoltageInNP[0].value) >= 0.1)
+            if (fabs(lastVoltageIn - VoltageInNP[0].getValue()) >= 0.1)
             {
-                IDSetNumber(&VoltageInNP, nullptr);
-                lastVoltageIn = VoltageInNP[0].value;
+                VoltageInNP.apply();
+                lastVoltageIn = VoltageInNP[0].getValue();
 
-                if (VoltageInNP[0].value < 11.0)
+                if (VoltageInNP[0].getValue() < 11.0)
                 {
                     LOG_WARN("Please check 12v DC power supply is connected.");
                 }
@@ -1111,9 +1111,8 @@ bool SestoSenso2::initCommandSet()
 bool SestoSenso2::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
-
-    IUSaveConfigNumber(fp, &MotorRateNP);
-    IUSaveConfigNumber(fp, &MotorCurrentNP);
+    MotorRateNP.save(fp);
+    MotorCurrentNP.save(fp);
     return true;
 }
 

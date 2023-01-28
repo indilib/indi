@@ -67,7 +67,7 @@ static void growString(String *sp, int c);
 static void appendString(String *sp, const char *str);
 static void freeString(String *sp);
 static void newString(String *sp);
-static void *moremem(void *old, int n);
+static void *moremem(void *old, size_t n);
 static void appXMLEle(XMLEle *ep, XMLEle *newep);
 
 typedef enum
@@ -536,7 +536,7 @@ XMLAtt *findXMLAtt(XMLEle *ep, const char *name)
  */
 XMLEle *findXMLEle(XMLEle *ep, const char *tag)
 {
-    int tl = strlen(tag);
+    int tl = (int)strlen(tag);
     int i;
 
     for (i = 0; i < ep->nel; i++)
@@ -871,7 +871,7 @@ class BufferXMLOutput: public XMLOutput
  * N.B. set level = 0 on first call
  * return length of resulting string (sans trailing \0)
  */
-int sprXMLEle(char *s, XMLEle *ep, int level)
+size_t sprXMLEle(char *s, XMLEle *ep, int level)
 {
     BufferXMLOutput bxo(s);
     bxo.putXML(ep, level);
@@ -919,7 +919,7 @@ class NullXMLOutput: public XMLOutput
  * sprXLMEle(ep) (sans trailing \0).
  * N.B. set level = 0 on first call
  */
-int sprlXMLEle(XMLEle *ep, int level)
+size_t sprlXMLEle(XMLEle *ep, int level)
 {
     NullXMLOutput bxo;
     bxo.putXML(ep, level);
@@ -941,7 +941,7 @@ void XMLOutput::putEntityXML(const char * s)
     for (; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
     {
         /* found another entity, copy preceding to malloced buffer */
-        int nnew = ep - s; /* all but entity itself */
+        size_t nnew = size_t(ep - s); /* all but entity itself */
         put(s, nnew);
 
         /* replace with entity encoding */
@@ -976,7 +976,7 @@ char *entityXML(char *s)
 {
     // FIXME: this is not thread safe. Signature must be changed (deprecate ?)
     static char *malbuf;
-    int nmalbuf = 0;
+    size_t nmalbuf = 0;
     char *sret = NULL;
     char *ep = NULL;
 
@@ -984,7 +984,7 @@ char *entityXML(char *s)
     for (sret = s; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
     {
         /* found another entity, copy preceding to malloced buffer */
-        int nnew = ep - s; /* all but entity itself */
+        size_t nnew = size_t(ep - s); /* all but entity itself */
         sret = malbuf = (char*)moremem(malbuf, nmalbuf + nnew + 10);
         memcpy(malbuf + nmalbuf, s, nnew);
         nmalbuf += nnew;
@@ -1024,7 +1024,7 @@ char *entityXML(char *s)
     else
     {
         /* put remaining part of s into malbuf */
-        int nleft = strlen(s) + 1; /* include \0 */
+        size_t nleft = strlen(s) + 1; /* include \0 */
         sret = malbuf = (char*)moremem(malbuf, nmalbuf + nleft);
         memcpy(malbuf + nmalbuf, s, nleft);
     }
@@ -1045,7 +1045,7 @@ static int decodeEntity(char *ent, int *cp)
     {
         { "&amp;", '&' }, { "&apos;", '\'' }, { "&lt;", '<' }, { "&gt;", '>' }, { "&quot;", '"' },
     };
-    for (int i = 0; i < (int)(sizeof(enttable) / sizeof(enttable[0])); i++)
+    for (size_t i = 0; i < (sizeof(enttable) / sizeof(enttable[0])); i++)
     {
         if (strcmp(ent, enttable[i].ent) == 0)
         {
@@ -1416,7 +1416,7 @@ static void appendString(String *sp, const char *str)
     if (!sp || !str)
         return;
 
-    int strl = strlen(str);
+    int strl = int(strlen(str));
     int l    = sp->sl + strl + 1; /* need room for '\0' */
 
     if (l > sp->sm)
@@ -1458,7 +1458,7 @@ static void freeString(String *sp)
 }
 
 /* like malloc but knows to use realloc if already started */
-static void *moremem(void *old, int n)
+static void *moremem(void *old, size_t n)
 {
     void *p = (old ? (*myrealloc)(old, n) : (*mymalloc)(n));
     if (p == 0)
