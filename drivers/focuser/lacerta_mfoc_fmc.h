@@ -46,19 +46,12 @@ class lacerta_mfoc_fmc : public INDI::Focuser
         virtual bool AbortFocuser() override;
 
     private:
-        //virtual bool SetBacklash(double values[], char *names[], int n);
         virtual bool SetTempComp(double values[], char *names[], int n);
         virtual uint32_t GetAbsFocuserPosition();
-        virtual bool GetTempTrackingFlag();
         virtual void IgnoreResponse();
         virtual void IgnoreButLogResponse();
         virtual bool SetCurrHold(int currHoldValue);
         virtual bool SetCurrMove(int currMoveValue);
-
-
-        // Backlash
-        //        INumberVectorProperty BacklashNP;
-        //        INumber BacklashN[1];
 
         // Temperature Compensation
         INumberVectorProperty TempCompNP;
@@ -90,13 +83,4 @@ class lacerta_mfoc_fmc : public INDI::Focuser
         };
         ISwitchVectorProperty StartSavedPositionSP;
         ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
-
-        enum
-        {
-            MODE_TEMP_TRACK_ON,
-            MODE_TEMP_TRACK_OFF,
-            MODE_COUNT_TEMP_TRACK
-        };
-        ISwitchVectorProperty TrackTemperatureSP;
-        ISwitch TrackTemperatureS[MODE_COUNT_TEMP_TRACK];
 };

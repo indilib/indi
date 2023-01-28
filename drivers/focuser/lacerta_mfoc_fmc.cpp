@@ -84,14 +84,6 @@ bool lacerta_mfoc_fmc::initProperties()
     FocusBacklashN[0].step = 1;
     FocusBacklashN[0].value = 12;
 
-    //    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
-    //    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
-    //                       IPS_IDLE);
-
-    IUFillNumber(&TempCompN[0], "TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
-    IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
-                       IPS_IDLE);
-
     IUFillNumber(&CurrentHoldingN[0], "CURRHOLD", "holding current mA", "%4d", 0, 1200, 1, 160);
     IUFillNumberVector(&CurrentHoldingNP, CurrentHoldingN, 1, getDeviceName(), "CURRHOLD_SETTINGS", "Curr. Hold", FOCUS_TAB, IP_WO, 60,
                        IPS_IDLE);
@@ -122,35 +114,9 @@ bool lacerta_mfoc_fmc::initProperties()
                        "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&TrackTemperatureS[MODE_TEMP_TRACK_ON],  "Yes", "Yes", ISS_ON);
-    IUFillSwitch(&TrackTemperatureS[MODE_TEMP_TRACK_OFF], "No",  "No",  ISS_OFF);
-    IUFillSwitchVector(&TrackTemperatureSP, TrackTemperatureS, MODE_COUNT_TEMP_TRACK, getDeviceName(), "Temp. tracking",
-                       "Temperature tracking", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
     return true;
 }
 
-bool lacerta_mfoc_fmc::GetTempTrackingFlag() {
-    char MFOC_cmd[32] = ": a #";
-    char MFOC_res[32] = {0};
-    char MFOC_res_type[32] = "0";
-    int MFOC_temptrack_measd = 0;
-    int nbytes_written = 0;
-    int nbytes_read = 0;
-
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    do
-    {
-        tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-        MFOC_res[nbytes_read] = 0;
-        sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_temptrack_measd);
-    } while(strcmp("a", MFOC_res_type) != 0);
-
-    LOGF_DEBUG("RES [%s]", MFOC_res);
-
-    return MFOC_temptrack_measd == 1;
-}
 /************************************************************************************
  *
 ************************************************************************************/
@@ -158,15 +124,12 @@ bool lacerta_mfoc_fmc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
     FocusAbsPosN[0].value = GetAbsFocuserPosition();
-    TempTrackDirS[0].s = GetTempTrackingFlag() ? ISS_ON : ISS_OFF; 
 
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
-        //defineProperty(&BacklashNP);
         defineProperty(&TempCompNP);
-        defineProperty(&TrackTemperatureSP);
         defineProperty(&CurrentHoldingNP);
         defineProperty(&CurrentMovingNP);
         defineProperty(&TempTrackDirSP);
@@ -175,9 +138,7 @@ bool lacerta_mfoc_fmc::updateProperties()
     }
     else
     {
-        //deleteProperty(BacklashNP.name);
         deleteProperty(TempCompNP.name);
-        deleteProperty(TrackTemperatureSP.name);
         deleteProperty(CurrentHoldingNP.name);
         deleteProperty(CurrentMovingNP.name);
         deleteProperty(TempTrackDirSP.name);
@@ -231,8 +192,8 @@ bool lacerta_mfoc_fmc::Handshake()
     LOGF_INFO("CMD: %s", MFOC_cmd);
     tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
     MFOC_res[nbytes_read] = 0;
-    LOGF_DEBUG("RES [%s]", MFOC_res);
-
+    LOGF_DEBUG("Handshake: RES [%s]", MFOC_res);
+    
     sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
 
     if (MFOC_res_type[0] == 'p')
@@ -291,12 +252,13 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
 
 
             tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-            LOGF_DEBUG("CMD [%s]", MFOC_cmd);
+
+            LOGF_DEBUG("ISNewSwitch: CMD [%s]", MFOC_cmd);
             tty_write_string(PortFD, ": W #", &nbytes_written);
             tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
             MFOC_res[nbytes_read] = 0;           
             sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tdir_measd);
-            LOGF_DEBUG("RES [%s]", MFOC_res);
+            LOGF_DEBUG("ISNewSwitch: RES [%s]", MFOC_res);
 
             if  (MFOC_tdir_measd == tdir)
             {
@@ -310,42 +272,6 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             IDSetSwitch(&TempTrackDirSP, nullptr);
             return true;
         }
-
-        if (strcmp(TrackTemperatureSP.name, name) == 0)
-        {
-            IUUpdateSwitch(&TrackTemperatureSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&TrackTemperatureSP);
-            char MFOC_cmd[32] = ": A ";
-            int nbytes_written = 0;
-            //int temptrack = 0;
-
-            switch(index)
-            {
-                case MODE_TEMP_TRACK_ON:
-                    //temptrack = 1;
-                    strcat(MFOC_cmd, "1 #");
-                    break;
-
-                case MODE_TEMP_TRACK_OFF:
-                    //temptrack = 0;
-                    strcat(MFOC_cmd, "0 #");
-                    break;
-
-                default:
-                    TrackTemperatureSP.s = IPS_ALERT;
-                    IDSetSwitch(&TrackTemperatureSP, "Unknown mode index %d", index);
-                    return true;
-            }
-
-            tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-            IgnoreButLogResponse();
-
-            LOGF_DEBUG("CMD [%s]", MFOC_cmd);
-            GetTempTrackingFlag();
-            IDSetSwitch(&TrackTemperatureSP, nullptr);
-            return true;
-         }
-
          
         // Start at saved position
         if (strcmp(StartSavedPositionSP.name, name) == 0)
@@ -379,6 +305,7 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             }
 
             tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
+
             LOGF_DEBUG("CMD [%s]", MFOC_cmd);
             tty_write_string(PortFD, ": N #", &nbytes_written);
             tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
@@ -386,7 +313,6 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_svstart_measd);
 
             LOGF_DEBUG("RES [%s]", MFOC_res);
-            //            LOGF_DEBUG("Debug MFOC cmd sent %s", MFOC_cmd);
             if  (MFOC_svstart_measd == svstart)
             {
                 StartSavedPositionSP.s = IPS_OK;
@@ -408,12 +334,6 @@ bool lacerta_mfoc_fmc::ISNewNumber(const char *dev, const char *name, double val
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        //        if (strcmp(name, "BACKLASH_SETTINGS") == 0)
-        //        {
-        //            return SetBacklash(values, names, n);
-        //        }
-
-
         if (strcmp(name, "TEMPCOMP_SETTINGS") == 0)
         {
             return SetTempComp(values, names, n);
@@ -455,7 +375,6 @@ bool lacerta_mfoc_fmc::ISNewNumber(const char *dev, const char *name, double val
 /************************************************************************************
  *
 ************************************************************************************/
-//bool lacerta_mfoc_fmc::SetBacklash(double values[], char *names[], int n)
 bool lacerta_mfoc_fmc::SetFocuserBacklash(int32_t steps)
 {
     char MFOC_cmd[32]  = ": B ";
@@ -463,12 +382,9 @@ bool lacerta_mfoc_fmc::SetFocuserBacklash(int32_t steps)
     int nbytes_read    =  0;
     int nbytes_written =  0;
     int MFOC_tdir_measd = 0;
-    //int bl_int = 0;
     char bl_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
-    //    BacklashNP.s = IPS_OK;
-    //    IUUpdateNumber(&BacklashNP, values, names, n);
-    //    bl_int = BacklashN[0].value;
+
     sprintf(bl_char, "%d", steps);
     strcat(bl_char, " #");
     strcat(MFOC_cmd, bl_char);
@@ -485,15 +401,11 @@ bool lacerta_mfoc_fmc::SetFocuserBacklash(int32_t steps)
     } while(strcmp("b", MFOC_res_type) != 0);
     LOGF_DEBUG("RES [%s]", MFOC_res);
 
-    //IDSetNumber(&BacklashNP, nullptr);
-
     return true;
 }
 
 bool lacerta_mfoc_fmc::SetCurrHold(int currHoldValue)
 {
-    LOGF_INFO("-> CURRHOLD_SETTINGS", 0);
-
     char MFOC_cmd[32]  = ": E ";
     char MFOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -517,15 +429,13 @@ bool lacerta_mfoc_fmc::SetCurrHold(int currHoldValue)
     } while(strcmp("e", MFOC_res_type) != 0);
 
     LOGF_DEBUG("RES [%s]", MFOC_res);
-    LOGF_DEBUG("Holding Current set to %d mA", MFOC_ch_measd);
+    LOGF_INFO("Holding Current set to %d mA", MFOC_ch_measd);
  
     return true;
 }
 
 bool lacerta_mfoc_fmc::SetCurrMove(int currMoveValue)
 {
-    LOGF_INFO("-> CURRMOVE_SETTINGS", 0);
-
     char MFOC_cmd[32]  = ": F ";
     char MFOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -533,7 +443,6 @@ bool lacerta_mfoc_fmc::SetCurrMove(int currMoveValue)
     int MFOC_cm_measd = 0;
     char cm_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
-
 
     sprintf(cm_char, "%d", currMoveValue);
     strcat(cm_char, " #");
@@ -550,14 +459,13 @@ bool lacerta_mfoc_fmc::SetCurrMove(int currMoveValue)
     } while(strcmp("f", MFOC_res_type) != 0);
 
     LOGF_DEBUG("RES [%s]", MFOC_res);
-    LOGF_DEBUG("Moving Current set to %d mA", MFOC_cm_measd);
+    LOGF_INFO("Moving Current set to %d mA", MFOC_cm_measd);
 
     return true;
 }
 
 bool lacerta_mfoc_fmc::SetTempComp(double values[], char *names[], int n)
 {
-    LOGF_INFO("-> TEMPCOMP_SETTINGS", 0);
     char MFOC_cmd[32]  = ": U ";
     char MFOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -636,12 +544,11 @@ IPState lacerta_mfoc_fmc::MoveAbsFocuser(uint32_t targetTicks)
     strcat(MFOC_cmd, abs_pos_char);
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    IgnoreButLogResponse();
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
+    IgnoreButLogResponse();
 
     FocusAbsPosN[0].value = targetTicks;
 
-    //only for debugging! Maybe there is a bug in the MFOC firmware command "Q #"!
     GetAbsFocuserPosition();
 
     return IPS_OK;
@@ -675,8 +582,8 @@ bool lacerta_mfoc_fmc::SyncFocuser(uint32_t ticks)
     strcat(MFOC_cmd, sync_pos);
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    IgnoreButLogResponse();
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
+    IgnoreButLogResponse();
 
     return true;
 }
@@ -721,12 +628,11 @@ bool lacerta_mfoc_fmc::AbortFocuser()
 ************************************************************************************/
 bool lacerta_mfoc_fmc::saveConfigItems(FILE *fp)
 {
-    LOGF_DEBUG("- saveConfigItems()", 0);
+    LOGF_DEBUG("saveConfigItems()", 0);
     // Save Focuser Config
     INDI::Focuser::saveConfigItems(fp);
 
     // Save additional MFPC Config
-    //IUSaveConfigNumber(fp, &BacklashNP);
     IUSaveConfigNumber(fp, &TempCompNP);
     IUSaveConfigNumber(fp, &CurrentHoldingNP);
     IUSaveConfigNumber(fp, &CurrentMovingNP);
@@ -753,8 +659,6 @@ uint32_t lacerta_mfoc_fmc::GetAbsFocuserPosition()
         sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
     }
     while(strcmp(MFOC_res_type, "p") != 0);
-
-    LOGF_DEBUG("current position: %d", MFOC_pos_measd);
 
     return static_cast<uint32_t>(MFOC_pos_measd);
 }
