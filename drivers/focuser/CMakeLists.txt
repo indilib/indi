@@ -331,6 +331,14 @@ add_executable(indi_lacerta_mfoc_focus ${lacerta_mfoc_SRC})
 target_link_libraries(indi_lacerta_mfoc_focus indidriver)
 install(TARGETS indi_lacerta_mfoc_focus RUNTIME DESTINATION bin)
 
+# ############### Lacerta MFOC & FMC Focuser ################
+SET(lacerta_mfoc_fmc_SRC
+    lacerta_mfoc_fmc.cpp)
+
+add_executable(indi_lacerta_mfoc_fmc_focus ${lacerta_mfoc_fmc_SRC})
+target_link_libraries(indi_lacerta_mfoc_fmc_focus indidriver)
+install(TARGETS indi_lacerta_mfoc_fmc_focus RUNTIME DESTINATION bin)
+
 # ############### Active Focuser ################
 SET(activefocuser_SRC
     activefocuser.cpp
