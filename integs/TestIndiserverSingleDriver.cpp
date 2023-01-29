@@ -335,6 +335,43 @@ TEST(IndiserverSingleDriver, ForwardBase64BlobToIPClient)
 }
 
 
+TEST(IndiserverSingleDriver, SnoopDriverPropertie)
+{
+    // This tests snooping simple property from driver to driver
+    DriverMock fakeDriver;
+    IndiServerController indiServer;
+    indiServer.setFifo(true);
+    startFakeDev1(indiServer, fakeDriver);
+
+    DriverMock snoopDriver;
+    addDriver(indiServer, snoopDriver, "snoopDriver");
+
+    fakeDriver.ping();
+    snoopDriver.ping();
+
+    snoopDriver.cnx.send("<getProperties version='1.7' device='fakedev1' name='testnumber1'/>\n");
+
+    snoopDriver.ping();
+    fakeDriver.ping();
+
+    fakeDriver.cnx.send("<defNumberVector device='fakedev1' name='testnumber1' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
+    fakeDriver.cnx.send("<defNumber name='content' label='content' min='0' max='100' step='1'>50</defNumber>\n");
+    fakeDriver.cnx.send("</defNumberVector>\n");
+
+    snoopDriver.cnx.expectXml("<defNumberVector device='fakedev1' name='testnumber1' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>");
+    snoopDriver.cnx.expectXml("<defNumber name='content' label='content' min='0' max='100' step='1'>");
+    snoopDriver.cnx.expect("\n50");
+    snoopDriver.cnx.expectXml("</defNumber>");
+    snoopDriver.cnx.expectXml("</defNumberVector>");
+
+    fakeDriver.terminateDriver();
+    snoopDriver.terminateDriver();
+
+    indiServer.kill();
+    indiServer.join();
+}
+
+
 #define DUMMY_BLOB_SIZE 64
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
@@ -512,16 +549,12 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
     indiServer.setFifo(true);
     startFakeDev1(indiServer, fakeDriver);
 
-
     DriverMock snoopDriver;
     addDriver(indiServer, snoopDriver, "snoopDriver");
-
-    // startFakeDev2(indiServer, fakeSnooper);
 
     fakeDriver.ping();
     snoopDriver.ping();
 
-    fprintf(stderr, "Snooper ask blobs\n");
     snoopDriver.cnx.send("<getProperties version='1.7' device='fakedev1' name='testblob'/>\n");
     snoopDriver.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
     snoopDriver.ping();
