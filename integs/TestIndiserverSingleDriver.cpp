@@ -529,6 +529,8 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
     ssize_t size = 32;
     driverSendAttachedBlob(fakeDriver, size);
 
+#if 0
+    // Until proper support by drivers, indiserver converts to base64 for that path
     snoopDriver.cnx.allowBufferReceive(true);
     snoopDriver.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
     snoopDriver.cnx.expectXml("<oneBLOB name='content' size='32' format='.fits' attached='true'/>\n");
@@ -537,8 +539,14 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
     SharedBuffer receivedFd;
     snoopDriver.cnx.expectBuffer(receivedFd);
     snoopDriver.cnx.allowBufferReceive(false);
-
     EXPECT_GE( receivedFd.getSize(), 32);
+#else
+    snoopDriver.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
+    snoopDriver.cnx.expectXml("<oneBLOB name='content' size='32' format='.fits'>\n");
+    snoopDriver.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
+    snoopDriver.cnx.expectXml("</oneBLOB>\n");
+    snoopDriver.cnx.expectXml("</setBLOBVector>");
+#endif
 
     fakeDriver.terminateDriver();
     snoopDriver.terminateDriver();
