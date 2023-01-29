@@ -485,7 +485,11 @@
             <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
             <version>0.4</version>
         </device>
-        <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
+        <device label="Lacerta MFOC FMC" manufacturer="Lacerta Optics">
+            <driver name="Lacerta MFOC FMC">indi_lacerta_mfoc_fmc_focus</driver>
+            <version>0.1</version>
+        </device>
+	<device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
             <version>1.0</version>
         </device>
