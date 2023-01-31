@@ -31,8 +31,6 @@
  */
 class DriverMock
 {
-        std::string abstractPath;
-        int serverConnection;
         int driverConnection;
 
         int driverFds[2];
@@ -42,7 +40,6 @@ class DriverMock
 
         // Start the listening socket that will receive driver upon their starts
         void setup();
-        void unsetup();
 
         void waitEstablish();
 

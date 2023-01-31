@@ -21,18 +21,34 @@
 #include "DriverMock.h"
 #include "utils.h"
 
+
+class FakeDriverListener {
+    std::string abstractPath;
+    bool ready = false;
+public:
+    int serverConnection;
+    void setup() {
+        if (ready) return;
+        ready = true;
+        // Create a socket that will not have the clo on exec flag ?
+        abstractPath = "/tmp/fakedriver-test";
+        setenv("FAKEDRIVER_ADDRESS", abstractPath.c_str(), 1);
+
+        serverConnection = unixSocketListen(abstractPath);
+    }
+};
+
+static FakeDriverListener driverListener;
+
+
 void DriverMock::setup()
 {
-    // Create a socket that will not have the clo on exec flag ?
-    abstractPath = "/tmp/fakedriver-test";
-    setenv("FAKEDRIVER_ADDRESS", abstractPath.c_str(), 1);
-
-    serverConnection = unixSocketListen(abstractPath);
+    driverListener.setup();
 }
 
 void DriverMock::waitEstablish()
 {
-    driverConnection = socketAccept(serverConnection);
+    driverConnection = socketAccept(driverListener.serverConnection);
     unixSocketRecvFds(driverConnection, 2, driverFds);
     cnx.setFds(driverFds[0], driverFds[1]);
 }
@@ -55,19 +71,8 @@ void DriverMock::ping()
     cnx.expectXml("<pingReply uid=\"flush\"/>");
 }
 
-
-void DriverMock::unsetup()
-{
-    if (serverConnection != -1)
-    {
-        close(serverConnection);
-        serverConnection = -1;
-    }
-}
-
 DriverMock::DriverMock()
 {
-    serverConnection = -1;
     driverConnection = -1;
     driverFds[0] = -1;
     driverFds[1] = -1;
@@ -76,5 +81,4 @@ DriverMock::DriverMock()
 DriverMock::~DriverMock()
 {
     terminateDriver();
-    unsetup();
 }
