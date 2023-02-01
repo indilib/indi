@@ -115,7 +115,7 @@ class StreamManager
         /**
          * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
          */
-        void newFrame(const uint8_t *buffer, uint32_t nbytes);
+        void newFrame(const uint8_t *buffer, uint32_t nbytes, uint64_t timestamp = 0);
 
         bool close();
 
