@@ -71,6 +71,14 @@ class BaseDevice
             INDI_DISABLED
         };
 
+        /*! Used for watchProperty callback method. */
+        enum WATCH
+        {
+            WATCH_NEW = 0,        /*!< Applies to discovered properties only. */
+            WATCH_UPDATE,         /*!< Applies to updated properties only. */
+            WATCH_NEW_OR_UPDATE   /*!< Applies when a property appears or is updated, i.e. both of the above. */
+        };
+
         /** @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces. */
         enum DRIVER_INTERFACE
         {
@@ -116,8 +124,11 @@ class BaseDevice
         /** @brief Call the callback function if property is available.
          *  @param name of property.
          *  @param callback as an argument of the function you can use INDI::PropertyNumber, INDI::PropertySwitch etc.
+         *  @param watch you can decide whether the callback should be executed only once (WATCH_NEW) on discovery of the property or
+         *  also on every change of the value (WATCH_UPDATE) or both (WATCH_NEW_OR_UPDATE)
+         *  @note the behavior is analogous to BaseMediator::newProperty/updateProperty
          */
-        void watchProperty(const char *name, const std::function<void (INDI::Property)> &callback);
+        void watchProperty(const char *name, const std::function<void (INDI::Property)> &callback, WATCH watch = WATCH_NEW);
 
         /** @brief Return a property and its type given its name.
          *  @param name of property to be found.
