@@ -40,14 +40,12 @@ FilterIFW::FilterIFW()
     strncpy(filterSim, filterSim5, sizeof(filterSim)); // For simulation mode
 
     // Set communication to serail only and avoid driver crash at starting up
-   // setFilterConnection(CONNECTION_SERIAL);
+    // setFilterConnection(CONNECTION_SERIAL);
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 
     // We add an additional debug level so we can log verbose member function starting
     // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
-    int DBG_TAG = 0;
-
-    DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
+    INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
 /************************************************************************************
@@ -55,7 +53,7 @@ FilterIFW::FilterIFW()
 ************************************************************************************/
 const char *FilterIFW::getDefaultName()
 {
-    return (const char *)"Optec IFW";
+    return "Optec IFW";
 }
 
 /**************************************************************************************
@@ -105,8 +103,8 @@ bool FilterIFW::initProperties()
 ************************************************************************************/
 bool FilterIFW::updateProperties()
 {
-   INDI::FilterWheel::updateProperties();
-	 if (isConnected())
+    INDI::FilterWheel::updateProperties();
+    if (isConnected())
     {
         defineProperty(&HomeSP);
         defineProperty(&FirmwareTP);
@@ -197,7 +195,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
     LOGF_DEBUG("RES (%s)", response);
-    strncpy(resp, response, /* sizeof(response)*/ OPTEC_MAXLEN_RESP +1);
+    strncpy(resp, response, /* sizeof(response)*/ OPTEC_MAXLEN_RESP + 1);
     return true;
 }
 
@@ -304,7 +302,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
                 IDSetText(FilterNameTP, nullptr);
                 LOG_INFO("WARNING *****************************************************");
                 LOG_INFO(
-                      "One of the filter name is not valid. It should not have more than 8 chars");
+                    "One of the filter name is not valid. It should not have more than 8 chars");
                 LOG_INFO("Valid chars are A to Z, 0 to 9 = . # / - percent or space");
                 LOG_INFO("WARNING *****************************************************");
                 return false;
@@ -447,7 +445,7 @@ bool FilterIFW::SelectFilter(int f)
 {
     DEBUGTAG();
     bool result = true;
-    char cmd[32]={0};
+    char cmd[32] = {0};
     char response[OPTEC_MAXLEN_RESP + 1];
 
     memset(response, 0, sizeof(response));
@@ -607,7 +605,7 @@ bool FilterIFW::GetFilterNames()
 
             if (FilterNameT != nullptr)
             {
-                for (int i=0; i < FilterNameTP->ntp; i++)
+                for (int i = 0; i < FilterNameTP->ntp; i++)
                     free(FilterNameT[i].text);
                 delete [] FilterNameT;
             }
@@ -661,7 +659,7 @@ bool FilterIFW::SetFilterNames()
 {
     DEBUGTAG();
     bool result = true;
-    char cmd[72]={0};
+    char cmd[72] = {0};
     char tempo[OPTEC_LEN_FLTNAME + 1];
     char response[OPTEC_MAXLEN_RESP + 1];
     int tempolen;
@@ -809,7 +807,7 @@ int FilterIFW::GetFilterPos()
     DEBUGTAG();
     int result = 1;
     char response[OPTEC_MAXLEN_RESP + 1];
-    char filter[2]={0};
+    char filter[2] = {0};
 
     memset(response, 0, sizeof(response));
 

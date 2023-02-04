@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indipropertynumber.h"
 
 /**
  * @brief The FocusSim class provides a simple Focuser simulator that can simulator the following devices:
@@ -59,6 +60,8 @@ class FocusSim : public INDI::Focuser
         virtual bool SetFocuserBacklash(int32_t steps) override;
         virtual bool SetFocuserBacklashEnabled(bool enabled) override;
 
+        virtual bool saveConfigItems(FILE *fp) override;
+
     private:
         double internalTicks { 0 };
         double initTicks { 0 };
@@ -74,6 +77,8 @@ class FocusSim : public INDI::Focuser
         // Temperature in celcius degrees
         INumberVectorProperty TemperatureNP;
         INumber TemperatureN[1];
+
+        INDI::PropertyNumber DelayNP {1};
 
         // Current mode of Focus simulator for testing purposes
         enum

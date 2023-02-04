@@ -174,7 +174,7 @@ bool ScopeDome::initProperties()
     SetParkDataType(PARK_AZ);
     addAuxControls();
 
-    defineProperty(&CardTypeSP);
+    defineProperty(CardTypeSP);
     defineProperty(CredentialsTP);
 
     setPollingPeriodRange(1000, 3000); // Device doesn't like too long interval
@@ -261,7 +261,7 @@ bool ScopeDome::Handshake()
                 interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(this, PortFD)));
                 break;
             case SCOPEDOME_ARDUINO:
-            interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
+                interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
                 break;
         }
     }
@@ -375,7 +375,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             LOG_INFO("Finding home sensor");
             status = DOME_HOMING;
-            IUResetSwitch(&FindHomeSP);
+            FindHomeSP.reset();
             DomeAbsPosNP.s = IPS_BUSY;
             FindHomeSP.setState(IPS_BUSY);
             FindHomeSP.apply();
@@ -390,7 +390,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             LOG_INFO("De-rotating started");
             status = DOME_DEROTATING;
-            IUResetSwitch(&DerotateSP);
+            DerotateSP.reset();
             DomeAbsPosNP.s = IPS_BUSY;
             DerotateSP.setState(IPS_BUSY);
             DerotateSP.apply();
@@ -404,7 +404,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             LOG_INFO("Calibration started");
             status = DOME_CALIBRATING;
-            IUResetSwitch(&StartCalibrationSP);
+            StartCalibrationSP.reset();
             DomeAbsPosNP.s       = IPS_BUSY;
             StartCalibrationSP.setState(IPS_BUSY);
             StartCalibrationSP.apply();

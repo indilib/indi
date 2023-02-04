@@ -22,20 +22,20 @@ class MockCCDSimDriver: public CCDSim
 
         void testProperties()
         {
-            INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
+            auto p = getNumber("SIMULATOR_SETTINGS");
             ASSERT_NE(p, nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_XRES"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_YRES"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_XSIZE"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_YSIZE"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_MAXVAL"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_SATURATION"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_LIMITINGMAG"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_NOISE"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_SKYGLOW"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_OAGOFFSET"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_POLAR"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_POLARDRIFT"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_XRES"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_YRES"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_XSIZE"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_YSIZE"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_MAXVAL"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_SATURATION"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_LIMITINGMAG"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_NOISE"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_SKYGLOW"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_OAGOFFSET"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_POLAR"), nullptr);
+            ASSERT_NE(p.findWidgetByName("SIM_POLARDRIFT"), nullptr);
         }
 
         void testGuideAPI()
@@ -85,25 +85,25 @@ class MockCCDSimDriver: public CCDSim
         {
             int const xres = 65;
             int const yres = 65;
-            int const maxval = pow(2, 8)-1;
+            int const maxval = pow(2, 8) - 1;
 
             // Setup a 65x65, 16-bit depth, 4.6u square pixel sensor
-            INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
+            auto p = getNumber("SIMULATOR_SETTINGS");
             ASSERT_NE(p, nullptr);
-            IUFindNumber(p, "SIM_XRES")->value = (double) xres;
-            IUFindNumber(p, "SIM_YRES")->value = (double) yres;
+            p.findWidgetByName("SIM_XRES")->setValue((double) xres);
+            p.findWidgetByName("SIM_YRES")->setValue((double) yres);
             // There is no way to set depth, it is hardcoded at 16-bit - so set maximum value instead
-            IUFindNumber(p, "SIM_MAXVAL")->value = (double) maxval;
-            IUFindNumber(p, "SIM_XSIZE")->value = 4.6;
-            IUFindNumber(p, "SIM_YSIZE")->value = 4.6;
+            p.findWidgetByName("SIM_MAXVAL")->setValue((double) maxval);
+            p.findWidgetByName("SIM_XSIZE")->setValue(4.6);
+            p.findWidgetByName("SIM_YSIZE")->setValue(4.6);
 
             // Setup a saturation magnitude (max ADUs in one second) and limit magnitude (zero ADU whatever the exposure)
-            IUFindNumber(p, "SIM_SATURATION")->value = 0.0;
-            IUFindNumber(p, "SIM_LIMITINGMAG")->value = 30.0;
+            p.findWidgetByName("SIM_SATURATION")->setValue(0.0);
+            p.findWidgetByName("SIM_LIMITINGMAG")->setValue(30.0);
 
             // Setup some parameters to simplify verifications
-            IUFindNumber(p, "SIM_SKYGLOW")->value = 0.0;
-            IUFindNumber(p, "SIM_NOISE")->value = 0.0;
+            p.findWidgetByName("SIM_SKYGLOW")->setValue(0.0);
+            p.findWidgetByName("SIM_NOISE")->setValue(0.0);
             this->seeing = 1.0f; // No way to control seeing from properties
 
             // Setup
@@ -143,29 +143,30 @@ class MockCCDSimDriver: public CCDSim
             int const center = xres / 2 + 1 + (yres / 2 + 1) * xres;
 
             // The choice of the gaussian of unitary integral makes the center less than maximum
-            double const sigma = 1.0 / (2 * sqrt(2*log(2)));
-            double const fa0 = 1.0 / (sigma * sqrt(2*3.1416));
+            double const sigma = 1.0 / (2 * sqrt(2 * log(2)));
+            double const fa0 = 1.0 / (sigma * sqrt(2 * 3.1416));
 
             // Center photosite
             uint16_t const ADU_at_center = static_cast<uint16_t>(fa0 * maxval);
-            EXPECT_EQ(fb[center], ADU_at_center) << "Recorded flux of magnitude 0.0 for 1 second at center is " << ADU_at_center << " ADUs";
+            EXPECT_EQ(fb[center], ADU_at_center) << "Recorded flux of magnitude 0.0 for 1 second at center is " << ADU_at_center <<
+                                                 " ADUs";
 
             // Up, left, right and bottom photosites at one pixel
-            uint16_t const ADU_at_1pix = static_cast<uint16_t>(fa0 * maxval * exp(-(1*1+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_1pix = static_cast<uint16_t>(fa0 * maxval * exp(-(1 * 1 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres], ADU_at_1pix);
             EXPECT_EQ(fb[center - 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + xres], ADU_at_1pix);
 
             // Up, left, right and bottom photosites at two pixels
-            uint16_t const ADU_at_2pix = static_cast<uint16_t>(fa0 * maxval * exp(-(2*2+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_2pix = static_cast<uint16_t>(fa0 * maxval * exp(-(2 * 2 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center - 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + xres * 2], ADU_at_2pix);
 
             // Up, left, right and bottom photosite neighbors at three pixels
-            uint16_t const ADU_at_3pix = static_cast<uint16_t>(fa0 * maxval * exp(-(3*3+0*0)/(2*sigma*sigma)));
+            uint16_t const ADU_at_3pix = static_cast<uint16_t>(fa0 * maxval * exp(-(3 * 3 + 0 * 0) / (2 * sigma * sigma)));
             EXPECT_EQ(fb[center - xres * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center - 1 * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center + 1 * 3], ADU_at_3pix);

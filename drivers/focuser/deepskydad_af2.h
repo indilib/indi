@@ -142,8 +142,8 @@ class DeepSkyDadAF2 : public INDI::Focuser
         // Idle coils timeout (ms)
         INumber IdleCoilsTimeoutN[1];
         INumberVectorProperty IdleCoilsTimeoutNP;
-		
-		INumber TemperatureN[1];
+
+        INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
         // Response Buffer

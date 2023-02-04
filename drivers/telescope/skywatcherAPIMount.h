@@ -18,6 +18,8 @@
 #include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
 #include "indielapsedtimer.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -40,7 +42,7 @@ class SkywatcherAPIMount :
 {
     public:
         SkywatcherAPIMount();
-        virtual ~SkywatcherAPIMount() = default;
+        virtual ~SkywatcherAPIMount() override = default;
 
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
@@ -200,6 +202,13 @@ class SkywatcherAPIMount :
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
+        INDI::PropertyNumber TrackFactorNP {2};
+
+        // AUX Encoders
+        INDI::PropertySwitch AUXEncoderSP {2};
+
+        // Snap Port
+        INDI::PropertySwitch SnapPortSP {2};
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Private Variables
@@ -212,11 +221,9 @@ class SkywatcherAPIMount :
         static constexpr double MAX_TRACKING_DELTA {5};
 
         long OldTrackingTarget[2] { 0, 0 };
-        INDI::ElapsedTimer m_TrackingElapsedTimer;
+        INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
-        double m_AzimuthRateScale {1.0};
-        double m_AltitudeRateScale {1.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;

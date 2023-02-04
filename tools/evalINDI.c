@@ -219,9 +219,9 @@ static void usage()
     fprintf(stderr, "   -o   : print operands as they change\n");
     fprintf(stderr, "   -p p : alternate port, default is %d\n", INDIPORT);
     fprintf(stderr, "   -t t : max secs to wait, 0 is forever, default is %d\n", TIMEOUT);
-    fprintf(stderr, "   -v   : verbose (cummulative)\n");
+    fprintf(stderr, "   -v   : verbose (cumulative)\n");
     fprintf(stderr, "   -w   : wait for expression to evaluate as true\n");
-    fprintf(stderr, "[exp] is an arith expression built from the following operators and functons:\n");
+    fprintf(stderr, "[exp] is an arith expression built from the following operators and functions:\n");
     fprintf(stderr, "     ! + - * / && || > >= == != < <=\n");
     fprintf(stderr, "     pi sin(rad) cos(rad) tan(rad) asin(x) acos(x) atan(x) atan2(y,x) abs(x)\n");
     fprintf(stderr, "     degrad(deg) raddeg(rad) floor(x) log(x) log10(x) exp(x) sqrt(x) pow(x,exp)\n");
@@ -512,6 +512,7 @@ static time_t timestampINDI(char *ts)
     {
         tm.tm_mon -= 1;     /* want 0..11 */
         tm.tm_year -= 1900; /* want years since 1900 */
+        tm.tm_isdst = 0;
         return (mktime(&tm));
     }
     else

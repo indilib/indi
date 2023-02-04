@@ -40,30 +40,35 @@ Group::Group(int id, Imager *imager) : imager{imager}
     std::stringstream groupSettingsNameStream;
     groupSettingsNameStream << GROUP_PREFIX << std::setw(2) << std::setfill('0') << id;
     groupSettingsName = groupSettingsNameStream.str();
-    
+
     GroupSettingsN.resize(4);
 
     IUFillNumber(&GroupSettingsN[IMAGE_COUNT], "IMAGE_COUNT", "Image count", "%3.0f", 1, 100, 1, 1);
     IUFillNumber(&GroupSettingsN[CCD_BINNING], "CCD_BINNING", "Binning", "%1.0f", 1, 4, 1, 1);
     IUFillNumber(&GroupSettingsN[FILTER_SLOT], "FILTER_SLOT", "Filter", "%2.f", 0, 12, 1, 0);
     IUFillNumber(&GroupSettingsN[CCD_EXPOSURE_VALUE], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0, 36000, 0, 1.0);
-    IUFillNumberVector(&GroupSettingsNP, GroupSettingsN.data(), GroupSettingsN.size(), Imager::DEVICE_NAME.c_str(), groupSettingsName.c_str(), "Image group settings",
+    IUFillNumberVector(&GroupSettingsNP, GroupSettingsN.data(), GroupSettingsN.size(), Imager::DEVICE_NAME.c_str(),
+                       groupSettingsName.c_str(), "Image group settings",
                        groupName.c_str(), IP_RW, 60, IPS_IDLE);
 }
 
-int Group::binning() const {
+int Group::binning() const
+{
     return GroupSettingsN[CCD_BINNING].value;
 }
 
-int Group::filterSlot() const {
+int Group::filterSlot() const
+{
     return GroupSettingsN[FILTER_SLOT].value;
 }
 
-double Group::exposure() const {
+double Group::exposure() const
+{
     return GroupSettingsN[CCD_EXPOSURE_VALUE].value;
 }
 
-int Group::count() const {
+int Group::count() const
+{
     return GroupSettingsN[IMAGE_COUNT].value;
 }
 

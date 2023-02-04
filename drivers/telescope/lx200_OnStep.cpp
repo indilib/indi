@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 13);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 17);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -195,8 +195,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
                        "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East  ± 180", "%g", -180, 180, 1, 20);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West  ± 180", "%g", -180, 180, 1, -20);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -437,7 +437,9 @@ bool LX200_OnStep::updateProperties()
             LOG_INFO("Network based connection, detection timeouts set to 2 seconds");
             OSTimeoutMicroSeconds = 0;
             OSTimeoutSeconds = 2;
-        } else {
+        }
+        else
+        {
             LOG_INFO("Non-Network based connection, detection timeouts set to 0.1 seconds");
             OSTimeoutMicroSeconds = 100000;
             OSTimeoutSeconds = 0;
@@ -521,7 +523,8 @@ bool LX200_OnStep::updateProperties()
                     char cmd[CMD_MAX_LEN] = {0};
                     char read_buffer[RB_MAX_LEN] = {0};
                     snprintf(cmd, sizeof(cmd), ":F%dA#", i + 1);
-                    int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer, cmd); //0 = failure, 1 = success, 0 on all prior to OnStepX no # on reply
+                    int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer,
+                                        cmd); //0 = failure, 1 = success, 0 on all prior to OnStepX no # on reply
                     if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
                     {
                         LOGF_INFO("Focuser %i Found", i);
@@ -532,7 +535,8 @@ bool LX200_OnStep::updateProperties()
                         if(fail_or_error < 0)
                         {
                             //Non detection = 0, Read errors < 0, stop
-                            LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i", fail_or_error);
+                            LOGF_INFO("Function call failed in a way that says OnStep doesn't have this setup, stopping Focuser probing, return: %i",
+                                      fail_or_error);
                             break;
                         }
                     }
@@ -564,7 +568,8 @@ bool LX200_OnStep::updateProperties()
         error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, rotator_response, ":GX98#");
         if (error_or_fail > 0)
         {
-            if (rotator_response[0] == 'D' || rotator_response[0] == 'R') {
+            if (rotator_response[0] == 'D' || rotator_response[0] == 'R')
+            {
                 LOG_INFO("Rotator found.");
                 OSRotator1 = true;
                 RI::updateProperties();
@@ -573,12 +578,14 @@ bool LX200_OnStep::updateProperties()
             {
                 defineProperty(&OSRotatorDerotateSP);
             }
-        } else {
+        }
+        else
+        {
             LOGF_WARN("Error: %i", error_or_fail);
             LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
         }
 
-        if (OSRotator1 == false) 
+        if (OSRotator1 == false)
         {
             LOG_INFO("No Rotator found.");
             OSRotator1 = false;
@@ -609,7 +616,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSOutput1SP);
         defineProperty(&OSOutput2SP);
 #endif
-       // OSHasOutputs = true; //Set to true on new connection, Init_Outputs will set to false if appropriate
+        // OSHasOutputs = true; //Set to true on new connection, Init_Outputs will set to false if appropriate
         Init_Outputs();
 
         //Weather
@@ -953,13 +960,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
             if (nset == 2)
             {
-                if (setMinElevationLimit(PortFD, (int)minAlt) < 0)
+                if (setMinElevationLimit(PortFD, (int)maxAlt) < 0)
                 {
                     ElevationLimitNP.s = IPS_ALERT;
                     IDSetNumber(&ElevationLimitNP, "Error setting min elevation limit.");
                 }
 
-                if (setMaxElevationLimit(PortFD, (int)maxAlt) < 0)
+                if (setMaxElevationLimit(PortFD, (int)minAlt) < 0)
                 {
                     ElevationLimitNP.s = IPS_ALERT;
                     IDSetNumber(&ElevationLimitNP, "Error setting max elevation limit.");
@@ -993,13 +1000,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             {
                 minPMEast = values[i];
                 LOGF_DEBUG("===CMD==> minutesPastMeridianN[0]/East = %f", minPMEast);
-                nset += minPMEast >= 0 && minPMEast <= 180;  //range 0 to 180
+                nset += minPMEast >= -180 && minPMEast <= 180;  //range -180 to 180
             }
             else if (bktp == &minutesPastMeridianN[1])
             {
                 minPMWest = values[i];
                 LOGF_DEBUG("===CMD==> minutesPastMeridianN[1]/West= %f", minPMWest);
-                nset += minPMWest >= 0 && minPMWest <= 180;   //range 0 to 180
+                nset += minPMWest >= -180 && minPMWest <= 180;   //range -180 to 180
             }
         }
         if (nset == 2)
@@ -1009,7 +1016,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if (sendOnStepCommand(cmd))
             {
                 minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash DEC limit.");
+                IDSetNumber(&minutesPastMeridianNP, "Error minutesPastMeridian East.");
             }
             const struct timespec timeout = {0, 100000000L};
             nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
@@ -1017,7 +1024,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if (sendOnStepCommand(cmd))
             {
                 minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash RA limit.");
+                IDSetNumber(&minutesPastMeridianNP, "Error minutesPastMeridian West.");
             }
 
             minutesPastMeridianNP.np[0].value = minPMEast;
@@ -1207,8 +1214,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
-            long ret = 0;
-
+            int ret = 0;
             IUUpdateSwitch(&ReticSP, states, names, n);
             ReticSP.s = IPS_OK;
 
@@ -1225,6 +1231,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IDSetSwitch(&ReticSP, "Dark");
             }
 
+            INDI_UNUSED(ret);
             IUResetSwitch(&ReticSP);
             IDSetSwitch(&ReticSP, nullptr);
             return true;
@@ -2017,7 +2024,7 @@ bool LX200_OnStep::ReadScopeStatus()
     //    int i;
     bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
-    
+
 
     if (isSimulation()) //if Simulation is selected
     {
@@ -2037,17 +2044,21 @@ bool LX200_OnStep::ReadScopeStatus()
         //Fall back to :GU parsing
 #endif
 
-        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat,
+                            ":GU#"); // :GU# returns a string containg controller status
         if (error_or_fail > 1) // check if successful read (strcmp(OSStat, OldOSStat) != 0) //if status changed
-        { //If this fails, simply return;
-            char check_GU_valid1[RB_MAX_LEN] ={0};
-            char check_GU_valid2[RB_MAX_LEN] ={0};
-            char check_GU_valid3[RB_MAX_LEN] ={0};
+        {
+            //If this fails, simply return;
+            char check_GU_valid1[RB_MAX_LEN] = {0};
+            char check_GU_valid2[RB_MAX_LEN] = {0};
+            char check_GU_valid3[RB_MAX_LEN] = {0};
             //:GU should always have one of pIPF and 3 numbers
-            if (sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]) != 1)
+            if (sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1, &check_GU_valid2[0], check_GU_valid3,
+                       &check_GU_valid2[1], &check_GU_valid2[2], &check_GU_valid2[3]) != 1)
             {
                 LOG_WARN(":GU# returned something that can not be right, this update aborted, will try again...");
-                LOGF_DEBUG("Parameters matched: %u from %s",sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,&check_GU_valid2[0],check_GU_valid3, &check_GU_valid2[1],&check_GU_valid2[2],&check_GU_valid2[3]), OSStat);
+                LOGF_DEBUG("Parameters matched: %u from %s", sscanf(OSStat, "%s%[pIPF]%s%[0-9]%[0-9]%[0-9]", check_GU_valid1,
+                           &check_GU_valid2[0], check_GU_valid3, &check_GU_valid2[1], &check_GU_valid2[2], &check_GU_valid2[3]), OSStat);
                 flushIO(PortFD);
                 return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
             }
@@ -2410,7 +2421,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     if ((capabilities | TELESCOPE_HAS_PEC) != capabilities)
                     {
                         LOG_INFO("Telescope detected having PEC, setting that capability");
-                        LOGF_DEBUG("capabilites = %x", capabilities);
+                        LOGF_DEBUG("capabilities = %x", capabilities);
                         capabilities |= TELESCOPE_HAS_PEC;
                         SetTelescopeCapability(capabilities, 10 );
                         LX200_OnStep::updateProperties();
@@ -2467,7 +2478,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 if ((capabilities | TELESCOPE_HAS_PIER_SIDE) != capabilities)
                 {
                     LOG_INFO("Telescope detected having Pier Side, adding that capability (many messages duplicated)");
-                    LOGF_DEBUG("capabilites = %x", capabilities);
+                    LOGF_DEBUG("capabilities = %x", capabilities);
                     capabilities |= TELESCOPE_HAS_PIER_SIDE;
                     SetTelescopeCapability(capabilities, 10 );
                     LX200_OnStep::updateProperties();
@@ -2502,7 +2513,9 @@ bool LX200_OnStep::ReadScopeStatus()
             //     print('\tbreak;')
 
             Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
-        } else {
+        }
+        else
+        {
             return false;
         }
 
@@ -2511,7 +2524,8 @@ bool LX200_OnStep::ReadScopeStatus()
     else
     {
         //TODO: Check and recode :Gu# paths
-        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat, ":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
+        int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat,
+                            ":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
         if (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
             //Ignored for now.
@@ -2782,7 +2796,8 @@ bool LX200_OnStep::ReadScopeStatus()
         else
         {
             int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSPier, ":Gm#");
-            if (error_or_fail > 1) {
+            if (error_or_fail > 1)
+            {
                 if (strcmp(OSPier, OldOSPier) != 0) // any change ?
                 {
                     strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
@@ -2802,7 +2817,9 @@ bool LX200_OnStep::ReadScopeStatus()
                             break;
                     }
                 }
-            } else {
+            }
+            else
+            {
                 LOG_WARN("Communication error on Pier Side (:Gm#), this update aborted, will try again...");
                 return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
             }
@@ -2814,11 +2831,14 @@ bool LX200_OnStep::ReadScopeStatus()
     double backlash_DEC, backlash_RA;
     int BD_error = getCommandDoubleResponse(PortFD, &backlash_DEC, OSbacklashDEC, ":%BD#");
     int BR_error = getCommandDoubleResponse(PortFD, &backlash_RA, OSbacklashRA, ":%BR#");
-    if (BD_error > 1 && BR_error > 1) {
+    if (BD_error > 1 && BR_error > 1)
+    {
         BacklashNP.np[0].value = backlash_DEC;
         BacklashNP.np[1].value = backlash_RA;
         IDSetNumber(&BacklashNP, nullptr);
-    } else {
+    }
+    else
+    {
         LOG_WARN("Communication error on backlash (:%BD#/:%BR#), this update aborted, will try again...");
         return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
     }
@@ -2885,7 +2905,8 @@ bool LX200_OnStep::ReadScopeStatus()
                 IDSetSwitch(&AutoFlipSP, nullptr);
             }
         }
-        else {
+        else
+        {
             LOG_WARN("Communication error on meridianAutoFlip (:GX95#), this update aborted, will try again...");
             return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
         }
@@ -2938,7 +2959,8 @@ bool LX200_OnStep::ReadScopeStatus()
             return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
         }
 
-        if (OSMountType == MOUNTTYPE_GEM) {
+        if (OSMountType == MOUNTTYPE_GEM)
+        {
             char limit1_response[RB_MAX_LEN] = {0};
             int gxea_error, gxe9_error;
             double degrees_past_Meridian_East, degrees_past_Meridian_West;
@@ -2947,11 +2969,14 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 char limit2_response[RB_MAX_LEN] = {0};
                 gxea_error  = getCommandDoubleResponse(PortFD, &degrees_past_Meridian_West, limit2_response, ":GXEA#");
-                if (gxea_error > 1) { //NOTE: Possible failure not checked.
+                if (gxea_error > 1)   //NOTE: Possible failure not checked.
+                {
                     minutesPastMeridianNP.np[0].value = degrees_past_Meridian_East; // E
                     minutesPastMeridianNP.np[1].value = degrees_past_Meridian_West; //W
                     IDSetNumber(&minutesPastMeridianNP, nullptr);
-                } else {
+                }
+                else
+                {
                     LOG_WARN("Communication error on Degrees past Meridian West (:GXEA#), this update aborted, will try again...");
                     return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
                 }
@@ -2965,7 +2990,8 @@ bool LX200_OnStep::ReadScopeStatus()
     }
 
     //TODO: Improve Rotator support
-    if (OSUpdateRotator() != 0) {
+    if (OSUpdateRotator() != 0)
+    {
         LOG_WARN("Communication error on Rotator Update, this update aborted, will try again...");
         return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
     }
@@ -3059,7 +3085,8 @@ bool LX200_OnStep::ReadScopeStatus()
             char TMCDriverTempValue[RB_MAX_LEN] = {0};
             char TMCDriverCMD[CMD_MAX_LEN] = {0};
             snprintf(TMCDriverCMD, sizeof(TMCDriverCMD), ":GXU%i#", driver_number);
-            if (TMCDrivers) { //Prevent check on :GXU2# if :GXU1# failed
+            if (TMCDrivers)   //Prevent check on :GXU2# if :GXU1# failed
+            {
                 int i = getCommandSingleCharErrorOrLongResponse(PortFD, TMCDriverTempValue, TMCDriverCMD);
                 if (i == -4  && TMCDriverTempValue[0] == '0' )
                 {
@@ -3154,7 +3181,8 @@ bool LX200_OnStep::ReadScopeStatus()
     IDSetText(&OnstepStatTP, nullptr);
     //Align tab, so it doesn't conflict
     //May want to reduce frequency of updates
-    if (!UpdateAlignStatus()) {
+    if (!UpdateAlignStatus())
+    {
         LOG_WARN("Fail Align Command");
         LOG_WARN("Communication error on Align Status Update, this update aborted, will try again...");
         return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
@@ -3230,7 +3258,8 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
     tcflush(PortFD, TCIFLUSH);
 
 
-    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
+    {
         LOGF_ERROR("CHECK CONNECTION: Error sending command %s", cmd);
         return 0; //Fail if we can't write
         //return error_type;
@@ -3316,14 +3345,17 @@ int LX200_OnStep::flushIO(int fd)
     int nbytes_read;
     std::unique_lock<std::mutex> guard(lx200CommsLock);
     tcflush(fd, TCIOFLUSH);
-    do {
+    do
+    {
         char discard_data[RB_MAX_LEN] = {0};
         error_type = tty_read_section_expanded(fd, discard_data, '#', 0, 1000, &nbytes_read);
-        if (error_type >= 0) {
+        if (error_type >= 0)
+        {
             LOGF_DEBUG("flushIO: Information in buffer: Bytes: %u, string: %s", nbytes_read, discard_data);
         }
         //LOGF_DEBUG("flushIO: error_type = %i", error_type);
-    } while (error_type > 0);
+    }
+    while (error_type > 0);
     return 0;
 }
 
@@ -3365,14 +3397,15 @@ int LX200_OnStep::getCommandDoubleResponse(int fd, double *value, char *data, co
     {
         LOGF_DEBUG("Error %d", error_type);
         LOG_DEBUG("Flushing connection");
-        tcflush(fd, TCIOFLUSH); 
+        tcflush(fd, TCIOFLUSH);
         return error_type;
     }
 
-    if (sscanf(data, "%lf", value) != 1){
+    if (sscanf(data, "%lf", value) != 1)
+    {
         LOG_WARN("Invalid response, check connection");
         LOG_DEBUG("Flushing connection");
-        tcflush(fd, TCIOFLUSH); 
+        tcflush(fd, TCIOFLUSH);
         return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
     }
 
@@ -3417,13 +3450,14 @@ int LX200_OnStep::getCommandIntResponse(int fd, int *value, char *data, const ch
     {
         LOGF_DEBUG("Error %d", error_type);
         LOG_DEBUG("Flushing connection");
-        tcflush(fd, TCIOFLUSH); 
+        tcflush(fd, TCIOFLUSH);
         return error_type;
     }
-    if (sscanf(data, "%i", value) != 1){
+    if (sscanf(data, "%i", value) != 1)
+    {
         LOG_WARN("Invalid response, check connection");
         LOG_DEBUG("Flushing connection");
-        tcflush(fd, TCIOFLUSH); 
+        tcflush(fd, TCIOFLUSH);
         return RES_ERR_FORMAT; //-1001, so as not to conflict with TTY_RESPONSE;
     }
     return nbytes_read;
@@ -3508,7 +3542,7 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     return true;
 }
 
-int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standard command is :SoDD*#       Tested
+int LX200_OnStep::setMinElevationLimit(int fd, int max)   // According to standard command is :SoDD*#       Tested
 {
     LOGF_INFO("<%s>", __FUNCTION__);
 
@@ -3665,9 +3699,10 @@ int LX200_OnStep::OSUpdateFocuser()
         char value[RB_MAX_LEN] = {0};
         int value_int;
         int error_or_fail = getCommandIntResponse(PortFD, &value_int, value, ":FG#");
-        if (error_or_fail > 1) {
+        if (error_or_fail > 1)
+        {
             FocusAbsPosN[0].value =  value_int;
-        //         double current = FocusAbsPosN[0].value;
+            //         double current = FocusAbsPosN[0].value;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosN[0].value);
         }
@@ -3675,7 +3710,8 @@ int LX200_OnStep::OSUpdateFocuser()
         //         Returns: M# (for moving) or S# (for stopped)
         char valueStatus[RB_MAX_LEN] = {0};
         error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, valueStatus, ":FT#");
-        if (error_or_fail > 0 ) {
+        if (error_or_fail > 0 )
+        {
             if (valueStatus[0] == 'S')
             {
                 FocusRelPosNP.s = IPS_OK;
@@ -3699,7 +3735,9 @@ int LX200_OnStep::OSUpdateFocuser()
                 FocusAbsPosNP.s = IPS_ALERT;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
             }
-        } else {
+        }
+        else
+        {
             //INVALID REPLY
             LOG_WARN("Communication :FT# error, check connection.");
             FocusRelPosNP.s = IPS_ALERT;
@@ -3709,30 +3747,36 @@ int LX200_OnStep::OSUpdateFocuser()
         }
         //  :FM#  Get max position (in microns)
         //         Returns: n#
-        char focus_max[RB_MAX_LEN]={0};
+        char focus_max[RB_MAX_LEN] = {0};
         int focus_max_int;
         int fm_error = getCommandIntResponse(PortFD, &focus_max_int, focus_max, ":FM#");
-        if (fm_error > 0) {
+        if (fm_error > 0)
+        {
             FocusAbsPosN[0].max   = focus_max_int;
             IUUpdateMinMax(&FocusAbsPosNP);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_max: %s, %i, fm_error: %i", focus_max, focus_max_int, fm_error);
-        } else {
+        }
+        else
+        {
             LOG_WARN("Communication :FM# error, check connection.");
-            LOGF_WARN("focus_max: %s, %u, fm_error: %i", focus_max,focus_max[0], fm_error);
+            LOGF_WARN("focus_max: %s, %u, fm_error: %i", focus_max, focus_max[0], fm_error);
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
-        char focus_min[RB_MAX_LEN]={0};
+        char focus_min[RB_MAX_LEN] = {0};
         int focus_min_int ;
         int fi_error = getCommandIntResponse(PortFD, &focus_min_int, focus_min, ":FI#");
-        if (fi_error > 0) {
+        if (fi_error > 0)
+        {
             FocusAbsPosN[0].min =  focus_min_int;
             IUUpdateMinMax(&FocusAbsPosNP);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("focus_min: %s, %i fi_error: %i", focus_min, focus_min_int, fi_error);
-        } else {
+        }
+        else
+        {
             LOG_WARN("Communication :FI# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
@@ -3747,7 +3791,7 @@ int LX200_OnStep::OSUpdateFocuser()
         char value[RB_MAX_LEN] = {0};
         int error_return;
         //TODO: Check to see if getCommandIntResponse would be better
-        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#"); 
+        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#");
         if (error_return >= 0)
         {
             if ( strcmp(value, "0") )
@@ -3774,7 +3818,8 @@ int LX200_OnStep::OSUpdateFocuser()
     {
         char value[RB_MAX_LEN] = {0};
         int error_or_fail = getCommandSingleCharResponse(PortFD, value, ":Fa#"); //0 = failure, 1 = success, no # on reply
-        if (error_or_fail > 0 && value[0] > '0' && value[0] < '9') {
+        if (error_or_fail > 0 && value[0] > '0' && value[0] < '9')
+        {
             int temp_value = (unsigned int)(value[0]) - '0';
             LOGF_DEBUG(":Fa# return: %d", temp_value);
             for (int i = 0; i < 9; i++)
@@ -3799,7 +3844,9 @@ int LX200_OnStep::OSUpdateFocuser()
             }
             OSFocusSelectSP.s = IPS_OK;
             IDSetSwitch(&OSFocusSelectSP, nullptr);
-        } else {
+        }
+        else
+        {
             LOGF_DEBUG(":Fa# returned outside values: %c, %u", value[0], value[0]);
         }
     }
@@ -3874,7 +3921,8 @@ int LX200_OnStep::OSUpdateRotator()
             OSRotator1 = false;
             return 0; //Return 0, as this is not a communication error
         }
-        if (error_or_fail < 1) { //This does not neccessarily mean 
+        if (error_or_fail < 1)   //This does not neccessarily mean
+        {
             LOG_WARN("Error talking to rotator, might be timeout (especially on network)");
             return -1;
         }
@@ -3890,7 +3938,8 @@ int LX200_OnStep::OSUpdateRotator()
         //NOTE: The following commands are only on V4, V5 & OnStepX, not V3
         //TODO: Psudo-state for V3 Rotator?
         bool changed_minmax = false;
-        if (OnStepMountVersion != OSV_OnStepV1or2 && OnStepMountVersion != OSV_OnStepV3) {
+        if (OnStepMountVersion != OSV_OnStepV1or2 && OnStepMountVersion != OSV_OnStepV3)
+        {
             memset(value, 0, RB_MAX_LEN);
             error_or_fail = getCommandDoubleResponse(PortFD, &min_rotator, value, ":rI#");
             if (error_or_fail > 1)
@@ -3905,14 +3954,16 @@ int LX200_OnStep::OSUpdateRotator()
                 changed_minmax = true;
                 GotoRotatorN[0].max =  max_rotator;
             }
-            if (changed_minmax) {
+            if (changed_minmax)
+            {
                 IUUpdateMinMax(&GotoRotatorNP);
                 IDSetNumber(&GotoRotatorNP, nullptr);
             }
             //GotoRotatorN
             memset(value, 0, RB_MAX_LEN);
             error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":rT#");
-            if (error_or_fail > 1) {
+            if (error_or_fail > 1)
+            {
                 if (value[0] == 'S') /*Stopped normal on EQ mounts */
                 {
                     GotoRotatorNP.s = IPS_OK;
@@ -3934,7 +3985,8 @@ int LX200_OnStep::OSUpdateRotator()
             memset(value, 0, RB_MAX_LEN);
             int backlash_value;
             error_or_fail = getCommandIntResponse(PortFD, &backlash_value, value, ":rb#");
-            if (error_or_fail > 1) {
+            if (error_or_fail > 1)
+            {
                 RotatorBacklashN[0].value =  backlash_value;
                 RotatorBacklashNP.s = IPS_OK;
                 IDSetNumber(&RotatorBacklashNP, nullptr);
@@ -4165,7 +4217,8 @@ IPState LX200_OnStep::PECStatus (int axis)
         char value[RB_MAX_LEN] = {0};
         OSPECStatusSP.s = IPS_BUSY;
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":$QZ?#");
-        if (error_or_fail > 1) {
+        if (error_or_fail > 1)
+        {
             OSPECStatusS[0].s = ISS_OFF ;
             OSPECStatusS[1].s = ISS_OFF ;
             OSPECStatusS[2].s = ISS_OFF ;
@@ -4285,7 +4338,8 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
     // Check for max number of stars and gracefully fall back to max, if more are requested.
     char read_buffer[RB_MAX_LEN] = {0};
     int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
-    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9'
+            || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
         LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return IPS_ALERT;
@@ -4339,7 +4393,8 @@ bool LX200_OnStep::UpdateAlignStatus ()
 
     char read_buffer[RB_MAX_LEN] = {0};
     int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
-    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9' || read_buffer[2] < '0' || read_buffer[2] > '9')
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9'
+            || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
         LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
         return false;
@@ -4551,7 +4606,8 @@ bool LX200_OnStep::OSGetOutputState(int output)
     LOGF_INFO("Command: %s", command);
 
     int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, value, command);
-    if (error_or_fail > 0) {
+    if (error_or_fail > 0)
+    {
         if (value[0] == 0)
         {
             OSOutput1S[0].s = ISS_ON;
@@ -4657,10 +4713,12 @@ bool LX200_OnStep::Sync(double ra, double dec)
         LOG_DEBUG("CMD <:CM#>");
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":CM#");
         LOGF_DEBUG("RES <%s>", read_buffer);
-        if (error_or_fail > 1) {
+        if (error_or_fail > 1)
+        {
             if (strcmp(read_buffer, "N/A"))
             {
-                if (read_buffer[0] == 'E' && read_buffer[1] >= '0' && read_buffer[1] <= '9') //strcmp will be 0 if they match, so this is the case for failure.
+                if (read_buffer[0] == 'E' && read_buffer[1] >= '0'
+                        && read_buffer[1] <= '9') //strcmp will be 0 if they match, so this is the case for failure.
                 {
                     int error_code = read_buffer[1] - '0';
                     LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
@@ -4668,13 +4726,17 @@ bool LX200_OnStep::Sync(double ra, double dec)
                     EqNP.s = IPS_ALERT;
                     IDSetNumber(&EqNP, "Synchronization failed.");
                     return false;
-                } else {
+                }
+                else
+                {
                     LOG_ERROR("Unexpected return on sync call!");
                     LOG_ERROR("Check system & Align if doing align to see if it went through!");
                     return false;
                 }
             }
-        } else {
+        }
+        else
+        {
             LOG_ERROR("Communication error on sync! Re-issue sync!");
             return false;
         }
@@ -4696,17 +4758,19 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
 
 void LX200_OnStep::Init_Outputs()
 {
-    if (OSHasOutputs) {
+    if (OSHasOutputs)
+    {
         // Features names and type are accessed via :GXYn (where n 1 to 8)
         // we take these names to display in Output tab
         // return value is ssssss,n where ssssss is the name and n is the type
         char port_name[MAXINDINAME] = {0}, getoutp[MAXINDINAME] = {0}, configured[MAXINDINAME] = {0}, p_name[MAXINDINAME] = {0};
         size_t  k {0};
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, configured,
-                                                ":GXY0#"); // returns a string with 1 where Feature is configured
+                            ":GXY0#"); // returns a string with 1 where Feature is configured
         // ex: 10010010 means Feature 1,4 and 7 are configured
 
-        if (error_or_fail == -4 && configured[0] == '0') {
+        if (error_or_fail == -4 && configured[0] == '0')
+        {
             OSHasOutputs = false;
             LOG_INFO("Outputs not detected, disabling further checks");
         }
@@ -4727,7 +4791,9 @@ void LX200_OnStep::Init_Outputs()
                         p_name[k + 1] = 0;
                     }
                     IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
-                } else {
+                }
+                else
+                {
                     LOGF_ERROR("Communication error on %s, ignoring, disconnect and reconnect to clear", getoutp);
                     IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
                 }
@@ -4749,6 +4815,8 @@ bool LX200_OnStep::sendScopeTime()
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
 
     double offset = 0;
     if (getUTFOffset(&offset))
@@ -4786,6 +4854,7 @@ bool LX200_OnStep::sendScopeTime()
         return false;
     }
 
+    ltm.tm_isdst = 0;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
@@ -5058,5 +5127,20 @@ void LX200_OnStep::PrintTrackState()
     }
 #endif
     return;
+}
+
+bool LX200_OnStep::setUTCOffset(double
+                                offset)  //azwing fix after change in lx200driver.cpp and fix to have UTC hh:00, hh:30, hh:45
+{
+    bool result = true;
+    char temp_string[RB_MAX_LEN];
+    int utc_hour, utc_min;
+    // strange thing offset is rounded up to first decimal so that .75 is .8
+    utc_hour = int(offset) * -1;
+    utc_min = abs((offset - int(offset)) * 60); // negtive offsets require this abs()
+    if (utc_min > 30) utc_min = 45;
+    snprintf(temp_string, sizeof(temp_string), ":SG%03d:%02d#", utc_hour, utc_min);
+    result = (setStandardProcedure(PortFD, temp_string) == 0);
+    return result;
 }
 

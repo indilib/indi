@@ -1,20 +1,21 @@
 /*
- *   libDSPAU - a digital signal processing library for astronomy usage
- *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*   DSP API - a digital signal processing library for astronomy usage
+*   Copyright © 2017-2022  Ilia Platone
+*
+*   This program is free software; you can redistribute it and/or
+*   modify it under the terms of the GNU Lesser General Public
+*   License as published by the Free Software Foundation; either
+*   version 3 of the License, or (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*   Lesser General Public License for more details.
+*
+*   You should have received a copy of the GNU Lesser General Public License
+*   along with this program; if not, write to the Free Software Foundation,
+*   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 
 #include "dsp.h"
 
@@ -55,7 +56,7 @@ void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double fre
         x = rad;
         while (x > 1.0)
             x -= 1.0;
-        stream->buf[k] = (double)(32768+32767*x);
+        stream->buf[k] = (dsp_t)(32768+32767*x);
     }
 
 }
@@ -73,7 +74,7 @@ void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq)
             x -= 2.0;
         while (x > 1.0)
             x = 2.0 - x;
-        stream->buf[k] = (double)(32768+32767*x);
+        stream->buf[k] = (dsp_t)(32768+32767*x);
     }
 
 }
@@ -86,10 +87,10 @@ void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double fre
     double mx = dsp_stats_max(stream->buf, stream->len);
     double lo = mn * bandwidth * 1.5 / samplefreq;
     double hi = mx * bandwidth * 0.5 / samplefreq;
-    double *deviation = (double*)malloc(sizeof(double) * stream->len);
+    dsp_t *deviation = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
     dsp_buffer_copy(stream->buf, deviation, stream->len);
     dsp_buffer_deviate(carrier, deviation, hi, lo);
-    memcpy(stream->buf, carrier->buf, stream->len * sizeof(double));
+    memcpy(stream->buf, carrier->buf, stream->len * sizeof(dsp_t));
     dsp_stream_free(carrier);
 
 }

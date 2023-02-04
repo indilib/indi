@@ -32,7 +32,9 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200_10micron.h"
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
+#include "lx200_OpenAstroTech.h"
 #include "lx200ap.h"
+#include "lx200ap_v2.h"
 #include "lx200ap_gtocp2.h"
 #include "lx200classic.h"
 #include "lx200fs2.h"
@@ -42,6 +44,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
+#include "lx200am5.h"
 #include <cmath>
 #include <memory>
 #include <cstring>
@@ -65,6 +68,8 @@ static class Loader
     public:
         Loader()
         {
+            // Note: these if statements use strstr() which isn't a full string match, just a substring,
+            // so if one driver name is the start of another's name, it needs to be AFTER the longer one!
             if (strstr(__progname, "indi_lx200classic"))
             {
                 IDLog("initializing from LX200 classic device...\n");
@@ -90,15 +95,20 @@ static class Loader
                 IDLog("initializing from Autostar device...\n");
                 telescope.reset(new LX200Autostar());
             }
-            else if (strstr(__progname, "indi_lx200ap"))
+            else if (strstr(__progname, "indi_lx200ap_v2"))
             {
-                IDLog("initializing from Astrophysics device...\n");
-                telescope.reset(new LX200AstroPhysics());
+                IDLog("initializing from Astrophysics V2 device...\n");
+                telescope.reset(new LX200AstroPhysicsV2());
             }
             else if (strstr(__progname, "indi_lx200ap_gtocp2"))
             {
                 IDLog("initializing from Astrophysics GTOCP2 device...\n");
                 telescope.reset(new LX200AstroPhysicsGTOCP2());
+            }
+            else if (strstr(__progname, "indi_lx200ap"))
+            {
+                IDLog("initializing from Astrophysics device...\n");
+                telescope.reset(new LX200AstroPhysics());
             }
             else if (strstr(__progname, "indi_lx200gemini"))
             {
@@ -144,6 +154,16 @@ static class Loader
             {
                 IDLog("initializing for EQ500X mount...\n");
                 telescope.reset(new EQ500X());
+            }
+            else if (strstr(__progname, "indi_lx200am5"))
+            {
+                IDLog("initializing for ZWO AM5 mount...\n");
+                telescope.reset(new LX200AM5());
+            }
+            else if (strstr(__progname, "indi_lx200_OpenAstroTech"))
+            {
+                IDLog("initializing for OpenAstroTech mount...\n");
+                telescope.reset(new LX200_OpenAstroTech());
             }
             // be nice and give them a generic device
             else

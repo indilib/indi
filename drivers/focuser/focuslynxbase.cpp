@@ -69,19 +69,19 @@ FocusLynxBase::FocusLynxBase()
     // https://www.indilib.org/forum/focusers-filter-wheels/5739-starlight-instruments-focuser-boss-ii-hsm20.html
     // DVN 2021-11-15: Covered by the generic Device Type FA and FB.
     // Continued: duplicating device types can result in the wrong type being displayed in the selection box
-    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA"; 
+    // lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
     // lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
-    
+
     // FE is deprecated, future firmwares will automatically switch to generic device type FD
-    lynxModels["FeatherTouch Motor PDMS"] = "FE"; 
+    lynxModels["FeatherTouch Motor PDMS"] = "FE";
 
     lynxModels["FeatherTouch Microtouch MSM Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Microtouch MSM Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
-    
+
     //TA is deprecated, future firmwares will automatically switch to generic device type FA
-    lynxModels["Televue Focuser"] = "TA"; 
-    
+    lynxModels["Televue Focuser"] = "TA";
+
     lynxModels["Unipolar motor (Robo-Focus)"] = "RA";
 
     ModelS = nullptr;
@@ -763,7 +763,7 @@ bool FocusLynxBase::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
-    int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
+    int rc = sscanf(response, "%15[^=]=%15[^\n]s", key, nickname);
 
     if (rc != 2)
         return false;
@@ -793,7 +793,7 @@ bool FocusLynxBase::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
+    rc = sscanf(response, "%15[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
         FocusAbsPosN[0].min = 0;
@@ -860,13 +860,13 @@ bool FocusLynxBase::getFocusConfig()
             if(canHome)
             {
                 //Homing focusers can not sync
-                deleteProperty(FocusSyncNP.name); 
+                deleteProperty(FocusSyncNP.name);
                 GotoSP.nsp = 2;
             }
             else
             {
                 //Non-Homing focusers can sync
-                defineProperty(&FocusSyncNP); 
+                defineProperty(&FocusSyncNP);
                 GotoSP.nsp = 1;
             }
 
@@ -972,7 +972,7 @@ bool FocusLynxBase::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCCompensate);
     if (rc != 2)
         return false;
 
@@ -999,7 +999,7 @@ bool FocusLynxBase::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
-    rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
+    rc = sscanf(response, "%15[^=]=%d", key, &BLCValue);
     if (rc != 2)
         return false;
 
@@ -1024,7 +1024,7 @@ bool FocusLynxBase::getFocusConfig()
     LOGF_DEBUG("RES (%s)", response);
 
     int LEDBrightness;
-    rc = sscanf(response, "%16[^=]=%d", key, &LEDBrightness);
+    rc = sscanf(response, "%15[^=]=%d", key, &LEDBrightness);
     if (rc != 2)
         return false;
 
@@ -1053,7 +1053,7 @@ bool FocusLynxBase::getFocusConfig()
     else if (strncmp(response, "END", 3))
     {
         int homeOnStart;
-        rc = sscanf(response, "%16[^=]=%d", key, &homeOnStart);
+        rc = sscanf(response, "%15[^=]=%d", key, &homeOnStart);
         if (rc != 2)
             return false;
 
@@ -1177,7 +1177,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         float temperature = 0;
-        int rc            = sscanf(response, "%16[^=]=%f", key, &temperature);
+        int rc            = sscanf(response, "%15[^=]=%f", key, &temperature);
         if (rc == 2)
         {
             TemperatureN[0].value = temperature;
@@ -1209,7 +1209,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         uint32_t currPos = 0;
-        rc               = sscanf(response, "%16[^=]=%d", key, &currPos);
+        rc               = sscanf(response, "%15[^=]=%d", key, &currPos);
         if (rc == 2)
         {
             FocusAbsPosN[0].value = currPos;
@@ -1253,7 +1253,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int isMoving;
-        rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
+        rc = sscanf(response, "%15[^=]=%d", key, &isMoving);
         if (rc != 2)
             return false;
 
@@ -1276,7 +1276,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int _isHoming;
-        rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
+        rc = sscanf(response, "%15[^=]=%d", key, &_isHoming);
         if (rc != 2)
             return false;
 
@@ -1306,7 +1306,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int isHomed;
-        rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
+        rc = sscanf(response, "%15[^=]=%d", key, &isHomed);
         if (rc != 2)
             return false;
 
@@ -1332,7 +1332,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int FFDetect;
-        rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
+        rc = sscanf(response, "%15[^=]=%d", key, &FFDetect);
         if (rc != 2)
             return false;
 
@@ -1355,7 +1355,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int TmpProbe;
-        rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
+        rc = sscanf(response, "%15[^=]=%d", key, &TmpProbe);
         if (rc != 2)
             return false;
 
@@ -1378,7 +1378,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int RemoteIO;
-        rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
+        rc = sscanf(response, "%15[^=]=%d", key, &RemoteIO);
         if (rc != 2)
             return false;
 
@@ -1401,7 +1401,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int HndCtlr;
-        rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
+        rc = sscanf(response, "%15[^=]=%d", key, &HndCtlr);
         if (rc != 2)
             return false;
 
@@ -1424,7 +1424,7 @@ bool FocusLynxBase::getFocusStatus()
         LOGF_DEBUG("RES (%s)", response);
 
         int reverse;
-        rc = sscanf(response, "%16[^=]=%d", key, &reverse);
+        rc = sscanf(response, "%15[^=]=%d", key, &reverse);
         if (rc != 2)
             return false;
 
@@ -1548,7 +1548,7 @@ bool FocusLynxBase::getFocusTemp()
         LOGF_DEBUG("RES (%s)", response);
 
         int TCompOn;
-        int rc = sscanf(response, "%16[^=]=%d", key, &TCompOn);
+        int rc = sscanf(response, "%15[^=]=%d", key, &TCompOn);
         if (rc != 2)
             return false;
 
@@ -1576,7 +1576,7 @@ bool FocusLynxBase::getFocusTemp()
         LOGF_DEBUG("RES (%s)", response);
 
         char compensateMode;
-        rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
+        rc = sscanf(response, "%15[^=]= %c", key, &compensateMode);
         if (rc != 2)
         {
             if (rc == 1 && key[0] == 'T')
@@ -1623,7 +1623,7 @@ bool FocusLynxBase::getFocusTemp()
         LOGF_DEBUG("RES (%s)", response);
 
         int TCOnStart;
-        rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
+        rc = sscanf(response, "%15[^=]=%d", key, &TCOnStart);
         if (rc != 2)
             return false;
 
@@ -1652,7 +1652,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TCoeff;
-            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            rc = sscanf(response, "%15[^=]=%d", key, &TCoeff);
             if (rc != 2)
                 return false;
 
@@ -1678,7 +1678,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TCoeff;
-            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            rc = sscanf(response, "%15[^=]=%d", key, &TCoeff);
             if (rc != 2)
                 return false;
 
@@ -1705,7 +1705,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TCoeff;
-            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            rc = sscanf(response, "%15[^=]=%d", key, &TCoeff);
             if (rc != 2)
                 return false;
 
@@ -1732,7 +1732,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TCoeff;
-            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            rc = sscanf(response, "%15[^=]=%d", key, &TCoeff);
             if (rc != 2)
                 return false;
 
@@ -1759,7 +1759,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TCoeff;
-            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            rc = sscanf(response, "%15[^=]=%d", key, &TCoeff);
             if (rc != 2)
                 return false;
 
@@ -1786,7 +1786,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TInter;
-            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            rc = sscanf(response, "%15[^=]=%d", key, &TInter);
             if (rc != 2)
                 return false;
 
@@ -1813,7 +1813,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TInter;
-            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            rc = sscanf(response, "%15[^=]=%d", key, &TInter);
             if (rc != 2)
                 return false;
 
@@ -1840,7 +1840,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TInter;
-            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            rc = sscanf(response, "%15[^=]=%d", key, &TInter);
             if (rc != 2)
                 return false;
 
@@ -1867,7 +1867,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TInter;
-            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            rc = sscanf(response, "%15[^=]=%d", key, &TInter);
             if (rc != 2)
                 return false;
 
@@ -1894,7 +1894,7 @@ bool FocusLynxBase::getFocusTemp()
             LOGF_DEBUG("RES (%s)", response);
 
             int TInter;
-            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            rc = sscanf(response, "%15[^=]=%d", key, &TInter);
             if (rc != 2)
                 return false;
 
@@ -1922,7 +1922,7 @@ bool FocusLynxBase::getFocusTemp()
         LOGF_DEBUG("RES (%s)", response);
 
         int valueStepSize;
-        rc = sscanf(response, "%16[^=]=%d", key, &valueStepSize);
+        rc = sscanf(response, "%15[^=]=%d", key, &valueStepSize);
         if (rc != 2)
             return false;
 
@@ -2821,7 +2821,7 @@ bool FocusLynxBase::SyncFocuser(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-//bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+//bool FocusLynxBase::setMaxTravel(uint16_t travel)
 bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 {
     char cmd[LYNX_MAX] = {0};
@@ -2886,7 +2886,7 @@ bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setStepSize(u_int16_t stepsize)
+bool FocusLynxBase::setStepSize(uint16_t stepsize)
 {
     char cmd[LYNX_MAX] = {0};
     int errcode = 0;

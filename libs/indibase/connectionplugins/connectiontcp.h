@@ -99,7 +99,7 @@ class TCP : public Interface
          * @return Success if connection established, false otherwise.
          * @note Connection type (TCP vs UDP) is fetched from the TcpUdpSP property.
          */
-        bool establishConnection(const std::string &hostname, const std::string &port, int timeout=-1);
+        bool establishConnection(const std::string &hostname, const std::string &port, int timeout = -1);
 
         //////////////////////////////////////////////////////////////////////////////////////////////////
         /// Properties
@@ -115,6 +115,9 @@ class TCP : public Interface
         ISwitchVectorProperty LANSearchSP;
 
         // Variables
+        std::string m_ConfigHost;
+        std::string m_ConfigPort;
+        int m_ConfigConnectionType {-1};
         int m_SockFD {-1};
         int PortFD = -1;
         static constexpr uint8_t SOCKET_TIMEOUT {5};

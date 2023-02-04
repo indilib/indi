@@ -129,8 +129,19 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
         /**
          * @return Return true if sensor data different from last data
+         *
+         * If the previous sensor data is empty then this will always
+         * return true.
          */
         bool sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end);
+
+        /**
+         * @return Return true if stepper data different from last data.
+         *
+         * If the previous stepper data is empty then this will always
+         * return true.
+         */
+        bool stepperUpdated(const std::vector<std::string> &result, u_int8_t index);
 
         int PortFD { -1 };
         bool setupComplete { false };

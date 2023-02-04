@@ -53,6 +53,7 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         virtual IPState MoveRotator(double angle) override;
         virtual bool SyncRotator(double angle) override;
         virtual bool AbortRotator() override;
+        virtual bool ReverseRotator(bool enabled) override;
 
         // Misc.
         virtual bool saveConfigItems(FILE *fp) override;
@@ -145,9 +146,12 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         INumber RotatorAbsPosN[1];
         INumberVectorProperty RotatorAbsPosNP;
 
+        INDI::PropertyNumber CustomRotatorStepNP {1};
+
         double lastTemperature { 0 };
         double lastVoltage { 0 };
-        double ticksPerDegree { 0 };
+        int32_t m_RotatorTicksPerDegree { 0 };
+        int32_t m_RotatorStepsPerRevolution {0};
         double lastFocuserPosition { 0 };
         double lastRotatorPosition { 0 };
         double lastAuxPosition { 0 };

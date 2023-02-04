@@ -33,22 +33,20 @@ bool GPS::initProperties()
 {
     DefaultDevice::initProperties();
 
-    IUFillNumber(&PeriodN[0], "PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
-    IUFillNumberVector(&PeriodNP, PeriodN, 1, getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    PeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
+    PeriodNP.fill(getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&RefreshS[0], "REFRESH", "GPS", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "Refresh", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+    RefreshSP[0].fill("REFRESH", "GPS", ISS_OFF);
+    RefreshSP.fill(getDeviceName(), "GPS_REFRESH", "Refresh", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
-                       IP_RO, 60, IPS_IDLE);
+    LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
-    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
-    IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    TimeTP[0].fill("UTC", "UTC Time", nullptr);
+    TimeTP[1].fill("OFFSET", "UTC Offset", nullptr);
+    TimeTP.fill(getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     setDefaultPollingPeriod(2000);
 
@@ -67,13 +65,13 @@ bool GPS::updateProperties()
         // Update GPS and send values to client
         IPState state = updateGPS();
 
-        LocationNP.s = state;
-        defineProperty(&LocationNP);
-        TimeTP.s = state;
-        defineProperty(&TimeTP);
-        RefreshSP.s = state;
-        defineProperty(&RefreshSP);
-        defineProperty(&PeriodNP);
+        LocationNP.setState(state);
+        defineProperty(LocationNP);
+        TimeTP.setState(state);
+        defineProperty(TimeTP);
+        RefreshSP.setState(state);
+        defineProperty(RefreshSP);
+        defineProperty(PeriodNP);
 
         if (state != IPS_OK)
         {
@@ -82,15 +80,15 @@ bool GPS::updateProperties()
 
             timerID = SetTimer(getCurrentPollingPeriod());
         }
-        else if (PeriodN[0].value > 0)
-            timerID = SetTimer(PeriodN[0].value);
+        else if (PeriodNP[0].getValue() > 0)
+            timerID = SetTimer(PeriodNP[0].getValue());
     }
     else
     {
-        deleteProperty(LocationNP.name);
-        deleteProperty(TimeTP.name);
-        deleteProperty(RefreshSP.name);
-        deleteProperty(PeriodNP.name);
+        deleteProperty(LocationNP);
+        deleteProperty(TimeTP);
+        deleteProperty(RefreshSP);
+        deleteProperty(PeriodNP);
 
         if (timerID > 0)
         {
@@ -112,26 +110,26 @@ void GPS::TimerHit()
 
     IPState state = updateGPS();
 
-    LocationNP.s = state;
-    TimeTP.s = state;
-    RefreshSP.s = state;
+    LocationNP.setState(state);
+    TimeTP.setState(state);
+    RefreshSP.setState(state);
 
     switch (state)
     {
         // Ok
-        case IPS_OK:        
-            IDSetNumber(&LocationNP, nullptr);
-            IDSetText(&TimeTP, nullptr);
+        case IPS_OK:
+            LocationNP.apply();
+            TimeTP.apply();
             // We got data OK, but if we are required to update once in a while, we'll call it.
-            if (PeriodN[0].value > 0)
-                timerID = SetTimer(PeriodN[0].value*1000);
+            if (PeriodNP[0].getValue() > 0)
+                timerID = SetTimer(PeriodNP[0].getValue() * 1000);
             return;
             break;
 
         // GPS fix is in progress or alert
         case IPS_ALERT:
-            IDSetNumber(&LocationNP, nullptr);
-            IDSetText(&TimeTP, nullptr);            
+            LocationNP.apply();
+            TimeTP.apply();
             break;
 
         default:
@@ -144,7 +142,7 @@ void GPS::TimerHit()
 IPState GPS::updateGPS()
 {
     DEBUG(Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
-                                   "GEOGRAPHIC_COORD properties.");
+          "GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
@@ -152,14 +150,14 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, RefreshSP.name))
+        if (RefreshSP.isNameMatch(name))
         {
-            RefreshS[0].s = ISS_OFF;
-            RefreshSP.s   = IPS_OK;
-            IDSetSwitch(&RefreshSP, nullptr);
+            RefreshSP[0].s = ISS_OFF;
+            RefreshSP.setState(IPS_OK);
+            RefreshSP.apply();
 
             // Manual trigger
-            TimerHit();
+            GPS::TimerHit();
         }
     }
 
@@ -170,30 +168,30 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, PeriodNP.name) == 0)
+        if (PeriodNP.isNameMatch(name))
         {
-            double prevPeriod = PeriodN[0].value;
-            IUUpdateNumber(&PeriodNP, values, names, n);
+            double prevPeriod = PeriodNP[0].getValue();
+            PeriodNP.update(values, names, n);
             // Do not remove timer if GPS update is still in progress
-            if (timerID > 0 && RefreshSP.s != IPS_BUSY)
+            if (timerID > 0 && RefreshSP.getState() != IPS_BUSY)
             {
                 RemoveTimer(timerID);
                 timerID = -1;
             }
 
-            if (PeriodN[0].value == 0)
+            if (PeriodNP[0].getValue() == 0)
             {
                 DEBUG(Logger::DBG_SESSION, "GPS Update Timer disabled.");
             }
             else
             {
-                timerID = SetTimer(PeriodN[0].value*1000);
+                timerID = SetTimer(PeriodNP[0].value * 1000);
                 if (prevPeriod == 0)
                     DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled.");
             }
 
-            PeriodNP.s = IPS_OK;
-            IDSetNumber(&PeriodNP, nullptr);
+            PeriodNP.setState(IPS_OK);
+            PeriodNP.apply();
 
             return true;
         }
@@ -206,7 +204,7 @@ bool GPS::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PeriodNP);
+    PeriodNP.save(fp);
     return true;
 }
 }

@@ -122,6 +122,9 @@ bool RigelDome::getStartupValues()
 * ***********************************************************************************/
 bool RigelDome::Handshake()
 {
+    char res[DRIVER_LEN] = {0};
+    sendCommand("PULSAR", res); // send dummy command to flush serial line
+
     bool rc = readShutterStatus();
     if (rc)
     {

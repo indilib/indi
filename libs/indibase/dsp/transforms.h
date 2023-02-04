@@ -29,41 +29,52 @@ namespace DSP
 {
 class FourierTransform : public Interface
 {
-public:
-    FourierTransform(INDI::DefaultDevice *dev);
+    public:
+        FourierTransform(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~FourierTransform();
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    protected:
+        ~FourierTransform();
 };
 
 class InverseFourierTransform : public Interface
 {
-public:
-    InverseFourierTransform(INDI::DefaultDevice *dev);
+    public:
+        InverseFourierTransform(INDI::DefaultDevice *dev);
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n) override;
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~InverseFourierTransform();
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    protected:
+        ~InverseFourierTransform();
+        void Activated() override;
+        void Deactivated() override;
+
+    private:
+        IBLOBVectorProperty DownloadBP;
+        IBLOB DownloadB;
+
+        dsp_stream_p phase;
+        bool phase_loaded { false };
 };
 
 class Spectrum : public Interface
 {
-public:
-    Spectrum(INDI::DefaultDevice *dev);
+    public:
+        Spectrum(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Spectrum();
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    protected:
+        ~Spectrum();
 };
 
 class Histogram : public Interface
 {
-public:
-    Histogram(INDI::DefaultDevice *dev);
+    public:
+        Histogram(INDI::DefaultDevice *dev);
+        virtual bool processBLOB(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
-protected:
-    ~Histogram();
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+    protected:
+        ~Histogram();
 };
 }

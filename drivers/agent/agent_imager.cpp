@@ -44,7 +44,7 @@ Imager::Imager()
 {
     setVersion(1, 2);
     groups.resize(MAX_GROUP_COUNT);
-    int i=0;
+    int i = 0;
     std::generate(groups.begin(), groups.end(), [this, &i] { return std::make_shared<Group>(i++, this); });
 }
 
@@ -63,19 +63,22 @@ bool Imager::isFilterConnected()
     return StatusL[1].s == IPS_OK;
 }
 
-std::shared_ptr<Group> Imager::getGroup(int index) const {
+std::shared_ptr<Group> Imager::getGroup(int index) const
+{
     if(index > -1 && index <= maxGroup)
         return groups[index];
     return {};
 }
 
-std::shared_ptr<Group> Imager::currentGroup() const {
-    return getGroup(group - 1); 
+std::shared_ptr<Group> Imager::currentGroup() const
+{
+    return getGroup(group - 1);
 }
 
 
 
-std::shared_ptr<Group> Imager::nextGroup() const {
+std::shared_ptr<Group> Imager::nextGroup() const
+{
     return getGroup(group);
 }
 
@@ -106,7 +109,7 @@ void Imager::initiateNextFilter()
             FilterSlotN[0].value = filterSlot;
             sendNewNumber(&FilterSlotNP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
-                   group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+                       group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
         }
         else
         {
@@ -137,8 +140,8 @@ void Imager::initiateNextCapture()
             sendNewSwitch(&CCDUploadSP);
             sendNewText(&CCDUploadSettingsTP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
-                   maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
-                   CCDImageExposureNP.device);
+                       maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
+                       CCDImageExposureNP.device);
         }
     }
 }
@@ -170,7 +173,7 @@ void Imager::initiateDownload()
 {
     int group = (int)DownloadN[0].value;
     int image = (int)DownloadN[1].value;
-    char name[128]={0};
+    char name[128] = {0};
     std::ifstream file;
 
     if (group == 0 || image == 0)
@@ -433,8 +436,8 @@ bool Imager::ISSnoopDevice(XMLEle *root)
 bool Imager::Connect()
 {
     setServer("localhost", 7624); // TODO configuration options
-    watchDevice(controlledCCD);
-    watchDevice(controlledFilterWheel);
+    BaseClient::watchDevice(controlledCCD);
+    BaseClient::watchDevice(controlledFilterWheel);
     connectServer();
     setBLOBMode(B_ALSO, controlledCCD, nullptr);
 
@@ -459,9 +462,9 @@ void Imager::serverConnected()
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newDevice(INDI::BaseDevice *dp)
+void Imager::newDevice(INDI::BaseDevice baseDevice)
 {
-    std::string deviceName{dp->getDeviceName()};
+    std::string deviceName{baseDevice.getDeviceName()};
 
     LOGF_DEBUG("Device %s detected", deviceName.c_str());
     if (deviceName == controlledCCD)
@@ -472,13 +475,13 @@ void Imager::newDevice(INDI::BaseDevice *dp)
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newProperty(INDI::Property *property)
+void Imager::newProperty(INDI::Property property)
 {
-    std::string deviceName{property->getDeviceName()};
+    std::string deviceName{property.getDeviceName()};
 
-    if (strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
+    if (property.isNameMatch(INDI::SP::CONNECTION))
     {
-        bool state = property->getSwitch()->sp[0].s != ISS_OFF;
+        bool state = INDI::PropertySwitch(property)[0].getState() != ISS_OFF;
         if (deviceName == controlledCCD)
         {
             if (state)
@@ -507,30 +510,97 @@ void Imager::newProperty(INDI::Property *property)
     }
 }
 
-void Imager::removeProperty(INDI::Property *property)
+void Imager::updateProperty(INDI::Property property)
 {
-    INDI_UNUSED(property);
-}
+    std::string deviceName{property.getDeviceName()};
 
-void Imager::removeDevice(INDI::BaseDevice *dp)
-{
-    INDI_UNUSED(dp);
-}
-
-void Imager::newBLOB(IBLOB *bp)
-{
-    if (ProgressNP.s == IPS_BUSY)
+    if (property.getType() == INDI_BLOB)
     {
-        char name[128]={0};
-        std::ofstream file;
+        for (auto &bp: INDI::PropertyBlob(property))
+        {
+            if (ProgressNP.s == IPS_BUSY)
+            {
+                char name[128] = {0};
+                std::ofstream file;
 
-        strncpy(format, bp->format, 16);
+                strncpy(format, bp.getFormat(), 16);
+                sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
+                file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
+                file.write(static_cast<char *>(bp.getBlob()), bp.getBlobLen());
+                file.close();
+                LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
+                        name);
+                if (image == maxImage)
+                {
+                    if (group == maxGroup)
+                    {
+                        batchDone();
+                    }
+                    else
+                    {
+                        maxImage           = nextGroup()->count();
+                        ProgressN[0].value = group = group + 1;
+                        ProgressN[1].value = image = 1;
+                        IDSetNumber(&ProgressNP, nullptr);
+                        initiateNextFilter();
+                    }
+                }
+                else
+                {
+                    ProgressN[1].value = image = image + 1;
+                    IDSetNumber(&ProgressNP, nullptr);
+                    initiateNextFilter();
+                }
+            }
+        }
+        return;
+    }
+
+    if (property.isNameMatch(INDI::SP::CONNECTION))
+    {
+        INDI::PropertySwitch propertySwitch{property};
+
+        bool state = propertySwitch[0].getState() != ISS_OFF;
+        if (deviceName == controlledCCD)
+        {
+            StatusL[0].s = state ? IPS_OK : IPS_BUSY;
+        }
+
+        if (deviceName == controlledFilterWheel)
+        {
+            StatusL[1].s = state ? IPS_OK : IPS_BUSY;
+        }
+        IDSetLight(&StatusLP, nullptr);
+        return;
+    }
+
+    if (deviceName == controlledCCD && property.isNameMatch("CCD_EXPOSURE"))
+    {
+        INDI::PropertyNumber propertyNumber{property};
+        ProgressN[2].value = propertyNumber[0].getValue();
+        IDSetNumber(&ProgressNP, nullptr);
+        return;
+    }
+
+    if (deviceName == controlledFilterWheel && property.isNameMatch("FILTER_SLOT"))
+    {
+        INDI::PropertyNumber propertyNumber{property};
+        FilterSlotN[0].value = propertyNumber[0].getValue();
+        if (property.getState() == IPS_OK)
+            initiateNextCapture();
+        return;
+    }
+
+    if (deviceName == controlledCCD && property.isNameMatch("CCD_FILE_PATH"))
+    {
+        INDI::PropertyText propertyText(property);
+        char name[128] = {0};
+
+        strncpy(format, strrchr(propertyText[0].getText(), '.'), sizeof(format));
         sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-        file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
-        file.write(static_cast<char *>(bp->blob), bp->bloblen);
-        file.close();
-        LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
-               name);
+        rename(propertyText[0].getText(), name);
+        LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
+                    maxImage, name);
         if (image == maxImage)
         {
             if (group == maxGroup)
@@ -552,114 +622,8 @@ void Imager::newBLOB(IBLOB *bp)
             IDSetNumber(&ProgressNP, nullptr);
             initiateNextFilter();
         }
+        return;
     }
-}
-
-void Imager::newSwitch(ISwitchVectorProperty *svp)
-{
-    std::string deviceName{svp->device};
-    bool state             = svp->sp[0].s != ISS_OFF;
-
-    if (strcmp(svp->name, INDI::SP::CONNECTION) == 0)
-    {
-        if (deviceName == controlledCCD)
-        {
-            if (state)
-            {
-                StatusL[0].s = IPS_OK;
-            }
-            else
-            {
-                StatusL[0].s = IPS_BUSY;
-            }
-        }
-        if (deviceName == controlledFilterWheel)
-        {
-            if (state)
-            {
-                StatusL[1].s = IPS_OK;
-            }
-            else
-            {
-                StatusL[1].s = IPS_BUSY;
-            }
-        }
-        IDSetLight(&StatusLP, nullptr);
-    }
-}
-
-void Imager::newNumber(INumberVectorProperty *nvp)
-{
-    std::string deviceName{nvp->device};
-
-    if (deviceName == controlledCCD)
-    {
-        if (strcmp(nvp->name, "CCD_EXPOSURE") == 0)
-        {
-            ProgressN[2].value = nvp->np[0].value;
-            IDSetNumber(&ProgressNP, nullptr);
-        }
-    }
-    if (deviceName == controlledFilterWheel)
-    {
-        if (strcmp(nvp->name, "FILTER_SLOT") == 0)
-        {
-            FilterSlotN[0].value = nvp->np->value;
-            if (nvp->s == IPS_OK)
-                initiateNextCapture();
-        }
-    }
-}
-
-void Imager::newText(ITextVectorProperty *tvp)
-{
-    std::string deviceName{tvp->device};
-
-    if (deviceName == controlledCCD)
-    {
-        if (strcmp(tvp->name, "CCD_FILE_PATH") == 0)
-        {
-            char name[128]={0};
-
-            strncpy(format, strrchr(tvp->tp[0].text, '.'), sizeof(format));
-            sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-            rename(tvp->tp[0].text, name);
-            LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
-                   maxImage, name);
-            if (image == maxImage)
-            {
-                if (group == maxGroup)
-                {
-                    batchDone();
-                }
-                else
-                {
-                    maxImage           = nextGroup()->count();
-                    ProgressN[0].value = group = group + 1;
-                    ProgressN[1].value = image = 1;
-                    IDSetNumber(&ProgressNP, nullptr);
-                    initiateNextFilter();
-                }
-            }
-            else
-            {
-                ProgressN[1].value = image = image + 1;
-                IDSetNumber(&ProgressNP, nullptr);
-                initiateNextFilter();
-            }
-        }
-    }
-}
-
-void Imager::newLight(ILightVectorProperty *lvp)
-{
-    INDI_UNUSED(lvp);
-}
-
-void Imager::newMessage(INDI::BaseDevice *dp, int messageID)
-{
-    INDI_UNUSED(dp);
-    INDI_UNUSED(messageID);
 }
 
 void Imager::serverDisconnected(int exit_code)

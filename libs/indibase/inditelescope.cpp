@@ -211,6 +211,12 @@ bool Telescope::initProperties()
     IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(), "TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // Reverse NS or WE
+    ReverseMovementSP[REVERSE_NS].fill("REVERSE_NS", "North/South", ISS_OFF);
+    ReverseMovementSP[REVERSE_WE].fill("REVERSE_WE", "West/East", ISS_OFF);
+    ReverseMovementSP.fill(getDeviceName(), "TELESCOPE_REVERSE_MOTION", "Reverse", MOTION_TAB, IP_RW, ISR_NOFMANY, 60,
+                           IPS_IDLE);
+
     IUFillNumber(&ScopeParametersN[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
     IUFillNumber(&ScopeParametersN[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
     IUFillNumber(&ScopeParametersN[2], "GUIDER_APERTURE", "Guider Aperture (mm)", "%g", 10, 5000, 0, 0.0);
@@ -379,6 +385,7 @@ bool Telescope::updateProperties()
         {
             defineProperty(&MovementNSSP);
             defineProperty(&MovementWESP);
+            defineProperty(ReverseMovementSP);
             if (nSlewRate >= 4)
                 defineProperty(&SlewRateSP);
             defineProperty(&TargetNP);
@@ -440,6 +447,7 @@ bool Telescope::updateProperties()
         {
             deleteProperty(MovementNSSP.name);
             deleteProperty(MovementWESP.name);
+            deleteProperty(ReverseMovementSP.getName());
             if (nSlewRate >= 4)
                 deleteProperty(SlewRateSP.name);
             deleteProperty(TargetNP.name);
@@ -488,12 +496,12 @@ bool Telescope::updateProperties()
     {
         controller->updateProperties();
 
-        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+        auto useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick)
         {
             if (isConnected())
             {
-                if (useJoystick->sp[0].s == ISS_ON)
+                if (useJoystick[0].getState() == ISS_ON)
                 {
                     defineProperty(&MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
@@ -657,6 +665,10 @@ bool Telescope::saveConfigItems(FILE *fp)
         if (ScopeConfigNameTP.s == IPS_OK)
             IUSaveConfigText(fp, &ScopeConfigNameTP);
     }
+
+    if (CanGOTO())
+        ReverseMovementSP.save(fp);
+
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
     if (HasPECState())
@@ -708,7 +720,9 @@ void Telescope::NewRaDec(double ra, double dec)
         IDSetSwitch(&TrackStateSP, nullptr);
     }
 
-    if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != lastEqState)
+    if (std::abs(EqN[AXIS_RA].value - ra) > EQ_NOTIFY_THRESHOLD ||
+            std::abs(EqN[AXIS_DE].value - dec) > EQ_NOTIFY_THRESHOLD ||
+            EqNP.s != lastEqState)
     {
         EqN[AXIS_RA].value = ra;
         EqN[AXIS_DE].value = dec;
@@ -1155,7 +1169,11 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             // Time to stop motion
             if (current_motion == -1 || (last_ns_motion != -1 && current_motion != last_ns_motion))
             {
-                if (MoveNS(last_ns_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
+                auto targetDirection = last_ns_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH;
+                if (ReverseMovementSP[REVERSE_NS].getState() == ISS_ON)
+                    targetDirection = targetDirection == DIRECTION_NORTH ? DIRECTION_SOUTH : DIRECTION_NORTH;
+
+                if (MoveNS(targetDirection, MOTION_STOP))
                 {
                     IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
@@ -1173,10 +1191,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     RememberTrackState = TrackState;
 
-                if (MoveNS(current_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_START))
+                auto targetDirection = current_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH;
+                if (ReverseMovementSP[REVERSE_NS].getState() == ISS_ON)
+                    targetDirection = targetDirection == DIRECTION_NORTH ? DIRECTION_SOUTH : DIRECTION_NORTH;
+
+                if (MoveNS(targetDirection, MOTION_START))
                 {
                     MovementNSSP.s = IPS_BUSY;
-                    last_ns_motion = current_motion;
+                    last_ns_motion = targetDirection;
                 }
                 else
                 {
@@ -1220,7 +1242,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             // Time to stop motion
             if (current_motion == -1 || (last_we_motion != -1 && current_motion != last_we_motion))
             {
-                if (MoveWE(last_we_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
+                auto targetDirection = last_we_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST;
+                if (ReverseMovementSP[REVERSE_WE].getState() == ISS_ON)
+                    targetDirection = targetDirection == DIRECTION_EAST ? DIRECTION_WEST : DIRECTION_EAST;
+                if (MoveWE(targetDirection, MOTION_STOP))
                 {
                     IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
@@ -1238,10 +1263,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     RememberTrackState = TrackState;
 
-                if (MoveWE(current_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_START))
+                auto targetDirection = current_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST;
+                if (ReverseMovementSP[REVERSE_WE].getState() == ISS_ON)
+                    targetDirection = targetDirection == DIRECTION_EAST ? DIRECTION_WEST : DIRECTION_EAST;
+
+                if (MoveWE(targetDirection, MOTION_START))
                 {
                     MovementWESP.s = IPS_BUSY;
-                    last_we_motion = current_motion;
+                    last_we_motion = targetDirection;
                 }
                 else
                 {
@@ -1253,6 +1282,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             IDSetSwitch(&MovementWESP, nullptr);
 
+            return true;
+        }
+
+        ///////////////////////////////////
+        // WE or NS Reverse Motion
+        ///////////////////////////////////
+        if (ReverseMovementSP.isNameMatch(name))
+        {
+            ReverseMovementSP.update(states, names, n);
+            ReverseMovementSP.setState(IPS_OK);
+            ReverseMovementSP.apply();
+            saveConfig(true, ReverseMovementSP.getName());
             return true;
         }
 
@@ -1552,8 +1593,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     bool rc = controller->ISNewSwitch(dev, name, states, names, n);
     if (rc)
     {
-        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
-        if (useJoystick && useJoystick->sp[0].s == ISS_ON)
+        auto useJoystick = getSwitch("USEJOYSTICK");
+        if (useJoystick && useJoystick[0].getState() == ISS_ON)
         {
             defineProperty(&MotionControlModeTP);
             defineProperty(&LockAxisSP);
@@ -2030,9 +2071,10 @@ const char *Telescope::LoadParkXML()
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
     ParkpositionXml      = findXMLEle(parkxml, "parkposition");
-    ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-    ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
-
+    if (ParkpositionXml)
+        ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
+    if (ParkpositionXml)
+        ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
@@ -2297,10 +2339,10 @@ void Telescope::processButton(const char *button_n, ISState state)
 
     if (!strcmp(button_n, "ABORTBUTTON"))
     {
-        ISwitchVectorProperty *trackSW = getSwitch("TELESCOPE_TRACK_MODE");
+        auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
         if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY ||
-                (trackSW && trackSW->s == IPS_BUSY))
+                (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };

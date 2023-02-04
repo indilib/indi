@@ -53,12 +53,18 @@ Correlator::~Correlator()
 bool Correlator::initProperties()
 {
     // PrimaryCorrelator Info
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_X", "Baseline X size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Y", "Baseline Y size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Z", "Baseline Z size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_WAVELENGTH], "CORRELATOR_WAVELENGTH", "Wavelength (m)", "%7.12f", 3.0e-12, 3.0e+6, 3.0e-12, 350.0e-9);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BANDWIDTH], "CORRELATOR_BANDWIDTH", "Bandwidth (Hz)", "%12.0f", 1.0, 100.0e+9, 1.0, 1.42e+9);
-    IUFillNumberVector(&CorrelatorSettingsNP, CorrelatorSettingsN, 5, getDeviceName(), "CORRELATOR_SETTINGS", "Correlator Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_X", "Baseline X size (m)", "%16.12f",
+                 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Y", "Baseline Y size (m)", "%16.12f",
+                 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Z", "Baseline Z size (m)", "%16.12f",
+                 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_WAVELENGTH], "CORRELATOR_WAVELENGTH", "Wavelength (m)", "%7.12f", 3.0e-12,
+                 3.0e+6, 3.0e-12, 350.0e-9);
+    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BANDWIDTH], "CORRELATOR_BANDWIDTH", "Bandwidth (Hz)", "%12.0f", 1.0, 100.0e+9,
+                 1.0, 1.42e+9);
+    IUFillNumberVector(&CorrelatorSettingsNP, CorrelatorSettingsN, 5, getDeviceName(), "CORRELATOR_SETTINGS",
+                       "Correlator Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(SENSOR_INTERFACE);
 
@@ -101,7 +107,8 @@ bool Correlator::ISNewText(const char *dev, const char *name, char *values[], ch
 
 bool Correlator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, CorrelatorSettingsNP.name)) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, CorrelatorSettingsNP.name))
+    {
         IDSetNumber(&CorrelatorSettingsNP, nullptr);
     }
     return processNumber(dev, name, values, names, n);
@@ -113,7 +120,7 @@ bool Correlator::ISNewSwitch(const char *dev, const char *name, ISState *values,
 }
 
 bool Correlator::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-           char *formats[], char *names[], int n)
+                           char *formats[], char *names[], int n)
 {
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -158,7 +165,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
     UVCoordinate ret;
     double lst = get_local_sidereal_time(Longitude);
     double ha = get_local_hour_angle(lst, RA);
-    baseline_2d_projection(Dec, ha*15, baseline.values, wavelength, ret.values);
+    baseline_2d_projection(Dec, ha * 15, baseline.values, wavelength, ret.values);
     return ret;
 }
 
@@ -166,7 +173,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates(double lst)
 {
     UVCoordinate ret;
     double ha = get_local_hour_angle(lst, RA);
-    baseline_2d_projection(Dec, ha*15, baseline.values, wavelength, ret.values);
+    baseline_2d_projection(Dec, ha * 15, baseline.values, wavelength, ret.values);
     return ret;
 }
 
@@ -181,13 +188,13 @@ double Correlator::getDelay()
 {
     double lst = get_local_sidereal_time(Longitude);
     double ha = get_local_hour_angle(lst, RA);
-    return baseline_delay(Dec, ha*15, baseline.values);
+    return baseline_delay(Dec, ha * 15, baseline.values);
 }
 
 double Correlator::getDelay(double lst)
 {
     double ha = get_local_hour_angle(lst, RA);
-    return baseline_delay(Dec, ha*15, baseline.values);
+    return baseline_delay(Dec, ha * 15, baseline.values);
 }
 
 double Correlator::getDelay(double alt, double az)
@@ -203,25 +210,26 @@ bool Correlator::StartIntegration(double duration)
 }
 
 void Correlator::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                                   bool sendToClient)
+                               bool sendToClient)
 {
-    INumberVectorProperty *vp = nullptr;
-
-    if (!strcmp(property, CorrelatorSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
-
-        INumber *np = IUFindNumber(vp, element);
-        if (np)
-        {
-            np->min  = min;
-            np->max  = max;
-            np->step = step;
-
-            if (sendToClient)
-                IUUpdateMinMax(vp);
-        }
-    }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
+    INumberVectorProperty *nvp = nullptr;
+
+    if (!strcmp(property, CorrelatorSettingsNP.name))
+        nvp = &CorrelatorSettingsNP;
+    else
+        return;
+
+    INumber *np = IUFindNumber(nvp, element);
+    if (np)
+    {
+        np->min  = min;
+        np->max  = max;
+        np->step = step;
+
+        if (sendToClient)
+            IUUpdateMinMax(nvp);
+    }
 }
 }
 

@@ -45,76 +45,76 @@ namespace INDI
 
 class LightBoxInterface
 {
-  public:
-    enum
-    {
-        FLAT_LIGHT_ON,
-        FLAT_LIGHT_OFF
-    };
+    public:
+        enum
+        {
+            FLAT_LIGHT_ON,
+            FLAT_LIGHT_OFF
+        };
 
-  protected:
-    LightBoxInterface(DefaultDevice *device, bool isDimmable);
-    virtual ~LightBoxInterface();
+    protected:
+        LightBoxInterface(DefaultDevice *device, bool isDimmable);
+        virtual ~LightBoxInterface();
 
-    /** \brief Initilize light box properties. It is recommended to call this function within initProperties() of your primary device
-            \param deviceName Name of the primary device
-            \param groupName Group or tab name to be used to define light box properties.
-        */
-    void initLightBoxProperties(const char *deviceName, const char *groupNam);
+        /** \brief Initilize light box properties. It is recommended to call this function within initProperties() of your primary device
+                \param deviceName Name of the primary device
+                \param groupName Group or tab name to be used to define light box properties.
+            */
+        void initLightBoxProperties(const char *deviceName, const char *groupNam);
 
-    /**
-         * @brief isGetLightBoxProperties Get light box properties
-         * @param deviceName parent device name
-         */
-    void isGetLightBoxProperties(const char *deviceName);
+        /**
+             * @brief isGetLightBoxProperties Get light box properties
+             * @param deviceName parent device name
+             */
+        void isGetLightBoxProperties(const char *deviceName);
 
-    /** \brief Process light box switch properties */
-    bool processLightBoxSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        /** \brief Process light box switch properties */
+        bool processLightBoxSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    /** \brief Process light box number properties */
-    bool processLightBoxNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        /** \brief Process light box number properties */
+        bool processLightBoxNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    /** \brief Process light box text properties */
-    bool processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        /** \brief Process light box text properties */
+        bool processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    bool updateLightBoxProperties();
-    bool saveLightBoxConfigItems(FILE *fp);
-    bool snoopLightBox(XMLEle *root);
+        bool updateLightBoxProperties();
+        bool saveLightBoxConfigItems(FILE *fp);
+        bool snoopLightBox(XMLEle *root);
 
-    /**
-         * @brief setBrightness Set light level. Must be impelemented in the child class, if supported.
-         * @param value level of light box
-         * @return True if successful, false otherwise.
-         */
-    virtual bool SetLightBoxBrightness(uint16_t value);
+        /**
+             * @brief setBrightness Set light level. Must be impelemented in the child class, if supported.
+             * @param value level of light box
+             * @return True if successful, false otherwise.
+             */
+        virtual bool SetLightBoxBrightness(uint16_t value);
 
-    /**
-         * @brief EnableLightBox Turn on/off on a light box. Must be impelemented in the child class.
-         * @param enable If true, turn on the light, otherwise turn off the light.
-         * @return True if successful, false otherwise.
-         */
-    virtual bool EnableLightBox(bool enable);
+        /**
+             * @brief EnableLightBox Turn on/off on a light box. Must be impelemented in the child class.
+             * @param enable If true, turn on the light, otherwise turn off the light.
+             * @return True if successful, false otherwise.
+             */
+        virtual bool EnableLightBox(bool enable);
 
-    // Turn on/off light
-    ISwitchVectorProperty LightSP;
-    ISwitch LightS[2];
+        // Turn on/off light
+        ISwitchVectorProperty LightSP;
+        ISwitch LightS[2];
 
-    // Light Intensity
-    INumberVectorProperty LightIntensityNP;
-    INumber LightIntensityN[1];
+        // Light Intensity
+        INumberVectorProperty LightIntensityNP;
+        INumber LightIntensityN[1];
 
-    // Active devices to snoop
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1] {};
+        // Active devices to snoop
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1] {};
 
-    INumberVectorProperty FilterIntensityNP;
-    INumber *FilterIntensityN;
+        INumberVectorProperty FilterIntensityNP;
+        INumber *FilterIntensityN;
 
-  private:
-    void addFilterDuration(const char *filterName, uint16_t filterDuration);
+    private:
+        void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
-    DefaultDevice *device;
-    uint8_t currentFilterSlot;
-    bool isDimmable;
+        DefaultDevice *device;
+        uint8_t currentFilterSlot;
+        bool isDimmable;
 };
 }

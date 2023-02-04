@@ -44,10 +44,6 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
 
     terminateThread = false;
 
-    //  focal length of the telescope in millimeters
-    primaryFocalLength = 900;
-    guiderFocalLength  = 300;
-
     time(&RunStart);
 
     // Filter stuff
@@ -116,6 +112,9 @@ bool CCDSim::initProperties()
 {
     INDI::CCD::initProperties();
 
+    CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
+    addCaptureFormat(format);
+
     IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
     IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
     IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
@@ -128,7 +127,7 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (seconds)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
     IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
@@ -230,10 +229,6 @@ bool CCDSim::initProperties()
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
-    // Make Guide Scope ON by default
-    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
-    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
-
     return true;
 }
 
@@ -323,12 +318,6 @@ int CCDSim::SetTemperature(double temperature)
 
 bool CCDSim::StartExposure(float duration)
 {
-    if (std::isnan(RA) && std::isnan(Dec))
-    {
-        LOG_ERROR("Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
-        return false;
-    }
-
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
@@ -338,7 +327,7 @@ bool CCDSim::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
-    if (DirectoryS[INDI_ENABLED].s == ISS_ON)
+    if (PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME && DirectoryS[INDI_ENABLED].s == ISS_ON)
     {
         if (loadNextImage() == false)
             return false;
@@ -524,7 +513,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
     float exposure_time;
-    float targetFocalLength;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -535,15 +523,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    if (GainN[0].value > 50)
-        exposure_time *= sqrt(GainN[0].value - 50);
-    else if (GainN[0].value < 50)
-        exposure_time /= sqrt(50 - GainN[0].value);
+    exposure_time *= (1 + sqrt(GainN[0].value));
 
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
-        targetFocalLength = primaryFocalLength;
-    else
-        targetFocalLength = guiderFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
     if (ShowStarField)
     {
@@ -640,6 +622,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = RA;
             currentDE = Dec;
 
+            if (std::isnan(currentRA))
+            {
+                currentRA = 0;
+                currentDE = 0;
+            }
+
             INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
             double jd = ln_get_julian_from_sys();
@@ -665,7 +653,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 #endif
 
         //  calc this now, we will use it a lot later
-        rad = currentRA * 15.0;
+        rad = currentRA * 15.0 + PEOffset;
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
@@ -719,7 +707,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             int drawn = 0;
 
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
-                    range360(rad + PEOffset),
+                    range360(rad),
                     rangeDec(cameradec),
                     radius,
                     lookuplimit);
@@ -812,7 +800,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
         {
             //  calculate flux from our zero point and gain values
-            float glow = m_SkyGlow;
+            float glow = m_SkyGlow * 1.3;
 
             if (ftype == INDI::CCDChip::FLAT_FRAME)
             {
@@ -821,8 +809,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                 //  is much brighter than at night
                 glow = m_SkyGlow / 10;
             }
-
-            //fprintf(stderr,"Using glow %4.2f\n",glow);
 
             // Flux represents one second, scale up linearly for exposure time
             float const skyflux = flux(glow) * exposure_time;
@@ -1490,9 +1476,11 @@ void * CCDSim::streamVideo()
     return nullptr;
 }
 
-void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip)
 {
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
+    INDI::CCD::addFITSKeywords(targetChip);
+
+    auto fptr = *targetChip->fitsFilePointer();
 
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
@@ -1569,5 +1557,11 @@ bool CCDSim::loadNextImage()
     }
 
     fits_close_file(fptr, &status);
+    return true;
+}
+
+bool CCDSim::SetCaptureFormat(uint8_t index)
+{
+    INDI_UNUSED(index);
     return true;
 }

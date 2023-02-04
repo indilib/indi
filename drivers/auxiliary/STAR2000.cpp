@@ -175,7 +175,10 @@ float STAR2000::CalcWEPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
 
     gettimeofday(&now, nullptr);
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
@@ -190,7 +193,10 @@ float STAR2000::CalcNSPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -

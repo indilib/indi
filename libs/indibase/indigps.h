@@ -46,57 +46,53 @@ namespace INDI
 
 class GPS : public DefaultDevice
 {
-  public:
-    enum GPSLocation
-    {
-        LOCATION_LATITUDE,
-        LOCATION_LONGITUDE,
-        LOCATION_ELEVATION
-    };
+    public:
+        enum GPSLocation
+        {
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE,
+            LOCATION_ELEVATION
+        };
 
-    GPS() = default;
-    virtual ~GPS() = default;
+        GPS() = default;
+        virtual ~GPS() = default;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    /**
-         * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
-         * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+    protected:
+        /**
+             * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
+             * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+             */
+        virtual IPState updateGPS();
+
+        /**
+             * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
+             */
+        virtual void TimerHit() override;
+
+        /**
+         * @brief saveConfigItems Save refresh period
+         * @param fp pointer to config file
+         * @return True if all is OK
          */
-    virtual IPState updateGPS();
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    /**
-         * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
-         */
-    virtual void TimerHit() override;
+        //  A number vector that stores latitude, longitude and altitude.
+        INDI::PropertyNumber LocationNP {3};
 
-    /**
-     * @brief saveConfigItems Save refresh period
-     * @param fp pointer to config file
-     * @return True if all is OK
-     */
-    virtual bool saveConfigItems(FILE *fp) override;
+        // UTC and UTC Offset
+        INDI::PropertyText TimeTP {2};
 
-    //  A number vector that stores lattitude and longitude
-    INumberVectorProperty LocationNP;
-    INumber LocationN[3];
+        // Refresh data
+        INDI::PropertySwitch RefreshSP {1};
 
-    // UTC and UTC Offset
-    IText TimeT[2] {};
-    ITextVectorProperty TimeTP;
+        // Refresh Period
+        INDI::PropertyNumber PeriodNP {1};
 
-    // Refresh data
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
-
-    // Refresh Period
-    INumber PeriodN[1];
-    INumberVectorProperty PeriodNP;
-
-    int timerID = -1;
+        int timerID = -1;
 };
 }

@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include "basedevice_p.h"
+#include "parentdevice_p.h"
 #include "defaultdevice.h"
+#include "watchdeviceproperty.h"
 
 #include <cstring>
 #include <list>
@@ -32,7 +33,7 @@
 
 namespace INDI
 {
-class DefaultDevicePrivate: public BaseDevicePrivate
+class DefaultDevicePrivate: public ParentDevicePrivate
 {
     public:
         DefaultDevicePrivate(DefaultDevice *defaultDevice);
@@ -48,7 +49,6 @@ class DefaultDevicePrivate: public BaseDevicePrivate
 
         uint16_t majorVersion { 1 };
         uint16_t minorVersion { 0 };
-        uint16_t interfaceDescriptor { 0 };
         int m_ConfigConnectionMode {-1};
 
         PropertySwitch SimulationSP     { 2 };
@@ -76,6 +76,8 @@ class DefaultDevicePrivate: public BaseDevicePrivate
     public:
         static std::list<DefaultDevicePrivate*> devices;
         static std::recursive_mutex             devicesLock;
+
+        WatchDeviceProperty watchDevice;
 };
 
 }

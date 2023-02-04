@@ -491,7 +491,6 @@ bool CelestronGPS::updateProperties()
         //  handle the focuser
         if (fwInfo.hasFocuser)
         {
-            LOG_INFO("update focuser properties");
             //defineProperty(&FocusBacklashNP);
             defineProperty(&FocusMinPosNP);
             if (focusReadLimits())
@@ -502,6 +501,10 @@ bool CelestronGPS::updateProperties()
                 IDSetNumber(&FocusMinPosNP, nullptr);
                 // focuser move capability is only set if the focus limits are valid
                 FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+                setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+                syncDriverInfo();
+
+                LOG_INFO("Auxiliary focuser is connected.");
             }
             if (!focuserIsCalibrated)
             {
@@ -515,7 +518,6 @@ bool CelestronGPS::updateProperties()
         INDI::Telescope::updateProperties();
 
         FI::updateProperties();
-        //deleteProperty(FocusBacklashNP.name);
         deleteProperty(FocusMinPosNP.name);
 
         //GUIDE Delete properties.
@@ -822,7 +824,7 @@ bool CelestronGPS::ReadScopeStatus()
             if (driver.is_slewing(&slewing) && !slewing)
             {
                 LOG_INFO("Slew complete, tracking...");
-                TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
                 // update ra offset
                 double raoffset = targetRA - currentRA + SlewOffsetRa;
                 if (raoffset > 0.0 || raoffset < 10.0 / 3600.0)
@@ -843,7 +845,6 @@ bool CelestronGPS::ReadScopeStatus()
                     LOG_DEBUG("Mount tracking is off.");
 
                 SetParked(true);
-
                 saveConfig(true);
 
                 // Check if we need to hibernate

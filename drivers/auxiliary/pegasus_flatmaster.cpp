@@ -3,6 +3,8 @@
 
   Pegasus FlatMaster
 
+  2022-06-07 Jasem Mutlaq: Use lightbox interface properly.
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -42,7 +44,7 @@ static std::unique_ptr<PegasusFlatMaster> flatmaster(new PegasusFlatMaster());
 
 PegasusFlatMaster::PegasusFlatMaster() : LightBoxInterface(this, true)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 bool PegasusFlatMaster::initProperties()
@@ -54,6 +56,8 @@ bool PegasusFlatMaster::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
 
     LightIntensityN[0].min  = 0;
     LightIntensityN[0].max  = 100;
@@ -73,6 +77,13 @@ bool PegasusFlatMaster::initProperties()
     return true;
 }
 
+void PegasusFlatMaster::ISGetProperties(const char *dev)
+{
+    INDI::DefaultDevice::ISGetProperties(dev);
+
+    // Get Light box properties
+    isGetLightBoxProperties(dev);
+}
 
 bool PegasusFlatMaster::updateProperties()
 {
@@ -107,6 +118,7 @@ void PegasusFlatMaster::updateFirmwareVersion()
     if(sendCommand("V", response))
     {
         IUSaveText(&FirmwareT[0], response);
+        FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
     }
     else
@@ -143,7 +155,6 @@ bool PegasusFlatMaster::EnableLightBox(bool enable)
     char response[16] = {0};
     char cmd[16] = {0};
 
-
     snprintf(cmd, 16, "E:%d", enable ? 1 : 0);
 
     if(sendCommand(cmd, response))
@@ -163,7 +174,6 @@ bool PegasusFlatMaster::EnableLightBox(bool enable)
 
 bool PegasusFlatMaster::SetLightBoxBrightness(uint16_t value)
 {
-
     if(LightS[FLAT_LIGHT_ON].s != ISS_ON)
     {
         LOG_ERROR("You must set On the Flat Light first.");
@@ -194,55 +204,46 @@ bool PegasusFlatMaster::SetLightBoxBrightness(uint16_t value)
 
 bool PegasusFlatMaster::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
-    {
-        if(strcmp(name, LightIntensityNP.name) == 0)
-        {
-            double previousValue = LightIntensityN[0].value;
-            IUUpdateNumber(&LightIntensityNP, values, names, n);
-            bool rc = SetLightBoxBrightness(LightIntensityN[0].value);
-
-            if (!rc)
-            {
-                LightIntensityN[0].value = previousValue;
-                LightIntensityNP.s       = IPS_ALERT;
-            }
-            else
-                LightIntensityNP.s = IPS_OK;
-
-
-            IDSetNumber(&LightIntensityNP, nullptr);
-            return  true;
-        }
-    }
+    if (processLightBoxNumber(dev, name, values, names, n))
+        return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
+bool PegasusFlatMaster::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (processLightBoxText(dev, name, texts, names, n))
+            return true;
+    }
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
 
 bool PegasusFlatMaster::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name, LightSP.name) == 0)
-        {
-            int prevIndex = IUFindOnSwitchIndex(&LightSP);
-            IUUpdateSwitch(&LightSP, states, names, n);
-            bool rc = EnableLightBox(LightS[FLAT_LIGHT_ON].s == ISS_ON ? true : false);
-            LightSP.s = rc ? IPS_OK : IPS_ALERT;
-
-            if (!rc)
-            {
-                IUResetSwitch(&LightSP);
-                LightS[prevIndex].s = ISS_ON;
-            }
-
-            IDSetSwitch(&LightSP, nullptr);
+        if (processLightBoxSwitch(dev, name, states, names, n))
             return true;
-        }
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool PegasusFlatMaster::ISSnoopDevice(XMLEle *root)
+{
+    snoopLightBox(root);
+
+    return INDI::DefaultDevice::ISSnoopDevice(root);
+}
+
+bool PegasusFlatMaster::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+
+    return saveLightBoxConfigItems(fp);
 }
 
 bool PegasusFlatMaster::sendCommand(const char *command, char *res)

@@ -42,7 +42,7 @@ extern "C" {
 #include <malloc.h>
 
 typedef wchar_t locale_char_t;
-#define INDI_LOCALE(s) L#s
+#define INDI_LOCALE(s) L""#s
 
 __inline static locale_char_t *indi_setlocale(int category, const locale_char_t *locale)
 {
@@ -104,38 +104,38 @@ _INDI_C_INLINE static void indi_locale_C_numeric_pop(locale_char_t *prev)
 
 class AutoLocale
 {
-    int m_category;
-    locale_char_t *m_orig;
+        int m_category;
+        locale_char_t *m_orig;
 
-public:
+    public:
 
-    AutoLocale(int category, const locale_char_t *locale)
-        : m_category(category)
-    {
-        m_orig = indi_setlocale(category, locale);
-    }
-
-    // method Restore can be used to restore the original locale
-    // before the object goes out of scope
-    void Restore()
-    {
-        if (m_orig)
+        AutoLocale(int category, const locale_char_t *locale)
+            : m_category(category)
         {
-            indi_restore_locale(m_category, m_orig);
-            m_orig = nullptr;
+            m_orig = indi_setlocale(category, locale);
         }
-    }
 
-    ~AutoLocale()
-    {
-        Restore();
-    }
+        // method Restore can be used to restore the original locale
+        // before the object goes out of scope
+        void Restore()
+        {
+            if (m_orig)
+            {
+                indi_restore_locale(m_category, m_orig);
+                m_orig = nullptr;
+            }
+        }
+
+        ~AutoLocale()
+        {
+            Restore();
+        }
 };
 
 class AutoCNumeric : public AutoLocale
 {
-public:
-    AutoCNumeric() : AutoLocale(LC_NUMERIC, INDI_LOCALE("C")) { }
+    public:
+        AutoCNumeric() : AutoLocale(LC_NUMERIC, INDI_LOCALE("C")) { }
 };
 
 #endif // __cplusplus

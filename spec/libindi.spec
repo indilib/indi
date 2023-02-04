@@ -2,7 +2,7 @@
 %define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
-Version: 1.9.4.git
+Version: 2.0.0.git
 Release: %(date -u +%%Y%%m%%d%%H%%M%%S)%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
@@ -22,6 +22,7 @@ BuildRequires: systemd
 BuildRequires: libogg-devel
 BuildRequires: libtheora-devel
 BuildRequires: fftw-devel
+BuildRequires: libev-devel
 BuildRequires: gmock-devel
 BuildRequires: rtl-sdr-devel
 
@@ -66,7 +67,8 @@ Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 Static library needed to develop a %{name} application
 
 %prep
-%setup
+%autosetup -p1 -n %{name}-master
+
 # For Fedora we want to put udev rules in {_udevrulesdir}
 sed -i 's|/lib/udev/rules.d|%{_udevrulesdir}|g' CMakeLists.txt
 chmod -x drivers/telescope/pmc8driver.h

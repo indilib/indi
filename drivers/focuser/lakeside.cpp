@@ -81,16 +81,19 @@ bool Lakeside::initProperties()
 
     // Focuser temperature (degrees C) - read only
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%3.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature (C)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature (C)",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature (Kelvin)- read only & only read once at connect
     IUFillNumber(&TemperatureKN[0], "TEMPERATUREK", "Kelvin", "%3.2f", 0., 373.15, 0., 0.);
-    IUFillNumberVector(&TemperatureKNP, TemperatureKN, 1, getDeviceName(), "FOCUS_TEMPERATUREK", "Temperature (K)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureKNP, TemperatureKN, 1, getDeviceName(), "FOCUS_TEMPERATUREK", "Temperature (K)",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Compensate for temperature
     IUFillSwitch(&TemperatureTrackingS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&TemperatureTrackingS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureTrackingSP, TemperatureTrackingS, 2, getDeviceName(), "Temperature Track", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TemperatureTrackingSP, TemperatureTrackingS, 2, getDeviceName(), "Temperature Track", "",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash 0-255
     //    IUFillNumber(&FocusBacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
@@ -107,46 +110,56 @@ bool Lakeside::initProperties()
 
     // Step Size - read only
     IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
-    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     // Active Temperature Slope - select 1 or 2
     IUFillSwitch(&ActiveTemperatureSlopeS[0], "Slope 1", "", ISS_ON);
     IUFillSwitch(&ActiveTemperatureSlopeS[1], "Slope 2", "", ISS_OFF);
-    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "Active Slope", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "Active Slope",
+                       SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Directions
     IUFillSwitch(&Slope1DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope1DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope1IncN[0], "SLOPE1INC", "No. Steps (0-655356", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC", "Slope1 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC", "Slope1 Increments", SETTINGS_TAB, IP_RW, 0,
+                       IPS_IDLE );
 
     // slope 1 : Deadband - value between 0 and 255
     IUFillNumber(&Slope1DeadbandN[0], "SLOPE1DEADBAND", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband",
+                       SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 1 : Time Period (Minutes, 0.1 step increments
     IUFillNumber(&Slope1PeriodN[0], "SLOPE1PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB,
+                       IP_RW, 0, IPS_IDLE );
 
     // Slope 2 : Direction
     IUFillSwitch(&Slope2DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope2DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
     // slope 2 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope2IncN[0], "SLOPE2INC", "No. Steps (0-65536)", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0,
+                       IPS_IDLE );
 
     // slope 2 : Deadband - value between 0 and 255
     IUFillNumber(&Slope2DeadbandN[0], "SLOPE2DEADBAND", "Steps (0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband",
+                       SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 2 : Time Period (Minutes, 0.1 step increments)
     IUFillNumber(&Slope2PeriodN[0], "SLOPE2PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB,
+                       IP_RW, 0, IPS_IDLE );
 
     FocusAbsPosN[0].min = 0.;
 
@@ -243,7 +256,8 @@ bool Lakeside::Connect()
     }
     else
     {
-        LOGF_INFO("Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.", serialConnection->port());
+        LOGF_INFO("Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.",
+                  serialConnection->port());
         return false;
     }
 }
@@ -371,7 +385,7 @@ bool Lakeside::LakesideOnline()
 // 1 = Reversed
 bool Lakeside::updateMoveDirection()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?D#";
 
@@ -389,7 +403,7 @@ bool Lakeside::updateMoveDirection()
 
     // direction is in form Dnnnnn#
     // where nnnnn is 0 for normal or 1 for reversed
-    rc = sscanf(resp, "D%5d#", &temp);
+    sscanf(resp, "D%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -609,7 +623,7 @@ bool Lakeside::updatePosition()
 // Get Backlash compensation
 bool Lakeside::updateBacklash()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?B#";
 
@@ -625,7 +639,7 @@ bool Lakeside::updateBacklash()
 
     // Backlash is in form Bnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "B%5d#", &temp);
+    sscanf(resp, "B%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -644,7 +658,7 @@ bool Lakeside::updateBacklash()
 // get Slope 1 Increments
 bool Lakeside::updateSlope1Inc()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN];
     char cmd[] = "?1#";
 
@@ -660,7 +674,7 @@ bool Lakeside::updateSlope1Inc()
 
     // Slope 1 Increment is in form 1nnnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "1%5d#", &temp);
+    sscanf(resp, "1%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -679,7 +693,7 @@ bool Lakeside::updateSlope1Inc()
 // get Slope 2 Increments
 bool Lakeside::updateSlope2Inc()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?2#";
 
@@ -695,7 +709,7 @@ bool Lakeside::updateSlope2Inc()
 
     // Slope 1 Increment is in form 1nnnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "2%5d#", &temp);
+    sscanf(resp, "2%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -714,7 +728,7 @@ bool Lakeside::updateSlope2Inc()
 // get Slope 1 direction : 0 or 1
 bool Lakeside::updateSlope1Dir()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?a#";
 
@@ -730,7 +744,7 @@ bool Lakeside::updateSlope1Dir()
 
     // Slope 1 Direction is in form annnnn#
     // where nnnnn is either 0 or 1, space left padded
-    rc = sscanf(resp, "a%5d#", &temp);
+    sscanf(resp, "a%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -753,7 +767,7 @@ bool Lakeside::updateSlope1Dir()
 // get Slope 2 direction : 0 or 1
 bool Lakeside::updateSlope2Dir()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?b#";
 
@@ -769,7 +783,7 @@ bool Lakeside::updateSlope2Dir()
 
     // Slope 2 Direction is in form annnnn#
     // where nnnnn is either 0 or 1, space left padded
-    rc = sscanf(resp, "b%5d#", &temp);
+    sscanf(resp, "b%5d#", &temp);
 
     if ( temp == 0)
     {
@@ -792,7 +806,7 @@ bool Lakeside::updateSlope2Dir()
 // Get slope 1 deadband
 bool Lakeside::updateSlope1Deadband()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?c#";
 
@@ -808,7 +822,7 @@ bool Lakeside::updateSlope1Deadband()
 
     // Deadband is in form cnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "c%5d#", &temp);
+    sscanf(resp, "c%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -827,7 +841,7 @@ bool Lakeside::updateSlope1Deadband()
 // Get slope 2 deadband
 bool Lakeside::updateSlope2Deadband()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?d#";
 
@@ -843,7 +857,7 @@ bool Lakeside::updateSlope2Deadband()
 
     // Deadband is in form dnnnnn#
     // where nnnnn is 0 - 255, space left padded
-    rc = sscanf(resp, "d%5d#", &temp);
+    sscanf(resp, "d%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -862,7 +876,7 @@ bool Lakeside::updateSlope2Deadband()
 // get Slope 1 time period
 bool Lakeside::updateSlope1Period()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?e#";
 
@@ -878,7 +892,7 @@ bool Lakeside::updateSlope1Period()
 
     // Slope 1 Period is in form ennnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "e%5d#", &temp);
+    sscanf(resp, "e%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -897,7 +911,7 @@ bool Lakeside::updateSlope1Period()
 // get Slope 2 time period
 bool Lakeside::updateSlope2Period()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?f#";
 
@@ -913,7 +927,7 @@ bool Lakeside::updateSlope2Period()
 
     // Slope 2 Period is in form ennnnn#
     // where nnnnn is number of 0.1 step increments, space left padded
-    rc = sscanf(resp, "f%5d#", &temp);
+    sscanf(resp, "f%5d#", &temp);
 
     if ( temp >= 0)
     {
@@ -932,7 +946,7 @@ bool Lakeside::updateSlope2Period()
 // Get Max travel
 bool Lakeside::updateMaxTravel()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?I#";
 
@@ -948,7 +962,7 @@ bool Lakeside::updateMaxTravel()
 
     // MaxTravel is in form Innnnn#
     // where nnnnn is 0 - 65536, space left padded
-    rc = sscanf(resp, "I%5d#", &temp);
+    sscanf(resp, "I%5d#", &temp);
 
     if ( temp > 0)
     {
@@ -967,7 +981,7 @@ bool Lakeside::updateMaxTravel()
 // get step size
 bool Lakeside::updateStepSize()
 {
-    int rc = -1, temp = -1;
+    int temp = -1;
     char resp[LAKESIDE_LEN] = {0};
     char cmd[] = "?S#";
 
@@ -985,7 +999,7 @@ bool Lakeside::updateStepSize()
 
     // StepSize is in form Snnnnn#
     // where nnnnn is 0 - ??, space left padded
-    rc = sscanf(resp, "S%5d#", &temp);
+    sscanf(resp, "S%5d#", &temp);
 
     if ( temp > 0)
     {
@@ -1023,7 +1037,8 @@ bool Lakeside::gotoPosition(uint32_t position)
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
     if ( position > FocusMaxPosN[0].value )
     {
-        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, FocusMaxPosN[0].value);
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min,
+                   FocusMaxPosN[0].value);
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }

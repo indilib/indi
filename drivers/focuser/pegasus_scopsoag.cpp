@@ -47,8 +47,7 @@ PegasusScopsOAG::PegasusScopsOAG()
                       FOCUSER_CAN_REL_MOVE |
                       FOCUSER_CAN_ABORT |
                       FOCUSER_CAN_REVERSE |
-                      FOCUSER_CAN_SYNC |
-                      FOCUSER_HAS_BACKLASH);
+                      FOCUSER_CAN_SYNC);
 }
 
 bool PegasusScopsOAG::initProperties()

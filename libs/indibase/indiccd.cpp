@@ -45,6 +45,7 @@
 
 #include <cmath>
 #include <regex>
+#include <iterator>
 
 #include <dirent.h>
 #include <cerrno>
@@ -60,6 +61,14 @@ const char * GUIDE_HEAD_TAB     = "Guider Head";
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
 #endif
+
+std::string join(std::vector<std::string> const &strings, std::string delim)
+{
+    std::stringstream ss;
+    std::copy(strings.begin(), strings.end(),
+              std::ostream_iterator<std::string>(ss, delim.c_str()));
+    return ss.str();
+}
 
 namespace INDI
 {
@@ -103,10 +112,8 @@ CCD::CCD()
     Longitude       = std::numeric_limits<double>::quiet_NaN();
     Azimuth         = std::numeric_limits<double>::quiet_NaN();
     Altitude        = std::numeric_limits<double>::quiet_NaN();
-    primaryAperture = std::numeric_limits<double>::quiet_NaN();
-    primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
-    guiderAperture = std::numeric_limits<double>::quiet_NaN();
-    guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
+    snoopedAperture        = std::numeric_limits<double>::quiet_NaN();
+    snoopedFocalLength     = std::numeric_limits<double>::quiet_NaN();
 
     // Check temperature every 5 seconds.
     m_TemperatureCheckTimer.setInterval(5000);
@@ -139,7 +146,7 @@ void CCD::SetCCDCapability(uint32_t cap)
 
 bool CCD::initProperties()
 {
-    DefaultDevice::initProperties(); //  let the base class flesh in what it wants
+    DefaultDevice::initProperties();
 
     // CCD Temperature
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
@@ -169,7 +176,7 @@ bool CCD::initProperties()
     IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::DARK_FRAME], "FRAME_DARK", "Dark", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::FLAT_FRAME], "FRAME_FLAT", "Flat", ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.FrameTypeSP, PrimaryCCD.FrameTypeS, 4, getDeviceName(), "CCD_FRAME_TYPE",
-                       "Frame Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Primary CCD Exposure
     IUFillNumber(&PrimaryCCD.ImageExposureN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
@@ -179,7 +186,7 @@ bool CCD::initProperties()
     // Primary CCD Abort
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.AbortExposureSP, PrimaryCCD.AbortExposureS, 1, getDeviceName(), "CCD_ABORT_EXPOSURE",
-                       "Expose Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Primary CCD Binning
     IUFillNumber(&PrimaryCCD.ImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
@@ -202,9 +209,9 @@ bool CCD::initProperties()
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Primary CCD Compression Options
-    IUFillSwitch(&PrimaryCCD.CompressS[0], "CCD_COMPRESS", "Compress", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.CompressS[1], "CCD_RAW", "Raw", ISS_ON);
-    IUFillSwitchVector(&PrimaryCCD.CompressSP, PrimaryCCD.CompressS, 2, getDeviceName(), "CCD_COMPRESSION", "Image",
+    IUFillSwitch(&PrimaryCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&PrimaryCCD.CompressSP, PrimaryCCD.CompressS, 2, getDeviceName(), "CCD_COMPRESSION", "Compression",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
@@ -274,14 +281,14 @@ bool CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f", 8,
                  64, 0, 0);
     IUFillNumberVector(&GuideCCD.ImagePixelSizeNP, GuideCCD.ImagePixelSizeN, 6, getDeviceName(), "GUIDER_INFO",
-                       "Guide Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
+                       "Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0], "FRAME_LIGHT", "Light", ISS_ON);
     IUFillSwitch(&GuideCCD.FrameTypeS[1], "FRAME_BIAS", "Bias", ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[2], "FRAME_DARK", "Dark", ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[3], "FRAME_FLAT", "Flat", ISS_OFF);
     IUFillSwitchVector(&GuideCCD.FrameTypeSP, GuideCCD.FrameTypeS, 4, getDeviceName(), "GUIDER_FRAME_TYPE",
-                       "Frame Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0], "GUIDER_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
     IUFillNumberVector(&GuideCCD.ImageExposureNP, GuideCCD.ImageExposureN, 1, getDeviceName(), "GUIDER_EXPOSURE",
@@ -289,11 +296,11 @@ bool CCD::initProperties()
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&GuideCCD.AbortExposureSP, GuideCCD.AbortExposureS, 1, getDeviceName(), "GUIDER_ABORT_EXPOSURE",
-                       "Guide Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.CompressS[0], "GUIDER_COMPRESS", "Compress", ISS_OFF);
-    IUFillSwitch(&GuideCCD.CompressS[1], "GUIDER_RAW", "Raw", ISS_ON);
-    IUFillSwitchVector(&GuideCCD.CompressSP, GuideCCD.CompressS, 2, getDeviceName(), "GUIDER_COMPRESSION", "Image",
+    IUFillSwitch(&GuideCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&GuideCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&GuideCCD.CompressSP, GuideCCD.CompressS, 2, getDeviceName(), "GUIDER_COMPRESSION", "Compression",
                        GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
@@ -340,10 +347,27 @@ bool CCD::initProperties()
     IUFillNumberVector(&CCDRotationNP, CCDRotationN, 1, getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ScopeInfoNP[FocalLength].fill("FOCAL_LENGTH", "Focal Length (mm)", "%.2f", 10, 10000, 100, 0);
+    ScopeInfoNP[Aperture].fill("APERTURE", "Aperture (mm)", "%.2f", 10, 3000, 100, 0);
+    ScopeInfoNP.fill(getDeviceName(), "SCOPE_INFO", "Scope", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    /**********************************************/
+    /************** Capture Format ***************/
+    /**********************************************/
+    char configName[64] = {0};
+    if (IUGetConfigOnSwitchName(getDeviceName(), "CCD_CAPTURE_FORMAT", configName, MAXINDINAME) == 0)
+        m_ConfigCaptureFormatName = configName;
+    CaptureFormatSP.fill(getDeviceName(), "CCD_CAPTURE_FORMAT", "Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                         IPS_IDLE);
+
+    m_ConfigEncodeFormatIndex = FORMAT_FITS;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "CCD_TRANSFER_FORMAT", &m_ConfigEncodeFormatIndex);
+    EncodeFormatSP[FORMAT_FITS].fill("FORMAT_FITS", "FITS",
+                                     m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
+    EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
+                                       m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+    EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+                        IPS_IDLE);
 
     /**********************************************/
     /************** Upload Settings ***************/
@@ -411,11 +435,23 @@ bool CCD::initProperties()
 
     // Snooped Devices
 
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
+    // Load from config
+    char telescope[MAXINDIDEVICE] = {"Telescope Simulator"};
+    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_TELESCOPE", telescope, MAXINDIDEVICE);
+    char rotator[MAXINDIDEVICE] = {"Rotator Simulator"};
+    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_ROTATOR", rotator, MAXINDIDEVICE);
+    char focuser[MAXINDIDEVICE] = {"Focuser Simulator"};
+    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FOCUSER", focuser, MAXINDIDEVICE);
+    char filter[MAXINDIDEVICE] = {"CCD Simulator"};
+    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FILTER", filter, MAXINDIDEVICE);
+    char skyquality[MAXINDIDEVICE] = {"SQM"};
+    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_SKYQUALITY", skyquality, MAXINDIDEVICE);
+
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", telescope);
+    IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", rotator);
+    IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", focuser);
+    IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", filter);
+    IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", skyquality);
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
@@ -471,9 +507,7 @@ bool CCD::initProperties()
 void CCD::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
-
     defineProperty(&ActiveDeviceTP);
-    loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
@@ -495,6 +529,9 @@ bool CCD::updateProperties()
             PrimaryCCD.ImageFrameNP.p = IP_RO;
 
         defineProperty(&PrimaryCCD.ImageFrameNP);
+        if (CanBin() || CanSubFrame())
+            defineProperty(&PrimaryCCD.ResetSP);
+
         if (CanBin())
             defineProperty(&PrimaryCCD.ImageBinNP);
 
@@ -513,8 +550,11 @@ bool CCD::updateProperties()
         if (HasCooler())
         {
             defineProperty(&TemperatureNP);
-            defineProperty(&TemperatureRampNP);
+            defineProperty(TemperatureRampNP);
         }
+
+        defineProperty(CaptureFormatSP);
+        defineProperty(EncodeFormatSP);
 
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
@@ -536,9 +576,6 @@ bool CCD::updateProperties()
             defineProperty(&GuideWENP);
         }
         defineProperty(&PrimaryCCD.FrameTypeSP);
-
-        if (CanBin() || CanSubFrame())
-            defineProperty(&PrimaryCCD.ResetSP);
 
         if (HasGuideHead())
             defineProperty(&GuideCCD.FrameTypeSP);
@@ -563,7 +600,7 @@ bool CCD::updateProperties()
             defineProperty(&GuideCCD.RapidGuideDataNP);
         }
 #endif
-        defineProperty(&TelescopeTypeSP);
+        defineProperty(ScopeInfoNP);
 
         defineProperty(&WorldCoordSP);
         defineProperty(&UploadSP);
@@ -583,7 +620,13 @@ bool CCD::updateProperties()
     else
     {
         deleteProperty(PrimaryCCD.ImageFrameNP.name);
+        if (CanBin() || CanSubFrame())
+            deleteProperty(PrimaryCCD.ResetSP.name);
+
         deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
+
+        deleteProperty(CaptureFormatSP.getName());
+        deleteProperty(EncodeFormatSP.getName());
 
         if (CanBin())
             deleteProperty(PrimaryCCD.ImageBinNP.name);
@@ -639,11 +682,9 @@ bool CCD::updateProperties()
             deleteProperty(GuideWENP.name);
         }
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
-        if (CanBin() || CanSubFrame())
-            deleteProperty(PrimaryCCD.ResetSP.name);
         if (HasBayer())
             deleteProperty(BayerTP.name);
-        deleteProperty(TelescopeTypeSP.name);
+        deleteProperty(ScopeInfoNP);
 
         if (WorldCoordS[0].s == ISS_ON)
         {
@@ -728,34 +769,30 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "TELESCOPE_APERTURE"))
             {
-                primaryAperture = atof(pcdataXMLEle(ep));
+                snoopedAperture = atof(pcdataXMLEle(ep));
             }
             else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
             {
-                primaryFocalLength = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "GUIDER_APERTURE"))
-            {
-                guiderAperture = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "GUIDER_FOCAL_LENGTH"))
-            {
-                guiderFocalLength = atof(pcdataXMLEle(ep));
+                snoopedFocalLength = atof(pcdataXMLEle(ep));
             }
         }
     }
     else if (!strcmp(propName, "FILTER_NAME"))
     {
+        LOG_DEBUG("SNOOP: FILTER_NAME update...");
         FilterNames.clear();
-
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             FilterNames.push_back(pcdataXMLEle(ep));
+        LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+
     }
     else if (!strcmp(propName, "FILTER_SLOT"))
     {
+        LOG_DEBUG("SNOOP: FILTER_SLOT update...");
         CurrentFilterSlot = -1;
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             CurrentFilterSlot = atoi(pcdataXMLEle(ep));
+        LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
@@ -853,6 +890,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             strncpy(J2000EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
             if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceT[ACTIVE_TELESCOPE].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
@@ -860,6 +898,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
             else
             {
+                LOG_DEBUG("No mount is set. Clearing all mount watchers.");
                 RA = std::numeric_limits<double>::quiet_NaN();
                 Dec = std::numeric_limits<double>::quiet_NaN();
                 J2000RA = std::numeric_limits<double>::quiet_NaN();
@@ -872,31 +911,40 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
 
             if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
+            {
+                LOGF_DEBUG("Snopping on Rotator %s", ActiveDeviceT[ACTIVE_ROTATOR].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+            }
             else
+            {
+                LOG_DEBUG("No rotator is set. Clearing all rotator watchers.");
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
+            }
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Focuser %s", ActiveDeviceT[ACTIVE_FOCUSER].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
             }
             else
             {
+                LOG_DEBUG("No focuser is set. Clearing all focuser watchers.");
                 FocuserPos = -1;
                 FocuserTemp = std::numeric_limits<double>::quiet_NaN();
             }
-            //
 
 
             if (strlen(ActiveDeviceT[ACTIVE_FILTER].text) > 0)
             {
+                LOGF_DEBUG("Snopping on Filter Wheel %s", ActiveDeviceT[ACTIVE_FILTER].text);
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
             }
             else
             {
+                LOG_DEBUG("No filter wheel is set. Clearing All filter wheel watchers.");
                 CurrentFilterSlot = -1;
             }
 
@@ -1024,6 +1072,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
                 return false;
             }
+            else if (values[0] == 0 || values[1] == 0)
+            {
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
+                return false;
+            }
 
             int binx, biny;
             if (!strcmp(np->name, "HOR_BIN"))
@@ -1060,6 +1115,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 IDSetNumber(&GuideCCD.ImageBinNP, nullptr);
                 return false;
             }
+            else if (values[0] == 0 || values[1] == 0)
+            {
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
+                return false;
+            }
 
             int binx, biny;
             if (!strcmp(np->name, "HOR_BIN"))
@@ -1083,6 +1145,15 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             IDSetNumber(&GuideCCD.ImageBinNP, nullptr);
 
+            return true;
+        }
+
+        // Scope Information
+        if (ScopeInfoNP.isNameMatch(name))
+        {
+            ScopeInfoNP.update(values, names, n);
+            ScopeInfoNP.setState(IPS_OK);
+            ScopeInfoNP.apply();
             return true;
         }
 
@@ -1346,14 +1417,6 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             return true;
         }
 
-        if (!strcmp(name, TelescopeTypeSP.name))
-        {
-            IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
-            TelescopeTypeSP.s = IPS_OK;
-            IDSetSwitch(&TelescopeTypeSP, nullptr);
-            return true;
-        }
-
         // Fast Exposure Toggle
         if (!strcmp(name, FastExposureToggleSP.name))
         {
@@ -1362,6 +1425,15 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             // Only display warning for the first time this is enabled.
             if (FastExposureToggleSP.s == IPS_IDLE && FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
                 LOG_WARN("Experimental Feature: After a frame is downloaded, the next frame capture immediately starts to avoid any delays.");
+
+            if (FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
+            {
+                FastExposureCountNP.s = IPS_IDLE;
+                IDSetNumber(&FastExposureCountNP, nullptr);
+                m_UploadTime = 0;
+                if (PrimaryCCD.isExposing())
+                    AbortExposure();
+            }
 
             FastExposureToggleSP.s = IPS_OK;
             IDSetSwitch(&FastExposureToggleSP, nullptr);
@@ -1493,15 +1565,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             IUUpdateSwitch(&PrimaryCCD.CompressSP, states, names, n);
             PrimaryCCD.CompressSP.s = IPS_OK;
             IDSetSwitch(&PrimaryCCD.CompressSP, nullptr);
-
-            if (PrimaryCCD.CompressS[0].s == ISS_ON)
-            {
-                PrimaryCCD.SendCompressed = true;
-            }
-            else
-            {
-                PrimaryCCD.SendCompressed = false;
-            }
+            PrimaryCCD.SendCompressed = PrimaryCCD.CompressS[INDI_ENABLED].s == ISS_ON;
             return true;
         }
 
@@ -1511,15 +1575,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             IUUpdateSwitch(&GuideCCD.CompressSP, states, names, n);
             GuideCCD.CompressSP.s = IPS_OK;
             IDSetSwitch(&GuideCCD.CompressSP, nullptr);
-
-            if (GuideCCD.CompressS[0].s == ISS_ON)
-            {
-                GuideCCD.SendCompressed = true;
-            }
-            else
-            {
-                GuideCCD.SendCompressed = false;
-            }
+            GuideCCD.SendCompressed = GuideCCD.CompressS[INDI_ENABLED].s == ISS_ON;
             return true;
         }
 
@@ -1584,6 +1640,50 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 GuideCCD.FrameTypeSP.s = IPS_ALERT;
 
             IDSetSwitch(&GuideCCD.FrameTypeSP, nullptr);
+
+            return true;
+        }
+
+        // Capture Format
+        if (CaptureFormatSP.isNameMatch(name))
+        {
+            int previousIndex = CaptureFormatSP.findOnSwitchIndex();
+            CaptureFormatSP.update(states, names, n);
+
+            if (SetCaptureFormat(CaptureFormatSP.findOnSwitchIndex()))
+                CaptureFormatSP.setState(IPS_OK);
+            else
+            {
+                if (previousIndex >= 0)
+                {
+                    CaptureFormatSP.reset();
+                    CaptureFormatSP[previousIndex].setState(ISS_ON);
+                }
+                CaptureFormatSP.setState(IPS_ALERT);
+            }
+            CaptureFormatSP.apply();
+
+            if (m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
+            {
+                m_ConfigCaptureFormatName = CaptureFormatSP.findOnSwitch()->getName();
+                saveConfig(true, CaptureFormatSP.getName());
+            }
+
+            return true;
+        }
+
+        // Encode Format
+        if (EncodeFormatSP.isNameMatch(name))
+        {
+            EncodeFormatSP.update(states, names, n);
+            EncodeFormatSP.setState(IPS_OK);
+            EncodeFormatSP.apply();
+
+            if (m_ConfigEncodeFormatIndex != EncodeFormatSP.findOnSwitchIndex())
+            {
+                m_ConfigEncodeFormatIndex = EncodeFormatSP.findOnSwitchIndex();
+                saveConfig(true, EncodeFormatSP.getName());
+            }
 
             return true;
         }
@@ -1763,12 +1863,14 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
+void CCD::addFITSKeywords(CCDChip * targetChip)
 {
     int status = 0;
     char dev_name[MAXINDINAME] = {0};
     double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
+
+    auto fptr = *targetChip->fitsFilePointer();
 
     AutoCNumeric locale;
     fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
@@ -1781,21 +1883,9 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // Which scope is in effect
-    // TODO: Support N-telescopes
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
-    {
-        if (primaryFocalLength > 0)
-            effectiveFocalLength = primaryFocalLength;
-        if (primaryAperture > 0)
-            effectiveAperture = primaryAperture;
-    }
-    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON)
-    {
-        if (guiderFocalLength > 0)
-            effectiveFocalLength = guiderFocalLength;
-        if (guiderAperture > 0)
-            effectiveAperture = guiderAperture;
-    }
+    // Prefer Scope Info over snooped property which should be deprecated.
+    effectiveFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ?  ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
+    effectiveAperture = ScopeInfoNP[Aperture].getValue() > 0 ?  ScopeInfoNP[Aperture].getValue() : snoopedAperture;
 
     if (std::isnan(effectiveFocalLength))
         LOG_WARN("Telescope focal length is missing.");
@@ -2107,10 +2197,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (sendImage || saveImage)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON)
         {
-            void * memptr;
-            size_t memsize;
             int img_type  = 0;
             int byte_type = 0;
             int status    = 0;
@@ -2119,8 +2207,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             int nelements = 0;
             std::string bit_depth;
             char error_status[MAXRBUF];
-
-            fitsfile * fptr = nullptr;
 
             naxes[0] = targetChip->getSubW() / targetChip->getBinX();
             naxes[1] = targetChip->getSubH() / targetChip->getBinY();
@@ -2162,26 +2248,18 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             std::unique_lock<std::mutex> guard(ccdBufferLock);
 
-            //  Now we have to send fits format data to the client
-            memsize = 5760;
-            memptr  = malloc(memsize);
-            if (!memptr)
-            {
-                LOGF_ERROR("Error: failed to allocate memory: %lu", memsize);
-                return false;
-            }
-
-            fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
-
-            if (status)
+            // 8640 = 2880 * 3 which is sufficient for most cases.
+            uint32_t size = 8640 + nelements * (targetChip->getBPP() / 8);
+            //  Initialize FITS file.
+            if (targetChip->openFITSFile(size, status) == false)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                fits_close_file(fptr, &status);
-                free(memptr);
                 LOGF_ERROR("FITS Error: %s", error_status);
                 return false;
             }
+
+            auto fptr = *targetChip->fitsFilePointer();
 
             fits_create_img(fptr, img_type, naxis, naxes, &status);
 
@@ -2189,31 +2267,29 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                fits_close_file(fptr, &status);
-                free(memptr);
                 LOGF_ERROR("FITS Error: %s", error_status);
+                targetChip->closeFITSFile();
                 return false;
             }
 
-            addFITSKeywords(fptr, targetChip);
+            addFITSKeywords(targetChip);
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
-
+            targetChip->finishFITSFile(status);
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                fits_close_file(fptr, &status);
-                free(memptr);
                 LOGF_ERROR("FITS Error: %s", error_status);
+                targetChip->closeFITSFile();
                 return false;
             }
 
-            fits_close_file(fptr, &status);
 
-            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
+            bool rc = uploadFile(targetChip, *(targetChip->fitsMemoryBlockPointer()), *(targetChip->fitsMemorySizePointer()), sendImage,
+                                 saveImage);
 
-            free(memptr);
+            targetChip->closeFITSFile();
 
             guard.unlock();
 
@@ -2225,6 +2301,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
         else
         {
+            // If image extension was set to fits (default), change if bin if not already set to another format by the driver.
+            if (!strcmp(targetChip->getImageExtension(), "fits"))
+                targetChip->setImageExtension("bin");
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             bool rc = uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
                                  saveImage);
@@ -2240,6 +2319,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
     if (FastExposureToggleS[INDI_ENABLED].s != ISS_ON)
         targetChip->setExposureComplete();
+
+    UploadComplete(targetChip);
     return true;
 }
 
@@ -2314,7 +2395,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (targetChip->SendCompressed)
     {
-        if (!strcmp(targetChip->getImageExtension(), "fits"))
+        if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
         {
             fpstate	fpvar;
             fp_init (&fpvar);
@@ -2442,7 +2523,6 @@ bool CCD::processFastExposure(CCDChip * targetChip)
                     PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 else
                     PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-                //IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 if (duration * 1000 < getCurrentPollingPeriod())
                     setCurrentPollingPeriod(duration * 950);
             }
@@ -2498,13 +2578,18 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
-    IUSaveConfigSwitch(fp, &TelescopeTypeSP);
     IUSaveConfigSwitch(fp, &FastExposureToggleSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
+    if (PrimaryCCD.getCCDInfo()->p != IP_RO)
+        IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
+
+    CaptureFormatSP.save(fp);
+    EncodeFormatSP.save(fp);
+
     if (HasCooler())
-        IUSaveConfigNumber(fp, &TemperatureRampNP);
+        TemperatureRampNP.save(fp);
 
     if (HasGuideHead())
     {
@@ -2730,25 +2815,25 @@ void CCD::checkTemperatureTarget()
 {
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].value)
+        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
         {
             TemperatureNP.s = IPS_OK;
             m_TemperatureCheckTimer.stop();
             IDSetNumber(&TemperatureNP, nullptr);
         }
         // If we are beyond a minute, check for next step
-        else if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+        else if (TemperatureRampNP[RAMP_SLOPE].getValue() > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;
             // Going down
             if (m_TargetTemperature < TemperatureN[0].value)
             {
-                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].value);
+                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
             }
             // Going up
             else
             {
-                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].value);
+                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
             }
 
             m_TemperatureElapsedTimer.restart();
@@ -2756,4 +2841,30 @@ void CCD::checkTemperatureTarget()
         }
     }
 }
+
+void CCD::addCaptureFormat(const CaptureFormat &format)
+{
+    // Avoid duplicates.
+    auto pos = std::find_if(m_CaptureFormats.begin(), m_CaptureFormats.end(), [format](auto & oneFormat)
+    {
+        return format.name == oneFormat.name;
+    });
+    if (pos != m_CaptureFormats.end())
+        return;
+
+    // Add NEW format.
+    auto count = CaptureFormatSP.size();
+    CaptureFormatSP.resize(count + 1);
+    // Format is ON if the label matches the configuration label OR if there is no configuration saved and isDefault is true.
+    const bool isOn = (format.name == m_ConfigCaptureFormatName) || (m_ConfigCaptureFormatName.empty() && format.isDefault);
+    CaptureFormatSP[count].fill(format.name.c_str(), format.label.c_str(), isOn ? ISS_ON : ISS_OFF);
+    m_CaptureFormats.push_back(format);
+}
+
+bool CCD::SetCaptureFormat(uint8_t index)
+{
+    INDI_UNUSED(index);
+    return true;
+}
+
 }

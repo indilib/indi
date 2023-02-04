@@ -60,17 +60,20 @@ bool Pyxis::initProperties()
 
     // Rotation Rate
     IUFillNumber(&RotationRateN[0], "RATE", "Rate", "%.f", 0, 99, 10, 8);
-    IUFillNumberVector(&RotationRateNP, RotationRateN, 1, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&RotationRateNP, RotationRateN, 1, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Stepping
     IUFillSwitch(&SteppingS[FULL_STEP], "FULL_STEP", "Full", ISS_OFF);
     IUFillSwitch(&SteppingS[HALF_STEP], "HALF_STEP", "Half", ISS_OFF);
-    IUFillSwitchVector(&SteppingSP, SteppingS, 2, getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&SteppingSP, SteppingS, 2, getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     // Power
     IUFillSwitch(&PowerS[POWER_SLEEP], "POWER_SLEEP", "Sleep", ISS_OFF);
     IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
-    IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
+                       IPS_IDLE);
 
     // Firmware version
     IUFillText(&FirmwareT[0], "FIRMWARE_VERSION", "Version", "Unknown");
@@ -572,7 +575,8 @@ bool Pyxis::isMotionComplete()
 
     bool pyxis3inch = atoi(FirmwareT[0].text) >= 3 ;
 
-    if ( (rc = tty_nread_section(PortFD, res, (pyxis3inch ? PYXIS_3INCH_PER_DEG : PYXIS_2INCH_PER_DEG), 'F', 1, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_nread_section(PortFD, res, (pyxis3inch ? PYXIS_3INCH_PER_DEG : PYXIS_2INCH_PER_DEG), 'F', 1,
+                                 &nbytes_read)) != TTY_OK)
     {
         // '!' motion is not complete yet
         if (rc == TTY_TIME_OUT)

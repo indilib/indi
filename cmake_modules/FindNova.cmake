@@ -19,8 +19,8 @@ if (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
 
 else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
 
-  find_path(NOVA_INCLUDE_DIR libnova.h
-    PATH_SUFFIXES libnova
+  find_path(NOVA_INCLUDE_DIR libnova/libnova.h
+    PATH_SUFFIXES
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )

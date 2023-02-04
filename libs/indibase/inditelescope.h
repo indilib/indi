@@ -20,6 +20,7 @@
 
 #include "defaultdevice.h"
 #include "libastro.h"
+#include "indipropertyswitch.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -56,7 +57,7 @@
  *              changes the custom tracking rates while the mount is tracking, it it sent to the child class via SetTrackRate(...) function.
  *              The base class will reject any track rates that switch from positive to negative (reverse) tracking rates as the mount must be stopped before
  *              such change takes place.
- * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropiate TrackMode and TrackRate
+ * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropriate TrackMode and TrackRate
  *               properties before or after engaging tracking as governed by the mount protocol.
  *
  * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
@@ -191,12 +192,12 @@ class Telescope : public DefaultDevice
         /**
          * @brief SetTelescopeCapability sets the Telescope capabilities. All capabilities must be initialized.
          * @param cap ORed list of telescope capabilities.
-         * @param slewRateCount Number of slew rates supported by the telescope. If < 4 (default is 0),
+         * @param slewRateCount Number of slew rates supported by the telescope. If < 4,
          * no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX
          * members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount = 0);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount);
 
         /**
          * @return True if telescope support goto operations
@@ -745,6 +746,14 @@ class Telescope : public DefaultDevice
         ISwitch MovementWES[2];
         ISwitchVectorProperty MovementWESP;
 
+        // Reverse NS or WE
+        INDI::PropertySwitch ReverseMovementSP {2};
+        enum
+        {
+            REVERSE_NS,
+            REVERSE_WE
+        };
+
         // Slew Rate
         ISwitchVectorProperty SlewRateSP;
         ISwitch *SlewRateS {nullptr};
@@ -931,6 +940,9 @@ class Telescope : public DefaultDevice
         float motionDirWEValue {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
+
+        // 100 millisecond of arc or time.
+        static constexpr double EQ_NOTIFY_THRESHOLD {1.0 / (60 * 60 * 10)};
 };
 
 }

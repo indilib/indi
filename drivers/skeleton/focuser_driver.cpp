@@ -207,7 +207,7 @@ void FocuserDriver::hexDump(char * buf, const char * data, int size)
 bool FocuserDriver::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {        
+    {
         // Stepping Mode
         if (!strcmp(name, SteppingModeSP.name))
         {

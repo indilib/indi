@@ -57,7 +57,7 @@ bool AstrometryDriver::initProperties()
     IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_BINARY], "ASTROMETRY_SETTINGS_BINARY", "Solver",
                "/usr/bin/solve-field");
     IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS], "ASTROMETRY_SETTINGS_OPTIONS", "Options",
-               "--no-verify --no-plots --no-fits2fits --resort --downsample 2 -O");
+               "--no-verify --no-plots --resort --downsample 2 -O");
     IUFillTextVector(&SolverSettingsTP, SolverSettingsT, 2, getDeviceName(), "ASTROMETRY_SETTINGS", "Settings",
                      MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE);
 
@@ -135,7 +135,7 @@ bool AstrometryDriver::updateProperties()
 
 const char *AstrometryDriver::getDefaultName()
 {
-    return (const char *)"Astrometry";
+    return "Astrometry";
 }
 
 bool AstrometryDriver::Connect()
@@ -298,7 +298,7 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
         if (destLen != size)
         {
             LOGF_WARN("Discrepency between uncompressed data size %ld and expected size %ld",
-                   size, destLen);
+                      size, destLen);
         }
 
         processedData = dataBuffer;
@@ -352,7 +352,7 @@ void *AstrometryDriver::runSolverHelper(void *context)
 
 void AstrometryDriver::runSolver()
 {
-    char cmd[MAXRBUF]={0}, line[256]={0}, parity_str[8]={0};
+    char cmd[MAXRBUF] = {0}, line[256] = {0}, parity_str[8] = {0};
     float ra = -1000, dec = -1000, angle = -1000, pixscale = -1000, parity = 0;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",
              SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);

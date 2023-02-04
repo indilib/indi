@@ -69,7 +69,8 @@ void RTLSDR::Callback()
             olen = read(PortFD, buf, len);
         if(olen < 0 )
             AbortIntegration();
-        else {
+        else
+        {
             buffer = buf;
             n_read = olen;
             grabData();
@@ -79,32 +80,33 @@ void RTLSDR::Callback()
 
 static class Loader
 {
-    std::deque<std::unique_ptr<RTLSDR>> receivers;
-public:
-    Loader()
-    {
-        size_t numofConnectedReceivers = rtlsdr_get_device_count();
-        if (numofConnectedReceivers == 0)
+        std::deque<std::unique_ptr<RTLSDR>> receivers;
+    public:
+        Loader()
         {
-            //Try sending IDMessage as well?
-            IDLog("No USB RTLSDR receivers detected. Power on?");// Trying with TCP..");
-            IDMessage(nullptr, "No USB RTLSDR receivers detected. Power on?");// Trying with TCP..");
-            // receivers.push_back(std::unique_ptr<RTLSDR>(new RTLSDR(-1)));
-            return;
-        }
+            size_t numofConnectedReceivers = rtlsdr_get_device_count();
+            if (numofConnectedReceivers == 0)
+            {
+                //Try sending IDMessage as well?
+                IDLog("No USB RTLSDR receivers detected. Power on?");// Trying with TCP..");
+                IDMessage(nullptr, "No USB RTLSDR receivers detected. Power on?");// Trying with TCP..");
+                // receivers.push_back(std::unique_ptr<RTLSDR>(new RTLSDR(-1)));
+                return;
+            }
 
-        for (size_t i = 0; i < numofConnectedReceivers; i++)
-        {
-            receivers.push_back(std::unique_ptr<RTLSDR>(new RTLSDR(i)));
-        }
+            for (size_t i = 0; i < numofConnectedReceivers; i++)
+            {
+                receivers.push_back(std::unique_ptr<RTLSDR>(new RTLSDR(i)));
+            }
 
-    }
+        }
 } loader;
 
 RTLSDR::RTLSDR(int32_t index)
 {
     InIntegration = false;
-    if(index<0) {
+    if(index < 0)
+    {
         setSensorConnection(CONNECTION_TCP);
     }
 
@@ -113,15 +115,16 @@ RTLSDR::RTLSDR(int32_t index)
     char name[MAXINDIDEVICE];
     snprintf(name, MAXINDIDEVICE, "%s %s%c", getDefaultName(), index < 0 ? "TCP" : "USB", index < 0 ? '\0' : index + '1');
     setDeviceName(name);
+
     // We set the Receiver capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING | SENSOR_HAS_DSP;
     SetReceiverCapability(cap);
-
 }
 
 bool RTLSDR::Connect()
 {
-    if((getSensorConnection() & CONNECTION_TCP) == 0) {
+    if((getSensorConnection() & CONNECTION_TCP) == 0)
+    {
         int r = rtlsdr_open(&rtl_dev, static_cast<uint32_t>(receiverIndex));
         if (r < 0)
         {
@@ -137,7 +140,8 @@ bool RTLSDR::Connect()
 bool RTLSDR::Disconnect()
 {
     InIntegration = false;
-    if((getSensorConnection() & CONNECTION_TCP) == 0) {
+    if((getSensorConnection() & CONNECTION_TCP) == 0)
+    {
         rtlsdr_close(rtl_dev);
     }
     PortFD = -1;
@@ -174,6 +178,7 @@ bool RTLSDR::initProperties()
     setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, false);
     setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 2.5e+5, 2.0e+6, 2.5e+5, false);
     setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_ANTENNA", 1, 1, 0, false);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
@@ -211,7 +216,8 @@ void RTLSDR::setupParams(float sr, float freq, float gain)
 {
     int r = 0;
 
-    if((getSensorConnection() & CONNECTION_TCP) == 0) {
+    if((getSensorConnection() & CONNECTION_TCP) == 0)
+    {
         r |= rtlsdr_set_tuner_gain_mode(rtl_dev, 1);
         r |= rtlsdr_set_tuner_gain(rtl_dev, static_cast<int>(gain * 10));
         r |= rtlsdr_set_center_freq(rtl_dev, static_cast<uint32_t>(freq));
@@ -223,11 +229,13 @@ void RTLSDR::setupParams(float sr, float freq, float gain)
         }
 
         setBPS(16);
-        setGain(static_cast<double>(rtlsdr_get_tuner_gain(rtl_dev))/10.0);
+        setGain(static_cast<double>(rtlsdr_get_tuner_gain(rtl_dev)) / 10.0);
         setFrequency(static_cast<double>(rtlsdr_get_center_freq(rtl_dev)));
         setSampleRate(static_cast<double>(rtlsdr_get_sample_rate(rtl_dev)));
         setBandwidth(static_cast<double>(rtlsdr_get_sample_rate(rtl_dev)));
-    } else {
+    }
+    else
+    {
         sendTcpCommand(CMD_SET_FREQ, static_cast<int>(freq));
         sendTcpCommand(CMD_SET_SAMPLE_RATE, static_cast<int>(sr));
         sendTcpCommand(CMD_SET_TUNER_GAIN_MODE, 0);
@@ -248,17 +256,18 @@ bool RTLSDR::sendTcpCommand(int cmd, int value)
 {
     unsigned char tosend[5];
     tosend[0] = static_cast<unsigned char>(cmd);
-    tosend[1] = value&0xff;
+    tosend[1] = value & 0xff;
     value >>= 8;
-    tosend[2] = value&0xff;
+    tosend[2] = value & 0xff;
     value >>= 8;
-    tosend[3] = value&0xff;
+    tosend[3] = value & 0xff;
     value >>= 8;
-    tosend[4] = value&0xff;
+    tosend[4] = value & 0xff;
     value >>= 8;
     tcflush(PortFD, TCOFLUSH);
     int count = 0;
-    while(count < 5) {
+    while(count < 5)
+    {
         count = write(PortFD, tosend, 5);
         if (count < 0) return false;
     }
@@ -268,13 +277,20 @@ bool RTLSDR::sendTcpCommand(int cmd, int value)
 bool RTLSDR::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     bool r = false;
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name)) {
-        for(int i = 0; i < n; i++) {
-            if (!strcmp(names[i], "RECEIVER_GAIN")) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name))
+    {
+        for(int i = 0; i < n; i++)
+        {
+            if (!strcmp(names[i], "RECEIVER_GAIN"))
+            {
                 setupParams(getSampleRate(), getFrequency(), values[i]);
-            } else if (!strcmp(names[i], "RECEIVER_FREQUENCY")) {
+            }
+            else if (!strcmp(names[i], "RECEIVER_FREQUENCY"))
+            {
                 setupParams(getSampleRate(), values[i], getGain());
-            } else if (!strcmp(names[i], "RECEIVER_SAMPLERATE")) {
+            }
+            else if (!strcmp(names[i], "RECEIVER_SAMPLERATE"))
+            {
                 setupParams(values[i], getFrequency(), getGain());
                 setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", getSampleRate(), getSampleRate(), getSampleRate(), false);
             }
@@ -386,13 +402,15 @@ void RTLSDR::grabData()
         if (to_read <= 0)
         {
             InIntegration = false;
-            if(!streamPredicate) {
+            if(!streamPredicate)
+            {
                 LOG_INFO("Download complete.");
                 IntegrationComplete();
-            } else {
+            }
+            else
+            {
                 StartIntegration(1.0 / Streamer->getTargetFPS());
-                int32_t size = getBufferSize();
-                Streamer->newFrame(getBuffer(), size);
+                Streamer->newFrame(getBuffer(), getBufferSize());
             }
         }
     }
@@ -423,8 +441,10 @@ bool RTLSDR::StopStreaming()
 
 bool RTLSDR::Handshake()
 {
-    if(getSensorConnection() & CONNECTION_TCP) {
-        if(PortFD == -1) {
+    if(getSensorConnection() & CONNECTION_TCP)
+    {
+        if(PortFD == -1)
+        {
             LOG_ERROR("Failed to connect to rtl_tcp server.");
             return false;
         }

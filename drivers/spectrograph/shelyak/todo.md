@@ -1,0 +1,2 @@
+[ ] git push
+[ ] live update

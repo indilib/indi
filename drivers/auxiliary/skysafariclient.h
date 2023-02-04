@@ -31,66 +31,77 @@
 
 class SkySafariClient : public INDI::BaseClient
 {
-  public:
-    typedef enum { SLEW, TRACK, SYNC } GotoMode;
+    public:
+        typedef enum { SLEW, TRACK, SYNC } GotoMode;
 
-    SkySafariClient();
-    ~SkySafariClient();
+        SkySafariClient();
+        ~SkySafariClient();
 
-    bool isConnected() { return isReady; }
+        bool isConnected()
+        {
+            return isReady;
+        }
 
-    void setMount(const std::string &value);
+        void setMount(const std::string &value);
 
-    INumberVectorProperty *getEquatorialCoords() { return eqCoordsNP; }
-    bool sendEquatorialCoords();
+        INDI::PropertyViewNumber *getEquatorialCoords()
+        {
+            return eqCoordsNP;
+        }
+        bool sendEquatorialCoords();
 
-    INumberVectorProperty *getGeographiCoords() { return geoCoordsNP; }
-    bool sendGeographicCoords();
+        INDI::PropertyViewNumber *getGeographiCoords()
+        {
+            return geoCoordsNP;
+        }
+        bool sendGeographicCoords();
 
-    ISwitchVectorProperty *getGotoMode() { return gotoModeSP; }
-    bool sendGotoMode();
+        INDI::PropertyViewSwitch *getGotoMode()
+        {
+            return gotoModeSP;
+        }
+        bool sendGotoMode();
 
-    ISwitchVectorProperty *getMotionNS() { return motionNSSP; }
-    bool setMotionNS();
+        INDI::PropertyViewSwitch *getMotionNS()
+        {
+            return motionNSSP;
+        }
+        bool setMotionNS();
 
-    ISwitchVectorProperty *getMotionWE() { return motionWESP; }
-    bool setMotionWE();
+        INDI::PropertyViewSwitch *getMotionWE()
+        {
+            return motionWESP;
+        }
+        bool setMotionWE();
 
-    bool parkMount();
-    IPState getMountParkState();
+        bool parkMount();
+        IPState getMountParkState();
 
-    bool setSlewRate(int slewRate);
+        bool setSlewRate(int slewRate);
 
-    bool abort();
+        bool abort();
 
-    ITextVectorProperty *getTimeUTC() { return timeUTC; }
-    bool setTimeUTC();
+        INDI::PropertyViewText *getTimeUTC()
+        {
+            return timeUTC;
+        }
+        bool setTimeUTC();
 
-  protected:
-    virtual void newDevice(INDI::BaseDevice *dp);
-    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
-    virtual void newProperty(INDI::Property *property);
-    virtual void removeProperty(INDI::Property */*property*/) {}
-    virtual void newBLOB(IBLOB */*bp*/) {}
-    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
-    virtual void newNumber(INumberVectorProperty */*nvp*/) {}
-    virtual void newMessage(INDI::BaseDevice */*dp*/, int /*messageID*/) {}
-    virtual void newText(ITextVectorProperty */*tvp*/) {}
-    virtual void newLight(ILightVectorProperty */*lvp*/) {}
-    virtual void serverConnected() {}
-    virtual void serverDisconnected(int /*exit_code*/) {}
+    protected:
+        virtual void newDevice(INDI::BaseDevice dp) override;
+        virtual void newProperty(INDI::Property property) override;
 
-  private:
-    std::string mount;
-    bool isReady, mountOnline;
+    private:
+        std::string mount;
+        bool isReady, mountOnline;
 
-    ISwitchVectorProperty *mountParkSP = nullptr;
-    ISwitchVectorProperty *gotoModeSP  = nullptr;
-    INumberVectorProperty *eqCoordsNP  = nullptr;
-    INumberVectorProperty *geoCoordsNP = nullptr;
-    ISwitchVectorProperty *abortSP     = nullptr;
-    ISwitchVectorProperty *slewRateSP  = nullptr;
-    ISwitchVectorProperty *motionNSSP  = nullptr;
-    ISwitchVectorProperty *motionWESP  = nullptr;
-    ITextVectorProperty *timeUTC       = nullptr;
+        INDI::PropertyViewSwitch *mountParkSP = nullptr;
+        INDI::PropertyViewSwitch *gotoModeSP  = nullptr;
+        INDI::PropertyViewNumber *eqCoordsNP  = nullptr;
+        INDI::PropertyViewNumber *geoCoordsNP = nullptr;
+        INDI::PropertyViewSwitch *abortSP     = nullptr;
+        INDI::PropertyViewSwitch *slewRateSP  = nullptr;
+        INDI::PropertyViewSwitch *motionNSSP  = nullptr;
+        INDI::PropertyViewSwitch *motionWESP  = nullptr;
+        INDI::PropertyViewText   *timeUTC     = nullptr;
 };

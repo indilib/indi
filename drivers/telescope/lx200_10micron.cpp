@@ -35,7 +35,7 @@
 #include <strings.h>
 #include <termios.h>
 #include <math.h>
-#include <libnova.h>
+#include <libnova/libnova.h>
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
@@ -74,10 +74,11 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         TELESCOPE_HAS_TRACK_MODE |
         TELESCOPE_CAN_CONTROL_TRACK |
         TELESCOPE_HAS_TRACK_RATE |
-        TELESCOPE_CAN_TRACK_SATELLITE
+        TELESCOPE_CAN_TRACK_SATELLITE,
+        4
     );
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -539,10 +540,14 @@ bool LX200_10MICRON::Park()
     LOG_INFO("Parking.");
     if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
     {
+        ParkSP.s = IPS_ALERT;
+        IDSetSwitch(&ParkSP, "Park command failed.");
         return false;
     }
 
+    ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
+    IDSetSwitch(&ParkSP, nullptr);
     // postpone SetParked(true) for ReadScopeStatus so that we know it is actually correct
     return true;
 }
@@ -555,11 +560,15 @@ bool LX200_10MICRON::UnPark()
     LOG_INFO("Unparking.");
     if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)
     {
+        ParkSP.s = IPS_ALERT;
+        IDSetSwitch(&ParkSP, "Unpark command failed.");
         return false;
     }
 
+    ParkSP.s   = IPS_OK;
     TrackState = SCOPE_IDLE;
     SetParked(false);
+    IDSetSwitch(&ParkSP, nullptr);
     return true;
 }
 
@@ -624,7 +633,7 @@ bool LX200_10MICRON::flip()
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
     char data[64];
     snprintf(data, sizeof(data), "#:FLIP#");
-    return 0 == setStandardProcedureAndExpect(fd, data, "1");
+    return 0 == setStandardProcedureAndExpectChar(fd, data, "1");
 }
 
 bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
@@ -659,7 +668,7 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
     char data[64];
     snprintf(data, sizeof(data), ":SC%04d-%02d-%02d#", years, months, days);
-    return 0 == setStandardProcedureAndExpect(fd, data, "1");
+    return 0 == setStandardProcedureAndExpectChar(fd, data, "1");
 }
 
 bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
@@ -1117,7 +1126,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // Returns:
                     // the string "V#" (this is always successful).
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:newalig#", "V"))
                     {
                         LOG_ERROR("New alignment start error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1137,7 +1146,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // the string "E#" if the alignment couldn't be computed successfully with the current
                     // alignment specification. In this case the previous alignment is retained.
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:endalig#", "V"))
                     {
                         LOG_ERROR("New alignment end error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1153,7 +1162,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     // Deletes the current alignment model and stars.
                     // Returns: an empty string terminated by '#'.
                     // Available from version 2.8.15.
-                    if (0 != setStandardProcedureAndExpect(fd, "#:delalig#", "#"))
+                    if (0 != setStandardProcedureAndExpectChar(fd, "#:delalig#", "#"))
                     {
                         LOG_ERROR("Delete current alignment error");
                         AlignmentStateSP.s = IPS_ALERT;
@@ -1339,32 +1348,37 @@ int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
     int nbytes_write = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
+    tcflush(fd, TCIFLUSH);
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
     {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
     }
     tcflush(fd, TCIFLUSH);
     return 0;
 }
-int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, const char *expect)
+
+int LX200_10MICRON::setStandardProcedureAndExpectChar(int fd, const char *data, const char *expect)
 {
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-
     tcflush(fd, TCIFLUSH);
-
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
-
+    }
     error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
-
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
+    {
+        LOGF_ERROR("CMD <%s> read ERROR %d", data, error_type);
         return error_type;
+    }
 
     if (bool_return[0] != expect[0])
     {
@@ -1383,18 +1397,20 @@ int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *da
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-
     tcflush(fd, TCIFLUSH);
-
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
+        LOGF_ERROR("CMD <%s> write ERROR %d", data, error_type);
         return error_type;
-
+    }
     error_type = tty_read(fd, response, max_response_length, LX200_TIMEOUT, &nbytes_read);
-
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
+    {
+        LOGF_ERROR("CMD <%s> read ERROR %d", data, error_type);
         return error_type;
+    }
 
     return 0;
 }

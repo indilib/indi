@@ -237,9 +237,9 @@ bool ScopeScript::ReadScopeStatus()
         int parked = 0;
         float ra = 0, dec = 0;
         FILE *file = fopen(tmpfile, "r");
-        int ret = 0;
 
-        ret = fscanf(file, "%d %f %f", &parked, &ra, &dec);
+        int rc = fscanf(file, "%d %f %f", &parked, &ra, &dec);
+        INDI_UNUSED(rc);
         fclose(file);
         unlink(tmpfile);
         if (parked != 0)

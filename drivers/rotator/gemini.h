@@ -23,6 +23,7 @@
 #include "indifocuser.h"
 #include "indirotatorinterface.h"
 
+#include <stdint.h>
 #include <map>
 
 class Gemini : public INDI::Focuser, public INDI::RotatorInterface
@@ -132,7 +133,7 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         // Set functions
 
         // Position
-        bool setFocusPosition(u_int16_t position);
+        bool setFocusPosition(uint16_t position);
 
         // Temperature
         bool setTemperatureCompensation(bool enable);

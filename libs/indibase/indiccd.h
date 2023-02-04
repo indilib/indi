@@ -30,6 +30,7 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 #include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include "inditimer.h"
 #include "indielapsedtimer.h"
 #include "dsp/manager.h"
@@ -41,7 +42,7 @@
 
 #include <fitsio.h>
 
-#include <memory>
+#include <map>
 #include <cstring>
 #include <chrono>
 #include <stdint.h>
@@ -132,6 +133,15 @@ class CCD : public DefaultDevice, GuiderInterface
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
 
+        typedef struct CaptureFormat
+        {
+            std::string name;
+            std::string label;
+            uint8_t bitsPerPixel {8};
+            bool isDefault {false};
+            bool isLittleEndian {true};
+        } CaptureFormat;
+
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual void ISGetProperties(const char * dev) override;
@@ -161,7 +171,7 @@ class CCD : public DefaultDevice, GuiderInterface
         }
 
         /**
-         * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initilized.
+         * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initialized.
          * @param cap pointer to CCDCapability struct.
          */
         void SetCCDCapability(uint32_t cap);
@@ -468,8 +478,14 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool StopStreaming();
 
         /**
+         * @brief SetCaptureFormat Set Active Capture format.
+         * @param index Index of capture format from CaptureFormatSP property.
+         * @return True if change is successful, false otherwise.
+         */
+        virtual bool SetCaptureFormat(uint8_t index);
+
+        /**
          * \brief Add FITS keywords to a fits file
-         * \param fptr pointer to a valid FITS file.
          * \param targetChip The target chip to extract the keywords from.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
@@ -489,7 +505,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(fitsfile * fptr, CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);
@@ -514,6 +530,13 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual void GuideComplete(INDI_EQ_AXIS axis) override;
 
         /**
+         * @brief UploadComplete Signal that capture is completed and image was uploaded and/or saved successfully.
+         * @param targetChip Active exposure chip
+         * @note Child camera should override this function to receive notification on exposure upload completion.
+         */
+        virtual void UploadComplete(CCDChip *) {}
+
+        /**
          * @brief checkTemperatureTarget Checks the current temperature against target temperature and calculates
          * the next required temperature if there is a ramp. If the current temperature is within threshold of
          * target temperature, it sets the state as OK.
@@ -529,6 +552,14 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         virtual bool processFastExposure(CCDChip * targetChip);
 
+        /**
+         * @brief addCaptureFormat Add a supported camera native capture format (e.g. Mono, Bayer8..etc)
+         * @param name Name of format (e.g. FORMAT_MONO)
+         * @param label Label of format (e.g. Mono)
+         * @param isDefault If true, it would be set as the default format if there is config file does not specify one.
+         * Config file override default format.
+         */
+        virtual void addCaptureFormat(const CaptureFormat &format);
 
         // Epoch Position
         double RA, Dec;
@@ -545,7 +576,7 @@ class CCD : public DefaultDevice, GuiderInterface
         char exposureStartTime[MAXINDINAME];
         double exposureDuration;
 
-        double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
+        double snoopedFocalLength, snoopedAperture;
         bool InExposure;
         bool InGuideExposure;
         //bool RapidGuideEnabled;
@@ -588,6 +619,8 @@ class CCD : public DefaultDevice, GuiderInterface
 
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot {-1};
+
+        std::vector<CaptureFormat> m_CaptureFormats;
 
         std::unique_ptr<StreamManager> Streamer;
         std::unique_ptr<DSP::Manager> DSP;
@@ -666,6 +699,17 @@ class CCD : public DefaultDevice, GuiderInterface
         ITextVectorProperty FileNameTP;
         IText FileNameT[1] {};
 
+        /// Specifies Camera NATIVE capture format (e.g. Mono, RGB, RAW8..etc).
+        INDI::PropertySwitch CaptureFormatSP {0};
+
+        /// Specifies Driver image encoding format (FITS, Native, JPG, ..etc)
+        INDI::PropertySwitch EncodeFormatSP {2};
+        enum
+        {
+            FORMAT_FITS,     /*!< Save Image as FITS format  */
+            FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+        };
+
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;
 
@@ -677,12 +721,12 @@ class CCD : public DefaultDevice, GuiderInterface
             UPLOAD_PREFIX
         };
 
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
+        // Telescope Information
+        INDI::PropertyNumber ScopeInfoNP {2};
         enum
         {
-            TELESCOPE_PRIMARY,
-            TELESCOPE_GUIDE
+            FocalLength,
+            Aperture
         };
 
         // Websocket Support
@@ -733,7 +777,9 @@ class CCD : public DefaultDevice, GuiderInterface
     private:
         uint32_t capability;
 
-        bool m_ValidCCDRotation;
+        bool m_ValidCCDRotation {false};
+        std::string m_ConfigCaptureFormatName;
+        int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
 
         ///////////////////////////////////////////////////////////////////////////////

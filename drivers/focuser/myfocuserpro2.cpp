@@ -624,7 +624,7 @@ bool MyFocuserPro2::readBacklashInEnabled()
         }
         else
         {
-            LOGF_ERROR("Unknown Repsonse: focuser Backlash IN enabled (%s)", res);
+            LOGF_ERROR("Unknown Response: focuser Backlash IN enabled (%s)", res);
         }
         return false;
     }

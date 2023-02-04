@@ -34,7 +34,6 @@ void ManualFilter::ISGetProperties(const char *dev)
     INDI::FilterWheel::ISGetProperties(dev);
 
     defineProperty(&MaxFiltersNP);
-    loadConfig(true, MaxFiltersNP.name);
 }
 
 bool ManualFilter::initProperties()
@@ -43,15 +42,23 @@ bool ManualFilter::initProperties()
 
     // User Set Filter
     IUFillSwitch(&FilterSetS[0], "FILTER_SET", "Filter is set", ISS_OFF);
-    IUFillSwitchVector(&FilterSetSP, FilterSetS, 1, getDeviceName(), "CONFIRM_FILTER_SET", "Confirm", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&FilterSetSP, FilterSetS, 1, getDeviceName(), "CONFIRM_FILTER_SET", "Confirm", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     // Sync Filter Position. Sets current position to different position without actually changing filter.
     IUFillNumber(&SyncN[0], "TARGET_FILTER", "Target Filter", "%.f", 1, 16, 1, 0);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "SYNC_FILTER", "Sync", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // Max number of filters
-    IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, 5);
-    IUFillNumberVector(&MaxFiltersNP, MaxFiltersN, 1, getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    double maxFilters = 5;
+    IUGetConfigNumber(getDeviceName(), "MAX_FILTERS", "MAX", &maxFilters);
+    // If names are already loaded, then we ignore all and use this instead.
+    if (FilterNameT)
+        maxFilters = FilterNameTP->ntp;
+    FilterSlotN[0].max = maxFilters;
+    IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, maxFilters);
+    IUFillNumberVector(&MaxFiltersNP, MaxFiltersN, 1, getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     return true;
 }
@@ -105,7 +112,6 @@ bool ManualFilter::ISNewNumber(const char *dev, const char *name, double values[
 
             return true;
         }
-
     }
 
     return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
@@ -144,7 +150,7 @@ bool ManualFilter::SelectFilter(int f)
 
     FilterSetSP.s = IPS_BUSY;
     IDSetSwitch(&FilterSetSP, nullptr);
-    LOGF_INFO("Please change filter to %s then click Filter is set when done.", FilterNameT[f-1].text);
+    LOGF_INFO("Please change filter to %s then click Filter is set when done.", FilterNameT[f - 1].text);
     return true;
 }
 

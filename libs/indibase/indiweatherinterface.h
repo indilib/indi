@@ -21,6 +21,9 @@
 #pragma once
 
 #include "indibase.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "inditimer.h"
 
 #include <stdint.h>
 #include <string>
@@ -38,14 +41,13 @@ namespace INDI
    The weather functionality can be an independent device (e.g. weather station), or weather-related reports within another device.
 
    When developing a driver for a fully independent weather device, use INDI::Weather directly. To add focus functionality to
-   an existing driver, subclass INDI::WeatherInterface. In your driver, then call the necessary focuser interface functions.
+   an existing driver, subclass INDI::WeatherInterface. In your driver, then call the necessary weather interface functions.
 
    <table>
    <tr><th>Function</th><th>Where to call it from your driver</th></tr>
    <tr><td>WI::initProperties</td><td>initProperties()</td></tr>
    <tr><td>WI::updateProperties</td><td>updateProperties()</td></tr>
    <tr><td>WI::processNumber</td><td>ISNewNumber(...) Check if the property name contains WEATHER_* and then call WI::processNumber(..) for such properties</td></tr>
-   <tr><td>WI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
    </table>
 
    Implement and overwrite the rest of the virtual functions as needed. INDI Pegasus Ultimate Power Box driver is a good example to check for an actual implementation
@@ -74,8 +76,16 @@ class WeatherInterface
          */
         bool updateProperties();
 
-        /** \brief Process focus number properties */
+        /** \brief Process weather number properties */
         bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+        /** \brief Process weather switch properties */
+        bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+
+        /**
+         * @brief checkWeatherUpdate Calls updateWeather and update critical parameters accordingly.
+         */
+        void checkWeatherUpdate();
 
         /**
          * @brief updateWeather Update weather conditions from device or service. The function should
@@ -157,9 +167,19 @@ class WeatherInterface
         ILight *critialParametersL {nullptr};
         ILightVectorProperty critialParametersLP;
 
+        // Update Period
+        INDI::PropertyNumber UpdatePeriodNP {1};
+        // Refresh data
+        INDI::PropertySwitch RefreshSP {1};
+
+        // Override
+        INDI::PropertySwitch OverrideSP {1};
+
+
     private:
         void createParameterRange(std::string name, std::string label);
         DefaultDevice *m_defaultDevice { nullptr };
         std::string m_ParametersGroup;
+        INDI::Timer m_UpdateTimer;
 };
 }

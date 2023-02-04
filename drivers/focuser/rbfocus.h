@@ -10,7 +10,7 @@ class RBFOCUS : public INDI::Focuser
     public:
         RBFOCUS();
         virtual ~RBFOCUS() override = default;
-          typedef enum {HOLD_OFF, HOLD_ON } focuserHold;
+        typedef enum {HOLD_OFF, HOLD_ON } focuserHold;
         typedef enum {REVERSED, NORMAL } dir;
 
         const char * getDefaultName() override;

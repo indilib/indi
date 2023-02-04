@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017 Jarno Paananen. All right reserved.
+  Copyright(c) 2017-2023 Jarno Paananen. All right reserved.
 
   Based on Flip Flat driver by:
 
@@ -44,7 +44,7 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
 SnapCap::SnapCap() : LightBoxInterface(this, true)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 bool SnapCap::initProperties()
@@ -52,24 +52,22 @@ bool SnapCap::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Status
-    IUFillText(&StatusT[0], "Cover", "", nullptr);
-    IUFillText(&StatusT[1], "Light", "", nullptr);
-    IUFillText(&StatusT[2], "Motor", "", nullptr);
-    IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    StatusTP[0].fill("COVER", "Cover", nullptr);
+    StatusTP[1].fill("LIGHT", "Light", nullptr);
+    StatusTP[2].fill("MOTOR", "Motor", nullptr);
+    StatusTP.fill(getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0], "Version", "", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    FirmwareTP[0].fill("VERSION", "Version", nullptr);
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Abort and force open/close buttons
-    IUFillSwitch(&AbortS[0], "Abort", "", ISS_OFF);
-    IUFillSwitchVector(&AbortSP, AbortS, 1, getDeviceName(), "Abort", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
+    AbortSP.fill(getDeviceName(), "ABORT", "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ForceS[0], "Off", "", ISS_ON);
-    IUFillSwitch(&ForceS[1], "On", "", ISS_OFF);
-    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "Force movement", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
+    ForceSP[0].fill("OFF", "Off", ISS_ON);
+    ForceSP[1].fill("ON", "On", ISS_OFF);
+    ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
@@ -85,7 +83,10 @@ bool SnapCap::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
     return true;
@@ -112,10 +113,10 @@ bool SnapCap::updateProperties()
             defineProperty(&LightIntensityNP);
             updateLightBoxProperties();
         }
-        defineProperty(&StatusTP);
-        defineProperty(&FirmwareTP);
-        defineProperty(&AbortSP);
-        defineProperty(&ForceSP);
+        defineProperty(StatusTP);
+        defineProperty(FirmwareTP);
+        defineProperty(AbortSP);
+        defineProperty(ForceSP);
         getStartupData();
     }
     else
@@ -127,10 +128,10 @@ bool SnapCap::updateProperties()
             deleteProperty(LightIntensityNP.name);
             updateLightBoxProperties();
         }
-        deleteProperty(StatusTP.name);
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(AbortSP.name);
-        deleteProperty(ForceSP.name);
+        deleteProperty(StatusTP);
+        deleteProperty(FirmwareTP);
+        deleteProperty(AbortSP);
+        deleteProperty(ForceSP);
     }
 
     return true;
@@ -164,6 +165,9 @@ bool SnapCap::Handshake()
 
 bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
     if (processLightBoxNumber(dev, name, values, names, n))
         return true;
 
@@ -172,39 +176,39 @@ bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool SnapCap::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (processLightBoxText(dev, name, texts, names, n))
-            return true;
-    }
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (processLightBoxText(dev, name, texts, names, n))
+        return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (AbortSP.isNameMatch(name))
     {
-        if (strcmp(AbortSP.name, name) == 0)
-        {
-            IUResetSwitch(&AbortSP);
-            AbortSP.s = Abort();
-            IDSetSwitch(&AbortSP, nullptr);
-            return true;
-        }
-        if (strcmp(ForceSP.name, name) == 0)
-        {
-            IUUpdateSwitch(&ForceSP, states, names, n);
-            IDSetSwitch(&AbortSP, nullptr);
-            return true;
-        }
-
-        if (processDustCapSwitch(dev, name, states, names, n))
-            return true;
-
-        if (processLightBoxSwitch(dev, name, states, names, n))
-            return true;
+        AbortSP.reset();
+        AbortSP.setState(Abort());
+        AbortSP.apply();
+        return true;
     }
+    if (ForceSP.isNameMatch(name))
+    {
+        AbortSP.update(states, names, n);
+        AbortSP.apply();
+        return true;
+    }
+
+    if (processDustCapSwitch(dev, name, states, names, n))
+        return true;
+
+    if (processLightBoxSwitch(dev, name, states, names, n))
+        return true;
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -285,7 +289,7 @@ IPState SnapCap::ParkCap()
     char command[SNAP_CMD];
     char response[SNAP_RES];
 
-    if (ForceS[1].s == ISS_ON)
+    if (ForceSP[1].getState() == ISS_ON)
         strncpy(command, ">c000", SNAP_CMD); // Force close command
     else
         strncpy(command, ">C000", SNAP_CMD);
@@ -315,7 +319,7 @@ IPState SnapCap::UnParkCap()
     char command[SNAP_CMD];
     char response[SNAP_RES];
 
-    if (ForceS[1].s == ISS_ON)
+    if (ForceSP[1].getState() == ISS_ON)
         strncpy(command, ">o000", SNAP_CMD); // Force open command
     else
         strncpy(command, ">O000", SNAP_CMD);
@@ -441,13 +445,13 @@ bool SnapCap::getStatus()
         switch (coverStatus)
         {
             case 0:
-                IUSaveText(&StatusT[0], "Opening/closing");
+                StatusTP[0].setText("Opening/closing");
                 break;
 
             case 1:
                 if ((targetCoverStatus == 1 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
                 {
-                    IUSaveText(&StatusT[0], "Open");
+                    StatusTP[0].setText("Open");
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[CAP_UNPARK].s = ISS_ON;
                     ParkCapSP.s            = IPS_OK;
@@ -459,7 +463,7 @@ bool SnapCap::getStatus()
             case 2:
                 if ((targetCoverStatus == 2 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
                 {
-                    IUSaveText(&StatusT[0], "Closed");
+                    StatusTP[0].setText("Closed");
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[CAP_PARK].s = ISS_ON;
                     ParkCapSP.s          = IPS_OK;
@@ -469,19 +473,19 @@ bool SnapCap::getStatus()
                 break;
 
             case 3:
-                IUSaveText(&StatusT[0], "Timed out");
+                StatusTP[0].setText("Timed out");
                 break;
 
             case 4:
-                IUSaveText(&StatusT[0], "Open circuit");
+                StatusTP[0].setText("Open circuit");
                 break;
 
             case 5:
-                IUSaveText(&StatusT[0], "Overcurrent");
+                StatusTP[0].setText("Overcurrent");
                 break;
 
             case 6:
-                IUSaveText(&StatusT[0], "User abort");
+                StatusTP[0].setText("User abort");
                 break;
         }
     }
@@ -495,7 +499,7 @@ bool SnapCap::getStatus()
         switch (lightStatus)
         {
             case 0:
-                IUSaveText(&StatusT[1], "Off");
+                StatusTP[1].setText("Off");
                 if (LightS[0].s == ISS_ON)
                 {
                     LightS[0].s = ISS_OFF;
@@ -505,7 +509,7 @@ bool SnapCap::getStatus()
                 break;
 
             case 1:
-                IUSaveText(&StatusT[1], "On");
+                StatusTP[1].setText("On");
                 if (LightS[1].s == ISS_ON)
                 {
                     LightS[0].s = ISS_ON;
@@ -525,17 +529,17 @@ bool SnapCap::getStatus()
         switch (motorStatus)
         {
             case 0:
-                IUSaveText(&StatusT[2], "Stopped");
+                StatusTP[2].setText("Stopped");
                 break;
 
             case 1:
-                IUSaveText(&StatusT[2], "Running");
+                StatusTP[2].setText("Running");
                 break;
         }
     }
 
     if (statusUpdated)
-        IDSetText(&StatusTP, nullptr);
+        StatusTP.apply();
 
     return true;
 }
@@ -544,8 +548,8 @@ bool SnapCap::getFirmwareVersion()
 {
     if (isSimulation())
     {
-        IUSaveText(&FirmwareT[0], "Simulation");
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP[0].setText("Ssimulation");
+        FirmwareTP.apply();
         return true;
     }
 
@@ -556,8 +560,8 @@ bool SnapCap::getFirmwareVersion()
 
     char versionString[4] = { 0 };
     snprintf(versionString, 4, "%s", response + 2);
-    IUSaveText(&FirmwareT[0], versionString);
-    IDSetText(&FirmwareTP, nullptr);
+    FirmwareTP[0].setText(versionString);
+    FirmwareTP.apply();
 
     return true;
 }

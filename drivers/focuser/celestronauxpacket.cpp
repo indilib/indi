@@ -43,7 +43,7 @@ char * toHexStr(buffer data)
         sz = 100;
     for (int i = 0; i < sz; i++)
     {
-        snprintf(&debugStr[i*3], 301, "%02X ", data[i]);
+        snprintf(&debugStr[i * 3], 301, "%02X ", data[i]);
     }
     return debugStr;
 }
@@ -179,7 +179,8 @@ bool Communicator::readPacket(int portFD, Packet &reply)
     {
         char errmsg[MAXRBUF];
         tty_error_msg(ttyrc, errmsg, MAXRBUF);
-        DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "readPacket fail read len tty %i %s, ns %i", ttyrc, errmsg, nr);
+        DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "readPacket fail read len tty %i %s, ns %i", ttyrc,
+                     errmsg, nr);
         return false;
     }
 
@@ -194,7 +195,8 @@ bool Communicator::readPacket(int portFD, Packet &reply)
     {
         char errmsg[MAXRBUF];
         tty_error_msg(ttyrc, errmsg, MAXRBUF);
-        DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "readPacket fail data tty %i %s, nr %i", ttyrc, errmsg, nr);
+        DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "readPacket fail data tty %i %s, nr %i", ttyrc, errmsg,
+                     nr);
         return false;
     }
 
@@ -222,7 +224,8 @@ bool Communicator::sendCommand(int portFD, Target dest, Command cmd, buffer data
         // check the packet is the one we want
         if (pkt.command != cmd || pkt.destination != Target::APP || pkt.source != dest)
         {
-            DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "sendCommand pkt.command %i cmd %i, pkt.destination %i pkt.source %i dest %i",
+            DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR,
+                         "sendCommand pkt.command %i cmd %i, pkt.destination %i pkt.source %i dest %i",
                          pkt.command, cmd, pkt.destination, pkt.source, dest);
             continue;           // wrong packet, try again
         }

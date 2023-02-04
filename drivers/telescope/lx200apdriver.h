@@ -20,20 +20,25 @@
 
 #pragma once
 
-#define getAPDeclinationAxis(fd, x)            getCommandString(fd, x, "#:pS#")
+// Used by cp2 driver
+#define setAPPark(fd)                          write(fd, "#:KA#", 4)
+#define setAPUnPark(fd)                        write(fd, "#:PO#", 4)
+
+// Used by several drivers
 #define getAPVersionNumber(fd, x)              getCommandString(fd, x, "#:V#")
-#define setAPPark(fd)                          write(fd, "#:KA", 4)
-#define setAPUnPark(fd)                        write(fd, "#:PO", 4)
-#define setAPLongFormat(fd)                    write(fd, "#:U", 3)
 #define setAPClearBuffer(fd)                   write(fd, "#", 1) /* AP key pad manual startup sequence */
 #define setAPBackLashCompensation(fd, x, y, z) setCommandXYZ(fd, x, y, z, "#:Br")
-#define setAPMotionStop(fd)                    write(fd, "#:Q", 3)
 
 #define AP_TRACKING_SIDEREAL     0
 #define AP_TRACKING_SOLAR       1
 #define AP_TRACKING_LUNAR       2
 #define AP_TRACKING_CUSTOM      3
 #define AP_TRACKING_OFF         4
+
+#define AP_PEC_OFF 0
+#define AP_PEC_ON 1
+#define AP_PEC_RECORD 2
+#define AP_PEC_ENCODER 3
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,8 +53,23 @@ int setAPUTCOffset(int fd, double hours);
 int setAPSlewMode(int fd, int slewMode);
 int APSyncCM(int fd, char *matchedObject);
 int APSyncCMR(int fd, char *matchedObject);
-int selectAPMoveToRate(int fd, int moveToRate);
-int selectAPSlewRate(int fd, int slewRate);
+
+enum APRateTableState
+{
+    AP_RATE_TABLE_0 = 0,
+    AP_RATE_TABLE_1 = 1,
+    AP_RATE_TABLE_2 = 2,
+    AP_RATE_TABLE_3 = 3,
+    AP_RATE_TABLE_DEFAULT = -1,
+};
+
+// Rate selection for legacy drivers
+int selectAPMoveToRate(int fd, int moveToIndex);
+int selectAPSlewRate(int fd, int slewIndex);
+int selectAPCenterRate(int fd, int centerIndex);
+// Support rate tables in newer drivers
+int selectAPV2CenterRate(int fd, int centerIndex, APRateTableState rateTable);
+
 int selectAPTrackingMode(int fd, int trackMode);
 int selectAPGuideRate(int fd, int guideRate);
 int selectAPPECState(int fd, int pecstate);
@@ -62,10 +82,22 @@ int setAPRATrackRate(int fd, double rate);
 int setAPDETrackRate(int fd, double rate);
 int APSendPulseCmd(int fd, int direction, int duration_msec);
 void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level);
-int selectAPCenterRate(int fd, int centerRate);
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);
+int getAPWormPosition(int fd, int *position);
+
+// Make sure the buffer passed in to getApStatusString (statusString) is at least 32 bytes.
+int getApStatusString(int fd, char *statusString);
+bool apStatusParked(const char *statusString);
+bool apStatusSlewing(const char *statusString);
+const char *apMountStatus(const char *statusString);
+int isAPInitialized(int fd, bool *isInitialized);
+
+APRateTableState apRateTable(const char *statusString);
+int getApMountFeatures(int fd, bool *hasEncoder, bool *clutchAware);
+bool apCanHome(int fd);
+int apHomeAndSync(int fd);
 
 #ifdef __cplusplus
 }

@@ -25,8 +25,8 @@ namespace INDI
 
 class ElapsedTimerPrivate
 {
-public:
-    std::chrono::steady_clock::time_point start;
+    public:
+        std::chrono::steady_clock::time_point start;
 };
 
 }

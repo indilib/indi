@@ -28,6 +28,7 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include <map>
+#include <stdint.h>
 #include <termios.h>
 #include <unistd.h>
 #include <memory>
@@ -154,7 +155,7 @@ class FocusLynxBase : public INDI::Focuser
         // Set functions
 
         // Position
-        bool setStepSize(u_int16_t stepsize);
+        bool setStepSize(uint16_t stepsize);
 
         // Temperature
         bool setTemperatureCompensation(bool enable);

@@ -1,7 +1,11 @@
 # INDI Core Library
-[![Linux](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
+
+[![Linux](https://github.com/indilib/indi/actions/workflows/linux.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![Debian Packages](https://github.com/indilib/indi/actions/workflows/linux-packages.yml/badge.svg)](https://github.com/indilib/indi/actions)
 [![MacOS](https://github.com/indilib/indi/actions/workflows/macos.yml/badge.svg)](https://github.com/indilib/indi/actions)
-[![PyIndi](https://github.com/indilib/indi/actions/workflows/pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![Visual Studio](https://github.com/indilib/indi/actions/workflows/windows-visual.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![MinGW](https://github.com/indilib/indi/actions/workflows/windows-mingw.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![PyIndi](https://github.com/indilib/indi/actions/workflows/linux-pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
@@ -45,6 +49,7 @@ sudo apt-get install -y \
   dkms \
   cmake \
   fxload \
+  libev-dev \
   libgps-dev \
   libgsl-dev \
   libraw-dev \
@@ -64,7 +69,8 @@ sudo apt-get install -y \
   libusb-1.0-0-dev \
   libdc1394-22-dev \
   libboost-regex-dev \
-  libcurl4-gnutls-dev
+  libcurl4-gnutls-dev \
+  libtheora-dev
 ```
 
 ## Create Project Directory

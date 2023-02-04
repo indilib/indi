@@ -20,44 +20,44 @@
 #ifndef ONFOCUS_H
 #define ONFOCUS_H
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class OnFocus : public INDI::Focuser
 {
-public:
-    OnFocus();
-    ~OnFocus();
+    public:
+        OnFocus();
+        ~OnFocus();
 
-    virtual bool Handshake() override;
-    const char * getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
+        virtual bool Handshake() override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
 
-private:
+    private:
 
-    double targetPos, lastPos;
- 
-    void GetFocusParams();
-    void setZero();
-    bool updateMaxPos();
-    bool updateTemperature();
-    bool updatePosition();
-    bool isMoving();
-    bool Ack();
+        double targetPos, lastPos;
 
-    bool MoveMyFocuser(uint32_t position);
-    bool setMaxPos(uint32_t maxPos);
+        void GetFocusParams();
+        void setZero();
+        bool updateMaxPos();
+        bool updateTemperature();
+        bool updatePosition();
+        bool isMoving();
+        bool Ack();
 
-    INumber MaxPosN[1];
-    INumberVectorProperty MaxPosNP;
-    ISwitch SetZeroS[1];
-    ISwitchVectorProperty SetZeroSP;
+        bool MoveMyFocuser(uint32_t position);
+        bool setMaxPos(uint32_t maxPos);
+
+        INumber MaxPosN[1];
+        INumberVectorProperty MaxPosNP;
+        ISwitch SetZeroS[1];
+        ISwitchVectorProperty SetZeroSP;
 };
 
 #endif // ONFOCUS_H

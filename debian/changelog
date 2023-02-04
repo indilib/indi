@@ -1,3 +1,39 @@
+libindi (2.0.0) focal; urgency=medium
+
+  * Major release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 8 Jan 2023 10:00:00 +0300
+
+libindi (1.9.9) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 15 Oct 2022 09:00:00 +0300
+
+libindi (1.9.8) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 31 Jul 2022 15:00:00 +0300
+
+libindi (1.9.7) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 29 May 2022 15:00:00 +0300
+
+libindi (1.9.6) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 21 Mar 2022 15:00:00 +0300
+
+libindi (1.9.5) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 25 Jan 2022 15:00:00 +0300
+
 libindi (1.9.4) focal; urgency=medium
 
   * Minor release.

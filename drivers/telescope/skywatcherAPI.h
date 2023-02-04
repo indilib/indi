@@ -21,7 +21,7 @@
 
 #define INDI_DEBUG_LOGGING
 #ifdef INDI_DEBUG_LOGGING
-#include "indibase/inditelescope.h"
+#include "inditelescope.h"
 #define MYDEBUG(priority, msg) \
     INDI::Logger::getInstance().print(pChildTelescope->getDeviceName(), priority, __FILE__, __LINE__, msg)
 #define MYDEBUGF(priority, msg, ...) \
@@ -58,6 +58,58 @@ class SkywatcherAPI
             AXIS1 = 0,
             AXIS2 = 1
         };
+
+        // Types
+        enum SkywatcherCommand
+        {
+            Initialize                = 'F',
+            InquireMotorBoardVersion  = 'e',
+            InquireGridPerRevolution  = 'a',
+            InquireTimerInterruptFreq = 'b',
+            InquireHighSpeedRatio     = 'g',
+            InquirePECPeriod          = 's',
+            InstantAxisStop           = 'L',
+            NotInstantAxisStop        = 'K',
+            SetAxisPositionCmd        = 'E',
+            GetAxisPosition           = 'j',
+            GetAxisStatus             = 'f',
+            SetSnapPort               = 'O', // EQ8/AZEQ6/AZEQ5/EQ6-R/AZ-GTi only
+            SetMotionMode             = 'G',
+            SetGotoTargetIncrement    = 'H',
+            SetBreakPointIncrement    = 'M',
+            SetGotoTarget             = 'S',
+            SetBreakStep              = 'U',
+            SetStepPeriod             = 'I',
+            StartMotion               = 'J',
+            GetStepPeriod             = 'D', // See Merlin protocol http://www.papywizard.org/wiki/DevelopGuide
+            ActivateMotor             = 'B', // See eq6direct implementation http://pierre.nerzic.free.fr/INDI/
+            SetST4GuideRateCmd        = 'P',
+            GetHomePosition           = 'd', // Get Home position encoder count (default at startup)
+            SetFeatureCmd             = 'W', // EQ8/AZEQ6/AZEQ5 only
+            GetFeatureCmd             = 'q', // EQ8/AZEQ6/AZEQ5 only
+            InquireAuxEncoder         = 'd', // EQ8/AZEQ6/AZEQ5 only
+            SetPolarScopeLED          = 'V',
+        };
+
+        enum SkywatcherGetFeatureCmd
+        {
+            GET_INDEXER_CMD  = 0x00,
+            GET_FEATURES_CMD = 0x01
+        };
+
+        enum SkywatcherSetFeatureCmd
+        {
+            START_PPEC_TRAINING_CMD            = 0x00,
+            STOP_PPEC_TRAINING_CMD             = 0x01,
+            TURN_PPEC_ON_CMD                   = 0x02,
+            TURN_PPEC_OFF_CMD                  = 0X03,
+            ENCODER_ON_CMD                     = 0x04,
+            ENCODER_OFF_CMD                    = 0x05,
+            DISABLE_FULL_CURRENT_LOW_SPEED_CMD = 0x0006,
+            ENABLE_FULL_CURRENT_LOW_SPEED_CMD  = 0x0106,
+            RESET_HOME_INDEXER_CMD             = 0x08
+        };
+
 
         // These values are in radians per second
         static constexpr double SIDEREALRATE { (2 * M_PI / 86164.09065) };
@@ -138,11 +190,26 @@ class SkywatcherAPI
         /// \return false failure
         bool GetStepperClockFrequency(AXISID Axis);
 
+        // Optional: inquire axis features from mount.
+        bool InquireFeatures();
+
         bool InitializeMC();
 
         /// \brief Initialize the communication to the mount
         /// \return True if successful otherwise false
         bool InitMount();
+
+        bool HasHomeIndexers();
+        bool HasAuxEncoders();
+        bool HasPPEC();
+        bool HasSnapPort1();
+        bool HasSnapPort2();
+        bool HasPolarLed();
+
+        void TurnEncoder(AXISID axis, bool on);
+        void TurnRAEncoder(bool on);
+        void TurnDEEncoder(bool on);
+        void SetFeature(AXISID axis, uint32_t command);
 
         /// \brief Bring the axis to an immediate halt.
         /// N.B. This command could cause damage to the mount or telescope
@@ -203,7 +270,7 @@ class SkywatcherAPI
         /// - 0 = Forward
         /// - 1 = Reverse
         /// \return false failure
-        bool SetMotionMode(AXISID Axis, char Func, char Direction);
+        bool SetAxisMotionMode(AXISID Axis, char Func, char Direction);
 
         /// \brief Set the serail port to be usb for mount communication
         /// \param[in] port - an open file descriptor for the port to use.
@@ -228,9 +295,9 @@ class SkywatcherAPI
         /// \return false failure
         bool SetSlewToModeDeccelerationRampLength(AXISID Axis, long Microsteps);
 
-        /// \brief Set the camera control switch to the given state
-        /// \param[in] OnOff - the state requested.
-        bool SetSwitch(bool OnOff);
+        /// \brief Toggle the snap port on or off
+        /// \param[in] enabled - the state requested.
+        bool toggleSnapPort(bool enabled);
 
         /// \brief Start the axis slewing at the given rate
         /// \param[in] Axis - The axis to use.
@@ -254,9 +321,9 @@ class SkywatcherAPI
         /// \brief Start the axis slewing in the prevously selected mode
         /// \param[in] Axis - The axis to use.
         /// \return false failure
-        bool StartMotion(AXISID Axis);
+        bool StartAxisMotion(AXISID Axis);
 
-        bool TalkWithAxis(AXISID Axis, char Command, std::string &cmdDataStr, std::string &responseStr);
+        bool TalkWithAxis(AXISID Axis, SkywatcherCommand Command, std::string &cmdDataStr, std::string &responseStr);
 
         /// \brief Check if an axis is moving
         /// \param[in] Axis - The axis to check.
@@ -266,18 +333,45 @@ class SkywatcherAPI
         // Skywatcher mount status variables
         unsigned long MCVersion { 0 }; // Motor control board firmware version
 
+        static const char *mountTypeToString(uint8_t type);
+
         enum MountType
         {
-            EQ6    = 0x00,
-            HEQ5   = 0x01,
-            EQ5    = 0x02,
-            EQ3    = 0x03,
-            AZEQ6  = 0x22,
-            GT     = 0x80,
-            MF     = 0x81,
-            _114GT = 0x82,
-            DOB    = 0x90
+            EQ6              = 0x00,
+            HEQ5             = 0x01,
+            EQ5              = 0x02,
+            EQ3              = 0x03,
+            EQ8              = 0x04,
+            AZEQ6            = 0x05,
+            AZEQ5            = 0x06,
+            STAR_ADVENTURER  = 0x0A,
+            EQ8R_PRO         = 0x20,
+            AZEQ6_PRO        = 0x22,
+            EQ6_PRO          = 0x23,
+            EQ5_PRO          = 0x31,
+            GT               = 0x80,
+            MF               = 0x81,
+            _114GT           = 0x82,
+            DOB              = 0x90,
+            AZGTE            = 0xA2,
+            AZGTI            = 0xA5,
         };
+
+        typedef struct SkyWatcherFeatures
+        {
+            bool inPPECTraining = false;
+            bool inPPEC = false;
+            bool hasEncoder = false;
+            bool hasPPEC = false;
+            bool hasHomeIndexer = false;
+            bool isAZEQ = false;
+            bool hasPolarLed = false;
+            bool hasCommonSlewStart = false; // supports :J3
+            bool hasHalfCurrentTracking = false;
+            bool hasWifi = false;
+        } SkyWatcherFeatures;
+
+
         unsigned long MountCode { 0 };
         bool IsDCMotor { false };
         bool SilentSlewMode { true };
@@ -287,6 +381,7 @@ class SkywatcherAPI
         long StepperClockFrequency[2];       // The stepper clock timer interrupt frequency in ticks per second
         long HighSpeedRatio[2];              // The speed multiplier for high speed mode.
         long MicrostepsPerWormRevolution[2]; // Number of microsteps for one revolution of the worm gear.
+        SkyWatcherFeatures AxisFeatures[2];
 
         // Calculated values
         double RadiansPerMicrostep[2];

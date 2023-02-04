@@ -101,11 +101,13 @@ bool TCFS::initProperties()
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&FocusTemperatureN[0], "FOCUS_TEMPERATURE_VALUE", "Temperature (c)", "%.3f", -50.0, 80, 0, 0);
-    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Probe", "Operation", IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Probe", "Operation",
+                       IP_RO, 0, IPS_IDLE);
 
     IUFillSwitch(&FocusTelemetryS[0], "FOCUS_TELEMETRY_ON", "Enable", ISS_ON);
     IUFillSwitch(&FocusTelemetryS[1], "FOCUS_TELEMETRY_OFF", "Disable", ISS_OFF);
-    IUFillSwitchVector(&FocusTelemetrySP, FocusTelemetryS, 2, getDeviceName(), "FOCUS_TELEMETRY", "Telemetry", "Operation", IP_RW,
+    IUFillSwitchVector(&FocusTelemetrySP, FocusTelemetryS, 2, getDeviceName(), "FOCUS_TELEMETRY", "Telemetry", "Operation",
+                       IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Mode parameters
@@ -120,7 +122,8 @@ bool TCFS::initProperties()
 
     IUFillSwitch(&FocusStartModeS[0], "FOCUS_START_ON", "Enable", ISS_OFF);
     IUFillSwitch(&FocusStartModeS[1], "FOCUS_START_OFF", "Disable", ISS_ON);
-    IUFillSwitchVector(&FocusStartModeSP, FocusStartModeS, 2, getDeviceName(), "FOCUS_START_MODE", "Startup Mode", "Presets", IP_RW,
+    IUFillSwitchVector(&FocusStartModeSP, FocusStartModeS, 2, getDeviceName(), "FOCUS_START_MODE", "Startup Mode", "Presets",
+                       IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Default to 19200
@@ -504,12 +507,12 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         // Do not process any command if focuser is asleep
         if (isConnected() && FocusPowerSP.sp[0].s == ISS_ON)
         {
-            ISwitchVectorProperty *svp = getSwitch(name);
+            auto svp = getSwitch(name);
             if (svp)
             {
-                svp->s = IPS_IDLE;
+                svp.setState(IPS_IDLE);
                 LOG_WARN("Focuser is still in sleep mode. Wake up in order to issue commands.");
-                IDSetSwitch(svp, nullptr);
+                svp.apply();
             }
             return true;
         }
@@ -596,12 +599,12 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         // Do not process any other command if focuser is in auto mode
         if (isConnected() && FocusModeSP.sp[0].s != ISS_ON)
         {
-            ISwitchVectorProperty *svp = getSwitch(name);
+            auto svp = getSwitch(name);
             if (svp)
             {
-                svp->s = IPS_IDLE;
+                svp.setState(IPS_IDLE);
                 LOG_WARN("Focuser is in auto mode. Change to manual in order to issue commands.");
-                IDSetSwitch(svp, nullptr);
+                svp.apply();
             }
             return true;
         }

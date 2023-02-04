@@ -7,7 +7,7 @@ RUN zypper --non-interactive install lsb-release \
         libcurl-devel boost-devel libboost_regex1_67_0-devel cfitsio-devel \
         libftdi1-devel libdc1394-devel libgphoto2-devel gsl-devel libjpeg-devel libtiff-devel \
         libnova-devel openal-soft-devel libraw-devel libusb-devel \
-        fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
+        fftw-devel libev-devel zlib-devel libconfuse-devel python3-devel doxygen \
         libdc1394-devel python-devel vim rtl-sdr-devel vim \
         libavcodec-devel libavdevice-devel libavformat-devel libavutil-devel
 

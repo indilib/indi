@@ -22,69 +22,7 @@
 
 #include "indifocuser.h"
 #include "inditimer.h"
-
-class CommandSet
-{
-
-    public:
-        CommandSet(int Port, const char *deviceName)
-        {
-            PortFD = Port;
-            this->deviceName = deviceName;
-        }
-        int PortFD;
-        bool stop();
-        bool getSerialNumber(char *res);
-        bool getFirmwareVersion(char *res);
-        bool abort();
-        bool go(uint32_t targetTicks, char *res);
-        bool goHome(char *res);
-        bool fastMoveOut(char *res);
-        bool fastMoveIn(char *res);
-        bool getMaxPosition(char *res);
-        bool getHallSensor(char *res);
-        bool storeAsMaxPosition(char *res);
-        bool goOutToFindMaxPos();
-        bool storeAsMinPosition();
-        bool initCalibration();
-        bool getAbsolutePosition(char *res);
-        bool getCurrentSpeed(char *res);
-        bool applyMotorPreset(const char *name);
-        bool applyMotorUserPreset(uint32_t index);
-        bool saveMotorUserPreset(uint32_t index, struct MotorRates &mr, struct MotorCurrents &mc);
-        bool getMotorTemp(char *res);
-        bool getExternalTemp(char *res);
-        bool getVoltageIn(char *res);
-        bool getMotorSettings(struct MotorRates &ms, struct MotorCurrents &mc, bool &motorHoldActive);
-        bool setMotorRates(struct MotorRates &ms);
-        bool setMotorCurrents(struct MotorCurrents &mc);
-        bool setMotorHold(bool hold);
-        std::string deviceName;
-
-        const char *getDeviceName() const
-        {
-            return deviceName.c_str();
-        }
-
-    private:
-
-        // Send request and return full response
-        bool send(const std::string &request, std::string &response) const;
-        // Send command and parse response looking for value of property
-        bool sendCmd(const std::string &cmd, std::string property = "", char *res = nullptr) const;
-        bool sendCmd(const std::string &cmd, std::string property, std::string &res) const;
-        bool getValueFromResponse(const std::string &response, const std::string &property, char *value) const;
-        bool parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const;
-
-        // Maximum buffer for sending/receving.
-        static constexpr const int SESTO_LEN {1024};
-        enum
-        {
-            CMD_OK = true,
-            CMD_FALSE = false
-        };
-
-};
+#include "primalucacommandset.h"
 
 class SestoSenso2 : public INDI::Focuser
 {
@@ -98,12 +36,8 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-        //        static void checkMotionProgressHelper(void *context);
-        //        static void checkHallSensorHelper(void *context);
-
     protected:
         virtual bool Handshake() override;
-        virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual bool ReverseFocuser(bool enabled) override;
@@ -130,14 +64,13 @@ class SestoSenso2 : public INDI::Focuser
         void checkMotionProgressCallback();
         void checkHallSensorCallback();
 
-        CommandSet *command {nullptr};
-
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
         FocusDirection backlashDirection { FOCUS_INWARD };
         FocusDirection oldbacklashDirection { FOCUS_INWARD };
+
         int32_t startPos { 0 };
         uint32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
@@ -147,38 +80,32 @@ class SestoSenso2 : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[2];
+        INDI::PropertyNumber TemperatureNP {2};
         enum
         {
             TEMPERATURE_EXTERNAL,
             TEMPERATURE_MOTOR,
         };
 
-        INumber SpeedN[1];
-        INumberVectorProperty SpeedNP;
+        INDI::PropertyNumber SpeedNP {1};
 
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2];
+        INDI::PropertyText FirmwareTP {2};
         enum
         {
             FIRMWARE_SN,
             FIRMWARE_VERSION,
         };
 
-        INumber VoltageInN[1] {};
-        INumberVectorProperty VoltageInNP;
+        INDI::PropertyNumber VoltageInNP {1};
 
-        ISwitch CalibrationS[2];
-        ISwitchVectorProperty CalibrationSP;
+        INDI::PropertySwitch CalibrationSP {2};
         enum
         {
             CALIBRATION_START,
             CALIBRATION_NEXT
         };
 
-        ISwitch FastMoveS[3];
-        ISwitchVectorProperty FastMoveSP;
+        INDI::PropertySwitch FastMoveSP {3};
         enum
         {
             FASTMOVE_IN,
@@ -192,8 +119,7 @@ class SestoSenso2 : public INDI::Focuser
             CMD_FALSE = false
         };
 
-        INumberVectorProperty MotorRateNP;
-        INumber MotorRateN[3];
+        INDI::PropertyNumber MotorRateNP {3};
         enum
         {
             MOTOR_RATE_ACC,
@@ -201,8 +127,7 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_RATE_DEC
         };
 
-        INumberVectorProperty MotorCurrentNP;
-        INumber MotorCurrentN[4];
+        INDI::PropertyNumber MotorCurrentNP {4};
         enum
         {
             MOTOR_CURR_ACC,
@@ -211,16 +136,14 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_CURR_HOLD
         };
 
-        ISwitchVectorProperty MotorHoldSP;
-        ISwitch MotorHoldS[2];
+        INDI::PropertySwitch MotorHoldSP {2};
         enum
         {
             MOTOR_HOLD_ON,
             MOTOR_HOLD_OFF
         };
 
-        ISwitchVectorProperty MotorApplyPresetSP;
-        ISwitch MotorApplyPresetS[3];
+        INDI::PropertySwitch MotorApplyPresetSP {3};
         enum
         {
             MOTOR_APPLY_LIGHT,
@@ -228,8 +151,7 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_APPLY_HEAVY,
         };
 
-        ISwitchVectorProperty MotorApplyUserPresetSP;
-        ISwitch MotorApplyUserPresetS[3];
+        INDI::PropertySwitch MotorApplyUserPresetSP {3};
         enum
         {
             MOTOR_APPLY_USER1,
@@ -237,8 +159,7 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_APPLY_USER3
         };
 
-        ISwitchVectorProperty MotorSaveUserPresetSP;
-        ISwitch MotorSaveUserPresetS[3];
+        INDI::PropertySwitch MotorSaveUserPresetSP {3};
         enum
         {
             MOTOR_SAVE_USER1,
@@ -246,33 +167,15 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_SAVE_USER3
         };
 
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
-
-        IText CalibrationMessageT[1] {};
-        ITextVectorProperty CalibrationMessageTP;
-
+        INDI::PropertyText CalibrationMessageTP {1};
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
-        ISwitch BacklashS[2];
-        ISwitchVectorProperty BacklashSP;
-        enum
-        {
-            BACKLASH_START,
-            BACKLASH_NEXT
-        };
-        IText BacklashMessageT[1] {};
-        ITextVectorProperty BacklashMessageTP;
-
-        typedef enum { BacklashIdle, BacklashMinimum, BacklashMaximum, BacklashComplete } BacklashStage;
-        BacklashStage bStage { BacklashIdle };
-
-        //        int m_MotionProgressTimerID {-1};
-        //        int m_HallSensorTimerID {-1};
         INDI::Timer m_MotionProgressTimer;
         INDI::Timer m_HallSensorTimer;
         bool m_IsSestoSenso2 { true };
+
+        std::unique_ptr<PrimalucaLabs::SestoSenso2> m_SestoSenso2;
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////

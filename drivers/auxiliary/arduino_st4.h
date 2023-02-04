@@ -37,44 +37,44 @@ class Serial;
 
 class ArduinoST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
 {
-  public:
-    ArduinoST4();
+    public:
+        ArduinoST4();
 
-    typedef enum { ARD_N, ARD_S, ARD_W, ARD_E } ARDUINO_DIRECTION;
+        typedef enum { ARD_N, ARD_S, ARD_W, ARD_E } ARDUINO_DIRECTION;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override ;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override ;
 
-    void guideTimeout(ARDUINO_DIRECTION direction);
+        void guideTimeout(ARDUINO_DIRECTION direction);
 
-  protected:
-    const char *getDefaultName() override;
+    protected:
+        const char *getDefaultName() override;
 
-    virtual bool Disconnect() override;
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        virtual bool Disconnect() override;
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-    // Helper functions
-    static void guideTimeoutHelperN(void *p);
-    static void guideTimeoutHelperS(void *p);
-    static void guideTimeoutHelperW(void *p);
-    static void guideTimeoutHelperE(void *p);
+        // Helper functions
+        static void guideTimeoutHelperN(void *p);
+        static void guideTimeoutHelperS(void *p);
+        static void guideTimeoutHelperW(void *p);
+        static void guideTimeoutHelperE(void *p);
 
-  private:    
-    bool Handshake();
-    bool sendCommand(const char *cmd);
+    private:
+        bool Handshake();
+        bool sendCommand(const char *cmd);
 
-    int GuideNSTID { -1 };
-    int GuideWETID { -1 };
-    ARDUINO_DIRECTION guideDirection;
+        int GuideNSTID { -1 };
+        int GuideWETID { -1 };
+        ARDUINO_DIRECTION guideDirection;
 
-    int PortFD { -1 };
+        int PortFD { -1 };
 
-    Connection::Serial *serialConnection { nullptr };
+        Connection::Serial *serialConnection { nullptr };
 
-    const uint8_t ARDUINO_TIMEOUT = 3;
+        const uint8_t ARDUINO_TIMEOUT = 3;
 };

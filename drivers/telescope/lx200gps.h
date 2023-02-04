@@ -24,47 +24,47 @@
 
 class LX200GPS : public LX200Autostar
 {
-  public:
-    LX200GPS();
-    ~LX200GPS() {}
+    public:
+        LX200GPS();
+        ~LX200GPS() {}
 
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
-    void ISGetProperties(const char *dev);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool updateTime(ln_date *utc, double utc_offset);
+        const char *getDefaultName();
+        bool initProperties();
+        bool updateProperties();
+        void ISGetProperties(const char *dev);
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool updateTime(ln_date *utc, double utc_offset);
 
-  protected:
-    virtual bool UnPark();
+    protected:
+        virtual bool UnPark();
 
-    ISwitchVectorProperty GPSPowerSP;
-    ISwitch GPSPowerS[2];
+        ISwitchVectorProperty GPSPowerSP;
+        ISwitch GPSPowerS[2];
 
-    ISwitchVectorProperty GPSStatusSP;
-    ISwitch GPSStatusS[3];
+        ISwitchVectorProperty GPSStatusSP;
+        ISwitch GPSStatusS[3];
 
-    ISwitchVectorProperty GPSUpdateSP;
-    ISwitch GPSUpdateS[2];
+        ISwitchVectorProperty GPSUpdateSP;
+        ISwitch GPSUpdateS[2];
 
-    ISwitchVectorProperty AltDecPecSP;
-    ISwitch AltDecPecS[2];
+        ISwitchVectorProperty AltDecPecSP;
+        ISwitch AltDecPecS[2];
 
-    ISwitchVectorProperty AzRaPecSP;
-    ISwitch AzRaPecS[2];
+        ISwitchVectorProperty AzRaPecSP;
+        ISwitch AzRaPecS[2];
 
-    ISwitchVectorProperty SelenSyncSP;
-    ISwitch SelenSyncS[1];
+        ISwitchVectorProperty SelenSyncSP;
+        ISwitch SelenSyncS[1];
 
-    ISwitchVectorProperty AltDecBacklashSP;
-    ISwitch AltDecBacklashS[1];
+        ISwitchVectorProperty AltDecBacklashSP;
+        ISwitch AltDecBacklashS[1];
 
-    ISwitchVectorProperty AzRaBacklashSP;
-    ISwitch AzRaBacklashS[1];
+        ISwitchVectorProperty AzRaBacklashSP;
+        ISwitch AzRaBacklashS[1];
 
-    ISwitchVectorProperty OTAUpdateSP;
-    ISwitch OTAUpdateS[1];
+        ISwitchVectorProperty OTAUpdateSP;
+        ISwitch OTAUpdateS[1];
 
-    INumberVectorProperty OTATempNP;
-    INumber OTATempN[1];
+        INumberVectorProperty OTATempNP;
+        INumber OTATempN[1];
 };

@@ -102,7 +102,6 @@ bool ScopeDomeArduino::performCommand(const std::string &command, std::string &r
     {
         if (curl)
         {
-            CURLcode res;
             std::string readBuffer;
             char requestURL[MAXRBUF + 1];
 
@@ -113,7 +112,7 @@ bool ScopeDomeArduino::performCommand(const std::string &command, std::string &r
 
             curl_easy_setopt(curl, CURLOPT_URL, requestURL);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            res = curl_easy_perform(curl);
+            curl_easy_perform(curl);
 
             if(readBuffer.size() < 3)
             {
@@ -629,10 +628,10 @@ void ScopeDomeArduino::controlShutter(ShutterOperation operation)
 void ScopeDomeArduino::resetCounter()
 {
     // Doesn't seem to be needed as the counter resets by itself when passing home
-//    std::string res;
-//    char cmd[32] = {0};
-//    snprintf(cmd, 31, "setEncoderA=%d", encoderBaseValue);
-//    performCommand(cmd, res);
+    //    std::string res;
+    //    char cmd[32] = {0};
+    //    snprintf(cmd, 31, "setEncoderA=%d", encoderBaseValue);
+    //    performCommand(cmd, res);
 }
 
 void ScopeDomeArduino::move(int steps)

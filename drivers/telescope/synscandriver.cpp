@@ -317,16 +317,16 @@ bool SynscanDriver::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        ISwitchVectorProperty *svp = getSwitch(name);
+        auto svp = getSwitch(name);
 
-        if (!strcmp(svp->name, GotoModeSP.name))
+        if (svp.isNameMatch(GotoModeSP.name))
         {
-            IUUpdateSwitch(svp, states, names, n);
-            ISwitch *sp = IUFindOnSwitch(svp);
+            svp.update(states, names, n);
+            auto sp = svp.findOnSwitch();
 
             assert(sp != nullptr);
 
-            if (!strcmp(sp->name, GotoModeS[0].name))
+            if (sp->isNameMatch(GotoModeS[0].name))
                 SetAltAzMode(true);
             else
                 SetAltAzMode(false);

@@ -426,7 +426,8 @@ bool TemmaMount::ReadScopeStatus()
         RaDec.dec = currentDEC;
         INDI::AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
         //AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s LST %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+               "Status: Mnt. Algnt. %s LST %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
                maligns[GetApproximateMountAlignment()], lst, currentRA, currentDEC, RaDec.ra, TDV.x, TDV.y, TDV.z);
 
         aligned = true;
@@ -434,11 +435,15 @@ bool TemmaMount::ReadScopeStatus()
         if (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
         {
             aligned = false;
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA,
+                   alignedDEC);
         }
         else
         {
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA,
+                   alignedDEC);
         }
     }
 
@@ -870,7 +875,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 
         //  We were NOT initialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
-        LOGF_DEBUG("Temma is initilized. Latitude: %.2f LST: %.2f", latitude, lst);
+        LOGF_DEBUG("Temma is initialized. Latitude: %.2f LST: %.2f", latitude, lst);
         SetAxis1Park(lst);
 
         LOGF_INFO("Syncing to default home position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());

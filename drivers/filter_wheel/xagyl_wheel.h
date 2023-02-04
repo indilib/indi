@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "indibase/indifilterwheel.h"
+#include "indifilterwheel.h"
 
 class XAGYLWheel : public INDI::FilterWheel
 {

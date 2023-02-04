@@ -32,8 +32,54 @@ CCDChip::CCDChip()
 
 CCDChip::~CCDChip()
 {
-    delete [] RawFrame;
-    delete[] BinFrame;
+    IDSharedBlobFree(RawFrame);
+    IDSharedBlobFree(BinFrame);
+    IDSharedBlobFree(m_FITSMemoryBlock);
+}
+
+bool CCDChip::openFITSFile(uint32_t size, int &status)
+{
+    m_FITSMemorySize = size > 2880 ? 2880 : size;
+    m_FITSMemoryBlock = IDSharedBlobAlloc(size);
+    if (m_FITSMemoryBlock == nullptr)
+    {
+        IDLog("Failed to allocate memory for FITS file.");
+        status = MEMORY_ALLOCATION;
+        return false;
+    }
+
+    fits_create_memfile(&m_FITSFilePointer, &m_FITSMemoryBlock, &m_FITSMemorySize, 2880, IDSharedBlobRealloc, &status);
+    if (status != 0)
+    {
+        IDSharedBlobFree(m_FITSMemoryBlock);
+        m_FITSMemoryBlock = nullptr;
+    }
+
+    return (status == 0);
+}
+
+bool CCDChip::finishFITSFile(int &status)
+{
+    fits_flush_file(m_FITSFilePointer, &status);
+    fits_close_file(m_FITSFilePointer, &status);
+    if (status == 0)
+    {
+        m_FITSFilePointer = nullptr;
+    }
+    return (status == 0);
+}
+
+void CCDChip::closeFITSFile()
+{
+    if (m_FITSFilePointer != nullptr)
+    {
+        int status = 0;
+        // Discard error here, the caller can't expect a valid file anymore at that point
+        fits_close_file(m_FITSFilePointer, &status);
+        m_FITSFilePointer = nullptr;
+    }
+    IDSharedBlobFree(m_FITSMemoryBlock);
+    m_FITSMemoryBlock = nullptr;
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -150,13 +196,15 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    delete [] RawFrame;
-    RawFrame = new uint8_t[nbuf];
+    RawFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(RawFrame, RawFrameSize));
+    if (RawFrame == nullptr)
+        RawFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
 
     if (BinFrame)
     {
-        delete [] BinFrame;
-        BinFrame = new uint8_t[nbuf];
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
     }
 }
 
@@ -240,7 +288,13 @@ void CCDChip::binFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    else
+    {
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    }
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -251,7 +305,7 @@ void CCDChip::binFrame()
             uint8_t *bin_buf = BinFrame;
             // Try to average pixels since in 8bit they get saturated pretty quickly
             double factor      = (BinX * BinX) / 2;
-            double accumulator = 0;
+            double accumulator;
 
             for (uint32_t i = 0; i < SubH; i += BinX)
                 for (uint32_t j = 0; j < SubW; j += BinX)
@@ -327,7 +381,13 @@ void CCDChip::binBayerFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    else
+    {
+        BinFrame = static_cast<uint8_t*>(IDSharedBlobRealloc(BinFrame, RawFrameSize));
+        if (BinFrame == nullptr)
+            BinFrame = static_cast<uint8_t*>(IDSharedBlobAlloc(RawFrameSize));
+    }
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -338,29 +398,29 @@ void CCDChip::binBayerFrame()
         {
             uint32_t BinFrameOffset;
             uint32_t val;
-            uint32_t BinW=SubW/BinX;
-            uint8_t BinFactor=BinX*BinY;
-            uint32_t RawOffset=0;
+            uint32_t BinW = SubW / BinX;
+            uint8_t BinFactor = BinX * BinY;
+            uint32_t RawOffset = 0;
             uint32_t BinOffsetH;
 
             // for each raw frame row
             for (uint32_t i = 0; i < SubH; i++)
             {
                 // find the binned frame row
-                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
                 // for each raw column
                 for (uint32_t j = 0; j < SubW; j++)
                 {
                     // find the proper position in the binned frame
-                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    BinFrameOffset = BinOffsetH + ((j / BinX) & 0xFFFFFFFE) + (j & 0x00000001);
                     // get the existing value in the binned frame
-                    val=BinFrame[BinFrameOffset];
+                    val = BinFrame[BinFrameOffset];
                     // add the new value, averaged and caped
-                    val+=RawFrame[RawOffset]/BinFactor;
-                    if(val>UINT8_MAX)
-                        val=UINT8_MAX;
+                    val += RawFrame[RawOffset] / BinFactor;
+                    if(val > UINT8_MAX)
+                        val = UINT8_MAX;
                     // write back into the binned frame
-                    BinFrame[BinFrameOffset]=(uint8_t)val;
+                    BinFrame[BinFrameOffset] = static_cast<uint8_t>(val);
                     // next binned frame pixel
                     RawOffset++;
                 }
@@ -378,21 +438,20 @@ void CCDChip::binBayerFrame()
 
             uint32_t BinFrameOffset;
             uint32_t val;
-            uint32_t BinW=SubW/BinX;
-            uint32_t RawOffset=0;
-            uint32_t BinOffsetH;
+            uint32_t BinW = SubW / BinX;
+            uint32_t RawOffset = 0;
 
             for (uint32_t i = 0; i < SubH; i++)
             {
-                BinOffsetH=(((i/BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
+                uint32_t BinOffsetH = (((i / BinY) & 0xFFFFFFFE) + (i & 0x00000001)) * BinW;
                 for (uint32_t j = 0; j < SubW; j++)
                 {
-                    BinFrameOffset=BinOffsetH + ((j/BinX) & 0xFFFFFFFE) + (j & 0x00000001);
-                    val=BinFrame16[BinFrameOffset];
-                    val+=RawFrame16[RawOffset];
-                    if(val>UINT16_MAX)
-                        val=UINT16_MAX;
-                    BinFrame16[BinFrameOffset]=(uint16_t)val;
+                    BinFrameOffset = BinOffsetH + ((j / BinX) & 0xFFFFFFFE) + (j & 0x00000001);
+                    val = BinFrame16[BinFrameOffset];
+                    val += RawFrame16[RawOffset];
+                    if(val > UINT16_MAX)
+                        val = UINT16_MAX;
+                    BinFrame16[BinFrameOffset] = (uint16_t)val;
                     RawOffset++;
                 }
             }

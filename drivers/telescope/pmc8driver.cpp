@@ -76,9 +76,9 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
 #define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
-#define PMC8_RATE_SIDEREAL 15.0
+#define PMC8_RATE_SIDEREAL 15.041
 #define PMC8_RATE_LUNAR 14.685
-#define PMC8_RATE_SOLAR 15.041
+#define PMC8_RATE_SOLAR 15.0
 #define PMC8_RATE_KING 15.0369
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
@@ -155,12 +155,14 @@ bool convert_precise_rate_to_motor(double rate, int *mrate)
 
     if (*mrate > PMC8_MAX_PRECISE_MOTOR_RATE)
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate, PMC8_MAX_PRECISE_MOTOR_RATE);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate,
+                     PMC8_MAX_PRECISE_MOTOR_RATE);
         *mrate = PMC8_MAX_PRECISE_MOTOR_RATE;
     }
     else if (*mrate < -PMC8_MAX_PRECISE_MOTOR_RATE)
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate, -PMC8_MAX_PRECISE_MOTOR_RATE);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate,
+                     -PMC8_MAX_PRECISE_MOTOR_RATE);
         *mrate = -PMC8_MAX_PRECISE_MOTOR_RATE;
     }
 
@@ -297,8 +299,10 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
     }
     else
     {
-        if (connection == PMC8_SERIAL_STANDARD) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via standard Serial cable.  Please wait 15 seconds for mount to reset.");
-        else if (connection == PMC8_SERIAL_AUTO) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Serial.  Autodecting cable type.  This could take up to 30 seconds.");
+        if (connection == PMC8_SERIAL_STANDARD) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION,
+                    "Connecting to PMC8 via standard Serial cable.  Please wait 15 seconds for mount to reset.");
+        else if (connection == PMC8_SERIAL_AUTO) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION,
+                    "Connecting to PMC8 via Serial.  Autodecting cable type.  This could take up to 30 seconds.");
         else DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via inverted Serial.");
     }
 
@@ -337,7 +341,8 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
         }
     }
 
-    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting. Check power and connection settings.");
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,
+                "check_pmc8_connection(): Error connecting. Check power and connection settings.");
 
     return false;
 }
@@ -459,7 +464,8 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
             }
             else
             {
-                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Could not detect device type. Only received #%d bytes, expected at least 31.", nbytes_read);
+                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,
+                             "Could not detect device type. Only received #%d bytes, expected at least 31.", nbytes_read);
                 return false;
             }
 
@@ -519,7 +525,8 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         return true;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Could not read firmware. Only received #%d bytes, expected at least 12.", nbytes_read);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,
+                 "Could not read firmware. Only received #%d bytes, expected at least 12.", nbytes_read);
     return false;
 }
 
@@ -836,25 +843,25 @@ uint8_t get_pmc8_tracking_mode_from_rate(double rate)
     bool rc = convert_precise_rate_to_motor(rate, &tmotor);
     
     //now check what sidereal would be
-    rc = convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
+    convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
     if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;
     else
     {
 
         //now check lunar
-        rc = convert_precise_rate_to_motor(PMC8_RATE_LUNAR, &refmotor);
+        convert_precise_rate_to_motor(PMC8_RATE_LUNAR, &refmotor);
         if (tmotor == refmotor) mode = PMC8_TRACK_LUNAR;
         else
         {
 
             //now check solar
-            rc = convert_precise_rate_to_motor(PMC8_RATE_SOLAR, &refmotor);
+            convert_precise_rate_to_motor(PMC8_RATE_SOLAR, &refmotor);
             if (tmotor == refmotor) mode = PMC8_TRACK_SOLAR;
             else
             {
 
                 //now check king
-                rc = convert_precise_rate_to_motor(PMC8_RATE_KING, &refmotor);
+                convert_precise_rate_to_motor(PMC8_RATE_KING, &refmotor);
                 if (tmotor == refmotor) mode = PMC8_TRACK_KING;
                 // must be custom
                 else mode = PMC8_TRACK_CUSTOM;
@@ -1345,7 +1352,8 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
     // shouldn't get here if slewing, but doesn't hurt to check
     if (cur_rate > PMC8_MAX_TRACK_RATE)
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): Cannot send guide correction while slewing! rate=%d dir=%d",
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,
+                     "pmc8_start_guide(): Cannot send guide correction while slewing! rate=%d dir=%d",
                      cur_rate, gdir);
         return rc;
     }
@@ -1363,7 +1371,9 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
 
         if (new_rate < 0)
         {
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): with current tracking rate of %f, requested guide rate of %f would flip RA motor in opposite direction, so pausing motor instead.", cur_rate, new_rate);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG,
+                         "pmc8_start_guide(): with current tracking rate of %f, requested guide rate of %f would flip RA motor in opposite direction, so pausing motor instead.",
+                         cur_rate, new_rate);
             new_rate = 0;
         }
 
@@ -1479,7 +1489,8 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
     {
         if (!set_pmc8_custom_ra_track_rate(fd, pstate->cur_rate))
         {
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): error restoring tracking_rate to %f", pstate->cur_rate);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): error restoring tracking_rate to %f",
+                         pstate->cur_rate);
             return false;
         }
     }
@@ -1715,7 +1726,8 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
 
         if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))
         {
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response,
+                         expresp);
             return false;
         }
     }
@@ -1770,7 +1782,8 @@ bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
 
     if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response,
+                     expresp);
         return false;
     }
 

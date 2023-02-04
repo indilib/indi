@@ -110,11 +110,11 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 
 ioptronHC8406::ioptronHC8406()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION |
-                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK, 4);
 
 }
 
@@ -672,7 +672,7 @@ int ioptronHC8406::setioptronHC8406Longitude(double Long)
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }
@@ -1155,6 +1155,10 @@ bool ioptronHC8406::sendScopeTime()
     int day, month, year, result;
     struct tm ltm;
     struct tm utm;
+
+    memset(&ltm, 0, sizeof(ltm));
+    memset(&utm, 0, sizeof(utm));
+
     time_t time_epoch;
 
     if (isSimulation())
@@ -1203,6 +1207,7 @@ bool ioptronHC8406::sendScopeTime()
     ltm.tm_mday = day;
     ltm.tm_mon  = month - 1;
     ltm.tm_year = year - 1900;
+    ltm.tm_isdst = 0;
 
     // Get time epoch
     time_epoch = mktime(&ltm);

@@ -295,7 +295,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, text);
+    int rc = sscanf(response, "%15[^=]=%15[^\n]s", key, text);
     if (rc == 2)
     {
         HubTP.s = IPS_OK;
@@ -328,7 +328,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         HubTP.s = IPS_OK;
@@ -358,7 +358,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WiredTP.s = IPS_OK;
@@ -388,7 +388,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%16[^\n]s", key, text);
+    rc = sscanf(response, "%15[^=]=%15[^\n]s", key, text);
     if (rc == 2)
     {
         WiredTP.s = IPS_OK;
@@ -418,7 +418,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -447,7 +447,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -476,7 +476,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -505,7 +505,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -534,7 +534,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%32[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -563,7 +563,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -592,7 +592,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]= %s", key, text);
+    rc = sscanf(response, "%15[^=]= %s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -621,7 +621,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -650,7 +650,7 @@ bool FocusLynxF1::getHubConfig()
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
-    rc = sscanf(response, "%16[^=]=%s", key, text);
+    rc = sscanf(response, "%15[^=]=%s", key, text);
     if (rc == 2)
     {
         WifiTP.s = IPS_OK;
@@ -770,7 +770,6 @@ bool FocusLynxF2::initProperties()
 {
     FocusLynxBase::initProperties();
     // Remove from F2 to avoid confusion, already present on F1
-    deleteProperty("DRIVER_INFO");
     deleteProperty("SIMULATION");
     // deleteProperty("POLLING_PERIOD");
     return true;
