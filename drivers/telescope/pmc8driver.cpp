@@ -1550,12 +1550,27 @@ bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int 
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
 
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = hour_angle - 6;
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = hour_angle + 6;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = hour_angle - 6;
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = hour_angle + 6;
+        else
+            return false;
+    }
+    // Southern Hemisphere
     else
-        return false;
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = -(hour_angle + 6);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = -(hour_angle - 6);
+        else
+            return false;
+    }
+    
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - lst = %f hour_angle=%f", lst, hour_angle);
 
@@ -1582,10 +1597,22 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "racounts = %d  motor_angle = %f", racounts, motor_angle);
 
-    if (deccounts < 0)
-        hour_angle = motor_angle + 6;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (deccounts < 0)
+            hour_angle = motor_angle + 6;
+        else
+            hour_angle = motor_angle - 6;
+    }
+    // Southern Hemisphere
     else
-        hour_angle = motor_angle - 6;
+    {
+        if (deccounts < 0)
+            hour_angle = -(motor_angle + 6);
+        else
+            hour_angle = -(motor_angle - 6);        
+    }
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "hour_angle = %f", hour_angle);
 
@@ -1601,11 +1628,23 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra_value (final) = %f", ra_value);
 
     motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
-
-    if (motor_angle >= 0)
-        dec_value = 90 - motor_angle;
+    
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (motor_angle >= 0)
+            dec_value = 90 - motor_angle;
+        else
+            dec_value = 90 + motor_angle;
+    }
+    // Sourthern Hemisphere
     else
-        dec_value = 90 + motor_angle;
+    {
+        if (motor_angle >= 0)
+            dec_value = -90 + motor_angle;
+        else
+            dec_value = -90 - motor_angle;
+    }
 
     return true;
 }
@@ -1614,12 +1653,26 @@ bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, in
 {
     double motor_angle;
 
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = (dec - 90.0);
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = -(dec - 90.0);
-    else
-        return false;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = (dec - 90.0);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = -(dec - 90.0);
+        else
+            return false;
+    }
+    // Southern Hemisphere
+    else 
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = -(dec + 90.0);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = (dec + 90.0);
+        else
+            return false;
+    }
 
     *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
 
@@ -1970,10 +2023,22 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
 
-    if (hour_angle < 0.0)
-        return INDI::Telescope::PIER_WEST;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (hour_angle < 0.0)
+            return INDI::Telescope::PIER_WEST;
+        else
+            return INDI::Telescope::PIER_EAST;
+    }
+    //Southern Hemisphere
     else
-        return INDI::Telescope::PIER_EAST;
+    {
+        if (hour_angle < 0.0)
+            return INDI::Telescope::PIER_EAST;
+        else
+            return INDI::Telescope::PIER_WEST;
+    }
 }
 
 bool sync_pmc8(int fd, double ra, double dec)
