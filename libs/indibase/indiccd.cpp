@@ -371,8 +371,10 @@ bool CCD::initProperties()
                                      m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
                                        m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+#ifdef HAVE_XISF
     EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
                                      m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
+#endif
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
 
@@ -2325,6 +2327,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
         }
+#ifdef HAVE_XISF
         else if (EncodeFormatSP[FORMAT_XISF].getState() == ISS_ON)
         {
             std::vector<FITSRecord> fitsKeywords;
@@ -2398,6 +2401,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
         }
+#endif
         else
         {
             // If image extension was set to fits (default), change if bin if not already set to another format by the driver.
