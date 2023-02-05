@@ -54,6 +54,10 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
+#ifdef HAVE_XISF
+#include <libxisf.h>
+#endif
+
 const char * IMAGE_SETTINGS_TAB = "Image Settings";
 const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
@@ -367,6 +371,8 @@ bool CCD::initProperties()
                                      m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
                                        m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+    EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
+                                     m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
 
@@ -2194,17 +2200,19 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     if (targetChip->getFrameBufferSize() == 0)
         sendImage = saveImage = false;
 
+    LOG_INFO("Exposure complete");
     if (sendImage || saveImage)
     {
         if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON)
         {
+            targetChip->setImageExtension("fits");
+
             int img_type  = 0;
             int byte_type = 0;
             int status    = 0;
             long naxis    = targetChip->getNAxis();
             long naxes[3];
             int nelements = 0;
-            std::string bit_depth;
             char error_status[MAXRBUF];
 
             naxes[0] = targetChip->getSubW() / targetChip->getBinX();
@@ -2215,19 +2223,16 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 case 8:
                     byte_type = TBYTE;
                     img_type  = BYTE_IMG;
-                    bit_depth = "8 bits per pixel";
                     break;
 
                 case 16:
                     byte_type = TUSHORT;
                     img_type  = USHORT_IMG;
-                    bit_depth = "16 bits per pixel";
                     break;
 
                 case 32:
                     byte_type = TULONG;
                     img_type  = ULONG_IMG;
-                    bit_depth = "32 bits per pixel";
                     break;
 
                 default:
@@ -2316,6 +2321,79 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             if (rc == false)
             {
+                targetChip->setExposureFailed();
+                return false;
+            }
+        }
+        else if (EncodeFormatSP[FORMAT_XISF].getState() == ISS_ON)
+        {
+            std::vector<FITSRecord> fitsKeywords;
+            addFITSKeywords(targetChip, fitsKeywords);
+            targetChip->setImageExtension("xisf");
+            LOG_INFO("Saving XISF");
+
+            try
+            {
+                LibXISF::Image image;
+                LibXISF::XISFWriter xisfWriter;
+
+                std::unique_lock<std::mutex> guard(ccdBufferLock);
+                for (auto &keyword : fitsKeywords)
+                {
+                    image.addFITSKeyword({keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str()});
+                    QVariant value = keyword.valueString().c_str();
+                    image.addFITSKeywordAsProperty(keyword.key().c_str(), value);
+                }
+
+                image.setGeometry(targetChip->getXRes(), targetChip->getYRes(), targetChip->getNAxis() == 2 ? 1 : 3);
+                switch(targetChip->getBPP())
+                {
+                    case 8:  image.setSampleFormat(LibXISF::Image::UInt8); break;
+                    case 16: image.setSampleFormat(LibXISF::Image::UInt16); break;
+                    case 32: image.setSampleFormat(LibXISF::Image::UInt32); break;
+                    default: LOGF_ERROR("Unsupported bits per pixel value %d", targetChip->getBPP()); return false;
+                }
+
+                switch(targetChip->getFrameType())
+                {
+                    case CCDChip::LIGHT_FRAME: image.setImageType(LibXISF::Image::Light); break;
+                    case CCDChip::BIAS_FRAME:  image.setImageType(LibXISF::Image::Bias); break;
+                    case CCDChip::DARK_FRAME:  image.setImageType(LibXISF::Image::Dark); break;
+                    case CCDChip::FLAT_FRAME:  image.setImageType(LibXISF::Image::Flat); break;
+                }
+
+                if (targetChip->SendCompressed)
+                {
+                    image.setCompression(LibXISF::DataBlock::LZ4);
+                    image.setByteshuffling(targetChip->getBPP() / 8);
+                }
+
+                if (HasBayer())
+                    image.setColorFilterArray({2, 2, BayerT[2].text});
+
+                if (targetChip->getNAxis() == 3)
+                {
+                    image.setPixelStorage(LibXISF::Image::Normal);
+                    image.setColorSpace(LibXISF::Image::RGB);
+                }
+
+                std::memcpy(image.imageData(), targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+                xisfWriter.writeImage(image);
+
+                QByteArray xisfFile;
+                xisfWriter.save(xisfFile);
+                LOGF_INFO("Sending XISF image %d bytes", xisfFile.size());
+                bool rc = uploadFile(targetChip, xisfFile.data(), xisfFile.size(), sendImage, saveImage);
+                 if (rc == false)
+                {
+                    targetChip->setExposureFailed();
+                    return false;
+                }
+
+            }
+            catch (LibXISF::Error &error)
+            {
+                LOGF_ERROR("XISF Error: %s", error.what());
                 targetChip->setExposureFailed();
                 return false;
             }
@@ -2414,7 +2492,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         IDSetText(&FileNameTP, nullptr);
     }
 
-    if (targetChip->SendCompressed)
+    if (targetChip->SendCompressed && EncodeFormatSP[FORMAT_XISF].getState() != ISS_ON)
     {
         if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON && !strcmp(targetChip->getImageExtension(), "fits"))
         {

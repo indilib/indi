@@ -704,11 +704,12 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertySwitch CaptureFormatSP {0};
 
         /// Specifies Driver image encoding format (FITS, Native, JPG, ..etc)
-        INDI::PropertySwitch EncodeFormatSP {2};
+        INDI::PropertySwitch EncodeFormatSP {3};
         enum
         {
             FORMAT_FITS,     /*!< Save Image as FITS format  */
-            FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+            FORMAT_NATIVE,   /*!< Save Image as the native format of the camera itself. */
+            FORMAT_XISF      /*!< Save Image as XISF format  */
         };
 
         ISwitch UploadS[3];
