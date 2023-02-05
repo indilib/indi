@@ -159,6 +159,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     dsp/transforms.cpp
     dsp/convolution.cpp
     pid/pid.cpp
+    fitskeyword.cpp
 
     # connectionplugins/ttybase.cpp
 )
@@ -195,6 +196,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indilogger.h
     indicontroller.h
     indiusbdevice.h
+    fitskeyword.h
 )
 
 # Private Headers
