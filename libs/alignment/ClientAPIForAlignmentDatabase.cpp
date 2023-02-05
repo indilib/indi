@@ -583,7 +583,7 @@ bool ClientAPIForAlignmentDatabase::SendEntryData(const AlignmentDatabaseEntry &
     {
         // I have a BLOB to send
         SetDriverBusy();
-        BaseClient->startBlob(Device->getDeviceName(), pBLOB->getName(), timestamp());
+        BaseClient->startBlob(Device->getDeviceName(), pBLOB->getName(), indi_timestamp());
         BaseClient->sendOneBlob(pBLOB->at(0)->getName(), CurrentValues.PrivateDataSize, pBLOB->at(0)->getFormat(),
                                 CurrentValues.PrivateData.get());
         BaseClient->finishBlob();
