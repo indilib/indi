@@ -293,11 +293,6 @@ class BaseDevice
         }
 
     protected:
-        BaseDevice *operator&()
-        {
-            return this;
-        }
-
         friend class AbstractBaseClientPrivate;
         std::shared_ptr<BaseDevicePrivate> d_ptr;
         BaseDevice(BaseDevicePrivate &dd);
