@@ -2348,7 +2348,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                     image.addFITSKeywordAsProperty(keyword.key().c_str(), value);
                 }
 
-                image.setGeometry(targetChip->getXRes(), targetChip->getYRes(), targetChip->getNAxis() == 2 ? 1 : 3);
+                image.setGeometry(targetChip->getSubW() / targetChip->getBinX(),
+                                  targetChip->getSubH() / targetChip->getBinY(),
+                                  targetChip->getNAxis() == 2 ? 1 : 3);
                 switch(targetChip->getBPP())
                 {
                     case 8:  image.setSampleFormat(LibXISF::Image::UInt8); break;
@@ -2380,7 +2382,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                     image.setColorSpace(LibXISF::Image::RGB);
                 }
 
-                std::memcpy(image.imageData(), targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+                std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
                 xisfWriter.writeImage(image);
 
                 QByteArray xisfFile;
