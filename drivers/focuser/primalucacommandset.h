@@ -49,8 +49,8 @@ typedef enum
 {
     MOT_1,
     MOT_2,
-    MOT_NONE
-} MotorType;
+    GENERIC_NODE
+} NodeType;
 
 typedef enum
 {
@@ -75,7 +75,7 @@ class Communication
 
         // Communication functions
         bool sendRequest(const json &command, json *response = nullptr);
-        template <typename T = int32_t> bool genericRequest(const std::string &motor, const std::string &type, const json &command, T *response = nullptr);
+        template <typename T = int32_t> bool genericRequest(const std::string &node, const std::string &type, const json &command, T *response = nullptr);
         /**
          * @brief Get paramter from device.
          * @param type motor type, if MOT_NONE, then it's a generic device-wide get.
@@ -85,7 +85,7 @@ class Communication
          * @example {"req":{"get":{"SN":""}}} --> {"res":{"get":{"SN":" ESATTO30001"}}
          * @example {"req":{"get": {"MOT1" :{"BKLASH": ""}}} --> {"res":{"get": {"MOT1" :{"BKLASH": 120}}}
          */
-        template <typename T = int32_t> bool get(MotorType type, const std::string &parameter, T &value);
+        template <typename T = int32_t> bool get(NodeType type, const std::string &parameter, T &value);
 
         /**
          * @brief getStringAsDouble Same as get, but it receives a string and scan it for double.
@@ -94,7 +94,7 @@ class Communication
          * @param value value to store the scanned double value.
          * @return True if successful, false otherwise.
          */
-        bool getStringAsDouble(MotorType type, const std::string &parameter, double &value);
+        bool getStringAsDouble(NodeType type, const std::string &parameter, double &value);
 
         /**
          * @brief Set JSON value
@@ -104,7 +104,7 @@ class Communication
          * @example {"req":{"set": {"ARCO": 1}}} --> {"res":{"set": {"ARCO": "done"}}}
          * @example {"req":{"set": {"MOT1" :{"BKLASH": 120}}} --> {"res":{"set": {"MOT1" :{"BKLASH": "done"}}}
          */
-        bool set(MotorType type, const json &value);
+        bool set(NodeType type, const json &value);
 
         /**
          * @brief Execute a motor command.
@@ -112,7 +112,7 @@ class Communication
          * @return True if successful, false otherwise.
          * @example {"req":{"cmd":{"MOT1" :{"MOT_STOP":""}}}} --> {"res":{"cmd":{"MOT1" :{"MOT_STOP":"done"}}}}
          */
-        template <typename T = int32_t> bool command(MotorType type, const json &jsonCommand);
+        template <typename T = int32_t> bool command(NodeType type, const json &jsonCommand);
 
     private:
         std::string m_DeviceName;
@@ -247,5 +247,29 @@ class Arco
     private:
         std::unique_ptr<Communication> m_Communication;
 };
+
+/*****************************************************************************************
+ * GIOTTO class
+ * Set/Get brightness levels
+******************************************************************************************/
+class GIOTTO
+{
+
+    public:
+        explicit GIOTTO(const std::string &name, int port);
+
+        // Light
+        bool setLightEnabled(bool enabled);
+        bool isLightEnabled();
+
+        // Brightness
+        bool getMaxBrightness(uint16_t &value);
+        bool setBrightness(uint16_t value);
+        bool getBrightness(uint16_t &value);
+
+private:
+    std::unique_ptr<Communication> m_Communication;
+};
+
 
 }

@@ -66,7 +66,6 @@ class BaseClientPrivate : public AbstractBaseClientPrivate
 #else
         TcpSocket clientSocket;
 #endif
-        int exitCode;
         LilXmlParser xmlParser;
 };
 

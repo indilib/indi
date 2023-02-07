@@ -25,15 +25,14 @@
 
 #include "gtest/gtest.h"
 
+#include "basedevice.h"
 #include "baseclient.h"
 #include "indiproperty.h"
 
 #include "utils.h"
 
-#include "SharedBuffer.h"
 #include "ServerMock.h"
 #include "IndiClientMock.h"
-
 
 #define TEST_TCP_PORT 17624
 #define TEST_UNIX_SOCKET "/tmp/indi-test-server"
@@ -47,48 +46,26 @@ class MyClient : public INDI::BaseClient
         MyClient(const std::string &dev, const std::string &prop) : dev(dev), prop(prop) {}
         virtual ~MyClient() {}
     protected:
-        virtual void newDevice(INDI::BaseDevice *)
+        virtual void newDevice(INDI::BaseDevice) override
         {
             std::cerr << "new device\n";
         }
-        virtual void removeDevice(INDI::BaseDevice *)
+        virtual void removeDevice(INDI::BaseDevice) override
         {
             std::cerr << "remove device\n";
         }
-        virtual void newProperty(INDI::Property *)
+        virtual void newProperty(INDI::Property) override
         {
         };
-        virtual void removeProperty(INDI::Property *)
-        {
-        }
-        virtual void newBLOB(IBLOB *bp)
-        {
-            std::cerr << "new blob: " << bp->format << "\n";
-
-        }
-
-        virtual void newSwitch(ISwitchVectorProperty *)
+        virtual void removeProperty(INDI::Property)  override
         {
         }
 
-        virtual void newNumber(INumberVectorProperty *)
-        {
-        }
-
-        virtual void newMessage(INDI::BaseDevice *, int)
-        {
-        }
-        virtual void newText(ITextVectorProperty *)
-        {
-        }
-        virtual void newLight(ILightVectorProperty *)
-        {
-        }
-        virtual void serverConnected()
+        virtual void serverConnected()  override
         {
             std::cerr << "server connected\n";
         }
-        virtual void serverDisconnected(int)
+        virtual void serverDisconnected(int)  override
         {
             std::cerr << "server disconnected\n";
         }
@@ -105,8 +82,6 @@ TEST(IndiclientTcpConnect, ClientConnect)
 
     MyClient * client = new MyClient("machin", "truc");
     client->setServer("127.0.0.1", TEST_TCP_PORT);
-
-
 
     // FIXME : async
     // auto wait = runAsync([&fakeServer]=>{

@@ -867,7 +867,7 @@ void BaseDevice::doMessage(XMLEle *msg)
     if (time_stamp)
         snprintf(msgBuffer, MAXRBUF, "%s: %s ", valuXMLAtt(time_stamp), valuXMLAtt(message));
     else
-        snprintf(msgBuffer, MAXRBUF, "%s: %s ", timestamp(), valuXMLAtt(message));
+        snprintf(msgBuffer, MAXRBUF, "%s: %s ", indi_timestamp(), valuXMLAtt(message));
 
     std::string finalMsg = msgBuffer;
 

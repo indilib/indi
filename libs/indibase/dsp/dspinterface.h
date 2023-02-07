@@ -26,6 +26,7 @@
 #include <fitsio.h>
 #include <functional>
 #include <string>
+#include <cstdint>
 
 namespace INDI
 {

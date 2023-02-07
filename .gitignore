@@ -11,7 +11,7 @@ build-*/
 # Gedit backup files
 *~
 *.orig
-
+.cache
 .cmake
 nbproject/
 .directory

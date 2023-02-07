@@ -33,6 +33,7 @@
 #include "indipropertyswitch.h"
 #include "inditimer.h"
 #include "indielapsedtimer.h"
+#include "fitskeyword.h"
 #include "dsp/manager.h"
 #include "stream/streammanager.h"
 
@@ -485,7 +486,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool SetCaptureFormat(uint8_t index);
 
         /**
-         * \brief Add FITS keywords to a fits file
+         * \brief Generate FITS keywords that will be added to FIST/XISF file
          * \param targetChip The target chip to extract the keywords from.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
@@ -505,7 +506,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKeywords);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);

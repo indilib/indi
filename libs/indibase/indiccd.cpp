@@ -46,6 +46,7 @@
 #include <cmath>
 #include <regex>
 #include <iterator>
+#include <variant>
 
 #include <dirent.h>
 #include <cerrno>
@@ -1863,23 +1864,21 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-void CCD::addFITSKeywords(CCDChip * targetChip)
+void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKeywords)
 {
-    int status = 0;
     char dev_name[MAXINDINAME] = {0};
     double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
-    auto fptr = *targetChip->fitsFilePointer();
 
     AutoCNumeric locale;
-    fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
-    fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
+    fitsKeywords.push_back({"ROWORDER", "TOP-DOWN", "Row Order"});
+    fitsKeywords.push_back({"INSTRUME", getDeviceName(), "CCD Name"});
 
     // Telescope
     if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
     {
-        fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
+        fitsKeywords.push_back({"TELESCOP", ActiveDeviceT[0].text, "Telescope name"});
     }
 
     // Which scope is in effect
@@ -1893,10 +1892,10 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
         LOG_WARN("Telescope aperture is missing.");
 
     // Observer
-    fits_update_key_str(fptr, "OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name", &status);
+    fitsKeywords.push_back({"OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name"});
 
     // Object
-    fits_update_key_str(fptr, "OBJECT", FITSHeaderT[FITS_OBJECT].text, "Object name", &status);
+    fitsKeywords.push_back({"OBJECT", FITSHeaderT[FITS_OBJECT].text, "Object name"});
 
     double subPixSize1 = static_cast<double>(targetChip->getPixelSizeX());
     double subPixSize2 = static_cast<double>(targetChip->getPixelSizeY());
@@ -1907,48 +1906,48 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
 
     strncpy(dev_name, getDeviceName(), MAXINDINAME);
 
-    fits_update_key_dbl(fptr, "EXPTIME", exposureDuration, 6, "Total Exposure Time (s)", &status);
+    fitsKeywords.push_back({"EXPTIME", exposureDuration, 6, "Total Exposure Time (s)"});
 
     if (targetChip->getFrameType() == CCDChip::DARK_FRAME)
-        fits_update_key_dbl(fptr, "DARKTIME", exposureDuration, 6, "Total Dark Exposure Time (s)", &status);
+        fitsKeywords.push_back({"DARKTIME", exposureDuration, 6, "Total Dark Exposure Time (s)"});
 
     // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
     if (HasCooler() || TemperatureNP.p == IP_RO)
-        fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 3, "CCD Temperature (Celsius)", &status);
+        fitsKeywords.push_back({"CCD-TEMP", TemperatureN[0].value, 3, "CCD Temperature (Celsius)"});
 
-    fits_update_key_dbl(fptr, "PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)", &status);
-    fits_update_key_dbl(fptr, "PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)", &status);
-    fits_update_key_lng(fptr, "XBINNING", targetChip->getBinX(), "Binning factor in width", &status);
-    fits_update_key_lng(fptr, "YBINNING", targetChip->getBinY(), "Binning factor in height", &status);
+    fitsKeywords.push_back({"PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)"});
+    fitsKeywords.push_back({"PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)"});
+    fitsKeywords.push_back({"XBINNING", targetChip->getBinX(), "Binning factor in width"});
+    fitsKeywords.push_back({"YBINNING", targetChip->getBinY(), "Binning factor in height"});
     // XPIXSZ and YPIXSZ are logical sizes including the binning factor
     double xpixsz = subPixSize1 * subBinX;
     double ypixsz = subPixSize2 * subBinY;
-    fits_update_key_dbl(fptr, "XPIXSZ", xpixsz, 6, "X binned pixel size in microns", &status);
-    fits_update_key_dbl(fptr, "YPIXSZ", ypixsz, 6, "Y binned pixel size in microns", &status);
+    fitsKeywords.push_back({"XPIXSZ", xpixsz, 6, "X binned pixel size in microns"});
+    fitsKeywords.push_back({"YPIXSZ", ypixsz, 6, "Y binned pixel size in microns"});
 
     switch (targetChip->getFrameType())
     {
         case CCDChip::LIGHT_FRAME:
-            fits_update_key_str(fptr, "FRAME", "Light", "Frame Type", &status);
-            fits_update_key_str(fptr, "IMAGETYP", "Light Frame", "Frame Type", &status);
+            fitsKeywords.push_back({"FRAME", "Light", "Frame Type"});
+            fitsKeywords.push_back({"IMAGETYP", "Light Frame", "Frame Type"});
             break;
         case CCDChip::BIAS_FRAME:
-            fits_update_key_str(fptr, "FRAME", "Bias", "Frame Type", &status);
-            fits_update_key_str(fptr, "IMAGETYP", "Bias Frame", "Frame Type", &status);
+            fitsKeywords.push_back({"FRAME", "Bias", "Frame Type"});
+            fitsKeywords.push_back({"IMAGETYP", "Bias Frame", "Frame Type"});
             break;
         case CCDChip::FLAT_FRAME:
-            fits_update_key_str(fptr, "FRAME", "Flat", "Frame Type", &status);
-            fits_update_key_str(fptr, "IMAGETYP", "Flat Frame", "Frame Type", &status);
+            fitsKeywords.push_back({"FRAME", "Flat", "Frame Type"});
+            fitsKeywords.push_back({"IMAGETYP", "Flat Frame", "Frame Type"});
             break;
         case CCDChip::DARK_FRAME:
-            fits_update_key_str(fptr, "FRAME", "Dark", "Frame Type", &status);
-            fits_update_key_str(fptr, "IMAGETYP", "Dark Frame", "Frame Type", &status);
+            fitsKeywords.push_back({"FRAME", "Dark", "Frame Type"});
+            fitsKeywords.push_back({"IMAGETYP", "Dark Frame", "Frame Type"});
             break;
     }
 
     if (CurrentFilterSlot != -1 && CurrentFilterSlot <= static_cast<int>(FilterNames.size()))
     {
-        fits_update_key_str(fptr, "FILTER", FilterNames.at(CurrentFilterSlot - 1).c_str(), "Filter", &status);
+        fitsKeywords.push_back({"FILTER", FilterNames.at(CurrentFilterSlot - 1).c_str(), "Filter"});
     }
 
 #ifdef WITH_MINMAX
@@ -1957,50 +1956,50 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
         double min_val, max_val;
         getMinMax(&min_val, &max_val, targetChip);
 
-        fits_update_key_dbl(fptr, "DATAMIN", min_val, 6, "Minimum value", &status);
-        fits_update_key_dbl(fptr, "DATAMAX", max_val, 6, "Maximum value", &status);
+        fitsKeywords.push_back({"DATAMIN", min_val, 6, "Minimum value"});
+        fitsKeywords.push_back({"DATAMAX", max_val, 6, "Maximum value"});
     }
 #endif
 
     if (HasBayer() && targetChip->getNAxis() == 2)
     {
-        fits_update_key_lng(fptr, "XBAYROFF", atoi(BayerT[0].text), "X offset of Bayer array", &status);
-        fits_update_key_lng(fptr, "YBAYROFF", atoi(BayerT[1].text), "Y offset of Bayer array", &status);
-        fits_update_key_str(fptr, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
+        fitsKeywords.push_back({"XBAYROFF", atoi(BayerT[0].text), "X offset of Bayer array"});
+        fitsKeywords.push_back({"YBAYROFF", atoi(BayerT[1].text), "Y offset of Bayer array"});
+        fitsKeywords.push_back({"BAYERPAT", BayerT[2].text, "Bayer color pattern"});
     }
 
     if (!std::isnan(effectiveFocalLength))
-        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 3, "Focal Length (mm)", &status);
+        fitsKeywords.push_back({"FOCALLEN", effectiveFocalLength, 3, "Focal Length (mm)"});
 
     if (!std::isnan(effectiveAperture))
-        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 3, "Telescope diameter (mm)", &status);
+        fitsKeywords.push_back({"APTDIA", effectiveAperture, 3, "Telescope diameter (mm)"});
 
     if (!std::isnan(MPSAS))
     {
-        fits_update_key_dbl(fptr, "MPSAS", MPSAS, 6, "Sky Quality (mag per arcsec^2)", &status);
+        fitsKeywords.push_back({"MPSAS", MPSAS, 6, "Sky Quality (mag per arcsec^2)"});
     }
 
     if (!std::isnan(RotatorAngle))
     {
-        fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
+        fitsKeywords.push_back({"ROTATANG", RotatorAngle, 3, "Rotator angle in degrees"});
     }
 
     // JJ ed 2020-03-28
     // If the focus position or temperature is set, add the information to the FITS header
     if (FocuserPos != -1)
     {
-        fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
+        fitsKeywords.push_back({"FOCUSPOS", FocuserPos, "Focus position in steps"});
     }
     if (!std::isnan(FocuserTemp))
     {
-        fits_update_key_dbl(fptr, "FOCUSTEM", FocuserTemp, 3, "Focuser temperature in degrees C", &status);
+        fitsKeywords.push_back({"FOCUSTEM", FocuserTemp, 3, "Focuser temperature in degrees C"});
     }
 
     // SCALE assuming square-pixels
     if (!std::isnan(effectiveFocalLength))
     {
         double pixScale = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
-        fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
+        fitsKeywords.push_back({"SCALE", pixScale, 6, "arcsecs per pixel"});
     }
 
 
@@ -2064,76 +2063,76 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
 
         if (!std::isnan(Latitude) && !std::isnan(Longitude))
         {
-            fits_update_key_dbl(fptr, "SITELAT", Latitude, 6, "Latitude of the imaging site in degrees", &status);
-            fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
+            fitsKeywords.push_back({"SITELAT", Latitude, 6, "Latitude of the imaging site in degrees"});
+            fitsKeywords.push_back({"SITELONG", Longitude, 6, "Longitude of the imaging site in degrees"});
         }
         if (!std::isnan(Airmass))
         {
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
-            fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
-            fits_update_key_dbl(fptr, "OBJCTAZ", Azimuth, 6, "Azimuth of center of image in Degrees", &status);
-            fits_update_key_dbl(fptr, "OBJCTALT", Altitude, 6, "Altitude of center of image in Degrees", &status);
+            fitsKeywords.push_back({"AIRMASS", Airmass, 6, "Airmass"});
+            fitsKeywords.push_back({"OBJCTAZ", Azimuth, 6, "Azimuth of center of image in Degrees"});
+            fitsKeywords.push_back({"OBJCTALT", Altitude, 6, "Altitude of center of image in Degrees"});
         }
-        fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA in Hours", &status);
-        fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC in Degrees", &status);
+        fitsKeywords.push_back({"OBJCTRA", ra_str, "Object J2000 RA in Hours"});
+        fitsKeywords.push_back({"OBJCTDEC", de_str, "Object J2000 DEC in Degrees"});
 
-        fits_update_key_dbl(fptr, "RA", J2000RA * 15, 6, "Object J2000 RA in Degrees", &status);
-        fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
+        fitsKeywords.push_back({"RA", J2000RA * 15, 6, "Object J2000 RA in Degrees"});
+        fitsKeywords.push_back({"DEC", J2000DE, 6, "Object J2000 DEC in Degrees"});
 
         // pier side
         switch (pierSide)
         {
             case 0:
-                fits_update_key_str(fptr, "PIERSIDE", "WEST", "West, looking East", &status);
+                fitsKeywords.push_back({"PIERSIDE", "WEST", "West, looking East"});
                 break;
             case 1:
-                fits_update_key_str(fptr, "PIERSIDE", "EAST", "East, looking West", &status);
+                fitsKeywords.push_back({"PIERSIDE", "EAST", "East, looking West"});
                 break;
         }
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
-        fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
+        fitsKeywords.push_back({"EQUINOX", 2000, "Equinox"});
 
         // Add WCS Info
         if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && !std::isnan(effectiveFocalLength))
         {
             double J2000RAHours = J2000RA * 15;
-            fits_update_key_dbl(fptr, "CRVAL1", J2000RAHours, 10, "CRVAL1", &status);
-            fits_update_key_dbl(fptr, "CRVAL2", J2000DE, 10, "CRVAL1", &status);
+            fitsKeywords.push_back({"CRVAL1", J2000RAHours, 10, "CRVAL1"});
+            fitsKeywords.push_back({"CRVAL2", J2000DE, 10, "CRVAL1"});
 
             char radecsys[8] = "FK5";
             char ctype1[16]  = "RA---TAN";
             char ctype2[16]  = "DEC--TAN";
 
-            fits_update_key_str(fptr, "RADECSYS", radecsys, "RADECSYS", &status);
-            fits_update_key_str(fptr, "CTYPE1", ctype1, "CTYPE1", &status);
-            fits_update_key_str(fptr, "CTYPE2", ctype2, "CTYPE2", &status);
+            fitsKeywords.push_back({"RADECSYS", radecsys, "RADECSYS"});
+            fitsKeywords.push_back({"CTYPE1", ctype1, "CTYPE1"});
+            fitsKeywords.push_back({"CTYPE2", ctype2, "CTYPE2"});
 
             double crpix1 = subW / subBinX / 2.0;
             double crpix2 = subH / subBinY / 2.0;
 
-            fits_update_key_dbl(fptr, "CRPIX1", crpix1, 10, "CRPIX1", &status);
-            fits_update_key_dbl(fptr, "CRPIX2", crpix2, 10, "CRPIX2", &status);
+            fitsKeywords.push_back({"CRPIX1", crpix1, 10, "CRPIX1"});
+            fitsKeywords.push_back({"CRPIX2", crpix2, 10, "CRPIX2"});
 
             double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
             double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
 
-            fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
-            fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
+            fitsKeywords.push_back({"SECPIX1", secpix1, 10, "SECPIX1"});
+            fitsKeywords.push_back({"SECPIX2", secpix2, 10, "SECPIX2"});
 
             double degpix1 = secpix1 / 3600.0;
             double degpix2 = secpix2 / 3600.0;
 
-            fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
-            fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
+            fitsKeywords.push_back({"CDELT1", degpix1, 10, "CDELT1"});
+            fitsKeywords.push_back({"CDELT2", degpix2, 10, "CDELT2"});
 
             // Rotation is CW, we need to convert it to CCW per CROTA1 definition
             double rotation = 360 - CCDRotationN[0].value;
             if (rotation > 360)
                 rotation -= 360;
 
-            fits_update_key_dbl(fptr, "CROTA1", rotation, 10, "CROTA1", &status);
-            fits_update_key_dbl(fptr, "CROTA2", rotation, 10, "CROTA2", &status);
+            fitsKeywords.push_back({"CROTA1", rotation, 10, "CROTA1"});
+            fitsKeywords.push_back({"CROTA2", rotation, 10, "CROTA2"});
 
             /*double cd[4];
             cd[0] = degpix1;
@@ -2148,8 +2147,8 @@ void CCD::addFITSKeywords(CCDChip * targetChip)
         }
     }
 
-    fits_update_key_str(fptr, "DATE-OBS", exposureStartTime, "UTC start date of observation", &status);
-    fits_write_comment(fptr, "Generated by INDI", &status);
+    fitsKeywords.push_back({"DATE-OBS", exposureStartTime, "UTC start date of observation"});
+    fitsKeywords.push_back(FITSRecord("Generated by INDI"));
 }
 
 void CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation,
@@ -2272,7 +2271,29 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
 
-            addFITSKeywords(targetChip);
+            std::vector<FITSRecord> fitsKeywords;
+            addFITSKeywords(targetChip, fitsKeywords);
+
+            for (auto &keyword : fitsKeywords)
+            {
+                switch(keyword.type())
+                {
+                case INDI::FITSRecord::VOID:
+                    break;
+                case INDI::FITSRecord::COMMENT:
+                    fits_write_comment(fptr, keyword.comment().c_str(), &status);
+                    break;
+                case INDI::FITSRecord::STRING:
+                    fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &status);
+                    break;
+                case INDI::FITSRecord::LONGLONG:
+                    fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &status);
+                    break;
+                case INDI::FITSRecord::DOUBLE:
+                    fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(), &status);
+                    break;
+                }
+            }
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
             targetChip->finishFITSFile(status);
