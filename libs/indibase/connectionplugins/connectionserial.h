@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace Connection
 {

@@ -35,6 +35,8 @@ class LX200Gemini : public LX200Generic
         ~LX200Gemini() override = default;
 
         virtual void ISGetProperties(const char *dev) override;
+    
+        /* Return True if any property was successfully processed, false otherwise.*/
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char **texts, char **names, int n) override;
@@ -66,6 +68,10 @@ class LX200Gemini : public LX200Generic
     private:
         void syncState();
         void syncSideOfPier();
+        bool getRefraction(bool &on);
+        bool getRefractionJNOW(int &data);
+        bool setRefraction(int data);
+        bool setRefraction(bool on);
         bool sleepMount();
         bool wakeupMount();
 
@@ -108,17 +114,14 @@ class LX200Gemini : public LX200Generic
         INumber PECMaxStepsN[1];
         INumberVectorProperty PECMaxStepsNP;
   
-        ISwitch ServoPrecisionS[2];
-        ISwitchVectorProperty ServoPrecisionSP;
-
-        INumber PECEnableAtBootN[1];
-        INumberVectorProperty PECEnableAtBootNP;
-
         ISwitch PECEnableAtBootS[1];
         ISwitchVectorProperty PECEnableAtBootSP;
 
         INumber PECGuidingSpeedN[1];
         INumberVectorProperty PECGuidingSpeedNP;
+
+        ISwitch ServoPrecisionS[2];
+        ISwitchVectorProperty ServoPrecisionSP;
 
         ISwitch FlipControlS[2];
         ISwitchVectorProperty FlipControlSP;
@@ -126,12 +129,12 @@ class LX200Gemini : public LX200Generic
         INumber FlipPositionN[2];
         INumberVectorProperty FlipPositionNP;
 
-        INumber RAFlipPositionN[2];
-        INumberVectorProperty RAFlipPositionNP;
-
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
+        ISwitch RefractionControlS[1];
+        ISwitchVectorProperty RefractionControlSP;
+    
         float gemini_software_level_;
 
         enum

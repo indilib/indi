@@ -49,13 +49,13 @@ WatchDogClient::~WatchDogClient()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void WatchDogClient::newDevice(INDI::BaseDevice *dp)
+void WatchDogClient::newDevice(INDI::BaseDevice dp)
 {
-    IDLog("Receiving new device: %s\n", dp->getDeviceName());
+    IDLog("Receiving new device: %s\n", dp.getDeviceName());
 
-    if (dome.empty() || std::string(dp->getDeviceName()) == dome)
+    if (dome.empty() || std::string(dp.getDeviceName()) == dome)
         domeOnline = true;
-    if (mount.empty() || std::string(dp->getDeviceName()) == mount)
+    if (mount.empty() || std::string(dp.getDeviceName()) == mount)
         mountOnline = true;
 
     isReady = (domeOnline && mountOnline);
@@ -64,12 +64,12 @@ void WatchDogClient::newDevice(INDI::BaseDevice *dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void WatchDogClient::newProperty(INDI::Property *property)
+void WatchDogClient::newProperty(INDI::Property property)
 {
-    if (!strcmp(property->getName(), "TELESCOPE_PARK"))
-        mountParkSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "DOME_PARK"))
-        domeParkSP = property->getSwitch();
+    if (property.isNameMatch("TELESCOPE_PARK"))
+        mountParkSP = property.getSwitch();
+    else if (property.isNameMatch("DOME_PARK"))
+        domeParkSP = property.getSwitch();
 }
 
 /**************************************************************************************

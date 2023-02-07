@@ -1,0 +1,34 @@
+name: Check Codestyle
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get INDI Sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+
+      - name: Check codestyle of all changed files with suffix cpp,cxx,c,h
+        run: |
+          sudo apt-get update
+          sudo apt-get -qq -y install astyle
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "changed file $file";
+            scripts/check-codestyle.sh "$file";
+          done
+        shell: bash

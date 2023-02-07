@@ -132,6 +132,10 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&RotatorStepDelayNP, RotatorStepDelayN, 1, getDeviceName(), "ROTATOR_STEP_DELAY", "Step Rate",
                        ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
+    // For custom focuser, set max steps
+    CustomRotatorStepNP[0].fill("STEPS", "Steps", "%.f", 0, 5000000, 0, 0);
+    CustomRotatorStepNP.fill(getDeviceName(), "CUSTOM_STEPS", "Custom steps", ROTATOR_TAB, IP_RW, 60, IPS_IDLE);
+
     //////////////////////////////////////////////////////
     // Aux Properties
     /////////////////////////////////////////////////////
@@ -198,6 +202,7 @@ bool NightCrawler::updateProperties()
         INDI::RotatorInterface::updateProperties();
         defineProperty(&RotatorAbsPosNP);
         defineProperty(&RotatorStepDelayNP);
+        defineProperty(CustomRotatorStepNP);
 
         // Aux
         defineProperty(&GotoAuxNP);
@@ -223,6 +228,7 @@ bool NightCrawler::updateProperties()
         INDI::RotatorInterface::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
         deleteProperty(RotatorStepDelayNP.name);
+        deleteProperty(CustomRotatorStepNP);
 
         // Aux
         deleteProperty(GotoAuxNP.name);
@@ -624,6 +630,27 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             IDSetNumber(&RotatorAbsPosNP, nullptr);
             if (RotatorAbsPosNP.s == IPS_BUSY)
                 LOGF_INFO("Rotator moving to %.f ticks...", values[0]);
+            return true;
+        }
+        else if (CustomRotatorStepNP.isNameMatch(name))
+        {
+            CustomRotatorStepNP.update(values, names, n);
+            CustomRotatorStepNP.setState(IPS_OK);
+            CustomRotatorStepNP.apply();
+
+            auto customValue = CustomRotatorStepNP[0].getValue();
+            if (customValue > 0)
+            {
+                RotatorAbsPosN[0].min =  customValue / 2.0;
+                RotatorAbsPosN[0].max = customValue / 2.0;
+                m_RotatorStepsPerRevolution = customValue;
+                m_RotatorTicksPerDegree = m_RotatorStepsPerRevolution / 360.0;
+                IUUpdateMinMax(&RotatorAbsPosNP);
+
+                LOGF_INFO("Custom steps per revolution updated to %.f. Ticks per degree %.2f", customValue,
+                          m_RotatorTicksPerDegree);
+            }
+            saveConfig(CustomRotatorStepNP);
             return true;
         }
         else if (strstr(name, "ROTATOR"))
@@ -1343,6 +1370,7 @@ bool NightCrawler::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &FocusStepDelayNP);
     IUSaveConfigNumber(fp, &RotatorStepDelayNP);
     IUSaveConfigNumber(fp, &AuxStepDelayNP);
+    CustomRotatorStepNP.save(fp);
 
     return true;
 }

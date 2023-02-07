@@ -47,11 +47,11 @@ SkySafariClient::~SkySafariClient()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void SkySafariClient::newDevice(INDI::BaseDevice *dp)
+void SkySafariClient::newDevice(INDI::BaseDevice dp)
 {
-    IDLog("Receiving %s Device...\n", dp->getDeviceName());
+    IDLog("Receiving %s Device...\n", dp.getDeviceName());
 
-    if (std::string(dp->getDeviceName()) == mount)
+    if (dp.isDeviceNameMatch(mount))
         mountOnline = true;
 
     if (mountOnline)
@@ -61,26 +61,26 @@ void SkySafariClient::newDevice(INDI::BaseDevice *dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void SkySafariClient::newProperty(INDI::Property *property)
+void SkySafariClient::newProperty(INDI::Property property)
 {
-    if (!strcmp(property->getName(), "TELESCOPE_PARK"))
-        mountParkSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "EQUATORIAL_EOD_COORD"))
-        eqCoordsNP = property->getNumber();
-    else if (!strcmp(property->getName(), "GEOGRAPHIC_COORD"))
-        geoCoordsNP = property->getNumber();
-    else if (!strcmp(property->getName(), "ON_COORD_SET"))
-        gotoModeSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "TELESCOPE_ABORT_MOTION"))
-        abortSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "TELESCOPE_SLEW_RATE"))
-        slewRateSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "TELESCOPE_MOTION_NS"))
-        motionNSSP = property->getSwitch();
-    else if (!strcmp(property->getName(), "TELESCOPE_MOTION_WE"))
-        motionWESP = property->getSwitch();
-    else if (!strcmp(property->getName(), "TIME_UTC"))
-        timeUTC = property->getText();
+    if (property.isNameMatch("TELESCOPE_PARK"))
+        mountParkSP = property.getSwitch();
+    else if (property.isNameMatch("EQUATORIAL_EOD_COORD"))
+        eqCoordsNP = property.getNumber();
+    else if (property.isNameMatch("GEOGRAPHIC_COORD"))
+        geoCoordsNP = property.getNumber();
+    else if (property.isNameMatch("ON_COORD_SET"))
+        gotoModeSP = property.getSwitch();
+    else if (property.isNameMatch("TELESCOPE_ABORT_MOTION"))
+        abortSP = property.getSwitch();
+    else if (property.isNameMatch("TELESCOPE_SLEW_RATE"))
+        slewRateSP = property.getSwitch();
+    else if (property.isNameMatch("TELESCOPE_MOTION_NS"))
+        motionNSSP = property.getSwitch();
+    else if (property.isNameMatch("TELESCOPE_MOTION_WE"))
+        motionWESP = property.getSwitch();
+    else if (property.isNameMatch("TIME_UTC"))
+        timeUTC = property.getText();
 }
 
 /**************************************************************************************

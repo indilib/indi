@@ -243,7 +243,7 @@ bool LPM::getReadings()
             if (fp != nullptr)
             {
                 LOG_DEBUG("save reading...");
-                fprintf(fp, "%f\t%s\n", mpsas, timestamp());
+                fprintf(fp, "%f\t%s\n", mpsas, indi_timestamp());
                 fflush(fp);
             }
             count++;

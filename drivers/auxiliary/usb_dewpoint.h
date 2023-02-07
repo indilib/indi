@@ -1,6 +1,6 @@
 /*
     USB_Dewpoint
-    Copyright (C) 2017 Jarno Paananen
+    Copyright (C) 2017-2023 Jarno Paananen
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -110,36 +110,15 @@ class USBDewpoint : public INDI::DefaultDevice
         Connection::Serial *serialConnection{ nullptr };
         int PortFD{ -1 };
 
-        INumber OutputsN[3];
-        INumberVectorProperty OutputsNP;
-
-        INumber TemperaturesN[3];
-        INumberVectorProperty TemperaturesNP;
-
-        INumber CalibrationsN[3];
-        INumberVectorProperty CalibrationsNP;
-
-        INumber ThresholdsN[2];
-        INumberVectorProperty ThresholdsNP;
-
-        INumber HumidityN[1];
-        INumberVectorProperty HumidityNP;
-
-        INumber DewpointN[1];
-        INumberVectorProperty DewpointNP;
-
-        INumber AggressivityN[1];
-        INumberVectorProperty AggressivityNP;
-
-        ISwitch AutoModeS[2];
-        ISwitchVectorProperty AutoModeSP;
-
-        ISwitch LinkOut23S[2];
-        ISwitchVectorProperty LinkOut23SP;
-
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
-
-        INumber FWversionN[1];
-        INumberVectorProperty FWversionNP;
+        INDI::PropertyNumber OutputsNP{3};
+        INDI::PropertyNumber TemperaturesNP{3};
+        INDI::PropertyNumber CalibrationsNP{3};
+        INDI::PropertyNumber ThresholdsNP{2};
+        INDI::PropertyNumber HumidityNP{1};
+        INDI::PropertyNumber DewpointNP{1};
+        INDI::PropertyNumber AggressivityNP{1};
+        INDI::PropertySwitch AutoModeSP{2};
+        INDI::PropertySwitch LinkOut23SP{2};
+        INDI::PropertySwitch ResetSP{1};
+        INDI::PropertyNumber FWversionNP{1};
 };
