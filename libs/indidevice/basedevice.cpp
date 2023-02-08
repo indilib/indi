@@ -907,10 +907,18 @@ bool BaseDevice::isValid() const
     return d->valid;
 }
 
-void BaseDevice::watchProperty(const char *name, const std::function<void(INDI::Property)> &callback)
+void BaseDevice::watchProperty(const char *name, const std::function<void(INDI::Property)> &callback, WATCH watch)
 {
     D_PTR(BaseDevice);
-    d->watchPropertyMap[name] = callback;
+    d->watchPropertyMap[name].callback = callback;
+    d->watchPropertyMap[name].watch = watch;
+
+    // call callback function if property already exists
+    INDI::Property property = getProperty(name);
+    if (property.isValid())
+    {
+        callback(property);
+    }
 }
 
 void BaseDevice::registerProperty(const INDI::Property &property)
