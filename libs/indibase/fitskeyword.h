@@ -20,6 +20,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include <fitsio.h>
 
 namespace INDI
