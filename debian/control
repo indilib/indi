@@ -16,7 +16,8 @@ Build-Depends: debhelper (>= 9),
                libogg-dev,
                libfftw3-dev,
                libev-dev,
-               librtlsdr-dev
+               librtlsdr-dev,
+               libxisf-dev,
 Standards-Version: 3.9.5
 Homepage: http://www.indilib.org/
 Vcs-Git: git://github.com/indilib/indi.git
@@ -93,3 +94,11 @@ Description: Instrument-Neutral Device Interface library -- debug symbols
  .
  This package contains the debug symbols for the INDI library and all the
  utilities, useful to investigate problems in INDI.
+
+Package: libindi-xisf
+Architecture: any
+Section: lib
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1 (= ${binary:Version})
+Description: Wrapper library for LibXISF
+ By installing this package you enable XISF format support
+
