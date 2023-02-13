@@ -96,20 +96,18 @@ TEST(IndiserverSingleDriver, ReplyToPing)
 }
 
 
-static void startFakeDev(IndiServerController &indiServer)
+void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
 {
     setupSigPipe();
+
+    fakeDriver.setup();
 
     std::string fakeDriverPath = getTestExePath("fakedriver");
 
     // Start indiserver with one instance, repeat 0
     indiServer.startDriver(fakeDriverPath);
     fprintf(stderr, "indiserver started\n");
-}
 
-
-static void establishDriver(IndiServerController &indiServer, DriverMock &fakeDriver, const std::string & name) {
-    (void)indiServer;
     fakeDriver.waitEstablish();
     fprintf(stderr, "fake driver started\n");
 
@@ -117,29 +115,10 @@ static void establishDriver(IndiServerController &indiServer, DriverMock &fakeDr
     fprintf(stderr, "getProperties received\n");
 
     // Give one props to the driver
-    fakeDriver.cnx.send("<defBLOBVector device='" + name + "' name='testblob' label='test label' group='test_group' state='Idle' perm='ro' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
+    fakeDriver.cnx.send("<defBLOBVector device='fakedev1' name='testblob' label='test label' group='test_group' state='Idle' perm='ro' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
     fakeDriver.cnx.send("<defBLOB name='content' label='content'/>\n");
     fakeDriver.cnx.send("</defBLOBVector>\n");
 }
-
-static void startFakeDev1(IndiServerController &indiServer, DriverMock &fakeDriver)
-{
-    fakeDriver.setup();
-    startFakeDev(indiServer);
-    establishDriver(indiServer, fakeDriver, "fakeDev1");
-}
-
-static void addDriver(IndiServerController &indiServer, DriverMock &fakeDriver, const std::string & name)
-{
-    fakeDriver.setup();
-
-    std::string fakeDriverPath = getTestExePath("fakedriver");
-
-    indiServer.addDriver(fakeDriverPath);
-
-    establishDriver(indiServer, fakeDriver, name);
-}
-
 
 void connectFakeDev1Client(IndiServerController &, DriverMock &fakeDriver, IndiClientMock &indiClient)
 {
@@ -335,43 +314,6 @@ TEST(IndiserverSingleDriver, ForwardBase64BlobToIPClient)
 }
 
 
-TEST(IndiserverSingleDriver, SnoopDriverPropertie)
-{
-    // This tests snooping simple property from driver to driver
-    DriverMock fakeDriver;
-    IndiServerController indiServer;
-    indiServer.setFifo(true);
-    startFakeDev1(indiServer, fakeDriver);
-
-    DriverMock snoopDriver;
-    addDriver(indiServer, snoopDriver, "snoopDriver");
-
-    fakeDriver.ping();
-    snoopDriver.ping();
-
-    snoopDriver.cnx.send("<getProperties version='1.7' device='fakedev1' name='testnumber1'/>\n");
-
-    snoopDriver.ping();
-    fakeDriver.ping();
-
-    fakeDriver.cnx.send("<defNumberVector device='fakedev1' name='testnumber1' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>\n");
-    fakeDriver.cnx.send("<defNumber name='content' label='content' min='0' max='100' step='1'>50</defNumber>\n");
-    fakeDriver.cnx.send("</defNumberVector>\n");
-
-    snoopDriver.cnx.expectXml("<defNumberVector device='fakedev1' name='testnumber1' label='test label' group='test_group' state='Idle' perm='rw' timeout='100' timestamp='2018-01-01T00:00:00'>");
-    snoopDriver.cnx.expectXml("<defNumber name='content' label='content' min='0' max='100' step='1'>");
-    snoopDriver.cnx.expect("\n50");
-    snoopDriver.cnx.expectXml("</defNumber>");
-    snoopDriver.cnx.expectXml("</defNumberVector>");
-
-    fakeDriver.terminateDriver();
-    snoopDriver.terminateDriver();
-
-    indiServer.kill();
-    indiServer.join();
-}
-
-
 #define DUMMY_BLOB_SIZE 64
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
@@ -421,7 +363,7 @@ TEST(IndiserverSingleDriver, ForwardBase64BlobToUnixClient)
 
 void driverSendAttachedBlob(DriverMock &fakeDriver, ssize_t size)
 {
-    fprintf(stderr, "Driver send new blob value as attachment\n");
+    fprintf(stderr, "Driver send new blob value - without actual attachment\n");
 
     // Allocate more memory than asked (simulate kernel BSD kernel rounding up)
     ssize_t physical_size=0x10000;
@@ -539,55 +481,5 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToIPClient)
     // Exit code 1 is expected when driver stopped
     indiServer.waitProcessEnd(1);
 }
-
-
-TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
-{
-    // This tests attached blob pass through
-    DriverMock fakeDriver;
-    IndiServerController indiServer;
-    indiServer.setFifo(true);
-    startFakeDev1(indiServer, fakeDriver);
-
-    DriverMock snoopDriver;
-    addDriver(indiServer, snoopDriver, "snoopDriver");
-
-    fakeDriver.ping();
-    snoopDriver.ping();
-
-    snoopDriver.cnx.send("<getProperties version='1.7' device='fakedev1' name='testblob'/>\n");
-    snoopDriver.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
-    snoopDriver.ping();
-
-    ssize_t size = 32;
-    driverSendAttachedBlob(fakeDriver, size);
-
-#if 0
-    // Until proper support by drivers, indiserver converts to base64 for that path
-    snoopDriver.cnx.allowBufferReceive(true);
-    snoopDriver.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    snoopDriver.cnx.expectXml("<oneBLOB name='content' size='32' format='.fits' attached='true'/>\n");
-    snoopDriver.cnx.expectXml("</setBLOBVector>");
-
-    SharedBuffer receivedFd;
-    snoopDriver.cnx.expectBuffer(receivedFd);
-    snoopDriver.cnx.allowBufferReceive(false);
-    EXPECT_GE( receivedFd.getSize(), 32);
-#else
-    snoopDriver.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    snoopDriver.cnx.expectXml("<oneBLOB name='content' size='32' format='.fits'>\n");
-    snoopDriver.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
-    snoopDriver.cnx.expectXml("</oneBLOB>\n");
-    snoopDriver.cnx.expectXml("</setBLOBVector>");
-#endif
-
-    fakeDriver.terminateDriver();
-    snoopDriver.terminateDriver();
-    // fakeSnooper.terminateDriver();
-    // Exit code 1 is expected when driver stopped
-    indiServer.kill();
-    indiServer.join();
-}
-
 
 #endif

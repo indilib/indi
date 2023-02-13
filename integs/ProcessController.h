@@ -43,7 +43,6 @@ public:
     void expectAlive();
     void expectExitCode(int e);
     void join();
-    void kill();
 
     void waitProcessEnd(int expectedExitCode);
 

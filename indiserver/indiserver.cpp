@@ -587,7 +587,7 @@ class MsgQueue: public Collectable
 
         void setFds(int rFd, int wFd);
 
-        virtual bool acceptSharedBuffers() const
+        bool acceptSharedBuffers() const
         {
             return useSharedBuffer;
         }
@@ -747,12 +747,6 @@ class DvrInfo: public MsgQueue
 
         /* Reference to all active drivers */
         static ConcurrentSet<DvrInfo> drivers;
-
-        // decoding of attached blobs from driver is not supported ATM. Be conservative here
-        virtual bool acceptSharedBuffers() const
-        {
-            return false;
-        }
 };
 
 class LocalDvrInfo: public DvrInfo

@@ -21,7 +21,6 @@
 #include "indiccd.h"
 #include "indifilterinterface.h"
 #include "indipropertyswitch.h"
-#include "fitskeyword.h"
 
 /**
  * @brief The GuideSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
@@ -82,7 +81,7 @@ class GuideSim : public INDI::CCD
         virtual IPState GuideWest(uint32_t) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
-        virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
+        virtual void addFITSKeywords(INDI::CCDChip *targetChip) override;
         virtual void activeDevicesUpdated() override;
         virtual int SetTemperature(double temperature) override;
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;

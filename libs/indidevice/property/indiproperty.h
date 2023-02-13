@@ -123,11 +123,6 @@ class Property
         bool isLabelMatch(const char *otherLabel) const;
         bool isLabelMatch(const std::string &otherLabel) const;
 
-        bool isDeviceNameMatch(const char *otherDeviceName) const;
-        bool isDeviceNameMatch(const std::string &otherDeviceName) const;
-
-        bool isTypeMatch(INDI_PROPERTY_TYPE otherType) const;
-
     public:
         void onUpdate(const std::function<void()> &callback);
 

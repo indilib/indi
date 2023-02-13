@@ -224,6 +224,15 @@ add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
 target_link_libraries(indi_usbdewpoint indidriver)
 install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 
+# ########## myDewController Pro Driver ###############
+SET(myDewControllerPro_SRC
+    myDewControllerPro.cpp)
+
+add_executable(indi_myDewControllerPro ${myDewControllerPro_SRC})
+target_link_libraries(indi_myDewControllerPro indidriver)
+install(TARGETS indi_myDewControllerPro RUNTIME DESTINATION bin)
+
+
 # ########## Deep Sky Dad FP1 ###############
 SET(deepskydad_fp1_SRC
     deepskydad_fp1.cpp)

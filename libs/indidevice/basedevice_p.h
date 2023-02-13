@@ -45,20 +45,6 @@ class BaseDevicePrivate
         /** @brief Parse and store BLOB in the respective vector */
         int setBLOB(INDI::PropertyBlob propertyBlob, const INDI::LilXmlElement &root, char *errmsg);
 
-        void emitWatchProperty(const INDI::Property &property, bool isNew)
-        {
-            auto it = watchPropertyMap.find(property.getName());
-            if (it != watchPropertyMap.end())
-            {
-                if (
-                    (it->second.watch == BaseDevice::WATCH_NEW_OR_UPDATE) ||
-                    (it->second.watch == BaseDevice::WATCH_NEW && isNew) ||
-                    (it->second.watch == BaseDevice::WATCH_UPDATE && !isNew)
-                )
-                    it->second.callback(property);
-            } 
-        }
-
         void addProperty(const INDI::Property &property)
         {
             {
@@ -66,7 +52,11 @@ class BaseDevicePrivate
                 pAll.push_back(property);
             }
 
-            emitWatchProperty(property, true);
+            auto it = watchPropertyMap.find(property.getName());
+            if (it != watchPropertyMap.end())
+            {
+                it->second(property);
+            }
         }
 
     public: // mediator
@@ -105,7 +95,6 @@ class BaseDevicePrivate
 
         void mediateUpdateProperty(Property property)
         {
-            emitWatchProperty(property, false);
             if (mediator)
             {
                 mediator->updateProperty(property);
@@ -169,17 +158,10 @@ class BaseDevicePrivate
         }
 
     public:
-        struct WatchDetails
-        {
-            std::function<void(INDI::Property)> callback;
-            BaseDevice::WATCH watch {BaseDevice::WATCH_NEW};
-        };
-
-    public:
         BaseDevice self {make_shared_weak(this)}; // backward compatibile (for operators as pointer)
         std::string deviceName;
         BaseDevice::Properties pAll;
-        std::map<std::string, WatchDetails> watchPropertyMap;
+        std::map<std::string, std::function<void(INDI::Property)>> watchPropertyMap;
         LilXmlParser xmlParser;
 
         INDI::BaseMediator *mediator {nullptr};

@@ -31,16 +31,11 @@
  */
 class IndiServerController : public ProcessController
 {
-        bool fifo;
+
     public:
-        IndiServerController();
-        ~IndiServerController();
-        void setFifo(bool enable);
         void start(const std::vector<std::string> & args);
 
         void startDriver(const std::string & driver);
-
-        void addDriver(const std::string & path);
 
         std::string getUnixSocketPath() const;
         int getTcpPort() const;

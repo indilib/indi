@@ -1476,11 +1476,14 @@ void * CCDSim::streamVideo()
     return nullptr;
 }
 
-void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeyword)
+void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip)
 {
-    INDI::CCD::addFITSKeywords(targetChip, fitsKeyword);
+    INDI::CCD::addFITSKeywords(targetChip);
 
-    fitsKeyword.push_back({"GAIN", GainN[0].value, 3, "Gain"});
+    auto fptr = *targetChip->fitsFilePointer();
+
+    int status = 0;
+    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }
 
 bool CCDSim::loadNextImage()

@@ -346,7 +346,7 @@ double time_ns();
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
  *  \return The formatted time stamp.
  */
-const char *indi_timestamp();
+const char *timestamp();
 
 /** \brief rangeHA Limits the hour angle value to be between -12 ---> 12
  *  \param r current hour angle value

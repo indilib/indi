@@ -18,9 +18,6 @@
 
 #include <system_error>
 #include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #include "utils.h"
 #include "IndiServerController.h"
@@ -28,24 +25,8 @@
 
 #define TEST_TCP_PORT 17624
 #define TEST_UNIX_SOCKET "/tmp/indi-test-server"
-#define TEST_INDI_FIFO "/tmp/indi-test-fifo"
 #define STRINGIFY_TOK(x) #x
 #define TO_STRING(x) STRINGIFY_TOK(x)
-
-IndiServerController::IndiServerController() {
-    fifo = false;
-}
-
-IndiServerController::~IndiServerController() {
-    // Abort any pending indi server
-    kill();
-    join();
-}
-
-
-void IndiServerController::setFifo(bool fifo) {
-    this->fifo = fifo;
-}
 
 void IndiServerController::start(const std::vector<std::string> & args) {
     ProcessController::start("../indiserver/indiserver", args);
@@ -57,39 +38,9 @@ void IndiServerController::startDriver(const std::string & path) {
     args.push_back("-u");
     args.push_back(TEST_UNIX_SOCKET);
 #endif
-
-    if (fifo) {
-        unlink(TEST_INDI_FIFO);
-        if (mkfifo(TEST_INDI_FIFO, 0600) == -1) {
-            throw std::system_error(errno, std::generic_category(), "mkfifo");
-        }
-        args.push_back("-f");
-        args.push_back(TEST_INDI_FIFO);
-    }
     args.push_back(path);
 
     start(args);
-}
-
-void IndiServerController::addDriver(const std::string & driver) {
-    if (!fifo) {
-        throw new std::runtime_error("Fifo is not enabled - cannot add driver");
-    }
-
-    int fifoFd = open(TEST_INDI_FIFO, O_WRONLY);
-    if (fifoFd == -1) {
-        throw std::system_error(errno, std::generic_category(), "opening fifo");
-    }
-
-    std::string cmd = "start " + driver +"\n";
-    int wr = write(fifoFd, cmd.data(), cmd.length());
-    if (wr == -1) {
-        auto e = errno;
-        close(fifoFd);
-        throw std::system_error(e, std::generic_category(), "write to fifo");
-    }
-
-    close(fifoFd);
 }
 
 std::string IndiServerController::getUnixSocketPath() const {

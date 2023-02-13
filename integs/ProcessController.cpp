@@ -89,7 +89,7 @@ void ProcessController::start(const std::string & path, const std::vector<std::s
     }
     if (pid == 0) {
         std::string error = "exec " + path;
-        // TODO : Close all file descriptor
+
         execv(fullArgs[0], (char * const *) fullArgs);
 
         // Child goes here....
@@ -101,13 +101,6 @@ void ProcessController::start(const std::string & path, const std::vector<std::s
 void ProcessController::waitProcessEnd(int exitCode) {
     join();
     expectExitCode(exitCode);
-}
-
-void ProcessController::kill() {
-    if (pid == -1) {
-        return;
-    }
-    ::kill(pid, SIGKILL);
 }
 
 void ProcessController::join() {

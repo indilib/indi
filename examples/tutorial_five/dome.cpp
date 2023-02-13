@@ -89,23 +89,26 @@ bool Dome::initProperties()
             mRainLight = rain; // we have real rainLight property, override mRainLight
             static IPState oldRainState = rain[0].getState();
 
-            IPState newRainState = rain[0].getState();
-            if (newRainState == IPS_ALERT)
+            rain.onUpdate([this, rain]()
             {
-                // If dome is open, then close it */
-                if (mShutterSwitch[0].getState() == ISS_ON)
-                    closeShutter();
-                else
-                    IDMessage(getDeviceName(), "Rain Alert Detected! Dome is already closed.");
-            }
-            
-            if (newRainState != IPS_ALERT && oldRainState == IPS_ALERT)
-            {
-                IDMessage(getDeviceName(), "Rain threat passed. Opening the dome is now safe.");
-            }
+                IPState newRainState = rain[0].getState();
+                if (newRainState == IPS_ALERT)
+                {
+                    // If dome is open, then close it */
+                    if (mShutterSwitch[0].getState() == ISS_ON)
+                        closeShutter();
+                    else
+                        IDMessage(getDeviceName(), "Rain Alert Detected! Dome is already closed.");
+                }
+                
+                if (newRainState != IPS_ALERT && oldRainState == IPS_ALERT)
+                {
+                    IDMessage(getDeviceName(), "Rain threat passed. Opening the dome is now safe.");
+                }
 
-            oldRainState = newRainState;
-        }, BaseDevice::WATCH_NEW_OR_UPDATE);
+                oldRainState = newRainState;
+            });
+        });
     });
 
     return true;

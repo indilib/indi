@@ -617,9 +617,7 @@ void AbstractBaseClient::newPingReply(std::string uid)
 
 void AbstractBaseClient::newUniversalMessage(std::string message)
 {
-    INDI_UNUSED(message);
-    // Do not log message to stderr, let child decide what to do with it.
-    //IDLog("%s\n", message.c_str());
+    IDLog("%s\n", message.c_str());
 }
 
 }

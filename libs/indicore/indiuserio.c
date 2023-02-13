@@ -297,7 +297,7 @@ void IUUserIODeleteVA(
         userio_xml_escape(io, user, name);
         userio_prints    (io, user, "'\n");
     }
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
 
     s_userio_xml_message_vprintf(io, user, fmt, ap);
 
@@ -367,7 +367,7 @@ void IDUserIOMessageVA(
         userio_xml_escape(io, user, dev);
         userio_prints    (io, user, "'\n");
     }
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, "/>\n");
 }
@@ -421,7 +421,7 @@ void IUUserIODefTextVA(
     userio_printf    (io, user, "  state='%s'\n", pstateStr(tvp->s)); // safe
     userio_printf    (io, user, "  perm='%s'\n", permStr(tvp->p)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", tvp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -468,7 +468,7 @@ void IUUserIODefNumberVA(
     userio_printf    (io, user, "  state='%s'\n", pstateStr(n->s)); // safe
     userio_printf    (io, user, "  perm='%s'\n", permStr(n->p)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", n->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -521,7 +521,7 @@ void IUUserIODefSwitchVA(
     userio_printf    (io, user, "  perm='%s'\n", permStr(s->p)); // safe
     userio_printf    (io, user, "  rule='%s'\n", ruleStr(s->r)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", s->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -562,7 +562,7 @@ void IUUserIODefLightVA(
     userio_xml_escape(io, user, lvp->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(lvp->s)); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -605,7 +605,7 @@ void IUUserIODefBLOBVA(
     userio_printf    (io, user, "  state='%s'\n", pstateStr(b->s)); // safe
     userio_printf    (io, user, "  perm='%s'\n", permStr(b->p)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", b->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -641,7 +641,7 @@ void IUUserIOSetTextVA(
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(tvp->s)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", tvp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -666,7 +666,7 @@ void IUUserIOSetNumberVA(
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(nvp->s)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", nvp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -691,7 +691,7 @@ void IUUserIOSetSwitchVA(
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(svp->s)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", svp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -714,7 +714,7 @@ void IUUserIOSetLightVA(
     userio_xml_escape(io, user, lvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(lvp->s)); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -738,7 +738,7 @@ void IUUserIOSetBLOBVA(
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(bvp->s)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", bvp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
@@ -763,7 +763,7 @@ void IUUserIOUpdateMinMax(
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(nvp->s)); // safe
     userio_printf    (io, user, "  timeout='%g'\n", nvp->timeout); // safe
-    userio_printf    (io, user, "  timestamp='%s'\n", indi_timestamp()); // safe
+    userio_printf    (io, user, "  timestamp='%s'\n", timestamp()); // safe
     userio_prints    (io, user, ">\n");
 
     for (int i = 0; i < nvp->nnp; i++)

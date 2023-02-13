@@ -317,7 +317,7 @@ void IDLog(const char *fmt, ...)
 {
     va_list ap;
     /* JM: Since all INDI's stderr are timestampped now, we don't need to time stamp ID Log */
-    /*fprintf (stderr, "%s ", indi_timestamp());*/
+    /*fprintf (stderr, "%s ", timestamp());*/
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
@@ -345,7 +345,7 @@ double time_ns()
 }
 
 /* return current system time in message format */
-const char *indi_timestamp()
+const char *timestamp()
 {
     static char ts[32];
     struct tm *tp;
