@@ -1,13 +1,13 @@
 /*******************************************************************************
  DDW Dome INDI Driver
 
- Copyright(c) 2020-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2020-2023 Jarno Paananen. All rights reserved.
 
  based on:
 
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2023 Jarno Paananen. All rights reserved.
 
  and
 
@@ -50,9 +50,6 @@ class DDW : public INDI::Dome
 
         virtual void TimerHit() override;
 
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-
         virtual IPState MoveAbs(double az) override;
         virtual IPState ControlShutter(ShutterOperation operation) override;
         virtual bool Abort() override;
@@ -66,8 +63,7 @@ class DDW : public INDI::Dome
     protected:
         bool SetupParms();
 
-        INumber FirmwareVersionN[1];
-        INumberVectorProperty FirmwareVersionNP;
+        INDI::PropertyNumber FirmwareVersionNP{1};
 
     private:
         int writeCmd(const char *cmd);
