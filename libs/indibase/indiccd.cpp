@@ -2306,25 +2306,30 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             std::vector<FITSRecord> fitsKeywords;
             addFITSKeywords(targetChip, fitsKeywords);
-
             for (auto &keyword : fitsKeywords)
             {
+                int key_status = 0;
                 switch(keyword.type())
                 {
                 case INDI::FITSRecord::VOID:
                     break;
                 case INDI::FITSRecord::COMMENT:
-                    fits_write_comment(fptr, keyword.comment().c_str(), &status);
+                    fits_write_comment(fptr, keyword.comment().c_str(), &key_status);
                     break;
                 case INDI::FITSRecord::STRING:
-                    fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &status);
+                    fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &key_status);
                     break;
                 case INDI::FITSRecord::LONGLONG:
-                    fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &status);
+                    fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &key_status);
                     break;
                 case INDI::FITSRecord::DOUBLE:
-                    fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(), &status);
+                    fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(), &key_status);
                     break;
+                }
+                if (key_status)
+                {
+                    fits_get_errstatus(key_status, error_status);
+                    LOGF_ERROR("FITS key %s Error: %s", keyword.key().c_str(), error_status);
                 }
             }
 
