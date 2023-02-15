@@ -32,6 +32,7 @@
 #define MYDEWHEATERPRO_TIMEOUT 3
 #define BOARD_FAN_TAB "Board Fan"
 #define TEMPERATURE_OFFSETS_TAB "Temperature/Tracking Offsets"
+#define LCD_DISPLAY_TAB "LCD Display"
 
 std::unique_ptr<myDewControllerPro> mydewcontrollerpro(new myDewControllerPro());
 
@@ -58,9 +59,24 @@ bool myDewControllerPro::initProperties()
     IUFillSwitch(&FanModeS[1], "Manual", "Manual", ISS_ON);
     IUFillSwitchVector(&FanModeSP, FanModeS, 2, getDeviceName(), "Fan_Mode", "Fan Mode", BOARD_FAN_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&EEPROMS[0], "Reset EEPROM", "Reset EEPROM to Defaults", ISS_OFF);
+    IUFillSwitch(&EEPROMS[1], "Save to EEPROM", "Save to EEPROM", ISS_OFF);
+    IUFillSwitchVector(&EEPROMSP, EEPROMS, 2, getDeviceName(), "EEPROM", "EEPROM", OPTIONS_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
+
     IUFillNumber(&FanTempTriggerN[FANTEMPOFF], "Board_Temp_Off", "Board Fan Temp Off", "%4.0f \u2103", 0., 100., 1., 0.);
     IUFillNumber(&FanTempTriggerN[FANTEMPON], "Board_Temp_On", "Board Fan Temp On", "%4.0f \u2103", 0., 100., 1., 0.);
     IUFillNumberVector(&FanTempTriggerNP, FanTempTriggerN, 2, getDeviceName(), "Fan Trigger Temps", "Fan Trigger", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillNumber(&LCDPageRefreshN[0], "Page Refresh Rate", "Page Refresh Rate", "%4.0f ms", 500., 5000., 500., 0.);
+    IUFillNumberVector(&LCDPageRefreshNP, LCDPageRefreshN, 1, getDeviceName(), "LCD Page", "LCD Page", LCD_DISPLAY_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillSwitch(&LCDDisplayTempUnitsS[0], "Celsius", "Celsius", ISS_ON);
+    IUFillSwitch(&LCDDisplayTempUnitsS[1], "Fahrenheit", "Fahrenheit", ISS_OFF);
+    IUFillSwitchVector(&LCDDisplayTempUnitsSP, LCDDisplayTempUnitsS, 2, getDeviceName(), "Temp Units", "Temp Units", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&EnableLCDDisplayS[0], "Disabled", "Disabled", ISS_ON);
+    IUFillSwitch(&EnableLCDDisplayS[1], "Enabled", "Enabled", ISS_OFF);
+    IUFillSwitchVector(&EnableLCDDisplaySP, EnableLCDDisplayS, 2, getDeviceName(), "LCD Status", "LCD Status", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
 
@@ -178,8 +194,12 @@ bool myDewControllerPro::updateProperties()
         defineProperty(&TrackingModeSP);
         defineProperty(&TrackingModeOffsetNP);
         defineProperty(&FanTempTriggerNP);
+        defineProperty(&EnableLCDDisplaySP);
+        defineProperty(&LCDDisplayTempUnitsSP);
+        defineProperty(&LCDPageRefreshNP);
+        defineProperty(&EEPROMSP);
 
-        //defineProperty(&ResetSP);
+
         defineProperty(&FWVersionNP);
         cancelOutputBoost();
 
@@ -206,8 +226,11 @@ bool myDewControllerPro::updateProperties()
         deleteProperty(TrackingModeSP.name);
         deleteProperty(TrackingModeOffsetNP.name);
         deleteProperty(FanTempTriggerNP.name);
+        deleteProperty(EnableLCDDisplaySP.name);
+        deleteProperty(LCDDisplayTempUnitsSP.name);
+        deleteProperty(LCDPageRefreshNP.name);
 
-        //deleteProperty(ResetSP.name);
+        deleteProperty(EEPROMSP.name);
         deleteProperty(FWVersionNP.name);
     }
 
@@ -353,6 +376,42 @@ bool myDewControllerPro::fanModeSet(unsigned int mode)
     return true;
 }
 
+bool myDewControllerPro::setLCDEnable(int mode)
+{
+    const char* mask = mode == 1 ? MDCP_LCD_ENABLE : MDCP_LCD_DISABLE;
+    if (!sendCommand(mask, nullptr)) {
+        LOG_INFO("Failed to set LCD enable");
+
+        return false;
+    }
+    return true;
+}
+
+
+bool myDewControllerPro::setEEPROM(int mode)
+{
+    const char* mask = mode == 1 ? MDCP_SAVE_TO_EEPROM : MDCP_RESET_EEPROM_TO_DEFAULT;
+    const char* message = mode == 1 ? "Saved to EEPPROM Successfully" : "Reset EEPROM to Default";
+    if (!sendCommand(mask, nullptr)) {
+        LOG_INFO("Failed to set ");
+
+        return false;
+    }
+    LOG_INFO(message);
+    return true;
+}
+
+bool myDewControllerPro::setLCDTempDisplay(int mode)
+{
+    const char* mask = mode == 1 ? MDCP_LCD_DISPLAY_FAHRENHEIT : MDCP_LCD_DISPLAY_CELSIUS;
+    if (!sendCommand(mask, nullptr)) {
+        LOG_INFO("Failed to set temp display mode");
+
+        return false;
+    }
+    return true;
+}
+
 bool myDewControllerPro::trackingModeSet(unsigned int mode)
 {
     char cmd[MDCP_CMD_LEN + 1];
@@ -387,6 +446,33 @@ bool myDewControllerPro::setCHThreeManualPower(unsigned int power)
     snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_CH3_MANUAL_POWER, power);
     if (!sendCommand(cmd, nullptr)) {
         LOG_INFO("Failed to set CH3 Power");
+        LOG_INFO(cmd);
+        return false;
+    }
+    return true;
+
+}
+bool myDewControllerPro::setFanSpeed(int speed)
+{
+    char cmd[MDCP_CMD_LEN + 1];
+
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_SPEED, speed);
+    if (!sendCommand(cmd, nullptr)) {
+        LOG_INFO("Failed to set Fan Speed");
+        LOG_INFO(cmd);
+        return false;
+    }
+    return true;
+
+}
+
+bool myDewControllerPro::setLCDPageRefreshRate(int time)
+{
+    char cmd[MDCP_CMD_LEN + 1];
+
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_LCD_DISPLAY_TIME, time);
+    if (!sendCommand(cmd, nullptr)) {
+        LOG_INFO("Failed to set LCD page refresh");
         LOG_INFO(cmd);
         return false;
     }
@@ -561,6 +647,47 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
 
     }
 
+    if (!strcmp(name, EnableLCDDisplaySP.name))
+    {
+        IUUpdateSwitch(&EnableLCDDisplaySP, states, names, n);
+        EnableLCDDisplaySP.s= IPS_BUSY;
+        int mode = IUFindOnSwitchIndex(&EnableLCDDisplaySP);
+        setLCDEnable(mode);
+
+        EnableLCDDisplaySP.s = IPS_OK;
+        IDSetSwitch(&EnableLCDDisplaySP, nullptr);
+        readSettings();
+        return true;
+
+    }
+
+    if (!strcmp(name, LCDDisplayTempUnitsSP.name))
+    {
+        IUUpdateSwitch(&LCDDisplayTempUnitsSP, states, names, n);
+        LCDDisplayTempUnitsSP.s= IPS_BUSY;
+        int mode = IUFindOnSwitchIndex(&LCDDisplayTempUnitsSP);
+        setLCDTempDisplay(mode);
+
+        LCDDisplayTempUnitsSP.s = IPS_OK;
+        IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
+        readSettings();
+        return true;
+
+    }
+
+    if (!strcmp(name, EEPROMSP.name))
+    {
+        IUUpdateSwitch(&EEPROMSP, states, names, n);
+        EEPROMSP.s= IPS_BUSY;
+        int mode = IUFindOnSwitchIndex(&EEPROMSP);
+        setEEPROM(mode);
+
+        EEPROMSP.s = IPS_OK;
+        IDSetSwitch(&EEPROMSP, nullptr);
+        return true;
+
+    }
+
 
 
 
@@ -644,6 +771,29 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         setFanTempTrigger(tempOn, tempOff);
         FanTempTriggerNP.s = IPS_OK;
         IDSetNumber(&FanTempTriggerNP, nullptr);
+        readSettings();
+        return true;
+
+    }
+    if (!strcmp(name, FanSpeedNP.name)) {
+        IUUpdateNumber(&FanSpeedNP, values, names, n);
+        FanSpeedNP.s = IPS_BUSY;
+        int speed = FanSpeedN[0].value;
+        setFanSpeed(speed);
+        FanSpeedNP.s = IPS_OK;
+        IDSetNumber(&FanSpeedNP, nullptr);
+        readSettings();
+        return true;
+
+    }
+
+    if (!strcmp(name, LCDPageRefreshNP.name)) {
+        IUUpdateNumber(&LCDPageRefreshNP, values, names, n);
+        LCDPageRefreshNP.s = IPS_BUSY;
+        int time = LCDPageRefreshN[0].value;
+        setLCDPageRefreshRate(time);
+        LCDPageRefreshNP.s = IPS_OK;
+        IDSetNumber(&LCDPageRefreshNP, nullptr);
         readSettings();
         return true;
 
@@ -849,6 +999,46 @@ bool myDewControllerPro::readSettings()
         FanTempTriggerNP.s = IPS_OK;
         IDSetNumber(&FanTempTriggerNP, nullptr);
     }
+    if (!sendCommand(MDCP_GET_LCD_DISPLAY_TIME, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    if (sscanf(resp, MDCP_GET_LCD_DISPLAY_TIME_RESPONSE, &fanTemp) == 1) {
+        LCDPageRefreshN[0].value = fanTemp;
+        LCDPageRefreshNP.s = IPS_OK;
+        IDSetNumber(&LCDPageRefreshNP, nullptr);
+    }
+
+    if (!sendCommand(MDCP_GET_LCD_STATE, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    if (sscanf(resp, MDCP_GET_LCD_STATE_RESPONSE, &mode) == 1) {
+        IUResetSwitch(&EnableLCDDisplaySP);
+
+        EnableLCDDisplayS[mode].s = ISS_ON;
+        EnableLCDDisplaySP.s = IPS_OK;
+        IDSetSwitch(&EnableLCDDisplaySP, nullptr);
+    }
+
+    if (!sendCommand(MDCP_GET_TEMP_DISPLAY, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    if (sscanf(resp, MDCP_GET_TEMP_DISPLAY_RESPONSE, &mode) == 1) {
+        IUResetSwitch(&LCDDisplayTempUnitsSP);
+
+        LCDDisplayTempUnitsS[mode-1].s = ISS_ON;
+        LCDDisplayTempUnitsSP.s = IPS_OK;
+        IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
+    }
+
+
+
+
 
          return true;
 }

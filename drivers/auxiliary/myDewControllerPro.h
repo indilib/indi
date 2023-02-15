@@ -26,6 +26,18 @@
 
 #define MDCP_CMD_LEN 8
 
+//LCD Display Commands
+#define MDCP_GET_LCD_STATE "5#"
+#define MDCP_GET_LCD_STATE_RESPONSE "5%d$"
+#define MDCP_LCD_DISABLE "{#"
+#define MDCP_LCD_ENABLE "}#"
+#define MDCP_GET_LCD_DISPLAY_TIME "H#"
+#define MDCP_GET_LCD_DISPLAY_TIME_RESPONSE "H%d$"
+#define MDCP_SET_LCD_DISPLAY_TIME "b%d#"
+#define MDCP_GET_TEMP_DISPLAY "h#"
+#define MDCP_GET_TEMP_DISPLAY_RESPONSE "h%d$"
+#define MDCP_LCD_DISPLAY_CELSIUS "c#"
+#define MDCP_LCD_DISPLAY_FAHRENHEIT "f#"
 
 
 //Misc Commands
@@ -65,9 +77,6 @@
 #define MDCP_CLEAR_TEMP_OFFSETS "&#"
 #define MDCP_GET_TEMP_OFFSETS "?#"
 #define MDCP_GET_TEMP_OFFSETS_RESPONSE "?%f#%f#%f$"
-#define MDCP_GET_TEMP_DISPLAY_MODE "h#"
-#define MDCP_SET_TEMP_DISPLAY_C "c#"
-#define MDCP_SET_TEMP_DISPLAY_F "f#"
 #define MDCP_GET_TEMP_RESPONSE "C%f#%f#%f$"
 
 //Board Cooling Fan Commands
@@ -146,11 +155,16 @@ class myDewControllerPro : public INDI::DefaultDevice
         bool channelThreeModeSet(unsigned int mode);
         bool setCHThreeManualPower(unsigned int power);
         bool trackingModeSet(unsigned int mode);
+        bool setFanSpeed(int speed);
         bool fanModeSet(unsigned int mode);
         bool changeTrackingOffsets(int button);
         bool setTempCalibrations(float ch1, float ch2, float ch3, int ambient);
         bool setFanTempTrigger(int tempOn, int tempOff);
         bool zeroTempCalibrations();
+        bool setLCDTempDisplay(int mode);
+        bool setLCDEnable(int mode);
+        bool setLCDPageRefreshRate(int time);
+        bool setEEPROM(int mode);
 
 
 
@@ -257,6 +271,20 @@ class myDewControllerPro : public INDI::DefaultDevice
             FANTEMPON,
             FANTEMPOFF
         };
+
+        ISwitch LCDDisplayTempUnitsS[2];
+        ISwitchVectorProperty LCDDisplayTempUnitsSP;
+
+
+        ISwitch EnableLCDDisplayS[2];
+        ISwitchVectorProperty EnableLCDDisplaySP;
+
+        INumber LCDPageRefreshN[1];
+        INumberVectorProperty LCDPageRefreshNP;
+
+        ISwitch EEPROMS[2];
+        ISwitchVectorProperty EEPROMSP;
+
 
 
 
