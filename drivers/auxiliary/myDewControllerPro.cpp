@@ -30,6 +30,8 @@
 #include <unistd.h>
 
 #define MYDEWHEATERPRO_TIMEOUT 3
+#define BOARD_FAN_TAB "Board Fan"
+#define TEMPERATURE_OFFSETS_TAB "Temperature/Tracking Offsets"
 
 std::unique_ptr<myDewControllerPro> mydewcontrollerpro(new myDewControllerPro());
 
@@ -47,18 +49,18 @@ bool myDewControllerPro::initProperties()
     IUFillNumber(&OutputsN[DEW_STRAP_ONE_POWER], "CHANNEL1", "Strap 1", "%4.0f %%", 0., 100., 1., 0.);
     IUFillNumber(&OutputsN[DEW_STRAP_TWO_POWER], "CHANNEL2", "Strap 2", "%4.0f %%", 0., 100., 1., 0.);
     IUFillNumber(&OutputsN[DEW_STRAP_THREE_POWER], "CHANNEL3", "Strap 3", "%4.0f %%", 0., 100., 1., 0.);
+    IUFillNumberVector(&OutputsNP, OutputsN, 3, getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumberVector(&OutputsNP, OutputsN, 4, getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&FanSpeedN[0], "Fan Power", "Fan Speed", "%4.0f %%", 0., 100., 1., 0.);
+    IUFillNumberVector(&FanSpeedNP, FanSpeedN, 1, getDeviceName(), "FanSpeed", "Board Fan", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&FanSpeedN[0], "Fan Power", "Fan Power", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumberVector(&FanSpeedNP, FanSpeedN, 1, getDeviceName(), "FanSpeed", "Speed", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillSwitch(&FanModeS[0], "Board Temp", "Board Temp Sensor", ISS_OFF);
+    IUFillSwitch(&FanModeS[1], "Manual", "Manual", ISS_ON);
+    IUFillSwitchVector(&FanModeSP, FanModeS, 2, getDeviceName(), "Fan_Mode", "Fan Mode", BOARD_FAN_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FanModeS[0], "FanMODE", "Fan Mode", ISS_OFF);
-    IUFillSwitchVector(&FanModeSP, FanModeS, 1, getDeviceName(), "Fan_Mode", "Fan Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillNumber(&FanTempTriggerN[FANTEMPOFF], "Board_Temp_Off", "Board Temp Off", "%4.0f \u2103", 0., 100., 1., 0.);
-    IUFillNumber(&FanTempTriggerN[FANTEMPON], "Board_Temp_On", "Board Temp On", "%4.0f \u2103", 0., 100., 1., 0.);
-    IUFillNumberVector(&FanTempTriggerNP, FanTempTriggerN, 2, getDeviceName(), "Fan Trigger Temps", "Fan Trigger Temps", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&FanTempTriggerN[FANTEMPOFF], "Board_Temp_Off", "Board Fan Temp Off", "%4.0f \u2103", 0., 100., 1., 0.);
+    IUFillNumber(&FanTempTriggerN[FANTEMPON], "Board_Temp_On", "Board Fan Temp On", "%4.0f \u2103", 0., 100., 1., 0.);
+    IUFillNumberVector(&FanTempTriggerNP, FanTempTriggerN, 2, getDeviceName(), "Fan Trigger Temps", "Fan Trigger", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
 
 
 
@@ -100,26 +102,26 @@ bool myDewControllerPro::initProperties()
     IUFillNumber(&TemperatureOffsetsN[TEMP_PROBE_TWO_OFFSET], "CHANNEL2", "Strap 2", "%1.0f \u2103", -10., 10., 1., 0.);
     IUFillNumber(&TemperatureOffsetsN[TEMP_PROBE_THREE_OFFSET], "CHANNEL3", "Strap 3", "%1.0f \u2103", -10., 10., 1., 0.);
     IUFillNumber(&TemperatureOffsetsN[AMBIENT_TEMP_PROBE_OFFSET], "AMBIENT", "Ambient", "%4.0f \u2103", -4, 3, 1, 0);
-    IUFillNumberVector(&TemperatureOffsetsNP, TemperatureOffsetsN, 4, getDeviceName(), "TEMP_CALIBRATIONS", "Temp Offsets", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureOffsetsNP, TemperatureOffsetsN, 4, getDeviceName(), "TEMP_CALIBRATIONS", "Temp Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&ZeroTempOffsetsS[0], "Zero_Temp", "Zero Temperature Offsets", ISS_OFF);
-    IUFillSwitchVector(&ZeroTempOffsetsSP, ZeroTempOffsetsS, 1, getDeviceName(), "Zero Offsets", "Zero Offsets", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&ZeroTempOffsetsSP, ZeroTempOffsetsS, 1, getDeviceName(), "Zero Offsets", "Zero Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     /* Tracking Mode Options */
 
     IUFillSwitch(&TrackingModeS[AMBIENT], "AMBIENT", "Ambient", ISS_OFF);
     IUFillSwitch(&TrackingModeS[DEWPOINT], "DEWPOINT", "Dew Point", ISS_ON);
     IUFillSwitch(&TrackingModeS[MIDPOINT], "MIDPOINT", "Mid Point", ISS_OFF);
-    IUFillSwitchVector(&TrackingModeSP, TrackingModeS, 3, getDeviceName(), "Tracking Mode", "Tracking Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackingModeSP, TrackingModeS, 3, getDeviceName(), "Tracking Mode", "Tracking Mode", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&TrackingModeOffsetN[0], "Offset", "Offset", "%4.0f \u2103", -4, 3, 1, 0);
-    IUFillNumberVector(&TrackingModeOffsetNP, TrackingModeOffsetN, 1, getDeviceName(), "Tracking Offset", "Tracking Offset", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&TrackingModeOffsetNP, TrackingModeOffsetN, 1, getDeviceName(), "Tracking Offset", "Tracking Offset", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
 
 
 
     /* Reset settings */
-    IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+   // IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
+   // IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Firmware version */
     IUFillNumber(&FWVersionN[0], "FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
@@ -169,12 +171,15 @@ bool myDewControllerPro::updateProperties()
         defineProperty(&TemperaturesNP);
         defineProperty(&HumidityNP);
         defineProperty(&DewpointNP);
+        defineProperty(&FanSpeedNP);
+        defineProperty(&FanModeSP);
         defineProperty(&TemperatureOffsetsNP);
         defineProperty(&ZeroTempOffsetsSP);
         defineProperty(&TrackingModeSP);
         defineProperty(&TrackingModeOffsetNP);
+        defineProperty(&FanTempTriggerNP);
 
-        defineProperty(&ResetSP);
+        //defineProperty(&ResetSP);
         defineProperty(&FWVersionNP);
         cancelOutputBoost();
 
@@ -194,12 +199,15 @@ bool myDewControllerPro::updateProperties()
         deleteProperty(TemperaturesNP.name);
         deleteProperty(HumidityNP.name);
         deleteProperty(DewpointNP.name);
+        deleteProperty(FanSpeedNP.name);
+        deleteProperty(FanModeSP.name);
         deleteProperty(TemperatureOffsetsNP.name);
         deleteProperty(ZeroTempOffsetsSP.name);
         deleteProperty(TrackingModeSP.name);
         deleteProperty(TrackingModeOffsetNP.name);
+        deleteProperty(FanTempTriggerNP.name);
 
-        deleteProperty(ResetSP.name);
+        //deleteProperty(ResetSP.name);
         deleteProperty(FWVersionNP.name);
     }
 
@@ -332,13 +340,24 @@ bool myDewControllerPro::channelThreeModeSet(unsigned int mode)
     return true;
 }
 
+bool myDewControllerPro::fanModeSet(unsigned int mode)
+{
+    char cmd[MDCP_CMD_LEN + 1];
 
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_MODE, mode);
+    if (!sendCommand(cmd, nullptr)) {
+        LOG_INFO("Failed to set Fan Mode");
+        LOG_INFO(cmd);
+        return false;
+    }
+    return true;
+}
 
 bool myDewControllerPro::trackingModeSet(unsigned int mode)
 {
     char cmd[MDCP_CMD_LEN + 1];
 
-    snprintf(cmd, MDCP_CMD_LEN + 1, "a%d#", mode);
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_TRACKING_MODE, mode);
     if (!sendCommand(cmd, nullptr)) {
         LOG_INFO("Failed to set Tracking Mode");
         LOG_INFO(cmd);
@@ -351,7 +370,7 @@ bool myDewControllerPro::changeTrackingOffsets(int offset) {
 
     char cmd[MDCP_CMD_LEN + 1];
 
-    snprintf(cmd, MDCP_CMD_LEN + 1, "3%d#", offset);
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_TRACKING_MODE_OFFSET, offset);
     if (!sendCommand(cmd, nullptr)) {
         LOG_INFO("Failed to set Tracking offset");
         LOG_INFO(cmd);
@@ -406,6 +425,30 @@ bool myDewControllerPro::setTempCalibrations(float ch1, float ch2, float ch3, in
         LOG_INFO(cmd);
         return false;
     }
+    return true;
+
+
+
+}
+
+bool myDewControllerPro::setFanTempTrigger(int tempOn, int tempOff)
+{
+    char cmd[MDCP_CMD_LEN + 1];
+
+
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_ON_TEMP, tempOn);
+    if (!sendCommand(cmd, nullptr)) {
+        LOG_INFO("Failed to set temp on");
+        LOG_INFO(cmd);
+        return false;
+    }
+    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_OFF_TEMP, tempOff);
+    if (!sendCommand(cmd, nullptr)) {
+        LOG_INFO("Failed to set CH2 offset");
+        LOG_INFO(cmd);
+        return false;
+    }
+
     return true;
 
 
@@ -504,6 +547,20 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
 
     }
 
+    if (!strcmp(name, FanModeSP.name))
+    {
+        IUUpdateSwitch(&FanModeSP, states, names, n);
+        FanModeSP.s= IPS_BUSY;
+        int mode = IUFindOnSwitchIndex(&FanModeSP);
+        fanModeSet(mode);
+
+        FanModeSP.s = IPS_OK;
+        IDSetSwitch(&FanModeSP, nullptr);
+        readSettings();
+        return true;
+
+    }
+
 
 
 
@@ -564,6 +621,7 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         TemperatureOffsetsNP.s = IPS_OK;
         IDSetNumber(&TemperatureOffsetsNP, nullptr);
         readSettings();
+        return true;
 
     }
 
@@ -575,7 +633,22 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         TrackingModeOffsetNP.s = IPS_OK;
         IDSetNumber(&TrackingModeOffsetNP, nullptr);
         readSettings();
+        return true;
     }
+
+    if (!strcmp(name, FanTempTriggerNP.name)) {
+        IUUpdateNumber(&FanTempTriggerNP, values, names, n);
+        FanTempTriggerNP.s = IPS_BUSY;
+        int tempOn = FanTempTriggerN[FANTEMPON].value;
+        int tempOff = FanTempTriggerN[FANTEMPOFF].value;
+        setFanTempTrigger(tempOn, tempOff);
+        FanTempTriggerNP.s = IPS_OK;
+        IDSetNumber(&FanTempTriggerNP, nullptr);
+        readSettings();
+        return true;
+
+    }
+
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -714,8 +787,6 @@ bool myDewControllerPro::readSettings()
         TrackingModeS[mode].s = ISS_ON;
         TrackingModeSP.s = IPS_OK;
         IDSetSwitch(&TrackingModeSP, nullptr);
-    } else {
-        LOG_INFO(resp);
     }
 
     if (!sendCommand(MDCP_GET_TRACKING_MODE_OFFSET, resp)) {
@@ -730,14 +801,54 @@ bool myDewControllerPro::readSettings()
         IDSetNumber(&TrackingModeOffsetNP, nullptr);
     }
 
+    if (!sendCommand(MDCP_GET_FAN_SPEED, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
     int fanSpeed;
 
     if (sscanf(resp, "F%d$", &fanSpeed) == 1) {
-        OutputsN[BOARD_FAN_POWER].value = fanSpeed;
-        OutputsNP.s = IPS_OK;
-        IDSetNumber(&OutputsNP, nullptr);
+        FanSpeedN[0].value = fanSpeed;
+        FanSpeedNP.s = IPS_OK;
+        IDSetNumber(&FanSpeedNP, nullptr);
     }
 
+    if (!sendCommand(MDCP_GET_FAN_MODE, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    if (sscanf(resp, MDCP_GET_FAN_MODE_RESPONSE, &mode) == 1) {
+        IUResetSwitch(&FanModeSP);
+
+        FanModeS[mode].s = ISS_ON;
+        FanModeSP.s = IPS_OK;
+        IDSetSwitch(&FanModeSP, nullptr);
+    }
+
+    if (!sendCommand(MDCP_GET_FAN_ON_TEMP, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    int fanTemp;
+
+    if (sscanf(resp, MDCP_GET_FAN_ON_TEMP_RESPONSE, &fanTemp) == 1) {
+        FanTempTriggerN[FANTEMPON].value = fanTemp;
+        FanTempTriggerNP.s = IPS_OK;
+        IDSetNumber(&FanTempTriggerNP, nullptr);
+    }
+
+    if (!sendCommand(MDCP_GET_FAN_OFF_TEMP, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+
+    if (sscanf(resp, MDCP_GET_FAN_OFF_TEMP_RESPONSE, &fanTemp) == 1) {
+        FanTempTriggerN[FANTEMPOFF].value = fanTemp;
+        FanTempTriggerNP.s = IPS_OK;
+        IDSetNumber(&FanTempTriggerNP, nullptr);
+    }
 
          return true;
 }

@@ -41,9 +41,7 @@
 #define MDCP_GET_TRACKING_MODE_RESPONSE "T%d$"
 #define MDCP_GET_TRACKING_MODE_OFFSET "y#"
 #define MDCP_GET_TRACKING_MODE_OFFSET_RESPONSE "y%d$"
-#define MDCP_SET_TRACKING_MODE_ZERO_OFFSET "z#"
-#define MDCP_TRACKING_MODE_DECREASE_OFFSET "<#"
-#define MDCP_TRACKING_MODE_INCREASE_OFFSET ">#"
+#define MDCP_SET_TRACKING_MODE_OFFSET "3%d#"
 
 //DHT Probe Commands
 
@@ -79,9 +77,14 @@
 #define MDCP_GET_BOARD_TEMP "K#"
 #define MDCP_GET_BOARD_TEMP_RESPONSE "K%f$"
 #define MDCP_GET_FAN_ON_TEMP "J#"
+#define MDCP_GET_FAN_ON_TEMP_RESPONSE "J%d$"
 #define MDCP_GET_FAN_OFF_TEMP "L#"
-#define MDCP_SET_FAN_ON_TEMP "I%d#"
+#define MDCP_GET_FAN_OFF_TEMP_RESPONSE "L%d$"
+#define MDCP_SET_FAN_ON_TEMP "N%d#"
 #define MDCP_SET_FAN_OFF_TEMP "M%d#"
+#define MDCP_GET_FAN_MODE "O#"
+#define MDCP_GET_FAN_MODE_RESPONSE "O%d$"
+#define MDCP_SET_FAN_MODE "I%d#"
 
 //Dew Strap Commands
 
@@ -143,8 +146,10 @@ class myDewControllerPro : public INDI::DefaultDevice
         bool channelThreeModeSet(unsigned int mode);
         bool setCHThreeManualPower(unsigned int power);
         bool trackingModeSet(unsigned int mode);
+        bool fanModeSet(unsigned int mode);
         bool changeTrackingOffsets(int button);
         bool setTempCalibrations(float ch1, float ch2, float ch3, int ambient);
+        bool setFanTempTrigger(int tempOn, int tempOff);
         bool zeroTempCalibrations();
 
 
@@ -187,7 +192,7 @@ class myDewControllerPro : public INDI::DefaultDevice
         INumber FanSpeedN[1];
         INumberVectorProperty FanSpeedNP;
 
-        ISwitch FanModeS[1];
+        ISwitch FanModeS[2];
         ISwitchVectorProperty FanModeSP;
 
         INumber TemperaturesN[5];
@@ -240,7 +245,7 @@ class myDewControllerPro : public INDI::DefaultDevice
         enum {
             RESET_EEPROM,
             SAVE_TO_EEPROM
-        }
+        };
 
         INumber FWVersionN[1];
         INumberVectorProperty FWVersionNP;
@@ -251,7 +256,7 @@ class myDewControllerPro : public INDI::DefaultDevice
         enum {
             FANTEMPON,
             FANTEMPOFF
-        }
+        };
 
 
 
