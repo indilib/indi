@@ -40,14 +40,6 @@ if(HAVE_WEBSOCKET)
     list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
 endif()
 
-# Add LibXISF
-find_package(LibXISF)
-if(LibXISF_FOUND)
-    find_package(Qt5Core REQUIRED)
-    list(APPEND ${PROJECT_NAME}_LIBS Qt5::Core XISF)
-    add_definitions(-DHAVE_XISF)
-endif()
-
 # Add OggTheora, StreamManager, v4l2
 if(UNIX)
     find_package(OggTheora)
