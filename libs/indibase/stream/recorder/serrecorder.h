@@ -127,7 +127,7 @@ class SER_Recorder : public RecorderInterface
         static const uint64_t m_septaseconds_per_day         = m_septaseconds_per_hour * 24;
         static const uint32_t m_days_in_400_years            = 303 * 365 + 97 * 366;
         static const uint64_t m_septaseconds_per_400_years   = m_days_in_400_years * m_septaseconds_per_day;
-        static const uint64_t m_qhyJulianUsEpoch             = 629488368000000000;
+        static const uint64_t m_qhyJulianUsEpoch             = 629488800000000000;
 
         uint8_t *jpegBuffer = nullptr;
         INDI_PIXEL_FORMAT m_PixelFormat;
