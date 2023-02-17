@@ -54,7 +54,6 @@ bool writeImage(const XISFImageParam &params, const std::vector<FITSRecord> &fit
 
         if (params.channelCount == 3)
         {
-            image.setPixelStorage(LibXISF::Image::Normal);
             image.setColorSpace(LibXISF::Image::RGB);
         }
 
