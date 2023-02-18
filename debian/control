@@ -97,7 +97,7 @@ Description: Instrument-Neutral Device Interface library -- debug symbols
 
 Package: libindi-xisf
 Architecture: any
-Section: lib
+Section: libs
 Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1 (= ${binary:Version})
 Description: Wrapper library for LibXISF
  By installing this package you enable XISF format support
