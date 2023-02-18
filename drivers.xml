@@ -693,8 +693,8 @@
             <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
             <version>1.2</version>
         </device>
-        <device label="myDCP4ESP32" manufacturer="DIY">
-            <driver name="myDCP4ESP32">indi_mydcp4esp32</driver>
+        <device label="MyDCP4ESP32" manufacturer="DIY">
+            <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>
         </device>
 		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">

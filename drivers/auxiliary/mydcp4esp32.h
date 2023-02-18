@@ -2,6 +2,15 @@
     myDCP4ESP32 
     Copyright (C) 2017-2023 Stephen Hillier
 
+    Based on MyFocuserPro2 Focuser
+    Copyright (C) 2019 Alan Townshend
+
+    As well as USB_Dewpoint
+    Copyright (C) 2017-2023 Jarno Paananen
+
+    And INDI Sky Quality Meter Driver
+    Copyright(c) 2016 Jasem Mutlaq. All rights reserved.
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -36,7 +45,6 @@
 // Responses has a lead character, then values – more than one value is separated with a comma [,] and string is
 // terminated with a #
 
-#define MDCP_CMD_LENGTH                     6
 #define MDCP_CMD_TERMINATOR                 "#"
 #define MDCP_GET_CONTROLLER_CODE_CMD        ":00#"    // Get controller code - Response: 0code# 
 #define MDCP_GET_VERSION_CMD                ":01#"    // Get version number - Respnse: 1version#
@@ -123,12 +131,7 @@
 #define MDCP_SET_CH3_MANUAL_POWER_RES       ""  // Set the Channel 3 power to a manual seting of Num - Response: none 
 
 /******************************************************************************/
-/*
-namespace Connection
-{
-class Serial;
-};
-*/
+
 class MyDCP4ESP : public INDI::DefaultDevice
 {
     public:
@@ -155,7 +158,8 @@ class MyDCP4ESP : public INDI::DefaultDevice
 
     private:
         int  timerIndex;
-        bool ch3ManualPower;
+        int myDCP4Firmware = 0;
+        bool ch3ManualPower = false;
         int  msleep( long duration);
         bool sendCommand(const char *cmd, char *response);
         bool Handshake();
@@ -176,7 +180,7 @@ class MyDCP4ESP : public INDI::DefaultDevice
         Connection::TCP *tcpConnection { nullptr };
 
         int PortFD { -1 };
-        int myDCP4Firmware;
+        
         uint8_t mdcpConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 
         // MyDCP4ESP Timeouts

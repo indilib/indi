@@ -216,7 +216,7 @@ bool MyDCP4ESP::updateProperties()
 
 const char *MyDCP4ESP::getDefaultName()
 {
-    return "myDCP4ESP32";
+    return "MyDCP4ESP32";
 }
 
 // sleep for a number of milliseconds
