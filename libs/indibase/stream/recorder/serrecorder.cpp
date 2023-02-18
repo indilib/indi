@@ -254,7 +254,7 @@ bool SER_Recorder::writeFrame(const uint8_t *frame, uint32_t nbytes, uint64_t ti
 #endif
 
     if(timestamp)
-        frameStamps.push_back(timestamp * m_sepaseconds_per_microsecond + m_qhyJulianUsEpoch);
+        frameStamps.push_back(timestamp * m_sepaseconds_per_microsecond);
     else
         frameStamps.push_back(getUTCTimeStamp());
 
