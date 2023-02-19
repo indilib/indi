@@ -144,7 +144,6 @@ bool myDewControllerPro::initProperties()
     serialConnection = new Connection::Serial(this);
 
     serialConnection->setDefaultBaudRate(serialConnection->B_57600);
-    //serialConnection->setDefaultBaudRate(); //normal port speed of dew controller serial
     serialConnection->registerHandshake([&]()
     {
         return Handshake();
