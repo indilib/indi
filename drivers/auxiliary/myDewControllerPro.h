@@ -1,6 +1,6 @@
 /*
-    USB_Dewpoint
-    Copyright (C) 2017-2023 Jarno Paananen
+    myDewControllerPro Driver
+    Copyright (C) 2017-2023 Chemistorge
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -42,6 +42,7 @@
 
 //Misc Commands
 #define MDCP_GET_VERSION "v#"
+#define MDCP_IDENTIFY_RESPONSE "v%u$" // Firmware version? Mine is "v342"
 #define MDCP_SAVE_TO_EEPROM "w#"
 #define MDCP_RESET_EEPROM_TO_DEFAULT "r#"
 #define MDCP_GET_NUMBER_OF_PROBES "g#"
@@ -107,18 +108,8 @@
 #define MDCP_SET_CH3_SETTINGS "S%d#"
 #define MDCP_SET_CH3_MANUAL_POWER "G%d#"
 
+#define MDCP_RES_LEN 80
 
-
-/**************************** myDewControllerPro Constants **************************/
-
-
-#define MDCP_RES_LEN 80 // With some margin, maximum feasible seems to be around 70
-
-
-
-
-
-#define MDCP_IDENTIFY_RESPONSE "v%u" // Firmware version? Mine is "v334"
 
 /******************************************************************************/
 
@@ -142,32 +133,19 @@ class myDewControllerPro : public INDI::DefaultDevice
 
     private:
         bool sendCommand(const char *cmd, char *response);
-
         bool Handshake();
         bool Ack();
-        bool Resync();
-
-        bool reset();
-        bool readSettings();
-
+        bool readMainValues();
+        bool readLCDDisplayValues();
+        bool readBoardFanValues();
+        bool readOffsetValues();
         bool setOutputBoost(unsigned int channel);
         bool cancelOutputBoost();
-        bool channelThreeModeSet(unsigned int mode);
-        bool setCHThreeManualPower(unsigned int power);
-        bool trackingModeSet(unsigned int mode);
-        bool setFanSpeed(int speed);
-        bool fanModeSet(unsigned int mode);
-        bool changeTrackingOffsets(int button);
         bool setTempCalibrations(float ch1, float ch2, float ch3, int ambient);
         bool setFanTempTrigger(int tempOn, int tempOff);
         bool zeroTempCalibrations();
-        bool setLCDTempDisplay(int mode);
-        bool setLCDEnable(int mode);
-        bool setLCDPageRefreshRate(int time);
-        bool setEEPROM(int mode);
-
-
-
+        bool setInt(int mode, const char* mask, const char* errMessage);
+        bool setChoice(int testInt, const char* positiveChoice, const char* negativeChoice, const char* errMessage);
 
         Connection::Serial *serialConnection{ nullptr };
         int PortFD{ -1 };
@@ -284,22 +262,4 @@ class myDewControllerPro : public INDI::DefaultDevice
 
         ISwitch EEPROMS[2];
         ISwitchVectorProperty EEPROMSP;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 };

@@ -41,27 +41,34 @@
 #include <cstring>
 #include <termios.h>
 
-#define MANUAL_SLEWING_SPEED_ID     120
-#define GOTO_SLEWING_SPEED_ID       140
-#define MOVE_SPEED_ID               145 // L5
-#define GUIDING_SPEED_ID            150
-#define GUIDING_SPEED_RA_ID         151 // L5
-#define GUIDING_SPEED_DEC_ID        152 // L5
-#define CENTERING_SPEED_ID          170
-#define SERVO_POINTING_PRECISION_ID 401 // L6
-#define PEC_MAX_STEPS_ID            27
-#define PEC_COUNTER_ID              501
-#define PEC_STATUS_ID               509
-#define PEC_START_TRAINING_ID       530 // L5
-#define PEC_ABORT_TRAINING_ID       535 // L5
-#define PEC_REPLAY_ON_ID            531 // L5
-#define PEC_REPLAY_OFF_ID           532 // L5
-#define PEC_ENABLE_AT_BOOT_ID       508 // L5.2
-#define PEC_GUIDING_SPEED_ID        502
-#define SERVO_FIRMWARE              400 // L6 <ra>;<dec> (L6)
-#define FLIP_POINT_EAST_ID          227 // L6
-#define FLIP_POINT_WEST_ID          228 // L6
-#define FLIP_POINTS_ENABLED_ID      229 // L6
+#define MANUAL_SLEWING_SPEED_ID        120
+#define GOTO_SLEWING_SPEED_ID          140
+#define MOVE_SPEED_ID                  145 // L5
+#define GUIDING_SPEED_ID               150
+#define GUIDING_SPEED_RA_ID            151 // L5
+#define GUIDING_SPEED_DEC_ID           152 // L5
+#define CENTERING_SPEED_ID             170
+#define SERVO_POINTING_PRECISION_ID    401 // L6
+#define PEC_MAX_STEPS_ID               27
+#define PEC_COUNTER_ID                 501
+#define PEC_STATUS_ID                  509
+#define PEC_START_TRAINING_ID          530 // L5
+#define PEC_ABORT_TRAINING_ID          535 // L5
+#define PEC_REPLAY_ON_ID               531 // L5
+#define PEC_REPLAY_OFF_ID              532 // L5
+#define PEC_ENABLE_AT_BOOT_ID          508 // L5.2
+#define PEC_GUIDING_SPEED_ID           502
+#define SERVO_FIRMWARE                 400 // L6 <ra>;<dec> (L6)
+#define FLIP_POINT_EAST_ID             227 // L6
+#define FLIP_POINT_WEST_ID             228 // L6
+#define FLIP_POINTS_ENABLED_ID         229 // L6
+#define SET_SAFETY_LIMIT_TO_CURRENT_ID 220 
+#define EAST_SAFETY_LIMIT_ID           221 
+#define WEST_SAFETY_LIMIT_ID           222 
+#define WEST_GOTO_SAFETY_LIMIT_ID      223 
+
+
+
 
 LX200Gemini::LX200Gemini()
 {
@@ -214,6 +221,17 @@ bool LX200Gemini::initProperties()
     IUFillSwitchVector(&RefractionControlSP, RefractionControlS, 1, getDeviceName(), "REFRACT",
                        "Refraction", MOTION_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
+    // Safety
+    IUFillSwitch(&SetSafetyLimitToCurrentS[0], "SET_SAFETY", "Set to Current", ISS_OFF);
+    IUFillSwitchVector(&SetSafetyLimitToCurrentSP, SetSafetyLimitToCurrentS, 1, getDeviceName(), "SET_CURR_SAFETY",
+                       "Safety Limit", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    IUFillNumber(&SafetyLimitsN[EAST_SAFETY], "EAST_SAFTEY", "East Safety(dd:mm)", "%060.4m", 0, 180, 0, 0.0);
+    IUFillNumber(&SafetyLimitsN[WEST_SAFETY], "WEST_SAFTEY", "West Safety(dd:mm)", "%060.4m", 0, 180, 0, 0.0);
+    IUFillNumber(&SafetyLimitsN[WEST_GOTO], "WEST_GOTO", "West Goto (dd:mm)", "%060.4m", 0, 180, 0, 0.0);
+    IUFillNumberVector(&SafetyLimitsNP, SafetyLimitsN, 3, getDeviceName(), "SAFETY_LIMITS",
+                       "Limits", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    
     gemini_software_level_ = 0.0;
     
     return true;
@@ -332,12 +350,12 @@ bool LX200Gemini::setRefraction(bool on)
 }
 
 void LX200Gemini::syncState(){
-        const int MAX_VALUE_LENGTH = 32;
-        char value[MAX_VALUE_LENGTH] = {0};
-
-
-        // Gemini Firmware > 4
-        if (gemini_software_level_ >= 5.0)
+    const int MAX_VALUE_LENGTH = 32;
+    char value[MAX_VALUE_LENGTH] = {0};
+    char value2[MAX_VALUE_LENGTH] = {0};
+    char value3[MAX_VALUE_LENGTH] = {0};
+     
+    if (gemini_software_level_ >= 5.0)
         {
             if (getGeminiProperty(GUIDING_SPEED_RA_ID, value))
             {
@@ -360,138 +378,205 @@ void LX200Gemini::syncState(){
                 IDSetNumber(&GuidingSpeedNP, nullptr);
             }     
         }
-        if (gemini_software_level_ >= 5.2)
-        { 
-            if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
-            {
-                uint32_t pec_at_boot_value;
-                sscanf(value, "%u", &pec_at_boot_value);
-                if(pec_at_boot_value)
-                {
-                    PECEnableAtBootS[0].s = ISS_ON;
-                } else {
-                    PECEnableAtBootS[0].s = ISS_OFF;
-                }
-                PECEnableAtBootSP.s = IPS_OK;
-            } else {
-                PECEnableAtBootSP.s = IPS_ALERT;
-            }
-            IDSetSwitch(&PECEnableAtBootSP, nullptr);
-        }
-        if(gemini_software_level_ >= 6.0)
+    if (gemini_software_level_ >= 5.2)
+    { 
+        if (getGeminiProperty(PEC_ENABLE_AT_BOOT_ID, value))
         {
-            if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+            uint32_t pec_at_boot_value;
+            sscanf(value, "%u", &pec_at_boot_value);
+            if(pec_at_boot_value)
             {
-                uint8_t servo_value;
-                sscanf(value, "%c", &servo_value);
-                if(servo_value & RA_PRECISION_ENABLED)
-                {
-                    ServoPrecisionS[SERVO_RA].s = ISS_ON;
-                } else {
-                    ServoPrecisionS[SERVO_RA].s = ISS_OFF;
-                }
-                if(servo_value & DEC_PRECISION_ENABLED)
-                {
-                    ServoPrecisionS[SERVO_DEC].s = ISS_ON;
-                } else {
-                    ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
-                }
-                IDSetSwitch(&ServoPrecisionSP, nullptr);
-                ServoPrecisionSP.s = IPS_OK;
-                        
+                PECEnableAtBootS[0].s = ISS_ON;
             } else {
-              ServoPrecisionSP.s = IPS_ALERT;
+                PECEnableAtBootS[0].s = ISS_OFF;
             }
-            
+            PECEnableAtBootSP.s = IPS_OK;
+        } else {
+            PECEnableAtBootSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&PECEnableAtBootSP, nullptr);
+    }
+    if(gemini_software_level_ >= 6.0)
+    {
+        if (getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
+        {
+            uint8_t servo_value;
+            sscanf(value, "%c", &servo_value);
+            if(servo_value & RA_PRECISION_ENABLED)
+            {
+                ServoPrecisionS[SERVO_RA].s = ISS_ON;
+            } else {
+                ServoPrecisionS[SERVO_RA].s = ISS_OFF;
+            }
+            if(servo_value & DEC_PRECISION_ENABLED)
+            {
+                ServoPrecisionS[SERVO_DEC].s = ISS_ON;
+            } else {
+                ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
+            }
+            ServoPrecisionSP.s = IPS_OK;
+            IDSetSwitch(&ServoPrecisionSP, nullptr);
+           
+        } else {
+            ServoPrecisionSP.s = IPS_ALERT;
             IDSetSwitch(&ServoPrecisionSP, nullptr);
         }
-        // Gemini Firmware > 4
-
-        
-        if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
-        {
-            float max_value;
-            sscanf(value, "%f", &max_value);
-            PECMaxStepsN[0].value = max_value;
-            IDSetNumber(&PECMaxStepsNP, nullptr);
-        } else {
-            PECMaxStepsNP.s = IPS_ALERT;
-            IDSetNumber(&PECMaxStepsNP, nullptr);
-        }         
-        if (getGeminiProperty(PEC_COUNTER_ID, value))
+        if(getGeminiProperty(FLIP_POINTS_ENABLED_ID, value))
         {
             char valueString[32] = {0};
-            uint32_t pec_counter = 0;
-            sscanf(value, "%u", &pec_counter);
-            snprintf(valueString, 32, "%i", pec_counter);
+            uint32_t flip_value = 0;
+            sscanf(value, "%u", &flip_value);
+            snprintf(valueString, 32, "%i", flip_value);
+            
+            if(flip_value){
+                if(flip_value & FLIP_EAST){
+                    FlipControlS[FLIP_EAST_CONTROL].s = ISS_ON;
+                } else {
+                    FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
+                }
+                if(flip_value & FLIP_WEST){
+                    FlipControlS[FLIP_WEST_CONTROL].s = ISS_ON;
+                } else {
+                    FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
+                }
+            } else {
+                FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
+                FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
+            }
+            FlipControlSP.s = IPS_OK;
+            IDSetSwitch(&FlipControlSP, nullptr);
+        } else {
+            FlipControlSP.s = IPS_ALERT;
+            IDSetSwitch(&FlipControlSP, nullptr);
+        }
+        if(getGeminiProperty(FLIP_POINT_EAST_ID, value) &&
+           getGeminiProperty(FLIP_POINT_WEST_ID, value2))
+        {
+            double eastSexa;
+            double westSexa;
+            
+            f_scansexa(value, &eastSexa);
+            FlipPositionN[FLIP_EAST_VALUE].value = eastSexa;
+            
+            f_scansexa(value2, &westSexa);
+            FlipPositionN[FLIP_WEST_VALUE].value = westSexa;
+            
+            FlipPositionNP.s = IPS_OK;
+            IDSetNumber(&FlipPositionNP, nullptr);
+        } else {
+            FlipPositionNP.s = IPS_ALERT;
+            IDSetNumber(&FlipPositionNP, nullptr);
+        }
+    }
+    
+    if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
+    {
+        float max_value;
+        sscanf(value, "%f", &max_value);
+        PECMaxStepsN[0].value = max_value;
+        IDSetNumber(&PECMaxStepsNP, nullptr);
+    } else {
+        PECMaxStepsNP.s = IPS_ALERT;
+        IDSetNumber(&PECMaxStepsNP, nullptr);
+    }         
+    if (getGeminiProperty(PEC_COUNTER_ID, value))
+    {
+        char valueString[32] = {0};
+        uint32_t pec_counter = 0;
+        sscanf(value, "%u", &pec_counter);
+        snprintf(valueString, 32, "%i", pec_counter);
+        
+        IUSaveText(&PECCounterT[0], valueString);
+        IDSetText(&PECCounterTP, nullptr);
+    } else {
+        PECCounterTP.s = IPS_ALERT;
+        IDSetText(&PECCounterTP, nullptr);
+    }         
+    if (getGeminiProperty(PEC_GUIDING_SPEED_ID, value))
+    {
+        float guiding_value;
+        sscanf(value, "%f", &guiding_value);
+        PECGuidingSpeedN[0].value = guiding_value;
+        IDSetNumber(&PECGuidingSpeedNP, nullptr);
+    } else {
+        PECGuidingSpeedNP.s = IPS_ALERT;
+        IDSetNumber(&PECGuidingSpeedNP, nullptr);
+    }         
+    if (getGeminiProperty(GUIDING_SPEED_ID, value))
+    {
+        float guiding_value;
+        sscanf(value, "%f", &guiding_value);
+        GuidingSpeedBothN[GUIDING_BOTH].value = guiding_value;
+        IDSetNumber(&GuidingSpeedBothNP, nullptr);
+    } else {
+        GuidingSpeedBothNP.s = IPS_ALERT;
+        IDSetNumber(&GuidingSpeedBothNP, nullptr);
+    }         
+    if (getGeminiProperty(PEC_STATUS_ID, value))
+    {
+        uint32_t pec_status = 0;
+        sscanf(value, "%u", &pec_status);
+        if(pec_status & 1){ // PEC_ACTIVE
+            IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+            setPECState(PEC_ON);
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+            setPECState(PEC_OFF);
+        }
+        if(pec_status & 2){ // Freshly_Trained
+            IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
+        }       
+        if(pec_status & 4){ // Training_In_Progress
+            IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
+        }
+        if(pec_status & 8){ // Training_just_completed
+            IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
+        }
+        if(pec_status & 16){ // Training will start soon
+            IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
+        }
+        if(pec_status & 32){ // PEC Data Available
+            IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
+        } else {
+            IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "No");
+        }
+        IDSetText(&PECStateTP, nullptr);
+    } else {
+        PECStateTP.s = IPS_ALERT;
+        IDSetText(&PECStateTP, nullptr);
+    }
 
-            IUSaveText(&PECCounterT[0], valueString);
-            IDSetText(&PECCounterTP, nullptr);
-        } else {
-            PECCounterTP.s = IPS_ALERT;
-            IDSetText(&PECCounterTP, nullptr);
-        }         
-        if (getGeminiProperty(PEC_GUIDING_SPEED_ID, value))
-        {
-            float guiding_value;
-            sscanf(value, "%f", &guiding_value);
-            PECGuidingSpeedN[0].value = guiding_value;
-            IDSetNumber(&PECGuidingSpeedNP, nullptr);
-        } else {
-            PECGuidingSpeedNP.s = IPS_ALERT;
-            IDSetNumber(&PECGuidingSpeedNP, nullptr);
-        }         
-        if (getGeminiProperty(GUIDING_SPEED_ID, value))
-        {
-            float guiding_value;
-            sscanf(value, "%f", &guiding_value);
-            GuidingSpeedBothN[GUIDING_BOTH].value = guiding_value;
-            IDSetNumber(&GuidingSpeedBothNP, nullptr);
-        } else {
-            GuidingSpeedBothNP.s = IPS_ALERT;
-            IDSetNumber(&GuidingSpeedBothNP, nullptr);
-        }         
-        if (getGeminiProperty(PEC_STATUS_ID, value))
-        {
-            uint32_t pec_status = 0;
-            sscanf(value, "%u", &pec_status);
-            if(pec_status & 1){ // PEC_ACTIVE
-              IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
-              setPECState(PEC_ON);
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
-              setPECState(PEC_OFF);
-            }
-            if(pec_status & 2){ // Freshly_Trained
-              IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
-            }       
-            if(pec_status & 4){ // Training_In_Progress
-              IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
-            }
-            if(pec_status & 8){ // Training_just_completed
-              IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
-            }
-            if(pec_status & 16){ // Training will start soon
-              IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
-            }
-            if(pec_status & 32){ // PEC Data Available
-              IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
-            } else {
-              IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "No");
-            }
-            IDSetText(&PECStateTP, nullptr);
-        } else {
-            PECStateTP.s = IPS_ALERT;
-            IDSetText(&PECStateTP, nullptr);
-        }         
+    if(getGeminiProperty(EAST_SAFETY_LIMIT_ID, value) &&
+       getGeminiProperty(WEST_SAFETY_LIMIT_ID, value2) &&
+       getGeminiProperty(WEST_GOTO_SAFETY_LIMIT_ID, value3))
+    {
+        double eastSafeSexa;
+        double westSafeSexa;
+        double westGotoSexa;
+        
+        f_scansexa(value, &eastSafeSexa);
+        SafetyLimitsN[EAST_SAFETY].value = eastSafeSexa;
+        
+        f_scansexa(value2, &westSafeSexa);
+        SafetyLimitsN[WEST_SAFETY].value = westSafeSexa;
+        
+        f_scansexa(value3, &westGotoSexa);
+        SafetyLimitsN[WEST_GOTO].value = westGotoSexa;
+        
+        SafetyLimitsNP.s = IPS_OK;
+        IDSetNumber(&SafetyLimitsNP, nullptr);
+    } else {
+        SafetyLimitsNP.s = IPS_ALERT;
+        IDSetNumber(&SafetyLimitsNP, nullptr);
+    }
 }
 
 
@@ -505,6 +590,7 @@ bool LX200Gemini::updateProperties()
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
         char value2[MAX_VALUE_LENGTH] = {0};
+        char value3[MAX_VALUE_LENGTH] = {0};
         if (!isSimulation())
         {
             VersionTP.tp[FIRMWARE_DATE].text = new char[64];
@@ -535,7 +621,7 @@ bool LX200Gemini::updateProperties()
                 {
                     PECEnableAtBootS[0].s = ISS_ON;
                 } else {
-                    PECEnableAtBootS[0].s = ISS_ON;
+                    PECEnableAtBootS[0].s = ISS_OFF;
                 }
                 PECEnableAtBootSP.s = IPS_OK;
                 IDSetSwitch(&PECEnableAtBootSP, nullptr);
@@ -630,6 +716,33 @@ bool LX200Gemini::updateProperties()
             }
             defineProperty(&FlipPositionNP);
         }
+        
+        if(getGeminiProperty(EAST_SAFETY_LIMIT_ID, value) &&
+           getGeminiProperty(WEST_SAFETY_LIMIT_ID, value2) &&
+           getGeminiProperty(WEST_GOTO_SAFETY_LIMIT_ID, value3))
+        {
+            double eastSafeSexa;
+            double westSafeSexa;
+            double westGotoSexa;
+
+            f_scansexa(value, &eastSafeSexa);
+            SafetyLimitsN[EAST_SAFETY].value = eastSafeSexa;
+            
+            f_scansexa(value2, &westSafeSexa);
+            SafetyLimitsN[WEST_SAFETY].value = westSafeSexa;
+
+            f_scansexa(value3, &westGotoSexa);
+            SafetyLimitsN[WEST_GOTO].value = westGotoSexa;
+            
+            SafetyLimitsNP.s = IPS_OK;
+            IDSetNumber(&SafetyLimitsNP, nullptr);
+        } else {
+            SafetyLimitsNP.s = IPS_ALERT;
+            IDSetNumber(&SafetyLimitsNP, nullptr);
+        }
+        defineProperty(&SetSafetyLimitToCurrentSP);
+        defineProperty(&SafetyLimitsNP);
+
         if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
         {
             float max_steps_value;
@@ -840,6 +953,8 @@ bool LX200Gemini::updateProperties()
         deleteProperty(FlipPositionNP.name);
         deleteProperty(FlipControlSP.name);
         deleteProperty(PECControlSP.name);
+        deleteProperty(SetSafetyLimitToCurrentSP.name);
+        deleteProperty(SafetyLimitsNP.name);
     }
 
     return true;
@@ -1044,6 +1159,23 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                 return true;
             }
         }
+        if (!strcmp(name, SetSafetyLimitToCurrentSP.name))
+        {
+            char valueString[16] = {0};
+            IUUpdateSwitch(&SetSafetyLimitToCurrentSP, states, names, n);
+            IDSetSwitch(&SetSafetyLimitToCurrentSP, nullptr);
+            SetSafetyLimitToCurrentS[0].s = ISS_OFF;
+            if(!setGeminiProperty(SET_SAFETY_LIMIT_TO_CURRENT_ID, valueString))
+            {
+                SetSafetyLimitToCurrentSP.s = IPS_ALERT;
+                IDSetSwitch(&SetSafetyLimitToCurrentSP, nullptr);
+                return false;
+            } else {
+                SetSafetyLimitToCurrentSP.s = IPS_OK;
+                IDSetSwitch(&SetSafetyLimitToCurrentSP, nullptr);
+            }
+
+        }
         
         if (gemini_software_level_ >= 5.0 && !strcmp(name, PECControlSP.name))
         {
@@ -1198,6 +1330,64 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             GuidingSpeedNP.s       = IPS_OK;
             IDSetNumber(&GuidingSpeedNP, "Guiding speed set to RA:%f DEC:%f",  GuidingSpeedN[GUIDING_WE].value, GuidingSpeedN[GUIDING_NS].value);
 
+            return true;
+        }
+        if (!strcmp(name, SafetyLimitsNP.name))
+        {
+            double eastSafeD = 0;
+            double westSafeD = 0;
+            double westGotoD = 0;
+          
+            for(int i = 0; i<n; ++i){
+                if (!strcmp(names[i], SafetyLimitsN[EAST_SAFETY].name))
+                {
+                    eastSafeD = values[i];
+                }
+                if (!strcmp(names[i], SafetyLimitsN[WEST_SAFETY].name))
+                {
+                    westSafeD = values[i];
+                }
+                if (!strcmp(names[i], SafetyLimitsN[WEST_GOTO].name))
+                {
+                    westGotoD = values[i];
+                }
+            }
+            char eastSafe[32] = {0};
+            SafetyLimitsN[EAST_SAFETY].value = eastSafeD;
+            fs_sexa(eastSafe, eastSafeD, 2, 60);
+
+            char westSafe[32] = {0};
+            SafetyLimitsN[WEST_SAFETY].value = westSafeD;
+            fs_sexa(westSafe, westSafeD, 2, 60);
+
+            char westGoto[32] = {0};
+            SafetyLimitsN[WEST_GOTO].value = westGotoD;
+            fs_sexa(westGoto, westGotoD, 2, 60);
+            
+            char *colon = strchr(eastSafe, ':');
+            if(colon){
+              *colon = 'd';
+            }
+            colon = strchr(westSafe, ':');
+            if(colon){
+              *colon = 'd';
+            }
+            colon = strchr(westGoto, ':');
+            if(colon){
+              *colon = 'd';
+            }
+            
+            if (!isSimulation() &&
+                (!setGeminiProperty(EAST_SAFETY_LIMIT_ID, eastSafe) ||
+                 !setGeminiProperty(WEST_SAFETY_LIMIT_ID, westSafe) ||
+                 !setGeminiProperty(WEST_GOTO_SAFETY_LIMIT_ID, westGoto)))
+            {
+                SafetyLimitsNP.s = IPS_ALERT;
+                IDSetNumber(&SafetyLimitsNP, "Error Setting Limits");
+                return false;
+            }
+            IDSetNumber(&SafetyLimitsNP, "Limits EastSafe:%s, WestSafe:%s, WestGoto:%s", eastSafe, westSafe, westGoto);
+            SafetyLimitsNP.s = IPS_OK;
             return true;
         }
         if (gemini_software_level_ >= 6.0 && !strcmp(name, FlipPositionNP.name))

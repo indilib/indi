@@ -34,6 +34,11 @@
 #include "locale_compat.h"
 #include "indiutility.h"
 
+#ifdef HAVE_XISF
+#include "../indixisf/indixisf.h"
+#include <dlfcn.h>
+#endif
+
 #include <fitsio.h>
 
 #include <libnova/julian_day.h>
@@ -121,6 +126,21 @@ CCD::CCD()
 
     exposureStartTime[0] = 0;
     exposureDuration = 0.0;
+
+#ifdef HAVE_XISF
+    m_XISFWrapper = nullptr;
+    void *handle = dlopen("libindixisf.so", RTLD_LAZY);
+    if(handle)
+    {
+        auto allocXISFWrapper = reinterpret_cast<allocXISFWrapperFPTR*>(dlsym(handle, "allocXISFWrapper"));
+        m_freeXISFWrapperFunc = dlsym(handle, "freeXISFWrapper");
+        if(allocXISFWrapper && m_freeXISFWrapperFunc)
+            m_XISFWrapper = allocXISFWrapper();
+        else
+            LOG_WARN("Could not load XISF wrapper");
+        dlclose(handle);
+    }
+#endif
 }
 
 CCD::~CCD()
@@ -128,6 +148,11 @@ CCD::~CCD()
     // Only update if index is different.
     if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&FastExposureToggleSP))
         saveConfig(true, FastExposureToggleSP.name);
+
+#ifdef HAVE_XISF
+    if (m_XISFWrapper)
+        reinterpret_cast<freeXISFWrapperFPTR*>(m_freeXISFWrapperFunc)(m_XISFWrapper);
+#endif
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -366,6 +391,16 @@ bool CCD::initProperties()
                                      m_ConfigEncodeFormatIndex == FORMAT_FITS ? ISS_ON : ISS_OFF);
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
                                        m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
+<<<<<<< HEAD
+=======
+#ifdef HAVE_XISF
+    if(m_XISFWrapper)
+    {
+        EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
+                                         m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
+    }
+#endif
+>>>>>>> upstream/master
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
 
@@ -2172,6 +2207,8 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    LOG_DEBUG("Exposure complete");
+
     // save information used for the fits header
     exposureDuration = targetChip->getExposureDuration();
     strncpy(exposureStartTime, targetChip->getExposureStartTime(), MAXINDINAME);
@@ -2272,7 +2309,39 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
 
+<<<<<<< HEAD
             addFITSKeywords(targetChip);
+=======
+            std::vector<FITSRecord> fitsKeywords;
+            addFITSKeywords(targetChip, fitsKeywords);
+            for (auto &keyword : fitsKeywords)
+            {
+                int key_status = 0;
+                switch(keyword.type())
+                {
+                    case INDI::FITSRecord::VOID:
+                        break;
+                    case INDI::FITSRecord::COMMENT:
+                        fits_write_comment(fptr, keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::STRING:
+                        fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::LONGLONG:
+                        fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::DOUBLE:
+                        fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(),
+                                            &key_status);
+                        break;
+                }
+                if (key_status)
+                {
+                    fits_get_errstatus(key_status, error_status);
+                    LOGF_ERROR("FITS key %s Error: %s", keyword.key().c_str(), error_status);
+                }
+            }
+>>>>>>> upstream/master
 
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
             targetChip->finishFITSFile(status);
@@ -2299,6 +2368,45 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 return false;
             }
         }
+<<<<<<< HEAD
+=======
+#ifdef HAVE_XISF
+        else if (EncodeFormatSP[FORMAT_XISF].getState() == ISS_ON)
+        {
+            if(!m_XISFWrapper)
+            {
+                LOG_ERROR("XISF wrapper null");
+                return false;
+            }
+
+            std::vector<FITSRecord> fitsKeywords;
+            addFITSKeywords(targetChip, fitsKeywords);
+            targetChip->setImageExtension("xisf");
+
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+            XISFImageParam params;
+
+            params.width = targetChip->getSubW() / targetChip->getBinX();
+            params.height = targetChip->getSubH() / targetChip->getBinY();
+            params.channelCount = targetChip->getNAxis() == 2 ? 1 : 3;
+            params.bpp = targetChip->getBPP();
+            params.bayer = HasBayer();
+            if(params.bayer)params.bayerPattern = BayerT[2].text;
+            params.frameType = targetChip->getFrameType();
+            params.compress = targetChip->SendCompressed;
+
+            if (!m_XISFWrapper->writeImage(params, fitsKeywords, targetChip->getFrameBuffer()))
+                LOGF_ERROR("Error writing XISF %s", m_XISFWrapper->error());
+
+            bool rc = uploadFile(targetChip, m_XISFWrapper->fileData(), m_XISFWrapper->fileDataSize(), sendImage, saveImage);
+            if (rc == false)
+            {
+                targetChip->setExposureFailed();
+                return false;
+            }
+        }
+#endif
+>>>>>>> upstream/master
         else
         {
             // If image extension was set to fits (default), change if bin if not already set to another format by the driver.

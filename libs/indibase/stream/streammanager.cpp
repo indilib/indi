@@ -265,7 +265,7 @@ bool StreamManager::updateProperties()
  * Subframing for streaming/recording is done in the stream manager.
  * Therefore nbytes is expected to be SubW/BinX * SubH/BinY * Bytes_Per_Pixels * Number_Color_Components
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
-void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
+void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes, uint64_t timestamp)
 {
     // close the data stream on the same thread as the data stream
     // manually triggered to stop recording.
@@ -314,7 +314,7 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
         std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes); // copy the frame
 
-        framesIncoming.push(TimeFrame{FPSFast.deltaTime(), std::move(copyBuffer)}); // push it into the queue
+        framesIncoming.push(TimeFrame{FPSFast.deltaTime(), timestamp, std::move(copyBuffer)}); // push it into the queue
     }
 
     if (isRecording && !isRecordingAboutToClose)
@@ -347,10 +347,10 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
     }
 }
 
-void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
+void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes, uint64_t timestamp)
 {
     D_PTR(StreamManager);
-    d->newFrame(buffer, nbytes);
+    d->newFrame(buffer, nbytes, timestamp);
 }
 
 
@@ -458,7 +458,7 @@ void StreamManagerPrivate::asyncStreamThread()
             std::lock_guard<std::mutex> lock(recordMutex);
             if (
                 isRecording && !isRecordingAboutToClose &&
-                recordStream(sourceBuffer->data(), sourceBuffer->size(), sourceTimeFrame.time) == false
+                recordStream(sourceBuffer->data(), sourceBuffer->size(), sourceTimeFrame.time, sourceTimeFrame.timestamp) == false
             )
             {
                 LOG_ERROR("Recording failed.");
@@ -588,13 +588,13 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
     d->setSize(width, height);
 }
 
-bool StreamManagerPrivate::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams)
+bool StreamManagerPrivate::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams, uint64_t timestamp)
 {
     INDI_UNUSED(deltams);
     if (!isRecording)
         return false;
 
-    return recorder->writeFrame(buffer, nbytes);
+    return recorder->writeFrame(buffer, nbytes, timestamp);
 }
 
 std::string StreamManagerPrivate::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)

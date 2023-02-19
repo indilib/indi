@@ -1,6 +1,6 @@
 /*
-    USB_Dewpoint
-    Copyright (C) 2017-2023 Jarno Paananen
+    myDewControllerPro Driver
+    Copyright (C) 2017-2023 Chemistorge
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-   USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
@@ -23,11 +22,7 @@
 #include "connectionplugins/connectionserial.h"
 #include "indicom.h"
 
-#include <cstring>
-#include <memory>
-
 #include <termios.h>
-#include <unistd.h>
 
 #define MYDEWHEATERPRO_TIMEOUT 3
 #define BOARD_FAN_TAB "Board Fan"
@@ -132,13 +127,6 @@ bool myDewControllerPro::initProperties()
 
     IUFillNumber(&TrackingModeOffsetN[0], "Offset", "Offset", "%4.0f \u2103", -4, 3, 1, 0);
     IUFillNumberVector(&TrackingModeOffsetNP, TrackingModeOffsetN, 1, getDeviceName(), "Tracking Offset", "Tracking Offset", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
-
-
-
-    /* Reset settings */
-   // IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
-   // IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     /* Firmware version */
     IUFillNumber(&FWVersionN[0], "FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
     IUFillNumberVector(&FWVersionNP, FWVersionN, 1, getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
@@ -152,7 +140,11 @@ bool myDewControllerPro::initProperties()
 
     // No simulation control for now
 
+
     serialConnection = new Connection::Serial(this);
+
+    serialConnection->setDefaultBaudRate(serialConnection->B_57600);
+    //serialConnection->setDefaultBaudRate(); //normal port speed of dew controller serial
     serialConnection->registerHandshake([&]()
     {
         return Handshake();
@@ -204,8 +196,17 @@ bool myDewControllerPro::updateProperties()
         cancelOutputBoost();
 
         loadConfig(true);
-        if (!readSettings()) {
-            LOG_INFO("Read Settings False");
+        if (!readMainValues()) {
+            LOG_INFO("Reading Main Values Error");
+        }
+        if (!readLCDDisplayValues()) {
+            LOG_INFO("Reading LCD Display Values Error");
+        }
+        if (!readBoardFanValues()) {
+            LOG_INFO("Reading Board Fan Values Error");
+        }
+        if (!readOffsetValues()) {
+            LOG_INFO("Reading Offset Values Error");
         }
         LOG_INFO("myDewControllerPro parameters updated, device ready for use.");
         SetTimer(getCurrentPollingPeriod());
@@ -348,137 +349,31 @@ bool myDewControllerPro::setOutputBoost(unsigned int channel)
 
 }
 
-
-
-bool myDewControllerPro::channelThreeModeSet(unsigned int mode)
+bool myDewControllerPro::setInt(int mode, const char *mask, const char *errMessage)
 {
     char cmd[MDCP_CMD_LEN + 1];
 
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_CH3_SETTINGS, mode);
+    snprintf(cmd, MDCP_CMD_LEN + 1, mask, mode);
     if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set CH3 Mode");
+        LOG_INFO(errMessage);
         LOG_INFO(cmd);
         return false;
     }
     return true;
+
 }
 
-bool myDewControllerPro::fanModeSet(unsigned int mode)
+bool myDewControllerPro::setChoice(int testInt, const char *positiveChoice, const char *negativeChoice, const char *errMessage)
 {
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_MODE, mode);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set Fan Mode");
-        LOG_INFO(cmd);
-        return false;
-    }
-    return true;
-}
-
-bool myDewControllerPro::setLCDEnable(int mode)
-{
-    const char* mask = mode == 1 ? MDCP_LCD_ENABLE : MDCP_LCD_DISABLE;
+    const char* mask = testInt == 1 ? positiveChoice : negativeChoice;
     if (!sendCommand(mask, nullptr)) {
-        LOG_INFO("Failed to set LCD enable");
+        LOG_INFO(errMessage);
 
         return false;
     }
     return true;
 }
 
-
-bool myDewControllerPro::setEEPROM(int mode)
-{
-    const char* mask = mode == 1 ? MDCP_SAVE_TO_EEPROM : MDCP_RESET_EEPROM_TO_DEFAULT;
-    const char* message = mode == 1 ? "Saved to EEPPROM Successfully" : "Reset EEPROM to Default";
-    if (!sendCommand(mask, nullptr)) {
-        LOG_INFO("Failed to set ");
-
-        return false;
-    }
-    LOG_INFO(message);
-    return true;
-}
-
-bool myDewControllerPro::setLCDTempDisplay(int mode)
-{
-    const char* mask = mode == 1 ? MDCP_LCD_DISPLAY_FAHRENHEIT : MDCP_LCD_DISPLAY_CELSIUS;
-    if (!sendCommand(mask, nullptr)) {
-        LOG_INFO("Failed to set temp display mode");
-
-        return false;
-    }
-    return true;
-}
-
-bool myDewControllerPro::trackingModeSet(unsigned int mode)
-{
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_TRACKING_MODE, mode);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set Tracking Mode");
-        LOG_INFO(cmd);
-        return false;
-    }
-    return true;
-}
-
-bool myDewControllerPro::changeTrackingOffsets(int offset) {
-
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_TRACKING_MODE_OFFSET, offset);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set Tracking offset");
-        LOG_INFO(cmd);
-        return false;
-    }
-
-    return true;
-}
-
-bool myDewControllerPro::setCHThreeManualPower(unsigned int power)
-{
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_CH3_MANUAL_POWER, power);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set CH3 Power");
-        LOG_INFO(cmd);
-        return false;
-    }
-    return true;
-
-}
-bool myDewControllerPro::setFanSpeed(int speed)
-{
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_FAN_SPEED, speed);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set Fan Speed");
-        LOG_INFO(cmd);
-        return false;
-    }
-    return true;
-
-}
-
-bool myDewControllerPro::setLCDPageRefreshRate(int time)
-{
-    char cmd[MDCP_CMD_LEN + 1];
-
-    snprintf(cmd, MDCP_CMD_LEN + 1, MDCP_SET_LCD_DISPLAY_TIME, time);
-    if (!sendCommand(cmd, nullptr)) {
-        LOG_INFO("Failed to set LCD page refresh");
-        LOG_INFO(cmd);
-        return false;
-    }
-    return true;
-
-}
 
 
 bool myDewControllerPro::setTempCalibrations(float ch1, float ch2, float ch3, int ambient)
@@ -559,12 +454,7 @@ bool myDewControllerPro::zeroTempCalibrations() {
 }
 
 
-bool myDewControllerPro::reset()
-{
-    //char resp[MDCP_RES_LEN];
-    return true;
-    //sendCommand(UDP_RESET_CMD, resp);
-}
+
 
 
 
@@ -588,7 +478,7 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         }
         CH1CH2BoostSP.s = IPS_OK;
         IDSetSwitch(&CH1CH2BoostSP, nullptr);
-        readSettings();
+        readMainValues();
         return true;
 
     }
@@ -598,11 +488,10 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&CH3_ModeSP, states, names, n);
         CH3_ModeSP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&CH3_ModeSP);
-        channelThreeModeSet(mode);
-
+        setInt(mode, MDCP_SET_CH3_SETTINGS, "Failed to set CH3 mode");
         CH3_ModeSP.s = IPS_OK;
         IDSetSwitch(&CH3_ModeSP, nullptr);
-        readSettings();
+        readMainValues();
         return true;
 
     }
@@ -615,7 +504,7 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         ZeroTempOffsetsSP.s = IPS_OK;
         ZeroTempOffsetsS[0].s = ISS_OFF;
         IDSetSwitch(&ZeroTempOffsetsSP, nullptr);
-        readSettings();
+        readOffsetValues();
         return true;
     }
 
@@ -624,11 +513,10 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&TrackingModeSP, states, names, n);
         TrackingModeSP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&TrackingModeSP);
-        trackingModeSet(mode);
-
+        setInt(mode, MDCP_SET_TRACKING_MODE, "Failed to set Tracking Mode");
         TrackingModeSP.s = IPS_OK;
         IDSetSwitch(&TrackingModeSP, nullptr);
-        readSettings();
+        readOffsetValues();
         return true;
 
     }
@@ -638,11 +526,10 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&FanModeSP, states, names, n);
         FanModeSP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&FanModeSP);
-        fanModeSet(mode);
-
+        setInt(mode, MDCP_SET_FAN_MODE, "Failed to set Fan Mode");
         FanModeSP.s = IPS_OK;
         IDSetSwitch(&FanModeSP, nullptr);
-        readSettings();
+        readBoardFanValues();
         return true;
 
     }
@@ -652,11 +539,10 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&EnableLCDDisplaySP, states, names, n);
         EnableLCDDisplaySP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&EnableLCDDisplaySP);
-        setLCDEnable(mode);
-
+        setChoice(mode, MDCP_LCD_ENABLE, MDCP_LCD_DISABLE, "Failed to set LCD enable");
         EnableLCDDisplaySP.s = IPS_OK;
         IDSetSwitch(&EnableLCDDisplaySP, nullptr);
-        readSettings();
+        readLCDDisplayValues();
         return true;
 
     }
@@ -666,11 +552,10 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&LCDDisplayTempUnitsSP, states, names, n);
         LCDDisplayTempUnitsSP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&LCDDisplayTempUnitsSP);
-        setLCDTempDisplay(mode);
-
+        setChoice(mode, MDCP_LCD_DISPLAY_FAHRENHEIT, MDCP_LCD_DISPLAY_CELSIUS, "Failed to set temp display mode");
         LCDDisplayTempUnitsSP.s = IPS_OK;
         IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
-        readSettings();
+        readLCDDisplayValues();
         return true;
 
     }
@@ -680,7 +565,15 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         IUUpdateSwitch(&EEPROMSP, states, names, n);
         EEPROMSP.s= IPS_BUSY;
         int mode = IUFindOnSwitchIndex(&EEPROMSP);
-        setEEPROM(mode);
+        if (setChoice(mode, MDCP_SAVE_TO_EEPROM, MDCP_RESET_EEPROM_TO_DEFAULT, "Failed to Save/reset EEPROM"))
+        {
+            const char* message = mode == 1 ? "Saved to EEPPROM Successfully" : "Reset EEPROM to Default";
+            LOG_INFO(message);
+        }
+        readMainValues();
+        readOffsetValues();
+        readBoardFanValues();
+        readLCDDisplayValues();
 
         EEPROMSP.s = IPS_OK;
         IDSetSwitch(&EEPROMSP, nullptr);
@@ -689,25 +582,6 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
     }
 
 
-
-
-//    if (ResetSP.isNameMatch(name))
-//    {
-//        ResetSP.reset();
-
-//        if (reset())
-//        {
-//            ResetSP.setState(IPS_OK);
-//            readSettings();
-//        }
-//        else
-//        {
-//            ResetSP.setState(IPS_ALERT);
-//        }
-
-//        ResetSP.apply();
-//        return true;
-//    }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -724,16 +598,13 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
             IUUpdateNumber(&CH3_Manual_PowerNP, values, names, n);
             CH3_Manual_PowerNP.s = IPS_BUSY;
             int power = CH3_Manual_PowerN[0].value;
-            setCHThreeManualPower(power);
+            setInt(power, MDCP_SET_CH3_MANUAL_POWER, "Failed to set CH3 Power");
             CH3_Manual_PowerNP.s = IPS_OK;
             IDSetNumber(&CH3_Manual_PowerNP, nullptr);
-            readSettings();
         } else {
             LOG_INFO("Power can only be manually adjusted in Strap 3 manual mode");
         }
-
-
-        readSettings();
+        readMainValues();
         return true;
     }
 
@@ -747,7 +618,7 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         setTempCalibrations(ch1, ch2, ch3, ambient);
         TemperatureOffsetsNP.s = IPS_OK;
         IDSetNumber(&TemperatureOffsetsNP, nullptr);
-        readSettings();
+        readOffsetValues();
         return true;
 
     }
@@ -756,10 +627,10 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         IUUpdateNumber(&TrackingModeOffsetNP, values, names, n);
         TrackingModeOffsetNP.s = IPS_BUSY;
         int offset = TrackingModeOffsetN[0].value;
-        changeTrackingOffsets(offset);
+        setInt(offset, MDCP_SET_TRACKING_MODE_OFFSET, "Failed to set Tracking Mode offsets");
         TrackingModeOffsetNP.s = IPS_OK;
         IDSetNumber(&TrackingModeOffsetNP, nullptr);
-        readSettings();
+        readOffsetValues();
         return true;
     }
 
@@ -771,7 +642,7 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         setFanTempTrigger(tempOn, tempOff);
         FanTempTriggerNP.s = IPS_OK;
         IDSetNumber(&FanTempTriggerNP, nullptr);
-        readSettings();
+        readBoardFanValues();
         return true;
 
     }
@@ -779,10 +650,10 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         IUUpdateNumber(&FanSpeedNP, values, names, n);
         FanSpeedNP.s = IPS_BUSY;
         int speed = FanSpeedN[0].value;
-        setFanSpeed(speed);
+        setInt(speed, MDCP_SET_FAN_SPEED, "Failed to set Fan Speed");
         FanSpeedNP.s = IPS_OK;
         IDSetNumber(&FanSpeedNP, nullptr);
-        readSettings();
+        readBoardFanValues();
         return true;
 
     }
@@ -791,19 +662,18 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         IUUpdateNumber(&LCDPageRefreshNP, values, names, n);
         LCDPageRefreshNP.s = IPS_BUSY;
         int time = LCDPageRefreshN[0].value;
-        setLCDPageRefreshRate(time);
+        setInt(time, MDCP_SET_LCD_DISPLAY_TIME, "Failed to set LCD Page refressh");
         LCDPageRefreshNP.s = IPS_OK;
         IDSetNumber(&LCDPageRefreshNP, nullptr);
-        readSettings();
+        readLCDDisplayValues();
         return true;
 
     }
 
-
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool myDewControllerPro::readSettings()
+bool myDewControllerPro::readMainValues()
 {
 
     char resp[MDCP_RES_LEN];
@@ -904,6 +774,15 @@ bool myDewControllerPro::readSettings()
     } else {
         LOG_INFO(resp);
     }
+    return true;
+}
+
+bool myDewControllerPro::readOffsetValues()
+{
+    char resp[MDCP_RES_LEN];
+    float temp1, temp2, temp3;
+
+
     if (!sendCommand(MDCP_GET_TEMP_OFFSETS, resp)) {
         LOG_INFO(resp);
         return false;
@@ -931,6 +810,7 @@ bool myDewControllerPro::readSettings()
         LOG_INFO(resp);
         return false;
     }
+    int mode;
 
     if (sscanf(resp, MDCP_GET_TRACKING_MODE_RESPONSE, &mode) == 1) {
         IUResetSwitch(&TrackingModeSP);
@@ -950,6 +830,13 @@ bool myDewControllerPro::readSettings()
         TrackingModeOffsetNP.s = IPS_OK;
         IDSetNumber(&TrackingModeOffsetNP, nullptr);
     }
+    return true;
+}
+
+
+bool myDewControllerPro::readBoardFanValues()
+{
+    char resp[MDCP_RES_LEN];
 
     if (!sendCommand(MDCP_GET_FAN_SPEED, resp)) {
         LOG_INFO(resp);
@@ -967,7 +854,7 @@ bool myDewControllerPro::readSettings()
         LOG_INFO(resp);
         return false;
     }
-
+    int mode;
     if (sscanf(resp, MDCP_GET_FAN_MODE_RESPONSE, &mode) == 1) {
         IUResetSwitch(&FanModeSP);
 
@@ -999,13 +886,21 @@ bool myDewControllerPro::readSettings()
         FanTempTriggerNP.s = IPS_OK;
         IDSetNumber(&FanTempTriggerNP, nullptr);
     }
+
+    return true;
+}
+
+bool myDewControllerPro::readLCDDisplayValues()
+{
+    char resp[MDCP_RES_LEN];
+    int value;
+
     if (!sendCommand(MDCP_GET_LCD_DISPLAY_TIME, resp)) {
         LOG_INFO(resp);
         return false;
     }
-
-    if (sscanf(resp, MDCP_GET_LCD_DISPLAY_TIME_RESPONSE, &fanTemp) == 1) {
-        LCDPageRefreshN[0].value = fanTemp;
+    if (sscanf(resp, MDCP_GET_LCD_DISPLAY_TIME_RESPONSE, &value) == 1) {
+        LCDPageRefreshN[0].value = value;
         LCDPageRefreshNP.s = IPS_OK;
         IDSetNumber(&LCDPageRefreshNP, nullptr);
     }
@@ -1015,10 +910,10 @@ bool myDewControllerPro::readSettings()
         return false;
     }
 
-    if (sscanf(resp, MDCP_GET_LCD_STATE_RESPONSE, &mode) == 1) {
+    if (sscanf(resp, MDCP_GET_LCD_STATE_RESPONSE, &value) == 1) {
         IUResetSwitch(&EnableLCDDisplaySP);
 
-        EnableLCDDisplayS[mode].s = ISS_ON;
+        EnableLCDDisplayS[value].s = ISS_ON;
         EnableLCDDisplaySP.s = IPS_OK;
         IDSetSwitch(&EnableLCDDisplaySP, nullptr);
     }
@@ -1028,19 +923,14 @@ bool myDewControllerPro::readSettings()
         return false;
     }
 
-    if (sscanf(resp, MDCP_GET_TEMP_DISPLAY_RESPONSE, &mode) == 1) {
+    if (sscanf(resp, MDCP_GET_TEMP_DISPLAY_RESPONSE, &value) == 1) {
         IUResetSwitch(&LCDDisplayTempUnitsSP);
 
-        LCDDisplayTempUnitsS[mode-1].s = ISS_ON;
+        LCDDisplayTempUnitsS[value-1].s = ISS_ON;
         LCDDisplayTempUnitsSP.s = IPS_OK;
         IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
     }
-
-
-
-
-
-         return true;
+        return true;
 }
 
 void myDewControllerPro::TimerHit()
@@ -1051,6 +941,6 @@ void myDewControllerPro::TimerHit()
     }
 
     // Get temperatures etc.
-    readSettings();
+    readMainValues();
     SetTimer(getCurrentPollingPeriod());
 }

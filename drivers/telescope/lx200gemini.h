@@ -134,15 +134,28 @@ class LX200Gemini : public LX200Generic
 
         ISwitch RefractionControlS[1];
         ISwitchVectorProperty RefractionControlSP;
+
+        ISwitch SetSafetyLimitToCurrentS[1];
+        ISwitchVectorProperty SetSafetyLimitToCurrentSP;
+
+        INumber SafetyLimitsN[3];
+        INumberVectorProperty SafetyLimitsNP;
     
         float gemini_software_level_;
 
         enum
         {
-	 FIRMWARE_DATE,
-	 FIRMWARE_TIME,
-	 FIRMWARE_LEVEL,
-	 FIRMWARE_NAME
+            EAST_SAFETY,
+            WEST_SAFETY,
+            WEST_GOTO
+        };
+
+        enum
+        {
+            FIRMWARE_DATE,
+            FIRMWARE_TIME,
+            FIRMWARE_LEVEL,
+            FIRMWARE_NAME
 	};
   
         enum
