@@ -2098,41 +2098,13 @@ bool LX200Gemini::setGeminiProperty(uint32_t propertyNumber, char* value)
 
 bool LX200Gemini::SetTrackMode(uint8_t mode)
 {
-    int rc = TTY_OK, nbytes_written = 0;
-    char prefix[16] = {0};
-    char cmd[16] = {0};
-
-    snprintf(prefix, 16, ">130:%d", mode + 131);
-
-    uint8_t checksum = calculateChecksum(prefix);
-
-    snprintf(cmd, 16, "%s%c#", prefix, checksum);
-
-    LOGF_DEBUG("CMD: <%s>", cmd);
-
-    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
-    {
-        char errmsg[256];
-        tty_error_msg(rc, errmsg, 256);
-        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
-        return false;
-    }
-
-    tcflush(PortFD, TCIFLUSH);
-
-    return true;
+    char empty[] = "";
+    return setGeminiProperty(131 + mode, empty);
 }
 
 bool LX200Gemini::SetTrackEnabled(bool enabled)
 {
-    if (enabled)
-    {
-        return wakeupMount();
-    }
-    else
-    {
-        return sleepMount();
-    }
+    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : GEMINI_TRACK_TERRESTRIAL);
 }
 
 uint8_t LX200Gemini::calculateChecksum(char *cmd)
