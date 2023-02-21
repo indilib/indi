@@ -203,12 +203,6 @@ class myDewControllerPro : public INDI::DefaultDevice
             MIDPOINT
         };
 
-        INDI::PropertySwitch EEPROMSaveSP{ 2 };
-        enum {
-            RESET_EEPROM,
-            SAVE_TO_EEPROM
-        };
-
         INDI::PropertyNumber FanTempTriggerNP{ 2 };
         enum {
             FANTEMPON,

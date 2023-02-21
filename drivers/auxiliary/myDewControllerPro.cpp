@@ -171,27 +171,27 @@ bool myDewControllerPro::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&OutputsNP);
-        defineProperty(&CH1CH2BoostSP);
-        defineProperty(&CH3_ModeSP);
-        defineProperty(&CH3_Manual_PowerNP);
-        defineProperty(&TemperaturesNP);
-        defineProperty(&HumidityNP);
-        defineProperty(&DewpointNP);
-        defineProperty(&FanSpeedNP);
-        defineProperty(&FanModeSP);
-        defineProperty(&TemperatureOffsetsNP);
-        defineProperty(&ZeroTempOffsetsSP);
-        defineProperty(&TrackingModeSP);
-        defineProperty(&TrackingModeOffsetNP);
-        defineProperty(&FanTempTriggerNP);
-        defineProperty(&EnableLCDDisplaySP);
-        defineProperty(&LCDDisplayTempUnitsSP);
-        defineProperty(&LCDPageRefreshNP);
-        defineProperty(&EEPROMSP);
+        defineProperty(OutputsNP);
+        defineProperty(CH1CH2BoostSP);
+        defineProperty(CH3_ModeSP);
+        defineProperty(CH3_Manual_PowerNP);
+        defineProperty(TemperaturesNP);
+        defineProperty(HumidityNP);
+        defineProperty(DewpointNP);
+        defineProperty(FanSpeedNP);
+        defineProperty(FanModeSP);
+        defineProperty(TemperatureOffsetsNP);
+        defineProperty(ZeroTempOffsetsSP);
+        defineProperty(TrackingModeSP);
+        defineProperty(TrackingModeOffsetNP);
+        defineProperty(FanTempTriggerNP);
+        defineProperty(EnableLCDDisplaySP);
+        defineProperty(LCDDisplayTempUnitsSP);
+        defineProperty(LCDPageRefreshNP);
+        defineProperty(EEPROMSP);
+        defineProperty(FWVersionNP);
 
 
-        defineProperty(&FWVersionNP);
         cancelOutputBoost();
 
         loadConfig(true);
@@ -212,26 +212,25 @@ bool myDewControllerPro::updateProperties()
     }
     else
     {
-        deleteProperty(OutputsNP.name);
-        deleteProperty(CH1CH2BoostSP.name);
-        deleteProperty(CH3_ModeSP.name);
-        deleteProperty(CH3_Manual_PowerNP.name);
-        deleteProperty(TemperaturesNP.name);
-        deleteProperty(HumidityNP.name);
-        deleteProperty(DewpointNP.name);
-        deleteProperty(FanSpeedNP.name);
-        deleteProperty(FanModeSP.name);
-        deleteProperty(TemperatureOffsetsNP.name);
-        deleteProperty(ZeroTempOffsetsSP.name);
-        deleteProperty(TrackingModeSP.name);
-        deleteProperty(TrackingModeOffsetNP.name);
-        deleteProperty(FanTempTriggerNP.name);
-        deleteProperty(EnableLCDDisplaySP.name);
-        deleteProperty(LCDDisplayTempUnitsSP.name);
-        deleteProperty(LCDPageRefreshNP.name);
-
-        deleteProperty(EEPROMSP.name);
-        deleteProperty(FWVersionNP.name);
+        deleteProperty(OutputsNP);
+        deleteProperty(CH1CH2BoostSP);
+        deleteProperty(CH3_ModeSP);
+        deleteProperty(CH3_Manual_PowerNP);
+        deleteProperty(TemperaturesNP);
+        deleteProperty(HumidityNP);
+        deleteProperty(DewpointNP);
+        deleteProperty(FanSpeedNP);
+        deleteProperty(FanModeSP);
+        deleteProperty(TemperatureOffsetsNP);
+        deleteProperty(ZeroTempOffsetsSP);
+        deleteProperty(TrackingModeSP);
+        deleteProperty(TrackingModeOffsetNP);
+        deleteProperty(FanTempTriggerNP);
+        deleteProperty(EnableLCDDisplaySP);
+        deleteProperty(LCDDisplayTempUnitsSP);
+        deleteProperty(LCDPageRefreshNP);
+        deleteProperty(EEPROMSP);
+        deleteProperty(FWVersionNP);
     }
 
     return true;
@@ -323,10 +322,10 @@ bool myDewControllerPro::Ack()
     if (numberProbes < 1) {
         LOG_INFO("Warning no temperature probes detected");
     }
-    FWVersionNP.s = IPS_BUSY;
-    FWVersionN[0].value = firmware;
-    FWVersionNP.s = IPS_OK;
-    IDSetNumber(&FWVersionNP, nullptr);
+    FWVersionNP.setState(IPS_BUSY);
+    FWVersionNP[0].setValue(firmware);
+    FWVersionNP.setState(IPS_OK);
+    FWVersionNP.apply();
 
     return true;
 
@@ -464,106 +463,104 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (!strcmp(name, CH1CH2BoostSP.name))
+    if (CH1CH2BoostSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&CH1CH2BoostSP, states, names, n);
-        CH1CH2BoostSP.s = IPS_BUSY;
+        CH1CH2BoostSP.update( states, names, n);
+        CH1CH2BoostSP.setState(IPS_BUSY);
         cancelOutputBoost();
-        if (CH1CH2BoostS[CH1_BOOST_100].s == ISS_ON) {
+        if (CH1CH2BoostSP[CH1_BOOST_100].getState() == ISS_ON) {
             setOutputBoost(CH1_BOOST_100);
         }
-        if (CH1CH2BoostS[CH2_BOOST_100].s == ISS_ON) {
+        if (CH1CH2BoostSP[CH2_BOOST_100].getState() == ISS_ON) {
             setOutputBoost(CH2_BOOST_100);
         }
-        CH1CH2BoostSP.s = IPS_OK;
-        IDSetSwitch(&CH1CH2BoostSP, nullptr);
+        CH1CH2BoostSP.setState(IPS_OK);
+        CH1CH2BoostSP.apply();
         readMainValues();
         return true;
 
     }
 
-    if (!strcmp(name, CH3_ModeSP.name))
+    if (CH3_ModeSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&CH3_ModeSP, states, names, n);
-        CH3_ModeSP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&CH3_ModeSP);
+        CH3_ModeSP.update(states, names, n);
+        CH3_ModeSP.setState(IPS_BUSY);
+        int mode = CH3_ModeSP.findOnSwitchIndex();
         setInt(mode, MDCP_SET_CH3_SETTINGS, "Failed to set CH3 mode");
-        CH3_ModeSP.s = IPS_OK;
-        IDSetSwitch(&CH3_ModeSP, nullptr);
+        CH3_ModeSP.setState(IPS_OK);
+        CH3_ModeSP.apply();
         readMainValues();
         return true;
 
     }
 
-    if (!strcmp(name, ZeroTempOffsetsSP.name))
+    if (ZeroTempOffsetsSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&ZeroTempOffsetsSP, states, names, n);
-        ZeroTempOffsetsSP.s = IPS_BUSY;
+        ZeroTempOffsetsSP.update(states, names, n);
+        ZeroTempOffsetsSP.setState(IPS_BUSY);
         zeroTempCalibrations();
-        ZeroTempOffsetsSP.s = IPS_OK;
-        ZeroTempOffsetsS[0].s = ISS_OFF;
-        IDSetSwitch(&ZeroTempOffsetsSP, nullptr);
+        ZeroTempOffsetsSP.setState(IPS_OK);
+        ZeroTempOffsetsSP[0].setState(ISS_OFF);
+        ZeroTempOffsetsSP.apply();
         readOffsetValues();
         return true;
     }
 
-    if (!strcmp(name, TrackingModeSP.name))
+    if (TrackingModeSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&TrackingModeSP, states, names, n);
-        TrackingModeSP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&TrackingModeSP);
+        TrackingModeSP.update(states, names, n);
+        TrackingModeSP.setState(IPS_BUSY);
+        int mode = TrackingModeSP.findOnSwitchIndex();
         setInt(mode, MDCP_SET_TRACKING_MODE, "Failed to set Tracking Mode");
-        TrackingModeSP.s = IPS_OK;
-        IDSetSwitch(&TrackingModeSP, nullptr);
+        TrackingModeSP.setState(IPS_OK);
+        TrackingModeSP.apply();
         readOffsetValues();
         return true;
-
     }
 
-    if (!strcmp(name, FanModeSP.name))
+    if (FanModeSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&FanModeSP, states, names, n);
-        FanModeSP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&FanModeSP);
+        FanModeSP.update(states, names, n);
+        FanModeSP.setState(IPS_BUSY);
+        int mode = FanModeSP.findOnSwitchIndex();
         setInt(mode, MDCP_SET_FAN_MODE, "Failed to set Fan Mode");
-        FanModeSP.s = IPS_OK;
-        IDSetSwitch(&FanModeSP, nullptr);
+        FanModeSP.setState(IPS_OK);
+        FanModeSP.apply();
         readBoardFanValues();
         return true;
-
     }
 
-    if (!strcmp(name, EnableLCDDisplaySP.name))
+    if (EnableLCDDisplaySP.isNameMatch(name))
     {
-        IUUpdateSwitch(&EnableLCDDisplaySP, states, names, n);
-        EnableLCDDisplaySP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&EnableLCDDisplaySP);
+        EnableLCDDisplaySP.update(states, names, n);
+        EnableLCDDisplaySP.setState(IPS_BUSY);
+        int mode = EnableLCDDisplaySP.findOnSwitchIndex();
         setChoice(mode, MDCP_LCD_ENABLE, MDCP_LCD_DISABLE, "Failed to set LCD enable");
-        EnableLCDDisplaySP.s = IPS_OK;
-        IDSetSwitch(&EnableLCDDisplaySP, nullptr);
+        EnableLCDDisplaySP.setState(IPS_OK);
+        EnableLCDDisplaySP.apply();
         readLCDDisplayValues();
         return true;
 
     }
 
-    if (!strcmp(name, LCDDisplayTempUnitsSP.name))
+    if (LCDDisplayTempUnitsSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&LCDDisplayTempUnitsSP, states, names, n);
-        LCDDisplayTempUnitsSP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&LCDDisplayTempUnitsSP);
+        LCDDisplayTempUnitsSP.update(states, names, n);
+        LCDDisplayTempUnitsSP.setState(IPS_BUSY);
+        int mode = LCDDisplayTempUnitsSP.findOnSwitchIndex();
         setChoice(mode, MDCP_LCD_DISPLAY_FAHRENHEIT, MDCP_LCD_DISPLAY_CELSIUS, "Failed to set temp display mode");
-        LCDDisplayTempUnitsSP.s = IPS_OK;
-        IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
+        LCDDisplayTempUnitsSP.setState(IPS_OK);
+        LCDDisplayTempUnitsSP.apply();
         readLCDDisplayValues();
         return true;
 
     }
 
-    if (!strcmp(name, EEPROMSP.name))
+    if (EEPROMSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&EEPROMSP, states, names, n);
-        EEPROMSP.s= IPS_BUSY;
-        int mode = IUFindOnSwitchIndex(&EEPROMSP);
+        EEPROMSP.update(states, names, n);
+        EEPROMSP.setState(IPS_BUSY);
+        int mode = EEPROMSP.findOnSwitchIndex();
         if (setChoice(mode, MDCP_SAVE_TO_EEPROM, MDCP_RESET_EEPROM_TO_DEFAULT, "Failed to Save/reset EEPROM"))
         {
             const char* message = mode == 1 ? "Saved to EEPPROM Successfully" : "Reset EEPROM to Default";
@@ -573,15 +570,11 @@ bool myDewControllerPro::ISNewSwitch(const char *dev, const char *name, ISState 
         readOffsetValues();
         readBoardFanValues();
         readLCDDisplayValues();
-
-        EEPROMSP.s = IPS_OK;
-        IDSetSwitch(&EEPROMSP, nullptr);
+        EEPROMSP.setState(IPS_OK);
+        EEPROMSP.apply();
         return true;
 
     }
-
-
-
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -590,16 +583,15 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-
-    if (!strcmp(name, CH3_Manual_PowerNP.name))
+    if (CH3_Manual_PowerNP.isNameMatch(name))
     {
-        if (IUFindOnSwitchIndex(&CH3_ModeSP) == 3) {
-            IUUpdateNumber(&CH3_Manual_PowerNP, values, names, n);
-            CH3_Manual_PowerNP.s = IPS_BUSY;
-            int power = CH3_Manual_PowerN[0].value;
+        if (CH3_ModeSP.findOnSwitchIndex() == 3) {
+            CH3_Manual_PowerNP.update(values, names, n);
+            CH3_Manual_PowerNP.setState(IPS_BUSY);
+            int power = CH3_Manual_PowerNP[0].getValue();
             setInt(power, MDCP_SET_CH3_MANUAL_POWER, "Failed to set CH3 Power");
-            CH3_Manual_PowerNP.s = IPS_OK;
-            IDSetNumber(&CH3_Manual_PowerNP, nullptr);
+            CH3_Manual_PowerNP.setState(IPS_OK);
+            CH3_Manual_PowerNP.apply();
         } else {
             LOG_INFO("Power can only be manually adjusted in Strap 3 manual mode");
         }
@@ -607,63 +599,67 @@ bool myDewControllerPro::ISNewNumber(const char *dev, const char *name, double v
         return true;
     }
 
-    if (!strcmp(name, TemperatureOffsetsNP.name)) {
-        IUUpdateNumber(&TemperatureOffsetsNP, values, names, n);
-        TemperatureOffsetsNP.s = IPS_BUSY;
-        int ch1 = TemperatureOffsetsN[TEMP_PROBE_ONE_OFFSET].value;
-        int ch2 = TemperatureOffsetsN[TEMP_PROBE_TWO_OFFSET].value;
-        int ch3 = TemperatureOffsetsN[TEMP_PROBE_THREE_OFFSET].value;
-        int ambient = TemperatureOffsetsN[AMBIENT_TEMP_PROBE_OFFSET].value;
+    if (TemperatureOffsetsNP.isNameMatch(name))
+    {
+        TemperatureOffsetsNP.update(values, names, n);
+        TemperatureOffsetsNP.setState(IPS_BUSY);
+        int ch1 = TemperatureOffsetsNP[TEMP_PROBE_ONE_OFFSET].getValue();
+        int ch2 = TemperatureOffsetsNP[TEMP_PROBE_TWO_OFFSET].getValue();
+        int ch3 = TemperatureOffsetsNP[TEMP_PROBE_THREE_OFFSET].getValue();
+        int ambient = TemperatureOffsetsNP[AMBIENT_TEMP_PROBE_OFFSET].getValue();
         setTempCalibrations(ch1, ch2, ch3, ambient);
-        TemperatureOffsetsNP.s = IPS_OK;
-        IDSetNumber(&TemperatureOffsetsNP, nullptr);
+        TemperatureOffsetsNP.setState(IPS_OK);
+        TemperatureOffsetsNP.apply();
         readOffsetValues();
         return true;
 
     }
 
-    if (!strcmp(name, TrackingModeOffsetNP.name)) {
-        IUUpdateNumber(&TrackingModeOffsetNP, values, names, n);
-        TrackingModeOffsetNP.s = IPS_BUSY;
-        int offset = TrackingModeOffsetN[0].value;
+    if (TrackingModeOffsetNP.isNameMatch(name))
+    {
+        TrackingModeOffsetNP.update(values, names, n);
+        TrackingModeOffsetNP.setState(IPS_BUSY);
+        int offset = TrackingModeOffsetNP[0].getValue();
         setInt(offset, MDCP_SET_TRACKING_MODE_OFFSET, "Failed to set Tracking Mode offsets");
-        TrackingModeOffsetNP.s = IPS_OK;
-        IDSetNumber(&TrackingModeOffsetNP, nullptr);
+        TrackingModeOffsetNP.setState(IPS_OK);
+        TrackingModeOffsetNP.apply();
         readOffsetValues();
         return true;
     }
 
-    if (!strcmp(name, FanTempTriggerNP.name)) {
-        IUUpdateNumber(&FanTempTriggerNP, values, names, n);
-        FanTempTriggerNP.s = IPS_BUSY;
-        int tempOn = FanTempTriggerN[FANTEMPON].value;
-        int tempOff = FanTempTriggerN[FANTEMPOFF].value;
+    if (FanTempTriggerNP.isNameMatch(name))
+    {
+        FanTempTriggerNP.update(values, names, n);
+        FanTempTriggerNP.setState(IPS_BUSY);
+        int tempOn = FanTempTriggerNP[FANTEMPON].getValue();
+        int tempOff = FanTempTriggerNP[FANTEMPOFF].getValue();
         setFanTempTrigger(tempOn, tempOff);
-        FanTempTriggerNP.s = IPS_OK;
-        IDSetNumber(&FanTempTriggerNP, nullptr);
+        FanTempTriggerNP.setState(IPS_OK);
+        FanTempTriggerNP.apply();
         readBoardFanValues();
         return true;
 
     }
-    if (!strcmp(name, FanSpeedNP.name)) {
-        IUUpdateNumber(&FanSpeedNP, values, names, n);
-        FanSpeedNP.s = IPS_BUSY;
-        int speed = FanSpeedN[0].value;
+    if (FanSpeedNP.isNameMatch(name))
+    {
+        FanSpeedNP.update(values, names, n);
+        FanSpeedNP.setState(IPS_BUSY);
+        int speed = FanSpeedNP[0].getValue();
         setInt(speed, MDCP_SET_FAN_SPEED, "Failed to set Fan Speed");
-        FanSpeedNP.s = IPS_OK;
-        IDSetNumber(&FanSpeedNP, nullptr);
+        FanSpeedNP.setState(IPS_OK);
+        FanSpeedNP.apply();
         readBoardFanValues();
         return true;
 
     }
 
-    if (!strcmp(name, LCDPageRefreshNP.name)) {
-        IUUpdateNumber(&LCDPageRefreshNP, values, names, n);
-        LCDPageRefreshNP.s = IPS_BUSY;
-        int time = LCDPageRefreshN[0].value;
+    if (LCDPageRefreshNP.isNameMatch(name)) {
+        LCDPageRefreshNP.update(values, names, n);
+        LCDPageRefreshNP.setState(IPS_BUSY);
+        int time = LCDPageRefreshNP[0].getValue();
         setInt(time, MDCP_SET_LCD_DISPLAY_TIME, "Failed to set LCD Page refressh");
-        LCDPageRefreshNP.s = IPS_OK;
-        IDSetNumber(&LCDPageRefreshNP, nullptr);
+        LCDPageRefreshNP.setState(IPS_OK);
+        LCDPageRefreshNP.apply();
         readLCDDisplayValues();
         return true;
 
@@ -685,11 +681,11 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_TEMP_RESPONSE, &temp1, &temp2, &temp3) == 3) {
-        TemperaturesN[PROBE_1].value = temp1;
-        TemperaturesN[PROBE_2].value = temp2;
-        TemperaturesN[PROBE_3].value = temp3;
-        TemperaturesNP.s = IPS_OK;
-        IDSetNumber(&TemperaturesNP, nullptr);
+        TemperaturesNP[PROBE_1].setValue(temp1);
+        TemperaturesNP[PROBE_2].setValue(temp2);
+        TemperaturesNP[PROBE_3].setValue(temp3);
+        TemperaturesNP.setState(IPS_OK);
+        TemperaturesNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_AMB_TEMP, resp)) {
@@ -698,9 +694,9 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_AMB_TEMP_REPSONSE, &temp_ambient) == 1) {
-        TemperaturesN[AMBIENT_PROBE].value = temp_ambient;
-        TemperaturesNP.s = IPS_OK;
-        IDSetNumber(&TemperaturesNP, nullptr);
+        TemperaturesNP[AMBIENT_PROBE].setValue(temp_ambient);
+        TemperaturesNP.setState(IPS_OK);
+        TemperaturesNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_BOARD_TEMP, resp)) {
@@ -709,9 +705,9 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_BOARD_TEMP_RESPONSE, &temp_ambient) == 1) {
-        TemperaturesN[BOARD_PROBE].value = temp_ambient;
-        TemperaturesNP.s = IPS_OK;
-        IDSetNumber(&TemperaturesNP, nullptr);
+        TemperaturesNP[BOARD_PROBE].setValue(temp_ambient);
+        TemperaturesNP.setState(IPS_OK);
+        TemperaturesNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_REL_HUMIDITY, resp)) {
@@ -721,9 +717,9 @@ bool myDewControllerPro::readMainValues()
 
     if (sscanf(resp, MDCP_GET_REL_HUMIDITY_REPSONSE, &humidity) == 1) {
 
-        HumidityN[0].value = humidity;
-        HumidityNP.s = IPS_OK;
-        IDSetNumber(&HumidityNP, nullptr);
+        HumidityNP[0].setValue(humidity);
+        HumidityNP.setState(IPS_OK);
+        HumidityNP.apply();
     } else {
         LOG_INFO(resp);
     }
@@ -734,9 +730,9 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_DEW_POINT_RESPONSE, &dewpoint) == 1) {
-        DewpointN[0].value = dewpoint;
-        DewpointNP.s = IPS_OK;
-        IDSetNumber(&DewpointNP, nullptr);
+        DewpointNP[0].setValue(dewpoint);
+        DewpointNP.setState(IPS_OK);
+        DewpointNP.apply();
     }
 
     int power1, power2, power3;
@@ -747,13 +743,13 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_CHANNEL_POWER_RESPONSE, &power1, &power2, &power3) == 3) {
-        OutputsN[DEW_STRAP_ONE_POWER].value = power1;
-        OutputsN[DEW_STRAP_TWO_POWER].value = power2;
-        OutputsN[DEW_STRAP_THREE_POWER].value = power3;
-        OutputsNP.s = IPS_OK;
-        IDSetNumber(&OutputsNP, nullptr);
-        CH3_Manual_PowerN[0].value = power3;
-        IDSetNumber(&CH3_Manual_PowerNP, nullptr);
+        OutputsNP[DEW_STRAP_ONE_POWER].setValue(power1);
+        OutputsNP[DEW_STRAP_TWO_POWER].setValue(power2);
+        OutputsNP[DEW_STRAP_THREE_POWER].setValue(power3);
+        OutputsNP.setState(IPS_OK);
+        OutputsNP.apply();
+        CH3_Manual_PowerNP[0].setValue(power3);
+        CH3_Manual_PowerNP.apply();
     } else {
         LOG_INFO(resp);
     }
@@ -766,13 +762,26 @@ bool myDewControllerPro::readMainValues()
     }
 
     if (sscanf(resp, MDCP_GET_CH3_SETTINGS_RESPONSE, &mode) == 1) {
-        IUResetSwitch(&CH3_ModeSP);
-        CH3_ModeS[mode].s = ISS_ON;
-        CH3_ModeSP.s = IPS_OK;
-        IDSetSwitch(&CH3_ModeSP, nullptr);
+        CH3_ModeSP.reset();
+        CH3_ModeSP[mode].setState(ISS_ON);
+        CH3_ModeSP.setState(IPS_OK);
+        CH3_ModeSP.apply();
     } else {
         LOG_INFO(resp);
     }
+
+    if (!sendCommand(MDCP_GET_FAN_SPEED, resp)) {
+        LOG_INFO(resp);
+        return false;
+    }
+    int fanSpeed;
+
+    if (sscanf(resp, "F%d$", &fanSpeed) == 1) {
+        FanSpeedNP[0].setValue(fanSpeed);
+        FanSpeedNP.setState(IPS_OK);
+        FanSpeedNP.apply();
+    }
+
     return true;
 }
 
@@ -788,11 +797,11 @@ bool myDewControllerPro::readOffsetValues()
     }
 
     if (sscanf(resp, MDCP_GET_TEMP_OFFSETS_RESPONSE, &temp1, &temp2, &temp3) == 3) {
-        TemperatureOffsetsN[TEMP_PROBE_ONE_OFFSET].value = temp1;
-        TemperatureOffsetsN[TEMP_PROBE_TWO_OFFSET].value = temp2;
-        TemperatureOffsetsN[TEMP_PROBE_THREE_OFFSET].value = temp3;
-        TemperatureOffsetsNP.s = IPS_OK;
-        IDSetNumber(&TemperatureOffsetsNP, nullptr);
+        TemperatureOffsetsNP[TEMP_PROBE_ONE_OFFSET].setValue(temp1);
+        TemperatureOffsetsNP[TEMP_PROBE_TWO_OFFSET].setValue(temp2);
+        TemperatureOffsetsNP[TEMP_PROBE_THREE_OFFSET].setValue(temp3);
+        TemperatureOffsetsNP.setState(IPS_OK);
+        TemperatureOffsetsNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_AMB_TEMP_OFFSET, resp)) {
@@ -801,9 +810,9 @@ bool myDewControllerPro::readOffsetValues()
     }
     int atBias = 0;
     if (sscanf(resp, MDCP_GET_AMB_TEMP_OFFSET_RESPONSE, &atBias) == 1) {
-        TemperatureOffsetsN[AMBIENT_TEMP_PROBE_OFFSET].value = atBias;
-        TemperatureOffsetsNP.s = IPS_OK;
-        IDSetNumber(&TemperatureOffsetsNP, nullptr);
+        TemperatureOffsetsNP[AMBIENT_TEMP_PROBE_OFFSET].setValue(atBias);
+        TemperatureOffsetsNP.setState(IPS_OK);
+        TemperatureOffsetsNP.apply();
     }
     if (!sendCommand(MDCP_GET_TRACKING_MODE, resp)) {
         LOG_INFO(resp);
@@ -812,10 +821,10 @@ bool myDewControllerPro::readOffsetValues()
     int mode;
 
     if (sscanf(resp, MDCP_GET_TRACKING_MODE_RESPONSE, &mode) == 1) {
-        IUResetSwitch(&TrackingModeSP);
-        TrackingModeS[mode].s = ISS_ON;
-        TrackingModeSP.s = IPS_OK;
-        IDSetSwitch(&TrackingModeSP, nullptr);
+        TrackingModeSP.reset();
+        TrackingModeSP[mode].setState(ISS_ON);
+        TrackingModeSP.setState(IPS_OK);
+        TrackingModeSP.apply();
     }
 
     if (!sendCommand(MDCP_GET_TRACKING_MODE_OFFSET, resp)) {
@@ -825,9 +834,9 @@ bool myDewControllerPro::readOffsetValues()
     int toffset = 0;
 
     if (sscanf(resp, "y%d$", &toffset) == 1) {
-        TrackingModeOffsetN[0].value = toffset;
-        TrackingModeOffsetNP.s = IPS_OK;
-        IDSetNumber(&TrackingModeOffsetNP, nullptr);
+        TrackingModeOffsetNP[0].setValue(toffset);
+        TrackingModeOffsetNP.setState(IPS_OK);
+        TrackingModeOffsetNP.apply();
     }
     return true;
 }
@@ -844,9 +853,9 @@ bool myDewControllerPro::readBoardFanValues()
     int fanSpeed;
 
     if (sscanf(resp, "F%d$", &fanSpeed) == 1) {
-        FanSpeedN[0].value = fanSpeed;
-        FanSpeedNP.s = IPS_OK;
-        IDSetNumber(&FanSpeedNP, nullptr);
+        FanSpeedNP[0].setValue(fanSpeed);
+        FanSpeedNP.setState(IPS_OK);
+        FanSpeedNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_FAN_MODE, resp)) {
@@ -855,11 +864,10 @@ bool myDewControllerPro::readBoardFanValues()
     }
     int mode;
     if (sscanf(resp, MDCP_GET_FAN_MODE_RESPONSE, &mode) == 1) {
-        IUResetSwitch(&FanModeSP);
-
-        FanModeS[mode].s = ISS_ON;
-        FanModeSP.s = IPS_OK;
-        IDSetSwitch(&FanModeSP, nullptr);
+        FanModeSP.reset();
+        FanModeSP[mode].setState(ISS_ON);
+        FanModeSP.setState(IPS_OK);
+        FanModeSP.apply();
     }
 
     if (!sendCommand(MDCP_GET_FAN_ON_TEMP, resp)) {
@@ -870,9 +878,9 @@ bool myDewControllerPro::readBoardFanValues()
     int fanTemp;
 
     if (sscanf(resp, MDCP_GET_FAN_ON_TEMP_RESPONSE, &fanTemp) == 1) {
-        FanTempTriggerN[FANTEMPON].value = fanTemp;
-        FanTempTriggerNP.s = IPS_OK;
-        IDSetNumber(&FanTempTriggerNP, nullptr);
+        FanTempTriggerNP[FANTEMPON].setValue(fanTemp);
+        FanTempTriggerNP.setState(IPS_OK);
+        FanTempTriggerNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_FAN_OFF_TEMP, resp)) {
@@ -881,9 +889,9 @@ bool myDewControllerPro::readBoardFanValues()
     }
 
     if (sscanf(resp, MDCP_GET_FAN_OFF_TEMP_RESPONSE, &fanTemp) == 1) {
-        FanTempTriggerN[FANTEMPOFF].value = fanTemp;
-        FanTempTriggerNP.s = IPS_OK;
-        IDSetNumber(&FanTempTriggerNP, nullptr);
+        FanTempTriggerNP[FANTEMPOFF].setValue(fanTemp);
+        FanTempTriggerNP.setState(IPS_OK);
+        FanTempTriggerNP.apply();
     }
 
     return true;
@@ -899,9 +907,9 @@ bool myDewControllerPro::readLCDDisplayValues()
         return false;
     }
     if (sscanf(resp, MDCP_GET_LCD_DISPLAY_TIME_RESPONSE, &value) == 1) {
-        LCDPageRefreshN[0].value = value;
-        LCDPageRefreshNP.s = IPS_OK;
-        IDSetNumber(&LCDPageRefreshNP, nullptr);
+        LCDPageRefreshNP[0].setValue(value);
+        LCDPageRefreshNP.setState(IPS_OK);
+        LCDPageRefreshNP.apply();
     }
 
     if (!sendCommand(MDCP_GET_LCD_STATE, resp)) {
@@ -910,11 +918,10 @@ bool myDewControllerPro::readLCDDisplayValues()
     }
 
     if (sscanf(resp, MDCP_GET_LCD_STATE_RESPONSE, &value) == 1) {
-        IUResetSwitch(&EnableLCDDisplaySP);
-
-        EnableLCDDisplayS[value].s = ISS_ON;
-        EnableLCDDisplaySP.s = IPS_OK;
-        IDSetSwitch(&EnableLCDDisplaySP, nullptr);
+        EnableLCDDisplaySP.reset();
+        EnableLCDDisplaySP[value].setState(ISS_ON);
+        EnableLCDDisplaySP.setState(IPS_OK);
+        EnableLCDDisplaySP.apply();
     }
 
     if (!sendCommand(MDCP_GET_TEMP_DISPLAY, resp)) {
@@ -923,11 +930,10 @@ bool myDewControllerPro::readLCDDisplayValues()
     }
 
     if (sscanf(resp, MDCP_GET_TEMP_DISPLAY_RESPONSE, &value) == 1) {
-        IUResetSwitch(&LCDDisplayTempUnitsSP);
-
-        LCDDisplayTempUnitsS[value-1].s = ISS_ON;
-        LCDDisplayTempUnitsSP.s = IPS_OK;
-        IDSetSwitch(&LCDDisplayTempUnitsSP, nullptr);
+        LCDDisplayTempUnitsSP.reset();
+        LCDDisplayTempUnitsSP[value-1].setState(ISS_ON);
+        LCDDisplayTempUnitsSP.setState(IPS_OK);
+        LCDDisplayTempUnitsSP.apply();
     }
         return true;
 }
