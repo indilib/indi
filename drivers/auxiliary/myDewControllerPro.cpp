@@ -42,94 +42,94 @@ bool myDewControllerPro::initProperties()
     DefaultDevice::initProperties();
 
     /* Channel duty cycles */
-    IUFillNumber(&OutputsN[DEW_STRAP_ONE_POWER], "CHANNEL1", "Strap 1", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumber(&OutputsN[DEW_STRAP_TWO_POWER], "CHANNEL2", "Strap 2", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumber(&OutputsN[DEW_STRAP_THREE_POWER], "CHANNEL3", "Strap 3", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumberVector(&OutputsNP, OutputsN, 3, getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    OutputsNP[DEW_STRAP_ONE_POWER].fill("CHANNEL1", "Strap 1", "%4.0f %%", 0., 100., 1., 0.);
+    OutputsNP[DEW_STRAP_TWO_POWER].fill("CHANNEL2", "Strap 2", "%4.0f %%", 0., 100., 1., 0.);
+    OutputsNP[DEW_STRAP_THREE_POWER].fill("CHANNEL3", "Strap 3", "%4.0f %%", 0., 100., 1., 0.);
+    OutputsNP.fill(getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&FanSpeedN[0], "Fan Power", "Fan Speed", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumberVector(&FanSpeedNP, FanSpeedN, 1, getDeviceName(), "FanSpeed", "Board Fan", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
+    FanSpeedNP[0].fill("Fan Power", "Fan Speed", "%4.0f %%", 0., 100., 1., 0.);
+    FanSpeedNP.fill(getDeviceName(), "FanSpeed", "Board Fan", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&FanModeS[0], "Board Temp", "Board Temp Sensor", ISS_OFF);
-    IUFillSwitch(&FanModeS[1], "Manual", "Manual", ISS_ON);
-    IUFillSwitchVector(&FanModeSP, FanModeS, 2, getDeviceName(), "Fan_Mode", "Fan Mode", BOARD_FAN_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    FanModeSP[BOARD_TEMP].fill("Board Temp", "Board Temp Sensor", ISS_OFF);
+    FanModeSP[MANUAL_FAN].fill("Manual", "Manual", ISS_ON);
+    FanModeSP.fill(getDeviceName(), "Fan_Mode", "Fan Mode", BOARD_FAN_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&EEPROMS[0], "Reset EEPROM", "Reset EEPROM to Defaults", ISS_OFF);
-    IUFillSwitch(&EEPROMS[1], "Save to EEPROM", "Save to EEPROM", ISS_OFF);
-    IUFillSwitchVector(&EEPROMSP, EEPROMS, 2, getDeviceName(), "EEPROM", "EEPROM", OPTIONS_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
+    EEPROMSP[RESET_EEPROM].fill("Reset EEPROM", "Reset EEPROM to Defaults", ISS_OFF);
+    EEPROMSP[SAVE_TO_EEPROM].fill("Save to EEPROM", "Save to EEPROM", ISS_OFF);
+    EEPROMSP.fill(getDeviceName(), "EEPROM", "EEPROM", OPTIONS_TAB, IP_WO, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&FanTempTriggerN[FANTEMPOFF], "Board_Temp_Off", "Board Fan Temp Off", "%4.0f \u2103", 0., 100., 1., 0.);
-    IUFillNumber(&FanTempTriggerN[FANTEMPON], "Board_Temp_On", "Board Fan Temp On", "%4.0f \u2103", 0., 100., 1., 0.);
-    IUFillNumberVector(&FanTempTriggerNP, FanTempTriggerN, 2, getDeviceName(), "Fan Trigger Temps", "Fan Trigger", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
+    FanTempTriggerNP[FANTEMPOFF].fill("Board_Temp_Off", "Board Fan Temp Off", "%4.0f \u2103", 0., 100., 1., 0.);
+    FanTempTriggerNP[FANTEMPON].fill("Board_Temp_On", "Board Fan Temp On", "%4.0f \u2103", 0., 100., 1., 0.);
+    FanTempTriggerNP.fill(getDeviceName(), "Fan Trigger Temps", "Fan Trigger", BOARD_FAN_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&LCDPageRefreshN[0], "Page Refresh Rate", "Page Refresh Rate", "%4.0f ms", 500., 5000., 500., 0.);
-    IUFillNumberVector(&LCDPageRefreshNP, LCDPageRefreshN, 1, getDeviceName(), "LCD Page", "LCD Page", LCD_DISPLAY_TAB, IP_RW, 0, IPS_IDLE);
+    LCDPageRefreshNP[0].fill("Page Refresh Rate", "Page Refresh Rate", "%4.0f ms", 500., 5000., 500., 0.);
+    LCDPageRefreshNP.fill(getDeviceName(), "LCD Page", "LCD Page", LCD_DISPLAY_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&LCDDisplayTempUnitsS[0], "Celsius", "Celsius", ISS_ON);
-    IUFillSwitch(&LCDDisplayTempUnitsS[1], "Fahrenheit", "Fahrenheit", ISS_OFF);
-    IUFillSwitchVector(&LCDDisplayTempUnitsSP, LCDDisplayTempUnitsS, 2, getDeviceName(), "Temp Units", "Temp Units", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    LCDDisplayTempUnitsSP[CELCIUS].fill("Celsius", "Celsius", ISS_ON);
+    LCDDisplayTempUnitsSP[FAHRENHEIT].fill("Fahrenheit", "Fahrenheit", ISS_OFF);
+    LCDDisplayTempUnitsSP.fill(getDeviceName(), "Temp Units", "Temp Units", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&EnableLCDDisplayS[0], "Disabled", "Disabled", ISS_ON);
-    IUFillSwitch(&EnableLCDDisplayS[1], "Enabled", "Enabled", ISS_OFF);
-    IUFillSwitchVector(&EnableLCDDisplaySP, EnableLCDDisplayS, 2, getDeviceName(), "LCD Status", "LCD Status", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    EnableLCDDisplaySP[DISABLE_LCD].fill("Disabled", "Disabled", ISS_ON);
+    EnableLCDDisplaySP[ENABLE_LCD].fill("Enabled", "Enabled", ISS_OFF);
+    EnableLCDDisplaySP.fill(getDeviceName(), "LCD Status", "LCD Status", LCD_DISPLAY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
 
     /* Channel Manual and Boost */
-    IUFillSwitch(&CH1CH2BoostS[CH1_BOOST_100], "BOOST_CH1", "Strap 1 Boost 100%", ISS_OFF);
-    IUFillSwitch(&CH1CH2BoostS[CH2_BOOST_100], "BOOST_CH2", "Strap 2 Boost 100%", ISS_OFF);
-    IUFillSwitchVector(&CH1CH2BoostSP, CH1CH2BoostS, 2, getDeviceName(), "CHANNEL_BOOST", "Heat Boost", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    CH1CH2BoostSP[CH1_BOOST_100].fill("BOOST_CH1", "Strap 1 Boost 100%", ISS_OFF);
+    CH1CH2BoostSP[CH2_BOOST_100].fill("BOOST_CH2", "Strap 2 Boost 100%", ISS_OFF);
+    CH1CH2BoostSP.fill(getDeviceName(), "CHANNEL_BOOST", "Heat Boost", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&CH3_ModeS[DISABLED], "STRAP_DISABLED", "Strap Disabled", ISS_ON);
-    IUFillSwitch(&CH3_ModeS[DEWSTRAP_ONE], "SHADOW STRAP 1", "Shadow Strap 1", ISS_OFF);
-    IUFillSwitch(&CH3_ModeS[DEWSTRAP_TWO], "SHADOW STRAP 2", "Shadow Strap 2", ISS_OFF);
-    IUFillSwitch(&CH3_ModeS[MANUAL], "Manual", "Manual", ISS_OFF);
-    IUFillSwitch(&CH3_ModeS[TEMP_PROBE_THREE], "TEMP_PROBE", "Temp Probe", ISS_OFF);
-    IUFillSwitchVector(&CH3_ModeSP, CH3_ModeS, 5, getDeviceName(), "CHANEL 3 SHAWDOW", "Strap 3 Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    CH3_ModeSP[DISABLED_STRAP].fill("STRAP_DISABLED", "Strap Disabled", ISS_ON);
+    CH3_ModeSP[DEWSTRAP_ONE].fill("SHADOW STRAP 1", "Shadow Strap 1", ISS_OFF);
+    CH3_ModeSP[DEWSTRAP_TWO].fill("SHADOW STRAP 2", "Shadow Strap 2", ISS_OFF);
+    CH3_ModeSP[MANUAL_STRAP].fill("Manual", "Manual", ISS_OFF);
+    CH3_ModeSP[TEMP_PROBE_THREE].fill("TEMP_PROBE", "Temp Probe", ISS_OFF);
+    CH3_ModeSP.fill(getDeviceName(), "CHANEL 3 SHAWDOW", "Strap 3 Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&CH3_Manual_PowerN[0], "MANUAL_POWER", "Strap 3 Manual Power", "%4.0f %%", 0., 100., 1., 0.);
-    IUFillNumberVector(&CH3_Manual_PowerNP, CH3_Manual_PowerN, 1, getDeviceName(), "CH3_POWER", "Strap 3 Power", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    CH3_Manual_PowerNP[0].fill("MANUAL_POWER", "Strap 3 Manual Power", "%4.0f %%", 0., 100., 1., 0.);
+    CH3_Manual_PowerNP.fill(getDeviceName(), "CH3_POWER", "Strap 3 Power", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 
 
     /* Temperatures */
-    IUFillNumber(&TemperaturesN[PROBE_1], "CHANNEL1", "Strap 1", "%3.2f \u2103", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[PROBE_2], "CHANNEL2", "Strap 2", "%3.2f \u2103", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[PROBE_3], "CHANNEL3", "Strap 3", "%3.2f \u2103", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[AMBIENT_PROBE], "AMBIENT", "Ambient", "%3.2f \u2103", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[BOARD_PROBE], "BOARD Temp", "Board", "%3.2f \u2103", -50., 100., 0., 0.);
-    IUFillNumberVector(&TemperaturesNP, TemperaturesN, 5, getDeviceName(), "TEMPERATURES", "Temperatures", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    TemperaturesNP[PROBE_1].fill("CHANNEL1", "Strap 1", "%3.2f \u2103", -50., 70., 0., 0.);
+    TemperaturesNP[PROBE_2].fill("CHANNEL2", "Strap 2", "%3.2f \u2103", -50., 70., 0., 0.);
+    TemperaturesNP[PROBE_3].fill("CHANNEL3", "Strap 3", "%3.2f \u2103", -50., 70., 0., 0.);
+    TemperaturesNP[AMBIENT_PROBE].fill("AMBIENT", "Ambient", "%3.2f \u2103", -50., 70., 0., 0.);
+    TemperaturesNP[BOARD_PROBE].fill("BOARD Temp", "Board", "%3.2f \u2103", -50., 100., 0., 0.);
+    TemperaturesNP.fill(getDeviceName(), "TEMPERATURES", "Temperatures", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Humidity */
-    IUFillNumber(&HumidityN[0], "HUMIDITY", "Humidity", "%3.2f %%", 0., 100., 0., 0.);
-    IUFillNumberVector(&HumidityNP, HumidityN, 1, getDeviceName(), "HUMIDITY", "Humidity", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    HumidityNP[0].fill("HUMIDITY", "Humidity", "%3.2f %%", 0., 100., 0., 0.);
+    HumidityNP.fill(getDeviceName(), "HUMIDITY", "Humidity", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Dew point */
-    IUFillNumber(&DewpointN[0], "DEWPOINT", "Dew point", "%3.2f \u2103", -50., 70., 0., 0.);
-    IUFillNumberVector(&DewpointNP, DewpointN, 1, getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    DewpointNP[0].fill("DEWPOINT", "Dew point", "%3.2f \u2103", -50., 70., 0., 0.);
+    DewpointNP.fill(getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Temperature calibration values */
-    IUFillNumber(&TemperatureOffsetsN[TEMP_PROBE_ONE_OFFSET], "CHANNEL1", "Strap 1", "%1.0f \u2103", -10., 10., 1., 0.);
-    IUFillNumber(&TemperatureOffsetsN[TEMP_PROBE_TWO_OFFSET], "CHANNEL2", "Strap 2", "%1.0f \u2103", -10., 10., 1., 0.);
-    IUFillNumber(&TemperatureOffsetsN[TEMP_PROBE_THREE_OFFSET], "CHANNEL3", "Strap 3", "%1.0f \u2103", -10., 10., 1., 0.);
-    IUFillNumber(&TemperatureOffsetsN[AMBIENT_TEMP_PROBE_OFFSET], "AMBIENT", "Ambient", "%4.0f \u2103", -4, 3, 1, 0);
-    IUFillNumberVector(&TemperatureOffsetsNP, TemperatureOffsetsN, 4, getDeviceName(), "TEMP_CALIBRATIONS", "Temp Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
+    TemperatureOffsetsNP[TEMP_PROBE_ONE_OFFSET].fill("CHANNEL1", "Strap 1", "%1.0f \u2103", -10., 10., 1., 0.);
+    TemperatureOffsetsNP[TEMP_PROBE_TWO_OFFSET].fill("CHANNEL2", "Strap 2", "%1.0f \u2103", -10., 10., 1., 0.);
+    TemperatureOffsetsNP[TEMP_PROBE_THREE_OFFSET].fill("CHANNEL3", "Strap 3", "%1.0f \u2103", -10., 10., 1., 0.);
+    TemperatureOffsetsNP[AMBIENT_TEMP_PROBE_OFFSET].fill("AMBIENT", "Ambient", "%4.0f \u2103", -4, 3, 1, 0);
+    TemperatureOffsetsNP.fill(getDeviceName(), "TEMP_CALIBRATIONS", "Temp Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&ZeroTempOffsetsS[0], "Zero_Temp", "Zero Temperature Offsets", ISS_OFF);
-    IUFillSwitchVector(&ZeroTempOffsetsSP, ZeroTempOffsetsS, 1, getDeviceName(), "Zero Offsets", "Zero Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    ZeroTempOffsetsSP[0].fill("Zero_Temp", "Zero Temperature Offsets", ISS_OFF);
+    ZeroTempOffsetsSP.fill(getDeviceName(), "Zero Offsets", "Zero Offsets", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     /* Tracking Mode Options */
 
-    IUFillSwitch(&TrackingModeS[AMBIENT], "AMBIENT", "Ambient", ISS_OFF);
-    IUFillSwitch(&TrackingModeS[DEWPOINT], "DEWPOINT", "Dew Point", ISS_ON);
-    IUFillSwitch(&TrackingModeS[MIDPOINT], "MIDPOINT", "Mid Point", ISS_OFF);
-    IUFillSwitchVector(&TrackingModeSP, TrackingModeS, 3, getDeviceName(), "Tracking Mode", "Tracking Mode", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    TrackingModeSP[AMBIENT].fill("AMBIENT", "Ambient", ISS_OFF);
+    TrackingModeSP[DEWPOINT].fill("DEWPOINT", "Dew Point", ISS_ON);
+    TrackingModeSP[MIDPOINT].fill("MIDPOINT", "Mid Point", ISS_OFF);
+    TrackingModeSP.fill(getDeviceName(), "Tracking Mode", "Tracking Mode", TEMPERATURE_OFFSETS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&TrackingModeOffsetN[0], "Offset", "Offset", "%4.0f \u2103", -4, 3, 1, 0);
-    IUFillNumberVector(&TrackingModeOffsetNP, TrackingModeOffsetN, 1, getDeviceName(), "Tracking Offset", "Tracking Offset", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
+    TrackingModeOffsetNP[0].fill("Offset", "Offset", "%4.0f \u2103", -4, 3, 1, 0);
+    TrackingModeOffsetNP.fill(getDeviceName(), "Tracking Offset", "Tracking Offset", TEMPERATURE_OFFSETS_TAB, IP_RW, 0, IPS_IDLE);
     /* Firmware version */
-    IUFillNumber(&FWVersionN[0], "FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
-    IUFillNumberVector(&FWVersionNP, FWVersionN, 1, getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
+    FWVersionNP[0].fill("FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
+    FWVersionNP.fill(getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
     setDriverInterface(AUX_INTERFACE);
 

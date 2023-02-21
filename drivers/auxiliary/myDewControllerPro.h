@@ -150,46 +150,36 @@ class myDewControllerPro : public INDI::DefaultDevice
         Connection::Serial *serialConnection{ nullptr };
         int PortFD{ -1 };
 
-        INumber OutputsN[3];
-        INumberVectorProperty OutputsNP;
 
+        INDI::PropertyNumber OutputsNP{3};
         enum {
             DEW_STRAP_ONE_POWER,
             DEW_STRAP_TWO_POWER,
             DEW_STRAP_THREE_POWER
         };
 
-        ISwitch CH1CH2BoostS[2];
-        ISwitchVectorProperty CH1CH2BoostSP;
-
+        INDI::PropertySwitch CH1CH2BoostSP{2};
         enum {
             CH1_BOOST_100,
             CH2_BOOST_100,
         };
 
-        ISwitch CH3_ModeS[5];
-        ISwitchVectorProperty CH3_ModeSP;
-
+        INDI::PropertySwitch CH3_ModeSP{ 5 };
         enum {
-            DISABLED,
+            DISABLED_STRAP,
             DEWSTRAP_ONE,
             DEWSTRAP_TWO,
-            MANUAL,
+            MANUAL_STRAP,
             TEMP_PROBE_THREE
         };
 
-        INumber CH3_Manual_PowerN[1];
-        INumberVectorProperty CH3_Manual_PowerNP;
+        INDI::PropertySwitch FanModeSP{ 2 };
+        enum {
+            BOARD_TEMP,
+            MANUAL_FAN
+        };
 
-        INumber FanSpeedN[1];
-        INumberVectorProperty FanSpeedNP;
-
-        ISwitch FanModeS[2];
-        ISwitchVectorProperty FanModeSP;
-
-        INumber TemperaturesN[5];
-        INumberVectorProperty TemperaturesNP;
-
+        INDI::PropertyNumber TemperaturesNP{ 5 };
         enum {
             PROBE_1,
             PROBE_2,
@@ -198,9 +188,7 @@ class myDewControllerPro : public INDI::DefaultDevice
             BOARD_PROBE
         };
 
-        INumber TemperatureOffsetsN[4];
-        INumberVectorProperty TemperatureOffsetsNP;
-
+        INDI::PropertyNumber TemperatureOffsetsNP{ 4 };
         enum {
             TEMP_PROBE_ONE_OFFSET,
             TEMP_PROBE_TWO_OFFSET,
@@ -208,58 +196,50 @@ class myDewControllerPro : public INDI::DefaultDevice
             AMBIENT_TEMP_PROBE_OFFSET
         };
 
-        ISwitch ZeroTempOffsetsS[1];
-        ISwitchVectorProperty ZeroTempOffsetsSP;
-
-        ISwitch TrackingModeS[3];
-        ISwitchVectorProperty TrackingModeSP;
-
+        INDI::PropertySwitch TrackingModeSP{ 3 };
         enum {
             AMBIENT,
             DEWPOINT,
             MIDPOINT
         };
 
-        INumber TrackingModeOffsetN[1];
-        INumberVectorProperty TrackingModeOffsetNP;
-
-
-
-        INumber HumidityN[1];
-        INumberVectorProperty HumidityNP;
-
-        INumber DewpointN[1];
-        INumberVectorProperty DewpointNP;
-
-        ISwitch EEPROMSaveS[2];
-        ISwitchVectorProperty EEPROMSaveSP;
-
+        INDI::PropertySwitch EEPROMSaveSP{ 2 };
         enum {
             RESET_EEPROM,
             SAVE_TO_EEPROM
         };
 
-        INumber FWVersionN[1];
-        INumberVectorProperty FWVersionNP;
-
-        INumber FanTempTriggerN[2];
-        INumberVectorProperty FanTempTriggerNP;
-
+        INDI::PropertyNumber FanTempTriggerNP{ 2 };
         enum {
             FANTEMPON,
             FANTEMPOFF
         };
 
-        ISwitch LCDDisplayTempUnitsS[2];
-        ISwitchVectorProperty LCDDisplayTempUnitsSP;
+        INDI::PropertySwitch LCDDisplayTempUnitsSP{ 2 };
+        enum {
+            CELCIUS,
+            FAHRENHEIT
+        };
 
+        INDI::PropertySwitch EnableLCDDisplaySP{ 2 };
+        enum {
+            DISABLE_LCD,
+            ENABLE_LCD
+        };
 
-        ISwitch EnableLCDDisplayS[2];
-        ISwitchVectorProperty EnableLCDDisplaySP;
+        INDI::PropertySwitch EEPROMSP{ 2 };
+        enum {
+            RESET_EEPROM,
+            SAVE_TO_EEPROM
+        };
 
-        INumber LCDPageRefreshN[1];
-        INumberVectorProperty LCDPageRefreshNP;
+        INDI::PropertyNumber CH3_Manual_PowerNP{ 1 };
+        INDI::PropertyNumber FanSpeedNP{ 1 };  
+        INDI::PropertySwitch ZeroTempOffsetsSP{ 1 };
+        INDI::PropertyNumber TrackingModeOffsetNP{ 1 };
+        INDI::PropertyNumber HumidityNP{ 1 };
+        INDI::PropertyNumber DewpointNP{ 1 };
+        INDI::PropertyNumber FWVersionNP{ 1 };
+        INDI::PropertyNumber LCDPageRefreshNP{ 1 };
 
-        ISwitch EEPROMS[2];
-        ISwitchVectorProperty EEPROMSP;
 };
