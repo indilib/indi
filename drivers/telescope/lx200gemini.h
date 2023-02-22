@@ -212,8 +212,8 @@ class LX200Gemini : public LX200Generic
             GEMINI_TRACK_SIDEREAL,
             GEMINI_TRACK_KING,
             GEMINI_TRACK_LUNAR,
-            GEMINI_TRACK_SOLAR
-
+            GEMINI_TRACK_SOLAR,
+            GEMINI_TRACK_TERRESTRIAL
         };
 
         enum MovementState
