@@ -81,7 +81,8 @@ class SER_Recorder : public RecorderInterface
         virtual bool setSize(uint16_t width, uint16_t height);
         virtual bool open(const char *filename, char *errmsg);
         virtual bool close();
-        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes);
+        /** timestamp is microseconds from SER epoch Jan 1, 1 AD. If it is zero then system time is used. */
+        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes, uint64_t timestamp);
         virtual void setStreamEnabled(bool enable)
         {
             isStreamingActive = enable;

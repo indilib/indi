@@ -415,7 +415,7 @@ bool TheoraRecorder::close()
     return true;
 }
 
-bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
+bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes, uint64_t)
 {
     if (!isRecordingActive)
         return false;
