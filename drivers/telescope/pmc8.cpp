@@ -5,7 +5,8 @@
 
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
@@ -57,7 +58,10 @@ static std::unique_ptr<PMC8> scope(new PMC8());
 PMC8::PMC8()
 {
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC = 90;
+    if (LocationN[LOCATION_LATITUDE].value < 0)
+        currentDEC = -90;
+    else
+        currentDEC=90;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -295,6 +299,11 @@ void PMC8::getStartupData()
     // Convert to INDI standard longitude (0 to 360 Eastward)
     double longitude = LocationN[LOCATION_LONGITUDE].value;
     double latitude = LocationN[LOCATION_LATITUDE].value;
+    if (latitude < 0)
+        currentDEC = -90;
+    else
+        currentDEC = 90;
+
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
@@ -306,7 +315,7 @@ void PMC8::getStartupData()
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = 90;
+    double DEC = CurrentDEC;
 
     // currently only park at motor position (0, 0)
     if (InitPark())

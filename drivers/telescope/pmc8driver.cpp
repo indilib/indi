@@ -4,7 +4,8 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
@@ -265,7 +266,11 @@ void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
             ra -= 24;
 
         set_pmc8_sim_ra(ra);
-        set_pmc8_sim_dec(90.0);
+        if (pmc8_latitude <0)
+            set_pmc8_sim_dec(-90.0);
+        else
+             set_pmc8_sim_dec(90.0);
+
     }
 }
 

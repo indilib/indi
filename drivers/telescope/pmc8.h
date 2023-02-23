@@ -4,7 +4,8 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
