@@ -845,7 +845,7 @@ uint8_t get_pmc8_tracking_mode_from_rate(double rate)
     uint8_t mode;
     
     //get precise motor rate
-    bool rc = convert_precise_rate_to_motor(rate, &tmotor);
+    convert_precise_rate_to_motor(rate, &tmotor);
     
     //now check what sidereal would be
     convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
