@@ -5,7 +5,8 @@
 
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
@@ -48,6 +49,8 @@
 #define PMC8_DEFAULT_PORT 54372
 #define PMC8_DEFAULT_IP_ADDRESS "192.168.47.1"
 #define PMC8_TRACKING_AUTODETECT_INTERVAL 10
+#define PMC8_VERSION_MAJOR 0
+#define PMC8_VERSION_MINOR 5
 
 static std::unique_ptr<PMC8> scope(new PMC8());
 
@@ -55,7 +58,10 @@ static std::unique_ptr<PMC8> scope(new PMC8());
 PMC8::PMC8()
 {
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC = 90;
+    if (LocationN[LOCATION_LATITUDE].value < 0)
+        currentDEC = -90;
+    else
+        currentDEC=90;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -64,7 +70,7 @@ PMC8::PMC8()
                            TELESCOPE_HAS_LOCATION,
                            9);
 
-    setVersion(0, 3);
+    setVersion(PMC8_VERSION_MAJOR, PMC8_VERSION_MINOR);
 }
 
 PMC8::~PMC8()
@@ -79,12 +85,6 @@ const char *PMC8::getDefaultName()
 bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
-
-    // My understanding is that all mounts communicate at 115200
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-
-    tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
-    tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);
 
     // Serial Cable Connection Type
     // Letting them choose standard cable can speed up connection time significantly
@@ -299,6 +299,11 @@ void PMC8::getStartupData()
     // Convert to INDI standard longitude (0 to 360 Eastward)
     double longitude = LocationN[LOCATION_LONGITUDE].value;
     double latitude = LocationN[LOCATION_LATITUDE].value;
+    if (latitude < 0)
+        currentDEC = -90;
+    else
+        currentDEC = 90;
+
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
@@ -310,7 +315,7 @@ void PMC8::getStartupData()
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = 90;
+    double DEC = CurrentDEC;
 
     // currently only park at motor position (0, 0)
     if (InitPark())
@@ -385,7 +390,16 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
         {
             processGuiderProperties(name, values, names, n);
             return true;
-        }
+        }       
+        // Track Rate - auto change to custom track rate when setting
+        if (!strcmp(name, TrackRateNP.name))
+        {
+                IUResetSwitch(&TrackModeSP);
+                TrackModeS[TRACK_CUSTOM].s = ISS_ON;   
+                TrackModeSP.s = IPS_OK;
+                IDSetSwitch(&TrackModeSP, nullptr);
+                return true;             
+        }      
     }
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -396,7 +410,17 @@ void PMC8::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
     defineProperty(&MountTypeSP);
     defineProperty(&SerialCableTypeSP);
-    loadConfig(true, SerialCableTypeSP.name);
+    loadConfig(true,SerialCableTypeSP.name);
+    
+    // set default connection parameters
+    // unfortunately, the only way I've found to set these is after calling ISGetProperties on base class
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
+    tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);        
+    
+    // reload config here, even though it was already loaded in call to base class
+    // since defaults may have overridden saved properties
+    loadConfig(false,nullptr);
 }
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -544,16 +568,12 @@ bool PMC8::ReadScopeStatus()
                         IUResetSwitch(&TrackModeSP);
                         TrackModeS[convertFromPMC8TrackMode(track_mode)].s = ISS_ON;
                         TrackModeSP.s = IPS_OK;
-                        IDSetSwitch(&TrackModeSP, nullptr);
-                        TrackState = SCOPE_TRACKING;
-                        if (track_mode == PMC8_TRACK_CUSTOM)
-                        {
-                            TrackRateNP.s           = IPS_IDLE;
-                            TrackRateN[AXIS_RA].value = track_rate;
-                            IDSetNumber(&TrackRateNP, nullptr);
-                        }
-                        currentTrackRate = track_rate;
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "Mount tracking at %f arcsec / sec", track_rate);
+                        IDSetSwitch(&TrackModeSP, nullptr);             
+                        TrackState = SCOPE_TRACKING; 
+                        LOGF_INFO("Mount has started tracking at %f arcsec / sec", track_rate);
+                        TrackRateNP.s           = IPS_IDLE;
+                        TrackRateN[AXIS_RA].value = track_rate;
+                        IDSetNumber(&TrackRateNP, nullptr);
                     }
                 }
             }
@@ -576,7 +596,7 @@ bool PMC8::ReadScopeStatus()
 
                     if (rc && ((int)track_rate == 0))
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Mount appears to have stopped tracking");
+                        LOG_INFO("Mount appears to have stopped tracking");
                         TrackState = SCOPE_IDLE;
                     }
                     else if (rc && ((int)track_rate <= PMC8_MAX_TRACK_RATE))
@@ -587,18 +607,14 @@ bool PMC8::ReadScopeStatus()
                             TrackModeS[convertFromPMC8TrackMode(track_mode)].s = ISS_ON;
                             IDSetSwitch(&TrackModeSP, nullptr);
                         }
-                        if (currentTrackRate != track_rate)
-                        {
+                        if (TrackRateN[AXIS_RA].value != track_rate) 
+                        {                     
                             TrackState = SCOPE_TRACKING;
-                            if (track_mode == PMC8_TRACK_CUSTOM)
-                            {
-                                TrackRateNP.s           = IPS_IDLE;
-                                TrackRateN[AXIS_RA].value = track_rate;
-                                IDSetNumber(&TrackRateNP, nullptr);
-                            }
-                            currentTrackRate = track_rate;
+                            TrackRateNP.s           = IPS_IDLE;
+                            TrackRateN[AXIS_RA].value = track_rate;
+                            IDSetNumber(&TrackRateNP, nullptr);
+                            LOGF_INFO("Mount now tracking at %f arcsec / sec", track_rate);
                         }
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "Mount tracking at %f arcsec / sec", track_rate);
                     }
                 }
             }
@@ -617,17 +633,26 @@ bool PMC8::ReadScopeStatus()
 
 bool PMC8::Goto(double r, double d)
 {
-
-    if (isPulsingNS ||
-            isPulsingWE ||
-            moveInfoDEC.state != PMC8_MOVE_INACTIVE ||
-            moveInfoRA.state != PMC8_MOVE_INACTIVE ||
-            TrackState == SCOPE_SLEWING)
+    if (isPulsingNS || 
+            isPulsingWE || 
+            moveInfoDEC.state != PMC8_MOVE_INACTIVE || 
+            moveInfoRA.state != PMC8_MOVE_INACTIVE || 
+            (TrackState == SCOPE_SLEWING && !firmwareInfo.IsRev2Compliant)) 
     {
         LOG_ERROR("Cannot slew while moving or guiding.  Please stop moving or guiding first");
         return false;
     }
-
+    else if (TrackState == SCOPE_SLEWING) 
+    {
+        targetRA  = r;
+        targetDEC = d;
+        abort_pmc8_goto(PortFD);
+        //Supposedly the goto should abort in 2s, but we'll give it a little bit more time just in case
+        IEAddTimer(2500,AbortGotoTimeoutHelper,this);
+        LOG_INFO("Goto called while already slewing.  Stopping slew and will try goto again in 2.5 seconds");
+        return true;
+    }
+    
     // start tracking if we're idle, so mount will track at correct rate post-goto
     RememberTrackState = TrackState;
     if ((TrackState != SCOPE_TRACKING) && (IUFindOnSwitchIndex(&PostGotoSP) == 0) && firmwareInfo.IsRev2Compliant)
@@ -647,7 +672,7 @@ bool PMC8::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_DEBUG("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     if (slew_pmc8(PortFD, r, d) == false)
     {
@@ -670,7 +695,7 @@ bool PMC8::Sync(double ra, double dec)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Syncing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_DEBUG("Syncing to RA: %s - DEC: %s", RAStr, DecStr);
 
     if (sync_pmc8(PortFD, ra, dec) == false)
     {
@@ -687,9 +712,14 @@ bool PMC8::Sync(double ra, double dec)
     return true;
 }
 
+void PMC8::AbortGotoTimeoutHelper(void *p) 
+{
+    //static_cast<PMC8*>(p)->TrackState = static_cast<PMC8*>(p)->RememberTrackState;
+    static_cast<PMC8*>(p)->Goto(static_cast<PMC8*>(p)->targetRA,static_cast<PMC8*>(p)->targetDEC);
+}
+
 bool PMC8::Abort()
 {
-
     //GUIDE Abort guide operations.
     if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
     {
@@ -712,7 +742,16 @@ bool PMC8::Abort()
         LOG_INFO("Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
+        return true;
+    }
 
+
+    //GOTO Abort slew operations.
+    if (TrackState == SCOPE_SLEWING) 
+    {
+        abort_pmc8_goto(PortFD);
+        //It will take about 2s to abort; we'll rely on ReadScopeStatus to detect when that occurs
+        LOG_INFO("Goto aborted.");
         return true;
     }
 
@@ -727,8 +766,8 @@ bool PMC8::Abort()
         {
             MoveWE((INDI_DIR_WE)moveInfoRA.moveDir, MOTION_STOP);
         }
-        return true;
         LOG_INFO("Move aborted.");
+        return true;
     }
 
     LOG_INFO("Abort called--stopping all motion.");
@@ -915,8 +954,8 @@ bool PMC8::ramp_movement(PMC8_DIRECTION dir)
     }
 
     //adjust for current tracking rate
-    if (dir == PMC8_E) adjrate += round(currentTrackRate);
-    else if (dir == PMC8_W) adjrate -= round(currentTrackRate);
+    if (dir == PMC8_E) adjrate += round(TrackRateN[AXIS_RA].value);
+    else if (dir == PMC8_W) adjrate -= round(TrackRateN[AXIS_RA].value);
 
     LOGF_EXTRA3("Ramping: mount dir %d, ramping dir %d, iteration %d, step to %d", dir, moveInfo->rampDir,
                 moveInfo->rampIteration, adjrate);
@@ -1209,7 +1248,7 @@ IPState PMC8::GuideEast(uint32_t ms)
 
         isPulsingWE = true;
 
-        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, currentTrackRate);
+        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -1250,7 +1289,7 @@ IPState PMC8::GuideWest(uint32_t ms)
         }
 
         isPulsingWE = true;
-        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, currentTrackRate);
+        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -1512,10 +1551,6 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     LOGF_DEBUG("PMC8::SetTrackMode called mode=%d", mode);
 
-    // FIXME - Need to make sure track modes are handled properly!
-    //PMC8_TRACK_RATE rate = static_cast<PMC8_TRACK_RATE>(mode);
-    // not sure what needs fixing
-
     pmc8_mode = convertToPMC8TrackMode(mode);
 
     if (pmc8_mode == PMC8_TRACK_UNDEFINED)
@@ -1545,10 +1580,7 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
     static bool deRateWarning = true;
     double pmc8RARate;
 
-    LOGF_DEBUG("PMC8::SetTrackRate called raRate=%f  deRate=%f", raRate, deRate);
-
-    // Convert to arcsecs/s to +/- 0.0100 accepted by
-    //double pmc8RARate = raRate - TRACKRATE_SIDEREAL;
+    LOGF_INFO("Custom tracking rate set: raRate=%f  deRate=%f", raRate, deRate);
 
     // for now just send rate
     pmc8RARate = raRate;
@@ -1575,7 +1607,6 @@ bool PMC8::SetTrackEnabled(bool enabled)
     // need to determine current tracking mode and start tracking
     if (enabled)
     {
-
         if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
         {
             LOG_ERROR("PMC8::SetTrackEnabled - unable to enable tracking");
