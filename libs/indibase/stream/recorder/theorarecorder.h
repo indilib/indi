@@ -49,7 +49,7 @@ class TheoraRecorder : public RecorderInterface
         virtual bool setSize(uint16_t width, uint16_t height);
         virtual bool open(const char *filename, char *errmsg);
         virtual bool close();
-        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes);
+        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes, uint64_t timestamp);
         virtual void setStreamEnabled(bool enable)
         {
             isStreamingActive = enable;

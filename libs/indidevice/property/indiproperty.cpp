@@ -437,6 +437,21 @@ bool Property::isLabelMatch(const std::string &otherLabel) const
     return false;
 }
 
+bool Property::isDeviceNameMatch(const char *otherDeviceName) const
+{
+    return isDeviceNameMatch(std::string(otherDeviceName));
+}
+
+bool Property::isDeviceNameMatch(const std::string &otherDeviceName) const
+{
+    return getDeviceName() == otherDeviceName;
+}
+
+bool Property::isTypeMatch(INDI_PROPERTY_TYPE otherType) const
+{
+    return getType() == otherType;
+}
+
 PropertyViewNumber *Property::getNumber() const
 {
     D_PTR(const Property);
