@@ -1576,11 +1576,6 @@ bool LX200Gemini::ReadScopeStatus()
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    if(m_isSleeping)
-    {
-        return true;
-    }
-
     if (TrackState == SCOPE_SLEWING)
     {
         updateMovementState();
@@ -1763,7 +1758,6 @@ bool LX200Gemini::sleepMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    m_isSleeping = true;
     LOG_INFO("Mount is sleeping...");
     return true;
 }
@@ -1789,7 +1783,6 @@ bool LX200Gemini::wakeupMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    m_isSleeping = false;
     LOG_INFO("Mount is awake...");
     return true;
 }

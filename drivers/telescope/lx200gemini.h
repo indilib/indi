@@ -268,6 +268,5 @@ class LX200Gemini : public LX200Generic
         ParkingState getParkingState();
 
         ParkingState priorParkingState = PARK_IN_PROGRESS;
-        bool m_isSleeping { false };
 
 };
