@@ -1,13 +1,13 @@
 /*******************************************************************************
  DDW Dome INDI Driver
 
- Copyright(c) 2020-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2020-2023 Jarno Paananen. All rights reserved.
 
  based on:
 
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2023 Jarno Paananen. All rights reserved.
 
  and
 
@@ -53,9 +53,8 @@ bool DDW::initProperties()
 {
     INDI::Dome::initProperties();
 
-    IUFillNumber(&FirmwareVersionN[0], "VERSION", "Version", "%2.0f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumberVector(&FirmwareVersionNP, FirmwareVersionN, 2, getDeviceName(), "FIRMWARE", "Firmware", INFO_TAB,
-                       IP_RO, 60, IPS_IDLE);
+    FirmwareVersionNP[0].fill("VERSION", "Version", "%2.0f", 0.0, 99.0, 1.0, 0.0);
+    FirmwareVersionNP.fill(getDeviceName(), "FIRMWARE", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -88,9 +87,9 @@ bool DDW::SetupParms()
         SetAxis1ParkDefault(0);
     }
 
-    FirmwareVersionN[0].value = fwVersion;
-    FirmwareVersionNP.s       = IPS_OK;
-    IDSetNumber(&FirmwareVersionNP, nullptr);
+    FirmwareVersionNP[0].setValue(fwVersion);
+    FirmwareVersionNP.setState(IPS_OK);
+    FirmwareVersionNP.apply();
     return true;
 }
 
@@ -127,7 +126,7 @@ bool DDW::Handshake()
 * ***********************************************************************************/
 const char *DDW::getDefaultName()
 {
-    return (const char *)"DDW Dome";
+    return "DDW Dome";
 }
 
 /************************************************************************************
@@ -139,12 +138,12 @@ bool DDW::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&FirmwareVersionNP);
+        defineProperty(FirmwareVersionNP);
         SetupParms();
     }
     else
     {
-        deleteProperty(FirmwareVersionNP.name);
+        deleteProperty(FirmwareVersionNP);
     }
 
     return true;
@@ -153,16 +152,6 @@ bool DDW::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool DDW::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool DDW::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
-}
-
 int DDW::writeCmd(const char *cmd)
 {
     int nbytes_written = 0, rc = -1;
@@ -310,7 +299,7 @@ void DDW::TimerHit()
                 writeCmd("GINF");
                 watchdog = 0; // prevent from triggering immediately again
             }
-            break;
+            break; // exit loop
         }
 
         watchdog = 0;
