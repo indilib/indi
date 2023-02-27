@@ -25,8 +25,9 @@
     ===========================================
 
     Version not yet updated/No INDI release:
-    - fixed duplicate declaration of RB_MAX_LEN
-    - removed unused declarations
+    Version 1.18
+    - implemented Focuser T° compensation in FOCUSER TAB
+    - Minor fixes
     Version 1.17
     - fixed setMaxElevationLimit / setMinElevationLimit
     Version 1.16
@@ -313,6 +314,17 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         bool OSFocuser1 = false;
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
+        
+        // Focus T° Compensation
+        INumberVectorProperty FocuserTNP;
+        INumber FocuserTN[2];
+        ISwitchVectorProperty TFCompensationSP;
+        ISwitch TFCompensationS[2];
+        INumberVectorProperty TFCCoefficientNP;
+        INumber TFCCoefficientN[1];
+        INumberVectorProperty TFCDeadbandNP;
+        INumber TFCDeadbandN[1];
+        // End Focus T° Compensation
 
         int OSNumFocusers = 0;
         ISwitchVectorProperty OSFocusSelectSP;

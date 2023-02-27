@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 17);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 18);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -217,7 +217,21 @@ bool LX200_OnStep::initProperties()
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
+    // Focus T° Compensation
+    IUFillNumber(&FocuserTN[0], "TFC T°", "TFC T°", "%g", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumber(&FocuserTN[1], "TFC Diff T°", "TFC Diff T°", "%g", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumberVector(&FocuserTNP, FocuserTN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
+                       IPS_IDLE);
+    IUFillSwitch(&TFCompensationS[0], "1", "Compensation: OFF", ISS_OFF);
+    IUFillSwitch(&TFCompensationS[1], "2", "Compensation: ON", ISS_OFF);
+    IUFillSwitchVector(&TFCompensationSP, TFCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.1f", -999, 999, 1, 100);
+    IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coeeficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&TFCDeadbandN[0], "TFC Deadband", "TFC Deadband µm", "%g", 1, 32767, 1, 5);
+    IUFillNumberVector(&TFCDeadbandNP, TFCDeadbandN, 1, getDeviceName(), "TFC Deadband", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    // End Focus T° Compensation
+    
     IUFillSwitch(&OSFocusSelectS[0], "Focuser_Primary_1", "Focuser 1", ISS_ON);
     IUFillSwitch(&OSFocusSelectS[1], "Focuser_Primary_2", "Focuser 2/Swap", ISS_OFF);
     // For when OnStepX comes out
@@ -488,6 +502,12 @@ bool LX200_OnStep::updateProperties()
             LOG_INFO("Focuser 1 found");
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
+            // Focus T° Compensation
+            defineProperty(&FocuserTNP);
+            defineProperty(&TFCompensationSP);
+            defineProperty(&TFCCoefficientNP);
+            defineProperty(&TFCDeadbandNP);
+            // End Focus T° Compensation
             OSNumFocusers = 1;
         }
         else
@@ -692,7 +712,13 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser
         // Focuser 1
+        deleteProperty(FocuserTNP.name);
         deleteProperty(OSFocus1InitializeSP.name);
+        deleteProperty(TFCCoefficientNP.name);
+        deleteProperty(TFCDeadbandNP.name);
+        // Focus T° Compensation
+        deleteProperty(TFCompensationSP.name);
+        // End Focus T° Compensation
 
         // Focuser 2
         //deleteProperty(OSFocus2SelSP.name);
@@ -1155,6 +1181,49 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
+    
+    // Focus T° Compensation
+    if (!strcmp(name, TFCCoefficientNP.name))
+    {
+        // :FC[sn.n]# Set focuser temperature compensation coefficient in µ/°C
+        char cmd[CMD_MAX_LEN] = {0};
+
+        if (abs(values[0]) < 1000)    //Range is -999 .. + 999
+        {
+            snprintf(cmd, 15, ":FC%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            TFCCoefficientNP.s           = IPS_OK;
+            IDSetNumber(&TFCCoefficientNP, "TFC Coeeficient set to %d", (int)values[0]);
+        }
+        else
+        {
+            TFCCoefficientNP.s = IPS_ALERT;
+            IDSetNumber(&TFCCoefficientNP, "Setting TFC Coefficient Failed");
+        }
+        return true;
+    }
+    
+    if (!strcmp(name, TFCDeadbandNP.name))
+    {
+        // :FD[n]#    Set focuser temperature compensation deadband amount (in steps or microns)
+        char cmd[CMD_MAX_LEN] = {0};
+
+        if ((values[0] >= 1) && (values[0] <= 32768))   //Range is 1 .. 32767
+        {
+            snprintf(cmd, 15, ":FD%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            TFCDeadbandNP.s = IPS_OK;
+            IDSetNumber(&TFCDeadbandNP, "TFC Deadbandset to %d", (int)values[0]);
+        }
+        else
+        {
+            TFCDeadbandNP.s = IPS_ALERT;
+            IDSetNumber(&TFCDeadbandNP, "Setting TFC Deadband Failed");
+        }
+        return true;
+    }
+    // end Focus T° Compensation
+    
 
     if (strstr(name, "WEATHER_"))
     {
@@ -3780,11 +3849,80 @@ int LX200_OnStep::OSUpdateFocuser()
             LOG_WARN("Communication :FI# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
+        
+        // Focus T° Compensation
+        //  :Ft#    Get Focuser Temperature
+        //          Returns: n#
+        char focus_T[RB_MAX_LEN] = {0};
+        int focus_T_int ;
+        int ft_error = getCommandIntResponse(PortFD, &focus_T_int, focus_T, ":Ft#");
+        if (ft_error > 0)
+        {
+            FocuserTN[0].value =  focus_T_int;
+            IDSetNumber(&FocuserTNP, nullptr);
+            LOGF_DEBUG("focus T°: %s, %i fi_error: %i", focus_T, focus_T_int, ft_error);
+        }
+        else
+        {
+            LOG_WARN("Communication :Ft# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+
+        //  :Fe#    Get Focus Differential T°
+        //          Returns: n#
+        char focus_TD[RB_MAX_LEN] = {0};
+        int focus_TD_int ;
+        int fe_error = getCommandIntResponse(PortFD, &focus_TD_int, focus_TD, ":Fe#");
+        if (fe_error > 0)
+        {
+            FocuserTN[1].value =  focus_TD_int;
+            IDSetNumber(&FocuserTNP, nullptr);
+            LOGF_DEBUG("focus Differential T°: %s, %i fi_error: %i", focus_TD, focus_TD_int, fe_error);
+        }
+        else
+        {
+            LOG_WARN("Communication :Fe# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+        
+        // :FC#       Get focuser temperature compensation coefficient in microns per °C)
+        //            Return: n.n#
+        char focus_Coeficient[RB_MAX_LEN] = {0};
+        int focus_Coefficient_int ;
+        int fC_error = getCommandIntResponse(PortFD, &focus_Coefficient_int, focus_Coeficient, ":FC#");
+        if (fC_error > 0)
+        {
+            TFCCoefficientN[0].value =  focus_Coefficient_int;
+            IDSetNumber(&TFCCoefficientNP, nullptr);
+            LOGF_DEBUG("TFC Coefficient: %s, %i fC_error: %i", focus_Coeficient, focus_Coefficient_int, fC_error);
+        }
+        else
+        {
+            LOG_WARN("Communication :FC# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+        
+        // :FD#       Get focuser temperature compensation deadband amount (in steps or microns)
+        //            Return: n#
+        char focus_Deadband[RB_MAX_LEN] = {0};
+        int focus_Deadband_int ;
+        int fD_error = getCommandIntResponse(PortFD, &focus_Deadband_int, focus_Deadband, ":FD#");
+        if (fD_error > 0)
+        {
+            TFCDeadbandN[0].value =  focus_Deadband_int;
+            IDSetNumber(&TFCDeadbandNP, nullptr);
+            LOGF_DEBUG("TFC Deadband: %s, %i fD_error: %i", focus_Deadband, focus_Deadband_int, fD_error);
+        }
+        else
+        {
+            LOG_WARN("Communication :FD# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+        // End Focus T° Compensation
 
         FI::updateProperties();
         LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
     }
-
 
     if(OSFocuser2)
     {
