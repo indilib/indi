@@ -7,6 +7,9 @@ include_directories(../indicore)
 find_package(LibXISF)
 find_package(Qt5Core)
 
+find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIR})
+
 if(LibXISF_FOUND AND Qt5Core_FOUND)
 
     add_library(${PROJECT_NAME} SHARED
@@ -14,7 +17,7 @@ if(LibXISF_FOUND AND Qt5Core_FOUND)
         indixisf.h
         )
 
-    target_link_libraries(${PROJECT_NAME} indicore Qt5::Core XISF)
+    target_link_libraries(${PROJECT_NAME} indicore Qt5::Core ${LibXISF_LIBRARIES})
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
