@@ -6,11 +6,11 @@ include_directories(../indicore)
 
 find_package(LibXISF)
 find_package(Qt5Core)
+find_package(CFITSIO)
 
-find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIR})
 
-if(LibXISF_FOUND AND Qt5Core_FOUND)
+if(LibXISF_FOUND AND Qt5Core_FOUND AND CFITSIO_FOUND)
 
     add_library(${PROJECT_NAME} SHARED
         indixisf.cpp
@@ -27,6 +27,6 @@ if(LibXISF_FOUND AND Qt5Core_FOUND)
 
     install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-else(LibXISF_FOUND AND Qt5Core_FOUND)
-    message(WARNING "Could not find LibXISF or Qt5Core, skipping building INDI XISF wrapper")
-endif(LibXISF_FOUND AND Qt5Core_FOUND)
+else(LibXISF_FOUND AND Qt5Core_FOUND AND CFITSIO_FOUND)
+    message(WARNING "Could not find LibXISF, CFITSIO, or Qt5Core, skipping building INDI XISF wrapper")
+endif(LibXISF_FOUND AND Qt5Core_FOUND AND CFITSIO_FOUND)
