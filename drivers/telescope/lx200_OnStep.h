@@ -318,8 +318,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         // Focus T° Compensation
         INumberVectorProperty FocuserTNP;
         INumber FocuserTN[2];
-        ISwitchVectorProperty TFCompensationSP;
-        ISwitch TFCompensationS[2];
+        ISwitchVectorProperty TFCCompensationSP;
+        ISwitch TFCCompensationS[2];
         INumberVectorProperty TFCCoefficientNP;
         INumber TFCCoefficientN[1];
         INumberVectorProperty TFCDeadbandNP;

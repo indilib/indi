@@ -218,15 +218,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     // Focus T° Compensation
-    IUFillNumber(&FocuserTN[0], "TFC T°", "TFC T°", "%g", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumber(&FocuserTN[1], "TFC Diff T°", "TFC Diff T°", "%g", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumber(&FocuserTN[0], "TFC T°", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumber(&FocuserTN[1], "TFC Diff T°", "TFC Diff T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
     IUFillNumberVector(&FocuserTNP, FocuserTN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
                        IPS_IDLE);
-    IUFillSwitch(&TFCompensationS[0], "1", "Compensation: OFF", ISS_OFF);
-    IUFillSwitch(&TFCompensationS[1], "2", "Compensation: ON", ISS_OFF);
-    IUFillSwitchVector(&TFCompensationSP, TFCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
+    IUFillSwitch(&TFCCompensationS[0], "Off", "Compensation: OFF", ISS_OFF);
+    IUFillSwitch(&TFCCompensationS[1], "On", "Compensation: ON", ISS_OFF);
+    IUFillSwitchVector(&TFCCompensationSP, TFCCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.1f", -999, 999, 1, 100);
+    IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
     IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coeeficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&TFCDeadbandN[0], "TFC Deadband", "TFC Deadband µm", "%g", 1, 32767, 1, 5);
     IUFillNumberVector(&TFCDeadbandNP, TFCDeadbandN, 1, getDeviceName(), "TFC Deadband", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
@@ -504,7 +504,7 @@ bool LX200_OnStep::updateProperties()
             defineProperty(&OSFocus1InitializeSP);
             // Focus T° Compensation
             defineProperty(&FocuserTNP);
-            defineProperty(&TFCompensationSP);
+            defineProperty(&TFCCompensationSP);
             defineProperty(&TFCCoefficientNP);
             defineProperty(&TFCDeadbandNP);
             // End Focus T° Compensation
@@ -717,7 +717,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(TFCCoefficientNP.name);
         deleteProperty(TFCDeadbandNP.name);
         // Focus T° Compensation
-        deleteProperty(TFCompensationSP.name);
+        deleteProperty(TFCCompensationSP.name);
         // End Focus T° Compensation
 
         // Focuser 2
@@ -1188,12 +1188,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         // :FC[sn.n]# Set focuser temperature compensation coefficient in µ/°C
         char cmd[CMD_MAX_LEN] = {0};
 
-        if (abs(values[0]) < 1000)    //Range is -999 .. + 999
+        if (abs(values[0]) < 1000)    //Range is -999.999 .. + 999.999
         {
-            snprintf(cmd, 15, ":FC%d#", (int)values[0]);
+            snprintf(cmd, 15, ":FC%+3.5f#", values[0]);
             sendOnStepCommandBlind(cmd);
             TFCCoefficientNP.s           = IPS_OK;
-            IDSetNumber(&TFCCoefficientNP, "TFC Coeeficient set to %d", (int)values[0]);
+            IDSetNumber(&TFCCoefficientNP, "TFC Coeeficient set to %+3.5f", values[0]);
         }
         else
         {
@@ -1222,8 +1222,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-    // end Focus T° Compensation
     
+
+    
+    // end Focus T° Compensation    
 
     if (strstr(name, "WEATHER_"))
     {
@@ -1883,6 +1885,39 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 }
             }
         }
+        
+        // Focus T° Compensation
+        if (!strcmp(name, TFCCompensationSP.name))
+        {
+        // :Fc[n]#    Enable/disable focuser temperature compensation where [n] = 0 or 1
+        //            Return: 0 on failure
+        //                    1 on success
+        char cmd[CMD_MAX_LEN] = {0};
+        int ret = 0;
+            IUUpdateSwitch(&TFCCompensationSP, states, names, n);
+            TFCCompensationSP.s = IPS_OK;
+
+            if (TFCCompensationS[0].s == ISS_ON)
+            {
+                snprintf(cmd, sizeof(cmd), ":Fc0#");
+                ret = sendOnStepCommandBlind(cmd);
+                //TFCCompensationS[0].s = ISS_OFF;
+                IDSetSwitch(&TFCCompensationSP, "Idle");
+            }
+            else
+            {
+                snprintf(cmd, sizeof(cmd), ":Fc1#");
+                ret = sendOnStepCommandBlind(cmd);
+                //TFCCompensationS[1].s = ISS_OFF;
+                IDSetSwitch(&TFCCompensationSP, "Idle");
+            }
+
+            INDI_UNUSED(ret);
+            IUResetSwitch(&TFCCompensationSP);
+            IDSetSwitch(&TFCCompensationSP, nullptr);
+            return true;
+        }
+        //End  Focus T° Compensation
 
 #ifdef ONSTEP_NOTDONE
         if (!strcmp(name, OSOutput1SP.name))      //
@@ -3858,7 +3893,7 @@ int LX200_OnStep::OSUpdateFocuser()
         int ft_error = getCommandIntResponse(PortFD, &focus_T_int, focus_T, ":Ft#");
         if (ft_error > 0)
         {
-            FocuserTN[0].value =  focus_T_int;
+            FocuserTN[0].value =  atof(focus_T);
             IDSetNumber(&FocuserTNP, nullptr);
             LOGF_DEBUG("focus T°: %s, %i fi_error: %i", focus_T, focus_T_int, ft_error);
         }
@@ -3875,7 +3910,7 @@ int LX200_OnStep::OSUpdateFocuser()
         int fe_error = getCommandIntResponse(PortFD, &focus_TD_int, focus_TD, ":Fe#");
         if (fe_error > 0)
         {
-            FocuserTN[1].value =  focus_TD_int;
+            FocuserTN[1].value =  atof(focus_TD);
             IDSetNumber(&FocuserTNP, nullptr);
             LOGF_DEBUG("focus Differential T°: %s, %i fi_error: %i", focus_TD, focus_TD_int, fe_error);
         }
@@ -3892,7 +3927,7 @@ int LX200_OnStep::OSUpdateFocuser()
         int fC_error = getCommandIntResponse(PortFD, &focus_Coefficient_int, focus_Coeficient, ":FC#");
         if (fC_error > 0)
         {
-            TFCCoefficientN[0].value =  focus_Coefficient_int;
+            TFCCoefficientN[0].value =  atof(focus_Coeficient);
             IDSetNumber(&TFCCoefficientNP, nullptr);
             LOGF_DEBUG("TFC Coefficient: %s, %i fC_error: %i", focus_Coeficient, focus_Coefficient_int, fC_error);
         }
@@ -3916,6 +3951,34 @@ int LX200_OnStep::OSUpdateFocuser()
         else
         {
             LOG_WARN("Communication :FD# error, check connection.");
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+        
+        // :FC#       Get focuser temperature compensation coefficient in microns per °C)
+        //            Return: n.n#
+        char response[RB_MAX_LEN];
+        int res = getCommandSingleCharResponse(PortFD, response, ":Fc#");
+        if (res > 0)
+        {
+            if (strcmp(response,"0"))
+            {
+                TFCCompensationSP.s = IPS_OK;
+                TFCCompensationS[0].s = ISS_OFF;
+                TFCCompensationS[1].s = ISS_ON;
+            }
+            else if (strcmp(response,"1"))
+            {
+                TFCCompensationSP.s = IPS_OK;
+                TFCCompensationS[0].s = ISS_ON;
+                TFCCompensationS[1].s = ISS_OFF;
+            }
+            IDSetSwitch(&TFCCompensationSP, nullptr);
+            LOGF_DEBUG("TFC Enable: fc_error:%d Fc_response: %s", res, response);
+        }
+        else
+        {
+            //LOGF_DEBUG("TFC Enable1: fc_error:%i Fc_response: %s", res, response);
+            LOG_WARN("Communication :Fc# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
         // End Focus T° Compensation
