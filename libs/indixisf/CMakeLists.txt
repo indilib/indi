@@ -8,9 +8,9 @@ find_package(LibXISF)
 find_package(Qt5Core)
 find_package(CFITSIO)
 
-include_directories(${CFITSIO_INCLUDE_DIR})
-
 if(LibXISF_FOUND AND Qt5Core_FOUND AND CFITSIO_FOUND)
+
+	include_directories(${CFITSIO_INCLUDE_DIR})
 
     add_library(${PROJECT_NAME} SHARED
         indixisf.cpp
