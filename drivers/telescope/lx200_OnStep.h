@@ -286,7 +286,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         INumber ObjectNoN[1];
 
         INumberVectorProperty MaxSlewRateNP;
-        INumber MaxSlewRateN[2];
+        INumber MaxSlewRateN[1];
 
         INumberVectorProperty BacklashNP;    //test
         INumber BacklashN[2];    //Test

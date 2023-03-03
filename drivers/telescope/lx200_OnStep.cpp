@@ -620,8 +620,8 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSPECIndexSP);
         defineProperty(&OSPECRecordSP);
         defineProperty(&OSPECReadSP);
-        defineProperty(&OSPECCurrentIndexNP);
-        defineProperty(&OSPECRWValuesNP);
+        //defineProperty(&OSPECCurrentIndexNP);
+        //defineProperty(&OSPECRWValuesNP);
 
         //New Align
         defineProperty(&OSNAlignStarsSP);
@@ -739,8 +739,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSPECIndexSP.name);
         deleteProperty(OSPECRecordSP.name);
         deleteProperty(OSPECReadSP.name);
-        deleteProperty(OSPECCurrentIndexNP.name);
-        deleteProperty(OSPECRWValuesNP.name);
+        //deleteProperty(OSPECCurrentIndexNP.name);
+        //deleteProperty(OSPECRWValuesNP.name);
 
         //New Align
         deleteProperty(OSNAlignStarsSP.name);
