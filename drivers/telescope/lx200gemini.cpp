@@ -1065,19 +1065,19 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                         LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
                     }
                 }
-                char valueString[16] = {0};
-                
-                snprintf(valueString, 16, "%u", precisionEnabled);
-                if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
-                {
-                    ServoPrecisionSP.s = IPS_ALERT;
-                    IDSetSwitch(&ServoPrecisionSP, nullptr);
-                    return false;
-                } else {
-                    ServoPrecisionSP.s = IPS_OK;
-                    IDSetSwitch(&ServoPrecisionSP, nullptr);
-                    return true;
-                }
+            }
+            char valueString[16] = {0};
+            
+            snprintf(valueString, 16, "%u", precisionEnabled);
+            if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
+            {
+                ServoPrecisionSP.s = IPS_ALERT;
+                IDSetSwitch(&ServoPrecisionSP, nullptr);
+                return false;
+            } else {
+                ServoPrecisionSP.s = IPS_OK;
+                IDSetSwitch(&ServoPrecisionSP, nullptr);
+                return true;
             }
         }
 
