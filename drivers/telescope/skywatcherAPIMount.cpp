@@ -656,7 +656,21 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
     }
     else
+    {
         TrackState = SCOPE_IDLE;
+        SlowStop(AXIS1);
+        SlowStop(AXIS2);
+        TrackState = SCOPE_IDLE;
+
+        if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        {
+            GuideNSNP.s = GuideWENP.s = IPS_IDLE;
+            GuideNSN[0].value = GuideNSN[1].value = 0.0;
+            GuideWEN[0].value = GuideWEN[1].value = 0.0;
+            IDSetNumber(&GuideNSNP, nullptr);
+            IDSetNumber(&GuideWENP, nullptr);
+        }
+    }
 
     return true;
 }
@@ -911,7 +925,7 @@ bool SkywatcherAPIMount::Abort()
         GuideNSN[0].value = GuideNSN[1].value = 0.0;
         GuideWEN[0].value = GuideWEN[1].value = 0.0;
 
-        IDMessage(getDeviceName(), "Guide aborted.");
+        LOG_INFO("Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
 
