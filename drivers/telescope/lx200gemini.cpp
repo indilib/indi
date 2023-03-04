@@ -1055,20 +1055,33 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                     if(ServoPrecisionS[SERVO_RA].s == ISS_ON)
                     {
                         precisionEnabled |= 1;
-                        LOGF_INFO("ServoPrecision: RA ON  <%i>", (int)precisionEnabled);
                     }
                 }
                 
                 if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name)){
                     if(ServoPrecisionS[SERVO_DEC].s == ISS_ON){             
                         precisionEnabled |= 2;
-                        LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
                     }
                 }
             }
             char valueString[16] = {0};
             
             snprintf(valueString, 16, "%u", precisionEnabled);
+            
+            if(precisionEnabled & 1)
+            {
+                LOGF_INFO("ServoPrecision: RA ON  <%i>", (int)precisionEnabled);
+            } else {
+                LOGF_INFO("ServoPrecision: RA OFF  <%i>", (int)precisionEnabled);
+            }
+            
+            if(precisionEnabled & 2)
+            {
+                LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
+            } else {
+                LOGF_INFO("ServoPrecision: DEC OFF  <%i>", (int)precisionEnabled);
+            }
+            
             if(!setGeminiProperty(SERVO_POINTING_PRECISION_ID, valueString))
             {
                 ServoPrecisionSP.s = IPS_ALERT;
