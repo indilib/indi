@@ -221,10 +221,12 @@ bool SkywatcherAPIMount::initProperties()
     SnapPortSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_ON);
     SnapPortSP.fill(getDeviceName(), "SNAP_PORT", "Snap Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    // Tracking Factor
-    TrackFactorNP[AXIS_AZ].fill("AXIS_AZ", "Azimuth", "%.2f", 0.1, 5, 0.1, 1);
-    TrackFactorNP[AXIS_ALT].fill("AXIS_ALT", "Altitude", "%.2f", 0.1, 5, 0.1, 1);
-    TrackFactorNP.fill(getDeviceName(), "TRACK_FACTOR", "Track Factor", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    // Tracking Control Loop Parameters for Alt-Az
+    TrackingParamsNP[AGGRESIVENESS_AZ].fill("AGGRESIVENESS_AZ", "AZ Aggresiveness", "%.2f", 0.1, 3, 0.1, 1);
+    TrackingParamsNP[HYSTERESIS_AZ].fill("HYSTERESIS_AZ", "AZ Hysteresis %", "%.f", 0, 100, 10, 10);
+    TrackingParamsNP[AGGRESIVENESS_ALT].fill("AGGRESIVENESS_ALT", "AL Aggressiveness", "%.2f", 0.1, 3, 0.1, 1);
+    TrackingParamsNP[HYSTERESIS_ALT].fill("HYSTERESIS_ALT", "AL Hysteresis %", "%.f", 0, 100, 10, 10);
+    TrackingParamsNP.fill(getDeviceName(), "TRACK_PARAMS", "Tracking Params", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(11880);
@@ -292,12 +294,12 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             return true;
         }
 
-        if (TrackFactorNP.isNameMatch(name))
+        if (TrackingParamsNP.isNameMatch(name))
         {
-            TrackFactorNP.update(values, names, n);
-            TrackFactorNP.setState(IPS_OK);
-            TrackFactorNP.apply();
-            saveConfig(true, TrackFactorNP.getName());
+            TrackingParamsNP.update(values, names, n);
+            TrackingParamsNP.setState(IPS_OK);
+            TrackingParamsNP.apply();
+            saveConfig(TrackingParamsNP);
             return true;
         }
 
@@ -660,6 +662,8 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         TrackState = SCOPE_IDLE;
         SlowStop(AXIS1);
         SlowStop(AXIS2);
+        TrackRateHistory[AXIS1].clear();
+        TrackRateHistory[AXIS2].clear();
         TrackState = SCOPE_IDLE;
 
         if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
@@ -824,7 +828,7 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 {
     SaveAlignmentConfigProperties(fp);
 
-    TrackFactorNP.save(fp);
+    TrackingParamsNP.save(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
@@ -917,6 +921,8 @@ bool SkywatcherAPIMount::Abort()
     m_IterativeGOTOPending = false;
     SlowStop(AXIS1);
     SlowStop(AXIS2);
+    TrackRateHistory[AXIS1].clear();
+    TrackRateHistory[AXIS2].clear();
     TrackState = SCOPE_IDLE;
 
     if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
@@ -1080,11 +1086,16 @@ void SkywatcherAPIMount::TimerHit()
                         // Abandon tracking for this clock tick
                         DEBUG(DBG_SCOPE, "Tracking -> AXIS1 direction change.");
                         SlowStop(AXIS1);
+                        TrackRateHistory[AXIS_AZ].clear();
                     }
                     else
                     {
                         char Direction = AzimuthRate > 0 ? '0' : '1';
-                        AzimuthRate    = std::abs(AzimuthRate) * TrackFactorNP[AXIS_AZ].getValue();
+                        auto aggressiveness = TrackingParamsNP[AGGRESIVENESS_AZ].getValue();
+                        auto rate = std::abs(AzimuthRate) * aggressiveness;
+                        auto hysteresis = TrackingParamsNP[HYSTERESIS_AZ].getValue() / 100.0;
+                        auto trackingRate = (1 - hysteresis) * rate + hysteresis * average(TrackRateHistory[AXIS_AZ]);
+
                         SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
                         if (AxesStatus[AXIS1].FullStop)
                         {
@@ -1092,9 +1103,17 @@ void SkywatcherAPIMount::TimerHit()
                             SetAxisMotionMode(AXIS1, '1', Direction);
                             StartAxisMotion(AXIS1);
                         }
-                        DEBUGF(DBG_SCOPE, "Tracking -> AXIS1 offset %ld microsteps rate %ld direction %c",
-                               AzimuthOffsetMicrosteps, AzimuthRate, Direction);
+                        DEBUGF(DBG_SCOPE,
+                               "Tracking -> AXIS1 offset (%ld) microsteps rate (%ld) tracking rate (%.f) direction (%c) aggressiveness (%.2f) hysteresis (%.2f)",
+                               AzimuthOffsetMicrosteps,
+                               AzimuthRate,
+                               trackingRate,
+                               Direction,
+                               aggressiveness,
+                               hysteresis);
                     }
+
+                    TrackRateHistory[AXIS_AZ].push_back(AzimuthRate);
                 }
                 else
                 {
@@ -1120,21 +1139,34 @@ void SkywatcherAPIMount::TimerHit()
                         // Abandon tracking for this clock tick
                         DEBUG(DBG_SCOPE, "Tracking -> AXIS2 direction change.");
                         SlowStop(AXIS2);
+                        TrackRateHistory[AXIS_ALT].clear();
                     }
                     else
                     {
                         char Direction = AltitudeRate > 0 ? '0' : '1';
-                        AltitudeRate   = std::abs(AltitudeRate) * TrackFactorNP[AXIS_ALT].getValue();
-                        SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
+                        auto aggressiveness = TrackingParamsNP[AGGRESIVENESS_ALT].getValue();
+                        auto rate = std::abs(AltitudeRate) * aggressiveness;
+                        auto hysteresis = TrackingParamsNP[HYSTERESIS_ALT].getValue() / 100.0;
+                        auto trackingRate = (1 - hysteresis) * rate + hysteresis * average(TrackRateHistory[AXIS_ALT]);
+
+                        SetClockTicksPerMicrostep(AXIS2, trackingRate < 1 ? 1 : trackingRate);
                         if (AxesStatus[AXIS2].FullStop)
                         {
                             DEBUG(DBG_SCOPE, "Tracking -> AXIS2 restart.");
                             SetAxisMotionMode(AXIS2, '1', Direction);
                             StartAxisMotion(AXIS2);
                         }
-                        DEBUGF(DBG_SCOPE, "Tracking -> AXIS2 offset %ld microsteps rate %ld direction %c",
-                               AltitudeOffsetMicrosteps, AltitudeRate, Direction);
+                        DEBUGF(DBG_SCOPE,
+                               "Tracking -> AXIS2 offset (%ld) microsteps rate (%ld) tracking rate (%.f) direction (%c) aggressiveness (%.2f) hysteresis (%.2f)",
+                               AltitudeOffsetMicrosteps,
+                               AltitudeRate,
+                               trackingRate,
+                               Direction,
+                               aggressiveness,
+                               hysteresis);
                     }
+
+                    TrackRateHistory[AXIS_ALT].push_back(AltitudeRate);
                 }
                 else
                 {
@@ -1206,7 +1238,7 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuidingRatesNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(TrackFactorNP);
+        defineProperty(TrackingParamsNP);
 
         if (HasAuxEncoders())
         {
@@ -1256,7 +1288,7 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(GuidingRatesNP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(TrackFactorNP.getName());
+        deleteProperty(TrackingParamsNP);
 
         if (HasAuxEncoders())
             deleteProperty(AUXEncoderSP.getName());
