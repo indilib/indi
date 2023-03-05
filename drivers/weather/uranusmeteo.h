@@ -194,7 +194,6 @@ class UranusMeteo : public INDI::GPS, public INDI::WeatherInterface
          */
         bool sendCommand(const char *cmd, char *res);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
-        bool setSystemTime(time_t &raw_time);
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Variables
