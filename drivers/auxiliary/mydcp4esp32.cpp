@@ -122,7 +122,7 @@ bool MyDCP4ESP::initProperties()
     FWversionNP.fill(getDeviceName(), "FW_VERSION", "Firmware", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Controller check code */
-    CheckCodeTP[0].fill("CNTR_CODE", "Check Code", nullptr);
+    CheckCodeTP[0].fill("CNTR_CODE", "Handshake Code", nullptr);
     CheckCodeTP.fill(getDeviceName(), "CNTR_CODE", "Controller", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
 
     setDriverInterface(AUX_INTERFACE);
@@ -265,18 +265,18 @@ bool MyDCP4ESP::sendCommand(const char *cmd, char *resp)
         if ((rc = tty_nread_section(PortFD, resp, MDCP_RESPONSE_LENGTH, '#', MDCP_READ_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Error reading response for command %s: %s.", cmd, errstr);
+            LOGF_ERROR("Error reading response for command <%s>: %s.", cmd, errstr);
             return false;
         }
 
         if (nbytes_read < 2)
         {
-            LOGF_ERROR("Invalid response for command %s: %s.", cmd, resp);
+            LOGF_ERROR("Invalid response <%s> for command <%s>.", resp, cmd);
             return false;
         }
 
         LOGF_DEBUG("RESP <%s>", resp);
-        resp[nbytes_read - 1] = '\0'; // Strip "#"
+        resp[nbytes_read - 1] = '\0'; // Strip "#" termination character
     }
 
     return true;
@@ -305,7 +305,7 @@ bool MyDCP4ESP::Handshake()
     }
     while (--tries > 0 );
 
-    LOG_INFO("Error retrieving data from mYDCP4ESP32, please ensure controller "
+    LOG_INFO("Error retrieving data from myDCP4ESP32, please ensure controller "
              "is powered and the port is correct.");
   
     return false;
@@ -327,7 +327,7 @@ bool MyDCP4ESP::Ack()
 
     if (ok != 1)
     {
-        LOGF_ERROR("myDCP4ESP32 code not properly identified! Response was: %s.", resp);
+        LOGF_ERROR("Get Handshake Code: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_CONTROLLER_CODE_CMD);
         return false;
     }
 
@@ -345,7 +345,7 @@ bool MyDCP4ESP::Ack()
 
     if (ok != 1)
     {
-        LOGF_ERROR("myDCP4ESP32 firmware not properly identified! Response was: %s.", resp);
+        LOGF_ERROR("Get Firmware Version: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_VERSION_CMD);
         return false;
     }
   
@@ -457,23 +457,29 @@ bool MyDCP4ESP::rebootController()
     updateProperties();
     LOG_INFO("Waiting 10 seconds before attempting to reconnect.");
     RemoveTimer(timerIndex);
-    sleep(10);
 
     int i = 1;
-    while ((!Connect()) && (i < 6))
+    do
     {
-        LOGF_INFO("Could not reconnect waiting 10 seconds before retry %d of 6.", i);
         sleep(10);
-        i++;
-    }
+        if (!Connect()) 
+        {
+            i++;
+            if (i <= 5)            
+                LOGF_INFO("Could not reconnect waiting 10 seconds before attempt %d of 5.", i);
+            else
+            {
+                LOGF_ERROR("Could not reconnect after %d attempts", i-1);
+                setConnected(false, IPS_OK);
+            }
+        }
+        else
+        {
+            i = 0;
+            setConnected(true, IPS_OK);
+        }
+    } while ((i != 0) && (i <= 5));
 
-    if (i < 6)
-        setConnected(true, IPS_OK);
-    else
-    {
-        LOGF_ERROR("Could not reconnect after %d attempts", i);
-        setConnected(false, IPS_OK);
-    }
     return updateProperties();
 }
 
@@ -621,7 +627,7 @@ bool MyDCP4ESP::readSettings()
         AmbientOffsetNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_AMBIENT_OFFSET_CMD);
+        LOGF_ERROR("Get Ambient Offset: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_AMBIENT_OFFSET_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
 
@@ -638,7 +644,7 @@ bool MyDCP4ESP::readSettings()
         AmbientTemperatureNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_AMBIENT_TEMPERATURE_CMD);
+        LOGF_ERROR("Get Ambient Temperature: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_AMBIENT_TEMPERATURE_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
     
@@ -654,7 +660,7 @@ bool MyDCP4ESP::readSettings()
         HumidityNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_HUMIDITY_CMD);
+        LOGF_ERROR("Get Humidity: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_HUMIDITY_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
     
@@ -670,7 +676,7 @@ bool MyDCP4ESP::readSettings()
         DewpointNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_DEWPOINT_CMD);
+        LOGF_ERROR("Get Dew point: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_DEWPOINT_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
         
@@ -689,7 +695,7 @@ bool MyDCP4ESP::readSettings()
         ChannelPowerNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_ALL_CH_POWER_CMD);
+        LOGF_ERROR("Get Power Outputs: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_ALL_CH_POWER_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
@@ -709,7 +715,7 @@ bool MyDCP4ESP::readSettings()
         ChannelOffsetNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_ALL_CH_OFFSET_CMD);
+        LOGF_ERROR("Get Channel Offset: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_ALL_CH_OFFSET_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
@@ -729,7 +735,7 @@ bool MyDCP4ESP::readSettings()
         TemperatureNP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_CHANNEL_TEMPS_CMD);
+        LOGF_ERROR("Get Channel Temperatures: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_CHANNEL_TEMPS_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
     
@@ -746,7 +752,7 @@ bool MyDCP4ESP::readSettings()
         TrackingModeSP.apply();
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_TRACKING_MODE_CMD);
+        LOGF_ERROR("Get Tracking Mode: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_TRACKING_MODE_CMD);
 
     memset(resp, '\0', MDCP_RESPONSE_LENGTH); 
     
@@ -776,7 +782,7 @@ bool MyDCP4ESP::readSettings()
        
     }
     else
-        LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_CH3_MODE_CMD);
+        LOGF_ERROR("Get Channel 3 Mode: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_CH3_MODE_CMD);
 
     if (ch3ManualPower == true)
     {
@@ -801,7 +807,7 @@ bool MyDCP4ESP::readSettings()
             TrackingOffsetNP.apply();
         }
         else
-            LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, MDCP_GET_TRACKING_OFFSET_CMD);
+            LOGF_ERROR("Get Tracking Offset: Response <%s> for Command <%s> not recognized.", resp, MDCP_GET_TRACKING_OFFSET_CMD);
 
     }
 
@@ -830,7 +836,7 @@ bool MyDCP4ESP::readSettings()
                 ChannelBoostSP.apply();
             }
             else
-                LOGF_ERROR("Unknown response: Response (%s) for Command (%s) not recognized.", resp, cmd);
+                LOGF_ERROR("Get Channel Overrides: Response <%s> for Command <%s> not recognized.", resp, cmd);
         }
     }    
     
