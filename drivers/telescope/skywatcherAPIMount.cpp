@@ -1096,7 +1096,7 @@ void SkywatcherAPIMount::TimerHit()
                         auto hysteresis = TrackingParamsNP[HYSTERESIS_AZ].getValue() / 100.0;
                         auto trackingRate = (1 - hysteresis) * rate + hysteresis * average(TrackRateHistory[AXIS_AZ]);
 
-                        SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
+                        SetClockTicksPerMicrostep(AXIS1, trackingRate < 1 ? 1 : trackingRate);
                         if (AxesStatus[AXIS1].FullStop)
                         {
                             DEBUG(DBG_SCOPE, "Tracking -> AXIS1 restart.");
@@ -1111,15 +1111,16 @@ void SkywatcherAPIMount::TimerHit()
                                Direction,
                                aggressiveness,
                                hysteresis);
-                    }
 
-                    TrackRateHistory[AXIS_AZ].push_back(AzimuthRate);
+                        TrackRateHistory[AXIS_AZ].push_back(trackingRate);
+                    }
                 }
                 else
                 {
                     // Nothing to do - stop the axis
                     DEBUG(DBG_SCOPE, "Tracking -> AXIS1 zero offset.");
                     SlowStop(AXIS1);
+                    TrackRateHistory[AXIS_AZ].push_back(0);
                 }
 
                 // Going the long way round - send it the other way
@@ -1164,15 +1165,16 @@ void SkywatcherAPIMount::TimerHit()
                                Direction,
                                aggressiveness,
                                hysteresis);
-                    }
 
-                    TrackRateHistory[AXIS_ALT].push_back(AltitudeRate);
+                        TrackRateHistory[AXIS_ALT].push_back(trackingRate);
+                    }
                 }
                 else
                 {
                     // Nothing to do - stop the axis
                     DEBUG(DBG_SCOPE, "Tracking -> AXIS2 zero offset.");
                     SlowStop(AXIS2);
+                    TrackRateHistory[AXIS_ALT].push_back(0);
                 }
 
                 DEBUGF(DBG_SCOPE, "Tracking -> AXIS1 error %d AXIS2 error %d.",
