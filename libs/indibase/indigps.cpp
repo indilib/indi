@@ -123,6 +123,17 @@ void GPS::TimerHit()
             // We got data OK, but if we are required to update once in a while, we'll call it.
             if (PeriodNP[0].getValue() > 0)
                 timerID = SetTimer(PeriodNP[0].getValue() * 1000);
+
+            // Update system time
+            // This ideally should be done only ONCE
+            {
+                std::tm utm;
+                if (strptime(TimeTP[0].getText(), "%Y-%m-%dT%H:%M:%S", &utm))
+                {
+                    std::time_t raw_time = std::mktime(&utm);
+                    setSystemTime(raw_time);
+                }
+            }
             return;
             break;
 
@@ -145,6 +156,32 @@ IPState GPS::updateGPS()
           "GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPS::setSystemTime(time_t &raw_time)
+{
+#ifdef __linux__
+#if defined(__GNU_LIBRARY__)
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
+    timespec sTime = {};
+    sTime.tv_sec = raw_time;
+    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
+    if (rc)
+        LOGF_WARN("Failed to update system time: %s", strerror(rc));
+#else
+    stime(&raw_time);
+#endif
+#else
+    stime(&raw_time);
+#endif
+#else
+    INDI_UNUSED(raw_time);
+#endif
+    return true;
+}
+
 
 bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
@@ -186,8 +223,9 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
             else
             {
                 timerID = SetTimer(PeriodNP[0].value * 1000);
+                // Need to warn user this is not recommended. Startup values should be enough
                 if (prevPeriod == 0)
-                    DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled.");
+                    DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
             }
 
             PeriodNP.setState(IPS_OK);

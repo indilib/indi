@@ -21,6 +21,7 @@
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
+#include <numeric>
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
@@ -122,6 +123,10 @@ class SkywatcherAPIMount :
         bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
         // Reset tracking timer to account for drift compensation
         void resetTracking();
+        inline double average(const std::vector<double> &values)
+        {
+            return values.empty() ? 0 : std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Properties
@@ -202,7 +207,14 @@ class SkywatcherAPIMount :
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
-        INDI::PropertyNumber TrackFactorNP {2};
+        INDI::PropertyNumber TrackingParamsNP {4};
+        enum
+        {
+            AGGRESIVENESS_AZ,
+            HYSTERESIS_AZ,
+            AGGRESIVENESS_ALT,
+            HYSTERESIS_ALT
+        };
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
@@ -217,6 +229,7 @@ class SkywatcherAPIMount :
         INDI::IEquatorialCoordinates m_SkyTrackingTarget { 0, 0 };
         INDI::IEquatorialCoordinates m_SkyCurrentRADE {0, 0};
         INDI::IHorizontalCoordinates m_MountAltAz {0, 0};
+        std::vector<double> TrackRateHistory[2];
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
         static constexpr double MAX_TRACKING_DELTA {5};
 
