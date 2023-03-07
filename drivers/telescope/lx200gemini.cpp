@@ -661,6 +661,63 @@ bool LX200Gemini::updateProperties()
             defineProperty(&PECControlSP);
             defineProperty(&PECCounterTP);
         }
+        if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
+        {
+            float max_steps_value;
+            sscanf(value, "%f", &max_steps_value);
+            PECMaxStepsN[0].value = max_steps_value;
+            PECMaxStepsNP.s = IPS_OK;
+            IDSetNumber(&PECMaxStepsNP, nullptr);
+        } else {
+            PECMaxStepsNP.s = IPS_ALERT;
+            IDSetNumber(&PECMaxStepsNP, nullptr);
+        }
+        defineProperty(&PECMaxStepsNP);
+        if (getGeminiProperty(PEC_STATUS_ID, value))
+        {
+            uint32_t pec_status = 0;
+            sscanf(value, "%u", &pec_status);
+            if(pec_status & 1){ // PEC_ACTIVE
+                IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
+                setPECState(PEC_ON);
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
+                setPECState(PEC_OFF);
+            }
+            
+            if(pec_status & 2){ // Freshly_Trained
+                IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
+            }
+            
+            if(pec_status & 4){ // Training_In_Progress
+                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
+            }
+            if(pec_status & 6){ // Training_just_completed
+                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
+            }
+            if(pec_status & 16){ // Training will start soon
+                IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
+            }
+            if(pec_status & 32){ // PEC Data Available
+                IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
+            } else {
+                IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
+            }
+            PECStateTP.s = IPS_OK;
+            IDSetText(&PECStateTP, nullptr);
+        } else {
+            PECStateTP.s = IPS_ALERT;
+            IDSetText(&PECStateTP, nullptr);
+        }
+        defineProperty(&PECStateTP);
         if (gemini_software_level_ >= 6.0)
         {
             if(getGeminiProperty(FLIP_POINTS_ENABLED_ID, value))
@@ -743,63 +800,6 @@ bool LX200Gemini::updateProperties()
         defineProperty(&SetSafetyLimitToCurrentSP);
         defineProperty(&SafetyLimitsNP);
 
-        if (getGeminiProperty(PEC_MAX_STEPS_ID, value))
-        {
-            float max_steps_value;
-            sscanf(value, "%f", &max_steps_value);
-            PECMaxStepsN[0].value = max_steps_value;
-            PECMaxStepsNP.s = IPS_OK;
-            IDSetNumber(&PECMaxStepsNP, nullptr);
-        } else {
-            PECMaxStepsNP.s = IPS_ALERT;
-            IDSetNumber(&PECMaxStepsNP, nullptr);
-        }
-        defineProperty(&PECMaxStepsNP);
-        if (getGeminiProperty(PEC_STATUS_ID, value))
-        {
-            uint32_t pec_status = 0;
-            sscanf(value, "%u", &pec_status);
-            if(pec_status & 1){ // PEC_ACTIVE
-                IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
-                setPECState(PEC_ON);
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
-                setPECState(PEC_OFF);
-            }
-            
-            if(pec_status & 2){ // Freshly_Trained
-                IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
-            }
-            
-            if(pec_status & 4){ // Training_In_Progress
-                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
-            }
-            if(pec_status & 6){ // Training_just_completed
-                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
-            }
-            if(pec_status & 16){ // Training will start soon
-                IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
-            }
-            if(pec_status & 32){ // PEC Data Available
-                IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
-            } else {
-                IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
-            }
-            PECStateTP.s = IPS_OK;
-            IDSetText(&PECStateTP, nullptr);
-        } else {
-            PECStateTP.s = IPS_ALERT;
-            IDSetText(&PECStateTP, nullptr);
-        }
-        defineProperty(&PECStateTP);
         if (gemini_software_level_ >= 6.0)
         {
             if(getGeminiProperty(SERVO_POINTING_PRECISION_ID, value))
@@ -1594,7 +1594,7 @@ bool LX200Gemini::ReadScopeStatus()
         updateMovementState();
 
         EqNP.s = IPS_BUSY;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         // Check if LX200 is done slewing
         if (isSlewComplete())
@@ -1605,7 +1605,7 @@ bool LX200Gemini::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
 
             LOG_INFO("Slew is complete. Tracking...");
         }
@@ -1621,7 +1621,7 @@ bool LX200Gemini::ReadScopeStatus()
             sleepMount();
 
             EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
 
             return true;
         }
