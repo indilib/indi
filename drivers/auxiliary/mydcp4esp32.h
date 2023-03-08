@@ -1,6 +1,6 @@
 /*
     myDCP4ESP32 
-    Copyright (C) 2017-2023 Stephen Hillier
+    Copyright (C) 2023 Stephen Hillier
 
     Based on MyFocuserPro2 Focuser
     Copyright (C) 2019 Alan Townshend
@@ -40,10 +40,10 @@
 /***************************** myDCP4ESP32 Commands **************************/
 //
 // Commands and responses are string types
-// Commands are terminated with a #, for example, 1#
+// Commands start with a ':' and are terminated with a '#', for example, ':01#'
 // Commands are case sensitive
-// Responses has a lead character, then values – more than one value is separated with a comma [,] and string is
-// terminated with a #
+// Responses have a lead character, then values – more than one value is separated with a comma [,] and the string is
+// terminated with a '#'
 
 #define MDCP_CMD_TERMINATOR                 "#"
 #define MDCP_GET_CONTROLLER_CODE_CMD        ":00#"    // Get controller code - Response: 0code# 
@@ -83,52 +83,51 @@
 #define MDCP_RESET_CH_100_CMD               ":39%d#"  // Turn off 100% boost to channel number x [1-4, 5=all] - Response: none
 #define MDCP_GET_ALL_CH_POWER_CMD           ":40#"    // Get the power settings for ch1/ch2/ch3/ch4 - Response: lch1pwr,ch2pwr,ch3pwr,ch4pwr#
 #define MDCP_SET_CH3_MODE_CMD               ":41%d#"  // Set the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: none
-#define MDCP_GET_CH3_MODE_CMD               ":42#"  // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
+#define MDCP_GET_CH3_MODE_CMD               ":42#"    // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
 #define MDCP_SET_CH3_MANUAL_POWER_CMD       ":43%d#"  // Set the Channel 3 power to a manual seting of Num - Response: none    
 
 /**************************** myDCP4ESP32 Command Responses **************************/
 
-#define MDCP_NULL_RESPONSE                  ""
-#define MDCP_RESPONSE_LENGTH                256
-#define MDCP_GET_CONTROLLER_CODE_RES        "0%s"    // Get controller code - Response: 0code# 
-#define MDCP_GET_VERSION_RES                "1%d"    // Get version number - Respnse: 1version#
-#define MDCP_REBOOT_RES                     ""    // Reboot controller - Response: none
-#define MDCP_GET_TRACKING_MODE_RES          "3%d"    // Get tracking mode (1=Ambient, 2=Dewpoint, 3=Midpoint) - Response: 3trackingmode#
-#define MDCP_SET_TRACKING_MODE_RES          "" // Set tracking mode (1=Ambient, 2=Dewpoint, 3=Midpoint) - Response: none
-#define MDCP_GET_TRACKING_OFFSET_RES        "5%d"    // Get tracking mode offset value (-4 to +3) - Response: 5trackingmodeoffset# 
-#define MDCP_ZERO_TRACKING_OFFSET_RES       ""    // Set tracking mode offset to 0 - Response: none
-#define MDCP_DECREASE_TRACKING_OFFSET_RES   ""    // Decrease tracking mode offset - Response: none
-#define MDCP_INCREASE_TRACKING_OFFSET_RES   ""    // Increase tracking mode offset - Response: none
-#define MDCP_GET_NUMBER_PROBES_RES          "9%d"    // Get the number of temperature probes attached - Response: 9number_of_probes#
-#define MDCP_SAVE_CONTROLLER_SETTINGS_RES   ""    // Write variables immediately to SPIFFS - Response: none
-#define MDCP_SET_DEFAULT_SETTINGS_RES       ""    // controller settings to default values - Response: none
-#define MDCP_GET_AMBIENT_TEMPERATURE_RES    "a%f"    // Get the Ambient temperature - Response: avalue# 
-#define MDCP_GET_AMBIENT_OFFSET_RES         "b%d"    // Get the Ambient offset - Response: bvalue$ 
-#define MDCP_SET_AMBIENT_OFFSET_RES         ""  // Set the Ambient offset, Num is a value between +3 and -4 - Response: none
-#define MDCP_GET_HUMIDITY_RES               "c%f"    // Get the Relative Humidity % - Resonse: cvalue#
-#define MDCP_GET_DEWPOINT_RES               "d%f"    // Get the Dew Point - Response: dvalue# 
-#define MDCP_GET_TEMP_MODE_RES              "e%d"    // Get Temp Mode, 0=Celsius, 1=Fahrenheit - Response: eTempMode
-#define MDCP_SET_TEMP_MODE_C_RES            ""   // Display in Celsius - Response: none
-#define MDCP_SET_TEMP_MODE_F_RES            ""   // Display in Fahrenheit - Response: none
-#define MDCP_SET_TRACKING_OFFSET_RES        ""  // Set the tracking mode offset value [-4 to +3] - Response: none
-#define MDCP_GET_MAC_ADDRESS_RES            "h%s"    // Get MAC address - Response:  hString#
-#define MDCP_GET_IP_ADDRESS_RES             "i%s"    // Get IP address - Response: iString#
+#define MDCP_RESPONSE_LENGTH                64      // Response buffer size
+#define MDCP_GET_CONTROLLER_CODE_RES        "0%s"   // Get controller code - Response: 0code# 
+#define MDCP_GET_VERSION_RES                "1%d"   // Get version number - Respnse: 1version#
+#define MDCP_REBOOT_RES                     ""      // Reboot controller - Response: none
+#define MDCP_GET_TRACKING_MODE_RES          "3%d"   // Get tracking mode (1=Ambient, 2=Dewpoint, 3=Midpoint) - Response: 3trackingmode#
+#define MDCP_SET_TRACKING_MODE_RES          ""      // Set tracking mode (1=Ambient, 2=Dewpoint, 3=Midpoint) - Response: none
+#define MDCP_GET_TRACKING_OFFSET_RES        "5%d"   // Get tracking mode offset value (-4 to +3) - Response: 5trackingmodeoffset# 
+#define MDCP_ZERO_TRACKING_OFFSET_RES       ""      // Set tracking mode offset to 0 - Response: none
+#define MDCP_DECREASE_TRACKING_OFFSET_RES   ""      // Decrease tracking mode offset - Response: none
+#define MDCP_INCREASE_TRACKING_OFFSET_RES   ""      // Increase tracking mode offset - Response: none
+#define MDCP_GET_NUMBER_PROBES_RES          "9%d"   // Get the number of temperature probes attached - Response: 9number_of_probes#
+#define MDCP_SAVE_CONTROLLER_SETTINGS_RES   ""      // Write variables immediately to SPIFFS - Response: none
+#define MDCP_SET_DEFAULT_SETTINGS_RES       ""      // controller settings to default values - Response: none
+#define MDCP_GET_AMBIENT_TEMPERATURE_RES    "a%f"   // Get the Ambient temperature - Response: avalue# 
+#define MDCP_GET_AMBIENT_OFFSET_RES         "b%d"   // Get the Ambient offset - Response: bvalue$ 
+#define MDCP_SET_AMBIENT_OFFSET_RES         ""      // Set the Ambient offset, Num is a value between +3 and -4 - Response: none
+#define MDCP_GET_HUMIDITY_RES               "c%f"   // Get the Relative Humidity % - Resonse: cvalue#
+#define MDCP_GET_DEWPOINT_RES               "d%f"   // Get the Dew Point - Response: dvalue# 
+#define MDCP_GET_TEMP_MODE_RES              "e%d"   // Get Temp Mode, 0=Celsius, 1=Fahrenheit - Response: eTempMode
+#define MDCP_SET_TEMP_MODE_C_RES            ""      // Display in Celsius - Response: none
+#define MDCP_SET_TEMP_MODE_F_RES            ""      // Display in Fahrenheit - Response: none
+#define MDCP_SET_TRACKING_OFFSET_RES        ""      // Set the tracking mode offset value [-4 to +3] - Response: none
+#define MDCP_GET_MAC_ADDRESS_RES            "h%s"   // Get MAC address - Response:  hString#
+#define MDCP_GET_IP_ADDRESS_RES             "i%s"   // Get IP address - Response: iString#
 #define MDCP_GET_CHANNEL_TEMPS_RES          "j%f,%f,%f,%f"    // Get the temp in Celsius for Channel1-4 - Response: jch1temp,ch2temp,ch3temp,ch4temp# 
-#define MDCP_SET_CH1_OFFSET_RES             ""  // Set ch1offset value (expects a float) - Response: none
-#define MDCP_SET_CH2_OFFSET_RES             ""  // Set ch2offset value (expects a float) - Response: none
-#define MDCP_SET_CH3_OFFSET_RES             ""  // Set ch3offset value (expects a float) - Response: none
-#define MDCP_SET_CH4_OFFSET_RES             ""  // Set ch4offset value (expects a float) - Response: none
-#define MDCP_ZERO_ALL_CH_OFFSET_RES         ""    // Clear ch1offset-ch4offset values to 0.0 - Response: none
+#define MDCP_SET_CH1_OFFSET_RES             ""      // Set ch1offset value (expects a float) - Response: none
+#define MDCP_SET_CH2_OFFSET_RES             ""      // Set ch2offset value (expects a float) - Response: none
+#define MDCP_SET_CH3_OFFSET_RES             ""      // Set ch3offset value (expects a float) - Response: none
+#define MDCP_SET_CH4_OFFSET_RES             ""      // Set ch4offset value (expects a float) - Response: none
+#define MDCP_ZERO_ALL_CH_OFFSET_RES         ""      // Clear ch1offset-ch4offset values to 0.0 - Response: none
 #define MDCP_GET_ALL_CH_OFFSET_RES          "k%f,%f,%f,%f"    // Get the ch1offset=ch4offset values - Response: kch1offset,ch2offset,ch3offset# 
-#define MDCP_SET_CH_100_RES                 ""  // Set boost 100% to channel x - Response: none
-#define MDCP_GET_CH_OVERIDE_RES             "t%d"  // Get Override mode for channel x - Response: return value is 0 or 1
-#define MDCP_SET_CONTROLLER_MODE_RES        ""  // Set controller mode – controlledbyapp = 0 or 1 - Response: none
-#define MDCP_GET_CONTROLLER_MODE_RES        "u%d"    // Get controlledbyapp setting - Response: ux# 
-#define MDCP_RESET_CH_100_RES               ""  // Turn off 100% boost to channel number x [1-4, 5=all] - Response: none
+#define MDCP_SET_CH_100_RES                 ""      // Set boost 100% to channel x - Response: none
+#define MDCP_GET_CH_OVERIDE_RES             "t%d"   // Get Override mode for channel x - Response: return value is 0 or 1
+#define MDCP_SET_CONTROLLER_MODE_RES        ""      // Set controller mode – controlledbyapp = 0 or 1 - Response: none
+#define MDCP_GET_CONTROLLER_MODE_RES        "u%d"   // Get controlledbyapp setting - Response: ux# 
+#define MDCP_RESET_CH_100_RES               ""      // Turn off 100% boost to channel number x [1-4, 5=all] - Response: none
 #define MDCP_GET_ALL_CH_POWER_RES           "l%d,%d,%d,%d"    // Get the power settings for ch1/ch2/ch3/ch4 - Response: lch1pwr,ch2pwr,ch3pwr,ch4pwr#
-#define MDCP_SET_CH3_MODE_RES               ""  // Set the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: none
-#define MDCP_GET_CH3_MODE_RES               "m%d"  // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
-#define MDCP_SET_CH3_MANUAL_POWER_RES       ""  // Set the Channel 3 power to a manual seting of Num - Response: none 
+#define MDCP_SET_CH3_MODE_RES               ""      // Set the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: none
+#define MDCP_GET_CH3_MODE_RES               "m%d"   // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
+#define MDCP_SET_CH3_MANUAL_POWER_RES       ""      // Set the Channel 3 power to a manual seting of Num - Response: none 
 
 /******************************************************************************/
 
@@ -158,16 +157,15 @@ class MyDCP4ESP : public INDI::DefaultDevice
 
     private:
         int  timerIndex;
-        int myDCP4Firmware = 0;
+        int  myDCP4Firmware = 0;
         bool ch3ManualPower = false;
+        float channelActive[4] = {1};
         int  msleep( long duration);
         bool sendCommand(const char *cmd, char *response);
         bool Handshake();
         bool Ack();
         bool rebootController();
         bool readSettings();
-
-
         bool setChannelOffset(unsigned int channel, float value);
         bool setAmbientOffset(int value);
         bool setTrackingMode(unsigned int value);
@@ -175,6 +173,7 @@ class MyDCP4ESP : public INDI::DefaultDevice
         bool setCh3Mode(unsigned int value);
         bool setCh3Output(unsigned int value);
         bool setChannelBoost(unsigned int channel, unsigned int value);
+        bool getActiveChannels();
 
         Connection::Serial *serialConnection { nullptr };
         Connection::TCP *tcpConnection { nullptr };
@@ -184,10 +183,20 @@ class MyDCP4ESP : public INDI::DefaultDevice
         uint8_t mdcpConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 
         // MyDCP4ESP Timeouts
-        static const uint8_t MDCP_READ_TIMEOUT { 10 };    // seconds
-        static const long    MDCP_SMALL_DELAY    { 50 };   // 50ms delay from send command to read response
+        static const uint8_t MDCP_READ_TIMEOUT { 10 };   // seconds
+        static const long    MDCP_SMALL_DELAY  { 50 };   // 50ms delay from send command to read response
+
+        enum
+        {
+            CH3MODE_DISABLED,
+            CH3MODE_CH1POWER,
+            CH3MODE_CH2POWER,
+            CH3MODE_MANUAL,
+            CH3MODE_CH3TEMP
+        };
         
         INDI::PropertyNumber ChannelPowerNP{4};
+        INDI::PropertySwitch TempProbeFoundSP{4};
         INDI::PropertyNumber TemperatureNP{4};
         INDI::PropertyNumber ChannelOffsetNP{4};
         INDI::PropertySwitch ChannelBoostSP{5};
