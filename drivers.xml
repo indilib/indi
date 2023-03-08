@@ -71,6 +71,10 @@
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
         </device>
+        <device label="NYX-101" manufacturer="Pegasus Astro">
+            <driver name="LX200 Autostar">indi_lx200autostar</driver>
+            <version>2.1</version>
+        </device>
         <device label="ZWO AM5" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
             <version>1.0</version>
@@ -187,6 +191,10 @@
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
         </device>
+        <device label="iOptron HAE29" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.6</version>
+        </device>
         <device label="iOptron SkyHunter" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
@@ -289,15 +297,15 @@
         </device>
         <device label="ES G-11 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="ES EXOS2-GT PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="ES iEXOS100 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
@@ -692,6 +700,10 @@
         <device label="USB_Dewpoint" manufacturer="USB_Focus">
             <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
             <version>1.2</version>
+        </device>
+        <device label="myDewControllerPro" manufacturer="Robert Brown">
+            <driver name="myDewControllerPro">indi_myDewControllerPro</driver>
+            <version>1.0</version>
         </device>
         <device label="MyDCP4ESP32" manufacturer="DIY">
             <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>

@@ -4,7 +4,8 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
@@ -119,6 +120,7 @@ bool get_pmc8_coords(int fd, double &ra, double &dec);
 bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate);
 bool get_pmc8_track_rate(int fd, double &rate);
 bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode);
+uint8_t get_pmc8_tracking_mode_from_rate(double rate);
 
 /**************************************************************************
  Motion
@@ -136,6 +138,7 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew);
 bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir);
 bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast);
 bool abort_pmc8(int fd);
+bool abort_pmc8_goto(int fd);
 bool slew_pmc8(int fd, double ra, double dec);
 bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);

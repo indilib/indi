@@ -396,7 +396,7 @@ bool CCD::initProperties()
     if(m_XISFWrapper)
     {
         EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
-                                     m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
+                                         m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
     }
 #endif
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
@@ -2228,7 +2228,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     if (targetChip->getFrameBufferSize() == 0)
         sendImage = saveImage = false;
 
-    LOG_INFO("Exposure complete");
     if (sendImage || saveImage)
     {
         if (EncodeFormatSP[FORMAT_FITS].getState() == ISS_ON)
@@ -2311,20 +2310,21 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 int key_status = 0;
                 switch(keyword.type())
                 {
-                case INDI::FITSRecord::VOID:
-                    break;
-                case INDI::FITSRecord::COMMENT:
-                    fits_write_comment(fptr, keyword.comment().c_str(), &key_status);
-                    break;
-                case INDI::FITSRecord::STRING:
-                    fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &key_status);
-                    break;
-                case INDI::FITSRecord::LONGLONG:
-                    fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &key_status);
-                    break;
-                case INDI::FITSRecord::DOUBLE:
-                    fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(), &key_status);
-                    break;
+                    case INDI::FITSRecord::VOID:
+                        break;
+                    case INDI::FITSRecord::COMMENT:
+                        fits_write_comment(fptr, keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::STRING:
+                        fits_update_key_str(fptr, keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::LONGLONG:
+                        fits_update_key_lng(fptr, keyword.key().c_str(), keyword.valueInt(), keyword.comment().c_str(), &key_status);
+                        break;
+                    case INDI::FITSRecord::DOUBLE:
+                        fits_update_key_dbl(fptr, keyword.key().c_str(), keyword.valueDouble(), keyword.decimal(), keyword.comment().c_str(),
+                                            &key_status);
+                        break;
                 }
                 if (key_status)
                 {
@@ -2370,7 +2370,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             std::vector<FITSRecord> fitsKeywords;
             addFITSKeywords(targetChip, fitsKeywords);
             targetChip->setImageExtension("xisf");
-            LOG_INFO("Saving XISF");
 
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             XISFImageParam params;
@@ -2385,7 +2384,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             params.compress = targetChip->SendCompressed;
 
             if (!m_XISFWrapper->writeImage(params, fitsKeywords, targetChip->getFrameBuffer()))
-               LOGF_ERROR("Error writing XISF %s", m_XISFWrapper->error());
+                LOGF_ERROR("Error writing XISF %s", m_XISFWrapper->error());
 
             bool rc = uploadFile(targetChip, m_XISFWrapper->fileData(), m_XISFWrapper->fileDataSize(), sendImage, saveImage);
             if (rc == false)
