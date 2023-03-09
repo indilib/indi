@@ -33,6 +33,8 @@
 
 #include <sys/stat.h>
 
+#define DEBUG_PID
+
 using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to SkywatcherAPIMount.
@@ -221,12 +223,22 @@ bool SkywatcherAPIMount::initProperties()
     SnapPortSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_ON);
     SnapPortSP.fill(getDeviceName(), "SNAP_PORT", "Snap Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    // Tracking Control Loop Parameters for Alt-Az
-    TrackingParamsNP[AGGRESIVENESS_AZ].fill("AGGRESIVENESS_AZ", "AZ Aggresiveness", "%.2f", 0.1, 3, 0.1, 1);
-    TrackingParamsNP[HYSTERESIS_AZ].fill("HYSTERESIS_AZ", "AZ Hysteresis %", "%.f", 0, 100, 10, 10);
-    TrackingParamsNP[AGGRESIVENESS_ALT].fill("AGGRESIVENESS_ALT", "AL Aggressiveness", "%.2f", 0.1, 3, 0.1, 1);
-    TrackingParamsNP[HYSTERESIS_ALT].fill("HYSTERESIS_ALT", "AL Hysteresis %", "%.f", 0, 100, 10, 10);
-    TrackingParamsNP.fill(getDeviceName(), "TRACK_PARAMS", "Tracking Params", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    // PID Control
+    Axis1PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0.8);
+    Axis1PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 500, 10, 0);
+    Axis1PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 500, 10, 0);
+    Axis1PIDNP.fill(getDeviceName(), "AXIS1_PID", "Axis1 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    Axis2PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 1.2);
+    Axis2PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 100, 10, 0);
+    Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 1);
+    Axis2PIDNP.fill(getDeviceName(), "AXIS2_PID", "Axis2 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Testing T1 clock rate
+    AxisT1NP[AXIS1].fill("AXIS1", "AZ", "%.f", 0, 20000000, 1000, 0);
+    AxisT1NP[AXIS2].fill("AXIS2", "AL", "%.f", 0, 20000000, 1000, 0);
+    AxisT1NP.fill(getDeviceName(), "T1_RATE", "T1 Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
 
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(11880);
@@ -294,14 +306,35 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             return true;
         }
 
-        if (TrackingParamsNP.isNameMatch(name))
+        // T1 Rate (Testing only)
+        if (AxisT1NP.isNameMatch(name))
         {
-            TrackingParamsNP.update(values, names, n);
-            TrackingParamsNP.setState(IPS_OK);
-            TrackingParamsNP.apply();
-            saveConfig(TrackingParamsNP);
+            AxisT1NP.update(values, names, n);
+            AxisT1NP.setState(IPS_OK);
+            AxisT1NP.apply();
             return true;
         }
+
+        // Axis1 PID
+        if (Axis1PIDNP.isNameMatch(name))
+        {
+            Axis1PIDNP.update(values, names, n);
+            Axis1PIDNP.setState(IPS_OK);
+            Axis1PIDNP.apply();
+            saveConfig(Axis1PIDNP);
+            return true;
+        }
+
+        // Axis2 PID
+        if (Axis2PIDNP.isNameMatch(name))
+        {
+            Axis2PIDNP.update(values, names, n);
+            Axis2PIDNP.setState(IPS_OK);
+            Axis2PIDNP.apply();
+            saveConfig(Axis2PIDNP);
+            return true;
+        }
+
 
         // Let our driver do sync operation in park position
         if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
@@ -662,8 +695,6 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         TrackState = SCOPE_IDLE;
         SlowStop(AXIS1);
         SlowStop(AXIS2);
-        TrackRateHistory[AXIS1].clear();
-        TrackRateHistory[AXIS2].clear();
         TrackState = SCOPE_IDLE;
 
         if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
@@ -828,7 +859,8 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 {
     SaveAlignmentConfigProperties(fp);
 
-    TrackingParamsNP.save(fp);
+    Axis1PIDNP.save(fp);
+    Axis2PIDNP.save(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
@@ -921,8 +953,6 @@ bool SkywatcherAPIMount::Abort()
     m_IterativeGOTOPending = false;
     SlowStop(AXIS1);
     SlowStop(AXIS2);
-    TrackRateHistory[AXIS1].clear();
-    TrackRateHistory[AXIS2].clear();
     TrackState = SCOPE_IDLE;
 
     if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
@@ -973,7 +1003,6 @@ void SkywatcherAPIMount::TimerHit()
             }
             else
             {
-
                 // Continue or start tracking
                 // Calculate where the mount needs to be in POLLMS time
                 // TODO may need to make this longer to get a meaningful result
@@ -1013,13 +1042,13 @@ void SkywatcherAPIMount::TimerHit()
 
                 }
 
-                DEBUGF(DBG_SCOPE,
-                       "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-                       "%ld",
-                       CurrentEncoders[AXIS1],
-                       OldTrackingTarget[AXIS1],
-                       CurrentEncoders[AXIS2],
-                       OldTrackingTarget[AXIS2]);
+                // DEBUGF(DBG_SCOPE,
+                //        "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
+                //        "%ld",
+                //        CurrentEncoders[AXIS1],
+                //        OldTrackingTarget[AXIS1],
+                //        CurrentEncoders[AXIS2],
+                //        OldTrackingTarget[AXIS2]);
 
                 DEBUGF(DBG_SCOPE,
                        "New Tracking Target AZ %lf° (%ld microsteps) AL %lf° (%ld microsteps) ",
@@ -1062,128 +1091,106 @@ void SkywatcherAPIMount::TimerHit()
                 GuideDeltaAlt += DeltaAlt;
                 GuideDeltaAz += DeltaAz;
 
-                long AzimuthOffsetMicrosteps  = DegreesToMicrosteps(AXIS1,
-                                                AltAz.azimuth + GuideDeltaAz) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
-                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2,
-                                                AltAz.altitude + GuideDeltaAlt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+                long SetPoint[2], Measurement[2], TrackingRate[2], Error[2];
 
-                DEBUGF(DBG_SCOPE, "New Tracking Target AZOffset %ld microsteps ALOffset %ld microsteps.",
-                       AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz);
+                Measurement[AXIS1] = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
+
+                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt);
+                Measurement[AXIS2] = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];
 
                 // Going the long way round - send it the other way
-                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
-                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                while (SetPoint[AXIS1] > MicrostepsPerRevolution[AXIS1] / 2)
+                    SetPoint[AXIS1] -= MicrostepsPerRevolution[AXIS1];
 
-                if (0 != AzimuthOffsetMicrosteps)
+                while (SetPoint[AXIS2] > MicrostepsPerRevolution[AXIS2] / 2)
+                    SetPoint[AXIS2] -= MicrostepsPerRevolution[AXIS2];
+
+                Error[AXIS1] = SetPoint[AXIS1] - Measurement[AXIS1];
+                Error[AXIS2] = SetPoint[AXIS2] - Measurement[AXIS2];
+
+                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -SWITCH_THRESHOLD)) ||
+                                                    (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > SWITCH_THRESHOLD))))
                 {
-                    // Calculate the slewing rates needed to reach that position
-                    // at the correct time.
-                    long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
-                    if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) ||
-                                                        (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
-                    {
-                        // Direction change whilst axis running
-                        // Abandon tracking for this clock tick
-                        DEBUG(DBG_SCOPE, "Tracking -> AXIS1 direction change.");
-                        SlowStop(AXIS1);
-                        TrackRateHistory[AXIS_AZ].clear();
-                    }
-                    else
-                    {
-                        char Direction = AzimuthRate > 0 ? '0' : '1';
-                        auto aggressiveness = TrackingParamsNP[AGGRESIVENESS_AZ].getValue();
-                        auto rate = std::abs(AzimuthRate) * aggressiveness;
-                        auto hysteresis = TrackingParamsNP[HYSTERESIS_AZ].getValue() / 100.0;
-                        auto trackingRate = (1 - hysteresis) * rate + hysteresis * average(TrackRateHistory[AXIS_AZ]);
+                    // Direction change whilst axis running
+                    // Abandon tracking for this clock tick
+                    LOG_DEBUG("Tracking -> AXIS1 direction change.");
+                    SlowStop(AXIS1);
+                }
+                else
+                {
 
-                        SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
+
+                    TrackingRate[AXIS1] = m_Controllers[AXIS1]->calculate(SetPoint[AXIS1], Measurement[AXIS1]);
+                    char Direction = TrackingRate[AXIS1] > 0 ? '0' : '1';
+                    TrackingRate[AXIS1] = std::abs(TrackingRate[AXIS1]);
+                    if (TrackingRate[AXIS1] != 0)
+                    {
+                        LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
+                                   SetPoint[AXIS1],
+                                   Measurement[AXIS1],
+                                   Error[AXIS1],
+                                   TrackingRate[AXIS1],
+                                   StepperClockFrequency[AXIS1] / TrackingRate[AXIS1],
+                                   Error[AXIS1] > 0 ? "Forward" : "Backward");
+#ifdef DEBUG_PID
+                        LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
+                                   m_Controllers[AXIS1]->propotionalTerm(),
+                                   m_Controllers[AXIS1]->integralTerm(),
+                                   m_Controllers[AXIS1]->derivativeTerm());
+#endif
+                        SetClockTicksPerMicrostep(AXIS1, StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]);
                         if (AxesStatus[AXIS1].FullStop)
                         {
-                            DEBUG(DBG_SCOPE, "Tracking -> AXIS1 restart.");
+                            LOG_DEBUG("Tracking -> AXIS1 restart.");
                             SetAxisMotionMode(AXIS1, '1', Direction);
                             StartAxisMotion(AXIS1);
                         }
-                        DEBUGF(DBG_SCOPE,
-                               "Tracking -> AXIS1 offset (%ld) microsteps rate (%ld) tracking rate (%.f) direction (%c) aggressiveness (%.2f) hysteresis (%.2f)",
-                               AzimuthOffsetMicrosteps,
-                               AzimuthRate,
-                               trackingRate,
-                               Direction,
-                               aggressiveness,
-                               hysteresis);
                     }
+                }
 
-                    TrackRateHistory[AXIS_AZ].push_back(AzimuthRate);
+
+                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -SWITCH_THRESHOLD)) ||
+                                                    (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > SWITCH_THRESHOLD))))
+                {
+                    // Direction change whilst axis running
+                    // Abandon tracking for this clock tick
+                    LOG_DEBUG("Tracking -> AXIS2 direction change.");
+                    SlowStop(AXIS2);
                 }
                 else
                 {
-                    // Nothing to do - stop the axis
-                    DEBUG(DBG_SCOPE, "Tracking -> AXIS1 zero offset.");
-                    SlowStop(AXIS1);
-                }
-
-                // Going the long way round - send it the other way
-                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
-                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
-
-                if (0 != AltitudeOffsetMicrosteps)
-                {
-                    // Calculate the slewing rates needed to reach that position
-                    // at the correct time.
-                    long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
-
-                    if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) ||
-                                                        (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
+                    TrackingRate[AXIS2] = m_Controllers[AXIS2]->calculate(SetPoint[AXIS2], Measurement[AXIS2]);
+                    char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
+                    TrackingRate[AXIS2] = std::abs(TrackingRate[AXIS2]);
+                    if (TrackingRate[AXIS2] != 0)
                     {
-                        // Direction change whilst axis running
-                        // Abandon tracking for this clock tick
-                        DEBUG(DBG_SCOPE, "Tracking -> AXIS2 direction change.");
-                        SlowStop(AXIS2);
-                        TrackRateHistory[AXIS_ALT].clear();
-                    }
-                    else
-                    {
-                        char Direction = AltitudeRate > 0 ? '0' : '1';
-                        auto aggressiveness = TrackingParamsNP[AGGRESIVENESS_ALT].getValue();
-                        auto rate = std::abs(AltitudeRate) * aggressiveness;
-                        auto hysteresis = TrackingParamsNP[HYSTERESIS_ALT].getValue() / 100.0;
-                        auto trackingRate = (1 - hysteresis) * rate + hysteresis * average(TrackRateHistory[AXIS_ALT]);
-
-                        SetClockTicksPerMicrostep(AXIS2, trackingRate < 1 ? 1 : trackingRate);
+                        LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
+                                   SetPoint[AXIS2],
+                                   Measurement[AXIS2],
+                                   Error[AXIS2],
+                                   TrackingRate[AXIS2],
+                                   StepperClockFrequency[AXIS2] / TrackingRate[AXIS2],
+                                   Error[AXIS2] > 0 ? "Forward" : "Backward");
+#ifdef DEBUG_PID
+                        LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
+                                   m_Controllers[AXIS2]->propotionalTerm(),
+                                   m_Controllers[AXIS2]->integralTerm(),
+                                   m_Controllers[AXIS2]->derivativeTerm());
+#endif
+                        SetClockTicksPerMicrostep(AXIS2, StepperClockFrequency[AXIS2] / TrackingRate[AXIS2]);
                         if (AxesStatus[AXIS2].FullStop)
                         {
-                            DEBUG(DBG_SCOPE, "Tracking -> AXIS2 restart.");
+                            LOG_DEBUG("Tracking -> AXIS2 restart.");
                             SetAxisMotionMode(AXIS2, '1', Direction);
                             StartAxisMotion(AXIS2);
                         }
-                        DEBUGF(DBG_SCOPE,
-                               "Tracking -> AXIS2 offset (%ld) microsteps rate (%ld) tracking rate (%.f) direction (%c) aggressiveness (%.2f) hysteresis (%.2f)",
-                               AltitudeOffsetMicrosteps,
-                               AltitudeRate,
-                               trackingRate,
-                               Direction,
-                               aggressiveness,
-                               hysteresis);
                     }
-
-                    TrackRateHistory[AXIS_ALT].push_back(AltitudeRate);
                 }
-                else
-                {
-                    // Nothing to do - stop the axis
-                    DEBUG(DBG_SCOPE, "Tracking -> AXIS2 zero offset.");
-                    SlowStop(AXIS2);
-                }
-
-                DEBUGF(DBG_SCOPE, "Tracking -> AXIS1 error %d AXIS2 error %d.",
-                       OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
-                       OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
-
-                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             }
+
+            break;
         }
-        break;
 
         default:
             GuideDeltaAlt   = 0;
@@ -1238,7 +1245,9 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuidingRatesNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(TrackingParamsNP);
+        defineProperty(Axis1PIDNP);
+        defineProperty(Axis2PIDNP);
+        defineProperty(AxisT1NP);
 
         if (HasAuxEncoders())
         {
@@ -1288,7 +1297,9 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(GuidingRatesNP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(TrackingParamsNP);
+        deleteProperty(Axis1PIDNP);
+        deleteProperty(Axis2PIDNP);
+        deleteProperty(AxisT1NP);
 
         if (HasAuxEncoders())
             deleteProperty(AUXEncoderSP.getName());
@@ -1645,5 +1656,15 @@ void SkywatcherAPIMount::resetTracking()
     m_TrackingRateTimer.restart();
     GuideDeltaAlt = 0;
     GuideDeltaAz = 0;
+    m_Controllers[AXIS_AZ].reset(new PID(1, 50, -50,
+                                         Axis1PIDNP[Propotional].getValue(),
+                                         Axis1PIDNP[Derivative].getValue(),
+                                         Axis1PIDNP[Integral].getValue()));
+    m_Controllers[AXIS_AZ]->setIntegratorLimits(-100, 100);
+    m_Controllers[AXIS_ALT].reset(new PID(1, 50, -50,
+                                          Axis2PIDNP[Propotional].getValue(),
+                                          Axis2PIDNP[Derivative].getValue(),
+                                          Axis2PIDNP[Integral].getValue()));
+    m_Controllers[AXIS_ALT]->setIntegratorLimits(-100, 100);
     ResetGuidePulses();
 }

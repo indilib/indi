@@ -21,6 +21,7 @@
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
+#include "pid/pid.h"
 #include <numeric>
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
@@ -207,14 +208,18 @@ class SkywatcherAPIMount :
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
-        INDI::PropertyNumber TrackingParamsNP {4};
+        // PID controllers
+        INDI::PropertyNumber Axis1PIDNP {3};
+        INDI::PropertyNumber Axis2PIDNP {3};
         enum
         {
-            AGGRESIVENESS_AZ,
-            HYSTERESIS_AZ,
-            AGGRESIVENESS_ALT,
-            HYSTERESIS_ALT
+            Propotional,
+            Derivative,
+            Integral
         };
+
+        // For testing
+        INDI::PropertyNumber AxisT1NP {2};
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
@@ -229,11 +234,13 @@ class SkywatcherAPIMount :
         INDI::IEquatorialCoordinates m_SkyTrackingTarget { 0, 0 };
         INDI::IEquatorialCoordinates m_SkyCurrentRADE {0, 0};
         INDI::IHorizontalCoordinates m_MountAltAz {0, 0};
-        std::vector<double> TrackRateHistory[2];
+
+        std::unique_ptr<PID> m_Controllers[2];
+
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
         static constexpr double MAX_TRACKING_DELTA {5};
+        static constexpr long SWITCH_THRESHOLD {10};
 
-        long OldTrackingTarget[2] { 0, 0 };
         INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
