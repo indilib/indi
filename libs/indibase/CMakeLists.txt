@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(indidriver C CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-
 include_directories(.)
 include_directories(timer)
 include_directories(thread)
