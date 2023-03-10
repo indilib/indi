@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 project(indidriver C CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+
 include_directories(.)
 include_directories(timer)
 include_directories(thread)
@@ -38,6 +40,14 @@ endif()
 if(HAVE_WEBSOCKET)
     list(APPEND ${PROJECT_NAME}_LIBS ${Boost_LIBRARIES})
     list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
+endif()
+
+# Add LibXISF
+find_package(LibXISF)
+if(LibXISF_FOUND)
+    list(APPEND ${PROJECT_NAME}_LIBS ${LibXISF_LIBRARY})
+    include_directories(${LibXISF_INCLUDE_DIR})
+    add_definitions(-DHAVE_XISF)
 endif()
 
 # Add OggTheora, StreamManager, v4l2
