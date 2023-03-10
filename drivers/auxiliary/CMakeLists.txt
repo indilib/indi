@@ -232,6 +232,14 @@ add_executable(indi_myDewControllerPro ${myDewControllerPro_SRC})
 target_link_libraries(indi_myDewControllerPro indidriver)
 install(TARGETS indi_myDewControllerPro RUNTIME DESTINATION bin)
 
+# ########## MYDCP4ESP32 Driver ###############
+SET(mydcp4esp32_SRC
+    mydcp4esp32.cpp)
+
+add_executable(indi_mydcp4esp32 ${mydcp4esp32_SRC})
+target_link_libraries(indi_mydcp4esp32 indidriver)
+install(TARGETS indi_mydcp4esp32 RUNTIME DESTINATION bin)
+
 # ########## Deep Sky Dad FP1 ###############
 SET(deepskydad_fp1_SRC
     deepskydad_fp1.cpp)
