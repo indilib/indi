@@ -2343,6 +2343,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             try
             {
+                AutoCNumeric locale;
                 LibXISF::Image image;
                 LibXISF::XISFWriter xisfWriter;
 
