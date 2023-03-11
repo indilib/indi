@@ -785,11 +785,6 @@ class CCD : public DefaultDevice, GuiderInterface
         int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
 
-#ifdef HAVE_XISF
-        XISFWrapper *m_XISFWrapper;
-        void *m_freeXISFWrapperFunc;
-#endif
-
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
         ///////////////////////////////////////////////////////////////////////////////

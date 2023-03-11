@@ -35,8 +35,7 @@
 #include "indiutility.h"
 
 #ifdef HAVE_XISF
-#include "../indixisf/indixisf.h"
-#include <dlfcn.h>
+#include <libxisf.h>
 #endif
 
 #include <fitsio.h>
@@ -127,21 +126,6 @@ CCD::CCD()
 
     exposureStartTime[0] = 0;
     exposureDuration = 0.0;
-
-#ifdef HAVE_XISF
-    m_XISFWrapper = nullptr;
-    void *handle = dlopen("libindixisf.so", RTLD_LAZY);
-    if(handle)
-    {
-        auto allocXISFWrapper = reinterpret_cast<allocXISFWrapperFPTR*>(dlsym(handle, "allocXISFWrapper"));
-        m_freeXISFWrapperFunc = dlsym(handle, "freeXISFWrapper");
-        if(allocXISFWrapper && m_freeXISFWrapperFunc)
-            m_XISFWrapper = allocXISFWrapper();
-        else
-            LOG_WARN("Could not load XISF wrapper");
-        dlclose(handle);
-    }
-#endif
 }
 
 CCD::~CCD()
@@ -149,11 +133,6 @@ CCD::~CCD()
     // Only update if index is different.
     if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&FastExposureToggleSP))
         saveConfig(true, FastExposureToggleSP.name);
-
-#ifdef HAVE_XISF
-    if (m_XISFWrapper)
-        reinterpret_cast<freeXISFWrapperFPTR*>(m_freeXISFWrapperFunc)(m_XISFWrapper);
-#endif
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -393,11 +372,8 @@ bool CCD::initProperties()
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
                                        m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
 #ifdef HAVE_XISF
-    if(m_XISFWrapper)
-    {
-        EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
-                                         m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
-    }
+    EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
+                                     m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
 #endif
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
@@ -2361,35 +2337,71 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 #ifdef HAVE_XISF
         else if (EncodeFormatSP[FORMAT_XISF].getState() == ISS_ON)
         {
-            if(!m_XISFWrapper)
-            {
-                LOG_ERROR("XISF wrapper null");
-                return false;
-            }
-
             std::vector<FITSRecord> fitsKeywords;
             addFITSKeywords(targetChip, fitsKeywords);
             targetChip->setImageExtension("xisf");
 
-            std::unique_lock<std::mutex> guard(ccdBufferLock);
-            XISFImageParam params;
-
-            params.width = targetChip->getSubW() / targetChip->getBinX();
-            params.height = targetChip->getSubH() / targetChip->getBinY();
-            params.channelCount = targetChip->getNAxis() == 2 ? 1 : 3;
-            params.bpp = targetChip->getBPP();
-            params.bayer = HasBayer();
-            if(params.bayer)params.bayerPattern = BayerT[2].text;
-            params.frameType = targetChip->getFrameType();
-            params.compress = targetChip->SendCompressed;
-
-            if (!m_XISFWrapper->writeImage(params, fitsKeywords, targetChip->getFrameBuffer()))
-                LOGF_ERROR("Error writing XISF %s", m_XISFWrapper->error());
-
-            bool rc = uploadFile(targetChip, m_XISFWrapper->fileData(), m_XISFWrapper->fileDataSize(), sendImage, saveImage);
-            if (rc == false)
+            try
             {
-                targetChip->setExposureFailed();
+                AutoCNumeric locale;
+                LibXISF::Image image;
+                LibXISF::XISFWriter xisfWriter;
+
+                for (auto &keyword : fitsKeywords)
+                {
+                    image.addFITSKeyword({keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str()});
+                    image.addFITSKeywordAsProperty(keyword.key().c_str(), keyword.valueString());
+                }
+
+                image.setGeometry(targetChip->getSubW() / targetChip->getBinX(),
+                                  targetChip->getSubH() / targetChip->getBinY(),
+                                  targetChip->getNAxis() == 2 ? 1 : 3);
+                switch(targetChip->getBPP())
+                {
+                    case 8:  image.setSampleFormat(LibXISF::Image::UInt8); break;
+                    case 16: image.setSampleFormat(LibXISF::Image::UInt16); break;
+                    case 32: image.setSampleFormat(LibXISF::Image::UInt32); break;
+                    default: LOGF_ERROR("Unsupported bits per pixel value %d", targetChip->getBPP()); return false;
+                }
+
+                switch(targetChip->getFrameType())
+                {
+                    case CCDChip::LIGHT_FRAME: image.setImageType(LibXISF::Image::Light); break;
+                    case CCDChip::BIAS_FRAME:  image.setImageType(LibXISF::Image::Bias); break;
+                    case CCDChip::DARK_FRAME:  image.setImageType(LibXISF::Image::Dark); break;
+                    case CCDChip::FLAT_FRAME:  image.setImageType(LibXISF::Image::Flat); break;
+                }
+
+                if (targetChip->SendCompressed)
+                {
+                    image.setCompression(LibXISF::DataBlock::LZ4);
+                    image.setByteshuffling(targetChip->getBPP() / 8);
+                }
+
+                if (HasBayer())
+                    image.setColorFilterArray({2, 2, BayerT[2].text});
+
+                if (targetChip->getNAxis() == 3)
+                {
+                    image.setColorSpace(LibXISF::Image::RGB);
+                }
+
+                std::unique_lock<std::mutex> guard(ccdBufferLock);
+                std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
+                xisfWriter.writeImage(image);
+
+                LibXISF::ByteArray xisfFile;
+                xisfWriter.save(xisfFile);
+                bool rc = uploadFile(targetChip, xisfFile.data(), xisfFile.size(), sendImage, saveImage);
+                if (rc == false)
+                {
+                    targetChip->setExposureFailed();
+                    return false;
+                }
+            }
+            catch (LibXISF::Error &error)
+            {
+                LOGF_ERROR("XISF Error: %s", error.what());
                 return false;
             }
         }
