@@ -40,6 +40,14 @@ if(HAVE_WEBSOCKET)
     list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
 endif()
 
+# Add LibXISF
+find_package(LibXISF)
+if(LibXISF_FOUND)
+    list(APPEND ${PROJECT_NAME}_LIBS ${LibXISF_LIBRARY})
+    include_directories(${LibXISF_INCLUDE_DIR})
+    add_definitions(-DHAVE_XISF)
+endif()
+
 # Add OggTheora, StreamManager, v4l2
 if(UNIX)
     find_package(OggTheora)

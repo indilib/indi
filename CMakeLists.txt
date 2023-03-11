@@ -93,7 +93,7 @@ OPTION(INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
-OPTION(INDI_BUILD_XISF_WRAPPER "Build XISF wrapper" ON)
+OPTION(INDI_BUILD_XISF "Build XISF support" ON)
 
 if(UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
@@ -244,18 +244,6 @@ if(INDI_BUILD_WEBSOCKET)
     add_definitions(-DHAVE_WEBSOCKET)
     set(HAVE_WEBSOCKET 1)
 endif(INDI_BUILD_WEBSOCKET)
-
-# ##################################################################################################
-#
-# Component   : INDI XISF loader
-# Supported OS: Linux, BSD, MacOS, Cygwin
-#
-# ##################################################################################################
-if(INDI_BUILD_XISF_WRAPPER)
-    message(STATUS "Building INDI XISF wrapper")
-    add_definitions(-DHAVE_XISF)
-    add_subdirectory(libs/indixisf)
-endif(INDI_BUILD_XISF_WRAPPER)
 
 # ##################################################################################################
 #
