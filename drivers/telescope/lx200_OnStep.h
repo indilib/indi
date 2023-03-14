@@ -25,6 +25,9 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.18
+    - implemented Focuser T° compensation in FOCUSER TAB
+    - Minor fixes
     Version 1.17
     - fixed setMaxElevationLimit / setMinElevationLimit
     Version 1.16
@@ -134,16 +137,6 @@
 
 #define RB_MAX_LEN 64
 #define CMD_MAX_LEN 32
-
-#define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
-#define ReticPlus(fd)      write(fd, "#:B+#", 5)
-#define ReticMoins(fd)     write(fd, "#:B-#", 5)
-#define OnStepalign1(fd)   write(fd, "#:A1#", 5)
-#define OnStepalign2(fd)   write(fd, "#:A2#", 5)
-#define OnStepalign3(fd)   write(fd, "#:A3#", 5)
-#define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
-#define OnStep
-#define RB_MAX_LEN 64
 
 #define PORTS_COUNT 10
 #define STARTING_PORT 0
@@ -273,7 +266,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         int getCommandDoubleResponse(int fd, double *value, char *data,
                                      const char *cmd); //Reimplemented from getCommandString Will return a double, and raw value.
         int getCommandIntResponse(int fd, int *value, char *data, const char *cmd);
-        int  setMinElevationLimit(int fd, int max);
+        int  setMinElevationLimit(int fd, int min);
         int OSUpdateFocuser(); //Return = 0 good, -1 = Communication error
         int OSUpdateRotator(); //Return = 0 good, -1 = Communication error
 
@@ -293,7 +286,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         INumber ObjectNoN[1];
 
         INumberVectorProperty MaxSlewRateNP;
-        INumber MaxSlewRateN[2];
+        INumber MaxSlewRateN[1];
 
         INumberVectorProperty BacklashNP;    //test
         INumber BacklashN[2];    //Test
@@ -321,6 +314,17 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         bool OSFocuser1 = false;
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
+        
+        // Focus T° Compensation
+        INumberVectorProperty FocuserTNP;
+        INumber FocuserTN[2];
+        ISwitchVectorProperty TFCCompensationSP;
+        ISwitch TFCCompensationS[2];
+        INumberVectorProperty TFCCoefficientNP;
+        INumber TFCCoefficientN[1];
+        INumberVectorProperty TFCDeadbandNP;
+        INumber TFCDeadbandN[1];
+        // End Focus T° Compensation
 
         int OSNumFocusers = 0;
         ISwitchVectorProperty OSFocusSelectSP;
