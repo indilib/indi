@@ -322,6 +322,11 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             Axis1PIDNP.setState(IPS_OK);
             Axis1PIDNP.apply();
             saveConfig(Axis1PIDNP);
+
+            m_Controllers[AXIS1].reset(new PID(getPollingPeriod() / 1000, 50, -50,
+                                                 Axis1PIDNP[Propotional].getValue(),
+                                                 Axis1PIDNP[Derivative].getValue(),
+                                                 Axis1PIDNP[Integral].getValue()));
             return true;
         }
 
@@ -332,6 +337,11 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             Axis2PIDNP.setState(IPS_OK);
             Axis2PIDNP.apply();
             saveConfig(Axis2PIDNP);
+
+            m_Controllers[AXIS2].reset(new PID(getPollingPeriod() / 1000, 50, -50,
+                                                 Axis2PIDNP[Propotional].getValue(),
+                                                 Axis2PIDNP[Derivative].getValue(),
+                                                 Axis2PIDNP[Integral].getValue()));
             return true;
         }
 
@@ -1126,12 +1136,18 @@ void SkywatcherAPIMount::TimerHit()
                     TrackingRate[AXIS1] = std::abs(TrackingRate[AXIS1]);
                     if (TrackingRate[AXIS1] != 0)
                     {
+                        auto clockRate = StepperClockFrequency[AXIS1] / TrackingRate[AXIS1];
+
+                        // Check if we need to override clock rate
+                        if (AxisT1NP[AXIS1].getValue() > 0)
+                            clockRate = AxisT1NP[AXIS1].getValue();
+
                         LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
                                    SetPoint[AXIS1],
                                    Measurement[AXIS1],
                                    Error[AXIS1],
                                    TrackingRate[AXIS1],
-                                   StepperClockFrequency[AXIS1] / TrackingRate[AXIS1],
+                                   clockRate,
                                    Error[AXIS1] > 0 ? "Forward" : "Backward");
 #ifdef DEBUG_PID
                         LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
@@ -1139,7 +1155,8 @@ void SkywatcherAPIMount::TimerHit()
                                    m_Controllers[AXIS1]->integralTerm(),
                                    m_Controllers[AXIS1]->derivativeTerm());
 #endif
-                        SetClockTicksPerMicrostep(AXIS1, StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]);
+
+                        SetClockTicksPerMicrostep(AXIS1, clockRate);
                         if (AxesStatus[AXIS1].FullStop)
                         {
                             LOG_DEBUG("Tracking -> AXIS1 restart.");
@@ -1164,13 +1181,19 @@ void SkywatcherAPIMount::TimerHit()
                     char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
                     TrackingRate[AXIS2] = std::abs(TrackingRate[AXIS2]);
                     if (TrackingRate[AXIS2] != 0)
-                    {
+                    {                        
+                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2];
+
+                        // Check if we need to override clock rate
+                        if (AxisT1NP[AXIS2].getValue() > 0)
+                            clockRate = AxisT1NP[AXIS2].getValue();
+
                         LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
                                    SetPoint[AXIS2],
                                    Measurement[AXIS2],
                                    Error[AXIS2],
                                    TrackingRate[AXIS2],
-                                   StepperClockFrequency[AXIS2] / TrackingRate[AXIS2],
+                                   clockRate,
                                    Error[AXIS2] > 0 ? "Forward" : "Backward");
 #ifdef DEBUG_PID
                         LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
@@ -1178,7 +1201,8 @@ void SkywatcherAPIMount::TimerHit()
                                    m_Controllers[AXIS2]->integralTerm(),
                                    m_Controllers[AXIS2]->derivativeTerm());
 #endif
-                        SetClockTicksPerMicrostep(AXIS2, StepperClockFrequency[AXIS2] / TrackingRate[AXIS2]);
+
+                        SetClockTicksPerMicrostep(AXIS2, clockRate);
                         if (AxesStatus[AXIS2].FullStop)
                         {
                             LOG_DEBUG("Tracking -> AXIS2 restart.");
