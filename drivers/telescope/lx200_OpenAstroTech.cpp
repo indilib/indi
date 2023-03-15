@@ -231,7 +231,7 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
     if (strcmp(dev, getDeviceName()) == 0)
     {
         char read_buffer[RB_MAX_LEN] = {0};
-        if (!strcmp(name, PolarAlignAltN.name))
+        if (!strcmp(name, PolarAlignAltN.name) || !strcmp(name, PolarAlignAltNP.name))
         {
             /*if (IUUpdateNumber(&PolarAlignAltNP, values, names, n) < 0)
                 return false;
@@ -244,7 +244,7 @@ bool LX200_OpenAstroTech::ISNewNumber(const char *dev, const char *name, double 
             IDSetNumber(&PolarAlignAltNP, nullptr);
             return true;
         }
-        if (!strcmp(name, PolarAlignAzN.name))
+        if (!strcmp(name, PolarAlignAzN.name) || !strcmp(name, PolarAlignAzNP.name))
         {
             /*if (IUUpdateNumber(&PolarAlignAzNP, values, names, n) < 0)
                 return false;
