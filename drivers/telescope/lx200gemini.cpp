@@ -1607,6 +1607,11 @@ bool LX200Gemini::ReadScopeStatus()
             EqNP.s = IPS_OK;
             IDSetNumber(&EqNP, nullptr);
 
+            if (TrackState == SCOPE_IDLE) {
+                SetTrackEnabled(true);
+                updateMovementState();
+            }
+
             LOG_INFO("Slew is complete. Tracking...");
         }
     }
@@ -1744,9 +1749,10 @@ bool LX200Gemini::UnPark()
     wakeupMount();
 
     SetParked(false);
-    TrackState = SCOPE_TRACKING;
+    SetTrackEnabled(true);
 
     updateParkingState();
+    updateMovementState();
     return true;
 }
 
