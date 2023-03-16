@@ -235,8 +235,8 @@ bool SkywatcherAPIMount::initProperties()
     Axis2PIDNP.fill(getDeviceName(), "AXIS2_PID", "Axis2 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Testing T1 clock rate
-    AxisT1NP[AXIS1].fill("AXIS1", "AZ", "%.f", 0, 20000000, 1000, 0);
-    AxisT1NP[AXIS2].fill("AXIS2", "AL", "%.f", 0, 20000000, 1000, 0);
+    AxisT1NP[AXIS1].fill("AXIS1", "AZ", "%.f", -16000000, 16000000, 1000, 0);
+    AxisT1NP[AXIS2].fill("AXIS2", "AL", "%.f", -16000000, 16000000, 1000, 0);
     AxisT1NP.fill(getDeviceName(), "T1_RATE", "T1 Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
 
@@ -1101,7 +1101,8 @@ void SkywatcherAPIMount::TimerHit()
                 GuideDeltaAlt += DeltaAlt;
                 GuideDeltaAz += DeltaAz;
 
-                long SetPoint[2], Measurement[2], TrackingRate[2], Error[2];
+                long SetPoint[2], Measurement[2], Error[2];
+                double TrackingRate[2];
 
                 SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz);
                 Measurement[AXIS1] = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
@@ -1137,10 +1138,12 @@ void SkywatcherAPIMount::TimerHit()
                     if (TrackingRate[AXIS1] != 0)
                     {
                         auto clockRate = StepperClockFrequency[AXIS1] / TrackingRate[AXIS1];
-
                         // Check if we need to override clock rate
-                        if (AxisT1NP[AXIS1].getValue() > 0)
-                            clockRate = AxisT1NP[AXIS1].getValue();
+                        if (AxisT1NP[AXIS1].getValue() != 0)
+                        {
+                            clockRate = std::abs(AxisT1NP[AXIS1].getValue());
+                            Direction = AxisT1NP[AXIS1].getValue() > 0 ? '0' : '1';
+                        }
 
                         LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
                                    SetPoint[AXIS1],
@@ -1185,8 +1188,11 @@ void SkywatcherAPIMount::TimerHit()
                         auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2];
 
                         // Check if we need to override clock rate
-                        if (AxisT1NP[AXIS2].getValue() > 0)
-                            clockRate = AxisT1NP[AXIS2].getValue();
+                        if (AxisT1NP[AXIS2].getValue() != 0)
+                        {
+                            clockRate = std::abs(AxisT1NP[AXIS2].getValue());
+                            Direction = AxisT1NP[AXIS2].getValue() > 0 ? '0' : '1';
+                        }
 
                         LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
                                    SetPoint[AXIS2],
