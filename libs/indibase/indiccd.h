@@ -768,13 +768,12 @@ class CCD : public DefaultDevice, GuiderInterface
         double m_UploadTime = { 0 };
         std::chrono::system_clock::time_point FastExposureToggleStartup;
 
-        // FITS Header
-        IText FITSHeaderT[2] {};
-        ITextVectorProperty FITSHeaderTP;
+        INDI::PropertyText FITSHeaderTP {3};
         enum
         {
-            FITS_OBSERVER,
-            FITS_OBJECT
+            KEYWORD_NAME,
+            KEYWORD_VALUE,
+            KEYWORD_COMMENT,
         };
 
     private:
@@ -784,6 +783,8 @@ class CCD : public DefaultDevice, GuiderInterface
         std::string m_ConfigCaptureFormatName;
         int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
+
+        std::map<std::string, FITSRecord> m_CustomFITSKeywords;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
