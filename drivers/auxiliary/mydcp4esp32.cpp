@@ -88,14 +88,14 @@ bool MyDCP4ESP::initProperties()
     DewpointNP.fill(getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Temperature calibration values */
-    ChannelOffsetNP[0].fill("CHANNEL1", "Channel 1", "%1.2f", -4., 4., 0.5, 0.);
-    ChannelOffsetNP[1].fill("CHANNEL2", "Channel 2", "%1.2f", -4., 4., 0.5, 0.);
-    ChannelOffsetNP[2].fill("CHANNEL3", "Channel 3", "%1.2f", -4., 4., 0.5, 0.);
-    ChannelOffsetNP[3].fill("CHANNEL4", "Channel 4", "%1.2f", -4., 4., 0.5, 0.);
+    ChannelOffsetNP[0].fill("CHANNEL1", "Channel 1", "%1.2f", -5., 5., 0.25, 0.);
+    ChannelOffsetNP[1].fill("CHANNEL2", "Channel 2", "%1.2f", -5., 5., 0.25, 0.);
+    ChannelOffsetNP[2].fill("CHANNEL3", "Channel 3", "%1.2f", -5., 5., 0.25, 0.);
+    ChannelOffsetNP[3].fill("CHANNEL4", "Channel 4", "%1.2f", -5., 5., 0.25, 0.);
     ChannelOffsetNP.fill(getDeviceName(), "TEMPOFFSET", "T Offset", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Ambient Temperature Offset */
-    AmbientOffsetNP[0].fill("AMBIENT", "Ambient", "%1.0f", -4, 3, 1, 0);
+    AmbientOffsetNP[0].fill("AMBIENT", "Ambient", "%1.2f", -4., 3., 0.25, 0.);
     AmbientOffsetNP.fill(getDeviceName(), "AMBIENTOFFSET", "T Offset", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /*  Tracking Offset */
@@ -117,7 +117,7 @@ bool MyDCP4ESP::initProperties()
     Ch3ModeSP.fill(getDeviceName(), "CH3MODE", "Ch3 Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Channel 3 Manual Power Setting */
-    Ch3ManualPowerNP[0].fill("CH3MANUAL", "Power", "%3.0f", 0., 100., 10., 0.);
+    Ch3ManualPowerNP[0].fill("CH3MANUAL", "Power", "%3.0f", 0, 100, 10, 0);
     Ch3ManualPowerNP.fill(getDeviceName(), "CH3MANUAL", "Ch3 Manual", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
     
     /* Channel 100% Boost On/Off */
@@ -308,7 +308,7 @@ bool MyDCP4ESP::sendCommand(const char *cmd, char *resp)
 // Check to see if each channel can be set to Overide if it doesn't currently have a power output
 bool MyDCP4ESP::getActiveChannels()
 {
-    char cmd[6] = {};
+    char cmd[MDCP_CMD_LENGTH] = {};
     char resp[MDCP_RESPONSE_LENGTH] = {};
     int output[4] = {0, 0, 0, 0};
     int ok, i; 
@@ -367,7 +367,7 @@ bool MyDCP4ESP::getActiveChannels()
                     if (!setChannelBoost( i+1, 1))
                         return false;
 
-                    snprintf(cmd, 6, MDCP_GET_CH_OVERIDE_CMD, i+1);
+                    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_GET_CH_OVERIDE_CMD, i+1);
 
                     memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 
@@ -484,23 +484,23 @@ bool MyDCP4ESP::Ack()
 // Set the temperature offset for a channel
 bool MyDCP4ESP::setChannelOffset(unsigned int channel, float value)
 {
-    char cmd[11] = {};
+    char cmd[MDCP_CMD_LENGTH] = {};
 
     switch (channel) {
         case 1:
-            snprintf(cmd, 11, MDCP_SET_CH1_OFFSET_CMD, value);
+            snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH1_OFFSET_CMD, value);
             break;
 
         case 2:
-            snprintf(cmd, 11, MDCP_SET_CH2_OFFSET_CMD, value);
+            snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH2_OFFSET_CMD, value);
             break;
 
         case 3:
-            snprintf(cmd, 11, MDCP_SET_CH3_OFFSET_CMD, value);
+            snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH3_OFFSET_CMD, value);
             break;
 
         case 4:
-            snprintf(cmd, 11, MDCP_SET_CH4_OFFSET_CMD, value);
+            snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH4_OFFSET_CMD, value);
             break;
 
         default:
@@ -511,29 +511,26 @@ bool MyDCP4ESP::setChannelOffset(unsigned int channel, float value)
 }
 
 // Set the offset for ambient temperature
-bool MyDCP4ESP::setAmbientOffset(int value)
+bool MyDCP4ESP::setAmbientOffset(float value)
 {
-    char cmd[strlen(MDCP_SET_AMBIENT_OFFSET_CMD) + 1];
+    char cmd[MDCP_CMD_LENGTH] = {};
 
-    snprintf(cmd, strlen(MDCP_SET_AMBIENT_OFFSET_CMD) + 1, MDCP_SET_AMBIENT_OFFSET_CMD, value);
+    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_AMBIENT_OFFSET_CMD, value);
     return sendCommand(cmd, nullptr); 
 }
 
 // set or reset Channel overide. Channel = 5 resets all channels
 bool MyDCP4ESP::setChannelBoost( unsigned int channel, unsigned int value)
 {
+    char cmd[MDCP_CMD_LENGTH] = {};
     if ((channel == 5) || (value == 0))
     {
-        char cmd[strlen(MDCP_RESET_CH_100_CMD) + 1];
-
-        snprintf(cmd, strlen(MDCP_RESET_CH_100_CMD) + 1, MDCP_RESET_CH_100_CMD, channel);
+        snprintf(cmd, MDCP_CMD_LENGTH, MDCP_RESET_CH_100_CMD, channel);
         return sendCommand(cmd, nullptr); 
     }
     else if (channel != 5)
     {
-        char cmd[strlen(MDCP_SET_CH_100_CMD) + 1];
-
-        snprintf(cmd, strlen(MDCP_SET_CH_100_CMD) + 1, MDCP_SET_CH_100_CMD, channel);
+        snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH_100_CMD, channel);
         return sendCommand(cmd, nullptr);
     }
 
@@ -543,36 +540,36 @@ bool MyDCP4ESP::setChannelBoost( unsigned int channel, unsigned int value)
 // Set Tracking Mode (1=Ambient, 2=Dewpoint, 3=Midpoint)
 bool MyDCP4ESP::setTrackingMode(unsigned int value)
 {
-    char cmd[strlen(MDCP_SET_TRACKING_MODE_CMD) + 1];
+    char cmd[MDCP_CMD_LENGTH] = {};
 
-    snprintf(cmd, strlen(MDCP_SET_TRACKING_MODE_CMD) + 1, MDCP_SET_TRACKING_MODE_CMD, value);
+    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_TRACKING_MODE_CMD, value);
     return sendCommand(cmd, nullptr); 
 }
 
 // Set the mode for Channel 3 control (0=disabled, 1=Channel 1, 2=Channel 2, 3=Manual, 4=use temp probe3)
 bool MyDCP4ESP::setCh3Mode(unsigned int value)
 {
-    char cmd[strlen(MDCP_SET_CH3_MODE_CMD) + 1];
+    char cmd[MDCP_CMD_LENGTH] = {};
 
-    snprintf(cmd, strlen(MDCP_SET_CH3_MODE_CMD) + 1, MDCP_SET_CH3_MODE_CMD, value);
+    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH3_MODE_CMD, value);
     return sendCommand(cmd, nullptr); 
 }
 
 // Set Channel 3 power output - Channel 3 must be in Manual mode.
 bool MyDCP4ESP::setCh3Output(unsigned int value)
 {
-    char cmd[strlen(MDCP_SET_CH3_MANUAL_POWER_CMD) + 1];
+    char cmd[MDCP_CMD_LENGTH] = {};
 
-    snprintf(cmd, strlen(MDCP_SET_CH3_MANUAL_POWER_CMD) + 1, MDCP_SET_CH3_MANUAL_POWER_CMD, value);
+    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_CH3_MANUAL_POWER_CMD, value);
     return sendCommand(cmd, nullptr); 
 }
 
 // Set Tracking Offset
 bool MyDCP4ESP::setTrackingOffset(int value)
 {
-    char cmd[strlen(MDCP_SET_TRACKING_OFFSET_CMD) + 1];
+    char cmd[MDCP_CMD_LENGTH] = {};
 
-    snprintf(cmd, strlen(MDCP_SET_TRACKING_OFFSET_CMD) + 1, MDCP_SET_TRACKING_OFFSET_CMD, value);
+    snprintf(cmd, MDCP_CMD_LENGTH, MDCP_SET_TRACKING_OFFSET_CMD, value);
     return sendCommand(cmd, nullptr); 
 }
 
@@ -740,8 +737,8 @@ bool MyDCP4ESP::readSettings()
     int ok = -1;
     float temp1, temp2, temp3, temp4, temp_ambient, humidity, dewpoint;
     unsigned int output1, output2, output3, output4;
-    float offset1, offset2, offset3, offset4; 
-    int ambient_offset, tracking_offset;
+    float ambient_offset, offset1, offset2, offset3, offset4; 
+    int tracking_offset;
     unsigned int tracking_mode, ch3_mode, channel_boost;
 
     
@@ -965,9 +962,9 @@ bool MyDCP4ESP::readSettings()
 
         for (int i = 1; i <= 4; i++)
         {
-            char cmd[6] = {};
+            char cmd[MDCP_CMD_LENGTH] = {};
 
-            snprintf(cmd, 6, MDCP_GET_CH_OVERIDE_CMD, i);
+            snprintf(cmd, MDCP_CMD_LENGTH, MDCP_GET_CH_OVERIDE_CMD, i);
 
             memset(resp, '\0', MDCP_RESPONSE_LENGTH);
 

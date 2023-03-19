@@ -45,6 +45,7 @@
 // Responses have a lead character, then values – more than one value is separated with a comma [,] and the string is
 // terminated with a '#'
 
+#define MDCP_CMD_LENGTH                     32        // Command buffer size
 #define MDCP_CMD_TERMINATOR                 "#"
 #define MDCP_GET_CONTROLLER_CODE_CMD        ":00#"    // Get controller code - Response: 0code# 
 #define MDCP_GET_VERSION_CMD                ":01#"    // Get version number - Respnse: 1version#
@@ -60,7 +61,7 @@
 #define MDCP_SET_DEFAULT_SETTINGS_CMD       ":11#"    // controller settings to default values - Response: none
 #define MDCP_GET_AMBIENT_TEMPERATURE_CMD    ":12#"    // Get the Ambient temperature - Response: avalue# 
 #define MDCP_GET_AMBIENT_OFFSET_CMD         ":13#"    // Get the Ambient offset - Response: bvalue$ 
-#define MDCP_SET_AMBIENT_OFFSET_CMD         ":14%d#"  // Set the Ambient offset, Num is a value between +3 and -4 - Response: none
+#define MDCP_SET_AMBIENT_OFFSET_CMD         ":14%1.2f#"  // Set the Ambient offset, Num is a value between +3 and -4 - Response: none
 #define MDCP_GET_HUMIDITY_CMD               ":15#"    // Get the Relative Humidity % - Resonse: cvalue#
 #define MDCP_GET_DEWPOINT_CMD               ":16#"    // Get the Dew Point - Response: dvalue# 
 #define MDCP_GET_TEMP_MODE_CMD              ":17#"    // Get Temp Mode, 0=Celsius, 1=Fahrenheit - Response: eTempMode
@@ -70,10 +71,10 @@
 #define MDCP_GET_MAC_ADDRESS_CMD            ":26#"    // Get MAC address - Response:  hString#
 #define MDCP_GET_IP_ADDRESS_CMD             ":27#"    // Get IP address - Response: iString#
 #define MDCP_GET_CHANNEL_TEMPS_CMD          ":28#"    // Get the temp in Celsius for Channel1-4 - Response: jch1temp,ch2temp,ch3temp,ch4temp# 
-#define MDCP_SET_CH1_OFFSET_CMD             ":29%01.1f#"  // Set ch1offset value (expects a float) - Response: none
-#define MDCP_SET_CH2_OFFSET_CMD             ":30%01.1f#"  // Set ch2offset value (expects a float) - Response: none
-#define MDCP_SET_CH3_OFFSET_CMD             ":31%01.1f#"  // Set ch3offset value (expects a float) - Response: none
-#define MDCP_SET_CH4_OFFSET_CMD             ":32%01.1f#"  // Set ch4offset value (expects a float) - Response: none
+#define MDCP_SET_CH1_OFFSET_CMD             ":29%01.2f#"  // Set ch1offset value (expects a float) - Response: none
+#define MDCP_SET_CH2_OFFSET_CMD             ":30%01.2f#"  // Set ch2offset value (expects a float) - Response: none
+#define MDCP_SET_CH3_OFFSET_CMD             ":31%01.2f#"  // Set ch3offset value (expects a float) - Response: none
+#define MDCP_SET_CH4_OFFSET_CMD             ":32%01.2f#"  // Set ch4offset value (expects a float) - Response: none
 #define MDCP_ZERO_ALL_CH_OFFSET_CMD         ":33#"    // Clear ch1offset-ch4offset values to 0.0 - Response: none
 #define MDCP_GET_ALL_CH_OFFSET_CMD          ":34#"    // Get the ch1offset=ch4offset values - Response: kch1offset,ch2offset,ch3offset# 
 #define MDCP_SET_CH_100_CMD                 ":35%d#"  // Set boost 100% to channel x - Response: none
@@ -102,7 +103,7 @@
 #define MDCP_SAVE_CONTROLLER_SETTINGS_RES   ""      // Write variables immediately to SPIFFS - Response: none
 #define MDCP_SET_DEFAULT_SETTINGS_RES       ""      // controller settings to default values - Response: none
 #define MDCP_GET_AMBIENT_TEMPERATURE_RES    "a%f"   // Get the Ambient temperature - Response: avalue# 
-#define MDCP_GET_AMBIENT_OFFSET_RES         "b%d"   // Get the Ambient offset - Response: bvalue$ 
+#define MDCP_GET_AMBIENT_OFFSET_RES         "b%f"   // Get the Ambient offset - Response: bvalue# 
 #define MDCP_SET_AMBIENT_OFFSET_RES         ""      // Set the Ambient offset, Num is a value between +3 and -4 - Response: none
 #define MDCP_GET_HUMIDITY_RES               "c%f"   // Get the Relative Humidity % - Resonse: cvalue#
 #define MDCP_GET_DEWPOINT_RES               "d%f"   // Get the Dew Point - Response: dvalue# 
@@ -167,7 +168,7 @@ class MyDCP4ESP : public INDI::DefaultDevice
         bool rebootController();
         bool readSettings();
         bool setChannelOffset(unsigned int channel, float value);
-        bool setAmbientOffset(int value);
+        bool setAmbientOffset(float value);
         bool setTrackingMode(unsigned int value);
         bool setTrackingOffset(int value);
         bool setCh3Mode(unsigned int value);
