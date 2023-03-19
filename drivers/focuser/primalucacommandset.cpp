@@ -402,7 +402,7 @@ bool SestoSenso2::storeAsMinPosition()
 *******************************************************************************************************/
 bool SestoSenso2::goOutToFindMaxPos()
 {
-    return m_Communication->command(MOT_1, {"CAL_FOCUSER", "GoOutToFindMaxPos"});
+    return m_Communication->command(MOT_1, {{"CAL_FOCUSER", "GoOutToFindMaxPos"}});
 }
 
 /******************************************************************************************************
