@@ -198,6 +198,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     thread/indisinglethreadpool.h
     indidome.h
     indigps.h
+    abstractinterface.h
     indilightboxinterface.h
     indidustcapinterface.h
     indiweather.h

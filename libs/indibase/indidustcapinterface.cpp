@@ -25,50 +25,74 @@
 namespace INDI
 {
 
-void DustCapInterface::initDustCapProperties(const char *deviceName, const char *groupName)
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+DustCapInterface::DustCapInterface(DefaultDevice *device) : AbstractInterface(device)
 {
-    strncpy(dustCapName, deviceName, MAXINDIDEVICE);
-
-    // Open/Close cover
-    IUFillSwitch(&ParkCapS[CAP_PARK], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkCapS[CAP_UNPARK], "UNPARK", "Unpark", ISS_OFF);
-    IUFillSwitchVector(&ParkCapSP, ParkCapS, 2, deviceName, "CAP_PARK", "Dust Cover", groupName, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
 }
 
-bool DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
-        int n)
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void DustCapInterface::initProperties(const char *group)
+{
+    // Open/Close cover
+    ParkCapSP[CAP_PARK].fill("PARK", "Park", ISS_OFF);
+    ParkCapSP[CAP_UNPARK].fill("UNPARK", "Unpark", ISS_OFF);
+    ParkCapSP.fill(m_DefaultDevice->getDeviceName(), "CAP_PARK", "Dust Cover", group, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+bool DustCapInterface::updateProperties()
+{
+    if (m_DefaultDevice->isConnected())
+        m_DefaultDevice->defineProperty(ParkCapSP);
+    else
+        m_DefaultDevice->deleteProperty(ParkCapSP);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+bool DustCapInterface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[],  int n)
 {
     INDI_UNUSED(dev);
     // Park/UnPark Dust Cover
-    if (!strcmp(ParkCapSP.name, name))
+    if (ParkCapSP.isNameMatch(name))
     {
-        int prevSwitch = IUFindOnSwitchIndex(&ParkCapSP);
-        IUUpdateSwitch(&ParkCapSP, states, names, n);
-        if (ParkCapS[CAP_PARK].s == ISS_ON)
-            ParkCapSP.s = ParkCap();
-        else
-            ParkCapSP.s = UnParkCap();
-
-        if (ParkCapSP.s == IPS_ALERT)
+        auto prevSwitch = ParkCapSP.findOnSwitchIndex();
+        ParkCapSP.update(states, names, n);
+        ParkCapSP.setState(ParkCapSP[CAP_PARK].getState() == ISS_ON ? ParkCap() : UnParkCap());
+        if (ParkCapSP.getState() == IPS_ALERT)
         {
-            IUResetSwitch(&ParkCapSP);
-            ParkCapS[prevSwitch].s = ISS_ON;
+            ParkCapSP.reset();
+            ParkCapSP[prevSwitch].setState(ISS_ON);
         }
 
-        IDSetSwitch(&ParkCapSP, nullptr);
+        ParkCapSP.apply();
         return true;
     }
 
     return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
 IPState DustCapInterface::ParkCap()
 {
     // Must be implemented by child class
     return IPS_ALERT;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
 IPState DustCapInterface::UnParkCap()
 {
     // Must be implemented by child class

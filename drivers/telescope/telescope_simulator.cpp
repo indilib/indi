@@ -18,6 +18,7 @@
 
 #include "telescope_simulator.h"
 #include "scopesim_helper.h"
+#include "connectionplugins/connectionserial.h"
 
 #include "indicom.h"
 
@@ -129,6 +130,8 @@ bool ScopeSim::initProperties()
     addDebugControl();
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+
+    serialConnection->setDefaultPort("/dev/ourdefaultport");
 
     setDefaultPollingPeriod(250);
 

@@ -327,6 +327,14 @@ class DefaultDevice : public ParentDevice
          */
         void watchDevice(const char *deviceName, const std::function<void (INDI::BaseDevice)> &callback);
 
+        /**
+         * @brief Save a property in the configuration file
+         * @param property Property to save in configuration file.
+         * @return True if successful, false otherwise.
+         * @note This is a convenience function that calls saveConfig(true, property->getName())
+         */
+        bool saveConfig(INDI::Property &property);
+
     protected:
         /**
          * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dyanmic properties
@@ -372,14 +380,6 @@ class DefaultDevice : public ParentDevice
          * \return True if successful, false otherwise.
          */
         virtual bool saveConfig(bool silent = false, const char *property = nullptr);
-
-        /**
-         * @brief Save a property in the configuration file
-         * @param property Property to save in configuration file.
-         * @return True if successful, false otherwise.
-         * @note This is a convenience function that calls saveConfig(true, property->getName())
-         */
-        bool saveConfig(INDI::Property &property);
 
         /**
          * @brief purgeConfig Remove config file from disk.

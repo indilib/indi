@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "indibase.h"
+#include "abstractinterface.h"
 
 #include <stdint.h>
 
@@ -43,15 +43,8 @@
 namespace INDI
 {
 
-class LightBoxInterface
+class LightBoxInterface : public AbstractInterface
 {
-    public:
-        enum
-        {
-            FLAT_LIGHT_ON,
-            FLAT_LIGHT_OFF
-        };
-
     protected:
         LightBoxInterface(DefaultDevice *device, bool isDimmable);
         virtual ~LightBoxInterface();
@@ -60,26 +53,28 @@ class LightBoxInterface
                 \param deviceName Name of the primary device
                 \param groupName Group or tab name to be used to define light box properties.
             */
-        void initLightBoxProperties(const char *deviceName, const char *groupNam);
+        void initProperties(const char *group) override;
 
         /**
              * @brief isGetLightBoxProperties Get light box properties
              * @param deviceName parent device name
              */
-        void isGetLightBoxProperties(const char *deviceName);
+        void ISGetProperties(const char *deviceName) override;
+
+        /** \brief Define or delete light properties depending on connection */
+        bool updateProperties() override;
 
         /** \brief Process light box switch properties */
-        bool processLightBoxSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         /** \brief Process light box number properties */
-        bool processLightBoxNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         /** \brief Process light box text properties */
-        bool processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-        bool updateLightBoxProperties();
-        bool saveLightBoxConfigItems(FILE *fp);
-        bool snoopLightBox(XMLEle *root);
+        bool saveConfigItems(FILE *fp) override;
+        bool ISSnoopDevice(XMLEle *root) override;
 
         /**
              * @brief setBrightness Set light level. Must be impelemented in the child class, if supported.
@@ -96,25 +91,21 @@ class LightBoxInterface
         virtual bool EnableLightBox(bool enable);
 
         // Turn on/off light
-        ISwitchVectorProperty LightSP;
-        ISwitch LightS[2];
+        INDI::PropertySwitch LightSP {2};
 
         // Light Intensity
-        INumberVectorProperty LightIntensityNP;
-        INumber LightIntensityN[1];
+        INDI::PropertyNumber LightIntensityNP {1};
 
         // Active devices to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
 
-        INumberVectorProperty FilterIntensityNP;
-        INumber *FilterIntensityN;
+        INDI::PropertyNumber FilterIntensityNP {0};
 
     private:
         void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
-        DefaultDevice *device;
-        uint8_t currentFilterSlot;
-        bool isDimmable;
+        uint8_t m_CurrentFilterSlot {0};
+        bool m_isDimmable;
+        char m_ConfigFilter[MAXINDIDEVICE];
 };
 }

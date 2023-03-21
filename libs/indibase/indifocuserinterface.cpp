@@ -28,7 +28,7 @@
 namespace INDI
 {
 
-FocuserInterface::FocuserInterface(DefaultDevice * defaultDevice) : m_defaultDevice(defaultDevice)
+FocuserInterface::FocuserInterface(DefaultDevice * defaultDevice) : AbstractInterface(defaultDevice)
 {
 }
 

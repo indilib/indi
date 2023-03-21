@@ -673,6 +673,10 @@
             <driver name="RBF Excalibur">indi_Excalibur</driver>
             <version>1.0</version>
         </device>
+        <device label="ALTO" manufacturer="Primaluce Lab">
+            <driver name="ALTO">indi_ALTO</driver>
+            <version>1.0</version>
+        </device>
         <device label="GIOTTO" manufacturer="Primaluce Lab">
             <driver name="GIOTTO">indi_giotto</driver>
             <version>1.0</version>
