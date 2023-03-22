@@ -578,33 +578,17 @@ bool Arco::getAbsolutePosition(Units unit, double &value)
     switch (unit)
     {
         case UNIT_DEGREES:
-            command = {{"POSITION", "DEG"}};
+            command = {{"POSITION_DEG", ""}};
             break;
         case UNIT_ARCSECS:
-            command = {{"POSITION", "ARCSEC"}};
+            command = {{"POSITION_ARCSEC", ""}};
             break;
         case UNIT_STEPS:
-            command = {{"POSITION", "STEP"}};
+            command = {{"POSITION_STEP", ""}};
             break;
     }
 
-
-    // For steps, we can value directly
-    if (unit == UNIT_STEPS)
-        return m_Communication->genericRequest("MOT2", "get", command, &value);
-    // For DEG and ARCSEC, a string is returned that we must parse.
-    // e.g. "10.000[DEG]"
-    else
-    {
-        std::string response;
-        if (m_Communication->genericRequest("MOT2", "get", command, &response))
-        {
-            sscanf(response.c_str(), "%lf", &value);
-            return true;
-        }
-    }
-
-    return false;
+    return m_Communication->genericRequest("MOT2", "get", command, &value);
 }
 
 /******************************************************************************************************
