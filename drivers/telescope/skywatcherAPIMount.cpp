@@ -1134,7 +1134,7 @@ void SkywatcherAPIMount::TimerHit()
 
                     TrackingRate[AXIS1] = m_Controllers[AXIS1]->calculate(SetPoint[AXIS1], Measurement[AXIS1]);
                     char Direction = TrackingRate[AXIS1] > 0 ? '0' : '1';
-                    TrackingRate[AXIS1] = std::abs(TrackingRate[AXIS1]);
+                    TrackingRate[AXIS1] = std::fabs(TrackingRate[AXIS1]);
                     if (TrackingRate[AXIS1] != 0)
                     {
                         auto clockRate = StepperClockFrequency[AXIS1] / TrackingRate[AXIS1];
@@ -1145,7 +1145,7 @@ void SkywatcherAPIMount::TimerHit()
                             Direction = AxisT1NP[AXIS1].getValue() > 0 ? '0' : '1';
                         }
 
-                        LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
+                        LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS1],
                                    Measurement[AXIS1],
                                    Error[AXIS1],
@@ -1182,7 +1182,7 @@ void SkywatcherAPIMount::TimerHit()
                 {
                     TrackingRate[AXIS2] = m_Controllers[AXIS2]->calculate(SetPoint[AXIS2], Measurement[AXIS2]);
                     char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
-                    TrackingRate[AXIS2] = std::abs(TrackingRate[AXIS2]);
+                    TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
                     if (TrackingRate[AXIS2] != 0)
                     {                        
                         auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2];
@@ -1194,7 +1194,7 @@ void SkywatcherAPIMount::TimerHit()
                             Direction = AxisT1NP[AXIS2].getValue() > 0 ? '0' : '1';
                         }
 
-                        LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %d Freq %d Dir %s",
+                        LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS2],
                                    Measurement[AXIS2],
                                    Error[AXIS2],
