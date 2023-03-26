@@ -30,6 +30,7 @@
     - fixed Autoflip Off update
     - fixed Elevation Limits update (was not read from OnStep) and format set to integer and gage for setup
     - fixed minutes passed meridian not showing actual values
+    - fixed missing slewrates defineProperty and deleteProperty causing redefinitions of overides
     Version 1.18
     - implemented Focuser T° compensation in FOCUSER TAB
     - Minor fixes

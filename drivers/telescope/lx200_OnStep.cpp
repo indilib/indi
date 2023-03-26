@@ -473,6 +473,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OnstepStatTP);
 
         // Motion Control
+        defineProperty(&SlewRateSP);    // was missing
         defineProperty(&MaxSlewRateNP);
         defineProperty(&TrackCompSP);
         defineProperty(&TrackAxisSP);
@@ -682,6 +683,7 @@ bool LX200_OnStep::updateProperties()
         IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
         IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
         IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
+        
     }
     else
     {
@@ -694,6 +696,7 @@ bool LX200_OnStep::updateProperties()
         // Options
 
         // Motion Control
+        deleteProperty(SlewRateSP.name);    // was missing
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(TrackAxisSP.name);
