@@ -25,6 +25,11 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.19
+    - fixed typo on debug information saying error instead of nbchar causing confusion
+    - fixed Autoflip Off update
+    - fixed Elevation Limits update (was not read from OnStep) and format set to integer and gage for setup
+    - fixed minutes passed meridian not showing actual values
     Version 1.18
     - implemented Focuser T° compensation in FOCUSER TAB
     - Minor fixes
