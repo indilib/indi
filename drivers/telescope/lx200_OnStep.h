@@ -31,6 +31,9 @@
     - fixed Elevation Limits update (was not read from OnStep) and format set to integer and gage for setup
     - fixed minutes passed meridian not showing actual values
     - fixed missing slewrates defineProperty and deleteProperty causing redefinitions of overides
+    - todo focuser stops working after some time ??? could not yet reproduce
+    - fixed poll and update slew rates 
+    - todo poll and update maximum slew speed SmartWebServer=>Settings
     Version 1.18
     - implemented Focuser T° compensation in FOCUSER TAB
     - Minor fixes

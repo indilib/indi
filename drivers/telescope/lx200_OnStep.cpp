@@ -137,7 +137,7 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
     IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
     IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-    IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);   //last OnStep - OnStepX
     IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
     IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
     IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
@@ -679,7 +679,7 @@ bool LX200_OnStep::updateProperties()
         IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
         IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
         IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-        IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);
         IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
         IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
         IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
@@ -2620,6 +2620,15 @@ bool LX200_OnStep::ReadScopeStatus()
             //     print('\tbreak;')
 
             Lasterror = (Errors)(OSStat[strlen(OSStat) - 1] - '0');
+            
+            // Refresh current Slew Rate
+            int idx = OSStat[strlen(OSStat)-2] - '0';
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[idx].s = ISS_ON;
+            SlewRateSP.s = IPS_OK;
+            IDSetSwitch(&SlewRateSP, nullptr);
+            LOGF_DEBUG("Guide Rate Index: %d", idx);
+            // End Refresh current Slew Rate
         }
         else
         {
