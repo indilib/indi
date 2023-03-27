@@ -325,7 +325,18 @@ bool LX200Telescope::ReadScopeStatus()
     return true;
 }
 
+bool LX200Telescope::Flip(double ra, double dec)
+{
+    LOG_INFO("Flip  ");
+    return GotoInternal(ra, dec, ":MM#");
+}
+
 bool LX200Telescope::Goto(double ra, double dec)
+{
+    return GotoInternal(ra, dec, ":MS#");
+}
+
+bool LX200Telescope::GotoInternal(double ra, double dec, const char *command)
 {
     const struct timespec timeout = {0, 100000000L};
 
@@ -391,7 +402,7 @@ bool LX200Telescope::Goto(double ra, double dec)
         int err = 0;
 
         /* Slew reads the '0', that is not the end of the slew */
-        if ((err = Slew(PortFD)))
+        if ((err = Slew(PortFD, command)))
         {
             LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
             slewError(err);

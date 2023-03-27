@@ -149,9 +149,14 @@ bool Telescope::initProperties()
     IUFillSwitch(&CoordS[0], "TRACK", "Track", ISS_ON);
     IUFillSwitch(&CoordS[1], "SLEW", "Slew", ISS_OFF);
     IUFillSwitch(&CoordS[2], "SYNC", "Sync", ISS_OFF);
+    IUFillSwitch(&CoordS[3], "FLIP", "Flip", ISS_OFF);
 
+    // If GOTO SYNC and FLIP are supported
+    if (CanGOTO() && CanSync() && CanFlip())
+        IUFillSwitchVector(&CoordSP, CoordS, 4, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
+                           ISR_1OFMANY, 60, IPS_IDLE);
     // If both GOTO and SYNC are supported
-    if (CanGOTO() && CanSync())
+    else if (CanGOTO() && CanSync())
         IUFillSwitchVector(&CoordSP, CoordS, 3, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
                            ISR_1OFMANY, 60, IPS_IDLE);
     // If ONLY GOTO is supported
@@ -870,10 +875,25 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                     }
                 }
 
+                bool doFlip = false;
+                if (CanFlip()){
+                    ISwitch *sw;
+                    sw = IUFindSwitch(&CoordSP, "FLIP");
+                    if ((sw != nullptr) && (sw->s == ISS_ON))
+                    {
+                        doFlip = true;
+                    }
+                }
+                
                 // Remember Track State
                 RememberTrackState = TrackState;
-                // Issue GOTO
-                rc = Goto(ra, dec);
+                // Issue GOTO/Flip
+                if(doFlip)
+                {
+                    rc = Flip(ra, dec);
+                } else {
+                    rc = Goto(ra, dec);
+                }
                 if (rc)
                 {
                     EqNP.s = lastEqState = IPS_BUSY;
@@ -1647,6 +1667,15 @@ void Telescope::TimerHit()
 
         SetTimer(getCurrentPollingPeriod());
     }
+}
+
+bool Telescope::Flip(double ra, double dec)
+{
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
+
+    DEBUG(Logger::DBG_WARNING, "Flip is not supported.");
+    return false;
 }
 
 bool Telescope::Goto(double ra, double dec)
