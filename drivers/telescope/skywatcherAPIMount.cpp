@@ -224,14 +224,14 @@ bool SkywatcherAPIMount::initProperties()
     SnapPortSP.fill(getDeviceName(), "SNAP_PORT", "Snap Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PID Control
-    Axis1PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0.8);
-    Axis1PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 500, 10, 0);
-    Axis1PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 500, 10, 0);
+    Axis1PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 1.1);
+    Axis1PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 500, 10, 0.01);
+    Axis1PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 500, 10, 0.65);
     Axis1PIDNP.fill(getDeviceName(), "AXIS1_PID", "Axis1 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    Axis2PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 1.2);
-    Axis2PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 100, 10, 0);
-    Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 1);
+    Axis2PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0.75);
+    Axis2PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 100, 10, 0.01);
+    Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 0.13);
     Axis2PIDNP.fill(getDeviceName(), "AXIS2_PID", "Axis2 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Testing T1 clock rate
@@ -324,9 +324,9 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             saveConfig(Axis1PIDNP);
 
             m_Controllers[AXIS1].reset(new PID(getPollingPeriod() / 1000, 50, -50,
-                                                 Axis1PIDNP[Propotional].getValue(),
-                                                 Axis1PIDNP[Derivative].getValue(),
-                                                 Axis1PIDNP[Integral].getValue()));
+                                               Axis1PIDNP[Propotional].getValue(),
+                                               Axis1PIDNP[Derivative].getValue(),
+                                               Axis1PIDNP[Integral].getValue()));
             return true;
         }
 
@@ -339,9 +339,9 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             saveConfig(Axis2PIDNP);
 
             m_Controllers[AXIS2].reset(new PID(getPollingPeriod() / 1000, 50, -50,
-                                                 Axis2PIDNP[Propotional].getValue(),
-                                                 Axis2PIDNP[Derivative].getValue(),
-                                                 Axis2PIDNP[Integral].getValue()));
+                                               Axis2PIDNP[Propotional].getValue(),
+                                               Axis2PIDNP[Derivative].getValue(),
+                                               Axis2PIDNP[Integral].getValue()));
             return true;
         }
 
@@ -1184,7 +1184,7 @@ void SkywatcherAPIMount::TimerHit()
                     char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
                     TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
                     if (TrackingRate[AXIS2] != 0)
-                    {                        
+                    {
                         auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2];
 
                         // Check if we need to override clock rate
