@@ -31,6 +31,12 @@ GIOTTO::GIOTTO() : LightBoxInterface(this, true)
     setVersion(1, 0);
 }
 
+GIOTTO::~GIOTTO()
+{
+    if (isConnected())
+        Disconnect();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,6 +52,7 @@ bool GIOTTO::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     serialConnection->registerHandshake([&]()
     {
         return Handshake();
@@ -91,16 +98,28 @@ void GIOTTO::ISGetProperties(const char *dev)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool GIOTTO::Disconnect()
+{
+    m_GIOTTO->setLightEnabled(false);
+    return INDI::DefaultDevice::Disconnect();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool GIOTTO::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     m_GIOTTO.reset(new PrimalucaLabs::GIOTTO(getDeviceName(), PortFD));
-    uint16_t value = 0;
-    if (m_GIOTTO->getBrightness(value))
+    uint16_t max = 0;
+    if (m_GIOTTO->getMaxBrightness(max))
     {
+        LightIntensityNP.np[0].max = max;
         LOGF_INFO("%s is online.", getDeviceName());
 
-        LightIntensityNP.np[0].value = value;
+        uint16_t value = 0;
+        if (m_GIOTTO->getBrightness(value))
+            LightIntensityNP.np[0].value = value;
 
         auto lightEnabled = m_GIOTTO->isLightEnabled();
         LightS[0].s = lightEnabled ? ISS_ON : ISS_OFF;

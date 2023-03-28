@@ -28,7 +28,7 @@ class GIOTTO : public INDI::DefaultDevice, public INDI::LightBoxInterface
 {
     public:
         GIOTTO();
-        virtual ~GIOTTO() override = default;
+        virtual ~GIOTTO();
 
         const char *getDefaultName() override;
         virtual void ISGetProperties(const char *dev) override;
@@ -42,6 +42,8 @@ class GIOTTO : public INDI::DefaultDevice, public INDI::LightBoxInterface
 
     protected:
         bool Handshake();
+
+        bool Disconnect() override;
 
         // From Light Box
         virtual bool SetLightBoxBrightness(uint16_t value) override;
