@@ -36,10 +36,12 @@ class ALTO : public INDI::DefaultDevice, public INDI::DustCapInterface
     protected:
         bool Handshake();
 
+
         // From Dust Cap
         virtual IPState ParkCap() override;
         virtual IPState UnParkCap() override;
 
+        virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:

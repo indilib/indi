@@ -44,11 +44,12 @@ bool ALTO::initProperties()
     // Calibrate Toggle
     CalibrateToggleSP[INDI_ENABLED].fill("INDI_ENABLED", "Start", ISS_OFF);
     CalibrateToggleSP[INDI_DISABLED].fill("INDI_DISABLED", "Stop", ISS_OFF);
-    CalibrateToggleSP.fill(getDeviceName(), "CALIBRATE_TOGGLE", "Calibrate", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    CalibrateToggleSP.fill(getDeviceName(), "CALIBRATE_TOGGLE", "Calibrate", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                           IPS_IDLE);
 
     // Calibrate Speed
     MotionSpeedSP[Slow].fill("SLOW", "Slow", ISS_ON);
-    MotionSpeedSP[Fast].fill("FAST", "FAST", ISS_OFF);
+    MotionSpeedSP[Fast].fill("FAST", "Fast", ISS_OFF);
     MotionSpeedSP.fill(getDeviceName(), "MOTION_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Calibrate Command
@@ -58,6 +59,7 @@ bool ALTO::initProperties()
     MotionCommandSP.fill(getDeviceName(), "MOTION_COMMAND", "Command", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     serialConnection->registerHandshake([&]()
     {
         return Handshake();
@@ -99,10 +101,9 @@ bool ALTO::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     m_ALTO.reset(new PrimalucaLabs::ALTO(getDeviceName(), PortFD));
-    json status;
-    if (m_ALTO->getStatus(status))
+    std::string model;
+    if (m_ALTO->getModel(model))
     {
-        std::string model = status["MODNAME"];
         LOGF_INFO("%s is online. Detected model %s", getDeviceName(), model.c_str());
         return true;
     }
@@ -142,6 +143,7 @@ bool ALTO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         MotionSpeedSP.update(states, names, n);
         MotionSpeedSP.setState(IPS_OK);
         MotionSpeedSP.apply();
+        saveConfig(true, MotionSpeedSP.getName());
         return true;
     }
 
@@ -233,5 +235,33 @@ IPState ALTO::UnParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool ALTO::saveConfigItems(FILE * fp)
 {
+    MotionSpeedSP.save(fp);
     return INDI::DefaultDevice::saveConfigItems(fp);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ALTO::TimerHit()
+{
+    if (ParkCapSP.s == IPS_BUSY)
+    {
+        json status;
+        try
+        {
+            m_ALTO->getStatus(status);
+            std::string mst = status["MST"];
+            if (mst == "stop")
+            {
+                ParkCapSP.s = IPS_OK;
+                IDSetSwitch(&ParkCapSP, nullptr);
+            }
+        }
+        catch (json::exception &e)
+        {
+            LOGF_ERROR("%s %d", e.what(), e.id);
+        }
+    }
+
+    SetTimer(getCurrentPollingPeriod());
 }
