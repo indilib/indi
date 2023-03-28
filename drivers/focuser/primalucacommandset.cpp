@@ -179,9 +179,29 @@ template <typename T> bool Communication::genericRequest(const std::string &node
             try
             {
                 if (node.empty())
-                    jsonResponse[type][key].get_to(*response);
+                {
+                    if (jsonResponse[type].contains(key))
+                        jsonResponse[type][key].get_to(*response);
+                    else if (jsonResponse[type].contains("ERROR"))
+                    {
+                        std::string error = jsonResponse[type]["ERROR"];
+                        LOGF_ERROR("Error: %s", error.c_str());
+                        return false;
+                    }
+                }
                 else
-                    jsonResponse[type][node][key].get_to(*response);
+                {
+                    if (jsonResponse[type][node].contains(key))
+                        jsonResponse[type][node][key].get_to(*response);
+                    else if (jsonResponse[type][node].contains("ERROR"))
+                    {
+                        std::string error = jsonResponse[type][node]["ERROR"];
+                        LOGF_ERROR("Error: %s", error.c_str());
+                        return false;
+                    }
+                }
+
+
             }
             catch (json::exception &e)
             {
@@ -795,6 +815,15 @@ ALTO::ALTO(const std::string &name, int port)
     m_Communication.reset(new Communication(name, port));
 }
 
+
+/******************************************************************************************************
+ *
+*******************************************************************************************************/
+bool ALTO::getModel(std::string &model)
+{
+    return m_Communication->get(GENERIC_NODE, "MODNAME", model);
+}
+
 /******************************************************************************************************
  *
 *******************************************************************************************************/
@@ -824,7 +853,7 @@ bool ALTO::UnPark()
 *******************************************************************************************************/
 bool ALTO::setPosition(uint8_t value)
 {
-    return m_Communication->command(MOT_1, {{"STEP", value}});
+    return m_Communication->set(MOT_1, {{"POSITION", value}});
 }
 
 /******************************************************************************************************

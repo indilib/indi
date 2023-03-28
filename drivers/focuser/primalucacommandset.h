@@ -281,8 +281,10 @@ class ALTO
 public:
     explicit ALTO(const std::string &name, int port);
 
-    // Info
+    // Status
     bool getStatus(json &status);
+    // Model
+    bool getModel(std::string &model);
 
     // Parking
     bool Park();
