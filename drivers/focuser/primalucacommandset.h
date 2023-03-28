@@ -271,5 +271,36 @@ private:
     std::unique_ptr<Communication> m_Communication;
 };
 
+/*****************************************************************************************
+ * ALTO class
+ * Park/Unpark, change position.
+******************************************************************************************/
+class ALTO
+{
+
+public:
+    explicit ALTO(const std::string &name, int port);
+
+    // Info
+    bool getStatus(json &status);
+
+    // Parking
+    bool Park();
+    bool UnPark();
+
+    // Set position 0 to 100
+    bool setPosition(uint8_t value);
+    bool stop();
+
+    // Calibration
+    bool initCalibration();
+    bool close(bool fast = false);
+    bool open(bool fast = false);
+    bool storeClosedPosition();
+    bool storeOpenPosition();
+
+private:
+    std::unique_ptr<Communication> m_Communication;
+};
 
 }
