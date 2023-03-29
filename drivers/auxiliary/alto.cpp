@@ -48,8 +48,8 @@ bool ALTO::initProperties()
                            IPS_IDLE);
 
     // Calibrate Speed
-    MotionSpeedSP[Slow].fill("SLOW", "Slow", ISS_ON);
-    MotionSpeedSP[Fast].fill("FAST", "Fast", ISS_OFF);
+    MotionSpeedSP[Slow].fill("SLOW", "Slow", ISS_OFF);
+    MotionSpeedSP[Fast].fill("FAST", "Fast", ISS_ON);
     MotionSpeedSP.fill(getDeviceName(), "MOTION_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Calibrate Command
