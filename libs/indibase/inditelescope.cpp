@@ -145,31 +145,28 @@ bool Telescope::initProperties()
     IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
-    // On Coord Set actions
-    IUFillSwitch(&CoordS[0], "TRACK", "Track", ISS_ON);
-    IUFillSwitch(&CoordS[1], "SLEW", "Slew", ISS_OFF);
-    IUFillSwitch(&CoordS[2], "SYNC", "Sync", ISS_OFF);
-    IUFillSwitch(&CoordS[3], "FLIP", "Flip", ISS_OFF);
+    std::vector <std::tuple<std::string, std::string>> coords;
+    
+    coords.push_back(std::make_tuple("TRACK","Track"));
 
-    // If GOTO SYNC and FLIP are supported
-    if (CanGOTO() && CanSync() && CanFlip())
-        IUFillSwitchVector(&CoordSP, CoordS, 4, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    // If both GOTO and SYNC are supported
-    else if (CanGOTO() && CanSync())
-        IUFillSwitchVector(&CoordSP, CoordS, 3, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    // If ONLY GOTO is supported
-    else if (CanGOTO())
-        IUFillSwitchVector(&CoordSP, CoordS, 2, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    // If ONLY SYNC is supported
-    else if (CanSync())
-    {
-        IUFillSwitch(&CoordS[0], "SYNC", "Sync", ISS_ON);
-        IUFillSwitchVector(&CoordSP, CoordS, 1, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
+    if(CanGOTO())
+        coords.push_back(std::make_tuple("SLEW","Slew"));
+
+    if(CanSync())
+        coords.push_back(std::make_tuple("SYNC","Sync"));
+
+    if(CanFlip())
+        coords.push_back(std::make_tuple("FLIP","Flip"));
+
+    int j = 0;
+    for(auto i : coords){
+        IUFillSwitch(&CoordS[j], std::get<0>(i).c_str(), std::get<1>(i).c_str(), j==0 ? ISS_ON : ISS_OFF);
+        ++j;
     }
+
+    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
+
 
     if (nSlewRate >= 4)
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
