@@ -677,6 +677,10 @@
             <driver name="GIOTTO">indi_giotto</driver>
             <version>1.0</version>
         </device>
+        <device label="ALTO" manufacturer="Primaluce Lab">
+            <driver name="ALTO">indi_alto</driver>
+            <version>1.0</version>
+        </device>
         <device label="Light Panel Simulator" manufacturer="Simulator">
             <driver name="Light Panel Simulator">indi_simulator_lightpanel</driver>
             <version>1.0</version>

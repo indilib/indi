@@ -257,3 +257,13 @@ SET(giotto_SRC
 add_executable(indi_giotto ${giotto_SRC})
 target_link_libraries(indi_giotto indidriver)
 install(TARGETS indi_giotto RUNTIME DESTINATION bin)
+
+# ########## ALTO ###############
+SET(alto_SRC
+    alto.cpp
+    ../focuser/primalucacommandset.cpp
+)
+
+add_executable(indi_alto ${alto_SRC})
+target_link_libraries(indi_alto indidriver)
+install(TARGETS indi_alto RUNTIME DESTINATION bin)
