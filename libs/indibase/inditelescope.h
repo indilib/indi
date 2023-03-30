@@ -170,7 +170,7 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
             TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
             TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
-            TELESCOPE_CAN_FLIP                    = 1 << 13, /** Can the telescope track satellites? */
+            TELESCOPE_CAN_FLIP                    = 1 << 13, /** Does the telescope have a command for flipping? */
         } TelescopeCapability;
 
         Telescope();
