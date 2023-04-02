@@ -1149,7 +1149,8 @@ void SkywatcherAPIMount::TimerHit()
                 Error[AXIS1] = SetPoint[AXIS1] - Measurement[AXIS1];
                 Error[AXIS2] = SetPoint[AXIS2] - Measurement[AXIS2];
 
-                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
+                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward
+                                                     && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
                                                     (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > AxisDeadZoneNP[AXIS1].getValue()))))
                 {
                     // Direction change whilst axis running
@@ -1196,7 +1197,8 @@ void SkywatcherAPIMount::TimerHit()
                 }
 
 
-                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -AxisDeadZoneNP[AXIS2].getValue())) ||
+                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward
+                                                     && (Error[AXIS2] < -AxisDeadZoneNP[AXIS2].getValue())) ||
                                                     (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > AxisDeadZoneNP[AXIS2].getValue()))))
                 {
                     // Direction change whilst axis running
@@ -1714,12 +1716,12 @@ void SkywatcherAPIMount::resetTracking()
     m_TrackingRateTimer.restart();
     GuideDeltaAlt = 0;
     GuideDeltaAz = 0;
-    m_Controllers[AXIS_AZ].reset(new PID(1, 50, -50,
+    m_Controllers[AXIS_AZ].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 50, -50,
                                          Axis1PIDNP[Propotional].getValue(),
                                          Axis1PIDNP[Derivative].getValue(),
                                          Axis1PIDNP[Integral].getValue()));
     m_Controllers[AXIS_AZ]->setIntegratorLimits(-100, 100);
-    m_Controllers[AXIS_ALT].reset(new PID(1, 50, -50,
+    m_Controllers[AXIS_ALT].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 50, -50,
                                           Axis2PIDNP[Propotional].getValue(),
                                           Axis2PIDNP[Derivative].getValue(),
                                           Axis2PIDNP[Integral].getValue()));
