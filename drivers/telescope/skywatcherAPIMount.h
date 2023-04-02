@@ -225,7 +225,15 @@ class SkywatcherAPIMount :
         INDI::PropertyNumber AxisClockNP {2};
 
         // Offset
-        INDI::PropertyNumber AxisOffsetNP {2};
+        INDI::PropertyNumber AxisOffsetNP {5};
+        enum
+        {
+            RAOffset,
+            DEOffset,
+            AZOffset,
+            ALOffset,
+            JulianOffset,
+         };
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};

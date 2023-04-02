@@ -244,10 +244,13 @@ bool SkywatcherAPIMount::initProperties()
     AxisClockNP[AXIS2].fill("AXIS2", "AL %", "%.f", 1, 200, 10, 100);
     AxisClockNP.fill(getDeviceName(), "AXIS_CLOCK", "Clock Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    // Julian Offset
-    AxisOffsetNP[AXIS1].fill("AXIS1", "AZ Steps", "%.f", -500, 500, 50, 0);
-    AxisOffsetNP[AXIS2].fill("AXIS2", "AL Steps", "%.f", -500, 500, 50, 0);
-    AxisOffsetNP.fill(getDeviceName(), "AXIS_OFFSET", "Offset", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    // Offsets
+    AxisOffsetNP[RAOffset].fill("RAOffset", "RA (deg)", "%.2f", -1, 1, 0.05, 0);
+    AxisOffsetNP[DEOffset].fill("DEOffset", "DE (deg)", "%.2f", -1, 1, 0.05, 0);
+    AxisOffsetNP[AZOffset].fill("AZOffset", "AZ (deg)", "%.2f", -1, 1, 0.05, 0);
+    AxisOffsetNP[ALOffset].fill("ALOffset", "AL (deg)", "%.2f", -1, 1, 0.05, 0);
+    AxisOffsetNP[JulianOffset].fill("JulianOffset", "JD (s)", "%.f", -5, 5, 0.1, 0);
+    AxisOffsetNP.fill(getDeviceName(), "AXIS_OFFSET", "Offsets", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
 
     tcpConnection->setDefaultHost("192.168.4.1");
@@ -1071,28 +1074,20 @@ void SkywatcherAPIMount::TimerHit()
                     m_TrackingRateTimer.restart();
                 }
 
-                if (TransformCelestialToTelescope(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination,
-                                                  0, TDV))
+                auto ra = m_SkyTrackingTarget.rightascension + AxisOffsetNP[RAOffset].getValue() / 15.0;
+                auto de = m_SkyTrackingTarget.declination + AxisOffsetNP[DEOffset].getValue();
+                auto JDOffset = AxisOffsetNP[JulianOffset].getValue() / 86400.0;
+
+                if (TransformCelestialToTelescope(ra, de, JDOffset, TDV))
                 {
                     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
                     AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
                 }
                 else
                 {
-                    INDI::IEquatorialCoordinates EquatorialCoordinates { 0, 0 };
-                    EquatorialCoordinates.rightascension  = m_SkyTrackingTarget.rightascension;
-                    EquatorialCoordinates.declination = m_SkyTrackingTarget.declination;
-                    INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys(), &AltAz);
-
+                    INDI::IEquatorialCoordinates EquatorialCoordinates { ra, de };
+                    INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys() + JDOffset, &AltAz);
                 }
-
-                // DEBUGF(DBG_SCOPE,
-                //        "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-                //        "%ld",
-                //        CurrentEncoders[AXIS1],
-                //        OldTrackingTarget[AXIS1],
-                //        CurrentEncoders[AXIS2],
-                //        OldTrackingTarget[AXIS2]);
 
                 DEBUGF(DBG_SCOPE,
                        "New Tracking Target AZ %lf° (%ld microsteps) AL %lf° (%ld microsteps) ",
@@ -1138,10 +1133,10 @@ void SkywatcherAPIMount::TimerHit()
                 long SetPoint[2], Measurement[2], Error[2];
                 double TrackingRate[2];
 
-                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz) + AxisOffsetNP[AXIS1].getValue();
+                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz + AxisOffsetNP[AZOffset].getValue());
                 Measurement[AXIS1] = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
 
-                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt) + AxisOffsetNP[AXIS2].getValue();
+                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt + AxisOffsetNP[ALOffset].getValue());
                 Measurement[AXIS2] = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];
 
                 // Going the long way round - send it the other way
@@ -1161,10 +1156,10 @@ void SkywatcherAPIMount::TimerHit()
                     // Abandon tracking for this clock tick
                     LOG_DEBUG("Tracking -> AXIS1 direction change.");
                     LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f",
-                                   SetPoint[AXIS1],
-                                   Measurement[AXIS1],
-                                   Error[AXIS1],
-                                   TrackingRate[AXIS1]);
+                               SetPoint[AXIS1],
+                               Measurement[AXIS1],
+                               Error[AXIS1],
+                               TrackingRate[AXIS1]);
                     SlowStop(AXIS1);
                 }
                 else
@@ -1174,7 +1169,7 @@ void SkywatcherAPIMount::TimerHit()
                     TrackingRate[AXIS1] = std::fabs(TrackingRate[AXIS1]);
                     if (TrackingRate[AXIS1] != 0)
                     {
-                        auto clockRate = (StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]) * (AxisClockNP[AXIS1].getValue() / 100.0); 
+                        auto clockRate = (StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]) * (AxisClockNP[AXIS1].getValue() / 100.0);
 
                         LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS1],
@@ -1182,7 +1177,7 @@ void SkywatcherAPIMount::TimerHit()
                                    Error[AXIS1],
                                    TrackingRate[AXIS1],
                                    clockRate,
-                                   Error[AXIS1] > 0 ? "Forward" : "Backward");
+                                   Direction == '0' ? "Forward" : "Backward");
 #ifdef DEBUG_PID
                         LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
                                    m_Controllers[AXIS1]->propotionalTerm(),
@@ -1208,10 +1203,10 @@ void SkywatcherAPIMount::TimerHit()
                     // Abandon tracking for this clock tick
                     LOG_DEBUG("Tracking -> AXIS2 direction change.");
                     LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f",
-                                   SetPoint[AXIS2],
-                                   Measurement[AXIS2],
-                                   Error[AXIS2],
-                                   TrackingRate[AXIS2]);
+                               SetPoint[AXIS2],
+                               Measurement[AXIS2],
+                               Error[AXIS2],
+                               TrackingRate[AXIS2]);
                     SlowStop(AXIS2);
                 }
                 else
@@ -1221,7 +1216,7 @@ void SkywatcherAPIMount::TimerHit()
                     TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
                     if (TrackingRate[AXIS2] != 0)
                     {
-                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2] * (AxisClockNP[AXIS2].getValue() / 100.0); 
+                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2] * (AxisClockNP[AXIS2].getValue() / 100.0);
 
                         LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS2],
