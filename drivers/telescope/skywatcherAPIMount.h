@@ -218,8 +218,14 @@ class SkywatcherAPIMount :
             Integral
         };
 
-        // For testing
-        INDI::PropertyNumber AxisT1NP {2};
+        // Dead Zone
+        INDI::PropertyNumber AxisDeadZoneNP {2};
+
+        // Clock Rate Multiplier
+        INDI::PropertyNumber AxisClockNP {2};
+
+        // Offset
+        INDI::PropertyNumber AxisOffsetNP {2};
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
@@ -238,8 +244,7 @@ class SkywatcherAPIMount :
         std::unique_ptr<PID> m_Controllers[2];
 
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
-        static constexpr double MAX_TRACKING_DELTA {5};
-        static constexpr long SWITCH_THRESHOLD {10};
+        static constexpr double MAX_TRACKING_DELTA {5};        
 
         INDI::ElapsedTimer m_TrackingRateTimer;
         double GuideDeltaAlt { 0 };

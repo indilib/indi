@@ -234,10 +234,20 @@ bool SkywatcherAPIMount::initProperties()
     Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 0.13);
     Axis2PIDNP.fill(getDeviceName(), "AXIS2_PID", "Axis2 PID", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    // Testing T1 clock rate
-    AxisT1NP[AXIS1].fill("AXIS1", "AZ", "%.f", -16000000, 16000000, 1000, 0);
-    AxisT1NP[AXIS2].fill("AXIS2", "AL", "%.f", -16000000, 16000000, 1000, 0);
-    AxisT1NP.fill(getDeviceName(), "T1_RATE", "T1 Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    // Dead Zone
+    AxisDeadZoneNP[AXIS1].fill("AXIS1", "AZ (steps)", "%.f", 0, 100, 10, 10);
+    AxisDeadZoneNP[AXIS2].fill("AXIS2", "AL (steps)", "%.f", 0, 100, 10, 10);
+    AxisDeadZoneNP.fill(getDeviceName(), "DEAD_ZONE", "Dead Zone", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Clock Multiplier
+    AxisClockNP[AXIS1].fill("AXIS1", "AZ %", "%.f", 1, 200, 10, 100);
+    AxisClockNP[AXIS2].fill("AXIS2", "AL %", "%.f", 1, 200, 10, 100);
+    AxisClockNP.fill(getDeviceName(), "AXIS_CLOCK", "Clock Rate", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Julian Offset
+    AxisOffsetNP[AXIS1].fill("AXIS1", "AZ Steps", "%.f", -500, 500, 50, 0);
+    AxisOffsetNP[AXIS2].fill("AXIS2", "AL Steps", "%.f", -500, 500, 50, 0);
+    AxisOffsetNP.fill(getDeviceName(), "AXIS_OFFSET", "Offset", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
 
     tcpConnection->setDefaultHost("192.168.4.1");
@@ -306,12 +316,33 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             return true;
         }
 
-        // T1 Rate (Testing only)
-        if (AxisT1NP.isNameMatch(name))
+        // Dead Zone
+        if (AxisDeadZoneNP.isNameMatch(name))
         {
-            AxisT1NP.update(values, names, n);
-            AxisT1NP.setState(IPS_OK);
-            AxisT1NP.apply();
+            AxisDeadZoneNP.update(values, names, n);
+            AxisDeadZoneNP.setState(IPS_OK);
+            AxisDeadZoneNP.apply();
+            saveConfig(true, AxisDeadZoneNP.getName());
+            return true;
+        }
+
+        // Clock Rate
+        if (AxisClockNP.isNameMatch(name))
+        {
+            AxisClockNP.update(values, names, n);
+            AxisClockNP.setState(IPS_OK);
+            AxisClockNP.apply();
+            saveConfig(true, AxisClockNP.getName());
+            return true;
+        }
+
+        // Julian Offset
+        if (AxisOffsetNP.isNameMatch(name))
+        {
+            AxisOffsetNP.update(values, names, n);
+            AxisOffsetNP.setState(IPS_OK);
+            AxisOffsetNP.apply();
+            saveConfig(true, AxisOffsetNP.getName());
             return true;
         }
 
@@ -871,6 +902,9 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 
     Axis1PIDNP.save(fp);
     Axis2PIDNP.save(fp);
+    AxisDeadZoneNP.save(fp);
+    AxisClockNP.save(fp);
+    AxisOffsetNP.save(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
@@ -1104,10 +1138,10 @@ void SkywatcherAPIMount::TimerHit()
                 long SetPoint[2], Measurement[2], Error[2];
                 double TrackingRate[2];
 
-                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz);
+                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz) + AxisOffsetNP[AXIS1].getValue();
                 Measurement[AXIS1] = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
 
-                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt);
+                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt) + AxisOffsetNP[AXIS2].getValue();
                 Measurement[AXIS2] = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];
 
                 // Going the long way round - send it the other way
@@ -1120,30 +1154,27 @@ void SkywatcherAPIMount::TimerHit()
                 Error[AXIS1] = SetPoint[AXIS1] - Measurement[AXIS1];
                 Error[AXIS2] = SetPoint[AXIS2] - Measurement[AXIS2];
 
-                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -SWITCH_THRESHOLD)) ||
-                                                    (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > SWITCH_THRESHOLD))))
+                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
+                                                    (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > AxisDeadZoneNP[AXIS1].getValue()))))
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
                     LOG_DEBUG("Tracking -> AXIS1 direction change.");
+                    LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f",
+                                   SetPoint[AXIS1],
+                                   Measurement[AXIS1],
+                                   Error[AXIS1],
+                                   TrackingRate[AXIS1]);
                     SlowStop(AXIS1);
                 }
                 else
                 {
-
-
                     TrackingRate[AXIS1] = m_Controllers[AXIS1]->calculate(SetPoint[AXIS1], Measurement[AXIS1]);
                     char Direction = TrackingRate[AXIS1] > 0 ? '0' : '1';
                     TrackingRate[AXIS1] = std::fabs(TrackingRate[AXIS1]);
                     if (TrackingRate[AXIS1] != 0)
                     {
-                        auto clockRate = StepperClockFrequency[AXIS1] / TrackingRate[AXIS1];
-                        // Check if we need to override clock rate
-                        if (AxisT1NP[AXIS1].getValue() != 0)
-                        {
-                            clockRate = std::abs(AxisT1NP[AXIS1].getValue());
-                            Direction = AxisT1NP[AXIS1].getValue() > 0 ? '0' : '1';
-                        }
+                        auto clockRate = (StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]) * (AxisClockNP[AXIS1].getValue() / 100.0); 
 
                         LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS1],
@@ -1170,12 +1201,17 @@ void SkywatcherAPIMount::TimerHit()
                 }
 
 
-                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -SWITCH_THRESHOLD)) ||
-                                                    (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > SWITCH_THRESHOLD))))
+                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -AxisDeadZoneNP[AXIS2].getValue())) ||
+                                                    (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > AxisDeadZoneNP[AXIS2].getValue()))))
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
                     LOG_DEBUG("Tracking -> AXIS2 direction change.");
+                    LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f",
+                                   SetPoint[AXIS2],
+                                   Measurement[AXIS2],
+                                   Error[AXIS2],
+                                   TrackingRate[AXIS2]);
                     SlowStop(AXIS2);
                 }
                 else
@@ -1185,14 +1221,7 @@ void SkywatcherAPIMount::TimerHit()
                     TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
                     if (TrackingRate[AXIS2] != 0)
                     {
-                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2];
-
-                        // Check if we need to override clock rate
-                        if (AxisT1NP[AXIS2].getValue() != 0)
-                        {
-                            clockRate = std::abs(AxisT1NP[AXIS2].getValue());
-                            Direction = AxisT1NP[AXIS2].getValue() > 0 ? '0' : '1';
-                        }
+                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2] * (AxisClockNP[AXIS2].getValue() / 100.0); 
 
                         LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
                                    SetPoint[AXIS2],
@@ -1277,7 +1306,9 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuideWENP);
         defineProperty(Axis1PIDNP);
         defineProperty(Axis2PIDNP);
-        defineProperty(AxisT1NP);
+        defineProperty(AxisDeadZoneNP);
+        defineProperty(AxisClockNP);
+        defineProperty(AxisOffsetNP);
 
         if (HasAuxEncoders())
         {
@@ -1329,7 +1360,9 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(GuideWENP.name);
         deleteProperty(Axis1PIDNP);
         deleteProperty(Axis2PIDNP);
-        deleteProperty(AxisT1NP);
+        deleteProperty(AxisDeadZoneNP);
+        deleteProperty(AxisClockNP);
+        deleteProperty(AxisOffsetNP);
 
         if (HasAuxEncoders())
             deleteProperty(AUXEncoderSP.getName());
