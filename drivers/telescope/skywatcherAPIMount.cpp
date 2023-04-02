@@ -1130,8 +1130,8 @@ void SkywatcherAPIMount::TimerHit()
                 GuideDeltaAlt += DeltaAlt;
                 GuideDeltaAz += DeltaAz;
 
-                long SetPoint[2], Measurement[2], Error[2];
-                double TrackingRate[2];
+                long SetPoint[2] = {0, 0}, Measurement[2] = {0, 0}, Error[2] = {0, 0};
+                double TrackingRate[2] = {0, 0};
 
                 SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz + AxisOffsetNP[AZOffset].getValue());
                 Measurement[AXIS1] = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
