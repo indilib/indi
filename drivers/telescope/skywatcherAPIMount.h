@@ -218,8 +218,31 @@ class SkywatcherAPIMount :
             Integral
         };
 
-        // For testing
-        INDI::PropertyNumber AxisT1NP {2};
+        // Dead Zone
+        INDI::PropertyNumber AxisDeadZoneNP {2};
+
+        // Clock Rate Multiplier
+        INDI::PropertyNumber AxisClockNP {2};
+
+        // Offset
+        INDI::PropertyNumber AxisOffsetNP {5};
+        enum
+        {
+            RAOffset,
+            DEOffset,
+            AZSteps,
+            ALSteps,
+            JulianOffset,
+         };
+
+         // Axis 1 Direct Track Control
+         INDI::PropertyNumber Axis1TrackRateNP {2};
+         INDI::PropertyNumber Axis2TrackRateNP {2};
+         enum
+         {
+            TrackDirection,
+            TrackClockRate,
+         };
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
@@ -238,10 +261,11 @@ class SkywatcherAPIMount :
         std::unique_ptr<PID> m_Controllers[2];
 
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
-        static constexpr double MAX_TRACKING_DELTA {5};
-        static constexpr long SWITCH_THRESHOLD {10};
+        static constexpr double MAX_TRACKING_DELTA {5};    
+        static constexpr const char *TRACKING_TAB = "Tracking";
 
         INDI::ElapsedTimer m_TrackingRateTimer;
+        uint8_t m_LastCustomDirection[2];
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
 

@@ -112,8 +112,25 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
         MountAlignment_t GetApproximateMountAlignment();
         bool Initialise(InMemoryDatabase *pInMemoryDatabase);
         void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment);
+
+        /**
+         * @brief TransformCelestialToTelescope Transforms Celestial (Sky) Coords to Mount Coordinates
+         * @param RightAscension Sky Right Ascension in hours.
+         * @param Declination Sky Declination in degrees
+         * @param JulianOffset Julian time Offset in days
+         * @param ApparentTelescopeDirectionVector Output Apparent Telescope Direction Vector
+         * @return True if transformation is successful, false otherwise.
+         */
         bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
                                            TelescopeDirectionVector &ApparentTelescopeDirectionVector);
+
+        /**
+         * @brief TransformTelescopeToCelestial Transforms Mount Coords to Celestial (Sky) Coordinates
+         * @param ApparentTelescopeDirectionVector Input Apparent Telescope Direction Vector
+         * @param RightAscension Output Celestial Right Ascension
+         * @param Declination Output Celestial Declination
+         * @return True if transformation is successful, false otherwise.
+         */
         bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                            double &RightAscension, double &Declination);
 
