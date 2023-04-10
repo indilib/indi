@@ -284,7 +284,7 @@ int setSDTime(int fd, int x, int y, int z, bool addSpace = false);
  Motion Commands
  **************************************************************************/
 /* Slew to the selected coordinates */
-int Slew(int fd, const char *command=":MS#");
+int Slew(int fd);
 /* Synchronize to the selected coordinates and return the matching object if any */
 int Sync(int fd, char *matchedObject);
 /* Abort slew in all axes */

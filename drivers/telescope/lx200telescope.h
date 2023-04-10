@@ -97,13 +97,8 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         // Guide Pulse Commands
         virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec);
 
-        // Flip
-        virtual bool Flip(double ra, double dec) override;
-
         // Goto
         virtual bool Goto(double ra, double dec) override;
-    
-        bool GotoInternal(double ra, double dec, const char *command);
 
         // Is slew over?
         virtual bool isSlewComplete();

@@ -1565,14 +1565,14 @@ int setPreciseTrackFreq(int fd, double trackF)
 * Misc
 *********************************************************************/
 
-int Slew(int fd, const char *command)
+int Slew(int fd)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", command);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":MS#");
 
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
@@ -1584,7 +1584,7 @@ int Slew(int fd, const char *command)
     // 0                 Slew is Possible
     // 1<string>#        Object Below Horizon w/string message
     // 2<string>#        Object Below Higher w/string message
-    if ((error_type = tty_write_string(fd, command, &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, ":MS#", &nbytes_write)) != TTY_OK)
         return error_type;
 
     error_type = tty_read(fd, slewNum, 1, LX200_TIMEOUT, &nbytes_read);
