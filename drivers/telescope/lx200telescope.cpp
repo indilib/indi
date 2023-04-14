@@ -1356,7 +1356,15 @@ bool LX200Telescope::sendScopeTime()
         return false;
     }
 
-    ltm.tm_isdst = 0;
+    // Assume no daylight savings always
+    int isdst = 0;
+
+    // Try to get whether daylight saving time is toggled.
+    // By default we assume it's inactive.
+    // N.B. This only works for LX200 Autostar II so shouldn't be used in base class.
+    //getDaylightSaving(PortFD, &isdst);
+
+    ltm.tm_isdst = isdst;
     // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
