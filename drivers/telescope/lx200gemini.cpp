@@ -41,6 +41,8 @@
 #include <cstring>
 #include <termios.h>
 
+#define LX200_TIMEOUT 5 /* FD timeout in seconds */
+
 #define MANUAL_SLEWING_SPEED_ID        120
 #define GOTO_SLEWING_SPEED_ID          140
 #define MOVE_SPEED_ID                  145 // L5
@@ -76,11 +78,12 @@ LX200Gemini::LX200Gemini()
 
     setLX200Capability(LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_FLIP | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC,
                            4);
 }
+
 
 const char *LX200Gemini::getDefaultName()
 {
@@ -2048,6 +2051,146 @@ bool LX200Gemini::getGeminiProperty(uint32_t propertyNumber, char* value)
 int LX200Gemini::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     return ::SendPulseCmd(PortFD, direction, duration_msec, true, 1000);
+}
+
+bool LX200Gemini::Flip(double ra, double dec)
+{
+    return GotoInternal(ra, dec, true);    
+}
+
+bool LX200Gemini::Goto(double ra, double dec)
+{
+    return GotoInternal(ra, dec, false);
+}
+
+int  LX200Gemini::Flip(int fd)
+{
+    DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char FlipNum[17] = {0};
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    const char *command = ":MM#";
+    
+    DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "CMD <%s>", command);
+
+    // Gemini Serial Command
+    // Returns
+    // 0                 Flip is Possible
+    // 1                 Object below horizon.#
+    // 2                 No object selected.#
+    // 3                 Manual Control.#
+    // 4                 Position unreachable.#
+    // 5                 Not aligned.#
+    // 6                 Outside Limits.#
+    // 7                 Rejected - Mount is parked!#
+
+    if ((error_type = tty_write_string(fd, command, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(fd, FlipNum, 1, LX200_TIMEOUT, &nbytes_read);
+
+    if (nbytes_read < 1)
+    {
+        DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "RES ERROR <%d>", error_type);
+        return error_type;
+    }
+
+    /* We don't need to read the string message, just return corresponding error code */
+    tcflush(fd, TCIFLUSH);
+
+    DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "RES <%c>", FlipNum[0]);
+
+    error_type = FlipNum[0] - '0';
+    if ((error_type >= 0) && (error_type <= 9))
+    {
+        return error_type;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
+{
+    const struct timespec timeout = {0, 100000000L};
+
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64] = {0}, DecStr[64] = {0};
+    int fracbase = 0;
+
+    switch (getLX200EquatorialFormat())
+    {
+        case LX200_EQ_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
+    }
+
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+        }
+
+        AbortSP.s = IPS_OK;
+        EqNP.s    = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, nullptr);
+
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
+        }
+
+        // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
+    }
+
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = flip ? Flip(PortFD) : Slew(PortFD)))
+        {
+            LOGF_ERROR("Error %s to JNow RA %s - DEC %s", flip ? "Flipping" : "Slewing", RAStr, DecStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    //EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("%s to RA: %s - DEC: %s", flip ? "Flipping" : "Slewing", RAStr, DecStr);
+
+    return true;
 }
 
 bool LX200Gemini::setGeminiProperty(uint32_t propertyNumber, char* value)

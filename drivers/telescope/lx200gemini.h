@@ -64,6 +64,8 @@ protected:
 
     // Guide Pulse Commands
     virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+    virtual bool Flip(double ra, double dec) override;
+    virtual bool Goto(double ra, double dec) override;
 
 private:
     void syncState();
@@ -74,7 +76,8 @@ private:
     bool setRefraction(bool on);
     bool sleepMount();
     bool wakeupMount();
-
+    bool GotoInternal(double ra, double dec, bool flip);
+    int Flip(int fd);
     bool getGeminiProperty(uint32_t propertyNumber, char* value);
     bool setGeminiProperty(uint32_t propertyNumber, char* value);
 
