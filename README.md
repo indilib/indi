@@ -264,10 +264,9 @@ Once you have the Google Test Framework installed follow this alternative build 
 ```
 mkdir -p build/indi
 cd build/indi
-cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../indi
+cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../
 make
-cd test
-ctest -V
+make test
 ```
 
-For more details refer to the scripts in the travis-ci directory.
+For more details refer to the scripts in the .circleci directory.
