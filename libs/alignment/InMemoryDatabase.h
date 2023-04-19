@@ -39,6 +39,11 @@ class InMemoryDatabase
         /// \return True if an entry already exists within the required tolerance
         bool CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance = 0.1) const;
 
+        /// \brief Check if a entry already exists in the database, and if it does, remove it.
+        /// \param[in] CandidateEntry The candidate entry to check
+        /// \param[in] Tolerance The % tolerance used in the checking process (default 0.1%)
+        void RemoveDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance = 0.1);
+
         /// \brief Get a reference to the in memory database.
         /// \return A reference to the in memory database.
         AlignmentDatabaseType &GetAlignmentDatabase()

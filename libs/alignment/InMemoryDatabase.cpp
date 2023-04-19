@@ -40,6 +40,22 @@ bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &
     return false;
 }
 
+void InMemoryDatabase::RemoveDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
+        double Tolerance)
+{
+    MySyncPoints.erase(std::remove_if(MySyncPoints.begin(), MySyncPoints.end(),
+                                      [CandidateEntry, Tolerance](const auto & point)
+    {
+        return (((std::abs(point.RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
+                 (std::abs(point.Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+                ((std::abs(point.TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)));
+    }),
+    MySyncPoints.end());
+}
+
+
 bool InMemoryDatabase::GetDatabaseReferencePosition(IGeographicCoordinates &Position)
 {
     if (DatabaseReferencePositionIsValid)
