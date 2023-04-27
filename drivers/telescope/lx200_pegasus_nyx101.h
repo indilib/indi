@@ -60,6 +60,26 @@ private:
     INDI::PropertySwitch GuideRateSP {3};
     INDI::PropertySwitch HomeSP {1};
     INDI::PropertySwitch ResetHomeSP {1};
+    INDI::PropertyText Report {1};
+    INDI::PropertySwitch VerboseReportSP {2};
+    INDI::PropertyText IsTracking {1};
+    INDI::PropertyText IsSlewCompleted {1};
+    INDI::PropertyText IsParked {1};
+    INDI::PropertyText IsParkginInProgress {1};
+    INDI::PropertyText IsAtHomePosition {1};
+    INDI::PropertyText TrackSidereal {1};
+    INDI::PropertyText TrackLunar {1};
+    INDI::PropertyText TrackSolar {1};
+    INDI::PropertyText MountAltAz {1};
+    INDI::PropertyText MountEquatorial {1};
+    INDI::PropertyText PierNone {1};
+    INDI::PropertyText PierEast {1};
+    INDI::PropertyText PierWest {1};
+    INDI::PropertyText DoesRefractionComp {1};
+    INDI::PropertyText WaitingAtHome {1};
+    INDI::PropertyText IsHomePaused {1};
+    INDI::PropertyText ParkFailed {1};
+    INDI::PropertyText SlewingHome {1};
 
 
      bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
@@ -69,5 +89,6 @@ private:
      bool goToUnPark();
      bool setMountType(int type);
      bool setGuideRate(int rate);
-
+     bool verboseReport = false;
+     void SetPropertyText(INDI::PropertyText propertyTxt, IPState state);
 };
