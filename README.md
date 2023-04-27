@@ -67,10 +67,18 @@ sudo apt-get install -y \
   libgphoto2-dev \
   build-essential \
   libusb-1.0-0-dev \
-  libdc1394-22-dev \
+  libdc1394-dev \
   libboost-regex-dev \
   libcurl4-gnutls-dev \
   libtheora-dev
+```
+
+## XISF Support
+
+To enable [XISF format](https://pixinsight.com/xisf/) support in INDI, you need to build or install [libxisf](https://gitea.nouspiro.space/nou/libXISF) package.
+```bash
+sudo apt-add-repository ppa:mutlaqja/ppa
+sudo apt-get -y install libxisf-dev
 ```
 
 ## Create Project Directory
@@ -256,10 +264,9 @@ Once you have the Google Test Framework installed follow this alternative build 
 ```
 mkdir -p build/indi
 cd build/indi
-cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../indi
+cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../
 make
-cd test
-ctest -V
+make test
 ```
 
-For more details refer to the scripts in the travis-ci directory.
+For more details refer to the scripts in the .circleci directory.

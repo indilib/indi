@@ -9,6 +9,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
 include(FeatureSummary)
+include(CTest)
 
 if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
     set(ANDROID ON)
@@ -44,7 +45,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 0)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_RELEASE 2)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
@@ -93,7 +94,7 @@ OPTION(INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
-OPTION(INDI_BUILD_XISF_WRAPPER "Build XISF wrapper" ON)
+OPTION(INDI_BUILD_XISF "Build XISF support" ON)
 
 if(UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
@@ -247,18 +248,6 @@ endif(INDI_BUILD_WEBSOCKET)
 
 # ##################################################################################################
 #
-# Component   : INDI XISF loader
-# Supported OS: Linux, BSD, MacOS, Cygwin
-#
-# ##################################################################################################
-if(INDI_BUILD_XISF_WRAPPER)
-    message(STATUS "Building INDI XISF wrapper")
-    add_definitions(-DHAVE_XISF)
-    add_subdirectory(libs/indixisf)
-endif(INDI_BUILD_XISF_WRAPPER)
-
-# ##################################################################################################
-#
 # Component   : INDI Drivers, Tools, and Examples
 # Dependencies: pthreads, usb1, zLib, cfitsio, nova, curl, jpeg (Linux Only)
 # Supported OS: Linux, BSD, MacOS, Cygwin
@@ -353,7 +342,7 @@ if(INDI_BUILD_DRIVERS)
 
         find_package(GMock)
 
-        if(GTEST_FOUND)
+        if(GTEST_FOUND AND BUILD_TESTING)
             if(INDI_BUILD_UNITTESTS)
                 message(STATUS "Building unit tests")
                 add_subdirectory(test)
@@ -368,9 +357,11 @@ if(INDI_BUILD_DRIVERS)
                 message(STATUS "Not building integration tests")
             endif(INDI_BUILD_INTEGTESTS)
 
+        elseif(NOT BUILD_TESTING)
+            message(STATUS "GTEST found, but tests disabled")
         else()
             message(STATUS "GTEST not found, not building tests")
-        endif(GTEST_FOUND)
+        endif(GTEST_FOUND AND BUILD_TESTING)
     endif(WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
 
