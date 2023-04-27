@@ -135,6 +135,7 @@ enum TFreq
 
 /* GET Int from device and store in supplied pointer to integer x */
 #define getUTCOffset(fd, x)         getCommandInt(fd, x, ":GG#")
+#define getDaylightSaving(fd, x)    getCommandInt(fd, x, ":GH#")
 #define getMaxElevationLimit(fd, x) getCommandInt(fd, x, ":Go#")
 #define getMinElevationLimit(fd, x) getCommandInt(fd, x, ":Gh#")
 

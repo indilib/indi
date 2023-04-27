@@ -232,6 +232,14 @@ add_executable(indi_myDewControllerPro ${myDewControllerPro_SRC})
 target_link_libraries(indi_myDewControllerPro indidriver)
 install(TARGETS indi_myDewControllerPro RUNTIME DESTINATION bin)
 
+# ########## MYDCP4ESP32 Driver ###############
+SET(mydcp4esp32_SRC
+    mydcp4esp32.cpp)
+
+add_executable(indi_mydcp4esp32 ${mydcp4esp32_SRC})
+target_link_libraries(indi_mydcp4esp32 indidriver)
+install(TARGETS indi_mydcp4esp32 RUNTIME DESTINATION bin)
+
 # ########## Deep Sky Dad FP1 ###############
 SET(deepskydad_fp1_SRC
     deepskydad_fp1.cpp)
@@ -249,3 +257,13 @@ SET(giotto_SRC
 add_executable(indi_giotto ${giotto_SRC})
 target_link_libraries(indi_giotto indidriver)
 install(TARGETS indi_giotto RUNTIME DESTINATION bin)
+
+# ########## ALTO ###############
+SET(alto_SRC
+    alto.cpp
+    ../focuser/primalucacommandset.cpp
+)
+
+add_executable(indi_alto ${alto_SRC})
+target_link_libraries(indi_alto indidriver)
+install(TARGETS indi_alto RUNTIME DESTINATION bin)

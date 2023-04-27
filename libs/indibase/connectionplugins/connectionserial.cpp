@@ -28,6 +28,7 @@
 #include <thread>
 #include <chrono>
 #include <regex>
+#include <random>
 
 namespace Connection
 {
@@ -211,7 +212,10 @@ bool Serial::Connect()
 
             systemPorts.push_back(m_SystemPorts[i].c_str());
         }
-        std::random_shuffle (systemPorts.begin(), systemPorts.end());
+
+        std::random_device rd;
+        std::minstd_rand g(rd());
+        std::shuffle(systemPorts.begin(), systemPorts.end(), g);
 
         std::vector<std::string> doubleSearch = systemPorts;
 

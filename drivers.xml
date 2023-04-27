@@ -29,7 +29,7 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.17</version>
+            <version>1.19</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
@@ -681,6 +681,10 @@
             <driver name="GIOTTO">indi_giotto</driver>
             <version>1.0</version>
         </device>
+        <device label="ALTO" manufacturer="Primaluce Lab">
+            <driver name="ALTO">indi_alto</driver>
+            <version>1.0</version>
+        </device>
         <device label="Light Panel Simulator" manufacturer="Simulator">
             <driver name="Light Panel Simulator">indi_simulator_lightpanel</driver>
             <version>1.0</version>
@@ -707,6 +711,10 @@
         </device>
         <device label="myDewControllerPro" manufacturer="Robert Brown">
             <driver name="myDewControllerPro">indi_myDewControllerPro</driver>
+            <version>1.0</version>
+        </device>
+        <device label="MyDCP4ESP32" manufacturer="DIY">
+            <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>
         </device>
 		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">

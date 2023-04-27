@@ -35,8 +35,7 @@
 #include "indiutility.h"
 
 #ifdef HAVE_XISF
-#include "../indixisf/indixisf.h"
-#include <dlfcn.h>
+#include <libxisf.h>
 #endif
 
 #include <fitsio.h>
@@ -127,21 +126,6 @@ CCD::CCD()
 
     exposureStartTime[0] = 0;
     exposureDuration = 0.0;
-
-#ifdef HAVE_XISF
-    m_XISFWrapper = nullptr;
-    void *handle = dlopen("libindixisf.so", RTLD_LAZY);
-    if(handle)
-    {
-        auto allocXISFWrapper = reinterpret_cast<allocXISFWrapperFPTR*>(dlsym(handle, "allocXISFWrapper"));
-        m_freeXISFWrapperFunc = dlsym(handle, "freeXISFWrapper");
-        if(allocXISFWrapper && m_freeXISFWrapperFunc)
-            m_XISFWrapper = allocXISFWrapper();
-        else
-            LOG_WARN("Could not load XISF wrapper");
-        dlclose(handle);
-    }
-#endif
 }
 
 CCD::~CCD()
@@ -149,11 +133,6 @@ CCD::~CCD()
     // Only update if index is different.
     if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&FastExposureToggleSP))
         saveConfig(true, FastExposureToggleSP.name);
-
-#ifdef HAVE_XISF
-    if (m_XISFWrapper)
-        reinterpret_cast<freeXISFWrapperFPTR*>(m_freeXISFWrapperFunc)(m_XISFWrapper);
-#endif
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -393,11 +372,8 @@ bool CCD::initProperties()
     EncodeFormatSP[FORMAT_NATIVE].fill("FORMAT_NATIVE", "Native",
                                        m_ConfigEncodeFormatIndex == FORMAT_NATIVE ? ISS_ON : ISS_OFF);
 #ifdef HAVE_XISF
-    if(m_XISFWrapper)
-    {
-        EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
-                                         m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
-    }
+    EncodeFormatSP[FORMAT_XISF].fill("FORMAT_XISF", "XISF",
+                                     m_ConfigEncodeFormatIndex == FORMAT_XISF ? ISS_ON : ISS_OFF);
 #endif
     EncodeFormatSP.fill(getDeviceName(), "CCD_TRANSFER_FORMAT", "Encode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
                         IPS_IDLE);
@@ -428,10 +404,10 @@ bool CCD::initProperties()
     /****************** FITS Header****************/
     /**********************************************/
 
-    IUFillText(&FITSHeaderT[FITS_OBSERVER], "FITS_OBSERVER", "Observer", "Unknown");
-    IUFillText(&FITSHeaderT[FITS_OBJECT], "FITS_OBJECT", "Object", "Unknown");
-    IUFillTextVector(&FITSHeaderTP, FITSHeaderT, 2, getDeviceName(), "FITS_HEADER", "FITS Header", INFO_TAB, IP_RW, 60,
-                     IPS_IDLE);
+    FITSHeaderTP[KEYWORD_NAME].fill("KEYWORD_NAME", "Name", nullptr);
+    FITSHeaderTP[KEYWORD_VALUE].fill("KEYWORD_VALUE", "Value", nullptr);
+    FITSHeaderTP[KEYWORD_COMMENT].fill("KEYWORD_COMMENT", "Comment", nullptr);
+    FITSHeaderTP.fill(getDeviceName(), "FITS_HEADER", "FITS Header", INFO_TAB, IP_WO, 60, IPS_IDLE);
 
     /**********************************************/
     /****************** Exposure Looping **********/
@@ -568,7 +544,7 @@ bool CCD::updateProperties()
         if (CanBin())
             defineProperty(&PrimaryCCD.ImageBinNP);
 
-        defineProperty(&FITSHeaderTP);
+        defineProperty(FITSHeaderTP);
 
         if (HasGuideHead())
         {
@@ -679,7 +655,7 @@ bool CCD::updateProperties()
         }
 #endif
 
-        deleteProperty(FITSHeaderTP.name);
+        deleteProperty(FITSHeaderTP);
 
         if (HasGuideHead())
         {
@@ -998,11 +974,76 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             return true;
         }
 
-        if (!strcmp(name, FITSHeaderTP.name))
+        // FITS Header
+        if (FITSHeaderTP.isNameMatch(name))
         {
-            IUUpdateText(&FITSHeaderTP, texts, names, n);
-            FITSHeaderTP.s = IPS_OK;
-            IDSetText(&FITSHeaderTP, nullptr);
+            FITSHeaderTP.update(texts, names, n);
+
+            std::string name = FITSHeaderTP[KEYWORD_NAME].getText();
+            std::string value = FITSHeaderTP[KEYWORD_VALUE].getText();
+            std::string comment = FITSHeaderTP[KEYWORD_COMMENT].getText();
+
+            if (name.empty() && value.empty() && comment.empty())
+            {
+                LOG_ERROR("Cannot add an empty FITS record.");
+                FITSHeaderTP.setState(IPS_ALERT);
+            }
+            else
+            {
+                FITSHeaderTP.setState(IPS_OK);
+                // Specical keyword
+                if (name == "INDI_CLEAR")
+                {
+                    m_CustomFITSKeywords.clear();
+                    LOG_INFO("Custom FITS headers cleared.");
+                }
+                else if (name.empty() == false && value.empty() == false)
+                {
+                    // Double regex
+                    std::regex checkDouble("^[-+]?([0-9]*?[.,][0-9]+|[0-9]+)$");
+                    // Integer regex
+                    std::regex checkInteger("^[-+]?([0-9]*)$");
+
+                    try
+                    {
+                        // Try long
+                        if (std::regex_match(value, checkInteger))
+                        {
+                            auto lValue = std::stol(value);
+                            FITSRecord record(name.c_str(), lValue, comment.c_str());
+                            m_CustomFITSKeywords[name.c_str()] = record;
+                        }
+                        // Try double
+                        else if (std::regex_match(value, checkDouble))
+                        {
+                            auto dValue = std::stod(value);
+                            FITSRecord record(name.c_str(), dValue, 6, comment.c_str());
+                            m_CustomFITSKeywords[name.c_str()] = record;
+                        }
+                        // Store as text
+                        else
+                        {
+                            // String
+                            FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
+                            m_CustomFITSKeywords[name.c_str()] = record;
+                        }
+                    }
+                    // In case conversion fails
+                    catch (std::exception &e)
+                    {
+                        // String
+                        FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
+                        m_CustomFITSKeywords[name.c_str()] = record;
+                    }
+                }
+                else if (comment.empty() == false)
+                {
+                    FITSRecord record(comment.c_str());
+                    m_CustomFITSKeywords[comment.c_str()] = record;
+                }
+            }
+
+            FITSHeaderTP.apply();
             return true;
         }
 
@@ -1923,12 +1964,6 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     if (std::isnan(effectiveAperture))
         LOG_WARN("Telescope aperture is missing.");
 
-    // Observer
-    fitsKeywords.push_back({"OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name"});
-
-    // Object
-    fitsKeywords.push_back({"OBJECT", FITSHeaderT[FITS_OBJECT].text, "Object name"});
-
     double subPixSize1 = static_cast<double>(targetChip->getPixelSizeX());
     double subPixSize2 = static_cast<double>(targetChip->getPixelSizeY());
     uint32_t subW = targetChip->getSubW();
@@ -2304,7 +2339,13 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             }
 
             std::vector<FITSRecord> fitsKeywords;
+
             addFITSKeywords(targetChip, fitsKeywords);
+
+            // Add all custom keywords next
+            for (auto &record : m_CustomFITSKeywords)
+                fitsKeywords.push_back(record.second);
+
             for (auto &keyword : fitsKeywords)
             {
                 int key_status = 0;
@@ -2361,35 +2402,87 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 #ifdef HAVE_XISF
         else if (EncodeFormatSP[FORMAT_XISF].getState() == ISS_ON)
         {
-            if(!m_XISFWrapper)
-            {
-                LOG_ERROR("XISF wrapper null");
-                return false;
-            }
-
             std::vector<FITSRecord> fitsKeywords;
             addFITSKeywords(targetChip, fitsKeywords);
             targetChip->setImageExtension("xisf");
 
-            std::unique_lock<std::mutex> guard(ccdBufferLock);
-            XISFImageParam params;
-
-            params.width = targetChip->getSubW() / targetChip->getBinX();
-            params.height = targetChip->getSubH() / targetChip->getBinY();
-            params.channelCount = targetChip->getNAxis() == 2 ? 1 : 3;
-            params.bpp = targetChip->getBPP();
-            params.bayer = HasBayer();
-            if(params.bayer)params.bayerPattern = BayerT[2].text;
-            params.frameType = targetChip->getFrameType();
-            params.compress = targetChip->SendCompressed;
-
-            if (!m_XISFWrapper->writeImage(params, fitsKeywords, targetChip->getFrameBuffer()))
-                LOGF_ERROR("Error writing XISF %s", m_XISFWrapper->error());
-
-            bool rc = uploadFile(targetChip, m_XISFWrapper->fileData(), m_XISFWrapper->fileDataSize(), sendImage, saveImage);
-            if (rc == false)
+            try
             {
-                targetChip->setExposureFailed();
+                AutoCNumeric locale;
+                LibXISF::Image image;
+                LibXISF::XISFWriter xisfWriter;
+
+                for (auto &keyword : fitsKeywords)
+                {
+                    image.addFITSKeyword({keyword.key().c_str(), keyword.valueString().c_str(), keyword.comment().c_str()});
+                    image.addFITSKeywordAsProperty(keyword.key().c_str(), keyword.valueString());
+                }
+
+                image.setGeometry(targetChip->getSubW() / targetChip->getBinX(),
+                                  targetChip->getSubH() / targetChip->getBinY(),
+                                  targetChip->getNAxis() == 2 ? 1 : 3);
+                switch(targetChip->getBPP())
+                {
+                    case 8:
+                        image.setSampleFormat(LibXISF::Image::UInt8);
+                        break;
+                    case 16:
+                        image.setSampleFormat(LibXISF::Image::UInt16);
+                        break;
+                    case 32:
+                        image.setSampleFormat(LibXISF::Image::UInt32);
+                        break;
+                    default:
+                        LOGF_ERROR("Unsupported bits per pixel value %d", targetChip->getBPP());
+                        return false;
+                }
+
+                switch(targetChip->getFrameType())
+                {
+                    case CCDChip::LIGHT_FRAME:
+                        image.setImageType(LibXISF::Image::Light);
+                        break;
+                    case CCDChip::BIAS_FRAME:
+                        image.setImageType(LibXISF::Image::Bias);
+                        break;
+                    case CCDChip::DARK_FRAME:
+                        image.setImageType(LibXISF::Image::Dark);
+                        break;
+                    case CCDChip::FLAT_FRAME:
+                        image.setImageType(LibXISF::Image::Flat);
+                        break;
+                }
+
+                if (targetChip->SendCompressed)
+                {
+                    image.setCompression(LibXISF::DataBlock::LZ4);
+                    image.setByteshuffling(targetChip->getBPP() / 8);
+                }
+
+                if (HasBayer())
+                    image.setColorFilterArray({2, 2, BayerT[2].text});
+
+                if (targetChip->getNAxis() == 3)
+                {
+                    image.setColorSpace(LibXISF::Image::RGB);
+                }
+
+                std::unique_lock<std::mutex> guard(ccdBufferLock);
+                std::memcpy(image.imageData(), targetChip->getFrameBuffer(), image.imageDataSize());
+                xisfWriter.writeImage(image);
+
+                LibXISF::ByteArray xisfFile;
+                xisfWriter.save(xisfFile);
+                bool rc = uploadFile(targetChip, xisfFile.data(), xisfFile.size(), sendImage, saveImage);
+                if (rc == false)
+                {
+                    targetChip->setExposureFailed();
+                    return false;
+                }
+            }
+            catch (LibXISF::Error &error)
+            {
+                LOGF_ERROR("XISF Error: %s", error.what());
                 return false;
             }
         }

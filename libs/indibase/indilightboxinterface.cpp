@@ -295,9 +295,17 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
         {
             if (currentFilterSlot < FilterIntensityNP.nnp)
             {
-                double duration = FilterIntensityN[currentFilterSlot].value;
-                if (duration > 0)
-                    SetLightBoxBrightness(duration);
+                auto value = FilterIntensityN[currentFilterSlot].value;
+                if (value > 0)
+                {
+                    if (SetLightBoxBrightness(value))
+                    {
+                        LightIntensityN[0].value = value;
+                        LightIntensityNP.s = IPS_OK;
+                        IDSetNumber(&LightIntensityNP, nullptr);
+                    }
+
+                }
             }
         }
     }
