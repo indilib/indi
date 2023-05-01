@@ -267,8 +267,8 @@ const char *LX200NYX101::getDefaultName()
     return "Pegasus NYX-101";
 }
 
-char *ON = "ON";
-char *OFF = "OFF";
+const char *ON = "ON";
+const char *OFF = "OFF";
 
 void LX200NYX101::SetPropertyText(INDI::PropertyText propertyTxt, IPState state)
 {
@@ -277,15 +277,15 @@ void LX200NYX101::SetPropertyText(INDI::PropertyText propertyTxt, IPState state)
 
     if(state == IPS_OK)
     {
-        propertyTxt[0].text = ON;
+        propertyTxt[0].setText(ON);
     }
     else if(state == IPS_BUSY)
     {
-        propertyTxt[0].text = OFF;
+        propertyTxt[0].setText(OFF);
     }
     else if(state == IPS_IDLE)
     {
-        propertyTxt[0].text = "-";
+        propertyTxt[0].setText("-");
     }
     propertyTxt.setState(state);
     propertyTxt.apply();
@@ -305,31 +305,31 @@ bool LX200NYX101::ReadScopeStatus()
     bool _IsParked = false;
     SetPropertyText(IsParked, IPS_BUSY);
 
-    bool _IsParkginInProgress = false;
+    //bool _IsParkginInProgress = false;
     SetPropertyText(IsParkginInProgress, IPS_BUSY);
 
-    bool _IsAtHomePosition = false;
+    //bool _IsAtHomePosition = false;
     SetPropertyText(IsAtHomePosition, IPS_BUSY);
 
     TelescopeTrackMode _TrackingMode = TRACK_SIDEREAL;
 
-    MountType _MountType = Equatorial;
+    //MountType _MountType = Equatorial;
 
     TelescopePierSide _PierSide = PIER_UNKNOWN;
 
-    bool _DoesRefractionComp = false;
+    //bool _DoesRefractionComp = false;
     SetPropertyText(DoesRefractionComp, IPS_BUSY);
 
-    bool _WaitingAtHome = false;
+    //bool _WaitingAtHome = false;
     SetPropertyText(WaitingAtHome, IPS_BUSY);
 
-    bool _IsHomePaused = false;
+    //bool _IsHomePaused = false;
     SetPropertyText(IsHomePaused, IPS_BUSY);
 
-    bool _ParkFailed = false;
+    //bool _ParkFailed = false;
     SetPropertyText(ParkFailed, IPS_BUSY);
 
-    bool _SlewingHome = false;
+    //bool _SlewingHome = false;
     SetPropertyText(SlewingHome, IPS_BUSY);
 
 
@@ -362,11 +362,11 @@ bool LX200NYX101::ReadScopeStatus()
                 SetPropertyText(IsParked, IPS_OK);
                 continue;
             case 'I':
-                _IsParkginInProgress = true;
+                //_IsParkginInProgress = true;
                 SetPropertyText(IsParkginInProgress, IPS_OK);
                 continue;
             case 'H':
-                _IsAtHomePosition = true;
+                //_IsAtHomePosition = true;
                 SetPropertyText(IsAtHomePosition, IPS_OK);
                 continue;
             case '(':
@@ -379,12 +379,12 @@ bool LX200NYX101::ReadScopeStatus()
                 //Not Supported by TelescopeTrackMode
                 continue;
             case 'A':
-                _MountType = AltAz;
+                //_MountType = AltAz;
                 SetPropertyText(MountAltAz, IPS_OK);
                 SetPropertyText(MountEquatorial, IPS_BUSY);
                 continue;
             case 'E':
-                _MountType = Equatorial;
+                //_MountType = Equatorial;
                 SetPropertyText(MountEquatorial, IPS_OK);
                 SetPropertyText(MountAltAz, IPS_BUSY);
                 continue;
@@ -395,23 +395,23 @@ bool LX200NYX101::ReadScopeStatus()
                 _PierSide = PIER_WEST;
                 continue;
             case 'r':
-                _DoesRefractionComp = true;
+                //_DoesRefractionComp = true;
                 SetPropertyText(DoesRefractionComp, IPS_OK);
                 continue;
             case 'w':
-                _WaitingAtHome = true;
+                //_WaitingAtHome = true;
                 SetPropertyText(WaitingAtHome, IPS_OK);
                 continue;
             case 'u':
-                _IsHomePaused = true;
+                //_IsHomePaused = true;
                 SetPropertyText(IsHomePaused, IPS_OK);
                 continue;
             case 'F':
-                _ParkFailed = true;
+                //_ParkFailed = true;
                 SetPropertyText(ParkFailed, IPS_OK);
                 continue;
             case 'h':
-                _SlewingHome = true;
+                //_SlewingHome = true;
                 SetPropertyText(SlewingHome, IPS_OK);
                 continue;
             case '#':
