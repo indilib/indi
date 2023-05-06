@@ -271,9 +271,6 @@ IPState UranusMeteo::updateGPS()
             snprintf(command, PEGASUS_LEN, "C3:%d", static_cast<int>(utcOffset));
             sendCommand(command, response);
 
-            // N.B. FIXME, does not work.
-            setSystemTime(raw_time);
-
             return IPS_OK;
         }
         catch(...)
@@ -528,31 +525,6 @@ bool UranusMeteo::readTwilight()
 bool UranusMeteo::readConfig()
 {
     return false;
-}
-
-//////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////
-bool UranusMeteo::setSystemTime(time_t &raw_time)
-{
-#ifdef __linux__
-#if defined(__GNU_LIBRARY__)
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ > 30)
-    timespec sTime = {};
-    sTime.tv_sec = raw_time;
-    auto rc = clock_settime(CLOCK_REALTIME, &sTime);
-    if (rc)
-        LOGF_WARN("Failed to update system time: %s", strerror(rc));
-#else
-    stime(&raw_time);
-#endif
-#else
-    stime(&raw_time);
-#endif
-#else
-    INDI_UNUSED(raw_time);
-#endif
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////

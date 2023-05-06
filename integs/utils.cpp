@@ -79,6 +79,10 @@ int unixSocketListen(const std::string &unixAddr)
         throw std::system_error(errno, std::generic_category(), "Socket");
     }
 
+#ifndef __linux__
+    fcntl(sockfd, F_SETFD, FD_CLOEXEC);
+#endif
+
     int reuse = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {

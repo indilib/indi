@@ -64,16 +64,70 @@ class WandererCover : public INDI::DefaultDevice, public INDI::LightBoxInterface
         virtual bool EnableLightBox(bool enable) override;
 
     private:
+        enum
+        {
+            SET_CURRENT_POSITION_OPEN,
+            SET_CURRENT_POSITION_CLOSE
+        };
+
+        enum
+        {
+            PLUS_1_DEGREE,
+            PLUS_10_DEGREE,
+            PLUS_50_DEGREE,
+        };
+
+        enum
+        {
+            MINUS_1_DEGREE,
+            MINUS_10_DEGREE,
+            MINUS_50_DEGREE,
+        };
+
         bool sendCommand(std::string command, char *response, bool waitForAnswer);
         bool getStartupData();
-        bool switchOffLightBox();
 
         bool Handshake();
+
+        // Dust cap
+        void updateCoverStatus(char* res);
+        void setParkCapStatusAsClosed();
+        void setParkCapStatusAsOpen();
+        IPState moveDustCap(int degrees);
+        bool setCurrentPositionToOpenPosition();
+        bool setCurrentPositionToClosedPosition();
+        bool processConfigurationButtonSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+
+        // Light box
+        bool switchOffLightBox();
+        void setLightBoxStatusAsSwitchedOff();
+        void setLightBoxBrightnesStatusToValue(uint16_t value);
 
         // Status
         ITextVectorProperty StatusTP;
         IText StatusT[2] {};
 
+        // Firmware version
+        ITextVectorProperty FirmwareTP;
+        IText FirmwareT[1] {};
+
+        //Number of steps
+        void setNumberOfStepsStatusValue(int value);
+        int NumberOfStepsBeetweenOpenAndCloseState = 0;
+        int NumberOfDegreesSinceLastOpenPositionSet = 0;
+
+        // Configuration
+        // Configure open position
+        ISwitchVectorProperty ControlPositionNegativeDegreesConfigurationVP;
+        ISwitch ControlPositionNegativeDegreesConfigurationV[3] {};
+        ISwitchVectorProperty ControlPositionPositiveDegreesConfigurationVP;
+        ISwitch ControlPositionPositiveDegreesConfigurationV[3] {};
+        ISwitchVectorProperty DefinePositionConfigurationVP;
+        ISwitch DefinePositionConfigurationV[2] {};
+
+        // Check for errors in indi driver
+        bool hasWandererSentAnError(char* response);
+        void displayConfigurationMessage();
 
         int PortFD{ -1 };
 

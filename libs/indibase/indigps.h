@@ -81,6 +81,14 @@ class GPS : public DefaultDevice
          */
         virtual bool saveConfigItems(FILE *fp) override;
 
+        /**
+         * @brief SetSystemTime Update system-wide time
+         * @param raw_time raw time
+         * @return true if successful, false other.
+         * @note Process user must have permission to set time.
+         */
+        virtual bool setSystemTime(time_t &raw_time);
+
         //  A number vector that stores latitude, longitude and altitude.
         INDI::PropertyNumber LocationNP {3};
 

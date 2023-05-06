@@ -4,7 +4,8 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors:
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019-2021
+        Karl Rees, Copyright (C) 2019-2023
+        Martin Ruiz, Copyright (C) 2023
 
     Based on IEQPro driver.
 
@@ -76,10 +77,10 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
 #define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
-#define PMC8_RATE_SIDEREAL 15.041
-#define PMC8_RATE_LUNAR 14.685
-#define PMC8_RATE_SOLAR 15.0
-#define PMC8_RATE_KING 15.0369
+#define PMC8_RATE_SIDEREAL 15.000
+#define PMC8_RATE_LUNAR 14.451
+#define PMC8_RATE_SOLAR 14.959
+#define PMC8_RATE_KING 14.996
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
 bool pmc8_debug                 = false;
@@ -265,7 +266,11 @@ void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
             ra -= 24;
 
         set_pmc8_sim_ra(ra);
-        set_pmc8_sim_dec(90.0);
+        if (pmc8_latitude <0)
+            set_pmc8_sim_dec(-90.0);
+        else
+             set_pmc8_sim_dec(90.0);
+
     }
 }
 
@@ -828,14 +833,20 @@ bool get_pmc8_track_rate(int fd, double &rate)
 
 bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode)
 {
-
     if (!get_pmc8_track_rate(fd, rate)) return false;
+    mode = get_pmc8_tracking_mode_from_rate(rate);
+    return true;
+}
 
-    int refmotor, tmotor;
 
-    //get our current precise motor rate
+uint8_t get_pmc8_tracking_mode_from_rate(double rate)
+{
+    int tmotor, refmotor;
+    uint8_t mode;
+    
+    //get precise motor rate
     convert_precise_rate_to_motor(rate, &tmotor);
-
+    
     //now check what sidereal would be
     convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
     if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;
@@ -862,8 +873,7 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode)
             }
         }
     }
-
-    return true;
+    return mode;
 }
 
 
@@ -1556,12 +1566,27 @@ bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int 
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
 
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = hour_angle - 6;
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = hour_angle + 6;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = hour_angle - 6;
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = hour_angle + 6;
+        else
+            return false;
+    }
+    // Southern Hemisphere
     else
-        return false;
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = -(hour_angle + 6);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = -(hour_angle - 6);
+        else
+            return false;
+    }
+    
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - lst = %f hour_angle=%f", lst, hour_angle);
 
@@ -1588,10 +1613,22 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "racounts = %d  motor_angle = %f", racounts, motor_angle);
 
-    if (deccounts < 0)
-        hour_angle = motor_angle + 6;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (deccounts < 0)
+            hour_angle = motor_angle + 6;
+        else
+            hour_angle = motor_angle - 6;
+    }
+    // Southern Hemisphere
     else
-        hour_angle = motor_angle - 6;
+    {
+        if (deccounts < 0)
+            hour_angle = -(motor_angle + 6);
+        else
+            hour_angle = -(motor_angle - 6);        
+    }
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "hour_angle = %f", hour_angle);
 
@@ -1607,11 +1644,23 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra_value (final) = %f", ra_value);
 
     motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
-
-    if (motor_angle >= 0)
-        dec_value = 90 - motor_angle;
+    
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (motor_angle >= 0)
+            dec_value = 90 - motor_angle;
+        else
+            dec_value = 90 + motor_angle;
+    }
+    // Sourthern Hemisphere
     else
-        dec_value = 90 + motor_angle;
+    {
+        if (motor_angle >= 0)
+            dec_value = -90 + motor_angle;
+        else
+            dec_value = -90 - motor_angle;
+    }
 
     return true;
 }
@@ -1620,12 +1669,26 @@ bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, in
 {
     double motor_angle;
 
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = (dec - 90.0);
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = -(dec - 90.0);
-    else
-        return false;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = (dec - 90.0);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = -(dec - 90.0);
+        else
+            return false;
+    }
+    // Southern Hemisphere
+    else 
+    {
+        if (sop == INDI::Telescope::PIER_EAST)
+            motor_angle = -(dec + 90.0);
+        else if (sop == INDI::Telescope::PIER_WEST)
+            motor_angle = (dec + 90.0);
+        else
+            return false;
+    }
 
     *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
 
@@ -1860,7 +1923,6 @@ bool abort_pmc8(int fd)
 {
     bool rc;
 
-
     if (pmc8_simulation)
     {
         // FIXME - need to do something to represent mount has stopped slewing
@@ -1881,6 +1943,40 @@ bool abort_pmc8(int fd)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping DEC axis!");
         return false;
+    }
+
+    return true;
+}
+
+bool abort_pmc8_goto(int fd)
+{
+    char cmd[32];
+    char expresp[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+    
+    snprintf(cmd, sizeof(cmd), "ESPt300000!");
+
+    if (!pmc8_simulation)
+    {
+
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        snprintf(expresp, sizeof(expresp), "ESGt3!");
+
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))
+        {
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Abort Goto cmd response incorrect: %s - expected %s", response, expresp);
+            return false;
+        }
     }
 
     return true;
@@ -1945,10 +2041,22 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
 
-    if (hour_angle < 0.0)
-        return INDI::Telescope::PIER_WEST;
+    // Northern Hemisphere
+    if (pmc8_east_dir)
+    {
+        if (hour_angle < 0.0)
+            return INDI::Telescope::PIER_WEST;
+        else
+            return INDI::Telescope::PIER_EAST;
+    }
+    //Southern Hemisphere
     else
-        return INDI::Telescope::PIER_EAST;
+    {
+        if (hour_angle < 0.0)
+            return INDI::Telescope::PIER_EAST;
+        else
+            return INDI::Telescope::PIER_WEST;
+    }
 }
 
 bool sync_pmc8(int fd, double ra, double dec)

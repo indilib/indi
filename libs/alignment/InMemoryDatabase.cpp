@@ -28,17 +28,31 @@ InMemoryDatabase::InMemoryDatabase() : DatabaseReferencePositionIsValid(false),
 bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
         double Tolerance) const
 {
-    for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
+    return std::any_of(MySyncPoints.begin(), MySyncPoints.end(), [CandidateEntry, Tolerance](const auto & point)
     {
-        if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
-                (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
-                ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
-                 (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
-                 (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
-            return true;
-    }
-    return false;
+        return (((std::abs(point.RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
+                 (std::abs(point.Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+                ((std::abs(point.TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)));
+    });
 }
+
+void InMemoryDatabase::RemoveSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
+                                       double Tolerance)
+{
+    MySyncPoints.erase(std::remove_if(MySyncPoints.begin(), MySyncPoints.end(),
+                                      [CandidateEntry, Tolerance](const auto & point)
+    {
+        return (((std::abs(point.RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
+                 (std::abs(point.Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+                ((std::abs(point.TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+                 (std::abs(point.TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)));
+    }),
+    MySyncPoints.end());
+}
+
 
 bool InMemoryDatabase::GetDatabaseReferencePosition(IGeographicCoordinates &Position)
 {

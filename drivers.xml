@@ -29,7 +29,7 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.17</version>
+            <version>1.19</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
@@ -70,6 +70,10 @@
         <device label="AstroPhysics V2" manufacturer="Astrophysics">
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
+        </device>
+        <device label="NYX-101" manufacturer="Pegasus Astro">
+            <driver name="LX200 Autostar">indi_lx200autostar</driver>
+            <version>2.1</version>
         </device>
         <device label="ZWO AM5" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
@@ -187,6 +191,10 @@
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
         </device>
+        <device label="iOptron HAE29" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.6</version>
+        </device>
         <device label="iOptron SkyHunter" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.6</version>
@@ -289,15 +297,15 @@
         </device>
         <device label="ES G-11 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="ES EXOS2-GT PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="ES iEXOS100 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
@@ -485,7 +493,11 @@
             <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
             <version>0.4</version>
         </device>
-        <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
+        <device label="Lacerta MFOC FMC" manufacturer="Lacerta Optics">
+            <driver name="Lacerta MFOC FMC">indi_lacerta_mfoc_fmc_focus</driver>
+            <version>0.1</version>
+        </device>
+	<device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
             <version>1.0</version>
         </device>
@@ -665,6 +677,10 @@
             <driver name="GIOTTO">indi_giotto</driver>
             <version>1.0</version>
         </device>
+        <device label="ALTO" manufacturer="Primaluce Lab">
+            <driver name="ALTO">indi_alto</driver>
+            <version>1.0</version>
+        </device>
         <device label="Light Panel Simulator" manufacturer="Simulator">
             <driver name="Light Panel Simulator">indi_simulator_lightpanel</driver>
             <version>1.0</version>
@@ -688,6 +704,14 @@
         <device label="USB_Dewpoint" manufacturer="USB_Focus">
             <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
             <version>1.2</version>
+        </device>
+        <device label="myDewControllerPro" manufacturer="Robert Brown">
+            <driver name="myDewControllerPro">indi_myDewControllerPro</driver>
+            <version>1.0</version>
+        </device>
+        <device label="MyDCP4ESP32" manufacturer="DIY">
+            <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
+            <version>1.0</version>
         </device>
 		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>

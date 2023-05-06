@@ -33,6 +33,7 @@
 #include "indipropertyswitch.h"
 #include "inditimer.h"
 #include "indielapsedtimer.h"
+#include "fitskeyword.h"
 #include "dsp/manager.h"
 #include "stream/streammanager.h"
 
@@ -62,6 +63,7 @@ namespace INDI
 {
 
 class StreamManager;
+class XISFWrapper;
 
 /**
  * \class CCD
@@ -485,7 +487,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool SetCaptureFormat(uint8_t index);
 
         /**
-         * \brief Add FITS keywords to a fits file
+         * \brief Generate FITS keywords that will be added to FIST/XISF file
          * \param targetChip The target chip to extract the keywords from.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
@@ -505,7 +507,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * To add additional information, override this function in the child class and ensure to call
          * CCD::addFITSKeywords.
          */
-        virtual void addFITSKeywords(CCDChip * targetChip);
+        virtual void addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKeywords);
 
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);
@@ -703,11 +705,12 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertySwitch CaptureFormatSP {0};
 
         /// Specifies Driver image encoding format (FITS, Native, JPG, ..etc)
-        INDI::PropertySwitch EncodeFormatSP {2};
+        INDI::PropertySwitch EncodeFormatSP {3};
         enum
         {
             FORMAT_FITS,     /*!< Save Image as FITS format  */
-            FORMAT_NATIVE    /*!< Save Image as the native format of the camera itself. */
+            FORMAT_NATIVE,   /*!< Save Image as the native format of the camera itself. */
+            FORMAT_XISF      /*!< Save Image as XISF format  */
         };
 
         ISwitch UploadS[3];
@@ -765,13 +768,12 @@ class CCD : public DefaultDevice, GuiderInterface
         double m_UploadTime = { 0 };
         std::chrono::system_clock::time_point FastExposureToggleStartup;
 
-        // FITS Header
-        IText FITSHeaderT[2] {};
-        ITextVectorProperty FITSHeaderTP;
+        INDI::PropertyText FITSHeaderTP {3};
         enum
         {
-            FITS_OBSERVER,
-            FITS_OBJECT
+            KEYWORD_NAME,
+            KEYWORD_VALUE,
+            KEYWORD_COMMENT,
         };
 
     private:
@@ -781,6 +783,8 @@ class CCD : public DefaultDevice, GuiderInterface
         std::string m_ConfigCaptureFormatName;
         int m_ConfigEncodeFormatIndex {-1};
         int m_ConfigFastExposureIndex {INDI_DISABLED};
+
+        std::map<std::string, FITSRecord> m_CustomFITSKeywords;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions

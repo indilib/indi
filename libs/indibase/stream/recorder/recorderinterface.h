@@ -74,7 +74,7 @@ class RecorderInterface
         virtual bool open(const char *filename, char *errmsg)                          = 0;
         virtual bool close()                                                           = 0;
         // when frame is in known encoding format
-        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes) = 0;
+        virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes, uint64_t timestamp) = 0;
         // If streaming is enabled, then any subframing is already done by the stream recorder
         // and no need to do any further subframing operations. Otherwise, subframing must be done.
         // This is to reduce process time and save memory for a dedicated subframe buffer

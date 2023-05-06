@@ -9,9 +9,9 @@ include(CheckCCompilerFlag)
 # Build Position Independent Code
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# C++14 Support
+# C++17 Support
 if (NOT ANDROID)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif(NOT ANDROID)
 

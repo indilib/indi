@@ -77,7 +77,7 @@ bool NearestMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     // Call the base class to initialise to in in memory database pointer
     MathPlugin::Initialise(pInMemoryDatabase);
-    InMemoryDatabase::AlignmentDatabaseType &SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
+    const auto &SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
     // Clear all extended alignment points so we can re-create them.
     ExtendedAlignmentPoints.clear();
 
@@ -133,10 +133,12 @@ bool NearestMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
         double JulianOffset, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
+    // Get Position
     IGeographicCoordinates Position;
     if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
+    // Get Julian date from system and apply Julian Offset if any.
     double JDD = ln_get_julian_from_sys() + JulianOffset;
 
     // Compute CURRENT horizontal coords.
@@ -144,46 +146,54 @@ bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscensio
     INDI::IHorizontalCoordinates CelestialAltAz;
     EquatorialToHorizontal(&CelestialRADE, &Position, JDD, &CelestialAltAz);
 
-    // Do nothing if we don't have sync points.
+    // Return Telescope Direction Vector directly from Celestial coordinates if we
+    // do not have any sync points.
     if (ExtendedAlignmentPoints.empty())
     {
         if (ApproximateMountAlignment == ZENITH)
         {
+            // Return Alt-Az Telescope Direction Vector For Alt-Az mounts.
             ApparentTelescopeDirectionVector = TelescopeDirectionVectorFromAltitudeAzimuth(CelestialAltAz);
         }
         // Equatorial?
         else
         {
+            // Return RA-DE Telescope Direction Vector for Equatorial mounts.
             ApparentTelescopeDirectionVector = TelescopeDirectionVectorFromEquatorialCoordinates(CelestialRADE);
         }
 
         return true;
     }
 
-    // Get Nearest Point
+    // If we have sync points, then get the Nearest Point
     ExtendedAlignmentDatabaseEntry nearest = GetNearestPoint(CelestialAltAz.azimuth, CelestialAltAz.altitude, true);
 
     INDI::IEquatorialCoordinates TelescopeRADE;
+
+    // Get the nearest point in the telescope reference frame
+
+    // Alt-Az? Transform the nearest telescope direction vector to telescope Alt-Az and then to telescope RA/DE
     if (ApproximateMountAlignment == ZENITH)
     {
-        INDI::IHorizontalCoordinates CelestialAltAz;
-        AltitudeAzimuthFromTelescopeDirectionVector(nearest.TelescopeDirection, CelestialAltAz);
-        HorizontalToEquatorial(&CelestialAltAz, &Position, nearest.ObservationJulianDate + JulianOffset, &TelescopeRADE);
+        INDI::IHorizontalCoordinates TelescopeAltAz;
+        AltitudeAzimuthFromTelescopeDirectionVector(nearest.TelescopeDirection, TelescopeAltAz);
+        HorizontalToEquatorial(&TelescopeAltAz, &Position, nearest.ObservationJulianDate, &TelescopeRADE);
     }
-    // Equatorial?
+    // Equatorial? Transform nearest directly to telescope RA/DE
     else
     {
         EquatorialCoordinatesFromTelescopeDirectionVector(nearest.TelescopeDirection, TelescopeRADE);
     }
 
     // Adjust the Celestial coordinates to account for the offset between the nearest point and the telescope
-    // e.g. Celestial RA = 5. Nearest Point (Target: 4, Telescope: 3)
+    // e.g. Celestial RA = 5. Nearest Point (Sky: 4, Telescope: 3)
     // Means Final Telescope RA = 5 - (4-3) = 4
-    // So we can issue GOTO to ~4, and it should up near Celestial RA ~5
+    // So we can issue GOTO to RA ~4, and it should up near Celestial RA ~5
     INDI::IEquatorialCoordinates TransformedTelescopeRADE = CelestialRADE;
     TransformedTelescopeRADE.rightascension -= (nearest.RightAscension - TelescopeRADE.rightascension);
     TransformedTelescopeRADE.declination -= (nearest.Declination - TelescopeRADE.declination);
 
+    // Final step is to convert transformed telescope coordinates to a direction vector
     if (ApproximateMountAlignment == ZENITH)
     {
         INDI::IHorizontalCoordinates TransformedTelescopeAltAz;
