@@ -45,6 +45,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
 #include "lx200am5.h"
+#include "lx200_pegasus_nyx101.h"
 #include <cmath>
 #include <memory>
 #include <cstring>
@@ -164,6 +165,11 @@ static class Loader
             {
                 IDLog("initializing for OpenAstroTech mount...\n");
                 telescope.reset(new LX200_OpenAstroTech());
+            }
+            else if (strstr(__progname, "indi_lx200_pegasus_nyx101"))
+            {
+                IDLog("initializing for Pegasus NYX-101 mount...\n");
+                telescope.reset(new LX200NYX101());
             }
             // be nice and give them a generic device
             else
