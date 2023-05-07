@@ -433,9 +433,6 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 
     FocusAbsPosN[0].value = targetTicks;
 
-    //only for debugging! Maybe there is a bug in the MFOC firmware command "Q #"!
-    GetAbsFocuserPosition();
-
     return IPS_OK;
 }
 
@@ -445,7 +442,13 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    uint32_t targetTicks = 0;
+    if (dir == FOCUS_INWARD) {
+      targetTicks = FocusAbsPosN[0].value - ticks;
+    } else {
+      targetTicks = FocusAbsPosN[0].value + ticks;
+    }
+
     FocusAbsPosNP.s = IPS_BUSY;
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
@@ -475,10 +478,11 @@ uint32_t lacerta_mfoc::GetAbsFocuserPosition()
     int nbytes_written = 0;
     int nbytes_read = 0;
 
+    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
+    LOGF_INFO("CMD <%s>", MFOC_cmd);
+
     do
     {
-        tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-        LOGF_INFO("CMD <%s>", MFOC_cmd);
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
     }
