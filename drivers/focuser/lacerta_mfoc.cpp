@@ -425,14 +425,9 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD <%s>", MFOC_cmd);
-
-    //Waiting makes no sense - will be immediatly interrupted by the ekos system...
-    //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
-    //LOGF_INFO("sleep for %d ms", ticks);
-    //usleep(ticks + 5000);
-
     FocusAbsPosN[0].value = targetTicks;
 
+    GetAbsFocuserPosition();
     return IPS_OK;
 }
 
@@ -454,6 +449,10 @@ IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     return MoveAbsFocuser(targetTicks);
 }
+    //Waiting makes no sense - will be immediatly interrupted by the ekos system...
+    //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
+    //LOGF_INFO("sleep for %d ms", ticks);
+    //usleep(ticks + 5000);
 
 
 bool lacerta_mfoc::saveConfigItems(FILE *fp)
@@ -477,6 +476,7 @@ uint32_t lacerta_mfoc::GetAbsFocuserPosition()
 
     int nbytes_written = 0;
     int nbytes_read = 0;
+    int count = 0;
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_INFO("CMD <%s>", MFOC_cmd);
@@ -485,8 +485,9 @@ uint32_t lacerta_mfoc::GetAbsFocuserPosition()
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
+        count++;
     }
-    while(strcmp(MFOC_res_type, "P") != 0);
+    while(strcmp(MFOC_res_type, "P") != 0 && count < 100);
 
     LOGF_DEBUG("RES <%s>", MFOC_res_type);
     LOGF_DEBUG("current position: %d", MFOC_pos_measd);
