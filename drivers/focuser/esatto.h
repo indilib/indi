@@ -37,7 +37,6 @@ class Esatto : public INDI::Focuser
 
     protected:
         virtual bool Handshake() override;
-        virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual bool ReverseFocuser(bool enabled) override;
@@ -50,14 +49,16 @@ class Esatto : public INDI::Focuser
 
         bool updateTemperature();        
         bool updatePosition();
+        bool updateVoltageIn();
         bool updateMaxLimit();
 
         void setConnectionParams();
         bool initCommandSet();
-        void checkMotionProgressCallback();        
 
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
+
+        uint16_t m_TemperatureCounter { 0 };
 
         INDI::PropertyNumber TemperatureNP {2};
         enum
@@ -73,6 +74,13 @@ class Esatto : public INDI::Focuser
             FIRMWARE_VERSION,
         };
 
+        INDI::PropertyNumber VoltageNP {2};
+        enum
+        {
+            VOLTAGE_12V,
+            VOLTAGE_USB
+        };
+
         INDI::PropertySwitch FastMoveSP {3};
         enum
         {
@@ -81,8 +89,6 @@ class Esatto : public INDI::Focuser
             FASTMOVE_STOP
         };
 
-        INDI::Timer m_MotionProgressTimer;
-        INDI::Timer m_TemperatureTimer;
-
-        std::unique_ptr<PrimalucaLabs::Focuser> m_Esatto;
+        std::unique_ptr<PrimalucaLabs::Esatto> m_Esatto;
+        static constexpr uint8_t TEMPERATURE_FREQUENCY {10};
 };
