@@ -156,7 +156,7 @@ bool lacerta_mfoc::Handshake()
 
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD <%s>", MFOC_cmd);
+    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
     tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
     LOGF_DEBUG("RES <%s>", MFOC_res_type);
 
@@ -352,7 +352,6 @@ bool lacerta_mfoc::SetFocuserBacklash(int32_t steps)
 
 bool lacerta_mfoc::SetTempComp(double values[], char *names[], int n)
 {
-    LOGF_INFO("-> TEMPCOMP_SETTINGS", 0);
     char MFOC_cmd[32]  = ": D ";
     char MFOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -479,7 +478,7 @@ uint32_t lacerta_mfoc::GetAbsFocuserPosition()
     int count = 0;
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD <%s>", MFOC_cmd);
+    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
 
     do
     {
