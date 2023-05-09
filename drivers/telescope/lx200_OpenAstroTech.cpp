@@ -66,12 +66,12 @@ bool LX200_OpenAstroTech::initProperties()
     initFocuserProperties(FOCUS_TAB);
 
     // Polar Align Alt
-    IUFillNumber(&PolarAlignAltN, "OAT_POLAR_ALT", "Arcsecs", "%.f", -500.0, 500.0, 10.0, 0);
+    IUFillNumber(&PolarAlignAltN, "OAT_POLAR_ALT", "Arcmin", "%.f", -140.0, 140.0, 1.0, 0);
     IUFillNumberVector(&PolarAlignAltNP, &PolarAlignAltN, 1, m_defaultDevice->getDeviceName(), "POLAR_ALT",
                        "Polar Align Alt",
                        MOTION_TAB, IP_RW, 60, IPS_OK);
     // Polar Align Az
-    IUFillNumber(&PolarAlignAzN, "OAT_POLAR_AZ", "Arcsecs", "%.f", -500.0, 500.0, 10.0, 0);
+    IUFillNumber(&PolarAlignAzN, "OAT_POLAR_AZ", "Arcmin", "%.f", -320.0, 320.0, 1.0, 0);
     IUFillNumberVector(&PolarAlignAzNP, &PolarAlignAzN, 1, m_defaultDevice->getDeviceName(), "POLAR_AZ",
                        "Polar Align Azimuth",
                        MOTION_TAB, IP_RW, 60, IPS_OK);
@@ -167,11 +167,11 @@ int LX200_OpenAstroTech::OATUpdateProperties()
     {
         const char *motors = strchr(value, ',') + 1;
         if(PolarAlignAzNP.s == IPS_BUSY && motors[3] =='-') {
-            PolarAlignAzNP.s = IPS_IDLE;
+            PolarAlignAzNP.s = IPS_OK;
             IDSetNumber(&PolarAlignAzNP, nullptr);
         }
         if(PolarAlignAltNP.s == IPS_BUSY && motors[4] =='-') {
-            PolarAlignAltNP.s = IPS_IDLE;
+            PolarAlignAltNP.s = IPS_OK;
             IDSetNumber(&PolarAlignAltNP, nullptr);
         }
         if(RAHomeNP.s == IPS_BUSY && value[0] == 'H') 
@@ -180,7 +180,7 @@ int LX200_OpenAstroTech::OATUpdateProperties()
             IDSetNumber(&RAHomeNP, nullptr);
         }
     }
-    updateProperties();
+    //updateProperties();
     return 0;
 }
 
