@@ -267,7 +267,11 @@ bool SkywatcherAPIMount::initProperties()
     tcpConnection->setDefaultPort(11880);
     tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
 
-    if (strstr(getDeviceName(), "GTi"))
+    if (strstr(getDeviceName(), "Wired"))
+    {
+        setActiveConnection(serialConnection);
+    }
+    else if (strstr(getDeviceName(), "GTi"))
     {
         setActiveConnection(tcpConnection);
         tcpConnection->setLANSearchEnabled(true);
