@@ -508,7 +508,7 @@ bool CCD::initProperties()
 
     addPollPeriodControl();
 
-    setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
+    setDriverInterface(CCD_INTERFACE);
 
     return true;
 }
