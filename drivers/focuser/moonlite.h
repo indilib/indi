@@ -137,6 +137,10 @@ class MoonLite : public INDI::Focuser
         ISwitch TemperatureCompensateS[2];
         ISwitchVectorProperty TemperatureCompensateSP;
 
+        //Goto Home Position
+        ISwitch GotoHomeS[1];
+        ISwitchVectorProperty GotoHomeSP;
+
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };
         // MoonLite Delimeter

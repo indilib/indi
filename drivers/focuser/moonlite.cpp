@@ -71,6 +71,10 @@ bool MoonLite::initProperties()
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
+    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "FOCUS_HOME", "Home", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = 50000.;
@@ -98,6 +102,7 @@ bool MoonLite::updateProperties()
         defineProperty(&StepModeSP);
         defineProperty(&TemperatureSettingNP);
         defineProperty(&TemperatureCompensateSP);
+        defineProperty(&GotoHomeSP);
 
         GetFocusParams();
 
@@ -109,6 +114,8 @@ bool MoonLite::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(GotoHomeSP.name);
+
     }
 
     return true;
