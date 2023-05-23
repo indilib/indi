@@ -295,6 +295,17 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
     return sendCommand(cmd);
 }
 
+bool MoonLite::setGotoHome()
+{
+    char cmd[ML_RES] = {0};
+    if(isMoving())
+    {
+        AbortFocuser();
+    }
+    snprintf(cmd, ML_RES, ":PH01#");
+    return sendCommand(cmd);
+}
+
 bool MoonLite::SyncFocuser(uint32_t ticks)
 {
     char cmd[ML_RES] = {0};
@@ -394,6 +405,24 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
             IDSetSwitch(&TemperatureCompensateSP, nullptr);
             return true;
         }
+
+        // Goto Home Position
+        if (strcmp(GotoHomeSP.name, name) == 0)
+        {
+            bool rc = setGotoHome();
+            if (!rc)
+            {
+                IUResetSwitch(&GotoHomeSP);
+                GotoHomeSP.s              = IPS_ALERT;
+                IDSetSwitch(&GotoHomeSP, nullptr);
+                return false;
+            }
+
+            GotoHomeSP.s = IPS_OK;
+            IDSetSwitch(&GotoHomeSP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
