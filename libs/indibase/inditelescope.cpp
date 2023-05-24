@@ -145,28 +145,7 @@ bool Telescope::initProperties()
     IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
-    std::vector <std::tuple<std::string, std::string>> coords;
-    
-    coords.push_back(std::make_tuple("TRACK","Track"));
-
-    if(CanGOTO())
-        coords.push_back(std::make_tuple("SLEW","Slew"));
-
-    if(CanSync())
-        coords.push_back(std::make_tuple("SYNC","Sync"));
-
-    if(CanFlip())
-        coords.push_back(std::make_tuple("FLIP","Flip"));
-
-    int j = 0;
-    for(auto i : coords){
-        IUFillSwitch(&CoordS[j], std::get<0>(i).c_str(), std::get<1>(i).c_str(), j==0 ? ISS_ON : ISS_OFF);
-        ++j;
-    }
-
-    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
+    generateCoordSet();
 
     if (nSlewRate >= 4)
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
@@ -873,7 +852,8 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
 
                 bool doFlip = false;
-                if (CanFlip()){
+                if (CanFlip())
+                {
                     ISwitch *sw;
                     sw = IUFindSwitch(&CoordSP, "FLIP");
                     if ((sw != nullptr) && (sw->s == ISS_ON))
@@ -881,14 +861,16 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                         doFlip = true;
                     }
                 }
-                
+
                 // Remember Track State
                 RememberTrackState = TrackState;
                 // Issue GOTO/Flip
                 if(doFlip)
                 {
                     rc = Flip(ra, dec);
-                } else {
+                }
+                else
+                {
                     rc = Goto(ra, dec);
                 }
                 if (rc)
@@ -1866,26 +1848,38 @@ bool Telescope::SetParkPosition(double Axis1Value, double Axis2Value)
     return true;
 }
 
+void Telescope::generateCoordSet()
+{
+    std::vector <std::tuple<std::string, std::string>> coords;
+
+    coords.push_back(std::make_tuple("TRACK", "Track"));
+
+    if(CanGOTO())
+        coords.push_back(std::make_tuple("SLEW", "Slew"));
+
+    if(CanSync())
+        coords.push_back(std::make_tuple("SYNC", "Sync"));
+
+    if(CanFlip())
+        coords.push_back(std::make_tuple("FLIP", "Flip"));
+
+    int j = 0;
+    for(auto i : coords)
+    {
+        IUFillSwitch(&CoordS[j], std::get<0>(i).c_str(), std::get<1>(i).c_str(), j == 0 ? ISS_ON : ISS_OFF);
+        ++j;
+    }
+
+    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
+}
+
 void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 {
     capability = cap;
     nSlewRate  = slewRateCount;
 
-    // If both GOTO and SYNC are supported
-    if (CanGOTO() && CanSync())
-        IUFillSwitchVector(&CoordSP, CoordS, 3, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    // If ONLY GOTO is supported
-    else if (CanGOTO())
-        IUFillSwitchVector(&CoordSP, CoordS, 2, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    // If ONLY SYNC is supported
-    else if (CanSync())
-    {
-        IUFillSwitch(&CoordS[0], "SYNC", "Sync", ISS_ON);
-        IUFillSwitchVector(&CoordSP, CoordS, 1, getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
-                           ISR_1OFMANY, 60, IPS_IDLE);
-    }
+    generateCoordSet();
 
     if (nSlewRate >= 4)
     {
