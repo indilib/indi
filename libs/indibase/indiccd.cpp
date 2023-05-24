@@ -1228,6 +1228,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             ScopeInfoNP.update(values, names, n);
             ScopeInfoNP.setState(IPS_OK);
             ScopeInfoNP.apply();
+            saveConfig(true, ScopeInfoNP.getName());
             return true;
         }
 
@@ -2799,6 +2800,8 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasDSP())
         DSP->saveConfigItems(fp);
+
+    ScopeInfoNP.save(fp);
 
     return true;
 }
