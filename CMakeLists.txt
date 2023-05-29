@@ -381,6 +381,7 @@ endif()
 if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib.h
         ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
     )
