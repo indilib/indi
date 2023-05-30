@@ -29,11 +29,14 @@ class SharedBuffer;
  */
 class ConnectionMock
 {
+    private:
         int fds[2];
+        int pendingChar;
         std::list<int> receivedFds;
         bool bufferReceiveAllowed;
         ssize_t read(void * buff, size_t count);
         char readChar(const std::string &expected);
+        char peekChar(const std::string &expected);
 
         void release();
         std::string receiveMore();
@@ -49,6 +52,7 @@ class ConnectionMock
 
         void expect(const std::string &content);
         void expectXml(const std::string &xml);
+        std::string expectBase64();
         void send(const std::string &content);
         void send(const std::string &content, const SharedBuffer &buff);
         void send(const std::string &content, const SharedBuffer ** buffers);

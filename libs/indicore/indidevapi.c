@@ -528,12 +528,11 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
 
             XMLAtt *fa = findXMLAtt(ep, "format");
             XMLAtt *sa = findXMLAtt(ep, "size");
-            XMLAtt *ec = findXMLAtt(ep, "enclen");
-            if (fa && sa && ec)
+            if (fa && sa)
             {
-                int enclen  = atoi(valuXMLAtt(ec));
-                assert_mem(bp->blob = realloc(bp->blob, 3 * enclen / 4));
-                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
+                int base64datalen = pcdatalenXMLEle(ep);
+                assert_mem(bp->blob = realloc(bp->blob, 3 * base64datalen / 4));
+                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), base64datalen);
                 indi_strlcpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
                 bp->size = atoi(valuXMLAtt(sa));
             }
