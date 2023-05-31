@@ -1,3 +1,29 @@
++ From 2.0.1 to 2.0.2
+
+      f8b829b6c 2023-05-30 pludov               Debug blob snooping (#1902)                                                                                                                           
+      8588609d7 2023-05-25 Jasem Mutlaq         Use ms for ISO8601                                                                                                                                    
+      cfb560f36 2023-05-24 Jasem Mutlaq         Save scope info in config                                                                                                                             
+      b20959f70 2023-05-24 Jasem Mutlaq         Ensure coord property is re-generated properly when set capabilities is called.                                                                       
+      5b05eb930 2023-05-19 Jasem Mutlaq         Do not prematurely define guide interface until it is explicitly set by setCCDCapability                                                              
+      b6d35bdc2 2023-05-17 Konstantin Baranov   PLL: Treat ERR messages as out-of-bound warnings (#1896)                                                                                              
+      0ab1221cc 2023-05-13 Jasem Mutlaq         Fix URL                                                                                                                                               
+      776a960c6 2023-05-10 Jasem Mutlaq         Fix behavior of saving detected physical port to device port when no default configuration port was defined                                           
+      3b62a5f6e 2023-05-10 Jasem Mutlaq         For wired connection set serial as default                                                                                                            
+      bbd59dc1f 2023-05-09 Konstantin Baranov   Esatto: Port state tracking from EsattoArco (#1897)                                                                                                   
+      055f17e1a 2023-05-09 Evgeniy              Fix AutoPA lx200 OpenAstroTech (#1898)                                                                                                                
+      da1fd8259 2023-05-08 Jasem Mutlaq         Try to dispatch command twice in case of timeout error. Fixes #1618                                                                                   
+      acf933197 2023-05-08 Christian Liska      Bugfix/mfoc rel movement error (#1894)                                                                                                                
+      f3d57c8b0 2023-05-06 Efstathios Chrysikos Pegasus NYX-101 (#1893)                                                                                                                               
+      399e5e4ac 2023-04-19 Jasem Mutlaq         Improve API                                                                                                                                           
+      252152241 2023-04-19 Jasem Mutlaq         Add function to remove duplicate point within a tolerance                                                                                             
+      3a646f296 2023-04-18 panicgh              Enable testing from the top-level build directory (#1889)                                                                                             
+      7469230d3 2023-04-17 James Amendolagine   Add Flip functionality (#1880)                                                                                                                        
+      0aa3c6275 2023-04-11 Jasem Mutlaq         Disable :GH for base LX200 class                                                                                                                      
+      341bba073 2023-04-09 Jasem Mutlaq         Try to get daylight savings from mount. Needs testing                                                                                                 
+      7fab8bf31 2023-04-09 Jasem Mutlaq         INDI 2.0.2 development cycle                                                                                                                          
+      2a6b6d9e6 2023-04-07 Alain                Minor Fixes discrepancies Indi / SmartwebServer (#1887)                                                                                               
+      566336624 2023-04-05 Jasem Mutlaq         Update README to correct libdc1394 and add libxisf
+
 + From 1.9.7 to 1.9.8
 
     d3e668303 2022-09-27 Jasem Mutlaq         Fix using label when name should be used instead since it is the only attribute saved in the configuration file. Fixes #1736
