@@ -261,3 +261,11 @@ add_executable(indi_skywatcherAltAzMount
 target_link_libraries(indi_skywatcherAltAzMount AlignmentDriver indidriver)
 
 install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)
+
+# ########## Planewave Mount ##############
+add_executable(indi_planewave_telescope
+    planewave_mount.cpp)
+
+target_link_libraries(indi_planewave_telescope indidriver)
+
+install(TARGETS indi_planewave_telescope RUNTIME DESTINATION bin)

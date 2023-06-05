@@ -311,6 +311,10 @@
             <driver name="PMC8">indi_pmc8_telescope</driver>
             <version>0.5</version>
         </device>
+        <device label="Planewave" manufacturer="Planewave Instruments">
+            <driver name="Planewave">indi_planewave_telescope</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Focusers">
         <device label="Focuser Simulator" manufacturer="Simulator">
