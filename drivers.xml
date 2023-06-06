@@ -651,7 +651,7 @@
         </device>
         <device label="WatchDog" manufacturer="Others">
             <driver name="WatchDog">indi_watchdog</driver>
-            <version>0.3</version>
+            <version>0.4</version>
         </device>
         <device label="Joystick" manufacturer="Others">
             <driver name="Joystick">indi_joystick</driver>
