@@ -248,11 +248,11 @@ bool PropertyView<IBLOB>::update(
 {
     if (WeakIUUpdateBLOB)
         return WeakIUUpdateBLOB(
-               this,
-               const_cast<int *>(sizes), const_cast<int *>(blobsizes),
-               const_cast<char **>(blobs), const_cast<char **>(formats),
-               const_cast<char **>(names), n
-           ) == 0;
+                   this,
+                   const_cast<int *>(sizes), const_cast<int *>(blobsizes),
+                   const_cast<char **>(blobs), const_cast<char **>(formats),
+                   const_cast<char **>(names), n
+               ) == 0;
 
     errorUnavailable(__FUNCTION__);
     return false;

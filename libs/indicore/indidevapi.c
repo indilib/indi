@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 /** \section IUSave */
 
@@ -48,6 +49,187 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
     bp->blob    = blob;
     indi_strlcpy(bp->format, format, MAXINDIFORMAT);
     return 0;
+}
+
+/** Get configuration root XML pointer
+ *  N.B. Must be freed by the caller */
+XMLEle *configRootFP(const char *device)
+{
+    static const int MAXRBUF = 2048;
+    char configFileName[MAXRBUF];
+    char configDir[MAXRBUF];
+    char errmsg[MAXRBUF];
+    struct stat st;
+    FILE *fp = NULL;
+
+    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
+
+        if (getenv("INDICONFIG"))
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+            snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, device);
+
+
+    if (stat(configDir, &st) != 0)
+    {
+        if (mkdir(configDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
+            return NULL;
+    }
+
+    stat(configFileName, &st);
+    /* If file is owned by root and current user is NOT root then abort */
+    if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
+        return NULL;
+
+    fp = fopen(configFileName, "r");
+    if (fp == NULL)
+        return NULL;
+
+    LilXML *lp = newLilXML();
+
+    XMLEle *root = readXMLFile(fp, lp, errmsg);
+
+    delLilXML(lp);
+    fclose(fp);
+
+    return root;
+}
+/** \section IULoad */
+
+int IULoadConfigNumber(const INumberVectorProperty *nvp)
+{
+    char errmsg[1024];
+    char *rdev, *rname;
+    int foundCounter = 0;
+    XMLEle *root = configRootFP(nvp->device);
+    if (root == NULL)
+        return -1;
+
+    XMLEle *ep = NULL;
+
+    for (ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(ep, &rdev, &rname, errmsg) < 0)
+        {
+            delXMLEle(root);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(nvp->device, rdev))
+            continue;
+
+        if (!strcmp(nvp->name, rname))
+        {
+            XMLEle *element = NULL;
+            for (element = nextXMLEle(ep, 1); element != NULL; element = nextXMLEle(ep, 0))
+            {
+                INumber *member = IUFindNumber(nvp, findXMLAttValu(element, "name"));
+                if (member)
+                {
+                    member->value = atof(pcdataXMLEle(element));
+                    foundCounter++;
+                }
+            }
+            break;
+        }
+    }
+
+    delXMLEle(root);
+    return foundCounter;
+}
+
+int IULoadConfigText(const ITextVectorProperty *tvp)
+{
+    char errmsg[1024];
+    char *rdev, *rname;
+    int foundCounter = 0;
+    XMLEle *root = configRootFP(tvp->device);
+    if (root == NULL)
+        return -1;
+
+    XMLEle *ep = NULL;
+
+    for (ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(ep, &rdev, &rname, errmsg) < 0)
+        {
+            delXMLEle(root);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(tvp->device, rdev))
+            continue;
+
+        if (!strcmp(tvp->name, rname))
+        {
+            XMLEle *element = NULL;
+            for (element = nextXMLEle(ep, 1); element != NULL; element = nextXMLEle(ep, 0))
+            {
+                IText *member = IUFindText(tvp, findXMLAttValu(element, "name"));
+                if (member)
+                {
+                    IUSaveText(member, pcdataXMLEle(element));
+                    foundCounter++;
+                }
+            }
+            break;
+        }
+    }
+
+    delXMLEle(root);
+    return foundCounter;
+}
+
+int IULoadConfigSwitch(const ISwitchVectorProperty *svp)
+{
+    char errmsg[1024];
+    char *rdev, *rname;
+    int foundCounter = 0;
+    XMLEle *root = configRootFP(svp->device);
+    if (root == NULL)
+        return -1;
+
+    XMLEle *ep = NULL;
+
+    for (ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(ep, &rdev, &rname, errmsg) < 0)
+        {
+            delXMLEle(root);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(svp->device, rdev))
+            continue;
+
+        if (!strcmp(svp->name, rname))
+        {
+            XMLEle *element = NULL;
+            for (element = nextXMLEle(ep, 1); element != NULL; element = nextXMLEle(ep, 0))
+            {
+                ISwitch *member = IUFindSwitch(svp, findXMLAttValu(element, "name"));
+                if (member)
+                {
+                    ISState state;
+                    if (crackISState(pcdataXMLEle(element), &state) == 0)
+                    {
+                        member->s = state;
+                        foundCounter++;
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    delXMLEle(root);
+    return foundCounter;
 }
 
 /** \section IUFind */
