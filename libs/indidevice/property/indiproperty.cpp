@@ -497,6 +497,13 @@ PropertyViewBlob *Property::getBLOB() const
     return nullptr;
 }
 
+bool Property::load()
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->load(); )
+    return false;
+}
+
 void Property::save(FILE *fp) const
 {
     D_PTR(const Property);
