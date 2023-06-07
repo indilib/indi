@@ -108,6 +108,12 @@ class Receiver : public virtual SensorInterface
         void setFrequency(double freq);
 
         /**
+         * @brief setBPS Set the bits per sample.
+         * @param BPS bits per sample
+         */
+        void setBPS(int BPS);
+
+        /**
          * @brief getBandwidth Get requested integration bandwidth for the sensor in Hz.
          * @return requested integration bandwidth for the sensor in Hz.
          */
@@ -191,6 +197,7 @@ class Receiver : public virtual SensorInterface
         INumber ReceiverSettingsN[7];
 
     private:
+        int BitsPerSample;
         double Frequency;
         double SampleRate;
         double Bandwidth;
