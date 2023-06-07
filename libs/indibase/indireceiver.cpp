@@ -159,6 +159,17 @@ void Receiver::setFrequency(double freq)
     ReceiverSettingsN[Receiver::RECEIVER_FREQUENCY].value = freq;
 
     IDSetNumber(&ReceiverSettingsNP, nullptr);
+
+}
+
+void Receiver::setBPS(int BPS)
+{
+    BitsPerSample = BPS;
+
+    ReceiverSettingsN[Receiver::RECEIVER_BITSPERSAMPLE].value = BitsPerSample;
+
+    IDSetNumber(&ReceiverSettingsNP, nullptr);
+    SensorInterface::setBPS(BPS);
 }
 
 void Receiver::SetReceiverCapability(uint32_t cap)
