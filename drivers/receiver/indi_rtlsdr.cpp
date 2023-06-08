@@ -53,6 +53,7 @@ void RTLSDR::Callback()
     b_read = 0;
     n_read = 0;
     setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 8);
+    setBufferSize(getBufferSize()+(MAX_FRAME_SIZE-(getBufferSize()%MAX_FRAME_SIZE)));
     to_read = getBufferSize();
     buffer = (unsigned char *)realloc(buffer, min(MAX_FRAME_SIZE, getBufferSize()));
     if((getSensorConnection() & CONNECTION_TCP) == 0)
