@@ -23,7 +23,6 @@
 
 #include "indicom.h"
 #include "inditimer.h"
-#include "inicpp.h"
 #include "httplib.h"
 #include "connectionplugins/connectiontcp.h"
 #include <libnova/sidereal_time.h>
@@ -132,7 +131,7 @@ bool PlaneWave::Handshake()
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::getStatus()
 {
-    return false;
+    return dispatch("/status");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -361,14 +360,26 @@ bool PlaneWave::saveConfigItems(FILE *fp)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool PlaneWave::dispatch(const std::string &request, std::string &response)
+bool PlaneWave::dispatch(const std::string &request)
 {
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
 
     if (auto res = cli.Get(request))
     {
-        response = res->body;
-        return true;
+        try
+        {
+            ini::IniFile inif;
+            inif.decode("[status]\n" + res->body);
+            if (inif["status"].size() == 0)
+                return false;
+            m_Status = inif["status"];
+            return true;
+        }
+        catch (std::exception &e)
+        {
+            LOGF_ERROR("Failed to process status response: %s", e.what());
+            return false;
+        }
     }
     else
     {
