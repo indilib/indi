@@ -1242,11 +1242,11 @@ void SensorInterface::setBPS(int bps)
 
 }
 
-
 bool SensorInterface::Handshake()
 {
     return false;
 }
+
 
 bool SensorInterface::callHandshake()
 {

@@ -53,6 +53,7 @@ void RTLSDR::Callback()
     b_read = 0;
     n_read = 0;
     setBufferSize(getSampleRate() * IntegrationRequest * getBPS() / 8);
+    setBufferSize(getBufferSize() + MAX_FRAME_SIZE - (getBufferSize() % MAX_FRAME_SIZE));
     to_read = getBufferSize();
     buffer = (unsigned char *)realloc(buffer, min(MAX_FRAME_SIZE, getBufferSize()));
     if((getSensorConnection() & CONNECTION_TCP) == 0)
@@ -65,7 +66,7 @@ void RTLSDR::Callback()
     gettimeofday(&IntStart, nullptr);
     while (InIntegration)
     {
-        if (to_read > 0)
+        if (to_read > 1)
         {
             if((getSensorConnection() & CONNECTION_TCP) == 0)
                 rtlsdr_read_sync(rtl_dev, continuum + b_read, min(MAX_FRAME_SIZE, to_read), &n_read);
@@ -79,7 +80,6 @@ void RTLSDR::Callback()
         } else {
             if(!streamPredicate)
             {
-                InIntegration = false;
                 IntegrationComplete();
             }
             else
@@ -87,6 +87,7 @@ void RTLSDR::Callback()
                 StartIntegration(1.0 / Streamer->getTargetFPS());
                 Streamer->newFrame(getBuffer(), getBufferSize());
             }
+            InIntegration = false;
             LOG_INFO("Download complete.");
         }
     }
