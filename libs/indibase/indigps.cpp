@@ -78,7 +78,7 @@ bool GPS::updateProperties()
         if (state != IPS_OK)
         {
             if (state == IPS_BUSY)
-                DEBUG(Logger::DBG_SESSION, "GPS fix is in progress...");
+                LOG_INFO("GPS fix is in progress...");
 
             timerID = SetTimer(getCurrentPollingPeriod());
         }
@@ -102,6 +102,9 @@ bool GPS::updateProperties()
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 void GPS::TimerHit()
 {
     if (!isConnected())
@@ -128,14 +131,7 @@ void GPS::TimerHit()
 
             // Update system time
             // This ideally should be done only ONCE
-            {
-                std::tm utm;
-                if (strptime(TimeTP[0].getText(), "%Y-%m-%dT%H:%M:%S", &utm))
-                {
-                    std::time_t raw_time = std::mktime(&utm);
-                    setSystemTime(m_GPSTime);
-                }
-            }
+            setSystemTime(m_GPSTime);
             return;
             break;
 
@@ -154,8 +150,7 @@ void GPS::TimerHit()
 
 IPState GPS::updateGPS()
 {
-    DEBUG(Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
-          "GEOGRAPHIC_COORD properties.");
+    LOG_ERROR("updateGPS() must be implemented in GPS device child class to update TIME_UTC and GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
@@ -184,7 +179,9 @@ bool GPS::setSystemTime(time_t &raw_time)
     return true;
 }
 
-
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -203,6 +200,9 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -220,14 +220,14 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
 
             if (PeriodNP[0].getValue() == 0)
             {
-                DEBUG(Logger::DBG_SESSION, "GPS Update Timer disabled.");
+                LOG_INFO("GPS Update Timer disabled.");
             }
             else
             {
                 timerID = SetTimer(PeriodNP[0].value * 1000);
                 // Need to warn user this is not recommended. Startup values should be enough
                 if (prevPeriod == 0)
-                    DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
+                    LOG_INFO("GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
             }
 
             PeriodNP.setState(IPS_OK);
@@ -240,6 +240,9 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
