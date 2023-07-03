@@ -33,6 +33,8 @@ bool GPS::initProperties()
 {
     DefaultDevice::initProperties();
 
+    time(&m_GPSTime);
+
     PeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
     PeriodNP.fill(getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -131,7 +133,7 @@ void GPS::TimerHit()
                 if (strptime(TimeTP[0].getText(), "%Y-%m-%dT%H:%M:%S", &utm))
                 {
                     std::time_t raw_time = std::mktime(&utm);
-                    setSystemTime(raw_time);
+                    setSystemTime(m_GPSTime);
                 }
             }
             return;

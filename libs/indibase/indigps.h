@@ -102,5 +102,8 @@ class GPS : public DefaultDevice
         INDI::PropertyNumber PeriodNP {1};
 
         int timerID = -1;
+
+        // # of seconds since 1970 UTC
+        std::time_t m_GPSTime;
 };
 }
