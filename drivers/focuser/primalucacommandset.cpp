@@ -74,7 +74,8 @@ bool Communication::sendRequest(const json &command, json *response)
         return true;
 
     char read_buf[DRIVER_LEN];
-    do {
+    do
+    {
         memset(read_buf, 0, sizeof(read_buf));
         if ( (tty_rc = tty_read_section(m_PortFD, read_buf, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
@@ -83,7 +84,8 @@ bool Communication::sendRequest(const json &command, json *response)
             LOGF_ERROR("Serial write error: %s", errorMessage);
             return false;
         }
-    } while (strncmp(read_buf, "ERR:", 4) == 0 && (LOGF_WARN("%s", read_buf), true));
+    }
+    while (strncmp(read_buf, "ERR:", 4) == 0 && (LOGF_WARN("%s", read_buf), true));
 
     LOGF_DEBUG("<RES> %s", read_buf);
 
@@ -880,7 +882,7 @@ bool ALTO::initCalibration()
 *******************************************************************************************************/
 bool ALTO::close(bool fast)
 {
-    return m_Communication->command(MOT_1, {{"CAL_ALTO", fast ? "Open_Fast" : "Open_Slow"}});
+    return m_Communication->command(MOT_1, {{"CAL_ALTO", fast ? "Close_Fast" : "Close_Slow"}});
 }
 
 /******************************************************************************************************
@@ -888,7 +890,7 @@ bool ALTO::close(bool fast)
 *******************************************************************************************************/
 bool ALTO::open(bool fast)
 {
-    return m_Communication->command(MOT_1, {{"CAL_ALTO", fast ? "Close_Fast" : "Close_Slow"}});
+    return m_Communication->command(MOT_1, {{"CAL_ALTO", fast ? "Open_Fast" : "Open_Slow"}});
 }
 
 /******************************************************************************************************
