@@ -59,6 +59,8 @@ IPState GPSSimulator::updateGPS()
     time_t raw_time;
     time(&raw_time);
 
+    m_GPSTime = raw_time;
+
     utc = gmtime(&raw_time);
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
     TimeTP[0].setText(ts);

@@ -257,6 +257,8 @@ IPState UranusMeteo::updateGPS()
             auto utcOffset = local->tm_gmtoff / 3600.0;
             // Convert to UTC time
             time_t utcTime = raw_time - utcOffset * 3600.0;
+            // Store in GPS
+            m_GPSTime = utcTime;
             // Get tm struct in UTC
             struct tm *utc = gmtime(&utcTime);
             // Format it
