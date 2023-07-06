@@ -57,6 +57,7 @@ class GPS : public DefaultDevice
         GPS() = default;
         virtual ~GPS() = default;
 
+        virtual bool Disconnect() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -101,9 +102,22 @@ class GPS : public DefaultDevice
         // Refresh Period
         INDI::PropertyNumber PeriodNP {1};
 
+        // System Time
+        INDI::PropertySwitch SystemTimeUpdateSP {3};
+        enum
+        {
+            UPDATE_NEVER,
+            UPDATE_ON_STARTUP,
+            UPDATE_ON_REFRESH
+        };
+
+
         int timerID = -1;
 
         // # of seconds since 1970 UTC
         std::time_t m_GPSTime;
+
+        // Track whether system time was updated
+        bool m_SystemTimeUpdated {false};
 };
 }
