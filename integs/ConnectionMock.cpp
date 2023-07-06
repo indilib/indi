@@ -35,6 +35,7 @@ ConnectionMock::ConnectionMock()
 {
     fds[0] = -1;
     fds[1] = -1;
+    pendingChar = -1;
     bufferReceiveAllowed = false;
 }
 
@@ -53,6 +54,7 @@ void ConnectionMock::release()
     bufferReceiveAllowed = false;
     fds[0] = -1;
     fds[1] = -1;
+    pendingChar = -1;
 }
 
 
@@ -73,8 +75,22 @@ void ConnectionMock::allowBufferReceive(bool state)
     bufferReceiveAllowed = state;
 }
 
-ssize_t ConnectionMock::read(void * buffer, size_t len)
+ssize_t ConnectionMock::read(void * vbuffer, size_t len)
 {
+    unsigned char * buffer = (unsigned char*) vbuffer;
+    ssize_t baseLength = 0;
+    if (len && (pendingChar != -1)) {
+        ((char*)buffer)[0] = pendingChar;
+        pendingChar = -1;
+        len--;
+        buffer++;
+        if (len == 0)
+        {
+            return 1;
+        }
+        baseLength = 1;
+    }
+
     struct msghdr msgh;
     struct iovec iov;
 
@@ -133,7 +149,7 @@ ssize_t ConnectionMock::read(void * buffer, size_t len)
             }
         }
     }
-    return size;
+    return size + baseLength;
 }
 
 void ConnectionMock::expectBuffer(SharedBuffer &sb)
@@ -178,6 +194,13 @@ void ConnectionMock::expect(const std::string &str)
 
 char ConnectionMock::readChar(const std::string &expected)
 {
+    if (pendingChar != -1)
+    {
+        char c = pendingChar;
+        pendingChar = -1;
+        return c;
+    }
+
     char buff[1];
     ssize_t rd = read(buff, 1);
     if (rd == 0)
@@ -190,6 +213,16 @@ char ConnectionMock::readChar(const std::string &expected)
         throw std::system_error(e, std::generic_category(), "Read failed while expecting " + expected);
     }
     return buff[0];
+}
+
+char ConnectionMock::peekChar(const std::string & expected) {
+    if (pendingChar != -1)
+    {
+        return pendingChar;
+    }
+    char ret = readChar(expected);
+    pendingChar = ret;
+    return ret;
 }
 
 enum XmlStatus { PRE, TAGNAME, WAIT_ATTRIB, ATTRIB, QUOTE, WAIT_CLOSE };
@@ -235,6 +268,19 @@ std::string ConnectionMock::receiveMore()
     }
     perror("receiveMore");
     return pendingData;
+}
+
+std::string ConnectionMock::expectBase64() {
+    std::string result;
+
+    while(true) {
+        char c = peekChar("base64");
+        if (c == '<') break;
+
+        result += readChar("base64");
+    }
+
+    return result;
 }
 
 

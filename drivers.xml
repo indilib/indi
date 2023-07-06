@@ -75,6 +75,10 @@
             <driver name="LX200 Autostar">indi_lx200autostar</driver>
             <version>2.1</version>
         </device>
+        <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
+            <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
+            <version>2.1</version>
+        </device>
         <device label="ZWO AM5" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
             <version>1.0</version>
@@ -647,7 +651,7 @@
         </device>
         <device label="WatchDog" manufacturer="Others">
             <driver name="WatchDog">indi_watchdog</driver>
-            <version>0.3</version>
+            <version>0.4</version>
         </device>
         <device label="Joystick" manufacturer="Others">
             <driver name="Joystick">indi_joystick</driver>

@@ -223,7 +223,7 @@ class Telescope : public DefaultDevice
         {
             return capability & TELESCOPE_CAN_FLIP;
         }
-    
+
         /**
          * @return True if telescope can abort motion.
          */
@@ -456,22 +456,22 @@ class Telescope : public DefaultDevice
          * \note This function is not implemented in Telescope, it must be implemented in the
          * child class
          */
-         virtual bool ReadScopeStatus() = 0;
+        virtual bool ReadScopeStatus() = 0;
 
-         /**
-         * \brief Move and flip the scope to the supplied RA and DEC coordinates
-         * \return True if successful, false otherwise
-         * \note If not implemented by the child class, this function by default returns false with a
-         * warning message.
-         */
-         virtual bool Flip(double ra, double dec);
-    
-         /**
-         * \brief Move the scope to the supplied RA and DEC coordinates
-         * \return True if successful, false otherwise
-         * \note If not implemented by the child class, this function by default returns false with a
-         * warning message.
-         */
+        /**
+        * \brief Move and flip the scope to the supplied RA and DEC coordinates
+        * \return True if successful, false otherwise
+        * \note If not implemented by the child class, this function by default returns false with a
+        * warning message.
+        */
+        virtual bool Flip(double ra, double dec);
+
+        /**
+        * \brief Move the scope to the supplied RA and DEC coordinates
+        * \return True if successful, false otherwise
+        * \note If not implemented by the child class, this function by default returns false with a
+        * warning message.
+        */
         virtual bool Goto(double ra, double dec);
 
         /**
@@ -928,6 +928,7 @@ class Telescope : public DefaultDevice
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);
+        void generateCoordSet();
 
         /**
          * @brief LoadParkXML Read and process park XML data.

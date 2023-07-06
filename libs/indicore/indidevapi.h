@@ -385,6 +385,30 @@ extern int IEDeferLoop0(int maxms, int *flagp);
 
 /* @{ */
 
+/** @brief Load a number vector property value from the configuration file
+ *  @param nvp pointer to a number vector property.
+ *  @return Number of members successfully updated or 0 on failure
+ */
+extern int IULoadConfigNumber(const INumberVectorProperty *nvp);
+
+/** @brief Load a text vector property value from the configuration file
+ *  @param tvp pointer to a text vector property.
+ *  @return Number of members successfully updated or 0 on failure
+ */
+extern int IULoadConfigText(const ITextVectorProperty *tvp);
+
+/** @brief Add a switch vector property value to the configuration file
+ *  @param svp pointer to a switch vector property.
+ *  @return Number of members successfully updated or 0 on failure
+ */
+extern int IULoadConfigSwitch(const ISwitchVectorProperty *svp);
+
+/** @brief Function to reliably save new text in a IText.
+ *  @param tp pointer to an IText member.
+ *  @param newtext the new text to be saved
+ */
+extern void IUSaveText(IText *tp, const char *newtext);
+
 /** @brief Add a number vector property value to the configuration file
  *  @param fp file pointer to a configuration file.
  *  @param nvp pointer to a number vector property.

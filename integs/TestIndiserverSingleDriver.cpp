@@ -559,7 +559,7 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
     snoopDriver.cnx.send("<enableBLOB device='fakedev1' name='testblob'>Also</enableBLOB>\n");
     snoopDriver.ping();
 
-    ssize_t size = 32;
+    ssize_t size = 10000;
     driverSendAttachedBlob(fakeDriver, size);
 
 #if 0
@@ -575,8 +575,9 @@ TEST(IndiserverSingleDriver, ForwardAttachedBlobToDriver)
     EXPECT_GE( receivedFd.getSize(), 32);
 #else
     snoopDriver.cnx.expectXml("<setBLOBVector device='fakedev1' name='testblob' timestamp='2018-01-01T00:01:00'>");
-    snoopDriver.cnx.expectXml("<oneBLOB name='content' size='32' format='.fits'>\n");
-    snoopDriver.cnx.expect("\nMDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=");
+    snoopDriver.cnx.expectXml("<oneBLOB name='content' size='" + std::to_string(size) + "' format='.fits'>\n");
+    std::string base64 = snoopDriver.cnx.expectBase64();
+    EXPECT_EQ(base64.size(), size * 4 / 3 + 9 + (size / 800000));
     snoopDriver.cnx.expectXml("</oneBLOB>\n");
     snoopDriver.cnx.expectXml("</setBLOBVector>");
 #endif

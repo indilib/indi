@@ -26,13 +26,17 @@ namespace INDI
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
 #ifdef INDI_PROPERTY_RAW_CAST
-    : PropertyContainer<T>{*new PropertyView<T>()}
-    , PropertyPrivate(&this->typedProperty)
-    , raw{false}
+    : PropertyContainer<T>
+{
+    *new PropertyView<T>()
+}
+, PropertyPrivate(&this->typedProperty)
+, raw{false}
 #else
-    : PropertyPrivate(&property)
+    :
+    PropertyPrivate(&property)
 #endif
-    , widgets(count)
+, widgets(count)
 {
     this->typedProperty.setWidgets(widgets.data(), widgets.size());
 }
@@ -40,9 +44,12 @@ PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(size_t count)
 #ifdef INDI_PROPERTY_RAW_CAST
 template <typename T>
 PropertyBasicPrivateTemplate<T>::PropertyBasicPrivateTemplate(RawPropertyType *rawProperty)
-    : PropertyContainer<T>{*PropertyView<T>::cast(rawProperty)}
-    , PropertyPrivate(PropertyView<T>::cast(rawProperty))
-    , raw{true}
+    : PropertyContainer<T>
+{
+    *PropertyView<T>::cast(rawProperty)
+}
+, PropertyPrivate(PropertyView<T>::cast(rawProperty))
+, raw{true}
 { }
 #endif
 
@@ -242,6 +249,13 @@ bool PropertyBasic<T>::isLabelMatch(const std::string &otherLabel) const
 {
     D_PTR(const PropertyBasic);
     return d->typedProperty.isLabelMatch(otherLabel);
+}
+
+template <typename T>
+bool PropertyBasic<T>::load()
+{
+    D_PTR(const PropertyBasic);
+    return d->typedProperty.load();
 }
 
 template <typename T>

@@ -1239,6 +1239,7 @@ void SensorInterface::setBPS(int bps)
     // DSP
     if (HasDSP())
         DSP->setSizes(1, new int[1] { getBufferSize() * 8 / BPS });
+
 }
 
 

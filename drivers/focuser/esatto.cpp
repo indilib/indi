@@ -38,17 +38,6 @@ Esatto::Esatto()
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
-    m_MotionProgressTimer.callOnTimeout(std::bind(&Esatto::checkMotionProgressCallback, this));
-    m_MotionProgressTimer.setSingleShot(true);
-
-    m_TemperatureTimer.callOnTimeout([this]()
-    {
-        auto lastValue = TemperatureNP[0].value;
-        auto rc = updateTemperature();
-        if (rc && std::abs(lastValue - TemperatureNP[0].value) >= 0.1)
-            TemperatureNP.apply();
-    });
-    m_TemperatureTimer.setInterval(10000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +59,11 @@ bool Esatto::initProperties()
     FirmwareTP[FIRMWARE_SN].fill("SERIALNUMBER", "Serial Number", "");
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "");
     FirmwareTP.fill(getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 0,  IPS_IDLE);
+
+    // Voltage Information
+    VoltageNP[VOLTAGE_12V].fill("VOLTAGE_12V", "12v", "%.2f", 0, 100, 0., 0.);
+    VoltageNP[VOLTAGE_USB].fill("VOLTAGE_USB", "USB", "%.2f", 0, 100, 0., 0.);
+    VoltageNP.fill(getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature
     TemperatureNP[TEMPERATURE_MOTOR].fill("TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
@@ -123,6 +117,9 @@ bool Esatto::updateProperties()
     {
         defineProperty(FirmwareTP);
 
+        if (updateVoltageIn())
+            defineProperty(VoltageNP);
+
         if (updateTemperature())
             defineProperty(TemperatureNP);
     }
@@ -131,6 +128,7 @@ bool Esatto::updateProperties()
         if (TemperatureNP.getState() == IPS_OK)
             deleteProperty(TemperatureNP);
         deleteProperty(FirmwareTP);
+        deleteProperty(VoltageNP.getName());
     }
 
     return true;
@@ -145,7 +143,6 @@ bool Esatto::Handshake()
     {
         LOGF_INFO("%s is online. Getting focus parameters...", getDeviceName());
 
-        m_TemperatureTimer.start();
         return true;
     }
 
@@ -159,16 +156,6 @@ bool Esatto::Handshake()
 const char *Esatto::getDefaultName()
 {
     return "Esatto";
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Esatto::Disconnect()
-{
-    m_TemperatureTimer.stop();
-    m_MotionProgressTimer.stop();
-    return INDI::Focuser::Disconnect();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,7 +200,21 @@ bool Esatto::updatePosition()
         return false;
 
     FocusAbsPosN[0].value = steps;
-    FocusAbsPosNP.s = IPS_OK;
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Esatto::updateVoltageIn()
+{
+    double voltage;
+    if (m_Esatto->getVoltage12v(voltage))
+        VoltageNP[VOLTAGE_12V].setValue(voltage);
+
+    VoltageNP.setState((voltage >= 11.0) ? IPS_OK : IPS_ALERT);
+    if (m_Esatto->getVoltageUSB(voltage))
+        VoltageNP[VOLTAGE_USB].setValue(voltage);
     return true;
 }
 
@@ -261,7 +262,6 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
     if (m_Esatto->goAbsolutePosition(targetTicks) == false)
         return IPS_ALERT;
 
-    m_MotionProgressTimer.start(10);
     return IPS_BUSY;
 }
 
@@ -284,34 +284,10 @@ IPState Esatto::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Esatto::AbortFocuser()
 {
-    m_MotionProgressTimer.stop();
-
     if (isSimulation())
         return true;
 
     return m_Esatto->stop();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-void Esatto::checkMotionProgressCallback()
-{
-    if (!m_Esatto->isBusy())
-    {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOG_INFO("Focuser reached requested position.");
-        return;
-    }
-    else
-    {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-    }
-
-    m_MotionProgressTimer.start(500);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -328,8 +304,40 @@ void Esatto::TimerHit()
 
     auto lastPos = FocusAbsPosN[0].value;
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0))
+    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0)) {
+        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false) {
+            // To prevent reporting a bit too old position as the final one
+            updatePosition();
+
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
+            IDSetNumber(&FocusRelPosNP, nullptr);
+        }
+
         IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+
+    if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
+    {
+        auto lastValue = TemperatureNP[0].value;
+        rc = updateTemperature();
+        if (rc && std::abs(lastValue - TemperatureNP[0].value) >= 0.1)
+            TemperatureNP.apply();
+
+        auto current12V = VoltageNP[VOLTAGE_12V].getValue();
+        auto currentUSB = VoltageNP[VOLTAGE_USB].getValue();
+        if (updateVoltageIn())
+        {
+            if (std::abs(current12V - VoltageNP[VOLTAGE_12V].getValue()) >= 0.1 ||
+                    std::abs(currentUSB - VoltageNP[VOLTAGE_USB].getValue()) >= 0.1)
+            {
+                VoltageNP.apply();
+                if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
+                    LOG_WARN("Please check 12v DC power supply is connected.");
+            }
+        }
+        m_TemperatureCounter = 0;   // Reset the counter
+    }
 
     SetTimer(getCurrentPollingPeriod());
 }

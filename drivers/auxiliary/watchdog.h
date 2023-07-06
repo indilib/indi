@@ -28,6 +28,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "inditimer.h"
 
 class WatchDogClient;
 
@@ -57,23 +58,21 @@ class WatchDog : public INDI::DefaultDevice
 
     protected:
         virtual bool initProperties() override;
-
-        virtual void TimerHit() override;
-
         virtual bool Connect() override;
         virtual bool Disconnect() override;
+        virtual void TimerHit() override;
         virtual const char *getDefaultName() override;
 
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
+        void processShutdown();
         void parkDome();
         void parkMount();
         void executeScript();
 
         // Heart Beat to check if client is alive
-        INumberVectorProperty HeartBeatNP;
-        INumber HeartBeatN[1];
+        INDI::PropertyNumber HeartBeatNP {1};
 
         // Weather threshold
         INumberVectorProperty WeatherThresholdNP;
@@ -103,11 +102,11 @@ class WatchDog : public INDI::DefaultDevice
         enum { ACTIVE_TELESCOPE, ACTIVE_DOME, ACTIVE_WEATHER };
 
         // Pointer to client to issue commands to the respective mount and/or dome drivers.
-        WatchDogClient *watchdogClient {nullptr};
+        std::unique_ptr<WatchDogClient> m_WatchDogClientInstance;
         // Watchdog timer to ensure heart beat is there
-        int32_t m_WatchDogTimer {-1};
+        INDI::Timer m_ClientAlertTimer;
         // Weather timer to trigger shutdown if weather remains ALERT for this many seconds.
-        int32_t m_WeatherAlertTimer {-1};
+        INDI::Timer m_WeatherAlertTimer;
         // INDI Port
         uint32_t m_INDIServerPort { 7624 };
         // Weather State

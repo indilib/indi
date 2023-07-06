@@ -560,7 +560,8 @@ IPState lacerta_mfoc_fmc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc_fmc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    auto targetTicks = std::clamp(FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1)), FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+    
     FocusAbsPosNP.s = IPS_BUSY;
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
@@ -612,7 +613,7 @@ bool lacerta_mfoc_fmc::AbortFocuser()
             tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
             MFOC_res[nbytes_read] = 0;
             sscanf (MFOC_res, "%s %d", MFOC_res_type, &halt_flag);
-        } while(strcmp(MFOC_res_type, "H") != 0 && count <= 10);
+        } while(strcmp(MFOC_res_type, "H") != 0 && count <= 100);
 
         FocusAbsPosN[0].value = GetAbsFocuserPosition();
         FocusAbsPosNP.s = IPS_OK;
@@ -649,6 +650,7 @@ uint32_t lacerta_mfoc_fmc::GetAbsFocuserPosition()
 
     int nbytes_written = 0;
     int nbytes_read = 0;
+    int count = 0;
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
@@ -657,8 +659,9 @@ uint32_t lacerta_mfoc_fmc::GetAbsFocuserPosition()
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
+        count++;
     }
-    while(strcmp(MFOC_res_type, "p") != 0);
+    while(strcmp(MFOC_res_type, "p") != 0 && count < 100);
 
     return static_cast<uint32_t>(MFOC_pos_measd);
 }

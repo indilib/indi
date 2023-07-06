@@ -86,6 +86,16 @@ class PropertyBasic : public INDI::Property
         bool isLabelMatch(const std::string &otherLabel) const;
 
     public:
+        /**
+         * @brief load Attempt to load property values from configuration file.
+         * @return True if value was read successfully from file, false otherwise.
+         */
+        bool load();
+
+        /**
+         * @brief save Save property to configuration file.
+         * @param f Pointer to existing open configuration file.
+         */
         void save(FILE *f) const;
 
         void vapply(const char *format, va_list args) const;
@@ -102,7 +112,10 @@ class PropertyBasic : public INDI::Property
 
     public:
         size_t size() const;
-        size_t count() const { return size(); }
+        size_t count() const
+        {
+            return size();
+        }
 
     public:
         void reserve(size_t size);

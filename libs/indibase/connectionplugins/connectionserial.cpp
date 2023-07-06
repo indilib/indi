@@ -551,9 +551,9 @@ bool Serial::Refresh(bool silent)
 
     m_Device->defineProperty(&SystemPortSP);
 
-    // If we have one physical port only, set it to the device port if the current port
-    // is the default port.
-    if (pCount == 1 && std::string(PortT[0].text) == m_ConfigPort)
+    // If we have one physical port, set the current device port to this physical port
+    // in case the default config port does not exist.
+    if (pCount == 1 && m_ConfigPort.empty())
         IUSaveText(&PortT[0], m_Ports[0].c_str());
     return true;
 }

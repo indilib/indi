@@ -601,12 +601,16 @@ int IUGetConfigOnSwitch(const ISwitchVectorProperty *property, int *index)
     FILE *fp = IUGetConfigFP(NULL, property->device, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
+        delLilXML(lp);
         fclose(fp);
         return -1;
     }
@@ -661,13 +665,17 @@ int IUGetConfigSwitch(const char *dev, const char *property, const char *member,
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
         fclose(fp);
+        delLilXML(lp);
         return -1;
     }
 
@@ -719,12 +727,16 @@ int IUGetConfigOnSwitchIndex(const char *dev, const char *property, int *index)
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
+        delLilXML(lp);
         fclose(fp);
         return -1;
     }
@@ -779,12 +791,16 @@ int IUGetConfigOnSwitchName(const char *dev, const char *property, char *name, s
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
+        delLilXML(lp);
         fclose(fp);
         return -1;
     }
@@ -839,13 +855,17 @@ int IUGetConfigNumber(const char *dev, const char *property, const char *member,
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
         fclose(fp);
+        delLilXML(lp);
         return -1;
     }
 
@@ -897,12 +917,16 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
     if (fp == NULL)
+    {
+        delLilXML(lp);
         return -1;
+    }
 
     fproot = readXMLFile(fp, lp, errmsg);
 
     if (fproot == NULL)
     {
+        delLilXML(lp);
         fclose(fp);
         return -1;
     }

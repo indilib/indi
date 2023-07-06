@@ -86,21 +86,21 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
     if (m_Simulation)
         return true;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((errCode = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errCode, errMsg, MAXRBUF);
-        DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Write Command Error: %s", errMsg);
-        return false;
-    }
-
-    if (count == 0)
-        return true;
-
-    // Try to read twice in case of timeouts.
+    // Try to dispatch command and read twice in case of timeouts.
     for (int i = 0; i < 2; i++)
     {
+        tcflush(PortFD, TCIOFLUSH);
+
+        if ((errCode = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errCode, errMsg, MAXRBUF);
+            DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Write Command Error: %s", errMsg);
+            return false;
+        }
+
+        if (count == 0)
+            return true;
+
         if (count == -1)
             errCode = tty_read_section(PortFD, res, '#', timeout, &nbytes_read);
         else
@@ -112,7 +112,6 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
 
     if (errCode != TTY_OK)
     {
-
         tty_error_msg(errCode, errMsg, MAXRBUF);
         DEBUGFDEVICE(m_DeviceName, INDI::Logger::DBG_ERROR, "Read Command Error: %s", errMsg);
         return false;

@@ -29,9 +29,14 @@
 namespace INDI
 {
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::initProperties()
 {
     DefaultDevice::initProperties();
+
+    time(&m_GPSTime);
 
     PeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
     PeriodNP.fill(getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
@@ -43,6 +48,13 @@ bool GPS::initProperties()
     LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
+    // System Time Settings
+    SystemTimeUpdateSP[UPDATE_NEVER].fill("UPDATE_NEVER", "Never", ISS_OFF);
+    SystemTimeUpdateSP[UPDATE_ON_STARTUP].fill("UPDATE_ON_STARTUP", "On Startup", ISS_ON);
+    SystemTimeUpdateSP[UPDATE_ON_REFRESH].fill("UPDATE_ON_REFRESH", "On Refresh", ISS_OFF);
+    SystemTimeUpdateSP.fill(getDeviceName(), "SYSTEM_TIME_UPDATE", "System Time", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    SystemTimeUpdateSP.load();
 
     TimeTP[0].fill("UTC", "UTC Time", nullptr);
     TimeTP[1].fill("OFFSET", "UTC Offset", nullptr);
@@ -56,6 +68,18 @@ bool GPS::initProperties()
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPS::Disconnect()
+{
+    m_SystemTimeUpdated = false;
+    return INDI::DefaultDevice::Disconnect();
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::updateProperties()
 {
     DefaultDevice::updateProperties();
@@ -72,11 +96,12 @@ bool GPS::updateProperties()
         RefreshSP.setState(state);
         defineProperty(RefreshSP);
         defineProperty(PeriodNP);
+        defineProperty(SystemTimeUpdateSP);
 
         if (state != IPS_OK)
         {
             if (state == IPS_BUSY)
-                DEBUG(Logger::DBG_SESSION, "GPS fix is in progress...");
+                LOG_INFO("GPS fix is in progress...");
 
             timerID = SetTimer(getCurrentPollingPeriod());
         }
@@ -89,6 +114,7 @@ bool GPS::updateProperties()
         deleteProperty(TimeTP);
         deleteProperty(RefreshSP);
         deleteProperty(PeriodNP);
+        deleteProperty(SystemTimeUpdateSP);
 
         if (timerID > 0)
         {
@@ -100,6 +126,9 @@ bool GPS::updateProperties()
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 void GPS::TimerHit()
 {
     if (!isConnected())
@@ -126,14 +155,24 @@ void GPS::TimerHit()
 
             // Update system time
             // This ideally should be done only ONCE
+            switch (SystemTimeUpdateSP.findOnSwitchIndex())
             {
-                std::tm utm;
-                if (strptime(TimeTP[0].getText(), "%Y-%m-%dT%H:%M:%S", &utm))
-                {
-                    std::time_t raw_time = std::mktime(&utm);
-                    setSystemTime(raw_time);
-                }
+                case UPDATE_ON_STARTUP:
+                    if (m_SystemTimeUpdated == false)
+                    {
+                        setSystemTime(m_GPSTime);
+                        m_SystemTimeUpdated = true;
+                    }
+                    break;
+
+                case UPDATE_ON_REFRESH:
+                    setSystemTime(m_GPSTime);
+                    break;
+
+                default:
+                    break;
             }
+
             return;
             break;
 
@@ -152,8 +191,7 @@ void GPS::TimerHit()
 
 IPState GPS::updateGPS()
 {
-    DEBUG(Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
-          "GEOGRAPHIC_COORD properties.");
+    LOG_ERROR("updateGPS() must be implemented in GPS device child class to update TIME_UTC and GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
@@ -182,11 +220,14 @@ bool GPS::setSystemTime(time_t &raw_time)
     return true;
 }
 
-
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Refresh
         if (RefreshSP.isNameMatch(name))
         {
             RefreshSP[0].s = ISS_OFF;
@@ -195,12 +236,27 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
             // Manual trigger
             GPS::TimerHit();
+            return true;
+        }
+        // System Time Update
+        else if (SystemTimeUpdateSP.isNameMatch(name))
+        {
+            SystemTimeUpdateSP.update(states, names, n);
+            SystemTimeUpdateSP.setState(IPS_OK);
+            SystemTimeUpdateSP.apply();
+            if (SystemTimeUpdateSP.findOnSwitchIndex() == UPDATE_ON_REFRESH)
+                LOG_WARN("Updating system time on refresh may lead to undesirable effects on system time accuracy.");
+            saveConfig(true, SystemTimeUpdateSP.getName());
+            return true;
         }
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -218,14 +274,14 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
 
             if (PeriodNP[0].getValue() == 0)
             {
-                DEBUG(Logger::DBG_SESSION, "GPS Update Timer disabled.");
+                LOG_INFO("GPS Update Timer disabled.");
             }
             else
             {
                 timerID = SetTimer(PeriodNP[0].value * 1000);
                 // Need to warn user this is not recommended. Startup values should be enough
                 if (prevPeriod == 0)
-                    DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
+                    LOG_INFO("GPS Update Timer enabled. Warning: Updating system-wide time repeatedly may lead to undesirable side-effects.");
             }
 
             PeriodNP.setState(IPS_OK);
@@ -238,11 +294,15 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
     PeriodNP.save(fp);
+    SystemTimeUpdateSP.save(fp);
     return true;
 }
 }

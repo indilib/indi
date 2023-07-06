@@ -116,7 +116,6 @@ public:
         /* Switches */
 
         ISwitch ImageDepthS[2];
-        ISwitch StackModeS[5];
         ISwitch ColorProcessingS[3];
 
         /* Texts */
@@ -131,7 +130,7 @@ public:
 
         /* Switch vectors */
         ISwitchVectorProperty ImageDepthSP;     /* 8 bits or 16 bits switch */
-        ISwitchVectorProperty StackModeSP;      /* StackMode switch */
+        INDI::PropertySwitch  StackModeSP {5};  /* StackMode switch */
         ISwitchVectorProperty InputsSP;         /* Select input switch */
         ISwitchVectorProperty CaptureFormatsSP; /* Select Capture format switch */
         ISwitchVectorProperty CaptureSizesSP;   /* Select Capture size switch (Discrete)*/
@@ -202,7 +201,7 @@ public:
         struct timeval getElapsedExposure() const;
         float getRemainingExposure() const;
 
-        unsigned int stackMode;
+        unsigned int m_StackMode;
         ulong frameBytes;
         unsigned int non_capture_frames;
         bool v4l_capture_started;

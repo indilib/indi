@@ -47,6 +47,7 @@
 #include <libnova/ln_types.h>
 #include <libastro.h>
 
+#include <iomanip>
 #include <cmath>
 #include <regex>
 #include <iterator>
@@ -508,7 +509,7 @@ bool CCD::initProperties()
 
     addPollPeriodControl();
 
-    setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
+    setDriverInterface(CCD_INTERFACE);
 
     return true;
 }
@@ -1228,6 +1229,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             ScopeInfoNP.update(values, names, n);
             ScopeInfoNP.setState(IPS_OK);
             ScopeInfoNP.apply();
+            saveConfig(true, ScopeInfoNP.getName());
             return true;
         }
 
@@ -2542,14 +2544,18 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
         if (maxIndex > 0)
         {
-            char ts[32];
-            struct tm * tp;
-            time_t t;
-            time(&t);
-            tp = localtime(&t);
-            strftime(ts, sizeof(ts), "%Y-%m-%dT%H-%M-%S", tp);
-            std::string filets(ts);
-            prefix = std::regex_replace(prefix, std::regex("ISO8601"), filets);
+            auto now = std::chrono::system_clock::now();
+            std::time_t time = std::chrono::system_clock::to_time_t(now);
+            std::tm* now_tm = std::localtime(&time);
+            long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+            std::stringstream stream;
+            stream    << std::setfill('0')
+                      << std::put_time(now_tm, "%FT%H:%M:")
+                      << std::setw(2) << (timestamp / 1000) % 60 << '.'
+                      << std::setw(3) << timestamp % 1000;
+
+            prefix = std::regex_replace(prefix, std::regex("ISO8601"), stream.str());
 
             char indexString[8];
             snprintf(indexString, 8, "%03d", maxIndex);
@@ -2799,6 +2805,8 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasDSP())
         DSP->saveConfigItems(fp);
+
+    ScopeInfoNP.save(fp);
 
     return true;
 }

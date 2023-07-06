@@ -94,7 +94,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
 
     v4l_capture_started = false;
 
-    stackMode = STACK_NONE;
+    m_StackMode = STACK_NONE;
 
     lx       = new Lx();
     lxtimer  = -1;
@@ -125,7 +125,7 @@ V4L2_Driver::V4L2_Driver()
 
     v4l_capture_started = false;
 
-    stackMode = STACK_NONE;
+    m_StackMode = STACK_NONE;
 
     lx       = new Lx();
     lxtimer  = -1;
@@ -188,15 +188,15 @@ bool V4L2_Driver::initProperties()
                      IPS_IDLE);
 
     /* Stacking Mode */
-    IUFillSwitch(&StackModeS[STACK_NONE], "None", "", ISS_ON);
-    IUFillSwitch(&StackModeS[STACK_MEAN], "Mean", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_ADDITIVE], "Additive", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_TAKE_DARK], "Take Dark", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_RESET_DARK], "Reset Dark", "", ISS_OFF);
-    IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    StackModeSP[STACK_NONE].fill("None", "", ISS_ON);
+    StackModeSP[STACK_MEAN].fill("Mean", "", ISS_OFF);
+    StackModeSP[STACK_ADDITIVE].fill("Additive", "", ISS_OFF);
+    StackModeSP[STACK_TAKE_DARK].fill("Take Dark", "", ISS_OFF);
+    StackModeSP[STACK_RESET_DARK].fill("Reset Dark", "", ISS_OFF);
+    StackModeSP.fill(getDeviceName(), "Stack", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    StackModeSP.load();
 
-    stackMode = STACK_NONE;
+    m_StackMode = StackModeSP.findOnSwitchIndex();
 
     /* Inputs */
     IUFillSwitchVector(&InputsSP, nullptr, 0, getDeviceName(), "V4L2_INPUT", "Inputs", CAPTURE_FORMAT, IP_RW,
@@ -280,7 +280,7 @@ void V4L2_Driver::ISGetProperties(const char * dev)
         else if (FrameRateNP.np != nullptr)
             defineProperty(&FrameRateNP);
 
-        defineProperty(&StackModeSP);
+        defineProperty(StackModeSP);
 
         v4l_base->setNative(EncodeFormatSP[FORMAT_NATIVE].getState() == ISS_ON);
 
@@ -313,7 +313,7 @@ bool V4L2_Driver::updateProperties()
         else if (FrameRateNP.np != nullptr)
             defineProperty(&FrameRateNP);
 
-        defineProperty(&StackModeSP);
+        defineProperty(StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
         defineProperty(&ImageDepthSP);
@@ -400,7 +400,7 @@ bool V4L2_Driver::updateProperties()
         Options    = nullptr;
         v4loptions = 0;
 
-        deleteProperty(StackModeSP.name);
+        deleteProperty(StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
         deleteProperty(ImageDepthSP.name);
@@ -648,13 +648,12 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     }
 
     /* Stacking Mode */
-    if (strcmp(name, StackModeSP.name) == 0)
+    if (StackModeSP.isNameMatch(name))
     {
-        IUResetSwitch(&StackModeSP);
-        IUUpdateSwitch(&StackModeSP, states, names, n);
-        StackModeSP.s = IPS_OK;
-        stackMode     = IUFindOnSwitchIndex(&StackModeSP);
-        if (stackMode == STACK_RESET_DARK)
+        StackModeSP.update(states, names, n);
+        StackModeSP.setState(IPS_OK);
+        m_StackMode = StackModeSP.findOnSwitchIndex();
+        if (m_StackMode == STACK_RESET_DARK)
         {
             if (V4LFrame->darkFrame != nullptr)
             {
@@ -663,7 +662,9 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             }
         }
 
-        IDSetSwitch(&StackModeSP, "Setting Stacking Mode: %s", StackModeS[stackMode].name);
+        StackModeSP.apply();
+        LOGF_INFO("Setting Stacking Mode: %s", StackModeSP[m_StackMode].getName());
+        saveConfig(true, StackModeSP.getName());
         return true;
     }
 
@@ -977,13 +978,13 @@ bool V4L2_Driver::setManualExposure(double duration)
     if (nullptr == AbsExposureN)
     {
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
-        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && m_StackMode != STACK_NONE && m_StackMode != STACK_RESET_DARK)
         {
             //use frame interval as frame duration instead of max exposure time.
             if(FrameRatesSP.sp != nullptr)
             {
                 LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
-                          duration, StackModeS[stackMode].name);
+                          duration, StackModeSP[m_StackMode].getName());
                 int index = IUFindOnSwitchIndex(&FrameRatesSP);
                 int fn, fd;
                 sscanf(FrameRatesSP.sp[index].name, "%d/%d", &fn, &fd);
@@ -1011,23 +1012,24 @@ bool V4L2_Driver::setManualExposure(double duration)
     /* Then if we have an exposure control, check the requested exposure duration */
     else if (AbsExposureN->max < ticks)
     {
-        if( CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode == STACK_NONE )
+        if( CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && m_StackMode == STACK_NONE )
         {
             LOG_WARN("Requested manual exposure is out of device bounds auto set stackMode to ADDITIVE" );
-            stackMode = STACK_ADDITIVE;
-            StackModeSP.sp[ STACK_NONE ].s = ISS_OFF;
-            StackModeSP.sp[ STACK_ADDITIVE ].s = ISS_ON;
-            if(ManualExposureSP) IDSetSwitch(ManualExposureSP, nullptr);
+            m_StackMode = STACK_ADDITIVE;
+            StackModeSP[ STACK_NONE ].setState(ISS_OFF);
+            StackModeSP[ STACK_ADDITIVE ].setState(ISS_ON);
+            if(ManualExposureSP)
+                IDSetSwitch(ManualExposureSP, nullptr);
         }
 
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
-        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && m_StackMode != STACK_NONE && m_StackMode != STACK_RESET_DARK)
         {
             if( AbsExposureN->value != AbsExposureN->max )
             {
                 LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
                           (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
-                          duration, StackModeS[stackMode].name);
+                          duration, StackModeSP[m_StackMode].getName());
             }
             ticks = AbsExposureN->max;
         }
@@ -1492,13 +1494,13 @@ void V4L2_Driver::newFrame()
         PrimaryCCD.setExposureLeft(remaining);
 
         // Stack Mono frames
-        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
+        if ((m_StackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
             stackFrame();
         }
 
         /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
-        if ((stackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON &&
+        if ((m_StackMode) && !(lx->isEnabled()) && CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON &&
                 (timercmp(&elapsed_exposure, &exposure_duration, < )))
             return; // go on stacking
 
@@ -1519,7 +1521,7 @@ void V4L2_Driver::newFrame()
         }
         else if (CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON)
         {
-            if (!stackMode)
+            if (!m_StackMode)
             {
                 unsigned char * src, *dest;
                 src  = v4l_base->getY();
@@ -1538,7 +1540,7 @@ void V4L2_Driver::newFrame()
                 float * src = V4LFrame->stackedFrame;
 
                 /* If we have a dark frame configured, substract it from the stack */
-                if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
+                if ((m_StackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
                 {
                     float * dark = V4LFrame->darkFrame;
 
@@ -1555,7 +1557,7 @@ void V4L2_Driver::newFrame()
                 }
 
                 //IDLog("Copying stack frame from %p to %p.\n", src, dest);
-                if (stackMode == STACK_MEAN)
+                if (m_StackMode == STACK_MEAN)
                 {
                     if (ImageDepthS[0].s == ISS_ON)
                     {
@@ -1581,7 +1583,7 @@ void V4L2_Driver::newFrame()
                     free(V4LFrame->stackedFrame);
                     V4LFrame->stackedFrame = nullptr;
                 }
-                else if (stackMode == STACK_ADDITIVE)
+                else if (m_StackMode == STACK_ADDITIVE)
                 {
                     /* Clamp additive stacking to frame dynamic range - that is, do not consider normalized source greater than 1.0f */
                     if (ImageDepthS[0].s == ISS_ON)
@@ -1612,7 +1614,7 @@ void V4L2_Driver::newFrame()
                     free(V4LFrame->stackedFrame);
                     V4LFrame->stackedFrame = nullptr;
                 }
-                else if (stackMode == STACK_TAKE_DARK)
+                else if (m_StackMode == STACK_TAKE_DARK)
                 {
                     if (V4LFrame->darkFrame != nullptr)
                         free(V4LFrame->darkFrame);
@@ -1948,7 +1950,7 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     INDI::CCD::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &PortTP);
-    IUSaveConfigSwitch(fp, &StackModeSP);
+    StackModeSP.save(fp);
 
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
