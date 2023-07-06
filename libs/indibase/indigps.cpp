@@ -29,6 +29,9 @@
 namespace INDI
 {
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::initProperties()
 {
     DefaultDevice::initProperties();
@@ -46,6 +49,13 @@ bool GPS::initProperties()
     LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // System Time Settings
+    SystemTimeUpdateSP[UPDATE_NEVER].fill("UPDATE_NEVER", "Never", ISS_OFF);
+    SystemTimeUpdateSP[UPDATE_ON_STARTUP].fill("UPDATE_ON_STARTUP", "On Startup", ISS_ON);
+    SystemTimeUpdateSP[UPDATE_ON_REFRESH].fill("UPDATE_ON_REFRESH", "On Refresh", ISS_OFF);
+    SystemTimeUpdateSP.fill(getDeviceName(), "SYSTEM_TIME_UPDATE", "System Time", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    SystemTimeUpdateSP.load();
+
     TimeTP[0].fill("UTC", "UTC Time", nullptr);
     TimeTP[1].fill("OFFSET", "UTC Offset", nullptr);
     TimeTP.fill(getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
@@ -58,6 +68,18 @@ bool GPS::initProperties()
     return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool GPS::Disconnect()
+{
+    m_SystemTimeUpdated = false;
+    return INDI::DefaultDevice::Disconnect();
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool GPS::updateProperties()
 {
     DefaultDevice::updateProperties();
@@ -74,6 +96,7 @@ bool GPS::updateProperties()
         RefreshSP.setState(state);
         defineProperty(RefreshSP);
         defineProperty(PeriodNP);
+        defineProperty(SystemTimeUpdateSP);
 
         if (state != IPS_OK)
         {
@@ -91,6 +114,7 @@ bool GPS::updateProperties()
         deleteProperty(TimeTP);
         deleteProperty(RefreshSP);
         deleteProperty(PeriodNP);
+        deleteProperty(SystemTimeUpdateSP);
 
         if (timerID > 0)
         {
@@ -131,7 +155,24 @@ void GPS::TimerHit()
 
             // Update system time
             // This ideally should be done only ONCE
-            setSystemTime(m_GPSTime);
+            switch (SystemTimeUpdateSP.findOnSwitchIndex())
+            {
+                case UPDATE_ON_STARTUP:
+                    if (m_SystemTimeUpdated == false)
+                    {
+                        setSystemTime(m_GPSTime);
+                        m_SystemTimeUpdated = true;
+                    }
+                    break;
+
+                case UPDATE_ON_REFRESH:
+                    setSystemTime(m_GPSTime);
+                    break;
+
+                default:
+                    break;
+            }
+
             return;
             break;
 
@@ -186,6 +227,7 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Refresh
         if (RefreshSP.isNameMatch(name))
         {
             RefreshSP[0].s = ISS_OFF;
@@ -194,6 +236,18 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
             // Manual trigger
             GPS::TimerHit();
+            return true;
+        }
+        // System Time Update
+        else if (SystemTimeUpdateSP.isNameMatch(name))
+        {
+            SystemTimeUpdateSP.update(states, names, n);
+            SystemTimeUpdateSP.setState(IPS_OK);
+            SystemTimeUpdateSP.apply();
+            if (SystemTimeUpdateSP.findOnSwitchIndex() == UPDATE_ON_REFRESH)
+                LOG_WARN("Updating system time on refresh may lead to undesirable effects on system time accuracy.");
+            saveConfig(true, SystemTimeUpdateSP.getName());
+            return true;
         }
     }
 
@@ -248,6 +302,7 @@ bool GPS::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
 
     PeriodNP.save(fp);
+    SystemTimeUpdateSP.save(fp);
     return true;
 }
 }
