@@ -292,6 +292,7 @@ public:
 
     // Set position 0 to 100
     bool setPosition(uint8_t value);
+    bool getPosition(uint8_t &value);
     bool stop();
 
     // Calibration

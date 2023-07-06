@@ -58,6 +58,10 @@ bool ALTO::initProperties()
     MotionCommandSP[Stop].fill("STOP", "Stop", ISS_OFF);
     MotionCommandSP.fill(getDeviceName(), "MOTION_COMMAND", "Command", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // Position
+    PositionNP[0].fill("POSITION", "Steps", "%.f", 0, 100, 10, 0);
+    PositionNP.fill(getDeviceName(), "POSITION_STEPS", "Position", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     serialConnection->registerHandshake([&]()
@@ -78,7 +82,23 @@ bool ALTO::updateProperties()
 
     if (isConnected())
     {
+        // Check parking status
+        uint8_t value = 0;
+        try
+        {
+            if (m_ALTO->getPosition(value))
+            {
+                ParkCapS[CAP_PARK].s = value == 0 ? ISS_ON : ISS_OFF;
+                ParkCapS[CAP_UNPARK].s = value == 0 ? ISS_OFF : ISS_ON;
+            }
+        }
+        catch (json::exception &e)
+        {
+            LOGF_ERROR("%s %d", e.what(), e.id);
+        }
+
         defineProperty(&ParkCapSP);
+        defineProperty(PositionNP);
         defineProperty(MotionSpeedSP);
         defineProperty(MotionCommandSP);
         defineProperty(CalibrateToggleSP);
@@ -86,6 +106,7 @@ bool ALTO::updateProperties()
     else
     {
         deleteProperty(ParkCapSP.name);
+        deleteProperty(PositionNP);
         deleteProperty(MotionSpeedSP);
         deleteProperty(MotionCommandSP);
         deleteProperty(CalibrateToggleSP);
@@ -126,6 +147,25 @@ const char *ALTO::getDefaultName()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool ALTO::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Position
+    if (PositionNP.isNameMatch(name))
+    {
+        m_TargetPosition = values[0];
+
+        try
+        {
+            auto rc = m_ALTO->setPosition(m_TargetPosition);
+            PositionNP.setState(rc ? IPS_BUSY : IPS_ALERT);
+            PositionNP.apply();
+        }
+        catch (json::exception &e)
+        {
+            LOGF_ERROR("%s %d", e.what(), e.id);
+        }
+
+        return true;
+    }
+
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -181,7 +221,6 @@ bool ALTO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                 break;
         }
 
-
         MotionCommandSP.reset();
         MotionCommandSP.setState(rc ? (command == Stop ? IPS_IDLE : IPS_BUSY) : IPS_ALERT);
         MotionCommandSP.apply();
@@ -219,7 +258,15 @@ bool ALTO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState ALTO::ParkCap()
 {
-    return m_ALTO->Park() ? IPS_BUSY : IPS_ALERT;
+    if (m_ALTO->Park())
+    {
+        m_TargetPosition = 0;
+        PositionNP.setState(IPS_BUSY);
+        PositionNP.apply();
+        return IPS_BUSY;
+    }
+
+    return IPS_ALERT;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,7 +274,15 @@ IPState ALTO::ParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState ALTO::UnParkCap()
 {
-    return m_ALTO->UnPark() ? IPS_BUSY : IPS_ALERT;
+    if (m_ALTO->UnPark())
+    {
+        m_TargetPosition = 100;
+        PositionNP.setState(IPS_BUSY);
+        PositionNP.apply();
+        return IPS_BUSY;
+    }
+
+    return IPS_ALERT;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,6 +299,7 @@ bool ALTO::saveConfigItems(FILE * fp)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ALTO::TimerHit()
 {
+    // Check Park Cap status
     if (ParkCapSP.s == IPS_BUSY)
     {
         json status;
@@ -262,6 +318,34 @@ void ALTO::TimerHit()
             LOGF_ERROR("%s %d", e.what(), e.id);
         }
     }
+
+    // Check position updates
+    if (PositionNP.getState() == IPS_BUSY)
+    {
+        uint8_t newPosition = PositionNP[0].value;
+        try
+        {
+            m_ALTO->getPosition(newPosition);
+            PositionNP[0].value = newPosition;
+        }
+        catch (json::exception &e)
+        {
+            LOGF_ERROR("%s %d", e.what(), e.id);
+        }
+
+        if (newPosition == m_TargetPosition)
+        {
+            PositionNP[0].setValue(m_TargetPosition);
+            PositionNP.setState(IPS_OK);
+            PositionNP.apply();
+        }
+        else if (newPosition != PositionNP[0].getValue())
+        {
+            PositionNP[0].setValue(newPosition);
+            PositionNP.apply();
+        }
+    }
+
 
     SetTimer(getCurrentPollingPeriod());
 }
