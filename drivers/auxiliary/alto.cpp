@@ -326,7 +326,6 @@ void ALTO::TimerHit()
         try
         {
             m_ALTO->getPosition(newPosition);
-            PositionNP[0].value = newPosition;
         }
         catch (json::exception &e)
         {
@@ -345,7 +344,6 @@ void ALTO::TimerHit()
             PositionNP.apply();
         }
     }
-
 
     SetTimer(getCurrentPollingPeriod());
 }
