@@ -273,18 +273,17 @@ void WeatherInterface::addParameter(std::string name, std::string label, double 
     ParametersN = (ParametersN == nullptr) ? static_cast<INumber *>(malloc(sizeof(INumber))) :
                   static_cast<INumber *>(realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber)));
 
-    double *warn = static_cast<double *>(malloc(sizeof(double)));
-
-    *warn = percWarning;
-
     IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
 
+    double *warn = static_cast<double *>(malloc(sizeof(double)));
+    *warn = percWarning;
     ParametersN[ParametersNP.nnp].aux0 = warn;
 
     ParametersNP.np = ParametersN;
     ParametersNP.nnp++;
 
-    createParameterRange(name, label);
+    if (numMinOk != numMaxOk)
+        createParameterRange(name, label);
 }
 
 void WeatherInterface::setParameterValue(std::string name, double value)

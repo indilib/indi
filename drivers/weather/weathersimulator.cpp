@@ -64,11 +64,11 @@ bool WeatherSimulator::initProperties()
     IUFillNumberVector(&ControlWeatherNP, ControlWeatherN, 5, getDeviceName(), "WEATHER_CONTROL", "Control", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 15);
+    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
     addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
-    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 15);
+    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");
