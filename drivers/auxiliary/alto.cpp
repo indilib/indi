@@ -90,6 +90,8 @@ bool ALTO::updateProperties()
             {
                 ParkCapS[CAP_PARK].s = value == 0 ? ISS_ON : ISS_OFF;
                 ParkCapS[CAP_UNPARK].s = value == 0 ? ISS_OFF : ISS_ON;
+
+                PositionNP[0].value = value;
             }
         }
         catch (json::exception &e)
