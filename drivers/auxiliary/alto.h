@@ -47,6 +47,9 @@ class ALTO : public INDI::DefaultDevice, public INDI::DustCapInterface
     private:
         INDI::PropertySwitch CalibrateToggleSP {2};
 
+        // Position
+        INDI::PropertyNumber PositionNP {1};
+
         INDI::PropertySwitch MotionSpeedSP {2};
         enum
         {
@@ -74,4 +77,5 @@ class ALTO : public INDI::DefaultDevice, public INDI::DustCapInterface
         Connection::Serial *serialConnection{ nullptr };
         int PortFD{ -1 };
         std::unique_ptr<PrimalucaLabs::ALTO> m_ALTO;
+        uint8_t m_TargetPosition {0};
 };
