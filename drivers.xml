@@ -62,11 +62,7 @@
         <device label="EQ500X" manufacturer="Omegon">
             <driver name="EQ500X">indi_eq500x_telescope</driver>
             <version>1.0</version>
-        </device>
-        <device label="AstroPhysics" manufacturer="Astrophysics">
-            <driver name="AstroPhysics">indi_lx200ap</driver>
-            <version>1.0</version>
-        </device>
+        </device>        
         <device label="AstroPhysics V2" manufacturer="Astrophysics">
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
@@ -81,10 +77,6 @@
         </device>
         <device label="ZWO AM5" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.0</version>
-        </device>
-        <device label="AstroPhysics GTOCP2" manufacturer="Astrophysics">
-            <driver name="AstroPhysics GTOCP2">indi_lx200ap_gtocp2</driver>
             <version>1.0</version>
         </device>        
         <device label="Celestron GPS" manufacturer="Celestron">
