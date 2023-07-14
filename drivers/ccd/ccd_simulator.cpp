@@ -1050,6 +1050,7 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
             IUUpdateText(&DirectoryTP, texts, names, n);
             DirectoryTP.s = IPS_OK;
             IDSetText(&DirectoryTP, nullptr);
+            saveConfig(true, DirectoryTP.name);
             return true;
         }
 
