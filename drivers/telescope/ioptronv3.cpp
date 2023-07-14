@@ -496,7 +496,8 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 case IOP_FIND_HOME:
                     if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-                            firmwareInfo.Model.find("GEM45") == std::string::npos)
+                            firmwareInfo.Model.find("GEM45") == std::string::npos &&
+                            firmwareInfo.Model.find("HAE") == std::string::npos)
                     {
                         HomeSP.s = IPS_IDLE;
                         IDSetSwitch(&HomeSP, nullptr);
