@@ -1,6 +1,6 @@
 /*
     Astro-Electronic FS-2
-    Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2015-2023 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,6 @@
 #pragma once
 
 #include "lx200generic.h"
-#include "alignment/AlignmentSubsystemForDrivers.h"
 
 class LX200FS2 : public LX200Generic
 {
@@ -38,6 +37,10 @@ class LX200FS2 : public LX200Generic
         virtual bool checkConnection() override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+
+        // GOTO
+        virtual bool Goto(double r, double d) override;
+        virtual bool Sync(double r, double d) override;
 
         // Parking
         virtual bool Park() override;
