@@ -141,7 +141,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
          * If the previous stepper data is empty then this will always
          * return true.
          */
-        bool stepperUpdated(const std::vector<std::string> &result, u_int8_t index);
+        bool stepperUpdated(const std::vector<std::string> &result, uint8_t index);
 
         int PortFD { -1 };
         bool setupComplete { false };

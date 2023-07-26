@@ -1356,7 +1356,7 @@ bool PegasusUPB::sensorUpdated(const std::vector<std::string> &result, uint8_t s
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-bool PegasusUPB::stepperUpdated(const std::vector<std::string> &result, u_int8_t index)
+bool PegasusUPB::stepperUpdated(const std::vector<std::string> &result, uint8_t index)
 {
     if (lastStepperData.empty())
         return true;
