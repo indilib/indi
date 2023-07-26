@@ -73,7 +73,7 @@ const std::map<std::string, std::string> Driver::models =
     {"0122", "CEM120-EC2"},
     {"5010", "Cube II AA"},
     {"5035", "AZ Mount Pro"},
-    {"5045", "iEQ45 Pro AA"},
+    {"5045", "iEQ45 Pro AA"}
 };
 
 const uint16_t Driver::IOP_SLEW_RATES[] = {1, 2, 8, 16, 64, 128, 256, 512, 1024};
