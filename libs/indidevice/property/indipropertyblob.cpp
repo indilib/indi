@@ -27,7 +27,16 @@ PropertyBlobPrivate::PropertyBlobPrivate(size_t count)
 { }
 
 PropertyBlobPrivate::~PropertyBlobPrivate()
-{ }
+{
+    for (auto &it: widgets)
+    {
+        auto blob = it.getBlob();
+        if (blob != nullptr && deleter != nullptr)
+        {
+            deleter(blob);
+        }
+    }
+}
 
 PropertyBlob::PropertyBlob(size_t count)
     : PropertyBasic<IBLOB>(*new PropertyBlobPrivate(count))
@@ -39,6 +48,12 @@ PropertyBlob::PropertyBlob(INDI::Property property)
 
 PropertyBlob::~PropertyBlob()
 { }
+
+void PropertyBlob::setBlobDeleter(const std::function<void(void *&)> &deleter)
+{
+    D_PTR(PropertyBlob);
+    d->deleter = deleter;
+}
 
 bool PropertyBlob::update(
     const int sizes[], const int blobsizes[], const char * const blobs[], const char * const formats[],
