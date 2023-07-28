@@ -460,6 +460,15 @@ int BaseDevice::buildProp(const INDI::LilXmlElement &root, char *errmsg, bool is
         case INDI_BLOB:
         {
             INDI::PropertyBlob typedProperty {0};
+            typedProperty.setBlobDeleter([](void *&blob)
+            {
+#ifdef ENABLE_INDI_SHARED_MEMORY
+                IDSharedBlobFree(blob);
+#else
+                free(blob);
+#endif
+                blob = nullptr;
+            });
             for (const auto &element : root.getElementsByTagName("defBLOB"))
             {
                 INDI::WidgetViewBlob widget;
