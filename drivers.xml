@@ -91,7 +91,7 @@
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron AVX" manufacturer="Celestron">
+        <device label="Celestron Advanced VX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
