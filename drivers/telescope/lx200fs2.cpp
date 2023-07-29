@@ -1,6 +1,6 @@
 /*
     Astro-Electronic FS-2 Driver
-    Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2015-2023 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 #include "lx200fs2.h"
 
 #include "indicom.h"
+#include "lx200driver.h"
 
 #include <libnova/transform.h>
 
@@ -28,7 +29,7 @@
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
-    setVersion(2, 2);
+    setVersion(2, 3);
 
     SetTelescopeCapability(
         TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_ABORT, 4);
@@ -374,3 +375,68 @@ bool LX200FS2::updateLocation(double latitude, double longitude, double elevatio
     INDI_UNUSED(elevation);
     return true;
 }
+
+bool LX200FS2::Goto(double r, double d)
+{
+    targetRA  = r;
+    targetDEC = d;
+    char RAStr[64], DecStr[64];
+
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        if (Slew(PortFD))
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            slewError(1);
+            return false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    return true;
+}
+
+bool LX200FS2::Sync(double ra, double dec)
+{
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, ra, true) < 0 || setObjectDEC(PortFD, dec, true) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            return false;
+        }
+
+        char syncString[256];
+        if (::Sync(PortFD, syncString) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Synchronization failed.");
+            return false;
+        }
+
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+    LOG_INFO("Synchronization successful.");
+    EqNP.s     = IPS_OK;
+    NewRaDec(currentRA, currentDEC);
+    return true;
+}
+

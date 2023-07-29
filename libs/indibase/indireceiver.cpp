@@ -107,10 +107,6 @@ bool Receiver::ISNewNumber(const char *dev, const char *name, double values[], c
     {
         IDSetNumber(&ReceiverSettingsNP, nullptr);
     }
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name))
-    {
-        IDSetNumber(&ReceiverSettingsNP, nullptr);
-    }
     return processNumber(dev, name, values, names, n);
 }
 

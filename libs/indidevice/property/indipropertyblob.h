@@ -31,6 +31,16 @@ class PropertyBlob: public INDI::PropertyBasic<IBLOB>
         PropertyBlob(size_t count);
         PropertyBlob(INDI::Property property);
         ~PropertyBlob();
+    
+    public:
+        /**
+         * @brief Set the Blob Deleter function
+         * You can define a function to release the memory of the elements.
+         * The function will be executed when the PropertyBlob is destroyed
+         * 
+         * @param deleter function to release the memory of a given item
+         */
+        void setBlobDeleter(const std::function<void(void *&)> &deleter);
 
     public:
         bool update(

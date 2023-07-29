@@ -179,15 +179,14 @@ bool CCDSim::initProperties()
 
     // Directory to read images from. This is useful to test real images captured by camera
     // For each capture, one file is read (sorted by name) and is sent to client.
-    IUFillText(&DirectoryT[0], "LOCATION", "Location", getenv("HOME"));
-    IUFillTextVector(&DirectoryTP, DirectoryT, 1, getDeviceName(), "CCD_DIRECTORY_LOCATION", "Directory", SIMULATOR_TAB, IP_RW,
-                     60, IPS_IDLE);
+    DirectoryTP[0].fill("LOCATION", "Location", getenv("HOME"));
+    DirectoryTP.fill(getDeviceName(), "CCD_DIRECTORY_LOCATION", "Directory", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    DirectoryTP.load();
 
     // Toggle Directory Reading. If enabled. The simulator will just read images from the directory and not generate them.
-    IUFillSwitch(&DirectoryS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&DirectoryS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&DirectorySP, DirectoryS, 2, getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    DirectorySP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    DirectorySP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    DirectorySP.fill(getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -270,8 +269,8 @@ bool CCDSim::updateProperties()
         defineProperty(&GainNP);
         defineProperty(&OffsetNP);
 
-        defineProperty(&DirectoryTP);
-        defineProperty(&DirectorySP);
+        defineProperty(DirectoryTP);
+        defineProperty(DirectorySP);
 
         setupParameters();
 
@@ -291,8 +290,8 @@ bool CCDSim::updateProperties()
 
         deleteProperty(GainNP.name);
         deleteProperty(OffsetNP.name);
-        deleteProperty(DirectoryTP.name);
-        deleteProperty(DirectorySP.name);
+        deleteProperty(DirectoryTP);
+        deleteProperty(DirectorySP);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -327,7 +326,7 @@ bool CCDSim::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
-    if (PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME && DirectoryS[INDI_ENABLED].s == ISS_ON)
+    if (PrimaryCCD.getFrameType() == INDI::CCDChip::LIGHT_FRAME && DirectorySP[INDI_ENABLED].getState() == ISS_ON)
     {
         if (loadNextImage() == false)
             return false;
@@ -420,7 +419,7 @@ void CCDSim::TimerHit()
                 {
                     InExposure = false;
                     // We don't bin for raw images.
-                    if (DirectoryS[INDI_DISABLED].s == ISS_ON)
+                    if (DirectorySP[INDI_DISABLED].getState() == ISS_ON)
                         PrimaryCCD.binFrame();
                     ExposureComplete(&PrimaryCCD);
                 }
@@ -1045,11 +1044,15 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
             INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
-        else if (!strcmp(DirectoryTP.name, name))
+        else if (DirectoryTP.isNameMatch(name))
         {
-            IUUpdateText(&DirectoryTP, texts, names, n);
-            DirectoryTP.s = IPS_OK;
-            IDSetText(&DirectoryTP, nullptr);
+            DirectoryTP.update(texts, names, n);
+            if (DirectorySP[INDI_ENABLED].getState() == ISS_OFF || (DirectorySP[INDI_ENABLED].getState() == ISS_ON && watchDirectory()))
+                DirectoryTP.setState(IPS_OK);
+            else
+                DirectoryTP.setState(IPS_ALERT);
+            DirectoryTP.apply();
+            saveConfig(DirectoryTP);
             return true;
         }
 
@@ -1174,60 +1177,28 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             return true;
         }
-        else if (!strcmp(DirectorySP.name, name))
+        else if (DirectorySP.isNameMatch(name))
         {
-            IUUpdateSwitch(&DirectorySP, states, names, n);
+            DirectorySP.update(states, names, n);
             m_AllFiles.clear();
             m_RemainingFiles.clear();
-            if (DirectoryS[INDI_ENABLED].s == ISS_ON)
+            if (DirectorySP[INDI_ENABLED].getState() == ISS_ON)
             {
-                DIR* dirp = opendir(DirectoryT[0].text);
-                if (dirp == nullptr)
+                if (watchDirectory() == false)
                 {
-                    DirectoryS[INDI_ENABLED].s = ISS_OFF;
-                    DirectoryS[INDI_DISABLED].s = ISS_ON;
-                    DirectorySP.s = IPS_ALERT;
-                    LOGF_ERROR("Cannot monitor invalid directory %s", DirectoryT[0].text);
-                    IDSetSwitch(&DirectorySP, nullptr);
-                    return true;
-                }
-                struct dirent * dp;
-                std::string d_dir = std::string(DirectoryT[0].text);
-                if (DirectoryT[0].text[strlen(DirectoryT[0].text) - 1] != '/')
-                    d_dir += "/";
-                while ((dp = readdir(dirp)) != NULL)
-                {
-
-                    // For now, just FITS.
-                    if (strstr(dp->d_name, ".fits"))
-                        m_AllFiles.push_back(d_dir + dp->d_name);
-                }
-                closedir(dirp);
-
-                if (m_AllFiles.empty())
-                {
-                    IUResetSwitch(&DirectorySP);
-                    DirectoryS[INDI_DISABLED].s = ISS_ON;
-                    DirectorySP.s = IPS_ALERT;
-                    LOGF_ERROR("No FITS files found in directory %s", DirectoryT[0].text);
-                    IDSetSwitch(&DirectorySP, nullptr);
-                }
-                else
-                {
-                    DirectorySP.s = IPS_OK;
-                    std::sort(m_AllFiles.begin(), m_AllFiles.end());
-                    m_RemainingFiles = m_AllFiles;
-                    LOGF_INFO("Directory-based images are enabled. Subsequent exposures will be loaded from directory %s", DirectoryT[0].text);
+                    DirectorySP[INDI_ENABLED].setState(ISS_OFF);
+                    DirectorySP[INDI_DISABLED].setState(ISS_ON);
+                    DirectorySP.setState(IPS_ALERT);
                 }
             }
             else
             {
                 m_RemainingFiles.clear();
-                DirectorySP.s = IPS_OK;
+                DirectorySP.setState(IPS_OK);
                 setBayerEnabled(SimulateBayerS[INDI_ENABLED].s == ISS_ON);
                 LOG_INFO("Directory-based images are disabled.");
             }
-            IDSetSwitch(&DirectorySP, nullptr);
+            DirectorySP.apply(nullptr);
             return true;
         }
         else if (strcmp(name, CrashSP.name) == 0)
@@ -1238,6 +1209,44 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
     //  Nobody has claimed this, so, ignore it
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool CCDSim::watchDirectory()
+{
+    DIR* dirp = opendir(DirectoryTP[0].getText());
+    if (dirp == nullptr)
+    {
+        LOGF_ERROR("Cannot monitor invalid directory %s", DirectoryTP[0].getText());
+        return false;
+    }
+
+    struct dirent * dp;
+    std::string d_dir = std::string(DirectoryTP[0].text);
+    auto directory = DirectoryTP[0].getText();
+    if (directory[strlen(directory) - 1] != '/')
+        d_dir += "/";
+    while ((dp = readdir(dirp)) != NULL)
+    {
+        // For now, just FITS.
+        if (strstr(dp->d_name, ".fits"))
+            m_AllFiles.push_back(d_dir + dp->d_name);
+    }
+    closedir(dirp);
+
+    if (m_AllFiles.empty())
+    {
+        LOGF_ERROR("No FITS files found in directory %s", directory);
+        return false;
+    }
+    else
+    {
+        std::sort(m_AllFiles.begin(), m_AllFiles.end());
+        m_RemainingFiles = m_AllFiles;
+        LOGF_INFO("Directory-based images are enabled. Subsequent exposures will be loaded from directory %s",
+                  directory);
+    }
+
+    return true;
 }
 
 void CCDSim::activeDevicesUpdated()
@@ -1346,7 +1355,7 @@ bool CCDSim::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &OffsetNP);
 
     // Directory
-    IUSaveConfigText(fp, &DirectoryTP);
+    DirectoryTP.save(fp);
 
     // Bayer
     IUSaveConfigSwitch(fp, &SimulateBayerSP);

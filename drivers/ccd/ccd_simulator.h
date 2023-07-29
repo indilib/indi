@@ -125,6 +125,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     protected:
 
         float CalcTimeLeft(timeval, float);
+        bool watchDirectory();
         bool loadNextImage();
         bool setupParameters();
 
@@ -233,11 +234,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumber OffsetN[1];
         INumberVectorProperty OffsetNP;
 
-        IText DirectoryT[1] {};
-        ITextVectorProperty DirectoryTP;
-
-        ISwitch DirectoryS[2];
-        ISwitchVectorProperty DirectorySP;
+        INDI::PropertyText DirectoryTP {1};
+        INDI::PropertySwitch DirectorySP {2};
 
         ISwitchVectorProperty CrashSP;
         ISwitch CrashS[1];

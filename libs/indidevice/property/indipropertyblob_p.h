@@ -36,6 +36,7 @@ class PropertyBlobPrivate: public PropertyBasicPrivateTemplate<IBLOB>
         virtual ~PropertyBlobPrivate();
 
     public:
+        std::function<void(void *&)> deleter;
 
 };
 
