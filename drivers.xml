@@ -83,23 +83,23 @@
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron CPC" manufacturer="Celestron">
+        <device label="Celestron CPC HC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron NexStar" manufacturer="Celestron">
+        <device label="Celestron NexStar HC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron Advanced VX" manufacturer="Celestron">
+        <device label="Celestron Advanced VX HC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron CGEM" manufacturer="Celestron">
+        <device label="Celestron CGEM HC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
-        <device label="Celestron CGX" manufacturer="Celestron">
+        <device label="Celestron CGX HC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.6</version>
         </device>
