@@ -11,6 +11,11 @@
 #include <assert.h>
 #include <sys/stat.h>
 
+#ifdef _WIN32
+#include <direct.h>
+#include <Windows.h>
+#endif
+
 /** \section IUSave */
 
 void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
@@ -72,14 +77,33 @@ XMLEle *configRootFP(const char *device)
 
     if (stat(configDir, &st) != 0)
     {
+#ifdef _WIN32
+        if (mkdir(configDir) != 0)
+#else
         if (mkdir(configDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
+#endif
             return NULL;
     }
 
     stat(configFileName, &st);
+    
+#ifdef _WIN32
+    BOOL isAdmin = FALSE;
+    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+    PSID AdministratorsGroup;
+    if (AllocateAndInitializeSid(&NtAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &AdministratorsGroup))
+    {
+        if (CheckTokenMembership(NULL, AdministratorsGroup, &isAdmin) == FALSE)
+            isAdmin = FALSE;
+        FreeSid(AdministratorsGroup);
+    }
+    if ((st.st_uid == 0 && st.st_mode & S_IFDIR) || (st.st_gid == 0 && isAdmin == TRUE))
+        return NULL;
+#else
     /* If file is owned by root and current user is NOT root then abort */
     if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
         return NULL;
+#endif
 
     fp = fopen(configFileName, "r");
     if (fp == NULL)
