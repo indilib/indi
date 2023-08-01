@@ -1,3 +1,32 @@
++ From 2.0.2 to 2.0.3
+
+    70a132429 2023-07-29 Jasem Mutlaq         Use HC to designate them as Hand Controller since this is how this driver operates
+    2a20403ce 2023-07-29 Jasem Mutlaq         Consistent names
+    4224155e8 2023-07-28 Paweł Soja           Fix leaks last blob on driver restart (#1909)
+    6aabc0849 2023-07-26 Sonny Cavazos        Update ioptronv3driver.cpp (#1915)
+    e5f18af6f 2023-07-26 Sonny Cavazos        Update ioptronv3.cpp (#1916)
+    2e95bc3a8 2023-07-26 Sam James            drivers: auxiliary: use stdint.h types (fix musl build) (#1914)
+    745b13b35 2023-07-23 Jasem Mutlaq         Fix FS2 GOTO issue by adding space. Fixes #1829
+    871af434c 2023-07-20 Jasem Mutlaq         Refresh directory on text change as well
+    2a5632026 2023-07-14 Jasem Mutlaq         Save directory by default
+    248e90303 2023-07-13 Sonny Cavazos        Update ioptronv3.cpp (#1912)
+    95d38c0ac 2023-07-14 Ilia Platone         Working on issues on indisensorinterface.cpp (#1907)
+    52a56f00e 2023-07-13 Sonny Cavazos        Update ioptronv3driver.cpp (#1911)
+    46098013f 2023-07-12 Jasem Mutlaq         Remove older AP drivers and keep only the latest supported one so that it is clear to users which one to use
+    71d183b31 2023-07-07 Jasem Mutlaq         Do not create range if min and max OK are the same
+    f6d62a578 2023-07-07 Jasem Mutlaq         Set position on startup
+    d5619251d 2023-07-06 Jasem Mutlaq         Do not set property to position until later down the chain
+    a19e7899e 2023-07-06 Jasem Mutlaq         Add ALTO position control
+    e57d9ea4b 2023-07-06 Jasem Mutlaq         Add property to set how we should handle setting system time with it being default on startup only. Setting it on refresh can have undesirable results
+    51ed26cf3 2023-07-03 Jasem Mutlaq         Remove unused code
+    b996ab713 2023-07-03 Jasem Mutlaq         Fix open and close command
+    dc972ccbb 2023-07-03 Jasem Mutlaq         Fix issue with GPS parting string result in local time instead of UTC
+    2f5f2f0eb 2023-06-07 Jasem Mutlaq         Save stack mode to config file
+    8a817a3b5 2023-06-07 Ilia Platone         Simplify RTL-SDR driver for bug #558 (#1905)
+    021b839e8 2023-06-06 Jasem Mutlaq         Refactor Watchdog timer to use more modern INDI timers. Fixes #1904
+    f8711fa64 2023-06-06 Jasem Mutlaq         Add function to load and sync all of a property member from the config file at once
+    35f0eb57c 2023-06-06 Jasem Mutlaq         Clear lilxml before returning
+
 + From 2.0.1 to 2.0.2
 
       f8b829b6c 2023-05-30 pludov               Debug blob snooping (#1902)                                                                                                                           
