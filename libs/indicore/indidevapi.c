@@ -16,6 +16,8 @@
 #include <Windows.h>
 #endif
 
+#define MAXRBUF 2048
+
 /** \section IUSave */
 
 void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
@@ -60,7 +62,6 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
  *  N.B. Must be freed by the caller */
 XMLEle *configRootFP(const char *device)
 {
-    static const int MAXRBUF = 2048;
     char configFileName[MAXRBUF];
     char configDir[MAXRBUF];
     char errmsg[MAXRBUF];
