@@ -24,10 +24,14 @@ extern "C" {
 #endif
 
 #ifndef DLL_EXPORT
+#ifdef _WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
 #define DLL_EXPORT extern
 #endif
+#endif
 
-#if defined __linux__ || defined __CYGWIN__
+#ifdef __linux__
 #include <endian.h>
 #else
 #define __bswap_16(a) __builtin_bswap16(a)
@@ -70,6 +74,7 @@ typedef double dsp_t;
 typedef double complex_t[2];
 #define dsp_t_max 255
 #define dsp_t_min -dsp_t_max
+#define DSP_NAME_SIZE 128
 
 /**
 * \brief get/set the maximum number of threads allowed
@@ -240,8 +245,14 @@ typedef struct dsp_star_t
     dsp_point center;
     /// The diameter of the star
     double diameter;
+    /// The peak of the star
+    double peak;
+    /// The flux of the star
+    double flux;
+    /// The deviation of the star
+    double theta;
     /// The name of the star
-    char name[150];
+    char name[DSP_NAME_SIZE];
 } dsp_star;
 
 /**
@@ -261,6 +272,8 @@ typedef struct dsp_triangle_t
     double *ratios;
     /// The stars of the triangle
     dsp_star *stars;
+    /// The number of stars of the triangle
+    int stars_count;
 } dsp_triangle;
 
 /**
@@ -362,7 +375,7 @@ typedef void *(*dsp_func_t) (void *, ...);
 typedef struct dsp_stream_t
 {
     /// Friendly name of the stream
-    char name[128];
+    char name[DSP_NAME_SIZE];
     /// Increments by one on the copied stream
     int is_copy;
     /// The buffers length
@@ -1260,6 +1273,27 @@ DLL_EXPORT void dsp_stream_crop(dsp_stream_p stream);
 DLL_EXPORT void dsp_stream_rotate(dsp_stream_p stream);
 
 /**
+* \brief Sum a stream with another
+* \param stream The stream that will be summed
+* \param in The stream that will be summed to stream
+*/
+DLL_EXPORT void dsp_stream_sum(dsp_stream_p stream, dsp_stream_p in);
+
+/**
+* \brief Multiply a stream with another
+* \param stream The stream that will be multiplied
+* \param in The stream that will be multiplied to stream
+*/
+DLL_EXPORT void dsp_stream_multiply(dsp_stream_p stream, dsp_stream_p in);
+
+/**
+* \brief Subtract a stream to another
+* \param stream The original stream
+* \param in The stream that will be subtracted to the first argument
+*/
+DLL_EXPORT void dsp_stream_subtract(dsp_stream_p stream, dsp_stream_p in);
+
+/**
 * \brief Translate a stream
 * \param stream The stream that will be translated in-place
 */
@@ -1275,7 +1309,7 @@ DLL_EXPORT void dsp_stream_scale(dsp_stream_p stream);
 * \brief Perform scale, translate and rotate transformations in-place
 * \param stream The stream that will be transformed
 */
-DLL_EXPORT void dsp_stream_align(dsp_stream_p in);
+DLL_EXPORT void dsp_stream_align(dsp_stream_p stream);
 
 /**\}*/
 /**
@@ -1329,6 +1363,23 @@ DLL_EXPORT void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq,
 * \param freq the carrier wave frequency
 */
 DLL_EXPORT void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
+
+/**\}*/
+/**
+ * \defgroup dsp_StreamReconstruction DSP API Stream reconstruction
+*/
+/**\{*/
+
+/**
+* \brief Try to reconstruct a stream from sub-stream matrices
+* \param stream the target DSP stream.
+* \param matrix the DSP stream with the matrices.
+*
+* The matrix stream must have all dimensions and sizes of the target plus one,
+* which is the number of matrices on to align.
+* The aligned stream should replace the target stream.
+*/
+void dsp_recons_align(dsp_stream_p stream, dsp_stream_p matrix);
 
 /**\}*/
 /**
@@ -1388,6 +1439,25 @@ DLL_EXPORT void dsp_file_write_jpeg(const char* filename, int quality, dsp_strea
 * \param stream the input stream to be saved
 */
 DLL_EXPORT void dsp_file_write_jpeg_composite(const char* filename, int components, int quality, dsp_stream_p* stream);
+
+/**
+* \brief Read a PNG file and fill a array of dsp_stream_p with its content,
+* each color channel has its own stream in this array and an additional grayscale at end will be added
+* \param filename the file name.
+* \param channels this value will be updated with the channel quantity into the picture.
+* \param stretch 1 if the buffer intensities have to be stretched
+* \return The new dsp_stream_p structure pointers array
+*/
+DLL_EXPORT dsp_stream_p* dsp_file_read_png(const char* filename, int *channels, int stretch);
+
+/**
+* \brief Write the components dsp_stream_p array into a PNG file,
+* \param filename the file name.
+* \param components the number of streams in the array to be used as components 1 or 3.
+* \param compression the compression of the output PNG 0-9.
+* \param stream the input stream array to be saved
+*/
+DLL_EXPORT void dsp_file_write_png_composite(const char* filename, int components, int compression, dsp_stream_p* stream);
 
 /**
 * \brief Convert a bayer pattern dsp_t array into a grayscale array
@@ -1472,16 +1542,23 @@ DLL_EXPORT dsp_t* dsp_file_bayer_2_composite(dsp_t *src, int red, int width, int
 * \brief Fill a dsp_align_info struct by comparing two triangles
 * \param t1 the reference triangle
 * \param t2 the triangle taken for comparison
-* \return The dsp_align_info struct filled with the offsets
+* \return The dsp_align_info struct pointer filled with the offsets
 */
-DLL_EXPORT dsp_align_info dsp_align_fill_info(dsp_triangle t1, dsp_triangle t2);
+DLL_EXPORT dsp_align_info *dsp_align_fill_info(dsp_triangle t1, dsp_triangle t2);
 
 /**
 * \brief Create a dsp_triangle struct
-* \param stars the stars array meeded to build the triangle struct
-* \return A new dsp_triangle struct
+* \param stars the stars array needed to build the triangle struct
+* \param num_stars the count of the stars
+* \return A new dsp_triangle struct pointer
 */
-DLL_EXPORT dsp_triangle dsp_align_calc_triangle(dsp_star* stars);
+DLL_EXPORT dsp_triangle *dsp_align_calc_triangle(dsp_star* stars, int num_stars);
+
+/**
+* \brief Free a dsp_triangle struct pointer
+* \param triangle pointer to an allocated dsp_triangle struct
+*/
+DLL_EXPORT void dsp_align_free_triangle(dsp_triangle *triangle);
 
 /**
 * \brief Calculate offsets, rotation and scaling of two streams giving reference alignment point
@@ -1489,41 +1566,10 @@ DLL_EXPORT dsp_triangle dsp_align_calc_triangle(dsp_star* stars);
 * \param to_align the stream to be aligned
 * \param tolerance number of decimals allowed
 * \param target_score the minimum matching score to reach
+* \param num_stars number of stars for each triangle
 * \return The alignment mask (bit1: translated, bit2: scaled, bit3: rotated)
 */
-DLL_EXPORT int dsp_align_get_offset(dsp_stream_p ref, dsp_stream_p to_align, double tolerance, double target_score);
-
-/**
-* \brief Callback function for qsort for double type ascending ordering
-* \param arg1 the first comparison element
-* \param arg2 the second comparison element
-* \return 1 if arg1 is greater than arg2, -1 if arg2 is greater than arg1
-*/
-DLL_EXPORT int dsp_qsort_double_asc (const void *arg1, const void *arg2);
-
-/**
-* \brief Callback function for qsort for double type descending ordering
-* \param arg1 the first comparison element
-* \param arg2 the second comparison element
-* \return 1 if arg2 is greater than arg1, -1 if arg1 is greater than arg2
-*/
-DLL_EXPORT int dsp_qsort_double_desc (const void *arg1, const void *arg2);
-
-/**
-* \brief Callback function for qsort for dsp_star ascending ordering by their diameters
-* \param arg1 the first comparison element
-* \param arg2 the second comparison element
-* \return 1 if arg1 diameter is greater than arg2, -1 if arg2 diameter is greater than arg1
-*/
-DLL_EXPORT int dsp_qsort_star_diameter_asc (const void *arg1, const void *arg2);
-
-/**
-* \brief Callback function for qsort for dsp_star descending ordering by their diameters
-* \param arg1 the first comparison element
-* \param arg2 the second comparison element
-* \return 1 if arg2 diameter is greater than arg1, -1 if arg1 diameter is greater than arg2
-*/
-DLL_EXPORT int dsp_qsort_star_diameter_desc (const void *arg1, const void *arg2);
+DLL_EXPORT int dsp_align_get_offset(dsp_stream_p ref, dsp_stream_p to_align, double tolerance, double target_score, int num_stars);
 
 /**\}*/
 /// \defgroup dsp_FitsExtensions
