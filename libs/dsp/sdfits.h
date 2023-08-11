@@ -294,7 +294,7 @@ SDFITS_COLUMN_EQUINOX, \
 * \param maxis The sizes of the data matrix
 * \return dsp_fits_row pointer describing the fits file content
 */
-dsp_fits_row *dsp_fits_read_sdfits(char *filename, long *nstreams, long *maxes, long **maxis);
+DLL_EXPORT dsp_fits_row *dsp_fits_read_sdfits(char *filename, long *nstreams, long *maxes, long **maxis);
 /**\}*/
 
 #ifdef __cplusplus

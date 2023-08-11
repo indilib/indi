@@ -31,7 +31,8 @@ void dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p matrix) {
         }
         x = dsp_stream_set_position(stream, d_pos);
         free(pos);
-        stream->magnitude->buf[x] *= sqrt(matrix->magnitude->buf[y]);
+        if(x >= 0 && x < stream->magnitude->len)
+            stream->magnitude->buf[x] *= sqrt(matrix->magnitude->buf[y]);
     }
     free(d_pos);
     dsp_fourier_idft(stream);

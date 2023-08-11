@@ -24,8 +24,8 @@
 extern "C" {
 #endif
 
-#ifndef DLL_EXPORT
-#define DLL_EXPORT extern
+#ifdef _WIN32
+#define _TCHAR_DEFINED
 #endif
 
 #include <fitsio.h>
@@ -224,7 +224,7 @@ typedef struct
 * \param comment The keyword or assigned value description or explanation
 * \param status This variable will be updated with the status of the update operation
 */
-void dsp_fits_update_fits_key(fitsfile *fptr, int type, char* name, void *value, char* comment, int *status);
+DLL_EXPORT void dsp_fits_update_fits_key(fitsfile *fptr, int type, char* name, void *value, char* comment, int *status);
 
 /**
 * \brief Convert an RGB color dsp_t array into a dsp_stream_p array each element containing the single components
@@ -233,7 +233,7 @@ void dsp_fits_update_fits_key(fitsfile *fptr, int type, char* name, void *value,
 * \return The number of rows incremented by the allocated ones
 * \sa dsp_fits_create_fits
 */
-long dsp_fits_alloc_fits_rows(fitsfile *fptr, unsigned long num_rows);
+DLL_EXPORT long dsp_fits_alloc_fits_rows(fitsfile *fptr, unsigned long num_rows);
 
 /**
 * \brief Fill a column at the given row position with the valued buffer
@@ -246,7 +246,7 @@ long dsp_fits_alloc_fits_rows(fitsfile *fptr, unsigned long num_rows);
 * \return non-zero if any error occured
 * \sa dsp_fits_create_fits
 */
-int dsp_fits_fill_fits_col(fitsfile *fptr, char* name, unsigned char *buf, int typecode, long num_elements,
+DLL_EXPORT int dsp_fits_fill_fits_col(fitsfile *fptr, char* name, unsigned char *buf, int typecode, long num_elements,
                            unsigned long rown);
 
 /**
@@ -256,21 +256,21 @@ int dsp_fits_fill_fits_col(fitsfile *fptr, char* name, unsigned char *buf, int t
 * \param format This field should indicate the element size, width of each element and repetition eventually
 * \return non-zero if any error occured
 */
-int dsp_fits_append_fits_col(fitsfile *fptr, char* name, char* format);
+DLL_EXPORT int dsp_fits_append_fits_col(fitsfile *fptr, char* name, char* format);
 
 /**
 * \brief Delete a column from the binary table
 * \param fptr The fits file pointer created by dsp_fits_create_fits
 * \param name The name of the column
 */
-void dsp_fits_delete_fits_col(fitsfile *fptr, char* name);
+DLL_EXPORT void dsp_fits_delete_fits_col(fitsfile *fptr, char* name);
 
 /**
 * \brief Obtain the single element size in bytes
 * \param typecode The typecode of each single element
 * \return the size of the single element
 */
-size_t dsp_fits_get_element_size(int typecode);
+DLL_EXPORT size_t dsp_fits_get_element_size(int typecode);
 
 /**
 * \brief Decode a typecode format string
@@ -280,7 +280,7 @@ size_t dsp_fits_get_element_size(int typecode);
 * \param repeat This function will return the repeatition count to this variable
 * \return non-zero if any error occured
 */
-int dsp_fits_read_typecode(char* typestr, int *typecode, long *width, long *repeat);
+DLL_EXPORT int dsp_fits_read_typecode(char* typestr, int *typecode, long *width, long *repeat);
 
 /**
 * \brief Obtain the value of the specified field
@@ -290,7 +290,7 @@ int dsp_fits_read_typecode(char* typestr, int *typecode, long *width, long *repe
 * \param retval A preallocated buffer where the field value will be stored into
 * \return non-zero if any error occured
 */
-int dsp_fits_get_value(fitsfile *fptr, char* column, long rown, void **retval);
+DLL_EXPORT int dsp_fits_get_value(fitsfile *fptr, char* column, long rown, void **retval);
 
 /**
 * \brief Check if the value of the specified field corresponds to a subset of values
@@ -300,7 +300,7 @@ int dsp_fits_get_value(fitsfile *fptr, char* column, long rown, void **retval);
 * \param rown The row position of the field
 * \return zero if any of the values was matched
 */
-int dsp_fits_check_column(fitsfile *fptr, char* column, char **expected, long rown);
+DLL_EXPORT int dsp_fits_check_column(fitsfile *fptr, char* column, char **expected, long rown);
 
 /**
 * \brief Create an open fits file pointer to be updated later
@@ -308,7 +308,7 @@ int dsp_fits_check_column(fitsfile *fptr, char* column, char **expected, long ro
 * \param buf This buffer will contain the fits memfile
 * \return fitsfile the fits file pointer
 */
-fitsfile* dsp_fits_create_fits(size_t *size, void **buf);
+DLL_EXPORT fitsfile* dsp_fits_create_fits(size_t *size, void **buf);
 
 /**
 * \brief Add a binary table extension into a fits file
@@ -318,14 +318,14 @@ fitsfile* dsp_fits_create_fits(size_t *size, void **buf);
 * \param tablename The extension table name
 * \return non-zero if any error occured
 */
-int dsp_fits_add_table(fitsfile* fptr, dsp_fits_column *columns, int ncols,  const char* tablename);
+DLL_EXPORT int dsp_fits_add_table(fitsfile* fptr, dsp_fits_column *columns, int ncols,  const char* tablename);
 
 /**
 * \brief Close a fits file pointer
 * \param fptr The fits file pointer created by dsp_fits_create_fits
 * \return non-zero if any error occured
 */
-int dsp_fits_close_fits(fitsfile *fptr);
+DLL_EXPORT int dsp_fits_close_fits(fitsfile *fptr);
 /**\}*/
 
 #ifdef __cplusplus
