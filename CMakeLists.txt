@@ -255,9 +255,76 @@ endif(INDI_BUILD_WEBSOCKET)
 #
 # ##################################################################################################
 if(INDI_BUILD_DRIVERS)
-    if(WIN32 OR ANDROID)
+    if(ANDROID)
         message(WARNING "INDI drivers are only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-    else(WIN32 OR ANDROID)
+    elseif(WIN32)
+        find_package(Threads REQUIRED)
+        find_package(ZLIB REQUIRED)
+        find_package(CFITSIO REQUIRED)
+        find_package(Nova REQUIRED)
+        find_package(USB1 REQUIRED)
+        find_package(CURL REQUIRED)
+        find_package(GSL REQUIRED)
+        find_package(JPEG REQUIRED)
+        find_library(M_LIB m)
+
+        if(CMAKE_VERSION VERSION_LESS 3.12.0)
+            set(CURL ${CURL_LIBRARIES})
+        else()
+            set(CURL CURL::libcurl)
+        endif()
+
+        include_directories(${CFITSIO_INCLUDE_DIR})
+        include_directories(${NOVA_INCLUDE_DIR})
+        include_directories(${USB1_INCLUDE_DIRS})
+        include_directories(${GSL_INCLUDE_DIRS})
+        include_directories(${JPEG_INCLUDE_DIR})
+        include_directories(${ZLIB_INCLUDE_DIR})
+        include_directories(libs/indibase)
+        include_directories(libs/indibase/timer)
+
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
+
+        add_subdirectory(libs/eventloop)
+        add_subdirectory(libs/dsp)
+        add_subdirectory(libs/fpack)
+        add_subdirectory(libs/hid)
+
+        # #################################################
+        # ########## INDI Driver Library ##################
+        # #################################################
+        add_subdirectory(libs/indibase)
+
+        # #################################################
+        # ########## INDI Alignment Subsystem #############
+        # #################################################
+        # add_subdirectory(libs/alignment)
+
+        # #################################################
+        # ########## INDI Drivers #########################
+        # #################################################
+        # add_subdirectory(drivers)
+        install(FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
+
+        # ####################################
+        # ########### INDI TOOLS #############
+        # ####################################
+        add_subdirectory(tools)
+
+         # ####################################
+        # ########### EXamples ###############
+        # ####################################
+        if(INDI_BUILD_CLIENT)
+            # add_subdirectory(examples)
+        else()
+            message(WARNING "Skipping build of examples since INDI POSIX client is not built")
+        endif()
+
+        # ################################################################################
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
+
+    else()
         # 1. Dependencies
         find_package(Threads REQUIRED)
         find_package(ZLIB REQUIRED)
@@ -362,7 +429,7 @@ if(INDI_BUILD_DRIVERS)
         else()
             message(STATUS "GTEST not found, not building tests")
         endif(GTEST_FOUND AND BUILD_TESTING)
-    endif(WIN32 OR ANDROID)
+    endif(ANDROID)
 endif(INDI_BUILD_DRIVERS)
 
 # ##################################################################################################

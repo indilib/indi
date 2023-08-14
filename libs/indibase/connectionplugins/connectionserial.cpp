@@ -30,6 +30,10 @@
 #include <regex>
 #include <random>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace Connection
 {
 extern const char *CONNECTION_TAB;
@@ -439,38 +443,72 @@ bool Serial::Refresh(bool silent)
 
     // 0 Serial Only, 1 By USB-ID, 2 Bluetooth
     auto searchPath = [&](std::string prefix, uint8_t searchType)
-    {
-        struct dirent **namelist;
-        std::vector<std::string> detectedDevices;
-        int devCount = 0;
-        if (searchType == SERIAL_DEV)
-            devCount = scandir(prefix.c_str(), &namelist, serial_dev_file_select, alphasort);
-        else if (searchType == USB_ID_DEV)
-            devCount = scandir(prefix.c_str(), &namelist, usb_dev_file_select, alphasort);
-        else
-            devCount = scandir(prefix.c_str(), &namelist, bluetooth_dev_file_select, alphasort);
-        if (devCount > 0)
         {
-            while (devCount--)
-            {
-                if (detectedDevices.size() < 10)
-                {
-                    std::string s(namelist[devCount]->d_name);
-                    s.erase(s.find_last_not_of(" \n\r\t") + 1);
-                    detectedDevices.push_back(prefix + s);
-                }
-                else
-                {
-                    LOGF_DEBUG("Ignoring devices over %d : %s", detectedDevices.size(),
-                               namelist[devCount]->d_name);
-                }
-                free(namelist[devCount]);
-            }
-            free(namelist);
-        }
+            struct dirent **namelist;
+            std::vector<std::string> detectedDevices;
 
-        return detectedDevices;
-    };
+#ifdef _WIN32
+            WIN32_FIND_DATAA fileInfo;
+            HANDLE hFind = INVALID_HANDLE_VALUE;
+            std::string searchPattern;
+
+            if (searchType == SERIAL_DEV)
+                searchPattern = prefix + "*";
+            else if (searchType == USB_ID_DEV)
+                searchPattern = prefix + "usb*";
+            else
+                searchPattern = prefix + "bluetooth*";
+
+            hFind = FindFirstFileA(searchPattern.c_str(), &fileInfo);
+            if (hFind != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    if (detectedDevices.size() < 10)
+                    {
+                        std::string deviceName(fileInfo.cFileName);
+                        detectedDevices.push_back(prefix + deviceName);
+                    }
+                    else
+                    {
+                        LOGF_DEBUG("Ignoring devices over %d : %s", detectedDevices.size(),
+                                   fileInfo.cFileName);
+                    }
+                } while (FindNextFileA(hFind, &fileInfo) != 0);
+
+                FindClose(hFind);
+            }
+
+#else
+            int devCount = 0;
+            if (searchType == SERIAL_DEV)
+                devCount = scandir(prefix.c_str(), &namelist, serial_dev_file_select, alphasort);
+            else if (searchType == USB_ID_DEV)
+                devCount = scandir(prefix.c_str(), &namelist, usb_dev_file_select, alphasort);
+            else
+                devCount = scandir(prefix.c_str(), &namelist, bluetooth_dev_file_select, alphasort);
+            if (devCount > 0)
+            {
+                while (devCount--)
+                {
+                    if (detectedDevices.size() < 10)
+                    {
+                        std::string s(namelist[devCount]->d_name);
+                        s.erase(s.find_last_not_of(" \n\r\t") + 1);
+                        detectedDevices.push_back(prefix + s);
+                    }
+                    else
+                    {
+                        LOGF_DEBUG("Ignoring devices over %d : %s", detectedDevices.size(),
+                                   namelist[devCount]->d_name);
+                    }
+                    free(namelist[devCount]);
+                }
+                free(namelist);
+            }
+#endif
+            return detectedDevices;
+        };
 
 #ifdef __linux__
     // Search for serial, usb, and bluetooth devices.

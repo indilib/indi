@@ -69,7 +69,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,8 +76,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
-#include <poll.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -88,10 +91,12 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
-#include <unistd.h>
 #include <sys/un.h>
+#include <netdb.h>
+#include <poll.h>
 #ifdef MSG_ERRQUEUE
-#include <linux/errqueue.h>
+    #include <linux/errqueue.h>
+#endif
 #endif
 
 #include <ev++.h>
@@ -1091,7 +1096,9 @@ static void usage(void)
     exit(2);
 }
 
+#ifdef _WIN32
 /* turn off SIGPIPE on bad write so we can handle it inline */
+#else
 static void noSIGPIPE()
 {
     struct sigaction sa;
@@ -1100,6 +1107,7 @@ static void noSIGPIPE()
     sigemptyset(&sa.sa_mask);
     (void)sigaction(SIGPIPE, &sa, NULL);
 }
+#endif
 
 /* start the given local INDI driver process.
  * exit if trouble.

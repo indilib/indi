@@ -369,6 +369,20 @@ unsigned int Logger::rank(unsigned int l)
     }
 }
 
+#ifdef _WIN32
+#include <sys/time.h>
+void timersub(const struct timeval *t1, const struct timeval *t2, struct timeval *res)
+{
+    res->tv_sec = t1->tv_sec - t2->tv_sec;
+    res->tv_usec = t1->tv_usec - t2->tv_usec;
+    if (res->tv_usec < 0) {
+        res->tv_sec--;
+        res->tv_usec += 1000000;
+    }
+}
+
+#endif
+
 void Logger::print(const char *devicename, const unsigned int verbosityLevel, const std::string &file, const int line,
                    //const std::string& message,
                    const char *message, ...)

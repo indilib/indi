@@ -91,7 +91,7 @@ if(NOT WIN32)
     SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT WIN32)
 
-target_link_libraries(AlignmentClient indidevice indiclient)
+target_link_libraries(AlignmentClient indiclient indidriver indidevice)
 
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

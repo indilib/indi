@@ -23,7 +23,11 @@
 #include "indistandardproperty.h"
 
 #include <cerrno>
+#ifdef _WIN32
+
+#else
 #include <netdb.h>
+#endif
 #include <cstring>
 #include <unistd.h>
 #include <regex>
@@ -190,10 +194,26 @@ bool TCP::establishConnection(const std::string &hostname, const std::string &po
         return false;
     }
 
-    // Set the socket receiving and sending timeouts
+#ifdef _WIN32
+    if (setsockopt(m_SockFD, SOL_SOCKET, SO_RCVTIMEO, (const char*)&ts, sizeof(struct timeval)) < 0)
+    {
+        LOG_ERROR("Failed to set receive timeout.");
+        close(m_SockFD);
+        m_SockFD = -1;
+        return false;
+    }
+
+    if (setsockopt(m_SockFD, SOL_SOCKET, SO_SNDTIMEO, (const char*)&ts, sizeof(struct timeval)) < 0)
+    {
+        LOG_ERROR("Failed to set send timeout.");
+        close(m_SockFD);
+        m_SockFD = -1;
+        return false;
+    }
+#else
     setsockopt(m_SockFD, SOL_SOCKET, SO_RCVTIMEO, &ts, sizeof(struct timeval));
     setsockopt(m_SockFD, SOL_SOCKET, SO_SNDTIMEO, &ts, sizeof(struct timeval));
-
+#endif
     // Connect to the device
     if (::connect(m_SockFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {

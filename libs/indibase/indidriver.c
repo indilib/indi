@@ -38,8 +38,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <direct.h>
+#define mkdir(dir) _mkdir(dir)
+#endif
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <assert.h>
 
 #include "userio.h"
@@ -1022,7 +1027,9 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
     struct stat st;
     FILE *fp = NULL;
 
-    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
+    char *homeDir = getenv("HOME");
+
+    snprintf(configDir, MAXRBUF, "%s/.indi/", homeDir);
 
     if (filename)
         strncpy(configFileName, filename, MAXRBUF);
@@ -1034,18 +1041,28 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
             snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
     }
 
-    if (stat(configDir, &st) != 0)
+    #ifdef _WIN32
+        if (_stat(configDir, &st) != 0)
+    #else
+        if (stat(configDir, &st) != 0)
+    #endif
     {
-        if (mkdir(configDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
+        #ifdef _WIN32
+            if (mkdir(configDir) != 0)
+        #else
+            if (mkdir(configDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+        #endif
         {
-            snprintf(errmsg, MAXRBUF, "Unable to create config directory. Error %s: %s", configDir, strerror(errno));
+            snprintf(errmsg, MAXRBUF, "Unable to create config directory. Error: %s", strerror(errno));
             return NULL;
         }
     }
 
-    stat(configFileName, &st);
-    /* If file is owned by root and current user is NOT root then abort */
-    if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
+    #ifdef _WIN32
+        if (_stat(configFileName, &st) == 0 && (st.st_uid == 0 || st.st_gid == 0))
+    #else
+        if (stat(configFileName, &st) == 0 && (st.st_uid == 0 || st.st_gid == 0))
+    #endif
     {
         strncpy(errmsg,
                 "Config file is owned by root! This will lead to serious errors. To fix this, run: sudo chown -R $USER:$USER ~/.indi",
@@ -1053,11 +1070,11 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
         return NULL;
     }
 
+    // 打开配置文件
     fp = fopen(configFileName, mode);
     if (fp == NULL)
     {
-        snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s", configFileName,
-                 strerror(errno));
+        snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s", configFileName, strerror(errno));
         return NULL;
     }
 

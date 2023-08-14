@@ -1,4 +1,4 @@
-#if 0
+/*
     INDI
     Copyright (C) 2003 Elwood C. Downey
 
@@ -16,7 +16,7 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#endif
+*/
 
 /* suite of functions to implement an event driven program.
  *
@@ -40,6 +40,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <stdint.h>
+#if _WIN32
+#include <winsock2.h>
+#else
+#include <sys/select.h>
+#endif
 
 #include "eventloop.h"
 

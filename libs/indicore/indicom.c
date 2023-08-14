@@ -78,6 +78,7 @@
 #ifdef _WIN32
 #undef CX
 #undef CY
+#include <windows.h>
 #endif
 
 #ifndef _WIN32
@@ -108,6 +109,36 @@ static int tty_sequence_number = 1;
 static int tty_clear_trailing_lf = 0;
 
 #if defined(HAVE_LIBNOVA)
+#ifdef _WIN32
+int extractISOTime(const char *timestr, struct ln_date *iso_date)
+{
+    // Convert timestr to SYSTEMTIME
+    SYSTEMTIME st;
+    memset(&st, 0, sizeof(st));
+
+    sscanf_s(timestr, "%4d-%2d-%2dT%2d:%2d:%2d",
+        &st.wYear, &st.wMonth, &st.wDay, &st.wHour, &st.wMinute, &st.wSecond);
+
+    // Convert SYSTEMTIME to FILETIME
+    FILETIME ft;
+    SystemTimeToFileTime(&st, &ft);
+
+    // Convert FILETIME to time_t
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+
+    time_t tt = (uli.QuadPart - 116444736000000000) / 10000000;
+
+    // Convert time_t to struct tm
+    struct tm *utm = localtime(&tt);
+    if (!utm)
+        return -1;
+
+    ln_get_date_from_tm(utm, iso_date);
+    return 0;
+}
+#else
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
     struct tm utm;
@@ -126,6 +157,7 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
 
     return (-1);
 }
+#endif
 #endif
 
 /* sprint the variable a in sexagesimal format into out[].

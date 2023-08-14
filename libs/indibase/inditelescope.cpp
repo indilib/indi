@@ -28,13 +28,20 @@
 
 #include <cmath>
 #include <cerrno>
-#include <pwd.h>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <unistd.h>
-#include <wordexp.h>
 #include <limits>
+#include <chrono>
+#ifdef _WIN32
+#include <windows.h>
+#include <Shlwapi.h>
+#include <ShlObj.h>
+#else
+#include <pwd.h>
+#include <wordexp.h>
+#endif
 
 namespace INDI
 {
@@ -2014,8 +2021,6 @@ bool Telescope::InitPark()
 
 const char *Telescope::LoadParkXML()
 {
-    wordexp_t wexp;
-    FILE *fp = nullptr;
     LilXML *lp = nullptr;
     static char errmsg[512];
 
@@ -2030,18 +2035,41 @@ const char *Telescope::LoadParkXML()
     ParkpositionAxis1Xml = nullptr;
     ParkpositionAxis2Xml = nullptr;
 
+#ifdef _WIN32
+    wchar_t drive[_MAX_DRIVE];
+    wchar_t dir[_MAX_DIR];
+    wchar_t filename[_MAX_FNAME];
+    wchar_t extension[_MAX_EXT];
+    wchar_t wfilename[MAX_PATH];
+    if (MultiByteToWideChar(CP_UTF8, 0, ParkDataFileName.c_str(), -1, wfilename, MAX_PATH) == 0)
+    {
+        return "Badly formed filename.";
+    }
+    _wsplitpath_s(wfilename, drive, dir, filename, extension);
+    wchar_t wcPath[MAX_PATH];
+    PathCombineW(wcPath, drive, dir);
+    std::wstring path(wcPath);
+    std::string newPath(path.begin(), path.end());
+    FILE *fp = nullptr;
+    if (!(fp = fopen(newPath.c_str(), "r")))
+    {
+        return strerror(errno);
+    }
+    #else
+    wordexp_t wexp;
+    FILE *fp = nullptr;
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
         return "Badly formed filename.";
     }
-
     if (!(fp = fopen(wexp.we_wordv[0], "r")))
     {
         wordfree(&wexp);
         return strerror(errno);
     }
     wordfree(&wexp);
+    #endif
 
     lp = newLilXML();
 
@@ -2139,6 +2167,24 @@ const char *Telescope::LoadParkData()
     return "Failed to parse Park Position.";
 }
 
+#ifdef _WIN32
+LPCWSTR ConvertToLPCWSTR(const char* str)
+{
+    int bufferSize = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
+    if (bufferSize == 0)
+    {
+        return nullptr;
+    }
+    wchar_t* buffer = new wchar_t[bufferSize];
+    if (MultiByteToWideChar(CP_UTF8, 0, str, -1, buffer, bufferSize) == 0)
+    {
+        delete[] buffer;
+        return nullptr;
+    }
+    return buffer;
+}
+#endif
+
 bool Telescope::PurgeParkData()
 {
     // We need to refresh parking data in case other devices parking states were updated since we
@@ -2146,8 +2192,38 @@ bool Telescope::PurgeParkData()
     if (LoadParkXML() != nullptr)
         LOG_DEBUG("Failed to refresh parking data.");
 
+#ifdef _WIN32
+    wchar_t wcPath[MAX_PATH];
+    if (!PathCombineW(wcPath, L".", ConvertToLPCWSTR(ParkDataFileName.c_str())))
+    {
+        LOG_ERROR("Failed to purdge park data: Path combination failed.");
+        return false;
+    }
+    std::wstring wPath(wcPath);
+    std::string newPath(wPath.begin(), wPath.end());
+    FILE *fp = nullptr;
+    if (!(fp = fopen(newPath.c_str(), "r")))
+    {
+        LOGF_ERROR("Failed to purge park data: %s", strerror(errno));
+        return false;
+    }
+#else
     wordexp_t wexp;
     FILE *fp = nullptr;
+    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
+    {
+        wordfree(&wexp);
+        return false;
+    }
+    if (!(fp = fopen(wexp.we_wordv[0], "r")))
+    {
+        wordfree(&wexp);
+        LOGF_ERROR("Failed to purge park data: %s", strerror(errno));
+        return false;
+    }
+    wordfree(&wexp);
+#endif
+
     LilXML *lp = nullptr;
     static char errmsg[512];
 
@@ -2156,20 +2232,6 @@ bool Telescope::PurgeParkData()
     bool devicefound = false;
 
     ParkDeviceName = getDeviceName();
-
-    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
-    {
-        wordfree(&wexp);
-        return false;
-    }
-
-    if (!(fp = fopen(wexp.we_wordv[0], "r")))
-    {
-        wordfree(&wexp);
-        LOGF_ERROR("Failed to purge park data: %s", strerror(errno));
-        return false;
-    }
-    wordfree(&wexp);
 
     lp = newLilXML();
 
@@ -2215,22 +2277,28 @@ bool Telescope::PurgeParkData()
 
     delXMLEle(parkxml);
 
-    ParkstatusXml        = nullptr;
-    ParkdeviceXml        = nullptr;
-    ParkpositionXml      = nullptr;
+    ParkstatusXml = nullptr;
+    ParkdeviceXml = nullptr;
+    ParkpositionXml = nullptr;
     ParkpositionAxis1Xml = nullptr;
     ParkpositionAxis2Xml = nullptr;
 
-    wordexp(ParkDataFileName.c_str(), &wexp, 0);
-    if (!(fp = fopen(wexp.we_wordv[0], "w")))
+#ifdef _WIN32
+    if (!(fp = fopen(newPath.c_str(), "w")))
     {
-        wordfree(&wexp);
         LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(), strerror(errno));
         return false;
     }
+#else
+    if (!(fp = fopen(wexp.we_wordv[0], "w")))
+    {
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(), strerror(errno));
+        return false;
+    }
+#endif
+
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
-    wordfree(&wexp);
 
     return true;
 }
@@ -2242,11 +2310,33 @@ bool Telescope::WriteParkData()
     if (LoadParkXML() != nullptr)
         LOG_DEBUG("Failed to refresh parking data.");
 
+#ifdef _WIN32
+    wchar_t drive[_MAX_DRIVE];
+    wchar_t dir[_MAX_DIR];
+    wchar_t filename[_MAX_FNAME];
+    wchar_t extension[_MAX_EXT];
+    wchar_t wfilename[MAX_PATH];
+    if (MultiByteToWideChar(CP_UTF8, 0, ParkDataFileName.c_str(), -1, wfilename, MAX_PATH) == 0)
+    {
+        LOGF_INFO("WriteParkData: can not write file %s: Badly formed filename.",
+                  ParkDataFileName.c_str());
+        return false;
+    }
+    _wsplitpath_s(wfilename, drive, dir, filename, extension);
+    wchar_t wcPath[MAX_PATH];
+    PathCombineW(wcPath, drive, dir);
+    std::wstring path(wcPath);
+    std::string newPath(path.begin(), path.end());
+    FILE *fp = nullptr;
+    if (!(fp = fopen(newPath.c_str(), "w")))
+    {
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
+                  strerror(errno));
+        return false;
+    }
+#else
     wordexp_t wexp;
-    FILE *fp;
-    char pcdata[30];
-    ParkDeviceName = getDeviceName();
-
+    FILE *fp = nullptr;
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
@@ -2254,7 +2344,6 @@ bool Telescope::WriteParkData()
                   ParkDataFileName.c_str());
         return false;
     }
-
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
@@ -2262,6 +2351,11 @@ bool Telescope::WriteParkData()
                   strerror(errno));
         return false;
     }
+    wordfree(&wexp);
+#endif
+
+    char pcdata[30];
+    ParkDeviceName = getDeviceName();
 
     if (!ParkdataXmlRoot)
         ParkdataXmlRoot = addXMLEle(nullptr, "parkdata");
@@ -2290,7 +2384,6 @@ bool Telescope::WriteParkData()
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
-    wordfree(&wexp);
 
     return true;
 }
@@ -3034,15 +3127,49 @@ bool Telescope::UpdateScopeConfig()
 
 std::string Telescope::GetHomeDirectory() const
 {
-    // Check first the HOME environmental variable
-    const char *HomeDir = getenv("HOME");
+    std::string homeDir;
 
-    // ...otherwise get the home directory of the current user.
-    if (!HomeDir)
+#ifdef _WIN32
+    wchar_t* wideBuffer = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, nullptr, &wideBuffer)))
     {
-        HomeDir = getpwuid(getuid())->pw_dir;
+        char utf8Buffer[MAX_PATH];
+        WideCharToMultiByte(CP_UTF8, 0, wideBuffer, -1, utf8Buffer, sizeof(utf8Buffer), nullptr, nullptr);
+        CoTaskMemFree(wideBuffer);
+        homeDir = utf8Buffer;
     }
-    return (HomeDir ? std::string(HomeDir) : "");
+#elif __linux__
+    const char* homeEnv = getenv("HOME");
+    if (homeEnv)
+    {
+        homeDir = homeEnv;
+    }
+    else
+    {
+        struct passwd* pw = getpwuid(getuid());
+        if (pw && pw->pw_dir)
+        {
+            homeDir = pw->pw_dir;
+        }
+    }
+#elif __APPLE__
+    const char* homeEnv = getenv("HOME");
+    if (homeEnv)
+    {
+        homeDir = homeEnv;
+    }
+    else
+    {
+        uid_t uid = getuid();
+        struct passwd* pw = getpwuid(uid);
+        if (pw && pw->pw_dir)
+        {
+            homeDir = pw->pw_dir;
+        }
+    }
+#endif
+
+    return homeDir;
 }
 
 int Telescope::GetScopeConfigIndex() const
@@ -3090,14 +3217,17 @@ void Telescope::sendTimeFromSystem()
 {
     char ts[32] = {0};
 
-    std::time_t t = std::time(nullptr);
-    struct std::tm *utctimeinfo = std::gmtime(&t);
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
 
+    struct std::tm* utctimeinfo = std::gmtime(&t);
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
     IUSaveText(&TimeT[0], ts);
 
-    struct std::tm *localtimeinfo = std::localtime(&t);
-    snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
+    auto local_time = std::chrono::system_clock::to_time_t(now);
+    auto utc_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::from_time_t(t));
+    double gmtoff = (std::difftime(local_time, utc_time) / 3600.0);
+    snprintf(ts, sizeof(ts), "%4.2f", gmtoff);
     IUSaveText(&TimeT[1], ts);
 
     TimeTP.s = IPS_OK;

@@ -18,16 +18,22 @@
 
 #include <errno.h>
 #include <math.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#else
 #include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <netinet/in.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
 extern int compileExpr(char *expr, char *errmsg);
 extern int evalExpr(double *vp, char *errmsg);
@@ -49,8 +55,11 @@ static int runEval(FILE *fp);
 static int setOp(XMLEle *root);
 static XMLEle *nxtEle(FILE *fp);
 static int readServerChar(FILE *fp);
+#ifdef _WIN32
+void CALLBACK onAlarm(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
+#else
 static void onAlarm(int dummy);
-
+#endif
 static char *me;
 static char host_def[] = "localhost"; /* default host name */
 static char *host      = host_def;    /* working host name */
@@ -190,8 +199,12 @@ int main(int ac, char *av[])
     /* build a parser context for cracking XML responses */
     lillp = newLilXML();
 
+#ifdef _WIN32
+    SetTimer(NULL, 0, TIMEOUT * 1000, onAlarm);
+#else
     /* set up to catch an io timeout function */
     signal(SIGALRM, onAlarm);
+#endif
 
     /* send getProperties */
     getProps(fp);
@@ -575,6 +588,26 @@ static int readServerChar(FILE *fp)
     return (c);
 }
 
+#ifdef _WIN32
+void CALLBACK onAlarm(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
+{
+    char **ops;
+    int nops;
+
+    /* report any unseen operands if any, else just say timed out */
+    if ((nops = getUnsetOperands(&ops)) > 0)
+    {
+        fprintf(stderr, "No values seen for");
+        while (nops-- > 0)
+            fprintf(stderr, " %s", ops[nops]);
+        fprintf(stderr, "\n");
+    }
+    else
+        fprintf(stderr, "Timed out waiting for new values\n");
+
+    exit(2);
+}
+#else
 /* called after timeout seconds waiting to hear from server.
  * print reason for trouble and exit(2).
  */
@@ -598,3 +631,4 @@ static void onAlarm(int dummy)
 
     exit(2);
 }
+#endif

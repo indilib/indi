@@ -29,8 +29,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <sys/un.h>
+#endif
 #include <errno.h>
 #include <pthread.h>
 
@@ -51,7 +56,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 static void driverio_flush(driverio * dio, const void * additional, size_t add_size);
 
+#ifdef _WIN32
+static CRITICAL_SECTION stdout_mutex;
+#else
 static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /* Return the buffer size required for storage (rounded to next OUTPUTBUFF_ALLOC) */
 static unsigned int outBuffRequired(unsigned int storage)
@@ -137,7 +146,67 @@ static void driverio_join(void * user, const char * xml, void * blob, size_t blo
     driverio_write(user, xml, strlen(xml));
 }
 
+#ifdef _WIN32
+static void driverio_flush(driverio* dio, const void* additional, size_t add_size)
+{
+    WSABUF iov[2];
+    DWORD bytesSent;
+    WSAMSG wsa_msg;
 
+    if (dio->outPos + add_size)
+    {
+        iov[0].buf = dio->outBuff;
+        iov[0].len = dio->outPos;
+        if (add_size)
+        {
+            iov[1].buf = (char*)additional;
+            iov[1].len = add_size;
+        }
+
+        memset(&wsa_msg, 0, sizeof(wsa_msg));
+        wsa_msg.name = NULL;
+        wsa_msg.namelen = 0;
+        wsa_msg.lpBuffers = iov;
+        wsa_msg.dwBufferCount = (add_size ? 2 : 1);
+
+        if (!dio->locked)
+        {
+            InitializeCriticalSection(&stdout_mutex);
+            dio->locked = 1;
+        }
+
+        if (WSASendMsg(1, &wsa_msg, 0, &bytesSent, NULL, NULL) == SOCKET_ERROR)
+        {
+            fprintf(stderr, "WSASendMsg failed: %d\n", WSAGetLastError());
+            exit(1);
+        }
+        else if (bytesSent != dio->outPos + add_size)
+        {
+            // This is not expected on blocking socket
+            fprintf(stderr, "short write\n");
+            exit(1);
+        }
+    }
+
+    if (dio->joins != NULL)
+    {
+        free(dio->joins);
+    }
+    dio->joins = NULL;
+
+    if (dio->joinSizes != NULL)
+    {
+        free(dio->joinSizes);
+    }
+    dio->joinSizes = NULL;
+
+    if (dio->outBuff != NULL)
+    {
+        free(dio->outBuff);
+    }
+    dio->outPos = 0;
+}
+#else
 static void driverio_flush(driverio * dio, const void * additional, size_t add_size)
 {
     struct msghdr msgh;
@@ -267,7 +336,7 @@ static void driverio_flush(driverio * dio, const void * additional, size_t add_s
     dio->outPos = 0;
 
 }
-
+#endif
 
 static int driverio_is_unix = -1;
 
@@ -276,27 +345,19 @@ static int is_unix_io()
 #ifndef ENABLE_INDI_SHARED_MEMORY
     return 0;
 #endif
-    if (driverio_is_unix != -1)
+
+    int driverio_is_unix = -1;
+
+#ifdef _WIN32
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
     {
+        driverio_is_unix = 0;
         return driverio_is_unix;
     }
 
-#ifdef SO_DOMAIN
-    int domain;
-    socklen_t result = sizeof(domain);
+    driverio_is_unix = 0;
 
-    if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1)
-    {
-        driverio_is_unix = 0;
-    }
-    else if (result != sizeof(domain) || domain != AF_UNIX)
-    {
-        driverio_is_unix = 0;
-    }
-    else
-    {
-        driverio_is_unix = 1;
-    }
 #else
     struct sockaddr_un sockName;
     socklen_t sockNameLen = sizeof(sockName);
@@ -313,7 +374,9 @@ static int is_unix_io()
     {
         driverio_is_unix = 0;
     }
+
 #endif
+
     return driverio_is_unix;
 }
 
@@ -332,28 +395,41 @@ static void driverio_init_unix(driverio * dio)
     dio->outPos = 0;
 }
 
-static void driverio_finish_unix(driverio * dio)
+static void driverio_finish_unix(driverio* dio)
 {
     driverio_flush(dio, NULL, 0);
     if (dio->locked)
     {
+#ifdef _WIN32
+        LeaveCriticalSection(&stdout_mutex);
+#else
         pthread_mutex_unlock(&stdout_mutex);
+#endif
         dio->locked = 0;
     }
 }
 
-static void driverio_init_stdout(driverio * dio)
+static void driverio_init_stdout(driverio* dio)
 {
     dio->userio = *userio_file();
     dio->user = stdout;
+#ifdef _WIN32
+    InitializeCriticalSection(&stdout_mutex);
+    EnterCriticalSection(&stdout_mutex);
+#else
     pthread_mutex_lock(&stdout_mutex);
+#endif
 }
 
-static void driverio_finish_stdout(driverio * dio)
+static void driverio_finish_stdout(driverio* dio)
 {
     (void)dio;
     fflush(stdout);
+#ifdef _WIN32
+    LeaveCriticalSection(&stdout_mutex);
+#else
     pthread_mutex_unlock(&stdout_mutex);
+#endif
 }
 
 void driverio_init(driverio * dio)

@@ -1,17 +1,18 @@
 cmake_minimum_required(VERSION 3.13)
 project(indicore C CXX)
 
-if(NOT WIN32)
-    find_package(Nova)
-endif()
+find_package(Nova)
 
 add_library(${PROJECT_NAME} OBJECT "")
 
+if(WIN32)
+
+else()
 set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 check_symbol_exists(mremap sys/mman.h HAVE_MREMAP)
 check_symbol_exists(timespec_get time.h HAVE_TIMESPEC_GET)
 check_symbol_exists(clock_gettime time.h HAVE_CLOCK_GETTIME)
-
+endif()
 configure_file(indiapi.h.in indiapi.h @ONLY)
 
 # Headers
@@ -43,15 +44,13 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indiuserio.c
 )
 
-if(UNIX)
-    list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
-        sharedblob_parse.h
-        shm_open_anon.h)
-    list(APPEND ${PROJECT_NAME}_SOURCES
-        sharedblob.c
-        sharedblob_parse.cpp
-        shm_open_anon.c)
-endif()
+list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
+    sharedblob_parse.h
+    shm_open_anon.h)
+list(APPEND ${PROJECT_NAME}_SOURCES
+    sharedblob.c
+    sharedblob_parse.cpp
+    shm_open_anon.c)
 
 target_compile_definitions(${PROJECT_NAME}
   PUBLIC

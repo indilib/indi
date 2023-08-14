@@ -49,7 +49,7 @@ if(LibXISF_FOUND)
 endif()
 
 # Add OggTheora, StreamManager, v4l2
-if(UNIX)
+if(UNIX OR WIN32)
     find_package(OggTheora)
 
     if(OGGTHEORA_FOUND)
@@ -218,6 +218,10 @@ add_library(${PROJECT_NAME}_OBJECT OBJECT)
 set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
+
+if(WIN32)
+target_link_libraries(${PROJECT_NAME}_OBJECT setupapi wsock32 ws2_32 shlwapi iphlpapi)
+endif()
 
 target_sources(${PROJECT_NAME}_OBJECT
     PUBLIC

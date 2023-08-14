@@ -9,16 +9,21 @@
 
 #include <errno.h>
 #include <math.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
-#include <netinet/in.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
 /* table of INDI definition elements we can set
  * N.B. do not change defs[] order, they are indexed via -x/-n/-s args
@@ -353,14 +358,25 @@ static void openINDIServer(FILE **rfpp, FILE **wfpp)
     *wfpp = fdopen(sockfd, "w");
 }
 
+#define TIMEOUT_MS 5000
+
+static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
+{
+    printf("Timer expired!\n");
+    exit(0);
+}
+
 /* listen for property reports, send new sets if match */
 static void listenINDI(FILE *rfp, FILE *wfp)
 {
     char msg[1024];
 
-    /* arrange to call onAlarm() if not seeing any more defXXX */
+#ifdef _WIN32
+    SetTimer(NULL, 0, TIMEOUT_MS, onTimer);
+#else
     signal(SIGALRM, onAlarm);
-    alarm(timeout);
+    alarm(TIMEOUT_MS / 1000);
+#endif
 
     /* read from server, exit if find all properties */
     while (1)
@@ -374,14 +390,18 @@ static void listenINDI(FILE *rfp, FILE *wfp)
             findSet(root, wfp);
             if (finished() == 0)
             {
-                shutdown(fileno(wfp), SHUT_WR); /* insure flush */
-                exit(0);                        /* found all we want */
+#ifdef _WIN32
+                shutdown(fileno(wfp), SD_SEND); // Windows 下的关闭写入操作符示例
+#else
+                shutdown(fileno(wfp), SHUT_WR); // 非 Windows 平台下的关闭写入操作符示例
+#endif
+                exit(0); // found all we want
             }
-            delXMLEle(root); /* not yet, delete and continue */
+            delXMLEle(root); // not yet, delete and continue
         }
         else if (msg[0])
         {
-            fprintf(stderr, "Bad XML from %s/%d: %s\n", host, port, msg);
+            fprintf(stderr, "Bad XML: %s\n", msg);
             exit(2);
         }
     }
@@ -451,7 +471,7 @@ static void findSet(XMLEle *root, FILE *fp)
     if (t == NDEFS)
         return;
 
-    alarm(timeout); /* reset timeout */
+    onAlarm(timeout); /* reset timeout */
 
     /* check each set for matching device and property name, send if ok */
     rdev  = (char *)findXMLAttValu(root, "device");

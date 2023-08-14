@@ -47,6 +47,11 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #define MAXRBUF 2048
 
 static void usage(void);
@@ -249,24 +254,30 @@ static void waitPingReplyFromEventLoopThread(const char * uid) {
     pthread_mutex_unlock(&pingReplyMutex);
 }
 
-static void waitPingReplyFromOtherThread(const char * uid) {
+static void waitPingReplyFromOtherThread(const char* uid) {
     int fd = 0;
     fd_set rfd;
 
-    messageHandling = PROCEED_DEFERRED;
+    messageHandling = 0;
     pthread_mutex_lock(&pingReplyMutex);
-    while(!consumePingReply(uid))
-    {
+    while (!consumePingReply(uid)) {
 
         pthread_mutex_unlock(&pingReplyMutex);
 
         FD_ZERO(&rfd);
         FD_SET(fd, &rfd);
 
+#ifdef _WIN32
         int ns = select(fd + 1, &rfd, NULL, NULL, NULL);
-        if (ns < 0)
-        {
+#else
+        int ns = pselect(fd + 1, &rfd, NULL, NULL, NULL, NULL);
+#endif
+
+        if (ns < 0) {
             perror("select");
+#ifdef _WIN32
+            WSACleanup();
+#endif
             exit(1);
         }
 
@@ -275,7 +286,12 @@ static void waitPingReplyFromOtherThread(const char * uid) {
         pthread_mutex_lock(&pingReplyMutex);
     }
     pthread_mutex_unlock(&pingReplyMutex);
-    messageHandling = PROCEED_IMMEDIATE;
+    messageHandling = 1;
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
+
 }
 
 void waitPingReply(const char * uid) {

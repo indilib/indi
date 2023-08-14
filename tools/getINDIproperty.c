@@ -13,16 +13,22 @@
 
 #include <errno.h>
 #include <math.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <netinet/in.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <string.h>
 
 /* table of INDI definition elements, plus setBLOB.
  * we also look for set* if -m
@@ -284,13 +290,32 @@ static void openINDIServer(void)
     struct hostent *hp;
     int sockfd;
 
-    /* lookup host address */
+#ifdef _WIN32
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int result = getaddrinfo(host, NULL, &hints, &res);
+    if (result != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+        exit(2);
+    }
+
+    struct sockaddr_in* sock_addr = (struct sockaddr_in*)res->ai_addr;
+    hp = gethostbyaddr((char*)&(sock_addr->sin_addr), sizeof(struct in_addr), AF_INET);
+
+    freeaddrinfo(res);
+#else
     hp = gethostbyname(host);
     if (!hp)
     {
         herror("gethostbyname");
         exit(2);
     }
+#endif
+
 
     /* create a socket to the INDI server */
     (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
@@ -344,6 +369,15 @@ static void getprops()
         fprintf(stderr, "Queried properties from %s\n", onedev ? onedev : "*");
 }
 
+#define TIMEOUT_MS 5000
+
+static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
+{
+    printf("Timer expired!\n");
+    exit(0);
+}
+
+
 /* listen for INDI traffic on svrrfp.
  * print matching srchs[] and return when see all.
  * timeout and exit if any trouble.
@@ -352,9 +386,12 @@ static void listenINDI()
 {
     char msg[1024];
 
-    /* arrange to call onAlarm() if not seeing any more defXXX */
+#ifdef _WIN32
+    SetTimer(NULL, 0, TIMEOUT_MS, onTimer);
+#else
     signal(SIGALRM, onAlarm);
-    alarm(timeout);
+    alarm(TIMEOUT_MS / 1000);
+#endif
 
     /* read from server, exit if find all requested properties */
     while (1)
