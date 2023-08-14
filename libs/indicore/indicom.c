@@ -358,22 +358,32 @@ void IDLog(const char *fmt, ...)
 double time_ns()
 {
     struct timespec ts;
-#if defined(HAVE_TIMESPEC_GET)
-    timespec_get(&ts, TIME_UTC);
-#elif defined(HAVE_CLOCK_GETTIME)
-    clock_gettime(CLOCK_REALTIME, &ts);
-#elif defined(__APPLE__) // OS X does not have clock_gettime, use clock_get_time
-    clock_serv_t cclock;
-    mach_timespec_t mts;
-    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-    clock_get_time(cclock, &mts);
-    mach_port_deallocate(mach_task_self(), cclock);
-    ts.tv_sec = mts.tv_sec;
-    ts.tv_nsec = mts.tv_nsec;
-#else
-    #error "Unsupported platform"
-#endif
-    return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
+    
+    #ifdef _WIN32
+        FILETIME ft;
+        ULONGLONG time;
+        GetSystemTimeAsFileTime(&ft);
+        time = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+        time -= 116444736000000000ULL; // Convert to Unix timestamp epoch
+        ts.tv_sec = (long)(time / 10000000ULL); // Convert 100 ns intervals to seconds
+        ts.tv_nsec = (long)(time % 10000000ULL * 100); // Convert remaining 100 ns intervals to nanoseconds
+
+    #else
+        #ifdef __MACH__
+            clock_serv_t cclock;
+            mach_timespec_t mts;
+            host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+            clock_get_time(cclock, &mts);
+            mach_port_deallocate(mach_task_self(), cclock);
+            ts.tv_sec = mts.tv_sec;
+            ts.tv_nsec = mts.tv_nsec;
+        #else
+            timespec_get(&ts, TIME_UTC);
+        #endif
+
+    #endif
+    
+    return (double)ts.tv_sec + (double)(ts.tv_nsec % 1000000000) / 1000000000.0;
 }
 
 /* return current system time in message format */
