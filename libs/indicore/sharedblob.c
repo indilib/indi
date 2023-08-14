@@ -93,33 +93,20 @@ void* IDSharedBlobAlloc(size_t size) {
 
     sb->hMapObject = CreateFileMapping(INVALID_HANDLE_VALUE, &sa, PAGE_READWRITE, 0, sb->allocated, NULL);
     if (sb->hMapObject == NULL) {
-        // 错误处理逻辑
         goto ERROR_LABEL;
     }
 
     sb->mapstart = MapViewOfFile(sb->hMapObject, FILE_MAP_ALL_ACCESS, 0, 0, sb->allocated);
     if (sb->mapstart == NULL) {
-        // 错误处理逻辑
         goto ERROR_LABEL;
     }
 #else
-    sb->fd = shm_open("/mysharedmem", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    if (sb->fd == -1) {
-        // 错误处理逻辑
-        goto ERROR_LABEL;
-    }
-
     int ret = ftruncate(sb->fd, sb->allocated);
-    if (ret == -1) {
-        // 错误处理逻辑
-        goto ERROR_LABEL;
-    }
+    if (ret == -1) goto ERROR_LABEL;
 
-    sb->mapstart = mmap(NULL, sb->allocated, PROT_READ | PROT_WRITE, MAP_SHARED, sb->fd, 0);
-    if (sb->mapstart == MAP_FAILED) {
-        // 错误处理逻辑
-        goto ERROR_LABEL;
-    }
+    // FIXME: try to map far more than sb->allocated, to allow efficient mremap
+    sb->mapstart = mmap(0, sb->allocated, PROT_READ | PROT_WRITE, MAP_SHARED, sb->fd, 0);
+    if (sb->mapstart == MAP_FAILED) goto ERROR_LABEL;
 #endif
 
     sharedBufferAdd(sb);
