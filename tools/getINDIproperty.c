@@ -369,6 +369,7 @@ static void getprops()
         fprintf(stderr, "Queried properties from %s\n", onedev ? onedev : "*");
 }
 
+#ifdef _WIN32
 #define TIMEOUT_MS 5000
 
 static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -376,7 +377,7 @@ static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTim
     printf("Timer expired!\n");
     exit(0);
 }
-
+#endif
 
 /* listen for INDI traffic on svrrfp.
  * print matching srchs[] and return when see all.

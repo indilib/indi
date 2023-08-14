@@ -358,6 +358,7 @@ static void openINDIServer(FILE **rfpp, FILE **wfpp)
     *wfpp = fdopen(sockfd, "w");
 }
 
+#ifdef _WIN32
 #define TIMEOUT_MS 5000
 
 static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -365,6 +366,7 @@ static void CALLBACK onTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTim
     printf("Timer expired!\n");
     exit(0);
 }
+#endif
 
 /* listen for property reports, send new sets if match */
 static void listenINDI(FILE *rfp, FILE *wfp)

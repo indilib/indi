@@ -73,6 +73,35 @@ sudo apt-get install -y \
   libtheora-dev
 ```
 
+On Windows
+
+Download https://github.com/msys2/msys2-installer/releases/download/2023-07-18/msys2-x86_64-20230718.exe
+
+```
+pacman -Syu # Update all of the packages
+pacman -S mingw-w64-x86_64-toolchain # Install g++ toolchain
+pacman -S mingw-w64-x86_64-cmake # Install Cmake
+pacman -S mingw-w64-x86_64-zlib
+pacman -S mingw-w64-x86_64-cfitsio
+pacman -S mingw-w64-x86_64-libnova
+pacman -S mingw-w64-x86_64-libusb
+pacman -S mingw-w64-x86_64-fftw
+pacman -S mingw-w64-x86_64-libxisf
+pacman -S mingw-w64-x86_64-rtl-sdr
+
+# Install Libev
+# Download sources from http://dist.schmorp.de/libev/Attic/
+pacman -S autoconf
+pacman -S automake
+pacman -S libtool
+pacman -S make
+sh autogen.sh
+./configure
+make
+make -j4
+make install
+```
+
 ## XISF Support
 
 To enable [XISF format](https://pixinsight.com/xisf/) support in INDI, you need to build or install [libxisf](https://gitea.nouspiro.space/nou/libXISF) package.
