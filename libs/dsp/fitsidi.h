@@ -830,7 +830,7 @@ extern "C" {
 * \param maxis The sizes of the data matrix
 * \return dsp_fits_row pointer describing the fits file content
 */
-dsp_fits_row *dsp_fits_read_fitsidi(char *filename, long *nstreams, long *maxes, long **maxis);
+DLL_EXPORT dsp_fits_row *dsp_fits_read_fitsidi(char *filename, long *nstreams, long *maxes, long **maxis);
 /**\}*/
 
 #ifdef __cplusplus

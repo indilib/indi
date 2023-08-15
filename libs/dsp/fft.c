@@ -144,8 +144,9 @@ void dsp_fourier_dft(dsp_stream_p stream, int exp)
     dsp_buffer_set(stream->dft.buf, stream->len * 2, 0);
     dsp_buffer_copy(stream->buf, buf, stream->len);
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
+    dsp_buffer_copy(stream->sizes, sizes, stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_dft_r2c(stream->dims, stream->sizes, buf, stream->dft.pairs, FFTW_ESTIMATE_PATIENT);
+    fftw_plan plan = fftw_plan_dft_r2c(stream->dims, sizes, buf, stream->dft.pairs, FFTW_ESTIMATE_PATIENT);
     fftw_execute(plan);
     fftw_free(plan);
     free(sizes);
@@ -177,8 +178,9 @@ void dsp_fourier_idft(dsp_stream_p stream)
     dsp_buffer_set(buf, stream->len, 0);
     dsp_fourier_2complex_t(stream);
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
+    dsp_buffer_copy(stream->sizes, sizes, stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_dft_c2r(stream->dims, stream->sizes, stream->dft.pairs, buf, FFTW_ESTIMATE_PATIENT);
+    fftw_plan plan = fftw_plan_dft_c2r(stream->dims, sizes, stream->dft.pairs, buf, FFTW_ESTIMATE_PATIENT);
     fftw_execute(plan);
     fftw_free(plan);
     free(sizes);
