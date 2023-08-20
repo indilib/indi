@@ -465,28 +465,27 @@ bool CCD::initProperties()
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
+    auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control",
-                       IP_RW,
-                       60, IPS_IDLE);
+    IUFillNumberVector(&EqNP, EqN, 2, mount, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW, 60, IPS_IDLE);
 
     // Snooped J2000 RA/DEC Property
     IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord",
+    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, mount, "EQUATORIAL_COORD", "J2000 EQ Coord",
                        "Main Control", IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
 
     // Snoop mount
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PIER_SIDE");
+    IDSnoopDevice(mount, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(mount, "EQUATORIAL_COORD");
+    IDSnoopDevice(mount, "TELESCOPE_INFO");
+    IDSnoopDevice(mount, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(mount, "TELESCOPE_PIER_SIDE");
 
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
