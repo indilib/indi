@@ -436,7 +436,10 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    auto targetTicks = std::clamp(FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1)), FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+    auto targetTicks = FocusAbsPosN[0].value;
+    if (dir == FOCUS_INWARD) targetTicks -= ticks;
+    else targetTicks += ticks;
+    targetTicks = std::clamp(targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
 
     FocusAbsPosNP.s = IPS_BUSY;
     IDSetNumber(&FocusAbsPosNP, nullptr);
