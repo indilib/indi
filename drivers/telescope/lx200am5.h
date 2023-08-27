@@ -56,6 +56,7 @@ class LX200AM5 : public LX200Generic
 
         // Parking
         virtual bool Park() override;
+        virtual bool UnPark() override;
 
     private:
 
