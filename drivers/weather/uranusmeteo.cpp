@@ -57,7 +57,7 @@ bool UranusMeteo::initProperties()
 
     // To distinguish them from GPS properties.
     WI::UpdatePeriodNP.setLabel("Weather Update");
-    WI::RefreshSP.setLabel("Weahter Refresh");
+    WI::RefreshSP.setLabel("Weather Refresh");
 
     addAuxControls();
 
