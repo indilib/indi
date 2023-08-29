@@ -711,6 +711,10 @@ bool IOptronV3::ReadScopeStatus()
     if (isSimulation())
         mountSim();
 
+    // Do not query mount if parked already.
+    if (TrackState == SCOPE_PARKED)
+        return true;
+
     rc = driver->getStatus(&newInfo);
 
     if (rc)
