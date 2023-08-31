@@ -1919,7 +1919,7 @@ void Telescope::SetParkDataType(TelescopeParkData type)
 {
     parkDataType = type;
 
-    if (parkDataType != PARK_NONE)
+    if (parkDataType != PARK_NONE && parkDataType != PARK_SIMPLE)
     {
         switch (parkDataType)
         {
@@ -2004,10 +2004,13 @@ bool Telescope::InitPark()
 
     SyncParkStatus(isParked());
 
-    LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
-    ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
-    ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
-    IDSetNumber(&ParkPositionNP, nullptr);
+    if (parkDataType != PARK_SIMPLE)
+    {
+        LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
+        ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
+        ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
+        IDSetNumber(&ParkPositionNP, nullptr);
+    }
 
     return true;
 }
@@ -2090,13 +2093,21 @@ const char *Telescope::LoadParkXML()
 
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
-    ParkpositionXml      = findXMLEle(parkxml, "parkposition");
-    if (ParkpositionXml)
-        ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-    if (ParkpositionXml)
-        ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
 
-    if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
+    if (parkDataType != PARK_SIMPLE)
+    {
+        ParkpositionXml      = findXMLEle(parkxml, "parkposition");
+        if (ParkpositionXml)
+            ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
+        if (ParkpositionXml)
+            ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
+
+        if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
+        {
+            return "Park data invalid or missing.";
+        }
+    }
+    else if (ParkstatusXml == nullptr)
     {
         return "Park data invalid or missing.";
     }
@@ -2115,28 +2126,33 @@ const char *Telescope::LoadParkData()
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
         IsParked = true;
 
-    double axis1Pos = std::numeric_limits<double>::quiet_NaN();
-    double axis2Pos = std::numeric_limits<double>::quiet_NaN();
-
-    int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
-    if (rc != 1)
+    if (parkDataType != PARK_SIMPLE)
     {
-        return "Unable to parse Park Position Axis 1.";
-    }
-    rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &axis2Pos);
-    if (rc != 1)
-    {
-        return "Unable to parse Park Position Axis 2.";
+        double axis1Pos = std::numeric_limits<double>::quiet_NaN();
+        double axis2Pos = std::numeric_limits<double>::quiet_NaN();
+
+        int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
+        if (rc != 1)
+        {
+            return "Unable to parse Park Position Axis 1.";
+        }
+        rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &axis2Pos);
+        if (rc != 1)
+        {
+            return "Unable to parse Park Position Axis 2.";
+        }
+
+        if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
+        {
+            Axis1ParkPosition = axis1Pos;
+            Axis2ParkPosition = axis2Pos;
+            return nullptr;
+        }
+
+        return "Failed to parse Park Position.";
     }
 
-    if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
-    {
-        Axis1ParkPosition = axis1Pos;
-        Axis2ParkPosition = axis2Pos;
-        return nullptr;
-    }
-
-    return "Failed to parse Park Position.";
+    return nullptr;
 }
 
 bool Telescope::PurgeParkData()
@@ -2274,19 +2290,22 @@ bool Telescope::WriteParkData()
 
     if (!ParkstatusXml)
         ParkstatusXml = addXMLEle(ParkdeviceXml, "parkstatus");
-    if (!ParkpositionXml)
-        ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
-    if (!ParkpositionAxis1Xml)
-        ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
-    if (!ParkpositionAxis2Xml)
-        ParkpositionAxis2Xml = addXMLEle(ParkpositionXml, "axis2position");
-
     editXMLEle(ParkstatusXml, (IsParked ? "true" : "false"));
 
-    snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
-    editXMLEle(ParkpositionAxis1Xml, pcdata);
-    snprintf(pcdata, sizeof(pcdata), "%lf", Axis2ParkPosition);
-    editXMLEle(ParkpositionAxis2Xml, pcdata);
+    if (parkDataType != PARK_SIMPLE)
+    {
+        if (!ParkpositionXml)
+            ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
+        if (!ParkpositionAxis1Xml)
+            ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
+        if (!ParkpositionAxis2Xml)
+            ParkpositionAxis2Xml = addXMLEle(ParkpositionXml, "axis2position");
+
+        snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
+        editXMLEle(ParkpositionAxis1Xml, pcdata);
+        snprintf(pcdata, sizeof(pcdata), "%lf", Axis2ParkPosition);
+        editXMLEle(ParkpositionAxis2Xml, pcdata);
+    }
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);

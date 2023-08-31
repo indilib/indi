@@ -106,12 +106,13 @@ class Telescope : public DefaultDevice
         };
         enum TelescopeParkData
         {
-            PARK_NONE,
-            PARK_RA_DEC,
-            PARK_HA_DEC,
-            PARK_AZ_ALT,
-            PARK_RA_DEC_ENCODER,
-            PARK_AZ_ALT_ENCODER
+            PARK_NONE,              /*!< Mount does not support any form of parking */
+            PARK_RA_DEC,            /*!< Park to specific RA/DE coordinate. Deprecated, do not use */
+            PARK_HA_DEC,            /*!< Park to specific HA/DE coordinate. Hour Angle & Declination degrees */
+            PARK_AZ_ALT,            /*!< Park to specific AZ/ALT coordinate. Azimuth & Altitude degrees */
+            PARK_RA_DEC_ENCODER,    /*!< Park to specific HA/DE encoder. Hour Angle & Declination steps */
+            PARK_AZ_ALT_ENCODER,    /*!< Park to specific AZ/ALT encoder. Azimuth & Altitude steps */
+            PARK_SIMPLE             /*!< Only Park or Unpark is known but location is unknown. */
         };
         enum TelescopeLocation
         {
