@@ -121,7 +121,8 @@ bool ScopeSim::initProperties()
     ScopeParametersN[3].value = 900;
 
     // RA is a rotating frame, while HA or Alt/Az is not
-    SetParkDataType(PARK_HA_DEC);
+    //SetParkDataType(PARK_HA_DEC);
+    SetParkDataType(PARK_SIMPLE);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 

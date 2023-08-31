@@ -54,7 +54,7 @@ bool LX200AM5::initProperties()
 {
     LX200Generic::initProperties();
 
-    SetParkDataType(PARK_NONE);
+    SetParkDataType(PARK_SIMPLE);
     timeFormat = LX200_24;
 
     tcpConnection->setDefaultHost("192.168.4.1");
@@ -171,20 +171,7 @@ void LX200AM5::setup()
     //    MountTypeSP.setState(setMountType(MountTypeSP.findOnSwitchIndex()) ? IPS_OK : IPS_ALERT);
     //    MountTypeSP.apply();
 
-    if (InitPark())
-    {
-        // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
-    }
-    else
-    {
-        // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
-    }
+    InitPark();
 
     getMountType();
     getTrackMode();
