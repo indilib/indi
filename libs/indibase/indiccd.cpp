@@ -2549,8 +2549,9 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
             std::stringstream stream;
+            // JM 2023.08.31 Make timestamps OS friendly (Windows)
             stream    << std::setfill('0')
-                      << std::put_time(now_tm, "%FT%H:%M:")
+                      << std::put_time(now_tm, "%FT%H-%M-")
                       << std::setw(2) << (timestamp / 1000) % 60 << '.'
                       << std::setw(3) << timestamp % 1000;
 
