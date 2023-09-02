@@ -465,20 +465,22 @@ bool CCD::initProperties()
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    // Snooped RA/DEC Property
-    IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control",
-                       IP_RW,
-                       60, IPS_IDLE);
+    // Snooped RA/DEC Property if an active telescope is set
+    if (ActiveDeviceT[ACTIVE_TELESCOPE].text != nullptr)
+    {
+        IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control",
+                           IP_RW,
+                           60, IPS_IDLE);
 
-    // Snooped J2000 RA/DEC Property
-    IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord",
-                       "Main Control", IP_RW,
-                       60, IPS_IDLE);
-
+        // Snooped J2000 RA/DEC Property
+        IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        IUFillNumberVector(&J2000EqNP, J2000EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD", "J2000 EQ Coord",
+                           "Main Control", IP_RW,
+                           60, IPS_IDLE);
+    }
     // Snoop properties of interest
 
     // Snoop mount
