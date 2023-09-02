@@ -711,6 +711,10 @@ bool IOptronV3::ReadScopeStatus()
     if (isSimulation())
         mountSim();
 
+    // Do not query mount if parked already.
+    if (TrackState == SCOPE_PARKED)
+        return true;
+
     rc = driver->getStatus(&newInfo);
 
     if (rc)
@@ -976,6 +980,10 @@ bool IOptronV3::Handshake()
 
 bool IOptronV3::updateTime(ln_date *utc, double utc_offset)
 {
+    // No communications while parked.
+    if (TrackState == SCOPE_PARKED)
+        return true;
+
     bool rc1 = driver->setUTCDateTime(ln_get_julian_day(utc));
 
     bool rc2 = driver->setUTCOffset(utc_offset * 60);
@@ -986,6 +994,10 @@ bool IOptronV3::updateTime(ln_date *utc, double utc_offset)
 bool IOptronV3::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
+
+    // No communications while parked.
+    if (TrackState == SCOPE_PARKED)
+        return true;
 
     if (longitude > 180)
         longitude -= 360;
