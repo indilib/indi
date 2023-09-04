@@ -160,8 +160,9 @@ bool CCDSim::initProperties()
                        IPS_IDLE);
 
     // FWHM
+    auto focuser = ActiveDeviceT[ACTIVE_FOCUSER].text ? ActiveDeviceT[ACTIVE_FOCUSER].text : "";
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FWHMNP, FWHMN, 1, focuser, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     // Cooler
     IUFillSwitch(&CoolerS[INDI_ENABLED], "COOLER_ON", "ON", ISS_OFF);
@@ -188,14 +189,16 @@ bool CCDSim::initProperties()
     DirectorySP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     DirectorySP.fill(getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
+
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    IDSnoopDevice(mount, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(mount, "EQUATORIAL_EOD_COORD");
 #endif
 
 
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
+    IDSnoopDevice(focuser, "FWHM");
 
     uint32_t cap = 0;
 
