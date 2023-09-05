@@ -472,6 +472,11 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         {
             return getLabel() == otherLabel;
         }
+        
+        bool isEmpty() const
+        {
+            return getText()[0] == '\0';
+        }
 
     public:
         void fill(const char *name, const char *label, const char *initialText)
