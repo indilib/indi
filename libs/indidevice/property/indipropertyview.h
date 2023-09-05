@@ -971,7 +971,7 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         }
         void setFormat(const std::string &format)
         {
-            setLabel(format.data());
+            setFormat(format.data());
         }
 
         void setBlob(void *blob)
