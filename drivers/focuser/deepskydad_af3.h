@@ -132,10 +132,6 @@ class DeepSkyDadAF3 : public INDI::Focuser
         INumber HoldCurrentMultiplierN[1];
         INumberVectorProperty HoldCurrentMultiplierNP;
 
-        // Max movement
-        INumber FocusMaxMoveN[1];
-        INumberVectorProperty FocusMaxMoveNP;
-
         // Settle buffer
         INumber SettleBufferN[1];
         INumberVectorProperty SettleBufferNP;

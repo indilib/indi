@@ -93,11 +93,6 @@ bool DeepSkyDadAF3::initProperties()
     FocusBacklashN[0].step = 1;
     FocusBacklashN[0].value = 0;
 
-    // Max. movement
-    IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
-    IUFillNumberVector(&FocusMaxMoveNP, FocusMaxMoveN, 1, getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
-                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
     // Settle buffer
     IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
     IUFillNumberVector(&SettleBufferNP, SettleBufferN, 1, getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
@@ -132,7 +127,6 @@ bool DeepSkyDadAF3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&FocusMaxMoveNP);
         defineProperty(&StepModeSP);
         defineProperty(&SpeedModeSP);
         defineProperty(&SettleBufferNP);
@@ -146,7 +140,6 @@ bool DeepSkyDadAF3::updateProperties()
     }
     else
     {
-        deleteProperty(FocusMaxMoveNP.name);
         deleteProperty(StepModeSP.name);
         deleteProperty(SpeedModeSP.name);
         deleteProperty(SettleBufferNP.name);
@@ -293,8 +286,8 @@ bool DeepSkyDadAF3::readMaxMovement()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxMoveN[0].value = steps;
-        FocusMaxMoveNP.s = IPS_OK;
+        FocusMaxPosN[0].value = steps;
+        FocusMaxPosNP.s = IPS_OK;
     }
     else
     {
@@ -654,25 +647,6 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
             IDSetNumber(&FocusMaxPosNP, nullptr);
             return true;
         }
-
-        // Max. movement
-        //        if (strcmp(name, FocusMaxMoveNP.name) == 0)
-        //        {
-        //            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
-        //            char cmd[DSD_RES] = {0};
-        //            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
-        //            bool rc = sendCommandSet(cmd);
-        //            if (!rc)
-        //            {
-        //                FocusMaxMoveNP.s = IPS_ALERT;
-        //                return false;
-        //            }
-
-        //            FocusMaxMoveNP.s = IPS_OK;
-        //            IDSetNumber(&FocusMaxMoveNP, nullptr);
-        //            return true;
-        //        }
-
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -705,7 +679,7 @@ void DeepSkyDadAF3::GetFocusParams()
         IDSetNumber(&FocusMaxPosNP, nullptr);
 
     if (readMaxMovement())
-        IDSetNumber(&FocusMaxMoveNP, nullptr);
+        IDSetNumber(&FocusMaxPosNP, nullptr);
 
     if (readTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
@@ -804,7 +778,8 @@ void DeepSkyDadAF3::TimerHit()
     {
         if (!isMoving())
         {
-            if( backlashComp == 0 ) {
+            if( backlashComp == 0 )
+            {
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
             }
@@ -858,7 +833,6 @@ bool DeepSkyDadAF3::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &StepModeSP);
     IUSaveConfigSwitch(fp, &SpeedModeSP);
-    IUSaveConfigNumber(fp, &FocusMaxMoveNP);
     IUSaveConfigNumber(fp, &SettleBufferNP);
     IUSaveConfigNumber(fp, &MoveCurrentMultiplierNP);
     IUSaveConfigNumber(fp, &HoldCurrentMultiplierNP);
