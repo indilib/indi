@@ -86,6 +86,7 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////
         void getStartupStatus();
         bool getFirmwareVersion();
+        TelescopePierSide getSideOfPier();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Location & Time
