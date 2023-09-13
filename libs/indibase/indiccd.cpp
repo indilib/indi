@@ -2456,7 +2456,10 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
                 if (targetChip->SendCompressed)
                 {
-                    image.setCompression(LibXISF::DataBlock::LZ4);
+                    if(LibXISF::DataBlock::CompressionCodecSupported(LibXISF::DataBlock::ZSTD))
+                        image.setCompression(LibXISF::DataBlock::ZSTD);
+                    else
+                        image.setCompression(LibXISF::DataBlock::LZ4);
                     image.setByteshuffling(targetChip->getBPP() / 8);
                 }
 
