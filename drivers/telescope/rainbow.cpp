@@ -33,7 +33,7 @@ static std::unique_ptr<Rainbow> scope(new Rainbow());
 
 Rainbow::Rainbow() : INDI::Telescope ()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     SetTelescopeCapability(TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_SYNC |
@@ -42,8 +42,7 @@ Rainbow::Rainbow() : INDI::Telescope ()
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
-                           TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_HAS_PIER_SIDE_SIMULATION, 4);
+                           TELESCOPE_HAS_TRACK_MODE, 4);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -755,6 +754,8 @@ bool Rainbow::ReadScopeStatus()
         HorizontalCoordsN[AXIS_ALT].value = m_CurrentAL;
     }
     IDSetNumber(&HorizontalCoordsNP, nullptr);
+
+    setPierSide(getSideOfPier());
 
     NewRaDec(m_CurrentRA, m_CurrentDE);
 
@@ -1654,6 +1655,36 @@ bool Rainbow::sendScopeLocation()
     }
 
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Command
+/////////////////////////////////////////////////////////////////////////////
+Rainbow::TelescopePierSide Rainbow::getSideOfPier()
+{
+    float decAxisAlignmentOffset {0}, decAxis {0};
+    char cyResponse[DRIVER_LEN] = {0}, cg3Response[DRIVER_LEN] = {0};
+
+    if (!sendCommand(":CG3#", cg3Response))
+        return PIER_UNKNOWN;
+
+    sscanf(cg3Response + 3, "%g", &decAxisAlignmentOffset);
+
+    if (!sendCommand(":CY#", cyResponse))
+        return PIER_UNKNOWN;
+
+    char rotationAngle[16] = {0};
+
+    strncpy(rotationAngle, cyResponse + 3, 7);
+
+    sscanf(rotationAngle, "%g", &decAxis);
+
+    auto offset = decAxis - decAxisAlignmentOffset;
+
+    if (offset > 90)
+        return PIER_WEST;
+    else
+        return PIER_EAST;
 }
 
 /////////////////////////////////////////////////////////////////////////////
