@@ -23,5 +23,5 @@ pwd
 popd
 
 echo
-echo "Avaliable packages:"
+echo "Available packages:"
 ls -l build/*.deb

@@ -23,7 +23,7 @@ class Scope : public INDI::Telescope, public INDI::AlignmentSubsystem::Alignment
             return "MockAlignmentScope";
         }
 
-        // make sure to pass new values into the alignment subsytem with all the ISNew* methods
+        // make sure to pass new values into the alignment subsystem with all the ISNew* methods
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override
         {
             if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
