@@ -59,7 +59,7 @@ MACRO (ENABLE_UNITY_BUILD TARGET_NAME SOURCE_VARIABLE_NAME UNIT_SIZE EXTENSION)
   # Limit is zero based conversion of unit_size
   MATH(EXPR LIMIT ${UNIT_SIZE}-1)
   SET(FILES ${SOURCE_VARIABLE_NAME})
-  # Effectivly ignore the source files from the build, but keep track them for changes.
+  # Effectively ignore the source files from the build, but keep track them for changes.
   SET_SOURCE_FILES_PROPERTIES(${${FILES}} PROPERTIES HEADER_FILE_ONLY true)
   # Counts the number of source files up to the threshold
   SET(COUNTER ${LIMIT})
