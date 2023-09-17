@@ -1668,7 +1668,7 @@ Rainbow::TelescopePierSide Rainbow::getSideOfPier()
     if (!sendCommand(":CG3#", cg3Response))
         return PIER_UNKNOWN;
 
-    sscanf(cg3Response + 3, "%g", &decAxisAlignmentOffset);
+    sscanf(cg3Response + 4, "%f", &decAxisAlignmentOffset);
 
     if (!sendCommand(":CY#", cyResponse))
         return PIER_UNKNOWN;
@@ -1677,7 +1677,7 @@ Rainbow::TelescopePierSide Rainbow::getSideOfPier()
 
     strncpy(rotationAngle, cyResponse + 3, 7);
 
-    sscanf(rotationAngle, "%g", &decAxis);
+    sscanf(rotationAngle, "%f", &decAxis);
 
     auto offset = decAxis - decAxisAlignmentOffset;
 

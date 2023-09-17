@@ -8,7 +8,7 @@ All drivers must provide complete and up to date user Documentation. The documen
 
 # Documentation Template
 
-Below are some documentation templates that can be used to write new documentation for your driver. Be direct, simple, and make no assumptions on the user knowledge. The documentation should be friendly to new useres with clear instructions accompined with screenshots and visual aids to ensure proper communication.
+Below are some documentation templates that can be used to write new documentation for your driver. Be direct, simple, and make no assumptions on the user knowledge. The documentation should be friendly to new useres with clear instructions accompanied with screenshots and visual aids to ensure proper communication.
 
 Screenshots for the driver functionalities are required. You can use whatever GUI client of your choice when submitting the screenshots. The format must be JPG and named after the INDI group/tab they belong to (e.g. main_control.jpg, options.jpg..etc).
 
@@ -92,7 +92,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 			<li><strong>Both</strong>: Dome locks &amp; Dome parks policies are applied.</li>
 		</ul>
 		<br /><img style="display: block; margin-left: auto; margin-right: auto;" src="/images/devices/DRIVER_NAME/options.jpg" alt="Options" /></li>
-	<li><strong>Scope Properties</strong>: Enter the Primary and Seconday scope information.&nbsp;Up to six different configurations for&nbsp;<em>Primary</em>&nbsp;and Secondary&nbsp;<em>Guider</em>&nbsp;telescopes can be saved separately, each with an optional unique label in <strong>Scope Name</strong> property.</li>
+	<li><strong>Scope Properties</strong>: Enter the Primary and Secondary scope information.&nbsp;Up to six different configurations for&nbsp;<em>Primary</em>&nbsp;and Secondary&nbsp;<em>Guider</em>&nbsp;telescopes can be saved separately, each with an optional unique label in <strong>Scope Name</strong> property.</li>
 	<li><strong>Scope Config</strong>: Select the active scope configuration.</li>
 	<li><strong>Joystick</strong>: Enable or Disable joystick support. An INDI Joystick driver must be running for this function to work. For more details, check the <a href="/support/tutorials/135-controlling-your-telescope-with-a-joystick.html">INDI Telescope Joystick</a> tutorial.</li>	
 </ul>
@@ -103,7 +103,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 	<li><strong>Motion N/S/W/E</strong>: Directional manual motion control. Press the button to start the movement and release the button to stop.</li>
 	<li><strong>Slew Rate</strong>: Rate of manual motion control above where 1x equals one sidereal rate.</li>
 	<li><strong>Guide N/S/W/E</strong>: Guiding pulses durations in milliseconds. This property is meant for guider application (e.g. PHD2) and not intended to be used directly.</li>
-	<li><strong>Guiding Rate</strong>: Guiding Rate for RA &amp; DE. 0.3 means the mount shall move at 30% of the sidereal rate when the pulse is active. The sideral rate is ~15.04 arcseconds per second. So at 0.3x, the mount shall move 0.3*15.04 = 4.5 arcsecond per second. When receving a pulse for 1000ms, the total theoritical motion 4.5 arcseconds.</li>
+	<li><strong>Guiding Rate</strong>: Guiding Rate for RA &amp; DE. 0.3 means the mount shall move at 30% of the sidereal rate when the pulse is active. The sidereal rate is ~15.04 arcseconds per second. So at 0.3x, the mount shall move 0.3*15.04 = 4.5 arcsecond per second. When receiving a pulse for 1000ms, the total theoretical motion 4.5 arcseconds.</li>
 	<li><strong>Custom Speeds</strong>: Customs speeds in RA &amp; DEC axis when performing&nbsp;GOTO.</li>
 	<li><strong>Track Default</strong>: Default tracking rate to be used on startup.</li>
 	<li><strong>ST4 N/S/W/E</strong>: If the mount is receiving guiding pulses via ST4, apply this rate.</li>
@@ -195,7 +195,7 @@ This provides general information about the currently running driver and driver 
 <ul>
   <li><strong>Frame</strong>: Set the desired <i>Region-Of-Interest</i> (ROI) by specifying the starting X and Y positions of the image and the desired width and height. It is recommended to set use even numbers only to enable binning if required. The ROI values are indenepdent of the binning used.</li>
 <li><strong>Binning</strong>: Set the desired binning.</li>
-<li>The usually supported image compression can be turned on in image settings to compress FITS images. This might require more processing but can reduce the size of the image by <b>up to 70%</b>. The uploaded image would have an extenstion of .fits.fz and it can be viewed in multiple clients like KStars.</li>
+<li>The usually supported image compression can be turned on in image settings to compress FITS images. This might require more processing but can reduce the size of the image by <b>up to 70%</b>. The uploaded image would have an extension of .fits.fz and it can be viewed in multiple clients like KStars.</li>
 <li>The <b>Frame Type</b> property is used to mark the frame type in the FITS header which is useful information for some processing applications. If there an electronic or mechanical shutter, the driver closes it automatically when taking dark frames.</li>
 <li>To restore the ROI to the default values, click on the <b>Reset</b> button.</li>
 <h3>Image Info</h3>
@@ -238,7 +238,7 @@ List what the driver supports.
 
 <h3>Connecting to DRIVER_NAME</h3>
 <p>
-1. How is the device connectd? USB? Ethernet? WiFi..etc?
+1. How is the device connected? USB? Ethernet? WiFi..etc?
 2. Dedicate a section to each connection method. Put images of each. What configuration required..etc
 3. Any special settings to take care of to ensure successful connection?
 </p>
