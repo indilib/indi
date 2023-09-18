@@ -147,7 +147,9 @@ bool PlaneWave::Sync(double ra, double dec)
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::Goto(double ra, double dec)
 {
-    return false;
+    httplib::Client cli(tcpConnection->host(), tcpConnection->port());
+    std::string request = "/mount/goto_ra_dec_apparent?ra_hours=" + std::to_string(ra) + "&dec_degs=" + std::to_string(dec);
+    return cli.Get(request);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -155,7 +157,34 @@ bool PlaneWave::Goto(double ra, double dec)
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::ReadScopeStatus()
 {
-    return false;
+    if (getStatus() == false)
+        return false;
+
+    auto ra = m_Status["mount.ra_apparent_hours"].as<double>();
+    auto de = m_Status["mount.dec_apparent_degs"].as<double>();
+
+    auto isSlewing = m_Status["mount.is_slewing"].as<bool>();
+    auto isTracking = m_Status["mount.is_tracking"].as<bool>();
+
+    switch (TrackState)
+    {
+        case SCOPE_PARKING:
+            if (!isSlewing)
+                SetParked(true);
+            break;
+        case SCOPE_SLEWING:
+            if (isTracking)
+            {
+                TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
+            }
+            break;
+        default:
+            break;
+    }
+
+    NewRaDec(ra, de);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -163,7 +192,9 @@ bool PlaneWave::ReadScopeStatus()
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::Park()
 {
-    return false;
+    httplib::Client cli(tcpConnection->host(), tcpConnection->port());
+    std::string request = "/mount/park";
+    return cli.Get(request);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -217,7 +248,9 @@ bool PlaneWave::ISNewSwitch(const char *dev, const char *name, ISState * states,
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::Abort()
 {
-    return false;
+    httplib::Client cli(tcpConnection->host(), tcpConnection->port());
+    std::string request = "/mount/stop";
+    return cli.Get(request);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -329,7 +362,10 @@ bool PlaneWave::SetTrackMode(uint8_t mode)
     INDI_UNUSED(dRA);
     INDI_UNUSED(dDE);
 
-    return false;
+    // TODO figure out how to set tracking rate per axis
+    httplib::Client cli(tcpConnection->host(), tcpConnection->port());
+    std::string request = "/mount/tracking_on";
+    return cli.Get(request);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -343,7 +379,9 @@ bool PlaneWave::SetTrackEnabled(bool enabled)
     // Disable tracking
     else
     {
-
+        httplib::Client cli(tcpConnection->host(), tcpConnection->port());
+        std::string request = "/mount/tracking_off";
+        return cli.Get(request);
     }
     return false;
 }
