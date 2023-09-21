@@ -22,7 +22,6 @@
 #include "planewave_mount.h"
 
 #include "indicom.h"
-#include "inditimer.h"
 #include "httplib.h"
 #include "connectionplugins/connectiontcp.h"
 #include <libnova/sidereal_time.h>
@@ -139,6 +138,8 @@ bool PlaneWave::getStatus()
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::Sync(double ra, double dec)
 {
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
     return false;
 }
 
@@ -258,6 +259,7 @@ bool PlaneWave::Abort()
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
     if (TrackState == SCOPE_PARKED)
     {
         LOG_ERROR("Please unpark the mount before issuing any motion commands.");
@@ -280,6 +282,7 @@ bool PlaneWave::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
     if (TrackState == SCOPE_PARKED)
     {
         LOG_ERROR("Please unpark the mount before issuing any motion commands.");
@@ -301,6 +304,9 @@ bool PlaneWave::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::updateLocation(double latitude, double longitude, double elevation)
 {
+    INDI_UNUSED(latitude);
+    INDI_UNUSED(longitude);
+    INDI_UNUSED(elevation);
     return false;
 }
 
@@ -338,6 +344,8 @@ bool PlaneWave::SetDefaultPark()
 /////////////////////////////////////////////////////////////////////////////
 bool PlaneWave::SetTrackRate(double raRate, double deRate)
 {
+    INDI_UNUSED(raRate);
+    INDI_UNUSED(deRate);
     return false;
 }
 
