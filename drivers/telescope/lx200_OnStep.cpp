@@ -585,6 +585,7 @@ bool LX200_OnStep::updateProperties()
         LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
 
         //Rotation Information
+        /* Was working with OnStep 4
         char rotator_response[RB_MAX_LEN] = {0};
         error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, rotator_response, ":GX98#");
         if (error_or_fail > 0)
@@ -599,12 +600,42 @@ bool LX200_OnStep::updateProperties()
             {
                 defineProperty(&OSRotatorDerotateSP);
             }
+            if (rotator_response[0] == '0')
+            {
+                OSRotator1 = false;
+            }
+        }
+        else
+        {
+            LOGF_WARN("Error: %i", error_or_fail);
+            LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
+        }*/
+        //================ For OnStepX
+        char rotator_response[RB_MAX_LEN] = {0};
+        error_or_fail = getCommandSingleCharResponse(PortFD, rotator_response, ":GX98#");
+        if (error_or_fail > 0)
+        {
+            if (rotator_response[0] == 'D' || rotator_response[0] == 'R')
+            {
+                LOG_INFO("Rotator found.");
+                OSRotator1 = true;
+                RI::updateProperties();
+            }
+            if (rotator_response[0] == 'D')
+            {
+                defineProperty(&OSRotatorDerotateSP);
+            }
+            if (rotator_response[0] == '0')
+            {
+                OSRotator1 = false;
+            }
         }
         else
         {
             LOGF_WARN("Error: %i", error_or_fail);
             LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
         }
+        //=================
 
         if (OSRotator1 == false)
         {
@@ -3212,7 +3243,7 @@ bool LX200_OnStep::ReadScopeStatus()
         char cputemp_reponse[RB_MAX_LEN] = {0};
         double cputemp_value;
         int error_return = getCommandDoubleResponse(PortFD, &cputemp_value, cputemp_reponse, ":GX9F#");
-        if ( error_return >= 0 && !strcmp(cputemp_reponse, "0") )
+        if ( error_return >= 0) // && !strcmp(cputemp_reponse, "0") )
         {
             setParameterValue("WEATHER_CPU_TEMPERATURE", cputemp_value);
         }
@@ -3937,14 +3968,14 @@ int LX200_OnStep::OSUpdateFocuser()
             LOG_WARN("Communication :FI# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
-        
+        /* Was working with OnStep 4
         // Focus T° Compensation
         //  :Ft#    Get Focuser Temperature
         //          Returns: n#
         char focus_T[RB_MAX_LEN] = {0};
         int focus_T_int ;
         int ft_error = getCommandIntResponse(PortFD, &focus_T_int, focus_T, ":Ft#");
-        if (ft_error > 0)
+        if ((ft_error > 0) | (ft_error==-1001))
         {
             FocuserTN[0].value =  atof(focus_T);
             IDSetNumber(&FocuserTNP, nullptr);
@@ -3953,9 +3984,28 @@ int LX200_OnStep::OSUpdateFocuser()
         else
         {
             LOG_WARN("Communication :Ft# error, check connection.");
+            LOGF_DEBUG("focus T°: %s, focusT_int %i ft_nbcar: %i", focus_T, focus_T_int, ft_error); 
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
-
+        */
+        //================ For OnStepX
+        char focus_T[RB_MAX_LEN] = {0};
+        double focus_T_double ;
+        int ft_error = getCommandDoubleResponse(PortFD, &focus_T_double, focus_T, ":Ft#");
+        if (ft_error > 0)
+        {
+            FocuserTN[0].value =  atof(focus_T);
+            IDSetNumber(&FocuserTNP, nullptr);
+            LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
+        }
+        else
+        {
+            LOG_WARN("Communication :Ft# error, check connection.");
+            LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
+            flushIO(PortFD); //Unlikely to do anything, but just in case.
+        }
+        //================
+        
         //  :Fe#    Get Focus Differential T°
         //          Returns: n#
         char focus_TD[RB_MAX_LEN] = {0};
