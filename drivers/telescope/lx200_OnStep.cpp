@@ -217,18 +217,19 @@ bool LX200_OnStep::initProperties()
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    // Focus T° Compensation
-    IUFillNumber(&FocusTemperatureN[0], "TFC T°", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    // Focus T° Compensation 
+    // Property must be FOCUS_TEMPERATURE to be recognized by Ekos
+    IUFillNumber(&FocusTemperatureN[0], "FOCUS_TEMPERATURE", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
     IUFillNumber(&FocusTemperatureN[1], "TFC Δ T°", "TFC Δ T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
+    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Focuser T°", FOCUS_TAB, IP_RO, 0,
                        IPS_IDLE);
     IUFillSwitch(&TFCCompensationS[0], "Off", "Compensation: OFF", ISS_OFF);
     IUFillSwitch(&TFCCompensationS[1], "On", "Compensation: ON", ISS_OFF);
     IUFillSwitchVector(&TFCCompensationSP, TFCCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
-    IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coeeficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&TFCCoefficientN[0], "TFC Coefficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
+    IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coefficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&TFCDeadbandN[0], "TFC Deadband", "TFC Deadband µm", "%g", 1, 32767, 1, 5);
     IUFillNumberVector(&TFCDeadbandNP, TFCDeadbandN, 1, getDeviceName(), "TFC Deadband", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     // End Focus T° Compensation
@@ -1228,7 +1229,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":FC%+3.5f#", values[0]);
             sendOnStepCommandBlind(cmd);
             TFCCoefficientNP.s           = IPS_OK;
-            IDSetNumber(&TFCCoefficientNP, "TFC Coeeficient set to %+3.5f", values[0]);
+            IDSetNumber(&TFCCoefficientNP, "TFC Coefficient set to %+3.5f", values[0]);
         }
         else
         {
