@@ -25,6 +25,11 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.20
+    - fixed wrong messages due to different return with OnStepX
+    - fixed Focuser Temerature not shown on Ekos
+    - fixed Weather settings (P/T/Hr) when no sensor present
+    - minor typos
     Version 1.19
     - fixed typo on debug information saying error instead of nbchar causing confusion
     - fixed Autoflip Off update
