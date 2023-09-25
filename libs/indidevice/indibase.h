@@ -7,7 +7,7 @@
 
 #ifdef SWIG
 // api version for swig
-%include "indiapi.h"
+% include "indiapi.h"
 #endif
 
 #define MAXRBUF 2048
@@ -28,6 +28,7 @@
  *        It is the base class for all drivers and may \e only used by drivers directly, it cannot be used by clients.</li>
  *    <li>FilterInterface: Basic interface for filter wheels functions.</li>
  *    <li>GuiderInterface: Basic interface for guider (ST4) port functions.</li>
+ *    <li>GPSInterface: Basic interface for GPS functions.</li>
  *    <li>RotatorInterface: Basic interface for Rotator functions.</li>
  *    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
  *    <li>LightBoxInterface: Basic interface for remotely controlled light boxes/switches.</li>
@@ -57,6 +58,7 @@ class DefaultDevice;
 class FilterInterface;
 class RotatorInterface;
 class GuiderInterface;
+class GPSInterface;
 class FocuserInterface;
 class WeatherInterface;
 class SensorInterface;
@@ -100,7 +102,7 @@ class INDI::BaseMediator
         /** @brief Emmited when a device is deleted from INDI server.
          *  @param baseDevice BaseDevice instance.
          */
-        virtual void removeDevice(INDI::BaseDevice baseDevice);        
+        virtual void removeDevice(INDI::BaseDevice baseDevice);
 
     public:
         /** @brief Emmited when a new property is created for an INDI driver.
