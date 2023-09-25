@@ -218,14 +218,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     // Focus T° Compensation
-    IUFillNumber(&FocuserTN[0], "TFC T°", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumber(&FocuserTN[1], "TFC Diff T°", "TFC Diff T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumberVector(&FocuserTNP, FocuserTN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
+    IUFillNumber(&FocusTemperatureN[0], "TFC T°", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumber(&FocusTemperatureN[1], "TFC Δ T°", "TFC Δ T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
                        IPS_IDLE);
     IUFillSwitch(&TFCCompensationS[0], "Off", "Compensation: OFF", ISS_OFF);
     IUFillSwitch(&TFCCompensationS[1], "On", "Compensation: ON", ISS_OFF);
     IUFillSwitchVector(&TFCCompensationSP, TFCCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
+    
     IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
     IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coeeficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&TFCDeadbandN[0], "TFC Deadband", "TFC Deadband µm", "%g", 1, 32767, 1, 5);
@@ -504,7 +505,7 @@ bool LX200_OnStep::updateProperties()
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
             // Focus T° Compensation
-            defineProperty(&FocuserTNP);
+            defineProperty(&FocusTemperatureNP);
             defineProperty(&TFCCompensationSP);
             defineProperty(&TFCCoefficientNP);
             defineProperty(&TFCDeadbandNP);
@@ -746,7 +747,7 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser
         // Focuser 1
-        deleteProperty(FocuserTNP.name);
+        deleteProperty(FocusTemperatureNP.name);
         deleteProperty(OSFocus1InitializeSP.name);
         deleteProperty(TFCCoefficientNP.name);
         deleteProperty(TFCDeadbandNP.name);
@@ -3977,8 +3978,8 @@ int LX200_OnStep::OSUpdateFocuser()
         int ft_error = getCommandIntResponse(PortFD, &focus_T_int, focus_T, ":Ft#");
         if ((ft_error > 0) | (ft_error==-1001))
         {
-            FocuserTN[0].value =  atof(focus_T);
-            IDSetNumber(&FocuserTNP, nullptr);
+            FocusTemperatureN[0].value =  atof(focus_T);
+            IDSetNumber(&FocusTemperatureNP, nullptr);
             LOGF_DEBUG("focus T°: %s, %i ft_nbcar: %i", focus_T, focus_T_int, ft_error);    //typo
         }
         else
@@ -3994,8 +3995,8 @@ int LX200_OnStep::OSUpdateFocuser()
         int ft_error = getCommandDoubleResponse(PortFD, &focus_T_double, focus_T, ":Ft#");
         if (ft_error > 0)
         {
-            FocuserTN[0].value =  atof(focus_T);
-            IDSetNumber(&FocuserTNP, nullptr);
+            FocusTemperatureN[0].value =  atof(focus_T);
+            IDSetNumber(&FocusTemperatureNP, nullptr);
             LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
         }
         else
@@ -4013,8 +4014,8 @@ int LX200_OnStep::OSUpdateFocuser()
         int fe_error = getCommandIntResponse(PortFD, &focus_TD_int, focus_TD, ":Fe#");
         if (fe_error > 0)
         {
-            FocuserTN[1].value =  atof(focus_TD);
-            IDSetNumber(&FocuserTNP, nullptr);
+            FocusTemperatureN[1].value =  atof(focus_TD);
+            IDSetNumber(&FocusTemperatureNP, nullptr);
             LOGF_DEBUG("focus Differential T°: %s, %i fi_nbchar: %i", focus_TD, focus_TD_int, fe_error);
         }
         else
