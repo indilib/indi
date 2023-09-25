@@ -25,6 +25,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indigpsinterface.h"
 
 /**
  * \class GPS
@@ -44,36 +45,18 @@
 namespace INDI
 {
 
-class GPS : public DefaultDevice
+class GPS : public DefaultDevice, public GPSInterface
 {
     public:
-        enum GPSLocation
-        {
-            LOCATION_LATITUDE,
-            LOCATION_LONGITUDE,
-            LOCATION_ELEVATION
-        };
-
-        GPS() = default;
+        GPS();
         virtual ~GPS() = default;
 
-        virtual bool Disconnect() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
-        /**
-             * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
-             * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
-             */
-        virtual IPState updateGPS();
-
-        /**
-             * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
-             */
-        virtual void TimerHit() override;
 
         /**
          * @brief saveConfigItems Save refresh period
@@ -81,43 +64,5 @@ class GPS : public DefaultDevice
          * @return True if all is OK
          */
         virtual bool saveConfigItems(FILE *fp) override;
-
-        /**
-         * @brief SetSystemTime Update system-wide time
-         * @param raw_time raw time
-         * @return true if successful, false other.
-         * @note Process user must have permission to set time.
-         */
-        virtual bool setSystemTime(time_t &raw_time);
-
-        //  A number vector that stores latitude, longitude and altitude.
-        INDI::PropertyNumber LocationNP {3};
-
-        // UTC and UTC Offset
-        INDI::PropertyText TimeTP {2};
-
-        // Refresh data
-        INDI::PropertySwitch RefreshSP {1};
-
-        // Refresh Period
-        INDI::PropertyNumber PeriodNP {1};
-
-        // System Time
-        INDI::PropertySwitch SystemTimeUpdateSP {3};
-        enum
-        {
-            UPDATE_NEVER,
-            UPDATE_ON_STARTUP,
-            UPDATE_ON_REFRESH
-        };
-
-
-        int timerID = -1;
-
-        // # of seconds since 1970 UTC
-        std::time_t m_GPSTime;
-
-        // Track whether system time was updated
-        bool m_SystemTimeUpdated {false};
 };
 }
