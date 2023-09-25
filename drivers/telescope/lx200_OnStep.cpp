@@ -1170,6 +1170,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetTemperatureNP.s           = IPS_OK;
+            OSSetTemperatureN[0].value=values[0];
             IDSetNumber(&OSSetTemperatureNP, "Temperature set to %d", (int)values[0]);
         }
         else
@@ -1189,6 +1190,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetHumidityNP.s           = IPS_OK;
+            OSSetHumidityN[0].value=values[0];
             IDSetNumber(&OSSetHumidityNP, "Humidity set to %d", (int)values[0]);
         }
         else
@@ -1203,11 +1205,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         char cmd[CMD_MAX_LEN] = {0};
 
-        if ((values[0] >= 0) && (values[0] <= 100))
+        if ((values[0] >= 500) && (values[0] <= 1100)) // typo 
         {
             snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetPressureNP.s           = IPS_OK;
+            OSSetPressureN[0].value=values[0];
             IDSetNumber(&OSSetPressureNP, "Pressure set to %d", (int)values[0]);
         }
         else
