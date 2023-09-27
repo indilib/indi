@@ -48,6 +48,7 @@ class LX200_OpenAstroTech : public LX200GPS
     virtual bool SetFocuserBacklash(int32_t steps) override;
     virtual bool AbortFocuser () override;
     virtual bool ReadScopeStatus() override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
     //End FocuserInterface
 
@@ -55,6 +56,7 @@ class LX200_OpenAstroTech : public LX200GPS
     virtual char getCommandChar(int fd, const char *cmd);
     virtual int executeMeadeCommand(const char *cmd, char *data);
     virtual bool executeMeadeCommandBlind(const char *cmd);
+    //virtual int executeMeadeCommandNumber(const char *cmd);
     virtual int flushIO(int fd);
     int OATUpdateProperties();
     int OATUpdateFocuser();
@@ -78,6 +80,9 @@ class LX200_OpenAstroTech : public LX200GPS
 
     INumber DecLimitsN[2];
     INumberVectorProperty DecLimitsNP;
+
+    INumber HeaterN[2];
+    INumberVectorProperty HeaterNP;
 
     ISwitchVectorProperty HomeSP;
     ISwitch HomeS;
