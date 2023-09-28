@@ -48,6 +48,8 @@ FocusLynxF1::FocusLynxF1(const char *target)
      * F1 or F2 to set the target of the created instance
      */
     setFocusTarget(target);
+    // set the focuser name to a fixed value to ensure that both focusers are visible
+    setDeviceName(FocusLynxF1::getDefaultName());
 
     // Both communication available, Serial and network (tcp/ip)
     setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
@@ -752,6 +754,8 @@ void FocusLynxF1::setDebug(bool enable)
 FocusLynxF2::FocusLynxF2(const char *target)
 {
     setFocusTarget(target);
+    // set the focuser name to a fixed value to ensure that both focusers are visible
+    setDeviceName(FocusLynxF2::getDefaultName());
 
     // The second focuser has no direct communication with the hub
     setSupportedConnections(CONNECTION_NONE);
