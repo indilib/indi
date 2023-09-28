@@ -60,7 +60,7 @@ bool LX200_OpenAstroTech::initProperties()
     LX200GPS::initProperties();
     IUFillText(&MeadeCommandT, OAT_MEADE_COMMAND, "Result / Command", "");
     IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_SYNC);
     
     FI::initProperties(FOCUS_TAB);
     initFocuserProperties(FOCUS_TAB);
@@ -79,7 +79,7 @@ bool LX200_OpenAstroTech::initProperties()
     // Home
     IUFillSwitch(&HomeS, "OAT_HOME", "Home", ISS_OFF);
     IUFillSwitchVector(&HomeSP, &HomeS, 1, m_defaultDevice->getDeviceName(), 
-                       "OAT_HOME", "Home", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "OAT_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // RA Home
     IUFillNumber(&RAHomeN, "RA_HOME", "Hours", "%d", 1.0, 7.0, 1.0, 2);
@@ -91,11 +91,17 @@ bool LX200_OpenAstroTech::initProperties()
     IUFillNumberVector(&RAHomeOffsetNP, &RAHomeOffsetN, 1, m_defaultDevice->getDeviceName(), 
                        "OAT_RA_HOME", "RA Home Offset", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    // Polar Align Alt
-    IUFillNumber(&DecLimitsN[0], "OAT_DEC_LIMIT_LOWER", "Lower", "%.f", -20000.0, 0.0, 1000.0, 0);
-    IUFillNumber(&DecLimitsN[1], "OAT_DEC_LIMIT_UPPER", "Upper", "%.f", 0.0, 50000.0, 1000.0, 0);
+    // DEC Limits
+    IUFillNumber(&DecLimitsN[0], "OAT_DEC_LIMIT_LOWER", "Lower", "%.f", 0.0, -50.0, 0.0, 0);
+    IUFillNumber(&DecLimitsN[1], "OAT_DEC_LIMIT_UPPER", "Upper", "%.f", 0.0, 180.0, 120.0, 0);
     IUFillNumberVector(&DecLimitsNP, DecLimitsN, 2, m_defaultDevice->getDeviceName(), "OAT_DEC_LIMITS",
                        "DEC Limits", MOTION_TAB, IP_RW, 60, IPS_OK);
+    // Heaters
+    IUFillNumber(&HeaterN[0], "OAT_HEATER_0", "Lower", "%d", 0.0, 10.0, 0, 0);
+    IUFillNumber(&HeaterN[1], "OAT_HEATER_1", "Lower", "%d", 0.0, 10.0, 0, 0);
+    IUFillNumberVector(&HeaterNP, HeaterN, 2, m_defaultDevice->getDeviceName(), "OAT_HEATERS",
+                       "Heaters", MOTION_TAB, IP_RW, 60, IPS_OK);
+    // SetParkDataType(PARK_RA_DEC);
     return true;
 }
 
@@ -108,20 +114,22 @@ bool LX200_OpenAstroTech::updateProperties()
         defineProperty(&MeadeCommandTP);
         defineProperty(&PolarAlignAltNP);
         defineProperty(&PolarAlignAzNP);
-        //defineProperty(&HomeSP);
-        //defineProperty(&RAHomeNP);
-        //defineProperty(&RAHomeOffsetNP);
-        //defineProperty(&DecLimitsNP);
+        // defineProperty(&HeaterNP);
+        defineProperty(&HomeSP);
+        defineProperty(&RAHomeNP);
+        defineProperty(&RAHomeOffsetNP);
+        defineProperty(&DecLimitsNP);
     }
     else
     {
         deleteProperty(MeadeCommandTP.name);
         deleteProperty(PolarAlignAltNP.name);
         deleteProperty(PolarAlignAzNP.name);
-        //deleteProperty(HomeSP.name);
-        //deleteProperty(RAHomeNP.name);
-        //deleteProperty(RAHomeOffsetNP.name);
-        //deleteProperty(DecLimitsNP.name);
+        // deleteProperty(HeaterNP.name);
+        deleteProperty(HomeSP.name);
+        deleteProperty(RAHomeNP.name);
+        deleteProperty(RAHomeOffsetNP.name);
+        deleteProperty(DecLimitsNP.name);
     }
 
     return true;
@@ -180,7 +188,7 @@ int LX200_OpenAstroTech::OATUpdateProperties()
             IDSetNumber(&RAHomeNP, nullptr);
         }
     }
-    //updateProperties();
+    // updateProperties();
     return 0;
 }
 
@@ -202,22 +210,29 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                 char * cmd = texts[0];
                 size_t len = strlen(cmd);
                 DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "Meade Command <%s>", cmd);
-                if(len > 2 && cmd[0] == ':' && cmd[len-1] == '#') {
+                if(len > 2) {
                     IText *tp = IUFindText(&MeadeCommandTP, names[0]);
                     MeadeCommandResult[0] = 0;
-                    int err = executeMeadeCommand(texts[0], MeadeCommandResult);
+                    int err = 0;
+                    if(cmd[0] == ':' && cmd[len-1] == '#') {
+                        err = executeMeadeCommand(texts[0], MeadeCommandResult);
+                    } else if(cmd[0] == '@' && cmd[len-1] == '#') {
+                        err = executeMeadeCommandBlind(texts[0]);
+                    } else if(cmd[0] == '&' && cmd[len-1] == '#') {
+                        int val = getCommandChar(PortFD, cmd);
+                        if(val != -1) {
+                            sprintf(MeadeCommandResult, "%c", val);
+                        }
+                    }
                     DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "Meade Command Result %d <%s>", err, MeadeCommandResult);
                     if(err == 0) {
                         MeadeCommandTP.s = IPS_OK;
-                        IUSaveText(tp, MeadeCommandResult);
-                        IDSetText(&MeadeCommandTP, "%s", MeadeCommandResult);
-                        return true;
                     } else {
                         MeadeCommandTP.s = IPS_ALERT;
-                        IUSaveText(tp, MeadeCommandResult);
-                        IDSetText(&MeadeCommandTP, "%s", MeadeCommandResult);
-                        return true;
                     }
+                    IUSaveText(tp, MeadeCommandResult);
+                    IDSetText(&MeadeCommandTP, "%s", MeadeCommandResult);
+                    return true;
                 }
             }
        }
@@ -268,9 +283,10 @@ bool LX200_OpenAstroTech::ISNewSwitch(const char *dev, const char *name, ISState
     {
         if (!strcmp(name, HomeS.name))
         {
-            HomeSP.s = IPS_IDLE;
+            HomeSP.s = IPS_OK;
             IUResetSwitch(&HomeSP);
             /*int targetState = */IUFindOnSwitchIndex(&HomeSP);
+            IDSetSwitch(&HomeSP, nullptr);
             return executeMeadeCommandBlind(":hF#");
         }
     }
@@ -380,6 +396,7 @@ int LX200_OpenAstroTech::flushIO(int fd)
 
 IPState LX200_OpenAstroTech::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     INDI_UNUSED(speed);
     //  :FRsnnn#  Set focuser target position relative (in microns)
     //            Returns: Nothing
@@ -393,7 +410,7 @@ IPState LX200_OpenAstroTech::MoveFocuser(FocusDirection dir, int speed, uint16_t
         output += FocuserBacklash;
     }
     if (dir == FOCUS_INWARD) output = 0 - output;
-    snprintf(read_buffer, sizeof(read_buffer), ":FM%f#", output);
+    snprintf(read_buffer, sizeof(read_buffer), ":FM%f#", output * reversed);
     executeMeadeCommandBlind(read_buffer);
     return IPS_BUSY; // Normal case, should be set to normal by update.
 }
@@ -431,9 +448,10 @@ IPState LX200_OpenAstroTech::MoveAbsFocuser (uint32_t targetTicks)
 
 IPState LX200_OpenAstroTech::MoveRelFocuser (FocusDirection dir, uint32_t ticks)
 {
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     //  :FMsnnn#  Set focuser target position relative (in microns)
     //            Returns: Nothing
-    char read_buffer[32];
+    char read_buffer[64];
     if (dir != FocuserDirectionLast) {
         FocuserDirectionLast = dir;
         LOGF_INFO("Applying backlash %d to %d", FocuserBacklash, ticks);
@@ -441,7 +459,7 @@ IPState LX200_OpenAstroTech::MoveRelFocuser (FocusDirection dir, uint32_t ticks)
     }
     int output = ticks;
     if (dir == FOCUS_INWARD) output = 0 - ticks;
-    snprintf(read_buffer, sizeof(read_buffer), ":FM%d#", output);
+    snprintf(read_buffer, sizeof(read_buffer), ":FM%d#", output * reversed);
     executeMeadeCommandBlind(read_buffer);
     return IPS_BUSY; // Normal case, should be set to normal by update.
 }
@@ -464,6 +482,20 @@ bool LX200_OpenAstroTech::AbortFocuser ()
     return IPS_OK;
 }
 
+bool LX200_OpenAstroTech::SyncFocuser(uint32_t ticks)
+{
+    // :FPnnn#
+    //      Description:
+    //        Set position
+    //      Information:
+    //        Sets the current position of the focus stepper motor
+    //      Returns:
+    //        "1"
+    char cmd[CMD_MAX_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), ":FP%d#", int(ticks));
+    int val = getCommandChar(PortFD, cmd);
+    return val == '1';
+}
 
 void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
 {
@@ -519,7 +551,7 @@ void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
-    IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 1000.0, 100, 0);
+    IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 5000.0, 100, 0);
     IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS",
                        "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
@@ -528,19 +560,20 @@ void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
 int LX200_OpenAstroTech::OATUpdateFocuser()
 {
     // we don't need to poll if we're not moving
-    if(!(FocusRelPosNP.s == IPS_BUSY || FocusAbsPosNP.s == IPS_BUSY)) {
+    if(!(FocusRelPosNP.s == IPS_BUSY || FocusAbsPosNP.s == IPS_BUSY) && FocusAbsPosN[0].value != 0.0) {
         return 0;
     }
 
     tcflush(PortFD, TCIOFLUSH);
     flushIO(PortFD);
-   
     // get position
     char value[RB_MAX_LEN] = {0};
     if (!getCommandString(PortFD, value, ":Fp#")) {
-        FocusAbsPosN[0].value =  atof(value);
+        FocusAbsPosN[0].value = atof(value);
+        FocusSyncN[0].value = atof(value);
         IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_INFO("Current focuser: %d, %f from %s", FocusAbsPosN[0].value, FocusAbsPosN[0].value, value);
+        IDSetNumber(&FocusSyncNP, nullptr);
+        LOGF_INFO("Current focuser: %f", FocusAbsPosN[0].value);
     }
     // get is_moving
     char valueStatus = getCommandChar(PortFD, ":FB#");
