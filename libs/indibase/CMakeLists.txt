@@ -145,6 +145,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     inditelescope.cpp
     indifilterwheel.cpp
     indifocuserinterface.cpp
+    indigpsinterface.cpp
     indiweatherinterface.cpp
     indifocuser.cpp
     indirotator.cpp
@@ -186,6 +187,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indireceiver.h
     indifilterwheel.h
     indifocuserinterface.h
+    indigpsinterface.h
     indiweatherinterface.h
     indifocuser.h
     indirotator.h

@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 19);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 20);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -114,17 +114,22 @@ bool LX200_OnStep::initProperties()
 
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%g", -30, 30, 1, -30);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%g", 60, 90, 1, 89);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB,
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, 
                        IP_RW, 0, IPS_IDLE);
 
     IUFillText(&ObjectInfoT[0], "Info", "", "");
-    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, 
+                       IP_RO, 0, IPS_IDLE);
 
+    // ============== COMMUNICATION_TAB
+    
     // ============== CONNECTION_TAB
 
-    // ============== OPTION_TAB
+    // ============== OPTIONS_TAB
+    
+    // ============== FILTER_TAB
 
-    // ============== MOTION_CONTROL_TAB
+    // ============== MOTION_TAB
     //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
     //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
     uint8_t nSlewRate = 10;
@@ -145,7 +150,8 @@ bool LX200_OnStep::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, 
+                       IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
     IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
@@ -200,8 +206,10 @@ bool LX200_OnStep::initProperties()
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    
+    // ============== DATETIME_TAB
 
-    // ============== SITE_MANAGEMENT_TAB
+    // ============== SITE_TAB
     IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
     IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
@@ -217,17 +225,19 @@ bool LX200_OnStep::initProperties()
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    // Focus T° Compensation
-    IUFillNumber(&FocuserTN[0], "TFC T°", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumber(&FocuserTN[1], "TFC Diff T°", "TFC Diff T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
-    IUFillNumberVector(&FocuserTNP, FocuserTN, 2, getDeviceName(), "TFC T°", "TFC T°", FOCUS_TAB, IP_RO, 0,
+    // Focus T° Compensation 
+    // Property must be FOCUS_TEMPERATURE to be recognized by Ekos
+    IUFillNumber(&FocusTemperatureN[0], "FOCUS_TEMPERATURE", "TFC T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumber(&FocusTemperatureN[1], "TFC Δ T°", "TFC Δ T°", "%+2.2f", 0, 1, 0.25, 25);  //default value is meaningless
+    IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Focuser T°", FOCUS_TAB, IP_RO, 0,
                        IPS_IDLE);
     IUFillSwitch(&TFCCompensationS[0], "Off", "Compensation: OFF", ISS_OFF);
     IUFillSwitch(&TFCCompensationS[1], "On", "Compensation: ON", ISS_OFF);
     IUFillSwitchVector(&TFCCompensationSP, TFCCompensationS, 2, getDeviceName(), "Compensation T°", "Temperature Compensation", FOCUS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&TFCCoefficientN[0], "TFC Coeeficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
-    IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coeeficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    
+    IUFillNumber(&TFCCoefficientN[0], "TFC Coefficient", "TFC Coefficient µm/°C", "%+03.5f", -999.99999, 999.99999, 1, 100);
+    IUFillNumberVector(&TFCCoefficientNP, TFCCoefficientN, 1, getDeviceName(), "TFC Coefficient", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&TFCDeadbandN[0], "TFC Deadband", "TFC Deadband µm", "%g", 1, 32767, 1, 5);
     IUFillNumberVector(&TFCDeadbandNP, TFCDeadbandN, 1, getDeviceName(), "TFC Deadband", "", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
     // End Focus T° Compensation
@@ -310,7 +320,7 @@ bool LX200_OnStep::initProperties()
     //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
     IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
-    // ============== New ALIGN_TAB
+    // ============== ALIGNMENT_TAB
     // Only supports Alpha versions currently (July 2018) Now Beta (Dec 2018)
     IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
@@ -357,6 +367,8 @@ bool LX200_OnStep::initProperties()
     //     IUFillText(&OSNAlignErrT[6], "6", "Current Star", "Not Updated");
     //     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars", "Not Updated");
     IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    
+    // =============== INFO_TAB
 
 #ifdef ONSTEP_NOTDONE
     // =============== OUTPUT_TAB
@@ -504,7 +516,7 @@ bool LX200_OnStep::updateProperties()
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
             // Focus T° Compensation
-            defineProperty(&FocuserTNP);
+            defineProperty(&FocusTemperatureNP);
             defineProperty(&TFCCompensationSP);
             defineProperty(&TFCCoefficientNP);
             defineProperty(&TFCDeadbandNP);
@@ -586,7 +598,7 @@ bool LX200_OnStep::updateProperties()
 
         //Rotation Information
         char rotator_response[RB_MAX_LEN] = {0};
-        error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, rotator_response, ":GX98#");
+        error_or_fail = getCommandSingleCharResponse(PortFD, rotator_response, ":GX98#");
         if (error_or_fail > 0)
         {
             if (rotator_response[0] == 'D' || rotator_response[0] == 'R')
@@ -599,12 +611,17 @@ bool LX200_OnStep::updateProperties()
             {
                 defineProperty(&OSRotatorDerotateSP);
             }
+            if (rotator_response[0] == '0')
+            {
+                OSRotator1 = false;
+            }
         }
         else
         {
             LOGF_WARN("Error: %i", error_or_fail);
             LOG_WARN("Error on response to rotator check (:GX98#) CHECK CONNECTION");
         }
+        //=================
 
         if (OSRotator1 == false)
         {
@@ -715,7 +732,7 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser
         // Focuser 1
-        deleteProperty(FocuserTNP.name);
+        deleteProperty(FocusTemperatureNP.name);
         deleteProperty(OSFocus1InitializeSP.name);
         deleteProperty(TFCCoefficientNP.name);
         deleteProperty(TFCDeadbandNP.name);
@@ -1137,6 +1154,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetTemperatureNP.s           = IPS_OK;
+            OSSetTemperatureN[0].value=values[0];
             IDSetNumber(&OSSetTemperatureNP, "Temperature set to %d", (int)values[0]);
         }
         else
@@ -1156,6 +1174,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetHumidityNP.s           = IPS_OK;
+            OSSetHumidityN[0].value=values[0];
             IDSetNumber(&OSSetHumidityNP, "Humidity set to %d", (int)values[0]);
         }
         else
@@ -1170,11 +1189,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         char cmd[CMD_MAX_LEN] = {0};
 
-        if ((values[0] >= 0) && (values[0] <= 100))
+        if ((values[0] >= 500) && (values[0] <= 1100)) // typo 
         {
             snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
             OSSetPressureNP.s           = IPS_OK;
+            OSSetPressureN[0].value=values[0];
             IDSetNumber(&OSSetPressureNP, "Pressure set to %d", (int)values[0]);
         }
         else
@@ -1196,7 +1216,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 15, ":FC%+3.5f#", values[0]);
             sendOnStepCommandBlind(cmd);
             TFCCoefficientNP.s           = IPS_OK;
-            IDSetNumber(&TFCCoefficientNP, "TFC Coeeficient set to %+3.5f", values[0]);
+            IDSetNumber(&TFCCoefficientNP, "TFC Coefficient set to %+3.5f", values[0]);
         }
         else
         {
@@ -3058,6 +3078,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 PreferredPierSideSP.s = IPS_OK;
                 IDSetSwitch(&PreferredPierSideSP, nullptr);
             }
+            /* remove this dead code
             else if (strstr(preferredpierside_response, "%"))
             {
                 //NOTE: This bug is only present in very early OnStepX, and should be fixed shortly after 10.03k
@@ -3066,6 +3087,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 PreferredPierSideSP.s = IPS_ALERT;
                 IDSetSwitch(&PreferredPierSideSP, nullptr);
             }
+            */
             else
             {
                 IUResetSwitch(&PreferredPierSideSP);
@@ -3212,7 +3234,7 @@ bool LX200_OnStep::ReadScopeStatus()
         char cputemp_reponse[RB_MAX_LEN] = {0};
         double cputemp_value;
         int error_return = getCommandDoubleResponse(PortFD, &cputemp_value, cputemp_reponse, ":GX9F#");
-        if ( error_return >= 0 && !strcmp(cputemp_reponse, "0") )
+        if ( error_return >= 0) // && !strcmp(cputemp_reponse, "0") )
         {
             setParameterValue("WEATHER_CPU_TEMPERATURE", cputemp_value);
         }
@@ -3863,6 +3885,7 @@ int LX200_OnStep::OSUpdateFocuser()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosN[0].value);
         }
+        
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
         char valueStatus[RB_MAX_LEN] = {0};
@@ -3902,6 +3925,7 @@ int LX200_OnStep::OSUpdateFocuser()
             FocusAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusAbsPosNP, nullptr);
         }
+        
         //  :FM#  Get max position (in microns)
         //         Returns: n#
         char focus_max[RB_MAX_LEN] = {0};
@@ -3920,6 +3944,7 @@ int LX200_OnStep::OSUpdateFocuser()
             LOGF_WARN("focus_max: %s, %u, fm_error: %i", focus_max, focus_max[0], fm_error);
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
+        
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
         char focus_min[RB_MAX_LEN] = {0};
@@ -3937,25 +3962,25 @@ int LX200_OnStep::OSUpdateFocuser()
             LOG_WARN("Communication :FI# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
-        
-        // Focus T° Compensation
+
         //  :Ft#    Get Focuser Temperature
         //          Returns: n#
         char focus_T[RB_MAX_LEN] = {0};
-        int focus_T_int ;
-        int ft_error = getCommandIntResponse(PortFD, &focus_T_int, focus_T, ":Ft#");
+        double focus_T_double ;
+        int ft_error = getCommandDoubleResponse(PortFD, &focus_T_double, focus_T, ":Ft#");
         if (ft_error > 0)
         {
-            FocuserTN[0].value =  atof(focus_T);
-            IDSetNumber(&FocuserTNP, nullptr);
-            LOGF_DEBUG("focus T°: %s, %i ft_nbcar: %i", focus_T, focus_T_int, ft_error);    //typo
+            FocusTemperatureN[0].value =  atof(focus_T);
+            IDSetNumber(&FocusTemperatureNP, nullptr);
+            LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
         }
         else
         {
             LOG_WARN("Communication :Ft# error, check connection.");
+            LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
-
+        
         //  :Fe#    Get Focus Differential T°
         //          Returns: n#
         char focus_TD[RB_MAX_LEN] = {0};
@@ -3963,8 +3988,8 @@ int LX200_OnStep::OSUpdateFocuser()
         int fe_error = getCommandIntResponse(PortFD, &focus_TD_int, focus_TD, ":Fe#");
         if (fe_error > 0)
         {
-            FocuserTN[1].value =  atof(focus_TD);
-            IDSetNumber(&FocuserTNP, nullptr);
+            FocusTemperatureN[1].value =  atof(focus_TD);
+            IDSetNumber(&FocusTemperatureNP, nullptr);
             LOGF_DEBUG("focus Differential T°: %s, %i fi_nbchar: %i", focus_TD, focus_TD_int, fe_error);
         }
         else
@@ -4034,7 +4059,6 @@ int LX200_OnStep::OSUpdateFocuser()
             LOG_WARN("Communication :Fc# error, check connection.");
             flushIO(PortFD); //Unlikely to do anything, but just in case.
         }
-        // End Focus T° Compensation
 
         FI::updateProperties();
         LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);

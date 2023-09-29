@@ -25,6 +25,11 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.20
+    - fixed wrong messages due to different return with OnStepX
+    - fixed Focuser Temerature not shown on Ekos
+    - fixed Weather settings (P/T/Hr) when no sensor present
+    - minor typos
     Version 1.19
     - fixed typo on debug information saying error instead of nbchar causing confusion
     - fixed Autoflip Off update
@@ -325,8 +330,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         ISwitch OSFocus1InitializeS[4];
         
         // Focus T° Compensation
-        INumberVectorProperty FocuserTNP;
-        INumber FocuserTN[2];
+        INumberVectorProperty FocusTemperatureNP;
+        INumber FocusTemperatureN[2];
+        
         ISwitchVectorProperty TFCCompensationSP;
         ISwitch TFCCompensationS[2];
         INumberVectorProperty TFCCoefficientNP;

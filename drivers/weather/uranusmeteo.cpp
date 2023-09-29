@@ -304,7 +304,7 @@ bool UranusMeteo::ISNewSwitch(const char * dev, const char * name, ISState * sta
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        if (processSwitch(dev, name, states, names, n))
+        if (WI::processSwitch(dev, name, states, names, n))
             return true;
     }
 
@@ -337,7 +337,7 @@ bool UranusMeteo::ISNewNumber(const char * dev, const char * name, double values
             return true;
         }
 
-        if (processNumber(dev, name, values, names, n))
+        if (WI::processNumber(dev, name, values, names, n))
             return true;
     }
 
