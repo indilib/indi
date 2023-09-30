@@ -3,7 +3,7 @@
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
     Mount Command Protocol 2.14.11
 
-    Copyright (C) 2017-2020 Hans Lambermont
+    Copyright (C) 2017-2023 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -78,7 +78,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 1);
+    setVersion(1, 2); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -569,6 +569,35 @@ bool LX200_10MICRON::UnPark()
     TrackState = SCOPE_IDLE;
     SetParked(false);
     IDSetSwitch(&ParkSP, nullptr);
+    return true;
+}
+
+bool LX200_10MICRON::SetTrackEnabled(bool enabled)
+{
+    // :AL#
+    // Stops tracking.
+    // Returns: nothing
+    // :AP#
+    // Starts tracking.
+    // Returns: nothing
+    if (enabled)
+    {
+        LOG_INFO("Start tracking.");
+        if (setStandardProcedureWithoutRead(fd, "#:AP#") < 0)
+        {
+            LOG_ERROR("Start tracking command failed");
+            return false;
+        }
+    }
+    else
+    {
+        LOG_INFO("Stop tracking.");
+        if (setStandardProcedureWithoutRead(fd, "#:AL#") < 0)
+        {
+            LOG_ERROR("Stop tracking command failed");
+            return false;
+        }
+    }
     return true;
 }
 
