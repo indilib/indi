@@ -11,6 +11,10 @@
             <driver name="Shelyak Usis">shelyak_usis</driver>
             <version>1.2</version>
         </device>
+        <device label="LX200 10micron" manufacturer="10 Micron">
+            <driver name="LX200 10micron">indi_lx200_10micron</driver>
+            <version>1.2</version>
+        </device>
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>
             <version>2.1</version>
@@ -261,10 +265,6 @@
         </device>
         <device label="SkyCommander" manufacturer="DIY">
             <driver name="SkyCommander">indi_skycommander_telescope</driver>
-            <version>1.0</version>
-        </device>
-        <device label="LX200 10micron" manufacturer="10 Micron">
-            <driver name="LX200 10micron">indi_lx200_10micron</driver>
             <version>1.0</version>
         </device>
         <device label="Telescope Simulator" manufacturer="Simulator">
