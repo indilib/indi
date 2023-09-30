@@ -81,9 +81,6 @@ class LX200_OpenAstroTech : public LX200GPS
     INumber DecLimitsN[2];
     INumberVectorProperty DecLimitsNP;
 
-    INumber HeaterN[2];
-    INumberVectorProperty HeaterNP;
-
     ISwitchVectorProperty HomeSP;
     ISwitch HomeS;
 
