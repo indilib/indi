@@ -112,6 +112,7 @@ class LX200_10MICRON : public LX200Generic
         bool ReadScopeStatus() override;
         bool Park() override;
         bool UnPark() override;
+        bool SetTrackEnabled(bool enabled) override;
         bool flip();
         bool getUnattendedFlipSetting();
         bool setUnattendedFlipSetting(bool setting);
