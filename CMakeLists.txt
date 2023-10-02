@@ -96,6 +96,9 @@ OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
 OPTION(INDI_BUILD_XISF "Build XISF support" ON)
 
+# System provided or bundled libs
+OPTION(INDI_SYSTEM_HTTPLIB "Use system provided httplib" OFF)
+
 if(UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
 else()
@@ -164,6 +167,20 @@ install(FILES
     ${INCLUDE_INSTALL_DIR}/libindi
     COMPONENT Devel
 )
+
+# ##################################################################################################
+# ####################################  bundled libs  ##############################################
+# ##################################################################################################
+if(INDI_SYSTEM_HTTPLIB)
+    find_package(httplib REQUIRED)
+    include_directories(${HTTPLIB_INCLUDE_DIR})
+    set(SYSTEM_HTTPLIB 1)
+    message(STATUS "Using system provided httplib version ${HTTPLIB_VERSION}")
+else()
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib)
+    set(SYSTEM_HTTPLIB 0)
+    message(STATUS "Using bundled httplib")
+endif(INDI_SYSTEM_HTTPLIB)
 
 # ###################################################################################################
 #
@@ -381,11 +398,16 @@ endif()
 if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/inicpp.h
         ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
     )
+    if(NOT SYSTEM_HTTPLIB)
+        install(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib/httplib.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
+        )
+    endif(NOT SYSTEM_HTTPLIB)
 endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
