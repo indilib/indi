@@ -94,7 +94,11 @@ class Driver
         /**************************************************************************
          Communication
         **************************************************************************/
-        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT,
+        bool sendCommand(const char *command,
+                         int count = 1,
+                         char *response = nullptr,
+                         int minimumCount = -1,
+                         uint8_t timeout = IOP_TIMEOUT,
                          uint8_t debugLog = INDI::Logger::DBG_DEBUG);
         bool sendCommandOk(const char *command);
         bool checkConnection(int fd);
