@@ -283,12 +283,6 @@ bool SkywatcherAPIMount::initProperties()
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    //Set default values in parent class
-    IUFindNumber(&ScopeParametersNP, "TELESCOPE_APERTURE")->value = 200;
-    IUFindNumber(&ScopeParametersNP, "TELESCOPE_FOCAL_LENGTH")->value = 2000;
-    IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE")->value = 30;
-    IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH")->value = 120;
-
     return true;
 }
 

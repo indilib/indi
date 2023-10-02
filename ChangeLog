@@ -1,3 +1,35 @@
++ From 2.0.3 to 2.0.4
+
+      be521c4f3 2023-09-30 anjok                Openastrotech (#1943)                                                                                                                                 
+      0d1532c72 2023-09-29 Alain                On step work (#1942)                                                                                                                                  
+      c7659cec7 2023-09-27 anjok                focuser crash fixed+some properties added (#1940)                                                                                                     
+      d1db0a633 2023-09-27 sterne-jaeger        Bug fix making both focusers visible (#1941)                                                                                                          
+      ff8656b73 2023-09-25 Jasem Mutlaq         Add GPS Interface                                                                                                                                     
+      28c431bb2 2023-09-25 Jasem Mutlaq         Add a separate INDI::GPSInterface so that any driver may opt to provide GPS functionality without needing to be a dedicated GPS transceiver           
+      c229761fd 2023-09-24 Jasem Mutlaq         Add missing pier side                                                                                                                                 
+      15d5007a8 2023-09-21 Jasem Mutlaq         Preliminary support for Planewave (#1937)                                                                                                             
+      d6da4496d 2023-09-15 luzpaz               Fix various typos (#1935)                                                                                                                             
+      f821d7fb0 2023-09-15 Jasem Mutlaq         Fix response parse. Fixes #1932                                                                                                                       
+      88b2a0e88 2023-09-13 nouspiro             Use ZSTD compression for XISF images when available (#1934)                                                                                           
+      d3f78b427 2023-09-12 Jasem Mutlaq         Add support to report pier side. Needs testing #1932                                                                                                  
+      b640316bf 2023-09-10 Jasem Mutlaq         Remove unused property. Use FocusMaxPos instead                                                                                                       
+      ae31712e8 2023-09-06 Paweł Soja           Fix setFormat typos, add isEmpty method (#1931)                                                                                                       
+      947169b9c 2023-09-04 Jasem Mutlaq         Fix crash in simulator                                                                                                                                
+      f90db4e8c 2023-08-31 Jasem Mutlaq         Make timestamp Windows friendly                                                                                                                       
+      b94e8607c 2023-08-31 Jasem Mutlaq         Revert simulator park type                                                                                                                            
+      1dd4a9c48 2023-08-31 Jasem Mutlaq         Add PARK_SIMPLE parking type for mounts that only report status but not position                                                                      
+      10fe4190b 2023-08-30 Jasem Mutlaq         Do not update time and location while parked                                                                                                          
+      9d5113326 2023-08-29 Jasem Mutlaq         Do not query mount if mount is already parked                                                                                                         
+      a37a9a9cd 2023-08-27 Jasem Mutlaq         Add unpark which does not do anything but removes the warning                                                                                         
+      8185311fe 2023-08-24 Jasem Mutlaq         Fix typo                                                                                                                                              
+      e3ab7c39b 2023-08-22 Andreas Singraber    Fix bug in relative positioning of Lacerta MFOC (#1924)                                                                                               
+      e22f21cc3 2023-08-20 Jasem Mutlaq         Protect against empty mount as it may lead to a crash                                                                                                 
+      ce3be2ed2 2023-08-11 Ilia Platone         Update Libdsp (#1920)                                                                                                                                 
+      b0e23fc21 2023-08-06 Jasem Mutlaq         Migrate meridian behavior properties to modern INDI properties and do not update driver unless there is an actual change                              
+      eba75d68e 2023-08-03 Jim                  2.0.3_spec: update spec file to match CMake config (#1918)                                                                                            
+      0e45ab245 2023-08-02 Jasem Mutlaq         Fix another potential issue on Windows                                                                                                                
+      23afb5ae7 2023-08-01 Max Qian             Fix build bug on Windows (#1917)                                                                                                                      
+
 + From 2.0.2 to 2.0.3
 
     70a132429 2023-07-29 Jasem Mutlaq         Use HC to designate them as Hand Controller since this is how this driver operates

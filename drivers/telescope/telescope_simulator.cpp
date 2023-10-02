@@ -114,12 +114,6 @@ bool ScopeSim::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
-    // Let's simulate it to be an F/7.5 120mm telescope
-    ScopeParametersN[0].value = 120;
-    ScopeParametersN[1].value = 900;
-    ScopeParametersN[2].value = 120;
-    ScopeParametersN[3].value = 900;
-
     // RA is a rotating frame, while HA or Alt/Az is not
     SetParkDataType(PARK_HA_DEC);
 

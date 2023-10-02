@@ -86,9 +86,6 @@ void GPSInterface::checkGPSState()
         case IPS_OK:
             LocationNP.apply();
             TimeTP.apply();
-            // We got data OK, but if we are required to update once in a while, we'll call it.
-            if (PeriodNP[0].getValue() > 0)
-                m_UpdateTimer.setInterval(PeriodNP[0].getValue() * 1000);
 
             // Update system time
             // This ideally should be done only ONCE
@@ -110,7 +107,14 @@ void GPSInterface::checkGPSState()
                     break;
             }
 
-            m_UpdateTimer.start();
+            if (PeriodNP[0].getValue() > 0)
+            {
+                // We got data OK, but if we are required to update once in a while, we'll call it.
+                m_UpdateTimer.setInterval(PeriodNP[0].getValue() * 1000);
+                m_UpdateTimer.start();
+            }
+            else
+                m_UpdateTimer.stop();
             return;
             break;
 
