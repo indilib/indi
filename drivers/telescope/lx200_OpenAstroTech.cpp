@@ -96,11 +96,6 @@ bool LX200_OpenAstroTech::initProperties()
     IUFillNumber(&DecLimitsN[1], "OAT_DEC_LIMIT_UPPER", "Upper", "%.f", 0.0, 180.0, 120.0, 0);
     IUFillNumberVector(&DecLimitsNP, DecLimitsN, 2, m_defaultDevice->getDeviceName(), "OAT_DEC_LIMITS",
                        "DEC Limits", MOTION_TAB, IP_RW, 60, IPS_OK);
-    // Heaters
-    IUFillNumber(&HeaterN[0], "OAT_HEATER_0", "Lower", "%d", 0.0, 10.0, 0, 0);
-    IUFillNumber(&HeaterN[1], "OAT_HEATER_1", "Lower", "%d", 0.0, 10.0, 0, 0);
-    IUFillNumberVector(&HeaterNP, HeaterN, 2, m_defaultDevice->getDeviceName(), "OAT_HEATERS",
-                       "Heaters", MOTION_TAB, IP_RW, 60, IPS_OK);
     // SetParkDataType(PARK_RA_DEC);
     return true;
 }
@@ -215,10 +210,12 @@ bool LX200_OpenAstroTech::ISNewText(const char *dev, const char *name, char *tex
                     MeadeCommandResult[0] = 0;
                     int err = 0;
                     if(cmd[0] == ':' && cmd[len-1] == '#') {
-                        err = executeMeadeCommand(texts[0], MeadeCommandResult);
+                        err = executeMeadeCommand(cmd, MeadeCommandResult);
                     } else if(cmd[0] == '@' && cmd[len-1] == '#') {
-                        err = executeMeadeCommandBlind(texts[0]);
+                        cmd[0] = ':';
+                        err = executeMeadeCommandBlind(cmd);
                     } else if(cmd[0] == '&' && cmd[len-1] == '#') {
+                        cmd[0] = ':';
                         int val = getCommandChar(PortFD, cmd);
                         if(val != -1) {
                             sprintf(MeadeCommandResult, "%c", val);
