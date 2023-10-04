@@ -311,9 +311,10 @@ int CCDSim::SetTemperature(double temperature)
         return 1;
     }
 
-    CoolerS[0].s = ISS_ON;
-    CoolerS[1].s = ISS_OFF;
-    CoolerSP.s   = IPS_BUSY;
+    auto isCooling = TemperatureRequest < temperature;
+    CoolerS[0].s = isCooling ? ISS_ON : ISS_OFF;
+    CoolerS[1].s = isCooling ? ISS_OFF : ISS_ON;
+    CoolerSP.s   = isCooling ? IPS_BUSY : IPS_IDLE;
     IDSetSwitch(&CoolerSP, nullptr);
     return 0;
 }
