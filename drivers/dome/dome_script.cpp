@@ -60,7 +60,6 @@ const char *DomeScript::getDefaultName()
 bool DomeScript::initProperties()
 {
     INDI::Dome::initProperties();
-    SetParkDataType(PARK_AZ);
 #if defined(__APPLE__)
     ScriptsTP[SCRIPT_FOLDER].fill("SCRIPT_FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
@@ -88,9 +87,15 @@ bool DomeScript::initProperties()
     TypeSP.load();
 
     if (TypeSP[Dome].getState() == ISS_ON)
+    {
+        SetParkDataType(PARK_AZ);
         SetDomeCapability(DOME_CAN_PARK | DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_HAS_SHUTTER);
+    }
     else
+    {
+        SetParkDataType(PARK_NONE);
         SetDomeCapability(DOME_CAN_PARK | DOME_CAN_ABORT);
+    }
 
     setDefaultPollingPeriod(2000);
     return true;
