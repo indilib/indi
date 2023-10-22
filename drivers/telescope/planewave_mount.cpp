@@ -22,7 +22,7 @@
 #include "planewave_mount.h"
 
 #include "indicom.h"
-#include "httplib.h"
+#include <httplib.h>
 #include "connectionplugins/connectiontcp.h"
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>

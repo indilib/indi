@@ -56,7 +56,6 @@ sudo apt-get install -y \
   libusb-dev \
   zlib1g-dev \
   libftdi-dev \
-  libgsl0-dev \
   libjpeg-dev \
   libkrb5-dev \
   libnova-dev \

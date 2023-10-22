@@ -41,6 +41,10 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <sys/select.h>
+#endif
+
 #include "eventloop.h"
 
 /* info about one registered callback.
