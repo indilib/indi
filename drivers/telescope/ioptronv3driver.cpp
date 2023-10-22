@@ -65,6 +65,10 @@ const std::map<std::string, std::string> Driver::models =
     {"0063", "HAZ69-EC EQ"},
     {"0064", "HAE69 AA"},
     {"0065", "HAE69-EC AA"},
+    {"0066", "HAE69C EQ"},
+    {"0067", "HAE69C-EC EQ"},
+    {"0068", "HAE69C AA"},
+    {"0069", "HAE69C-EC AA"},
     {"0070", "CEM70"},
     {"0071", "CEM70-EC"},
     {"0072", "CEM70-EC2"},
@@ -90,7 +94,12 @@ bool Driver::sendCommandOk(const char *command)
     return false;
 }
 
-bool Driver::sendCommand(const char *command, int count, char *response, uint8_t timeout, uint8_t debugLog)
+bool Driver::sendCommand(const char *command,
+                         int count,
+                         char *response,
+                         int minimumCount,
+                         uint8_t timeout,
+                         uint8_t debugLog)
 {
     int errCode = 0;
     int nbytes_read    = 0;
@@ -123,7 +132,7 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
         else
             errCode = tty_read(PortFD, res, count, timeout, &nbytes_read);
 
-        if (errCode == TTY_OK)
+        if (errCode == TTY_OK && (minimumCount < 0 || minimumCount <= count))
             break;
     }
 
@@ -163,7 +172,7 @@ bool Driver::checkConnection(int fd)
 
     for (int i = 0; i < 2; i++)
     {
-        if (sendCommand(":MountInfo#", 4, res, 3) == false)
+        if (sendCommand(":MountInfo#", 4, res, -1, 3) == false)
         {
             usleep(50000);
             continue;
@@ -268,7 +277,7 @@ bool Driver::getStatus(IOPInfo *info)
                  iopLongitude, iopLatitude, simData.simInfo.gpsStatus, simData.simInfo.systemStatus, simData.simInfo.trackRate,
                  simData.simInfo.slewRate, simData.simInfo.timeSource, simData.simInfo.hemisphere);
     }
-    else if (sendCommand(":GLS#", -1, res) == false)
+    else if (sendCommand(":GLS#", -1, res, 23) == false)
         return false;
 
 
@@ -730,7 +739,7 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
                  static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
                  static_cast<uint32_t>(simData.ra * 15 * 60 * 60 * 100), simData.pier_state, simData.cw_state);
     }
-    else if (sendCommand(":GEP#", -1, res, IOP_TIMEOUT, INDI::Logger::DBG_EXTRA_1) == false)
+    else if (sendCommand(":GEP#", -1, res, 20, IOP_TIMEOUT, INDI::Logger::DBG_EXTRA_1) == false)
         return false;
 
     if (strlen(res) != 20)
@@ -771,7 +780,7 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
                  abs(simData.utc_offset_minutes),
                  (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD - J2000) * 8.64e+7));
     }
-    else if (sendCommand(":GUT#", -1, res) == false)
+    else if (sendCommand(":GUT#", -1, res, 18) == false)
         return false;
 
     if (strlen(res) != 18)

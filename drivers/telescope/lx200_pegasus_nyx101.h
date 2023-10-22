@@ -43,6 +43,7 @@ protected:
     virtual bool setUTCOffset(double offset) override;
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool SetTrackEnabled(bool enabled) override;
+    virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetSlewRate(int index) override;
 
 private:
@@ -51,6 +52,14 @@ private:
      static const char DRIVER_STOP_CHAR { 0x23 };
      static constexpr const uint8_t DRIVER_TIMEOUT {3};
 
+    enum NYXTelescopeTrackMode
+    {
+        TRACK_SIDEREAL,
+        TRACK_SOLAR,
+        TRACK_LUNAR,
+        TRACK_KING
+    };
+    
     INDI::PropertySwitch MountTypeSP {2};
     enum MountType
     {
@@ -67,9 +76,6 @@ private:
     INDI::PropertyText IsParked {1};
     INDI::PropertyText IsParkginInProgress {1};
     INDI::PropertyText IsAtHomePosition {1};
-    INDI::PropertyText TrackSidereal {1};
-    INDI::PropertyText TrackLunar {1};
-    INDI::PropertyText TrackSolar {1};
     INDI::PropertyText MountAltAz {1};
     INDI::PropertyText MountEquatorial {1};
     INDI::PropertyText PierNone {1};

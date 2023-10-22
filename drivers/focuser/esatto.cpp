@@ -304,8 +304,10 @@ void Esatto::TimerHit()
 
     auto lastPos = FocusAbsPosN[0].value;
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0)) {
-        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false) {
+    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0))
+    {
+        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+        {
             // To prevent reporting a bit too old position as the final one
             updatePosition();
 
@@ -319,9 +321,13 @@ void Esatto::TimerHit()
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        auto lastValue = TemperatureNP[0].value;
+        auto externalTemperature = TemperatureNP[TEMPERATURE_EXTERNAL].value;
+        auto motorTemperature = TemperatureNP[TEMPERATURE_MOTOR].value;
         rc = updateTemperature();
-        if (rc && std::abs(lastValue - TemperatureNP[0].value) >= 0.1)
+
+        // Only update temperature if there is a change of 0.1 or more
+        if (rc && (std::abs(externalTemperature - TemperatureNP[TEMPERATURE_EXTERNAL].value) >= 0.1 ||
+                   std::abs(motorTemperature - TemperatureNP[TEMPERATURE_MOTOR].value) >= 0.1 ))
             TemperatureNP.apply();
 
         auto current12V = VoltageNP[VOLTAGE_12V].getValue();

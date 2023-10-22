@@ -73,6 +73,9 @@ bool LX200NYX101::initProperties()
     if (mountType == Equatorial)
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
+    // Overwrite TRACK_CUSTOM, with TRACK_KING
+    IUFillSwitch(&TrackModeS[TRACK_KING], "TRACK_KING", "King", ISS_OFF);
+
     // Guide Rate
     int guideRate = 1;
     IUGetConfigOnSwitchIndex(getDeviceName(), "GUIDE_RATE", &guideRate);
@@ -111,15 +114,6 @@ bool LX200NYX101::initProperties()
 
     IsAtHomePosition[0].fill("IsAtHomePosition","H","-");
     IsAtHomePosition.fill(getDeviceName(),"IsAtHomePosition","IsAtHomePosition",STATUS_TAB, IP_RO, 60, IPS_IDLE);
-
-    TrackSidereal[0].fill("TrackSidereal","","-");
-    TrackSidereal.fill(getDeviceName(),"TrackSidereal","TrackSidereal",STATUS_TAB, IP_RO, 60, IPS_IDLE);
-
-    TrackLunar[0].fill("TrackLunar","(","-");
-    TrackLunar.fill(getDeviceName(),"TrackLunar","TrackLunar",STATUS_TAB, IP_RO, 60, IPS_IDLE);
-
-    TrackSolar[0].fill("TrackSolar","O","-");
-    TrackSolar.fill(getDeviceName(),"TrackSolar","TrackSolar",STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
     MountAltAz[0].fill("MountAltAz","A","-");
     MountAltAz.fill(getDeviceName(),"MountAltAz","MountAltAz",STATUS_TAB, IP_RO, 60, IPS_IDLE);
@@ -215,9 +209,6 @@ bool LX200NYX101::updateProperties()
         defineProperty(IsParked);
         defineProperty(IsParkginInProgress);
         defineProperty(IsAtHomePosition);
-        defineProperty(TrackSidereal);
-        defineProperty(TrackLunar);
-        defineProperty(TrackSolar);
         defineProperty(MountAltAz);
         defineProperty(MountEquatorial);
         defineProperty(PierNone);
@@ -242,9 +233,6 @@ bool LX200NYX101::updateProperties()
         deleteProperty(IsParked);
         deleteProperty(IsParkginInProgress);
         deleteProperty(IsAtHomePosition);
-        deleteProperty(TrackSidereal);
-        deleteProperty(TrackLunar);
-        deleteProperty(TrackSolar);
         deleteProperty(MountAltAz);
         deleteProperty(MountEquatorial);
         deleteProperty(PierNone);
@@ -311,7 +299,7 @@ bool LX200NYX101::ReadScopeStatus()
     //bool _IsAtHomePosition = false;
     SetPropertyText(IsAtHomePosition, IPS_BUSY);
 
-    TelescopeTrackMode _TrackingMode = TRACK_SIDEREAL;
+    NYXTelescopeTrackMode _TrackingMode = TRACK_SIDEREAL;
 
     //MountType _MountType = Equatorial;
 
@@ -376,7 +364,7 @@ bool LX200NYX101::ReadScopeStatus()
                 _TrackingMode = TRACK_SOLAR;
                 continue;
             case 'k':
-                //Not Supported by TelescopeTrackMode
+                _TrackingMode = TRACK_KING;
                 continue;
             case 'A':
                 //_MountType = AltAz;
@@ -423,26 +411,13 @@ bool LX200NYX101::ReadScopeStatus()
         }
     }
 
-    switch(_TrackingMode)
-    {
-        case INDI::Telescope::TRACK_SIDEREAL:
-            SetPropertyText(TrackSidereal, IPS_OK);
-            SetPropertyText(TrackLunar, IPS_BUSY);
-            SetPropertyText(TrackSolar, IPS_BUSY);
-            break;
-        case INDI::Telescope::TRACK_LUNAR:
-            SetPropertyText(TrackLunar, IPS_OK);
-            SetPropertyText(TrackSidereal, IPS_BUSY);
-            SetPropertyText(TrackSolar, IPS_BUSY);
-            break;
-        case INDI::Telescope::TRACK_SOLAR:
-            SetPropertyText(TrackSolar, IPS_OK);
-            SetPropertyText(TrackSidereal, IPS_BUSY);
-            SetPropertyText(TrackLunar, IPS_BUSY);
-            break;
-        case INDI::Telescope::TRACK_CUSTOM:
-            break;
-    }
+    TrackModeS[TRACK_SIDEREAL].s = ISS_OFF;
+    TrackModeS[TRACK_LUNAR].s = ISS_OFF;
+    TrackModeS[TRACK_SOLAR].s = ISS_OFF;
+    TrackModeS[TRACK_KING].s = ISS_OFF;
+    TrackModeS[_TrackingMode].s = ISS_ON;
+    TrackModeSP.s   = IPS_OK;
+    IDSetSwitch(&TrackModeSP, nullptr);
 
     switch(_PierSide)
     {
@@ -594,9 +569,6 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
                 SetPropertyText(IsParked, IPS_IDLE);
                 SetPropertyText(IsParkginInProgress, IPS_IDLE);
                 SetPropertyText(IsAtHomePosition, IPS_IDLE);
-                SetPropertyText(TrackSidereal, IPS_IDLE);
-                SetPropertyText(TrackLunar, IPS_IDLE);
-                SetPropertyText(TrackSolar, IPS_IDLE);
                 SetPropertyText(MountAltAz, IPS_IDLE);
                 SetPropertyText(MountEquatorial, IPS_IDLE);
                 SetPropertyText(PierNone, IPS_IDLE);
@@ -670,6 +642,25 @@ bool LX200NYX101::setGuideRate(int rate)
     char command[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, ":R%d#", rate);
     return sendCommand(command);
+}
+
+bool LX200NYX101::SetTrackMode(uint8_t mode)
+{
+    switch(mode){
+    case TRACK_SIDEREAL:
+        return sendCommand(":TQ#");
+        break;
+    case TRACK_SOLAR:
+        return sendCommand(":TS#");
+        break;
+    case TRACK_LUNAR:
+        return sendCommand(":TL#");
+        break;
+    case TRACK_KING:
+        return sendCommand(":TK#");
+        break;
+    }
+    return false;
 }
 
 bool LX200NYX101::setMountType(int type)

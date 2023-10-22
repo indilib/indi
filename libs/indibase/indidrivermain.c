@@ -47,6 +47,10 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <sys/select.h>
+#endif
+
 #define MAXRBUF 2048
 
 static void usage(void);

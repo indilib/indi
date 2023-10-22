@@ -31,7 +31,7 @@ extern "C" {
 #endif
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) || defined(_WIN32) || defined(__CYGWIN__)
 #include <endian.h>
 #else
 #define __bswap_16(a) __builtin_bswap16(a)
@@ -48,6 +48,9 @@ extern "C" {
 #include <assert.h>
 #include <pthread.h>
 #include <time.h>
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
 
 /**
  * \defgroup DSP Digital Signal Processing API

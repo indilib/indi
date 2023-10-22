@@ -1,0 +1,74 @@
+Build and install INDI on Windows/Cygwin platform
+=================================================
+
+Install Cygwin and the required packages
+------------------------------------
+Download Cygwin setup executable from [cygwin.com](https://cygwin.com/setup-x86_64.exe). It provides a GUI wizard to support the installation but probably it is faster to install it via the command line to a predefined location and a preselected list of required packages:
+
+> setup-x86_64.exe -q -v -R "C:\cygwin" -O -s "https://cygwin.mirror.constant.com/" -l "%Temp%\CygwinPackages" -P aalib-devel -P autoconf -P automake -P cmake -P curl -P gcc-g++ -P gettext -P gettext-devel -P git -P help2man -P libboost-devel -P libcfitsio-devel -P libcurl-devel -P libev-devel -P libexif-devel -P libffi-devel -P libfftw3-devel -P libftdi1-devel -P libgd-devel -P libgsl-devel -P libiconv -P libiconv-devel -P libintl-devel -P libjpeg-devel -P libkrb5-devel -P liblapack-devel -P libpng-devel -P libpng16-devel -P libpopt-devel -P libraw-devel -P libtheora-devel -P libtiff-devel -P libtool -P libusb-devel -P libusb0 -P libusb-win32 -P libxml2-devel -P m4 -P make -P mc -P procps-ng -P texi2html -P texinfo -P wget -P zlib-devel
+
+The above command line installs the Cygwin environment and required packages silently to the _C:\cygwin_ folder while downloading packages from the preselected mirror _https://cygwin.mirror.constant.com/_ to the current user's _TEMP_ folder.
+
+Note:
+The latest versions of Cygwin installers support only 64-bit versions of Windows 7 and newer!
+
+Once Cygwin is installed, a shortcut icon to _Cygwin Terminal_ is created on the user's Desktop. It is recommended to run Cygwin Terminal with elevated privileges (by right-clicking and _Run as Administrator_).
+
+Build and install libnova
+-------------------------
+Since the [libnova](https://gitlab.com/libnova/libnova) is not prebuilt for Cygwin, but required for INDI, we have to build it manually:
+
+> git clone https://gitlab.com/libnova/libnova.git
+
+> cd ./libnova
+
+> ./autogen.sh
+
+> ./configure --prefix=/usr
+
+> make
+
+> make install
+
+Once built & installed, INDI should find its headers and library.
+
+Build and install INDI
+----------------------
+
+This is similar to what happens in Linux environments:
+
+
+> git clone https://github.com/indilib/indi.git
+
+> cd ./indi
+
+> mkdir _build && cd _build
+
+> export CXXFLAGS="-std=c++17 -I/usr/lib/gcc/x86_64-pc-cygwin/11/include/c++"
+
+> cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
+
+> make -j 4
+
+> make install
+
+Build and install indiweb manager
+----------------------------------
+Indiweb Manager is a python web application that requires the _psutil_ python package. In cygwin environment, we have to manually build this requirement package:
+
+> git clone -b cygwin/v3 https://github.com/embray/psutil.git
+
+> cd ./psutil
+
+> pip3 install -e .
+
+Once _psutil_ is installed we can easily install indiweb:
+
+> pip3 install indiweb
+
+Finally, run it:
+> indi-web -v
+
+Test using clients like KSTARS
+------------------------------
+Once INDI & indiweb manager are installed, all the simulator devices should work out-of-the-box using KSTARS/EKOS.
