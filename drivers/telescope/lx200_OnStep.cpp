@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 20);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 21);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -4616,7 +4616,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
     // Check for max number of stars and gracefully fall back to max, if more are requested.
     char read_buffer[RB_MAX_LEN] = {0};
     int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
-    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9'
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > ':'
             || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
         LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
@@ -4662,7 +4662,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
     //  :A?#  Align status
     //         Returns: mno#
     //         where m is the maximum number of alignment stars
-    //               n is the current alignment star (0 otherwise)
+    //               n is the current alignment star (0 otherwise) or ':' in case 9 stars selected
     //               o is the last required alignment star when an alignment is in progress (0 otherwise)
 
     char msg[40] = {0};
@@ -4671,7 +4671,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 
     char read_buffer[RB_MAX_LEN] = {0};
     int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, read_buffer, ":A?#");
-    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > '9'
+    if(error_or_fail != 4 || read_buffer[0] < '0' || read_buffer[0] > '9' || read_buffer[1] < '0' || read_buffer[1] > ':'
             || read_buffer[2] < '0' || read_buffer[2] > '9')
     {
         LOGF_INFO("Getting Alignment Status: response Error, response = %s>", read_buffer);
@@ -4683,7 +4683,14 @@ bool LX200_OnStep::UpdateAlignStatus ()
     snprintf(stars, sizeof(stars), "%d", max_stars);
     IUSaveText(&OSNAlignT[5], stars);
     snprintf(stars, sizeof(stars), "%d", current_star);
+    if (read_buffer[1] > '9')
+    {
+        IUSaveText(&OSNAlignT[6], ":");
+    }
+    else
+    {
     IUSaveText(&OSNAlignT[6], stars);
+    }
     snprintf(stars, sizeof(stars), "%d", align_stars);
     IUSaveText(&OSNAlignT[7], stars);
     LOGF_DEBUG("Align: max_stars: %i current star: %u, align_stars %u", max_stars, current_star, align_stars);
