@@ -25,6 +25,8 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.21
+    - fixed Onstep returning '9:9' when 9 star alignment is achieved thanks to Howard Dutton
     Version 1.20
     - fixed wrong messages due to different return with OnStepX
     - fixed Focuser Temerature not shown on Ekos
