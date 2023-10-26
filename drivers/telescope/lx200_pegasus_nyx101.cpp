@@ -75,7 +75,26 @@ bool LX200NYX101::initProperties()
 
     // Overwrite TRACK_CUSTOM, with TRACK_KING
     IUFillSwitch(&TrackModeS[TRACK_KING], "TRACK_KING", "King", ISS_OFF);
+   
+    // Elevation Limits
+    IUFillNumber(&ElevationLimitN[OVERHEAD], "ELEVATION_OVERHEAD", "Overhead", "%g", 60, 90,   1, 90);
+    IUFillNumber(&ElevationLimitN[HORIZON], "ELEVATION_HORIZON", "Horizon", "%g", -30, 0,   1, 0);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "ELEVATION_LIMIT", "Elevation Limit", MAIN_CONTROL_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
+    // Meridian
+    MeridianLimitNP[0].fill("VALUE", "Degrees (+/- 120)", "%.f", -120, 120, 1, 0);
+    MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Limit", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Flip 
+    FlipSP[0].fill("Flip", "Flip", ISS_OFF);
+    FlipSP.fill(getDeviceName(), "FLIP", "Pier Side", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Safety Limits
+    IUFillSwitch(&SafetyLimitS[SET_SAFETY_LIMIT], "SET_SAFETY_LIMIT", "Set", ISS_OFF);
+    IUFillSwitch(&SafetyLimitS[CLEAR_SAFETY_LIMIT], "CLEAR_SAFETY_LIMIT", "Clear", ISS_OFF);
+    IUFillSwitchVector(&SafetyLimitSP, SafetyLimitS, 2, getDeviceName(), "SAFETY_LIMIT",
+                       "Custom Limits", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     // Guide Rate
     int guideRate = 1;
     IUGetConfigOnSwitchIndex(getDeviceName(), "GUIDE_RATE", &guideRate);
@@ -100,6 +119,12 @@ bool LX200NYX101::initProperties()
     Report[0].fill("Report","GU","-");
     Report.fill(getDeviceName(), "Report", "Report", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
+#ifdef DEBUG_NYX    
+    IUFillText(&DebugCommandT[0], "Command", "", "");
+    IUFillTextVector(&DebugCommandTP, DebugCommandT, 1, getDeviceName(), "DebugCommand", "", MAIN_CONTROL_TAB, IP_RW, 0,
+                     IPS_IDLE);
+#endif
+    
     IsTracking[0].fill("IsTracking","n","-");
     IsTracking.fill(getDeviceName(),"IsTracking","IsTracking",STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -198,11 +223,36 @@ bool LX200NYX101::updateProperties()
             GuideRateSP.apply();
         }
 
+        if(sendCommand(":Go#", status))
+        {
+            std::string c = status;
+            ElevationLimitN[OVERHEAD].value = std::stoi(c);
+        }
+
+        if(sendCommand(":Gh#", status))
+        {
+            std::string c = status;
+            ElevationLimitN[HORIZON].value = std::stoi(c);
+        }
+
+        if(sendCommand(":GXE9#", status))
+        {
+            std::string c = status;
+            MeridianLimitNP[0].setValue(std::stoi(c));
+        }
+        
         defineProperty(MountTypeSP);
         defineProperty(GuideRateSP);
         defineProperty(HomeSP);
         defineProperty(ResetHomeSP);
         defineProperty(Report);
+        defineProperty(FlipSP);
+        defineProperty(MeridianLimitNP);
+        defineProperty(&ElevationLimitNP);
+        defineProperty(&SafetyLimitSP);
+#ifdef DEBUG_NYX
+        defineProperty(&DebugCommandTP);
+#endif
         defineProperty(VerboseReportSP);
         defineProperty(IsTracking);
         defineProperty(IsSlewCompleted);
@@ -225,8 +275,15 @@ bool LX200NYX101::updateProperties()
         deleteProperty(MountTypeSP);
         deleteProperty(GuideRateSP);
         deleteProperty(HomeSP);
+        deleteProperty(MeridianLimitNP);
+        deleteProperty(FlipSP);
+        deleteProperty(ElevationLimitNP.name);
+        deleteProperty(SafetyLimitSP.name);
         deleteProperty(ResetHomeSP);
         deleteProperty(Report);
+#ifdef DEBUG_NYX
+        deleteProperty(DebugCommandTP.name);
+#endif
         deleteProperty(VerboseReportSP);
         deleteProperty(IsTracking);
         deleteProperty(IsSlewCompleted);
@@ -487,6 +544,58 @@ bool LX200NYX101::ReadScopeStatus()
 
 bool LX200NYX101::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (MeridianLimitNP.isNameMatch(name))
+        {
+            MeridianLimitNP.update(values, names, n);
+            if (!isSimulation())
+            {
+                std::string command = ":SXE9," + std::to_string(MeridianLimitNP[0].getValue()) + "#";;
+                sendCommand(command.c_str());
+                command = ":SXEA," + std::to_string(MeridianLimitNP[0].getValue()) + "#";;
+                sendCommand(command.c_str());
+                if (MeridianLimitNP.getState() == IPS_OK)
+                {
+                    LOGF_INFO("Meridian!: ",  MeridianLimitNP[0].getValue());
+                    
+                }
+            }
+            else
+            {
+                MeridianLimitNP.setState(IPS_OK);
+            }
+            
+            MeridianLimitNP.apply();
+            return true;
+        }
+
+        if (!strcmp(name, ElevationLimitNP.name))
+        {
+            IUUpdateNumber(&ElevationLimitNP, values, names, n);
+            if (!isSimulation())
+            {
+                for(int i = 0; i<n; ++i)
+                {
+                    if (!strcmp(names[i], ElevationLimitN[OVERHEAD].name)){
+                        std::string command = ":So" + std::to_string(static_cast<int>(ElevationLimitN[OVERHEAD].value)) + "#";;
+                        sendCommand(command.c_str());
+                        IDSetNumber(&ElevationLimitNP, nullptr);
+                   } else if (!strcmp(names[i], ElevationLimitN[HORIZON].name)){
+                        std::string command = ":Sh" + std::to_string(static_cast<int>(ElevationLimitN[HORIZON].value)) + "#";;
+                        sendCommand(command.c_str());
+                        IDSetNumber(&ElevationLimitNP, nullptr);
+                    }
+                }
+                
+            }
+            return true;
+        }
+
+
+
+    }
+    
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -540,6 +649,19 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             HomeSP.apply();
             return true;
         }
+        else if(FlipSP.isNameMatch(name))
+        {
+            FlipSP.update(states, names, n);
+            IPState state = IPS_OK;
+            if (isConnected())
+            {
+                FlipSP[0].setState(ISS_OFF);
+                sendCommand(":MN#");
+            }
+            FlipSP.setState(state);
+            FlipSP.apply();
+            return true;
+        }
         else if(ResetHomeSP.isNameMatch(name))
         {
             ResetHomeSP.update(states, names, n);
@@ -552,6 +674,33 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             ResetHomeSP.setState(state);
             ResetHomeSP.apply();
             return true;
+        }
+        else if(!strcmp(name, SafetyLimitSP.name))
+        {
+            IUUpdateSwitch(&SafetyLimitSP, states, names, n);
+            for(int i = 0; i<n; ++i)
+            {
+                if (!strcmp(names[i], SafetyLimitS[SET_SAFETY_LIMIT].name))
+                {
+                    if (SafetyLimitS[SET_SAFETY_LIMIT].s == ISS_ON)
+                    {
+                        sendCommand(":Sc1#");
+                        sendCommand(":Sc#");
+                        IDSetSwitch(&SafetyLimitSP, nullptr);
+                        return true;
+                    }
+                }
+                if (!strcmp(names[i], SafetyLimitS[CLEAR_SAFETY_LIMIT].name))
+                {
+                    if (SafetyLimitS[CLEAR_SAFETY_LIMIT].s == ISS_ON)
+                    {
+                        sendCommand(":Sc0#");
+                        sendCommand(":Sc#");
+                        IDSetSwitch(&SafetyLimitSP, nullptr);
+                        return true;
+                    }
+                }
+            }
         }
         else if(VerboseReportSP.isNameMatch(name))
         {
@@ -590,6 +739,28 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
+
+#ifdef DEBUG_NYX
+bool LX200NYX101::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // Mount Type
+        if (!strcmp(name, DebugCommandTP.name))
+        {
+            char status[DRIVER_LEN] = {0};
+            IUUpdateText(&DebugCommandTP, texts, names, n);
+            DebugCommandTP.s = IPS_OK;
+            IUSaveText(&DebugCommandT[0], texts[0]);
+            IDSetText(&DebugCommandTP, nullptr);
+            sendCommand(texts[0], status);
+            return true;
+        }
+    }
+    return LX200Generic::ISNewText(dev, name, texts, names, n);
+    
+}
+#endif
 
 bool LX200NYX101::SetSlewRate(int index)
 {

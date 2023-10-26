@@ -24,6 +24,8 @@
 #pragma once
 
 #include "lx200generic.h"
+//#define DEBUG_NYX
+
 
 class LX200NYX101 : public LX200Generic
 {
@@ -33,7 +35,13 @@ public:
     virtual bool initProperties() override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+#ifdef DEBUG_NYX
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
+    ITextVectorProperty DebugCommandTP;
+    IText DebugCommandT[1] {};
+#endif
+    
 protected:
     virtual bool ReadScopeStatus() override;
     virtual const char *getDefaultName() override;
@@ -52,6 +60,12 @@ private:
      static const char DRIVER_STOP_CHAR { 0x23 };
      static constexpr const uint8_t DRIVER_TIMEOUT {3};
 
+    enum SafetyLimits
+    {
+        SET_SAFETY_LIMIT,
+        CLEAR_SAFETY_LIMIT
+    };
+
     enum NYXTelescopeTrackMode
     {
         TRACK_SIDEREAL,
@@ -66,6 +80,13 @@ private:
         AltAz,
         Equatorial
     };
+
+    enum ElevationNumber
+    {
+        OVERHEAD,
+        HORIZON
+    };
+
     INDI::PropertySwitch GuideRateSP {3};
     INDI::PropertySwitch HomeSP {1};
     INDI::PropertySwitch ResetHomeSP {1};
@@ -86,6 +107,16 @@ private:
     INDI::PropertyText IsHomePaused {1};
     INDI::PropertyText ParkFailed {1};
     INDI::PropertyText SlewingHome {1};
+    INDI::PropertySwitch FlipSP {1};
+
+    // Elevation Limits
+    INumber ElevationLimitN[2];
+    INumberVectorProperty ElevationLimitNP;
+
+    INDI::PropertyNumber MeridianLimitNP {1};
+
+    ISwitch SafetyLimitS[2];
+    ISwitchVectorProperty SafetyLimitSP;
 
 
      bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
