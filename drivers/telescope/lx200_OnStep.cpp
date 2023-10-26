@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 21);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 22);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -1869,6 +1869,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, OSNAlignPolarRealignSP.name))
         {
             char cmd[CMD_MAX_LEN] = {0};
+            char response[RB_MAX_LEN];
             if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
                 return false;
 
@@ -1886,24 +1887,38 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 UpdateAlignStatus();
                 return true;
             }
-            if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+            if (OSNAlignPolarRealignS[1].s == ISS_ON)
             {
                 OSNAlignPolarRealignS[1].s = ISS_OFF;
                 // int returncode=sendOnStepCommand("
                 snprintf(cmd, 5, ":MP#");
-                sendOnStepCommandBlind(cmd);
-                if (!sendOnStepCommandBlind(":MP#"))
-                {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+                //  Returns:
+                //  0=goto is possible
+                //  1=below the horizon limit
+                //  2=above overhead limit
+                //  3=controller in standby
+                //  4=mount is parked
+                //  5=goto in progress
+                //  6=outside limits
+                //  7=hardware fault
+                //  8=already in motion
+                //  9=unspecified error
+                
+                int res = getCommandSingleCharResponse(PortFD, response, cmd); //0 = 0 Success 1..9 failure, no # on reply
+                if(res > 0 && response[0]=='0')
+                    {
+                    LOG_INFO("Command for Refine Polar Alignment Successfull");
                     UpdateAlignStatus();
                     OSNAlignPolarRealignSP.s = IPS_OK;
+                    IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
                     return true;
-                }
+                    }
                 else
-                {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+                {   
+                    LOGF_ERROR("Command for Refine Polar Alignment Failed, error=%s", response);
                     UpdateAlignStatus();
                     OSNAlignPolarRealignSP.s = IPS_ALERT;
+                    IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
                     return false;
                 }
             }
@@ -4791,21 +4806,30 @@ IPState LX200_OnStep::AlignWrite()
 {
     //See here https://groups.io/g/onstep/message/3624
     char cmd[CMD_MAX_LEN] = {0};
+    char response[RB_MAX_LEN];
+    
     LOG_INFO("Sending Command to Finish Alignment and write");
     strncpy(cmd, ":AW#", sizeof(cmd));
-    IUSaveText(&OSNAlignT[0], "Align FINISHED");
-    IUSaveText(&OSNAlignT[1], "------");
-    IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
-    IUSaveText(&OSNAlignT[3], "------");
-    IDSetText(&OSNAlignTP, nullptr);
-    if (sendOnStepCommandBlind(cmd))
-    {
-        return IPS_OK;
-    }
-    IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
-    IDSetText(&OSNAlignTP, nullptr);
-    return IPS_ALERT;
-
+    int res = getCommandSingleCharResponse(PortFD, response, cmd); //1 success , no # on reply
+    if(res > 0 && response[0]=='1')
+        {
+            LOG_INFO("Align Write Successfull");
+            UpdateAlignStatus();
+            IUSaveText(&OSNAlignT[0], "Align FINISHED");
+            IUSaveText(&OSNAlignT[1], "------");
+            IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
+            IUSaveText(&OSNAlignT[3], "------");
+            IDSetText(&OSNAlignTP, nullptr);
+            return IPS_OK;
+        }
+        else
+        {   
+            LOGF_ERROR("Align Write Failed: error=%s", response);
+            UpdateAlignStatus();
+            IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
+            IDSetText(&OSNAlignTP, nullptr);
+            return IPS_ALERT;
+        }
 }
 
 #ifdef ONSTEP_NOTDONE

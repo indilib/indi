@@ -25,6 +25,8 @@
     ===========================================
 
     Version not yet updated/No INDI release:
+    Version 1.22
+    - fixed #:AW#" and ":MP#" commands by using getCommandSingleCharResponse instead of sendOnStepCommandBlind
     Version 1.21
     - fixed Onstep returning '9:9' when 9 star alignment is achieved thanks to Howard Dutton
     Version 1.20
