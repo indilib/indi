@@ -50,7 +50,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 21);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 22);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
@@ -331,13 +331,12 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignStarsS[6], "7", "7 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[7], "8", "8 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[8], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only",
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Select # of stars",
                        ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
-    IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only",
+    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 9 stars",
                        ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
@@ -356,7 +355,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
     IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
     IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
-    IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "Align Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt", "Available once Aligned");
     IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az", "Available once Aligned");
@@ -366,7 +365,7 @@ bool LX200_OnStep::initProperties()
     //     IUFillText(&OSNAlignErrT[5], "5", "Max Stars", "Not Updated");
     //     IUFillText(&OSNAlignErrT[6], "6", "Current Star", "Not Updated");
     //     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars", "Not Updated");
-    IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "Align OnStep results", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
     
     // =============== INFO_TAB
 
@@ -1869,6 +1868,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, OSNAlignPolarRealignSP.name))
         {
             char cmd[CMD_MAX_LEN] = {0};
+            char response[RB_MAX_LEN];
             if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
                 return false;
 
@@ -1886,24 +1886,38 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 UpdateAlignStatus();
                 return true;
             }
-            if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+            if (OSNAlignPolarRealignS[1].s == ISS_ON)
             {
                 OSNAlignPolarRealignS[1].s = ISS_OFF;
                 // int returncode=sendOnStepCommand("
                 snprintf(cmd, 5, ":MP#");
-                sendOnStepCommandBlind(cmd);
-                if (!sendOnStepCommandBlind(":MP#"))
-                {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+                //  Returns:
+                //  0=goto is possible
+                //  1=below the horizon limit
+                //  2=above overhead limit
+                //  3=controller in standby
+                //  4=mount is parked
+                //  5=goto in progress
+                //  6=outside limits
+                //  7=hardware fault
+                //  8=already in motion
+                //  9=unspecified error
+                
+                int res = getCommandSingleCharResponse(PortFD, response, cmd); //0 = 0 Success 1..9 failure, no # on reply
+                if(res > 0 && response[0]=='0')
+                    {
+                    LOG_INFO("Command for Refine Polar Alignment Successfull");
                     UpdateAlignStatus();
                     OSNAlignPolarRealignSP.s = IPS_OK;
+                    IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
                     return true;
-                }
+                    }
                 else
-                {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+                {   
+                    LOGF_ERROR("Command for Refine Polar Alignment Failed, error=%s", response[0]);
                     UpdateAlignStatus();
                     OSNAlignPolarRealignSP.s = IPS_ALERT;
+                    IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
                     return false;
                 }
             }
@@ -4606,7 +4620,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
 {
     //See here https://groups.io/g/onstep/message/3624
     char cmd[CMD_MAX_LEN] = {0};
-
+    
     LOG_INFO("Sending Command to Start Alignment");
     IUSaveText(&OSNAlignT[0], "Align STARTED");
     IUSaveText(&OSNAlignT[1], "GOTO a star, center it");
@@ -4697,13 +4711,13 @@ bool LX200_OnStep::UpdateAlignStatus ()
 
     if (current_star <= align_stars)
     {
-        snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
+        snprintf(msg, sizeof(msg), "%s Alignment: Star %d/%d", read_buffer, current_star, align_stars );
         IUSaveText(&OSNAlignT[4], msg);
     }
     if (current_star > align_stars && max_stars > 1)
     {
         LOGF_DEBUG("Align: current star: %u, align_stars %u", int(current_star), int(align_stars));
-        snprintf(msg, sizeof(msg), "Manual Align: Completed");
+        snprintf(msg, sizeof(msg), "Align: Completed");
         AlignDone();
         IUSaveText(&OSNAlignT[4], msg);
         UpdateAlignErr();
@@ -4714,7 +4728,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 
 bool LX200_OnStep::UpdateAlignErr()
 {
-    //  :GXnn#   Get OnStep value
+    //  :GX0n#   Get OnStep value
     //         Returns: value
 
     // 00 ax1Cor
@@ -4752,7 +4766,7 @@ bool LX200_OnStep::UpdateAlignErr()
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
         return false;
     }
-    error_or_fail = getCommandDoubleResponse(PortFD, &azmCor, read_buffer, ":GX02#");
+    error_or_fail = getCommandDoubleResponse(PortFD, &azmCor, read_buffer, ":GX03#");
     if (error_or_fail < 2)
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
@@ -4791,21 +4805,30 @@ IPState LX200_OnStep::AlignWrite()
 {
     //See here https://groups.io/g/onstep/message/3624
     char cmd[CMD_MAX_LEN] = {0};
+    char response[RB_MAX_LEN];
+    
     LOG_INFO("Sending Command to Finish Alignment and write");
     strncpy(cmd, ":AW#", sizeof(cmd));
-    IUSaveText(&OSNAlignT[0], "Align FINISHED");
-    IUSaveText(&OSNAlignT[1], "------");
-    IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
-    IUSaveText(&OSNAlignT[3], "------");
-    IDSetText(&OSNAlignTP, nullptr);
-    if (sendOnStepCommandBlind(cmd))
-    {
-        return IPS_OK;
-    }
-    IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
-    IDSetText(&OSNAlignTP, nullptr);
-    return IPS_ALERT;
-
+    int res = getCommandSingleCharResponse(PortFD, response, cmd); //1 success , no # on reply
+    if(res > 0 && response[0]=='1')
+        {
+            LOG_INFO("Align Write Successfull");
+            UpdateAlignStatus();
+            IUSaveText(&OSNAlignT[0], "Align FINISHED");
+            IUSaveText(&OSNAlignT[1], "------");
+            IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
+            IUSaveText(&OSNAlignT[3], "------");
+            IDSetText(&OSNAlignTP, nullptr);
+            return IPS_OK;
+        }
+        else
+        {   
+            LOGF_ERROR("Align Write Failed: error=%s", response);
+            UpdateAlignStatus();
+            IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
+            IDSetText(&OSNAlignTP, nullptr);
+            return IPS_ALERT;
+        }
 }
 
 #ifdef ONSTEP_NOTDONE
@@ -5414,8 +5437,7 @@ void LX200_OnStep::PrintTrackState()
     return;
 }
 
-bool LX200_OnStep::setUTCOffset(double
-                                offset)  //azwing fix after change in lx200driver.cpp and fix to have UTC hh:00, hh:30, hh:45
+bool LX200_OnStep::setUTCOffset(double offset)
 {
     bool result = true;
     char temp_string[RB_MAX_LEN];
