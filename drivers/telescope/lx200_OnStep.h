@@ -421,7 +421,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         ISwitchVectorProperty OSNAlignStarsSP;
         ISwitch OSNAlignStarsS[9];
         ISwitchVectorProperty OSNAlignSP;
-        ISwitch OSNAlignS[4];
+        ISwitch OSNAlignS[2];
         ISwitchVectorProperty OSNAlignWriteSP;
         ISwitch OSNAlignWriteS[1];
         ISwitchVectorProperty OSNAlignPolarRealignSP;
