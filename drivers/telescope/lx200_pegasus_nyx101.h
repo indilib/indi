@@ -38,8 +38,7 @@ public:
 #ifdef DEBUG_NYX
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    ITextVectorProperty DebugCommandTP;
-    IText DebugCommandT[1] {};
+    INDI::PropertyText DebugCommandTP {1};
 #endif
     
 protected:
@@ -59,6 +58,12 @@ private:
      static constexpr const uint8_t DRIVER_LEN {64};
      static const char DRIVER_STOP_CHAR { 0x23 };
      static constexpr const uint8_t DRIVER_TIMEOUT {3};
+
+    enum RefractionState
+    {
+        REFRACT_ON,
+        REFRACT_OFF
+    };
 
     enum SafetyLimits
     {
@@ -108,16 +113,12 @@ private:
     INDI::PropertyText ParkFailed {1};
     INDI::PropertyText SlewingHome {1};
     INDI::PropertySwitch FlipSP {1};
-
-    // Elevation Limits
-    INumber ElevationLimitN[2];
-    INumberVectorProperty ElevationLimitNP;
-
+    INDI::PropertySwitch RebootSP {1};
+    INDI::PropertySwitch RefractSP {2};
+    INDI::PropertyNumber ElevationLimitNP {2};
     INDI::PropertyNumber MeridianLimitNP {1};
-
-    ISwitch SafetyLimitS[2];
-    ISwitchVectorProperty SafetyLimitSP;
-
+    INDI::PropertySwitch SafetyLimitSP {2};
+ 
 
      bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
      void hexDump(char * buf, const char * data, int size);
