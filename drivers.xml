@@ -667,7 +667,7 @@
         </device>
         <device label="SnapCap" manufacturer="GTD">
             <driver name="SnapCap">indi_snapcap</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
