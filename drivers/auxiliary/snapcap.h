@@ -42,7 +42,7 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 {
     public:
         SnapCap();
-        virtual ~SnapCap() = default;
+        virtual ~SnapCap();
 
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
