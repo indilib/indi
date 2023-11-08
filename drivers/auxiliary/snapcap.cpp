@@ -591,7 +591,7 @@ bool SnapCap::getFirmwareVersion()
         return false;
 
     char versionString[4] = { 0 };
-    snprintf(versionString, 3, "%s", response + 4);
+    snprintf(versionString, 4, "%s", response + 2);
     FirmwareTP[0].setText(versionString);
     FirmwareTP.apply();
 
