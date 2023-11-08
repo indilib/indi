@@ -231,8 +231,8 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     }
     if (ForceSP.isNameMatch(name))
     {
-        AbortSP.update(states, names, n);
-        AbortSP.apply();
+    	ForceSP.update(states, names, n);
+    	ForceSP.apply();
         return true;
     }
 
