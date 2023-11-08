@@ -127,5 +127,5 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         Connection::TCP *tcpConnection       = nullptr;
 
     private:
-		bool callHandshake();
+        bool callHandshake();
         uint8_t dustcapConnection = CONNECTION_SERIAL | CONNECTION_TCP;};
