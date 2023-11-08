@@ -321,22 +321,24 @@ void Esatto::TimerHit()
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        auto externalTemperature = TemperatureNP[TEMPERATURE_EXTERNAL].value;
-        auto motorTemperature = TemperatureNP[TEMPERATURE_MOTOR].value;
         rc = updateTemperature();
 
         // Only update temperature if there is a change of 0.1 or more
-        if (rc && (std::abs(externalTemperature - TemperatureNP[TEMPERATURE_EXTERNAL].value) >= 0.1 ||
-                   std::abs(motorTemperature - TemperatureNP[TEMPERATURE_MOTOR].value) >= 0.1 ))
+        if (rc && (std::abs(m_LastTemperature[TEMPERATURE_EXTERNAL] - TemperatureNP[TEMPERATURE_EXTERNAL].value) >= MEASUREMENT_THRESHOLD ||
+                   std::abs(m_LastTemperature[TEMPERATURE_MOTOR] - TemperatureNP[TEMPERATURE_MOTOR].value) >= MEASUREMENT_THRESHOLD ))
+        {
+            m_LastTemperature[TEMPERATURE_EXTERNAL] = TemperatureNP[TEMPERATURE_EXTERNAL].value;
+            m_LastTemperature[TEMPERATURE_MOTOR] = TemperatureNP[TEMPERATURE_MOTOR].value;
             TemperatureNP.apply();
+        }
 
-        auto current12V = VoltageNP[VOLTAGE_12V].getValue();
-        auto currentUSB = VoltageNP[VOLTAGE_USB].getValue();
         if (updateVoltageIn())
         {
-            if (std::abs(current12V - VoltageNP[VOLTAGE_12V].getValue()) >= 0.1 ||
-                    std::abs(currentUSB - VoltageNP[VOLTAGE_USB].getValue()) >= 0.1)
+            if (std::abs(m_LastVoltage[VOLTAGE_12V] - VoltageNP[VOLTAGE_12V].getValue()) >= MEASUREMENT_THRESHOLD ||
+                    std::abs(m_LastVoltage[VOLTAGE_USB] - VoltageNP[VOLTAGE_USB].getValue()) >= MEASUREMENT_THRESHOLD)
             {
+                m_LastVoltage[VOLTAGE_12V] = VoltageNP[VOLTAGE_12V].getValue();
+                m_LastVoltage[VOLTAGE_USB] = VoltageNP[VOLTAGE_USB].getValue();
                 VoltageNP.apply();
                 if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
                     LOG_WARN("Please check 12v DC power supply is connected.");

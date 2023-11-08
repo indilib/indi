@@ -59,6 +59,8 @@ class Esatto : public INDI::Focuser
         void hexDump(char * buf, const char * data, int size);
 
         uint16_t m_TemperatureCounter { 0 };
+        double m_LastTemperature[2] = {-1, -1};
+        double m_LastVoltage[2] = {-1, -1};
 
         INDI::PropertyNumber TemperatureNP {2};
         enum
@@ -91,4 +93,5 @@ class Esatto : public INDI::Focuser
 
         std::unique_ptr<PrimalucaLabs::Esatto> m_Esatto;
         static constexpr uint8_t TEMPERATURE_FREQUENCY {10};
+        static constexpr double MEASUREMENT_THRESHOLD {0.1};
 };
