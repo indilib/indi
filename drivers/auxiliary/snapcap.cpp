@@ -28,6 +28,7 @@
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <cerrno>
 #include <cstring>
@@ -44,7 +45,13 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
 SnapCap::SnapCap() : LightBoxInterface(this, true)
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
+}
+
+SnapCap::~SnapCap(){
+
+    delete serialConnection;
+    delete tcpConnection;
 }
 
 bool SnapCap::initProperties()
@@ -82,13 +89,27 @@ bool SnapCap::initProperties()
 
     addAuxControls();
 
-    serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]()
+    if (dustcapConnection & CONNECTION_SERIAL)
     {
-        return Handshake();
-    });
-    registerConnection(serialConnection);
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(serialConnection);
+    }
+
+    if (dustcapConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(tcpConnection);
+    }
+
+
     return true;
 }
 
@@ -152,8 +173,6 @@ bool SnapCap::Handshake()
         return true;
     }
 
-    PortFD = serialConnection->getPortFD();
-
     if (!ping())
     {
         LOG_ERROR("Device ping failed.");
@@ -161,6 +180,19 @@ bool SnapCap::Handshake()
     }
 
     return true;
+}
+
+bool SnapCap::callHandshake()
+{
+    if (dustcapConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
 }
 
 bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -199,8 +231,8 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     }
     if (ForceSP.isNameMatch(name))
     {
-        AbortSP.update(states, names, n);
-        AbortSP.apply();
+    	ForceSP.update(states, names, n);
+    	ForceSP.apply();
         return true;
     }
 
@@ -642,3 +674,22 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 
     return true;
 }
+
+uint8_t SnapCap::getDustcapConnection() const
+{
+    return dustcapConnection;
+}
+
+void SnapCap::setDustcapConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        LOGF_ERROR( "Invalid connection mode %d", value);
+        return;
+    }
+
+    dustcapConnection = value;
+}
+
