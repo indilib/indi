@@ -51,6 +51,7 @@ LX200NYX101::LX200NYX101()
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_CAN_FLIP |
                            TELESCOPE_HAS_TRACK_MODE,
                                  SLEW_MODES);
 }
@@ -672,8 +673,12 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             IPState state = IPS_OK;
             if (isConnected())
             {
+                char status[1] = {0};
                 FlipSP[0].setState(ISS_OFF);
-                sendCommand(":MN#");
+                sendCommand(":MN#", status, -1, sizeof(status));
+                if(*status != '0'){
+                    state = IPS_ALERT;
+                }
             }
             FlipSP.setState(state);
             FlipSP.apply();
@@ -788,7 +793,6 @@ bool LX200NYX101::ISNewText(const char *dev, const char *name, char *texts[], ch
             {
                 if(DebugCommandTP[0].isNameMatch(names[i]))
                 {
-                    char status[DRIVER_LEN] = {0};
                     sendCommand(texts[i]);
                     i=n;
                 }
@@ -1023,6 +1027,105 @@ bool LX200NYX101::sendCommand(const char * cmd, char * res, int cmd_len, int res
     }
 
     tcflush(PortFD, TCIOFLUSH);
+
+    return true;
+}
+
+bool LX200NYX101::Flip(double ra, double dec)
+{
+    return GotoInternal(ra, dec, true);    
+}
+
+bool LX200NYX101::Goto(double ra, double dec)
+{
+    return GotoInternal(ra, dec, false);
+}
+
+int  LX200NYX101::Flip(int )
+{
+    char status[1] = {0};
+    sendCommand(":MN#", status, -1, sizeof(status));
+    return static_cast<int> (*status - '0');
+}
+
+bool LX200NYX101::GotoInternal(double ra, double dec, bool flip)
+{
+    const struct timespec timeout = {0, 100000000L};
+
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64] = {0}, DecStr[64] = {0};
+    int fracbase = 0;
+
+    switch (getLX200EquatorialFormat())
+    {
+        case LX200_EQ_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
+    }
+
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+        }
+
+        AbortSP.s = IPS_OK;
+        EqNP.s    = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, nullptr);
+
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
+        }
+
+        // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
+    }
+
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = flip ? Flip(PortFD) : Slew(PortFD)))
+        {
+            LOGF_ERROR("Error %s to JNow RA %s - DEC %s", flip ? "Flipping" : "Slewing", RAStr, DecStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    //EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("%s to RA: %s - DEC: %s", flip ? "Flipping" : "Slewing", RAStr, DecStr);
 
     return true;
 }

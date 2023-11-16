@@ -52,8 +52,12 @@ protected:
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetSlewRate(int index) override;
+    virtual bool Flip(double ra, double dec) override;
+    virtual bool Goto(double ra, double dec) override;
 
 private:
+     bool GotoInternal(double ra, double dec, bool flip);
+     int Flip(int fd);
      static constexpr const uint8_t SLEW_MODES {10};
      static constexpr const uint8_t DRIVER_LEN {64};
      static const char DRIVER_STOP_CHAR { 0x23 };
@@ -119,7 +123,6 @@ private:
     INDI::PropertyNumber MeridianLimitNP {1};
     INDI::PropertySwitch SafetyLimitSP {2};
  
-
      bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
      void hexDump(char * buf, const char * data, int size);
      std::vector<std::string> split(const std::string &input, const std::string &regex);
