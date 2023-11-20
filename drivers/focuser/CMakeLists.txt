@@ -15,6 +15,16 @@ target_link_libraries(indi_robo_focus indidriver)
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin)
 
 # ############### Robo Focuser ################
+# ############### iEAF Focuser ################
+SET(ieaffocus_SRC
+    ieaffocus.cpp)
+
+add_executable(indi_ieaf_focus ${ieaffocus_SRC})
+target_link_libraries(indi_ieaf_focus indidriver)
+install(TARGETS indi_ieaf_focus RUNTIME DESTINATION bin)
+
+
+# ############### iEAF Focuser ################
 SET(fcusb_SRC
     fcusb.cpp)
 
