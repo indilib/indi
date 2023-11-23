@@ -49,18 +49,36 @@ iEAFFocus::~iEAFFocus()
 bool iEAFFocus::initProperties()
 {
     INDI::Focuser::initProperties();
+    maxpos    = 99999;
     // SetZero
-    IUFillSwitch(&SetZeroS[0], "SETZERO", "Set Current Position to 0", ISS_OFF);
-    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+//    IUFillSwitch(&SetZeroS[0], "SETZERO", "Set Current Position to 0", ISS_OFF);
+//    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+//                       IPS_IDLE);
+      SetZeroSP[0].fill("SETZERO", "Set Current Position to 0", ISS_OFF);
+      SetZeroSP.fill(getDeviceName(),"Zero Position", "", OPTIONS_TAB, IP_RW,ISR_1OFMANY, 0,IPS_IDLE);
+
+
+
     // Maximum Travel
-    IUFillNumber(&MaxPosN[0], "MAXPOS", "Maximum Out Position", "%5.0f", 1., 99999., 0, 0);
-    IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+//    IUFillNumber(&MaxPosN[0], "MAXPOS", "Maximum Out Position", "%5.0f", 1., 99999., 0, 0);
+//    IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+
+
+    MaxPositionNP[0].fill("MAXPOSITION", "Maximum position", "%5.0f", 1., 99999., 0., 99999.);
+    MaxPositionNP.fill(getDeviceName(), "FOCUS_MAXPOSITION", "Max. Position",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
 
     /* Focuser temperature */
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%2.2f", 0, 50., 0., 50.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+//    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%2.2f", 0, 50., 0., 50.);
+//    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+//                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%2.2f", 0., 50., 0., 50.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -68,9 +86,9 @@ bool iEAFFocus::initProperties()
     FocusRelPosN[0].value = 0.;
     FocusRelPosN[0].step = 10.;
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 99999.;
-    FocusAbsPosN[0].value = 0.;
+//    FocusAbsPosN[0].min = 0.;
+//    FocusAbsPosN[0].max = 99999.;
+//    FocusAbsPosN[0].value = 0.;
     FocusAbsPosN[0].step = 10.;
 
     addDebugControl();
@@ -84,9 +102,10 @@ bool iEAFFocus::updateProperties()
     INDI::Focuser::updateProperties();
     if (isConnected())
     {
-	defineProperty(&TemperatureNP);
-        defineProperty(&MaxPosNP);
-        defineProperty(&SetZeroSP);
+	defineProperty(TemperatureNP);
+  //      defineProperty(&MaxPosNP);
+	defineProperty(MaxPositionNP);
+        defineProperty(SetZeroSP);
         GetFocusParams();
         loadConfig(true);
 
@@ -94,9 +113,10 @@ bool iEAFFocus::updateProperties()
     }
     else
     {
-   	deleteProperty(TemperatureNP.name);
-	deleteProperty(MaxPosNP.name);
-        deleteProperty(SetZeroSP.name);
+   	deleteProperty(TemperatureNP);
+	//deleteProperty(MaxPosNP.name);
+	deleteProperty(MaxPositionNP);
+        deleteProperty(SetZeroSP);
     }
 
     return true;
@@ -224,14 +244,14 @@ bool iEAFFocus::updateTemperature()
     if ( (rc = tty_write(PortFD, ":FI#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
         return false;
     
     }
     if ( (rc = tty_read_section(PortFD, resp, '#', iEAFFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
         return false;
     }
 
@@ -245,13 +265,16 @@ bool iEAFFocus::updateTemperature()
     current_ieaf_temp=ieaftemp/100.0-273.15;
     if (rc > 0)
     {
-        TemperatureN[0].value = current_ieaf_temp;
-        IDSetNumber(&TemperatureNP, NULL);
+//        TemperatureN[0].value = current_ieaf_temp;
+//        IDSetNumber(&TemperatureNP, NULL);
+
+    TemperatureNP[0].setValue(current_ieaf_temp);
+
 
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser position value (%s)", resp);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser Temperature value (%s)", resp);
         return false;
     }
 
@@ -301,8 +324,10 @@ bool iEAFFocus::updatePosition()
     {
         FocusAbsPosN[0].value = ieafpos;
         IDSetNumber(&FocusAbsPosNP, NULL);
-	TemperatureN[0].value = current_ieaf_temp;
-        IDSetNumber(&TemperatureNP, NULL);
+//	TemperatureN[0].value = current_ieaf_temp;
+//        IDSetNumber(&TemperatureNP, NULL);
+	TemperatureNP[0].setValue(current_ieaf_temp);
+
 
     }
     else
@@ -319,10 +344,13 @@ bool iEAFFocus::updatePosition()
 bool iEAFFocus::updateMaxPos()
 {
 
-	MaxPosN[0].value = 99999;
-        FocusAbsPosN[0].max = 99999;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&MaxPosNP, NULL);
+//	MaxPosN[0].value = 99999;
+//        FocusAbsPosN[0].max = 99999;
+//        IDSetNumber(&FocusAbsPosNP, NULL);
+//        IDSetNumber(&MaxPosNP, NULL);
+
+    MaxPositionNP[0].setValue(maxpos);
+    FocusAbsPosN[0].max   = maxpos;
 
 	return true;
 }
@@ -458,16 +486,19 @@ void iEAFFocus::setZero()
     return;
 }
 
-bool iEAFFocus::setMaxPos(uint32_t maxPos)
+bool iEAFFocus::setMaxPos(unsigned int maxp)
 {
-    uint32_t maxp=maxPos;
-    maxp=maxp+0;
-    updateMaxPos();
+//    uint32_t maxp=maxPos;
+//    maxp=maxp+0;
+//    updateMaxPos();
+    maxpos              = maxp;
+    FocusAbsPosN[0].max = maxpos;
     return true;
 }
 
 bool iEAFFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+/*
     if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(SetZeroSP.name, name))
@@ -482,10 +513,29 @@ bool iEAFFocus::ISNewSwitch (const char *dev, const char *name, ISState *states,
         return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
     }
     return false;
+*/
+
+ if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+	 if (SetZeroSP.isNameMatch(name))
+	    {
+	    setZero();
+            SetZeroSP.setState(IPS_OK);
+            SetZeroSP.apply();
+            return true;
+	    }
+
+    }
+
+ return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+
+
+
 }
 
 bool iEAFFocus::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
+/*
     if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp (name, MaxPosNP.name))
@@ -505,16 +555,50 @@ bool iEAFFocus::ISNewNumber (const char *dev, const char *name, double values[],
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+*/
+   if (!dev || strcmp(dev, getDeviceName()))
+        return false;
+
+    if (MaxPositionNP.isNameMatch(name))
+    {
+        MaxPositionNP.update(values, names, n);
+
+        if (!setMaxPos(MaxPositionNP[0].getValue()))
+        {
+            MaxPositionNP.setState(IPS_ALERT);
+            MaxPositionNP.apply();
+            return false;
+        }
+        MaxPositionNP.setState(IPS_OK);
+        MaxPositionNP.apply();
+        return true;
+    }
+
+    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+
+
+
 
 }
 
 void iEAFFocus::GetFocusParams ()
 {
-//    updatePosition();
-    updateTemperature();
-    updateMaxPos();
+    if (updateTemperature())
+        TemperatureNP.apply();
+
+    if (updateMaxPos())
+    {
+        MaxPositionNP.apply();
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+
+
     readReverseDirection();
-    updatePosition();
+//    updatePosition();
+
+
+    if (updatePosition())
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
 }
 

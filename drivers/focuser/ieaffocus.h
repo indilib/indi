@@ -1,5 +1,5 @@
 /*
-    IOPTRON iEAF Focuser JoeZhou 
+    IOPTRON iEAF Focuser
     Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -42,7 +42,7 @@ class iEAFFocus : public INDI::Focuser
 	virtual bool ReverseFocuser(bool enabled) override;
 
     private:
-
+	unsigned int maxpos{ 0 };   
         double targetPos, lastPos;
 
         void GetFocusParams();
@@ -58,12 +58,19 @@ class iEAFFocus : public INDI::Focuser
 	bool readReverseDirection();
 
 
-        INumber MaxPosN[1];
-        INumberVectorProperty MaxPosNP;
-        ISwitch SetZeroS[1];
-        ISwitchVectorProperty SetZeroSP;
-	INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+//      INumber MaxPosN[1];
+//      INumberVectorProperty MaxPosNP;
+//      ISwitch SetZeroS[1];
+//      ISwitchVectorProperty SetZeroSP;
+
+//	INumber TemperatureN[1];
+//      INumberVectorProperty TemperatureNP;
+
+
+	INDI::PropertyNumber TemperatureNP{1};
+	INDI::PropertyNumber MaxPositionNP{1};
+	INDI::PropertySwitch SetZeroSP{1};
+
 
 };
 
