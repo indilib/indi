@@ -74,7 +74,7 @@ bool iEAFFocus::initProperties()
 //    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
 //                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%2.2f", 0., 50., 0., 50.);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -86,9 +86,9 @@ bool iEAFFocus::initProperties()
     FocusRelPosN[0].value = 0.;
     FocusRelPosN[0].step = 10.;
 
-//    FocusAbsPosN[0].min = 0.;
-//    FocusAbsPosN[0].max = 99999.;
-//    FocusAbsPosN[0].value = 0.;
+    FocusAbsPosN[0].min = 0.;
+    FocusAbsPosN[0].max = 99999.;
+    FocusAbsPosN[0].value = 0.;
     FocusAbsPosN[0].step = 10.;
 
     addDebugControl();
