@@ -321,8 +321,6 @@
             <driver name="iEAFFocus">indi_ieaf_focus</driver>
             <version>1.0</version>
         </device>
-
-
         <device label="Shoestring Astronomy FCUSB" manufacturer="Shoestring">
             <driver name="FCUSB">indi_fcusb_focus</driver>
             <version>0.3</version>
