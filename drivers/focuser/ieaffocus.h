@@ -1,5 +1,5 @@
 /*
-    IOPTRON iEAF Focuser 2023
+    IOPTRON iEAF Focuser
     Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
