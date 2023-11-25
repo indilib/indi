@@ -64,7 +64,7 @@ inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 // C++
 #ifdef __cplusplus
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 typedef int mode_t;
 #endif
 

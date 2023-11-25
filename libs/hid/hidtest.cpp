@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     hid_device *handle;
     int i;
 
-#ifdef WIN32
+#ifdef _WIN32
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 #endif
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
             printf("waiting...\n");
         if (res < 0)
             printf("Unable to read()\n");
-#ifdef WIN32
+#ifdef _WIN32
         Sleep(500);
 #else
         usleep(500 * 1000);
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
     /* Free static HIDAPI objects. */
     hid_exit();
 
-#ifdef WIN32
+#ifdef _WIN32
     system("pause");
 #endif
 
