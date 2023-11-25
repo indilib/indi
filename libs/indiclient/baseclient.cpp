@@ -317,7 +317,7 @@ bool BaseClient::connectServer()
 
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
-#if !defined (_WIN32) && !defined (_WINDOWS)
+#if !defined (_WIN32)
     // System with unix support automatically connect over unix domain
     if (d->cServer != "localhost" || d->cServer != "127.0.0.1" || d->connectToHostAndWait("localhost:", d->cPort) == false)
 #endif
