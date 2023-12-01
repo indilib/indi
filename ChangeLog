@@ -1,3 +1,29 @@
++ From 2.0.4 to 2.0.5
+
+      4729c8b1e 2023-11-25 Jasem Mutlaq         Another attempt at fixing MINGW32. Needs to test with CYGWIN                                                                                          
+      a223fb69c 2023-11-25 Jasem Mutlaq         Fix on MINGW                                                                                                                                          
+      ddf44bde7 2023-11-25 Jasem Mutlaq         Use _WIN32 as the standard preprocessor macro for Windows builds                                                                                      
+      b24472523 2023-11-09 Orestes Sanchez      Snapcap driver with network connections (#1961)                                                                                                       
+      d045d17f3 2023-11-08 Jasem Mutlaq         Fix issue with reporting updated measurements due to creep in from cumulative threshold                                                               
+      d7c3b1b93 2023-11-02 James Amendolagine   Added several missing commands: (#1957)                                                                                                               
+      16fef45f2 2023-10-28 Jasem Mutlaq         Escape backslashes in custom FITS values. Do not add TELESCOP keyword if already exists in custom headers                                             
+      1a85d8117 2023-10-27 Alain                On step work (#1958)                                                                                                                                  
+      58ae68b81 2023-10-23 Alain                Fixed 9 Stars Align (#1956)                                                                                                                           
+      408b89251 2023-10-19 James Amendolagine   Handling tracking mode in the pegasus driver, and enable King mode. (#1954)                                                                           
+      b01e72046 2023-10-11 Sonny Cavazos        Update ioptronv3driver.cpp (#1952)                                                                                                                    
+      d670b6acf 2023-10-10 Ladislav Heller      Windows/Cygwin support (#1950)                                                                                                                        
+      63757a06e 2023-10-10 Jasem Mutlaq         Remove old package name. Fixes #1949                                                                                                                  
+      7f9f9645f 2023-10-10 Jasem Mutlaq         Fix issue with temperature update. Fixes #1951                                                                                                        
+      bff9ddf06 2023-10-04 Jasem Mutlaq         Do not turn cooler on if target temperature is higher than current                                                                                    
+      7eb84626f 2023-10-09 Jasem Mutlaq         Set park type per dome type                                                                                                                           
+      b38785840 2023-10-06 Mattia Verga         Option to use system provided httplib (#1946)                                                                                                         
+      ef37011d0 2023-10-06 Paweł Soja           Fix PyIndi build fail - revert code formatting changes (#1948)                                                                                        
+      ac22c6c11 2023-10-05 Jasem Mutlaq         Add option to toggle between dome and rolloff types                                                                                                   
+      769623ac3 2023-10-02 Jasem Mutlaq         Add one more check to ensure minimum count is met (#1903)                                                                                             
+      f5ad7924f 2023-10-02 Jasem Mutlaq         Remove all scope configuration from INDI::Telescope class as it was already moved to INDI::CCD class in prior releases and what is left in INDI::Tel..
+      6f156b476 2023-10-01 Jasem Mutlaq         Only start if period is not zero                                                                                                                      
+      f81ced61d 2023-09-30 d33psky              Fix issue 1938 (#1945)
+
 + From 2.0.3 to 2.0.4
 
       be521c4f3 2023-09-30 anjok                Openastrotech (#1943)                                                                                                                                 
