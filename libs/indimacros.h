@@ -36,7 +36,9 @@
  */
 #ifdef _MSC_VER
 # include <BaseTsd.h>
+#ifndef HAVE_SSIZE_T
 typedef SSIZE_T ssize_t;
+#endif
 #else
 # include <unistd.h>
 #endif
