@@ -39,6 +39,7 @@ const std::map<SIEFS::SI_COMMANDS, std::string> SIEFS::CommandsMap =
     {SIEFS::SI_FAST_IN, "Fast In"},
     {SIEFS::SI_FAST_OUT, "Fast Out"},
     {SIEFS::SI_HALT, "Halt"},
+    {SIEFS::SI_MOTOR_POLARITY, "Motor Polarity"},
 };
 
 const std::map<SIEFS::SI_MOTOR, std::string> SIEFS::MotorMap =
@@ -51,9 +52,13 @@ const std::map<SIEFS::SI_MOTOR, std::string> SIEFS::MotorMap =
 
 SIEFS::SIEFS()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
 
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_ABORT |
+                      FOCUSER_CAN_SYNC |
+                      FOCUSER_CAN_REVERSE);
     setSupportedConnections(CONNECTION_NONE);
 }
 
@@ -93,6 +98,10 @@ bool SIEFS::Connect()
             FocusRelPosN[0].min  = 0;
         }
 
+        bool reversed = isReversed();
+        FocusReverseS[INDI_ENABLED].s = reversed ? ISS_ON : ISS_OFF;
+        FocusReverseS[INDI_DISABLED].s = reversed ? ISS_OFF : ISS_ON;
+        FocusReverseSP.s = IPS_OK;
         SetTimer(getCurrentPollingPeriod());
     }
 
@@ -538,4 +547,94 @@ bool SIEFS::SetFocuserMaxPosition(uint32_t ticks)
     rc = sendCommand(SI_MAX_POS);
 
     return rc;
+}
+
+bool SIEFS::ReverseFocuser(bool enabled)
+{
+    return setReversed(enabled);
+}
+
+bool SIEFS::setReversed(bool enabled)
+{
+    int rc = 0;
+    uint8_t command[2] = {0};
+    uint8_t response[2] = {0};
+
+    command[0] = SI_MOTOR_POLARITY;
+    command[1] = enabled ? 1 : 0;
+
+    LOGF_DEBUG("CMD <%02X> <%02X>", command[0], command[1]);
+
+    if (isSimulation())
+        rc = 1;
+    else
+        rc = hid_write(handle, command, 2);
+
+    if (rc < 0)
+    {
+        LOGF_ERROR("setReversed: Error writing to device (%s)", hid_error(handle));
+        return false;
+    }
+
+    if (isSimulation())
+    {
+        rc = 2;
+        response[0] = command[0];
+        // Normal
+        response[1] = 0;
+    }
+    else
+        rc = hid_read_timeout(handle, response, 2, SI_TIMEOUT);
+
+    if (rc < 0)
+    {
+        LOGF_ERROR("setReversed: Error reading from device (%s)", hid_error(handle));
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%02X %02X>", response[0], response[1]);
+
+    return true;
+}
+
+bool SIEFS::isReversed()
+{
+    int rc = 0;
+    uint8_t command[1] = {0};
+    uint8_t response[2] = {0};
+
+    command[0] = SI_MOTOR_POLARITY;
+
+    LOGF_DEBUG("CMD <%02X>", command[0]);
+
+    if (isSimulation())
+        rc = 1;
+    else
+        rc = hid_write(handle, command, 1);
+
+    if (rc < 0)
+    {
+        LOGF_ERROR("setReversed: Error writing to device (%s)", hid_error(handle));
+        return false;
+    }
+
+    if (isSimulation())
+    {
+        rc = 2;
+        response[0] = command[0];
+        // Normal
+        response[1] = 0;
+    }
+    else
+        rc = hid_read_timeout(handle, response, 2, SI_TIMEOUT);
+
+    if (rc < 0)
+    {
+        LOGF_ERROR("setReversed: Error reading from device (%s)", hid_error(handle));
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%02X %02X>", response[0], response[1]);
+
+    return response[1] != 0;
 }

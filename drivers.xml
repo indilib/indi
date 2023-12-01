@@ -487,7 +487,7 @@
         </device>
         <device label="Starlight EFS" manufacturer="Starlight Instruments">
             <driver name="SI EFS">indi_siefs_focus</driver>
-            <version>0.1</version>
+            <version>0.2</version>
         </device>
         <device label="Lacerta MFOC" manufacturer="Lacerta Optics">
             <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
