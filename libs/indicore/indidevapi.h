@@ -823,10 +823,6 @@ extern const char *permStr(IPerm p);
 /** @brief print the boilerplate comment introducing xml */
 extern void xmlv1();
 
-// Advertize support for shared blob on this platform
-#define INDI_SHARED_BLOB_SUPPORT
-#include "sharedblob.h"
-
 #ifdef __cplusplus
 }
 #endif

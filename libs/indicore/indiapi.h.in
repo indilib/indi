@@ -510,11 +510,6 @@ extern "C" {
 #endif
 
 // FIXME: duplicated from indidevapi.h. Can we share ?
-
-// Advertize support for shared blob on this platform
-#define INDI_SHARED_BLOB_SUPPORT
-#include "sharedblob.h"
-
 #ifdef __cplusplus
 }
 #endif
