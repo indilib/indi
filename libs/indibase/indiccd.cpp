@@ -1741,7 +1741,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             }
             CaptureFormatSP.apply();
 
-            if (m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
+            if (previousIndex >= 0 && m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
             {
                 m_ConfigCaptureFormatName = CaptureFormatSP.findOnSwitch()->getName();
                 saveConfig(true, CaptureFormatSP.getName());
