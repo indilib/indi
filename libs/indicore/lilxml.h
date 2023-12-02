@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
     It only handles elements, attributes and pcdata content. <! ... > and <? ... > are silently ignored. pcdata is collected into one string, sans leading whitespace first line. \n
 
-    The following is an example of a cannonical usage for the lilxml library. Initialize a lil xml context and read an XML file in a root element.
+    The following is an example of a canonical usage for the lilxml library. Initialize a lil xml context and read an XML file in a root element.
 
     \code
 
@@ -110,7 +110,7 @@ extern XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char errmsg[]);
 /** \brief Process an XML one char at a time.
   \param lp a pointer to a lilxml parser.
   \param c one character to process.
-  \param errmsg a buffer to store error messages if an error in parsing is encounterd.
+  \param errmsg a buffer to store error messages if an error in parsing is encountered.
   \return When the function parses a complete valid XML element, it will return a pointer to the XML element. A NULL is returned when parsing the element is still in progress, or if a parsing error occurs. Check errmsg for errors if NULL is returned.
 */
 extern XMLEle *readXMLEle(LilXML *lp, int c, char errmsg[]);
@@ -253,7 +253,7 @@ extern const char *findXMLAttValu(XMLEle *ep, const char *name);
 
 /** \brief return a surface copy of a node.
     Don't copy childs or cdata.
-    \return a new independant node
+    \return a new independent node
 */
 extern XMLEle *shallowCloneXMLEle(XMLEle * ele);
 
@@ -262,7 +262,7 @@ extern XMLEle *shallowCloneXMLEle(XMLEle * ele);
     \param ele the original tree
     \param replace function which can provide replacement. Return 1 & set replace for replacement. Optional
     \param self additional value passed to replace function
-    \return a new independant node
+    \return a new independent node
 */
 extern XMLEle * cloneXMLEle(XMLEle * ep, int (*replace)(void * self, XMLEle * source, XMLEle * * replace), void * self);
 

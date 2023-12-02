@@ -39,7 +39,7 @@ class MathPlugin
         virtual ~MathPlugin() {}
 
         // Public methods
-        /// \brief Get the approximate alognment of the mount
+        /// \brief Get the approximate alignment of the mount
         /// \return the approximate alignment
         virtual MountAlignment_t GetApproximateMountAlignment()
         {
@@ -50,7 +50,7 @@ class MathPlugin
         /// \return True if successful
         virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
-        /// \brief Set the approximate alognment of the mount
+        /// \brief Set the approximate alignment of the mount
         /// \param[in] ApproximateAlignment - the approximate alignment of the mount
         virtual void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment)
         {

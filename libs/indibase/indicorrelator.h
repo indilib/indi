@@ -93,7 +93,7 @@ class Correlator : public SensorInterface
 
         /**
          * \enum Correlation
-         * \brief Struct containing the correlation, coordinate and baseline informations.
+         * \brief Struct containing the correlation, coordinate and baseline information.
          */
         typedef struct
         {

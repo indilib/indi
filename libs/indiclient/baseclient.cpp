@@ -254,7 +254,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 
             if (err_code < 0)
             {
-                // Silenty ignore property duplication errors
+                // Silently ignore property duplication errors
                 if (err_code != INDI_PROPERTY_DUPLICATED)
                 {
                     IDLog("Dispatch command error(%d): %s\n", err_code, msg);

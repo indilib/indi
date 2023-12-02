@@ -176,7 +176,7 @@ class BaseDevicePrivate
         };
 
     public:
-        BaseDevice self {make_shared_weak(this)}; // backward compatibile (for operators as pointer)
+        BaseDevice self {make_shared_weak(this)}; // backward compatible (for operators as pointer)
         std::string deviceName;
         BaseDevice::Properties pAll;
         std::map<std::string, WatchDetails> watchPropertyMap;

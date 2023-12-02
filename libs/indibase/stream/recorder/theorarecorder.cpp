@@ -271,7 +271,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
         We make this call just to set the encoder into 2-pass mode, because
          by default enabling two-pass sets the buffer delay to the whole file
          (because there's no way to explicitly request that behavior).
-        If we waited until we were actually encoding, it would overwite our
+        If we waited until we were actually encoding, it would overwrite our
          settings.*/
         if(th_encode_ctl(td, TH_ENCCTL_2PASS_IN, nullptr, 0) < 0)
         {

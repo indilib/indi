@@ -204,7 +204,7 @@ class DefaultDevice : public ParentDevice
          * @brief deleteProperty Delete a property and unregister it. It will also be deleted from all clients.
          * @param property Property to be deleted.
          * @return True if successful, false otherwise.
-         * @note This is a convience function that internally calls deleteProperty with the property name.
+         * @note This is a convenience function that internally calls deleteProperty with the property name.
          */
         bool deleteProperty(INDI::Property &property);
 
@@ -316,7 +316,7 @@ class DefaultDevice : public ParentDevice
          * You may send an ORed list of DeviceInterface values.
          * @param value ORed list of DeviceInterface values.
          * @warning This only updates the internal driver interface property and does not send it to the
-         * client. To synchronize the client, use syncDriverInfo funciton.
+         * client. To synchronize the client, use syncDriverInfo function.
          */
         void setDriverInterface(uint16_t value);
 
@@ -329,7 +329,7 @@ class DefaultDevice : public ParentDevice
 
     protected:
         /**
-         * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dyanmic properties
+         * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dynamic properties
          * are those generated from an external skeleton XML file. By default all properties, including
          * dynamic properties, are defined to the client in ISGetProperties(). Furthermore, when
          * űdeleteProperty(properyName) is called, the dynamic property is deleted by default, and can only
@@ -451,8 +451,8 @@ class DefaultDevice : public ParentDevice
         bool isSimulation() const;
 
         /**
-         * \brief Initilize properties initial state and value. The child class must implement this function.
-         * \return True if initilization is successful, false otherwise.
+         * \brief Initialize properties initial state and value. The child class must implement this function.
+         * \return True if initialization is successful, false otherwise.
          */
         virtual bool initProperties();
 

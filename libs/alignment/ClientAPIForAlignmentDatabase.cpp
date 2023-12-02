@@ -28,7 +28,7 @@ ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
 
 bool ClientAPIForAlignmentDatabase::AppendSyncPoint(const AlignmentDatabaseEntry &CurrentValues)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction = Action->getSwitch();
@@ -69,7 +69,7 @@ bool ClientAPIForAlignmentDatabase::AppendSyncPoint(const AlignmentDatabaseEntry
 
 bool ClientAPIForAlignmentDatabase::ClearSyncPoints()
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction = Action->getSwitch();
@@ -107,7 +107,7 @@ bool ClientAPIForAlignmentDatabase::ClearSyncPoints()
 
 bool ClientAPIForAlignmentDatabase::DeleteSyncPoint(unsigned int Offset)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction       = Action->getSwitch();
@@ -158,7 +158,7 @@ bool ClientAPIForAlignmentDatabase::DeleteSyncPoint(unsigned int Offset)
 
 bool ClientAPIForAlignmentDatabase::EditSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry &CurrentValues)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction           = Action->getSwitch();
@@ -222,7 +222,7 @@ void ClientAPIForAlignmentDatabase::Initialise(INDI::BaseClient *BaseClient)
 
 bool ClientAPIForAlignmentDatabase::InsertSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry &CurrentValues)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction           = Action->getSwitch();
@@ -276,7 +276,7 @@ bool ClientAPIForAlignmentDatabase::InsertSyncPoint(unsigned int Offset, const A
 
 bool ClientAPIForAlignmentDatabase::LoadDatabase()
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction = Action->getSwitch();
@@ -379,7 +379,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
     else
         GotOneOfMine = false;
 
-    // Tell the client when all the database proeprties have been set up
+    // Tell the client when all the database properties have been set up
     if (GotOneOfMine && (nullptr != MandatoryNumbers) && (nullptr != OptionalBinaryBlob) && (nullptr != PointsetSize) &&
             (nullptr != CurrentEntry) && (nullptr != Action) && (nullptr != Commit))
     {
@@ -406,7 +406,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewSwitch(ISwitchVectorProperty *Swit
 
 bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntry &CurrentValues)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction           = Action->getSwitch();
@@ -458,7 +458,7 @@ bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntr
 
 bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, AlignmentDatabaseEntry &CurrentValues)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction           = Action->getSwitch();
@@ -520,7 +520,7 @@ bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, Alignment
 
 bool ClientAPIForAlignmentDatabase::SaveDatabase()
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pAction = Action->getSwitch();

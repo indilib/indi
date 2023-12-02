@@ -372,18 +372,18 @@ double range360(double r);
  */
 double rangeDec(double r);
 
-/** \brief get_local_sidereal_time Returns local sideral time given longitude and system clock.
+/** \brief get_local_sidereal_time Returns local sidereal time given longitude and system clock.
  *  \param longitude Longitude in INDI format (0 to 360) increasing eastward.
  *  \return Local Sidereal Time.
  */
 double get_local_sidereal_time(double longitude);
 
 /** \brief get_local_hour_angle Returns local hour angle of an object
- *  \param local_sideral_time Local Sideral Time
+ *  \param local_sidereal_time Local Sidereal Time
  *  \param ra RA of object
  *  \return Hour angle in hours (-12 to 12)
  */
-double get_local_hour_angle(double local_sideral_time, double ra);
+double get_local_hour_angle(double local_sidereal_time, double ra);
 
 
 /** \brief get_hrz_from_equ Calculate horizontal coordinates from equatorial coordinates.
@@ -416,7 +416,7 @@ void get_alt_az_coordinates(double hour_angle, double dec, double latitude, doub
 /** \brief estimate_geocentric_elevation Returns an estimation of the actual geocentric elevation
  *  \param latitude latitude in INDI format (-90 to +90)
  *  \param sea_level_elevation sea level elevation
- *  \return Aproximated geocentric elevation
+ *  \return Approximated geocentric elevation
  */
 double estimate_geocentric_elevation(double latitude, double sea_level_elevation);
 
@@ -424,14 +424,14 @@ double estimate_geocentric_elevation(double latitude, double sea_level_elevation
  *  \param Alt altitude coordinate of the object
  *  \param Az azimuth coordinate of the object
  *  \param latitude latitude in INDI format (-90 to +90)
- *  \return Aproximation of the field rotation rate
+ *  \return Approximation of the field rotation rate
  */
 double estimate_field_rotation_rate(double Alt, double Az, double latitude);
 
 /** \brief estimate_field_rotation Returns an estimation of the field rotation rate of the object
  *  \param hour_angle Hour angle in hours (-12 to 12)
  *  \param field_rotation_rate the field rotation rate
- *  \return Aproximation of the absolute field rotation
+ *  \return Approximation of the absolute field rotation
  */
 double estimate_field_rotation(double hour_angle, double field_rotation_rate);
 
@@ -468,7 +468,7 @@ double m2au(double m);
  */
 double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
-/** \brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter through a steradian expressed cone
+/** \brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelength using a passband filter through a steradian expressed cone
  *  \param rel_magnitude Relative magnitude of the object observed
  *  \param filter_bandwidth Filter bandwidth in meters
  *  \param wavelength Wavelength in meters
@@ -477,7 +477,7 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
  */
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian);
 
-/** \brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
+/** \brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelength using a passband filter over an incident surface
  *  \param photon_flux The photon flux in Lumen
  *  \param filter_bandwidth Filter bandwidth in meters
  *  \param wavelength Wavelength in meters
@@ -489,7 +489,7 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
 /** \brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
  *  \param dist The distance in parallax radiuses
  *  \param delta_mag The difference of magnitudes
- *  \return Aproximation of the absolute magnitude in Δmag
+ *  \return Approximation of the absolute magnitude in Δmag
  */
 double estimate_absolute_magnitude(double dist, double delta_mag);
 

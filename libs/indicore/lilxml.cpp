@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #if defined(_MSC_VER)
 #define snprintf _snprintf
 #pragma warning(push)
-///@todo Introduce plattform indipendent safe functions as macros to fix this
+///@todo Introduce platform independent safe functions as macros to fix this
 #pragma warning(disable : 4996)
 #endif
 
@@ -98,7 +98,7 @@ struct LilXML_
     String endtag; /* to check for match with opening tag*/
     String entity; /* collect entity seq */
     int delim;     /* attribute value delimiter */
-    int lastc;     /* last char (just used wiht skipping)*/
+    int lastc;     /* last char (just used with skipping)*/
     int skipping;  /* in comment or declaration */
     int inblob;    /* in oneBLOB element */
 };
@@ -377,7 +377,7 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
 }
 
 /* process one more character of an XML file.
- * when find closure with outter element return root of complete tree.
+ * when find closure with outer element return root of complete tree.
  * when find error return NULL with reason in ynot[].
  * when need more return NULL with ynot[0] = '\0'.
  * N.B. it is up to the caller to delete any tree returned with delXMLEle().
@@ -1173,7 +1173,7 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
         case ENTINATTRV: /* working on entity in attr valu */
             if (c == ';')
             {
-                /* if find a recongized esp seq, add equiv char else raw seq */
+                /* if find a recognized esp seq, add equiv char else raw seq */
                 growString(&lp->entity, c);
                 if (decodeEntity(lp->entity.s, &c))
                     growString(&lp->ce->at[lp->ce->nat - 1]->valu, c);

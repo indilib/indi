@@ -33,7 +33,7 @@
 
    The child class is expected to call the following functions from the INDI frameworks standard functions:
 
-   \e IMPORTANT: initLightBoxProperties() must be called before any other function to initilize the Light device properties.
+   \e IMPORTANT: initLightBoxProperties() must be called before any other function to initialize the Light device properties.
    \e IMPORTANT: isGetLightBoxProperties() must be called in your driver ISGetProperties function
    \e IMPORTANT: processLightBoxSwitch() must be called in your driver ISNewSwitch function.
    \e IMPORTANT: processLightBoxNumber() must be called in your driver ISNewNumber function.
@@ -56,7 +56,7 @@ class LightBoxInterface
         LightBoxInterface(DefaultDevice *device, bool isDimmable);
         virtual ~LightBoxInterface();
 
-        /** \brief Initilize light box properties. It is recommended to call this function within initProperties() of your primary device
+        /** \brief Initialize light box properties. It is recommended to call this function within initProperties() of your primary device
                 \param deviceName Name of the primary device
                 \param groupName Group or tab name to be used to define light box properties.
             */
@@ -82,14 +82,14 @@ class LightBoxInterface
         bool snoopLightBox(XMLEle *root);
 
         /**
-             * @brief setBrightness Set light level. Must be impelemented in the child class, if supported.
+             * @brief setBrightness Set light level. Must be implemented in the child class, if supported.
              * @param value level of light box
              * @return True if successful, false otherwise.
              */
         virtual bool SetLightBoxBrightness(uint16_t value);
 
         /**
-             * @brief EnableLightBox Turn on/off on a light box. Must be impelemented in the child class.
+             * @brief EnableLightBox Turn on/off on a light box. Must be implemented in the child class.
              * @param enable If true, turn on the light, otherwise turn off the light.
              * @return True if successful, false otherwise.
              */

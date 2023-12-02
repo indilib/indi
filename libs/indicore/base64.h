@@ -51,7 +51,7 @@ extern int to64frombits(unsigned char *out, const unsigned char *in, int inlen);
 /** \brief Convert base64 to bytes array.
     \param out output buffer in bytes. The buffer size must be at least (3 * size_of_in_buffer / 4) bytes long.
     \param in input base64 buffer
-    \param inlen base64 buffer lenght
+    \param inlen base64 buffer length
     \return 0 on success, -1 on failure.
  */
 

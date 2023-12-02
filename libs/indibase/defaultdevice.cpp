@@ -451,7 +451,7 @@ bool DefaultDevice::loadDefaultConfig()
     if (pResult)
         LOG_INFO("Default configuration loaded.");
     else
-        LOGF_INFO("Error loading default configuraiton. %s", errmsg);
+        LOGF_INFO("Error loading default configuration. %s", errmsg);
 
     return pResult;
 }
@@ -806,7 +806,7 @@ int DefaultDevice::SetTimer(uint32_t ms)
 }
 
 // Remove main timer. ID is not used.
-// Kept for backward compatiblity
+// Kept for backward compatibility
 void DefaultDevice::RemoveTimer(int id)
 {
     INDI_UNUSED(id);
@@ -816,7 +816,7 @@ void DefaultDevice::RemoveTimer(int id)
 }
 
 //  This is just a placeholder
-//  This function should be overriden by child classes if they use timers
+//  This function should be overridden by child classes if they use timers
 //  So we should never get here
 void DefaultDevice::TimerHit()
 {

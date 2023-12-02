@@ -36,7 +36,7 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
         /// \brief Virtual destructor
         virtual ~AlignmentSubsystemForDrivers() {}
 
-        /** \brief Initilize alignment subsystem properties. It is recommended to call this function within initProperties() of your primary device
+        /** \brief Initialize alignment subsystem properties. It is recommended to call this function within initProperties() of your primary device
            * \param[in] pTelescope Pointer to the child INDI::Telecope class
           */
         void InitAlignmentProperties(Telescope *pTelescope);
@@ -173,7 +173,7 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
            * the in memory database module. This registration is performed in the constructor of
            * of this class. The callback is called whenever the database is
            * is loaded or reloaded, by default it calls the Initialise function of the MathPluginManagment module.
-           * \param[in] ThisPointer Pointer to the instance of this class which registered the callbck
+           * \param[in] ThisPointer Pointer to the instance of this class which registered the callback
           */
         static void MyDatabaseLoadCallback(void *ThisPointer);
 };

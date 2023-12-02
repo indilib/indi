@@ -25,7 +25,7 @@ namespace AlignmentSubsystem
 {
 /** \enum MountAlignment
     \brief Describe the alignment of a telescope axis. This is normally used to differentiate between
-    equatorial mounts in differnet hemispheres and altaz or dobsonian mounts.
+    equatorial mounts in different hemispheres and altaz or dobsonian mounts.
 */
 typedef enum MountAlignment { ZENITH, NORTH_CELESTIAL_POLE, SOUTH_CELESTIAL_POLE } MountAlignment_t;
 
@@ -59,7 +59,7 @@ enum AlignmentPointSetEnum
 
 /*!
  * \struct TelescopeDirectionVector
- * \brief Holds a nomalised direction vector (direction cosines)
+ * \brief Holds a normalised direction vector (direction cosines)
  *
  * The x y,z fields of this class should normally represent a normalised (unit length)
  * vector in a right handed rectangular coordinate space. However, for convenience a number
