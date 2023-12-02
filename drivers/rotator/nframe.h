@@ -120,7 +120,7 @@ class nFrameRotator : public INDI::Rotator
         static const char DRIVER_STOP_CHAR { 0x23 };
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {128};
         // Operatives
         static constexpr const uint8_t DRIVER_OPERATIVES {2};
@@ -173,7 +173,7 @@ class nFrameRotator : public INDI::Rotator
         static const char NFRAME_STOP_CHAR { 0x23 };
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t NFRAME_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t NFRAME_LEN {64};
 
 

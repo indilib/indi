@@ -119,7 +119,7 @@ bool FocuserDriver::updateProperties()
 
 bool FocuserDriver::Handshake()
 {
-    // This functin is ensure that we have communication with the focuser
+    // This function is ensure that we have communication with the focuser
     // Below we send it 0x6 byte and check for 'S' in the return. Change this
     // to be valid for your driver. It could be anything, you can simply put this below
     // return readPosition()

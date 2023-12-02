@@ -106,7 +106,7 @@ int ConnectSTAR2k(char *port)
 }
 
 /* Start a slew in chosen direction at slewRate */
-/* Use auxilliary NexStar command set through the hand control computer */
+/* Use auxiliary NexStar command set through the hand control computer */
 
 void StartPulse(int direction)
 {

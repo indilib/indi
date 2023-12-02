@@ -606,7 +606,7 @@ void WatchDog::TimerHit()
                 break;
             }
 
-            // Watch mount if requied
+            // Watch mount if required
             if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
                 m_WatchDogClientInstance->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
             // Watch dome

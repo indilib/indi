@@ -411,7 +411,7 @@ void CCDSim::TimerHit()
             float timeleft;
             timeleft = CalcTimeLeft(ExpStart, ExposureRequest);
 
-            //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
+            //IDLog("CCD Exposure left: %g - Request: %g\n", timeleft, ExposureRequest);
             if (timeleft < 0)
                 timeleft = 0;
 
@@ -724,7 +724,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                 while (fgets(line, 256, pp) != nullptr)
                 {
-                    //  ok, lets parse this line for specifcs we want
+                    //  ok, lets parse this line for specifics we want
                     char id[20];
                     char plate[6];
                     char ob[6];

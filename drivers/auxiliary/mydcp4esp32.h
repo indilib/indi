@@ -85,7 +85,7 @@
 #define MDCP_GET_ALL_CH_POWER_CMD           ":40#"    // Get the power settings for ch1/ch2/ch3/ch4 - Response: lch1pwr,ch2pwr,ch3pwr,ch4pwr#
 #define MDCP_SET_CH3_MODE_CMD               ":41%d#"  // Set the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: none
 #define MDCP_GET_CH3_MODE_CMD               ":42#"    // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
-#define MDCP_SET_CH3_MANUAL_POWER_CMD       ":43%d#"  // Set the Channel 3 power to a manual seting of Num - Response: none    
+#define MDCP_SET_CH3_MANUAL_POWER_CMD       ":43%d#"  // Set the Channel 3 power to a manual setting of Num - Response: none    
 
 /**************************** myDCP4ESP32 Command Responses **************************/
 
@@ -128,7 +128,7 @@
 #define MDCP_GET_ALL_CH_POWER_RES           "l%d,%d,%d,%d"    // Get the power settings for ch1/ch2/ch3/ch4 - Response: lch1pwr,ch2pwr,ch3pwr,ch4pwr#
 #define MDCP_SET_CH3_MODE_RES               ""      // Set the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: none
 #define MDCP_GET_CH3_MODE_RES               "m%d"   // Get the Channel 3 mode (0=disabled, 1=dewstrap1, 2=dewstrap2, 3=Manual, 4=use temp probe3) - Response: mmode#
-#define MDCP_SET_CH3_MANUAL_POWER_RES       ""      // Set the Channel 3 power to a manual seting of Num - Response: none 
+#define MDCP_SET_CH3_MANUAL_POWER_RES       ""      // Set the Channel 3 power to a manual setting of Num - Response: none 
 
 /******************************************************************************/
 

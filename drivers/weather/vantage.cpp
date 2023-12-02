@@ -296,7 +296,7 @@ bool Vantage::wakeup()
         if ((rc = tty_write(PortFD, command, 1, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Wakup error: %s.", errstr);
+            LOGF_ERROR("Wakeup error: %s.", errstr);
             return false;
         }
 
