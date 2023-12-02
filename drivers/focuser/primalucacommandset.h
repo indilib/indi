@@ -25,7 +25,12 @@
 #pragma once
 
 #include <cstdint>
-#include "json.h"
+
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
 
 using json = nlohmann::json;
 

@@ -26,7 +26,12 @@
 
 #include "openweathermap.h"
 
-#include "json.h"
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
+
 #include "locale_compat.h"
 
 #include <curl/curl.h>
