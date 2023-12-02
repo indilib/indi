@@ -266,7 +266,7 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
             return true;
         }
 
-        // Horizonal Coords
+        // Horizontal Coords
         if (!strcmp(name, HorizontalCoordsNP.name))
         {
             if (isParked())
@@ -1298,7 +1298,7 @@ void SynscanDriver::mountSim()
     double currentSlewRate = SIM_SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
@@ -1442,7 +1442,7 @@ IPState SynscanDriver::GuideEast(uint32_t ms)
 
     // So if we SID_RATE + 0.5 * SID_RATE for example, that's 150% of sidereal rate
     // but for east we'd be going a lot faster since the stars are moving toward the west
-    // in sideral rate. Just standing still we would SID_RATE moving across. So for east
+    // in sidereal rate. Just standing still we would SID_RATE moving across. So for east
     // we just go GuideRate * SID_RATE without adding any more values.
     //m_CustomGuideRA = TRACKRATE_SIDEREAL + GuideRateN[AXIS_RA].value * TRACKRATE_SIDEREAL;
     m_CustomGuideRA = GuideRateN[AXIS_RA].value * TRACKRATE_SIDEREAL;

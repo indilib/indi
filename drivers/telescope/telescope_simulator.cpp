@@ -47,7 +47,7 @@ ScopeSim::ScopeSim()
     /* initialize random seed: */
     srand(static_cast<uint32_t>(time(nullptr)));
 
-    // initalise axis positions, for GEM pointing at pole, counterweight down
+    // initialise axis positions, for GEM pointing at pole, counterweight down
     axisPrimary.setDegrees(90.0);
     axisPrimary.TrackRate(Axis::SIDEREAL);
     axisSecondary.setDegrees(90.0);
@@ -568,7 +568,7 @@ bool ScopeSim::SetCurrentPark()
 
 bool ScopeSim::SetDefaultPark()
 {
-    // mount points to East (couter weights down) at the horizon
+    // mount points to East (counterweights down) at the horizon
     // works for both hemispheres
     SetAxis1Park(-6.);
     SetAxis2Park(0.);

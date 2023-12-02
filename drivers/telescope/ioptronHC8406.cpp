@@ -30,7 +30,7 @@ INFO
 :Gg#            -003*18:03#  longitud
 :Gt#            +41*06:56#   latitude
 :GL#            7:02:47.0#   local time
-:GS#            20:12: 3.3#  Sideral Time
+:GS#            20:12: 3.3#  Sidereal Time
 :GR#            2:12:57.4#   RA
 :GD#            +90* 0: 0#   DEC
 :GA#            +41* 6:55#   ALT
@@ -48,10 +48,10 @@ COMMANDS
 This only works if the mount is not stopped (tracking)
 :RT0# -->       Lunar
 :RT1# -->       solar
-:RT2# -->       sideral
+:RT2# -->       sidereal
 :RT9# -->               zero but not work!!
 
-!!!There isn't a command to start/stop tracking !!! You have to do manualy
+!!!There isn't a command to start/stop tracking !!! You have to do manually
 
 This speeds only are taken into account for protocol buttons, not for the HC Buttons
 :RG#  -->  Select guide speed for :Mn#,:Ms# ....
@@ -68,7 +68,7 @@ V1.12 2011-08-12
 UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
 
 :RT9#     -> stop tracking
-:RT0#     -> start tracking at sidera speed. Formerly only preselect sideral speed but
+:RT0#     -> start tracking at sidera speed. Formerly only preselect sidereal speed but
              not start the tracking itself
 
 :Me#
@@ -359,7 +359,7 @@ void ioptronHC8406::getBasicData()
 void ioptronHC8406::ioptronHC8406Init()
 {
     //This mount doesn't report anything so we send some CMD
-    //just to get syncronize with the GUI at start time
+    //just to get synchronized with the GUI at start time
     LOG_WARN("Sending init CMDs. Unpark, Stop tracking");
     UnPark();
     TrackState = SCOPE_IDLE;
@@ -755,7 +755,7 @@ bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
     if (enabled)
     {
-        LOG_WARN("<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
+        LOG_WARN("<SetTrackEnabled> START TRACKING AT SIDEREAL SPEED (:RT2#)");
         return setioptronHC8406TrackMode(0);
     }
     else
@@ -929,7 +929,7 @@ void ioptronHC8406::mountSim()
     ltv = tv;
     da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_TRACKING:

@@ -113,7 +113,7 @@ bool get_pmc8_reconnect_flag();
 **************************************************************************/
 /** Get PMC8 current status info */
 bool get_pmc8_status(int fd, PMC8Info *info);
-/** Get All firmware informatin in addition to mount model */
+/** Get All firmware information in addition to mount model */
 bool get_pmc8_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_pmc8_coords(int fd, double &ra, double &dec);

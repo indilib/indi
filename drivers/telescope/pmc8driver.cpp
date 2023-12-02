@@ -1653,7 +1653,7 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
         else
             dec_value = 90 + motor_angle;
     }
-    // Sourthern Hemisphere
+    // Southern Hemisphere
     else
     {
         if (motor_angle >= 0)

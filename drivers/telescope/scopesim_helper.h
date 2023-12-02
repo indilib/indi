@@ -394,7 +394,7 @@ class Axis
 ///  Observed Place  These are the mount coordinates for a perfect mount, positions are observedHa and observedDec
 ///     apply telescope pointing corrections
 ///  Instrument Place these are the mount coordinates for the mount with corrections, values are instrumentHa and instrumentDec
-///     for a  GEM convert to axis cooordinates ( this isn't in the paper).
+///     for a  GEM convert to axis coordinates ( this isn't in the paper).
 ///  Mount Place these give primary (ha) and secondary (dec) positions
 ///
 /// At present AltAz mounts are not implemented
@@ -583,7 +583,7 @@ class Vector
         Vector(double l, double m, double n);
 
         ///
-        /// \brief Vector creats a vector from two angles (Ra, Dec), (Ha, Dec), (Azimuth, Altitude)
+        /// \brief Vector creates a vector from two angles (Ra, Dec), (Ha, Dec), (Azimuth, Altitude)
         /// \param primary
         /// \param secondary
         ///

@@ -318,7 +318,7 @@ class SkywatcherAPI
         /// \return false failure
         bool SlowStop(AXISID Axis);
 
-        /// \brief Start the axis slewing in the prevously selected mode
+        /// \brief Start the axis slewing in the previously selected mode
         /// \param[in] Axis - The axis to use.
         /// \return false failure
         bool StartAxisMotion(AXISID Axis);

@@ -62,7 +62,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
     //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
     //
-    // Get generic capabilities but discard the followng:
+    // Get generic capabilities but discard the following:
     // LX200_HAS_FOCUS
 
 
@@ -1906,7 +1906,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 int res = getCommandSingleCharResponse(PortFD, response, cmd); //0 = 0 Success 1..9 failure, no # on reply
                 if(res > 0 && response[0]=='0')
                     {
-                    LOG_INFO("Command for Refine Polar Alignment Successfull");
+                    LOG_INFO("Command for Refine Polar Alignment Successful");
                     UpdateAlignStatus();
                     OSNAlignPolarRealignSP.s = IPS_OK;
                     IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
@@ -2186,7 +2186,7 @@ bool LX200_OnStep::ReadScopeStatus()
 #endif
 
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat,
-                            ":GU#"); // :GU# returns a string containg controller status
+                            ":GU#"); // :GU# returns a string containing controller status
         if (error_or_fail > 1) // check if successful read (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
             //If this fails, simply return;
@@ -2675,7 +2675,7 @@ bool LX200_OnStep::ReadScopeStatus()
     {
         //TODO: Check and recode :Gu# paths
         int error_or_fail = getCommandSingleCharErrorOrLongResponse(PortFD, OSStat,
-                            ":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
+                            ":Gu#"); // :Gu# returns a string containing controller status that's bitpacked
         if (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
             //Ignored for now.
@@ -4213,7 +4213,7 @@ int LX200_OnStep::OSUpdateRotator()
             OSRotator1 = false;
             return 0; //Return 0, as this is not a communication error
         }
-        if (error_or_fail < 1)   //This does not neccessarily mean
+        if (error_or_fail < 1)   //This does not necessarily mean
         {
             LOG_WARN("Error talking to rotator, might be timeout (especially on network)");
             return -1;
@@ -4812,7 +4812,7 @@ IPState LX200_OnStep::AlignWrite()
     int res = getCommandSingleCharResponse(PortFD, response, cmd); //1 success , no # on reply
     if(res > 0 && response[0]=='1')
         {
-            LOG_INFO("Align Write Successfull");
+            LOG_INFO("Align Write Successful");
             UpdateAlignStatus();
             IUSaveText(&OSNAlignT[0], "Align FINISHED");
             IUSaveText(&OSNAlignT[1], "------");
@@ -5444,7 +5444,7 @@ bool LX200_OnStep::setUTCOffset(double offset)
     int utc_hour, utc_min;
     // strange thing offset is rounded up to first decimal so that .75 is .8
     utc_hour = int(offset) * -1;
-    utc_min = abs((offset - int(offset)) * 60); // negtive offsets require this abs()
+    utc_min = abs((offset - int(offset)) * 60); // negative offsets require this abs()
     if (utc_min > 30) utc_min = 45;
     snprintf(temp_string, sizeof(temp_string), ":SG%03d:%02d#", utc_hour, utc_min);
     result = (setStandardProcedure(PortFD, temp_string) == 0);
