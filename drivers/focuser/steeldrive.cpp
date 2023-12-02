@@ -97,7 +97,7 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&CustomSettingNP, CustomSettingN, 2, getDeviceName(), "Custom Settings", "", FOCUS_SETTINGS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    // Focuser Accleration
+    // Focuser Acceleration
     IUFillNumber(&AccelerationN[0], "Ramp", "", "%3.0f", 1500., 3000., 100., 2000.);
     IUFillNumberVector(&AccelerationNP, AccelerationN, 1, getDeviceName(), "FOCUS_ACCELERATION", "Acceleration",
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);

@@ -53,8 +53,8 @@ class RBFOCUS : public INDI::Focuser
         bool Ack();
         /**
          * @brief sendCommand Send a string command to RBFocus.
-         * @param cmd Command to be sent, must already have the necessary delimeter ('#')
-         * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to ML_RES length.
+         * @param cmd Command to be sent, must already have the necessary delimiter ('#')
+         * @param res If not nullptr, the function will read until it detects the default delimiter ('#') up to ML_RES length.
          *        if nullptr, no read back is done and the function returns true.
          * @return True if successful, false otherwise.
          */

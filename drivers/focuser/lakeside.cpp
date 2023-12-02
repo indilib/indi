@@ -431,7 +431,7 @@ bool Lakeside::updateMoveDirection()
 //          K : Temperature in Kelvin update found - TemperatureKN[0].value
 //          D : DONE# received
 //          O : OK# received
-//          E : Error due to unknown/misformed command having been sent
+//          E : Error due to unknown/malformed command having been sent
 //          ? : unknown response received
 char Lakeside::DecodeBuffer(char * in_response)
 {
@@ -451,7 +451,7 @@ char Lakeside::DecodeBuffer(char * in_response)
         return 'O';
     }
 
-    // if focuser returns an error for unknow command
+    // if focuser returns an error for unknown command
     if (!strncmp(in_response, "!#", 2))
     {
         return 'E';
