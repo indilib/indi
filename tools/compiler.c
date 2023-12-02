@@ -48,7 +48,7 @@ enum
     NEG,
     NOT,
 
-    /* symantically operands, ie, constants, variables and all functions */
+    /* semantically operands, ie, constants, variables and all functions */
     CONST,
     VAR,
     ABS,
@@ -424,7 +424,7 @@ static int next_token()
     return (ERR);
 }
 
-/* return funtion token, else ERR.
+/* return function token, else ERR.
  * if find one, update cexpr too.
  */
 static int chk_funcs()
@@ -676,7 +676,7 @@ static int execute(result) double *result;
         instr = *pc++;
         switch (instr & OP_MASK)
         {
-            /* put these in numberic order so hopefully even the dumbest
+            /* put these in numeric order so hopefully even the dumbest
 	     * compiler will choose to use a jump table, not a cascade of ifs.
 	     */
             case HALT:

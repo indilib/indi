@@ -256,7 +256,7 @@ You can base a new driver from an existing driver. Look in either the examples o
 
 # Unit tests
 
-In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all aproach does not work well).
+In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all approach does not work well).
 
 Once you have the Google Test Framework installed follow this alternative build sequence:-
 
