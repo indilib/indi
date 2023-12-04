@@ -32,7 +32,7 @@ class TCP;
 
    Rotators must be able to move to a specific angle. Other capabilities including abort, syncing, homing are optional.
 
-   The angle is to be interpreted as the raw angle and not necessairly the position angle as this definition should be
+   The angle is to be interpreted as the raw angle and not necessarily the position angle as this definition should be
    handled by clients after homing and syncing.
 
    This class is designed for pure rotator devices. To utilize Rotator Interface in another type of device, inherit from RotatorInterface.

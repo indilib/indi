@@ -670,7 +670,7 @@ bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
     // #:CMCFGn#
     // Configures the behaviour of the :CM# and :CMR# commands depending on the value
     // of n. If n=0, :the commands :CM# and :CMR# work in the default mode, i.e. they
-    // synchronize the position ot the mount with the coordinates of the currently selected
+    // synchronize the position to the mount with the coordinates of the currently selected
     // target by correcting the axis offset values. If n=1, the commands :CM# and :CMR#
     // work by using the synchronization position as an additional alignment star for refining
     // the alignment model.
@@ -808,7 +808,7 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 bool LX200_10MICRON::CalculateSatTrajectory(std::string start_pass_isodatetime, std::string end_pass_isodatetime)
 {
     // #:TLEPJD,min#
-    // Precalulates the first transit of the satellite with the currently loaded orbital elements,
+    // Precalculates the first transit of the satellite with the currently loaded orbital elements,
     // starting from Julian Date JD and for a period of min minutes, where min is from 1 to 1440.
     // Two-line elements have to be loaded with the :TLEL command.
     // Returns:

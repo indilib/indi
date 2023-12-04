@@ -593,10 +593,10 @@ double AstroTrac::calculateSlewTime(double distance)
     // Firstly throw away sign of distance - don't care about direction - and convert to arcsec
     distance = fabs(distance) * 3600.0;
 
-    // Now estimate how far mount travels during accelertion and deceleration period
+    // Now estimate how far mount travels during acceleration and deceleration period
     double accelerate_decelerate = MAX_SLEW_VELOCITY * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue();
 
-    // If distance less than this, then calulate using accleration forumlae:
+    // If distance less than this, then calculate using acceleration forumlae:
     if (distance < accelerate_decelerate)
     {
         return (2 * sqrt(distance / AccelerationNP[AXIS_RA].getValue()));

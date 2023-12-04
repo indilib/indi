@@ -40,7 +40,7 @@ namespace ini
       * @param str string to be trimmed in place */
     inline void trim(std::string &str)
     {
-        // first erasing from end should be slighty more efficient
+        // first erasing from end should be slightly more efficient
         // because erasing from start potentially moves all chars
         // multiple indices towards the front.
 
@@ -538,7 +538,7 @@ namespace ini
         ~IniFileBase()
         {}
 
-        /** Sets the separator charactor for fields in the INI file.
+        /** Sets the separator character for fields in the INI file.
           * @param sep separator character to be used. */
         void setFieldSep(const char sep)
         {

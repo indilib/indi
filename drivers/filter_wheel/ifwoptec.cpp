@@ -418,7 +418,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 ************************************************************************************/
 void FilterIFW::simulationTriggered(bool enable)
 {
-    // toogle buttons to select 5 or 8 filters depend if Simulation active or not
+    // toggle buttons to select 5 or 8 filters depend if Simulation active or not
     if (enable)
     {
         if (isConnected())
@@ -738,7 +738,7 @@ bool FilterIFW::SetFilterNames()
 
     LOG_INFO("Filters name are saved in IFW");
 
-    // Interface not ready before the message "DATA OK" disapear from the display IFW
+    // Interface not ready before the message "DATA OK" disappear from the display IFW
     for (int i = OPTEC_WAIT_DATA_OK; i > 0; i--)
     {
         LOGF_INFO("Please wait for HOME command start... %d", i);
@@ -943,7 +943,7 @@ bool FilterIFW::GetFirmware()
         return false;
     }
 
-    // remove chars fomr the string to get only the nzuméric value of the Firmware version
+    // remove chars from the string to get only the nzuméric value of the Firmware version
     char *p = nullptr;
 
     for (int i = 0; i < (int)strlen(response); i++)

@@ -333,7 +333,7 @@ void GuideSim::TimerHit()
             float timeleft;
             timeleft = CalcTimeLeft(ExpStart, ExposureRequest);
 
-            //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
+            //IDLog("CCD Exposure left: %g - Request: %g\n", timeleft, ExposureRequest);
             if (timeleft < 0)
                 timeleft = 0;
 

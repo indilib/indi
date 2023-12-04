@@ -663,7 +663,7 @@ int getTrackFreq(int fd, double *value)
     // :GT#
     // Get tracking rate
     // Returns: TT.T#
-    // Current Track Frequency expressed in hertz assuming a synchonous motor design where a 60.0 Hz motor clock
+    // Current Track Frequency expressed in hertz assuming a synchronous motor design where a 60.0 Hz motor clock
     // would produce 1 revolution of the telescope in 24 hours.
     if ((error_type = tty_write_string(fd, ":GT#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -1131,7 +1131,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy, bool addSpace)
         return error_type;
 
     error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
-    // Read the next section whih has 24 blanks and then a #
+    // Read the next section which has 24 blanks and then a #
     // Can't just use the tcflush to clear the stream because it doesn't seem to work correctly on sockets
     tty_nread_section(fd, dummy_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
@@ -2041,7 +2041,7 @@ int checkLX200EquatorialFormat(int fd)
         // 10Micron Mount Command Protocol software version 2.14.11 2016.11
         // :U#
         // Toggle between low and high precision modes. This controls the format of some values
-        // that are returned by the mount. In extened LX200 emulation mode, switches always to
+        // that are returned by the mount. In extended LX200 emulation mode, switches always to
         // high precision (does not toggle).
         // Low precision: RA returned as HH:MM.T (hours, minutes and tenths of minutes),
         // Dec/Az/Alt returned as sDD*MM (sign, degrees, arcminutes).

@@ -35,10 +35,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 <p>A full description of the INDI protocol is detailed in the INDI <a href="http://www.clearskyinstitute.com/INDI/INDI.pdf">white paper</a></p>
 
 <p>Under INDI, any number of clients can connect to any number of drivers running one or more devices. It is a true N-to-N server/client architecture topology
-allowing for reliable deployments of several INDI server, client, and driver instances distrubted across different systems in different physical and logical locations.</p>
+allowing for reliable deployments of several INDI server, client, and driver instances distributed across different systems in different physical and logical locations.</p>
 
 <p>The basic premise of INDI is this: Drivers are responsible for defining their functionality in terms of <b>Properties</b>. Clients are not aware of such properties until they establish connection with the driver
-and start receiving streams of defined properties. Each property encompases some functionality or information about the device. These include number, text, switch, light, and BLOB properties.</p>
+and start receiving streams of defined properties. Each property encompasses some functionality or information about the device. These include number, text, switch, light, and BLOB properties.</p>
 
 <p>For example, all devices define the <i>CONNECTION</i> vector switch property, which is compromised of two switches:</p>
 <ol>
@@ -59,7 +59,7 @@ INDI is intended for developers seeking to add support for their devices in INDI
 
 \section Development Developing under INDI
 
-<p>Please refere to the <a href="http://www.indilib.org/develop/developer-manual">INDI Developers Manual</a> for a complete guide on INDI's driver developemnt framework.</p>
+<p>Please refer to the <a href="http://www.indilib.org/develop/developer-manual">INDI Developers Manual</a> for a complete guide on INDI's driver development framework.</p>
 
 <p>The INDI Library API is divided into the following main sections:</p>
 <ul>
@@ -105,7 +105,7 @@ Simulators provide a great framework to test drivers and equipment alike. INDI L
  The simulator snoops FWHM from the focuser simulator which affects the generated images focus. All images are generated in standard FITS format.</li>
 <li><b>@ref GuideSim "Guide Simulator"</b>: Simple dedicated Guide Simulator.
 <li><b>@ref FilterSim "Filter Wheel Simulator"</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
-<li><b>@ref FocusSim "Focuser Simulator"</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
+<li><b>@ref FocusSim "Focuser Simulator"</b>: Offers a simple simulator for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
 <li><b>@ref DomeSim "Dome Simulator"</b>: Offers a simple simulator for an absolute position dome with shutter.
 <li><b>@ref GPSSimulator "GPS Simulator"</b>: Offers a simple simulator for GPS devices that send time and location data to the client and other drivers.
 </ul>
@@ -128,7 +128,7 @@ For a full list of contributors, please check <a href="https://github.com/indili
 
 /*******************************************************************************
  * INDI wire protocol version implemented by this API.
- * N.B. this is indepedent of the API itself.
+ * N.B. this is independent of the API itself.
  */
 
 #define INDIV 1.7

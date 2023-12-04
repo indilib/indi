@@ -283,7 +283,7 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
                     secondary->Degrees() );
     }
-    // ignore diurnal abberations and refractions to get observed ha, dec
+    // ignore diurnal aberrations and refractions to get observed ha, dec
     // apply telescope pointing to get instrument
     Angle instrumentHa, instrumentDec;
     observedToInstrument(apparentHa, apparentDec, &instrumentHa, &instrumentDec);

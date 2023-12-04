@@ -76,7 +76,7 @@ static void init_source(j_decompress_ptr cinfo)
 /*
  * Fill the input buffer --- called whenever buffer is emptied.
  *
- * Should never be called since all data should be allready provided.
+ * Should never be called since all data should be already provided.
  * Is nevertheless sometimes called - sets the input buffer to data
  * which is the JPEG EOI marker;
  *
@@ -150,7 +150,7 @@ static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer, long 
 /*
  * jpeg_skip_ff is not a part of the source manager but it is
  * particularly useful when reading several images from the same buffer:
- * It should be called to skip padding 0xff bytes beetween images.
+ * It should be called to skip padding 0xff bytes between images.
  */
 
 static void jpeg_skip_ff(j_decompress_ptr cinfo)

@@ -31,7 +31,7 @@
     - fixed Onstep returning '9:9' when 9 star alignment is achieved thanks to Howard Dutton
     Version 1.20
     - fixed wrong messages due to different return with OnStepX
-    - fixed Focuser Temerature not shown on Ekos
+    - fixed Focuser Temperature not shown on Ekos
     - fixed Weather settings (P/T/Hr) when no sensor present
     - minor typos
     Version 1.19
@@ -39,7 +39,7 @@
     - fixed Autoflip Off update
     - fixed Elevation Limits update (was not read from OnStep) and format set to integer and gage for setup
     - fixed minutes passed meridian not showing actual values
-    - fixed missing slewrates defineProperty and deleteProperty causing redefinitions of overides
+    - fixed missing slewrates defineProperty and deleteProperty causing redefinitions of overrides
     - todo focuser stops working after some time ??? could not yet reproduce
     - fixed poll and update slew rates 
     - todo poll and update maximum slew speed SmartWebServer=>Settings
@@ -79,7 +79,7 @@
     Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values.
     - Ability to swap primary focuser.
-    - High precision on location, and not overridding GPS even when marked for Mount > KStars.
+    - High precision on location, and not overriding GPS even when marked for Mount > KStars.
     - Added Rotator & De-Rotator Support
     - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning)
     - Manage OnStep Auxiliary Feature Names in Output Tab
@@ -119,7 +119,7 @@
     - James lan Focuser Code
     - James lan PEC
     - James Lan Alignment
-    - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
+    - Azwing set all com variable length to RB_MAX_LEN otherwise crash due to overflow
     - Azwing set local variable size to RB_MAX_LEN otherwise erased by overflow preventing Align and other stuf to work
     - James Lan Align Tab implementation
     - Azwing Removed Alignment in main tab

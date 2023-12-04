@@ -196,7 +196,7 @@ bool IOptronV3::initProperties()
     else
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    // Default WiFi connection parametes
+    // Default WiFi connection parameters
     tcpConnection->setDefaultHost("10.10.100.254");
     tcpConnection->setDefaultPort(8899);
 
@@ -1162,7 +1162,7 @@ void IOptronV3::mountSim()
     double currentSlewRate = Driver::IOP_SLEW_RATES[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
@@ -1253,7 +1253,7 @@ bool IOptronV3::SetCurrentPark()
 
 bool IOptronV3::SetDefaultPark()
 {
-    // By defualt azimuth 0
+    // By default azimuth 0
     SetAxis1Park(0);
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);

@@ -1388,7 +1388,7 @@ void CelestronGPS::mountSim()
         return;
     }
 
-    // Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly
+    // Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly
     switch (TrackState)
     {
         case SCOPE_IDLE:
@@ -1855,7 +1855,7 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
     {
         if (driver.get_pulse_status(dirn))
         {
-            // curent move not finished, add some more time
+            // current move not finished, add some more time
             AddGuideTimer(dirn, 100);
             return;
         }

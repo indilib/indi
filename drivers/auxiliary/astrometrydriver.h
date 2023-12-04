@@ -39,7 +39,7 @@
  * The solver settings should be set before running the solver in order to ensure correct and timely response from astrometry.net
  * It is assumed that astrometry.net is property set-up in the same machine the driver is running along with the appropriate index files.
  *
- * If the solver is successfull, the driver sets the solver results which include:
+ * If the solver is successful, the driver sets the solver results which include:
  * + Pixel Scale (arcsec/pixel).
  * + Orientation (E or W) degrees.
  * + Center RA (J2000) Hours.

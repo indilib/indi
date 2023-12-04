@@ -55,7 +55,7 @@ class GPSInterface
         virtual ~GPSInterface() = default;
 
         /**
-         * \brief Initilize focuser properties. It is recommended to call this function within
+         * \brief Initialize focuser properties. It is recommended to call this function within
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define focuser properties.
          */

@@ -65,7 +65,7 @@ enum APPECRecordingState
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
 
-// The workaround for long pulses does't work!
+// The workaround for long pulses doesn't work!
 // #define DONT_SIMULATE_LONG_PULSES true
 // This didn't work. The driver simply doesn't send pulse
 // commands longer than 999ms since CP3 controllers don't support that.
@@ -996,7 +996,7 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
                    apInitializationChecked ? "Y" : "N", apIsInitialized ? "Y" : "N",
                    apTimeInitialized ? "Y" : "N", apLocationInitialized ? "Y" : "N");
 
-        // hope this return doen't delay the time & location. If it does return true?
+        // hope this return doesn't delay the time & location. If it does return true?
         return false;
     }
     double lng = LocationN[LOCATION_LONGITUDE].value;
@@ -1069,7 +1069,7 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
 
         LOGF_DEBUG("Slewing... currentRA: %.3f dx: %g currentDE: %.3f dy: %g", currentRA, dx, currentDEC, dy);
 
-        // Note, RA won't hit 0 if it's not tracking, becuase the RA changes when still.
+        // Note, RA won't hit 0 if it's not tracking, because the RA changes when still.
         // Dec might, though.
         // 0 might work now that I "fixed" slewing...perhaps not when tracking is off.
         if (dx < 1e-3 && dy < 1e-3)
@@ -1532,7 +1532,7 @@ bool LX200AstroPhysicsV2::isAPReady()
         {
             bool isAPParked = apStatusParked(statusString);
 
-            // A-P came up unitialized, but we can now fix.
+            // A-P came up uninitialized, but we can now fix.
             if (APUnParkMount(PortFD) != TTY_OK)
                 // Try again if we had a comm failure.
                 commWorked = APUnParkMount(PortFD) == TTY_OK;

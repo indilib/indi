@@ -19,9 +19,9 @@
  *  and reduces code overhead.
  *
  *  <ul>
- *    <li>BaseClient: Base class for INDI clients. By subclassing BaseClient, client can easily connect to INDI server and handle device communication, command, and notifcation.</li>
+ *    <li>BaseClient: Base class for INDI clients. By subclassing BaseClient, client can easily connect to INDI server and handle device communication, command, and notification.</li>
  *    <li>BaseClientQt: Qt5 based class for INDI clients. By subclassing BaseClientQt, client can easily connect to INDI server
- *    and handle device communication, command, and notifcation.</li>
+ *    and handle device communication, command, and notification.</li>
  *    <li>BaseMediator: Abstract class to provide interface for event notifications in INDI::BaseClient.</li>
  *    <li>BaseDevice: Base class for all INDI virtual devices as handled and stored in INDI::BaseClient. It is also the parent for all drivers.</li>
  *    <li>DefaultDevice: INDI::BaseDevice with extended functionality such as debug, simulation, and configuration support.

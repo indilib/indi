@@ -98,7 +98,7 @@ bool PegasusUPB::initProperties()
     /// Power Group
     ////////////////////////////////////////////////////////////////////////////
 
-    // Dew Labels. Need to delare them here to use in the Power usage section
+    // Dew Labels. Need to declare them here to use in the Power usage section
     IUFillText(&DewControlsLabelsT[0], "DEW_LABEL_1", "Dew A", "Dew A");
     IUFillText(&DewControlsLabelsT[1], "DEW_LABEL_2", "Dew B", "Dew B");
     IUFillText(&DewControlsLabelsT[2], "DEW_LABEL_3", "Dew C", "Dew C");

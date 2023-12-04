@@ -18,7 +18,7 @@ namespace AlignmentSubsystem
 
 bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &AvailableMathPlugins)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     AvailableMathPlugins.clear();
@@ -52,7 +52,7 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
     else
         GotOneOfMine = false;
 
-    // Tell the client when all the database proeprties have been set up
+    // Tell the client when all the database properties have been set up
     if (GotOneOfMine && (nullptr != MathPlugins) && (nullptr != PluginInitialise))
     {
         // The DriverActionComplete state variable is initialised to false
@@ -78,7 +78,7 @@ void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty *S
 
 bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathPluginName)
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pPlugins = MathPlugins->getSwitch();
@@ -107,7 +107,7 @@ bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathP
 
 bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
 {
-    // Wait for driver to initialise if neccessary
+    // Wait for driver to initialise if necessary
     WaitForDriverCompletion();
 
     auto pPluginInitialise = PluginInitialise->getSwitch();

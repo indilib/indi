@@ -95,7 +95,7 @@ bool check_ieqpro_connection(int fd);
 **************************************************************************/
 /** Get iEQ current status info */
 bool get_ieqpro_status(int fd, IEQInfo *info);
-/** Get All firmware informatin in addition to mount model */
+/** Get All firmware information in addition to mount model */
 bool get_ieqpro_firmware(int fd, FirmwareInfo *info);
 /** Get mainboard and controller firmware only */
 bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info);

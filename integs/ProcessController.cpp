@@ -162,7 +162,7 @@ void ProcessController::expectExitCode(int e) {
             throw std::runtime_error(cmd + " got signal " + strsignal(WTERMSIG(status)));
         }
         // Not sure this is possible at all
-        throw std::runtime_error(cmd + " exited abnormaly");
+        throw std::runtime_error(cmd + " exited abnormally");
     }
     int actual = WEXITSTATUS(status);
     if (actual != e) {

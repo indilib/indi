@@ -87,8 +87,8 @@ class MoonLite : public INDI::Focuser
         bool Ack();
         /**
          * @brief sendCommand Send a string command to MoonLite.
-         * @param cmd Command to be sent, must already have the necessary delimeter ('#')
-         * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to ML_RES length.
+         * @param cmd Command to be sent, must already have the necessary delimiter ('#')
+         * @param res If not nullptr, the function will read until it detects the default delimiter ('#') up to ML_RES length.
          *        if nullptr, no read back is done and the function returns true.
          * @param silent if true, do not print any error messages.
          * @param nret if > 0 read nret chars, otherwise read to the terminator
@@ -139,8 +139,8 @@ class MoonLite : public INDI::Focuser
 
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };
-        // MoonLite Delimeter
+        // MoonLite Delimiter
         static const char ML_DEL { '#' };
-        // MoonLite Tiemout
+        // MoonLite Timeout
         static const uint8_t ML_TIMEOUT { 3 };
 };

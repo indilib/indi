@@ -277,7 +277,7 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        // remove check for firmare => 291, assume user is not using older firmware
+        // remove check for firmware => 291, assume user is not using older firmware
         LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
         LOG_INFO("Connection to focuser is successful.");
         return true;
@@ -1292,7 +1292,7 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return IPS_BUSY;
 }
 
-// this is occuring every 500ms
+// this is occurring every 500ms
 void MyFocuserPro2::TimerHit()
 {
     if (!isConnected())

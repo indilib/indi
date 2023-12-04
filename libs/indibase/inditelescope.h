@@ -369,7 +369,7 @@ class Telescope : public DefaultDevice
         double GetAxis2Park() const;
 
         /**
-         * @return Get defailt DEC/ALT parking position.
+         * @return Get default DEC/ALT parking position.
          */
         double GetAxis2ParkDefault() const;
 
@@ -453,7 +453,7 @@ class Telescope : public DefaultDevice
          *   <li>Update telescope status: Idle, Slewing, Parking..etc.</li>
          *   <li>Read coordinates</li>
          * </ol>
-         * \return True if reading scope status is OK, false if an error is encounterd.
+         * \return True if reading scope status is OK, false if an error is encountered.
          * \note This function is not implemented in Telescope, it must be implemented in the
          * child class
          */
@@ -716,7 +716,7 @@ class Telescope : public DefaultDevice
         ISwitchVectorProperty CoordSP;
         ISwitch CoordS[4];
 
-        // A number vector that stores lattitude and longitude
+        // A number vector that stores latitude and longitude
         INumberVectorProperty LocationNP;
         INumber LocationN[3];
 
@@ -772,7 +772,7 @@ class Telescope : public DefaultDevice
         ISwitchVectorProperty DomePolicySP;
         ISwitch DomePolicyS[2];
 
-        // Switch for choosing between motion control by 4-way joystick or two seperate axes
+        // Switch for choosing between motion control by 4-way joystick or two separate axes
         ISwitchVectorProperty MotionControlModeTP;
         ISwitch MotionControlModeT[2];
         enum
@@ -781,7 +781,7 @@ class Telescope : public DefaultDevice
             MOTION_CONTROL_AXES
         };
 
-        // Lock Joystick Axis to one direciton only
+        // Lock Joystick Axis to one direction only
         ISwitch LockAxisS[2];
         ISwitchVectorProperty LockAxisSP;
 

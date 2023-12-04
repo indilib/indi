@@ -313,7 +313,7 @@ void PMC8::getStartupData()
     LOG_INFO("Be prepared to intervene if something unexpected occurs.");
 
 #if 0
-    // FIXEME - Need to handle southern hemisphere for DEC?
+    // FIXME - Need to handle southern hemisphere for DEC?
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     double DEC = CurrentDEC;
 
@@ -1392,7 +1392,7 @@ void PMC8::mountSim()
     ltv = tv;
     da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:

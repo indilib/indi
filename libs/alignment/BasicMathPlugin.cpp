@@ -464,7 +464,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 #ifdef CONVEX_HULL_DEBUGGING
                     ActualFaces++;
 #endif
-                    // Ignore faces containg vertex 0 (nadir).
+                    // Ignore faces containing vertex 0 (nadir).
                     if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
                             (0 == CurrentFace->vertex[2]->vnum))
                     {
@@ -695,7 +695,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
 #ifdef CONVEX_HULL_DEBUGGING
                     ApparentFaces++;
 #endif
-                    // Ignore faces containg vertex 0 (nadir).
+                    // Ignore faces containing vertex 0 (nadir).
                     if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
                             (0 == CurrentFace->vertex[2]->vnum))
                     {

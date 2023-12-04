@@ -108,7 +108,7 @@ class Driver
         **************************************************************************/
         /** Get iEQ current status info */
         bool getStatus(IOPInfo *info);
-        /** Get All firmware informatin in addition to mount model */
+        /** Get All firmware information in addition to mount model */
         bool getFirmwareInfo(FirmwareInfo *info);
         /** Get RA/DEC */
         bool getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW_STATE *cwState);

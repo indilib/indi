@@ -38,7 +38,7 @@ FocusLynxBase::FocusLynxBase()
     lynxModels["Optec TCF-Lynx 3"] = "OB";
 
     // "OC" is now reserved, it is hard coded into focusers that use it
-    // Allthough it can be selected it should not be
+    // Although it can be selected it should not be
     // lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
 
@@ -324,7 +324,7 @@ bool FocusLynxBase::Handshake()
 * ***********************************************************************************/
 const char *FocusLynxBase::getDefaultName()
 {
-    // Has to be overide by child instance
+    // Has to be overridden by child instance
     return "FocusLynxBase";
 }
 
@@ -874,7 +874,7 @@ bool FocusLynxBase::getFocusConfig()
             defineProperty(&GotoSP);
 
             // If not 'No Focuser' then do iterator
-            // iterate throught all elements in std::map<std::string, std::string> and search the index from the code.
+            // iterate through all elements in std::map<std::string, std::string> and search the index from the code.
             std::map<std::string, std::string>::iterator it = lynxModels.begin();
             while(it != lynxModels.end())
             {
@@ -1007,7 +1007,7 @@ bool FocusLynxBase::getFocusConfig()
     FocusBacklashNP.s       = IPS_OK;
     IDSetNumber(&FocusBacklashNP, nullptr);
 
-    // Led brightnesss
+    // Led brightness
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
@@ -1082,7 +1082,7 @@ bool FocusLynxBase::getFocusConfig()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
@@ -1461,7 +1461,7 @@ bool FocusLynxBase::getFocusStatus()
         {
             response[nbytes_read - 1] = '\0';
 
-            // Display the response to be sure to have read the complet TTY Buffer.
+            // Display the response to be sure to have read the complete TTY Buffer.
             LOGF_DEBUG("RES (%s)", response);
             if (strcmp(response, "END"))
                 return false;
@@ -1949,7 +1949,7 @@ bool FocusLynxBase::getFocusTemp()
         {
             response[nbytes_read - 1] = '\0';
 
-            // Display the response to be sure to have read the complet TTY Buffer.
+            // Display the response to be sure to have read the complete TTY Buffer.
             LOGF_DEBUG("RES (%s)", response);
             if (strcmp(response, "END"))
                 return false;

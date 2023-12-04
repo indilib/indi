@@ -42,7 +42,7 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
                 double &RightAscension, double &Declination);
 
     protected:
-        /// \brief Calculate tranformation matrices from the supplied vectors
+        /// \brief Calculate transformation matrices from the supplied vectors
         /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame
         /// \param[in] Alpha2 Pointer to the second coordinate in the alpha reference frame
         /// \param[in] Alpha3 Pointer to the third coordinate in the alpha reference frame
@@ -67,7 +67,7 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
         /// \param[in] pMatrix The matrix to print
         void Dump3x3(const char *Label, gsl_matrix *pMatrix);
 
-        /// \brief Caluclate the determinant of the supplied matrix
+        /// \brief Calculate the determinant of the supplied matrix
         /// \param[in] pMatrix Pointer to the 3x3 matrix
         /// \return The determinant
         double Matrix3x3Determinant(gsl_matrix *pMatrix);

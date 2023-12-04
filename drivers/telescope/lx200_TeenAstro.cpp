@@ -274,7 +274,7 @@ bool LX200_TeenAstro::ReadScopeStatus()
     }
 
     // update mount status
-    getCommandString(PortFD, OSStat, statusCommand);       // returns a string containg controller status
+    getCommandString(PortFD, OSStat, statusCommand);       // returns a string containing controller status
     if (OSStat[15] != '0')
     {
         updateMountStatus(OSStat[15]);              // error
@@ -1265,7 +1265,7 @@ void LX200_TeenAstro::mountSim()
     ltv = tv;
     da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_TRACKING:

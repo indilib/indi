@@ -125,7 +125,7 @@ class EFA : public INDI::Focuser
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
 
-        // Focuser Informatin
+        // Focuser Information
         ITextVectorProperty InfoTP;
         IText InfoT[1] {};
         enum

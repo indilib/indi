@@ -122,7 +122,7 @@ class Weather : public DefaultDevice, public WeatherInterface
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
-        // A number vector that stores lattitude and longitude
+        // A number vector that stores latitude and longitude
         INumberVectorProperty LocationNP;
         INumber LocationN[3];
 

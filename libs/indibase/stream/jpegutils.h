@@ -67,7 +67,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
  * @param naxis 1 for mono, 3 for color
  * @param w width of image in pixels
  * @param h height image in pixels
- * @return 0 if decoding sucseeds, -1 otherwise.
+ * @return 0 if decoding succeeds, -1 otherwise.
  */
 int decode_jpeg_rgb(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w,
                     int *h);

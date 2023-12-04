@@ -27,7 +27,7 @@ namespace INDI
 
 /**
  * @namespace INDI::SP
-   @brief INDI Standard Properties are common properties standarized across drivers and clients alike.
+   @brief INDI Standard Properties are common properties standardized across drivers and clients alike.
 
 INDI does not place any special semantics on property names (i.e. properties are just texts, numbers, or switches that represent no physical function). While GUI clients can construct graphical representation of properties in order to permit the user to operate the device, we run into situations where clients and drivers need to agree on the exact meaning of some fundamental properties.
 What if some client need to be aware of the existence of some property in order to perform some function useful to the user? How can that client tie itself to such a property if the property can be arbitrary defined by drivers?
@@ -61,7 +61,7 @@ namespace SP
  * standard properties in the INDI library driver repository.
  *
  * As a <b>general</b> rule of the thumb, the status of properties reflects the command execution result:
- * IPS_OKAY: Command excuted successfully.
+ * IPS_OKAY: Command executed successfully.
  * IPS_BUSY: Command execution under progress.
  * IPS_ALERT: Command execution failed.
  */

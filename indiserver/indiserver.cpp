@@ -451,7 +451,7 @@ class Msg
         friend class SerializedMsgWithSharedBuffer;
         friend class SerializedMsgWithoutSharedBuffer;
     private:
-        // Present for sure until message queing is doned. Prune asap then
+        // Present for sure until message queueing is doned. Prune asap then
         XMLEle * xmlContent;
 
         // Present until message was queued.
@@ -476,7 +476,7 @@ class Msg
         void releaseSharedBuffers(const std::set<int> &keep);
 
         // Remove resources that can be removed.
-        // Will be called when queuingDone is true and for every change of staus from convertionToXXX
+        // Will be called when queuingDone is true and for every change of status from convertionToXXX
         void prune();
 
         void releaseSerialization(SerializedMsg * form);
@@ -1949,7 +1949,7 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
         /* send to interested chained servers upstream */
         // FIXME: no use of root here
         ClInfo::q2Servers(this, mp, root);
-        /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
+        /* Send to snooped drivers if they exist so that they can echo back the snooped property immediately */
         // FIXME: no use of root here
         q2RDrivers(dev, mp, root);
 
@@ -2109,7 +2109,7 @@ void DvrInfo::q2RDrivers(const std::string &dev, Msg *mp, XMLEle *root)
             continue;
 
         /* Only send message to each *unique* remote driver at a particular host:port
-         * Since it will be propogated to all other devices there */
+         * Since it will be propagated to all other devices there */
         if (dev.empty() && isRemote)
         {
             if (remoteAdvertised.find(remoteUid) != remoteAdvertised.end())
@@ -2294,7 +2294,7 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
         auto cp = clients[cpId];
         if (cp == nullptr) continue;
 
-        // Only send the message to the upstream server that is connected specfically to the device in driver dp
+        // Only send the message to the upstream server that is connected specifically to the device in driver dp
         switch (cp->allprops)
         {
             // 0 --> not all props are requested. Check for specific combination
@@ -3107,7 +3107,7 @@ Msg::Msg(MsgQueue * from, XMLEle * ele): sharedBuffers()
 
 Msg::~Msg()
 {
-    // Assume convertionToSharedBlob and convertionToInlineBlob were already droped
+    // Assume convertionToSharedBlob and convertionToInlineBlob were already dropped
     assert(convertionToSharedBuffer == nullptr);
     assert(convertionToInline == nullptr);
 
@@ -3158,7 +3158,7 @@ void Msg::releaseSharedBuffers(const std::set<int> &keep)
 
 void Msg::prune()
 {
-    // Collect ressources required.
+    // Collect resources required.
     SerializationRequirement req;
     if (convertionToSharedBuffer)
     {
@@ -3464,7 +3464,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
             {
                 async_pushChunck(MsgChunck(model + modelOffset, cdataOffset - modelOffset));
             }
-            // Skip the dummy cdata completly
+            // Skip the dummy cdata completely
             modelOffset = cdataOffset + 1;
 
             // Perform inplace base64
@@ -3477,7 +3477,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
                 unsigned long buffSze = sizes[i];
                 const unsigned char* src = (const unsigned char*)blobs[i];
 
-                // split here in smaller chuncks for faster startup
+                // split here in smaller chunks for faster startup
                 // This allow starting write before the whole blob is converted
                 while(buffSze > 0)
                 {

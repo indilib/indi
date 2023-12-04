@@ -47,7 +47,7 @@ namespace INDI
  *       ISNewXXX functions from the same standard functions in your driver.
  *
  * The class communicates with INDI joystick driver which in turn enumerates the game pad and provides
- * three types of constrcuts:
+ * three types of constructs:
  * <ul>
  * <li><b>Joysticks</b>: Each joystick displays a normalized magnitude [0 to 1] and an angle. The angle is measured counter clock wise starting from
  *  the right/east direction [0 to 360]. They are defined as JOYSTICK_# where # is the joystick number.</li>

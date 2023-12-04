@@ -115,7 +115,7 @@ class Interface
         virtual bool saveConfigItems(FILE *fp);
 
         /**
-         * @brief registerHandshake Register a handshake function to be called once the intial connection to the device is established.
+         * @brief registerHandshake Register a handshake function to be called once the initial connection to the device is established.
          * @param callback Handshake function callback
          * @see INDI::Telescope
          */

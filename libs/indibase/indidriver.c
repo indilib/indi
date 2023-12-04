@@ -294,7 +294,7 @@ int dispatch(XMLEle *root, char msg[])
         }
     }
 
-    /* check tag in surmised decreasing order of likelyhood */
+    /* check tag in surmised decreasing order of likelihood */
 
     if (!strcmp(rtag, "newNumberVector"))
     {

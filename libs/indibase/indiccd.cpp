@@ -991,7 +991,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             else
             {
                 FITSHeaderTP.setState(IPS_OK);
-                // Specical keyword
+                // Special keyword
                 if (name == "INDI_CLEAR")
                 {
                     m_CustomFITSKeywords.clear();

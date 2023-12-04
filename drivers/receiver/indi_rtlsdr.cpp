@@ -209,7 +209,7 @@ bool RTLSDR::initProperties()
 
 /********************************************************************************************
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
-** This fucntion is called whenever the device is connected or disconnected.
+** This function is called whenever the device is connected or disconnected.
 *********************************************************************************************/
 bool RTLSDR::updateProperties()
 {
@@ -218,7 +218,7 @@ bool RTLSDR::updateProperties()
 
     if (isConnected())
     {
-        // Inital values
+        // Initial values
         setupParams(1000000, 1420000000, 10);
 
         // Start the timer

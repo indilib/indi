@@ -911,7 +911,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
             if (TrackState == SCOPE_TRACKING && !strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
             {
-                // Check that we do not abruplty change positive tracking rates to negative ones.
+                // Check that we do not abruptly change positive tracking rates to negative ones.
                 // tracking must be stopped first.
                 // Give warning is tracking sign would cause a reverse in direction
                 if ( (preAxis1 * TrackRateN[AXIS_RA].value < 0) || (preAxis2 * TrackRateN[AXIS_DE].value < 0) )
@@ -1268,7 +1268,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 //if (TrackState != SCOPE_PARKED)
                 //TrackState = SCOPE_IDLE;
                 // For Idle, Tracking, Parked state, we do not change its status, it should remain as is.
-                // For Slewing & Parking, state should go back to last rememberd state.
+                // For Slewing & Parking, state should go back to last remembered state.
                 if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
                 {
                     TrackState = RememberTrackState;

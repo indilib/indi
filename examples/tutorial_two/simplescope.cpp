@@ -42,7 +42,7 @@ bool SimpleScope::initProperties()
     // ALWAYS call initProperties() of parent first
     INDI::Telescope::initProperties();
 
-    // Add Debug control so end user can turn debugging/loggin on and off
+    // Add Debug control so end user can turn debugging/logging on and off
     addDebugControl();
 
     // Enable simulation mode so that serial connection in INDI::Telescope does not try
@@ -60,7 +60,7 @@ bool SimpleScope::initProperties()
 ***************************************************************************************/
 bool SimpleScope::Handshake()
 {
-    // When communicating with a real mount, we check here if commands are receieved
+    // When communicating with a real mount, we check here if commands are received
     // and acknolowedged by the mount. For SimpleScope, we simply return true.
     return true;
 }
@@ -133,11 +133,11 @@ bool SimpleScope::ReadScopeStatus()
     da_ra  = SLEW_RATE * dt;
     da_dec = SLEW_RATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act accordingly */
     switch (TrackState)
     {
         case SCOPE_SLEWING:
-            // Wait until we are "locked" into positon for both RA & DEC axis
+            // Wait until we are "locked" into position for both RA & DEC axis
             nlocked = 0;
 
             // Calculate diff in RA
@@ -172,7 +172,7 @@ bool SimpleScope::ReadScopeStatus()
             else
                 currentDEC -= da_dec;
 
-            // Let's check if we recahed position for both RA/DEC
+            // Let's check if we reached position for both RA/DEC
             if (nlocked == 2)
             {
                 // Let's set state to TRACKING

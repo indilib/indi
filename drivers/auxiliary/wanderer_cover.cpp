@@ -124,7 +124,7 @@ bool WandererCover::Handshake()
 {
     if (isSimulation())
     {
-        LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
+        LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...", getDeviceName());
 
         // SetTimer(getCurrentPollingPeriod());
         IUSaveText(&FirmwareT[0], "Simulation version");
@@ -716,7 +716,7 @@ void WandererCover::displayConfigurationMessage()
     LOG_WARN(" - Click on 'Set current position as close' to define the park position");
     LOG_WARN(" - Use again the select list to move your cover panel in close position on the scope");
     LOG_WARN(" - Click on 'Set current position as open' to define the unpark position");
-    LOG_WARN(" - Use the select controler to move your panel to the open position");
+    LOG_WARN(" - Use the select controller to move your panel to the open position");
     LOG_WARN("In order to do so, go to 'Dust cover configurtation' tab and do the following steps :");
     LOG_WARN("Before first use, or when you change your setup, you need to configure Open and closed position first in 'Dust cover configurtation' tab.");
 }

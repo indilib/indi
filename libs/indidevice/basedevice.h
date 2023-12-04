@@ -37,7 +37,7 @@
 /** @class INDI::BaseDevice
  *  @brief Class to provide basic INDI device functionality.
  *
- *  INDI::BaseDevice is the base device for all INDI devices and contains a list of all properties defined by the device either explicity or via a skeleton file.
+ *  INDI::BaseDevice is the base device for all INDI devices and contains a list of all properties defined by the device either explicitly or via a skeleton file.
  *  You don't need to subclass INDI::BaseDevice class directly, it is inheritied by INDI::DefaultDevice which takes care of building a standard INDI device. Moreover, INDI::BaseClient
  *  maintains a list of INDI::BaseDevice objects as they get defined from the INDI server, and those objects may be accessed to retrieve information on the object properties or message log.
  *
@@ -112,12 +112,12 @@ class BaseDevice
          */
         void registerProperty(const INDI::Property &property);
         void registerProperty(const INDI::Property &property,
-                              INDI_PROPERTY_TYPE type); // backward compatiblity (PentaxCCD, PkTriggerCordCCD)
+                              INDI_PROPERTY_TYPE type); // backward compatibility (PentaxCCD, PkTriggerCordCCD)
 
         /** @brief Remove a property
          *  @param name name of property to be removed. Pass NULL to remove the whole device.
          *  @param errmsg buffer to store error message.
-         *  @return 0 if successul, -1 otherwise.
+         *  @return 0 if successful, -1 otherwise.
          */
         int removeProperty(const char *name, char *errmsg);
 
@@ -239,7 +239,7 @@ class BaseDevice
 
         /** @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.
          *  @return driver device interface descriptor.
-         *  @note For example, to know if the driver supports CCD interface, check the retruned value:
+         *  @note For example, to know if the driver supports CCD interface, check the returned value:
          *  @code{.cpp}
          *  if (device.getDriverInterface() & CCD_INTERFACE)
          *       cout << "We received a camera!" << endl;

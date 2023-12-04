@@ -173,7 +173,7 @@ bool PegasusFalcon::ISNewSwitch(const char * dev, const char * name, ISState * s
 }
 
 //////////////////////////////////////////////////////////////////////
-/// move to degrees (Commmand "MD:nn.nn"; Response "MD:nn.nn")
+/// move to degrees (Command "MD:nn.nn"; Response "MD:nn.nn")
 //////////////////////////////////////////////////////////////////////
 IPState PegasusFalcon::MoveRotator(double angle)
 {
