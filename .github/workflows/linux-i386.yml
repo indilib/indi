@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Get INDI Sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v1 # Only v1 is compatible because of the different arch
 
       - name: Build INDI Core
         run: |
