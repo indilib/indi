@@ -111,12 +111,14 @@ class MoonLite : public INDI::Focuser
         // Are we moving?
         bool isMoving();
 
+
         bool MoveFocuser(uint32_t position);
         bool setStepMode(FocusStepMode mode);
         bool setSpeed(int speed);
         bool setTemperatureCalibration(double calibration);
         bool setTemperatureCoefficient(double coefficient);
         bool setTemperatureCompensation(bool enable);
+        bool setGotoHome();
         void timedMoveCallback();
 
         uint32_t targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
@@ -136,6 +138,10 @@ class MoonLite : public INDI::Focuser
         // Temperature Compensation Enable/Disable
         ISwitch TemperatureCompensateS[2];
         ISwitchVectorProperty TemperatureCompensateSP;
+
+        //Goto Home Position
+        ISwitch GotoHomeS[1];
+        ISwitchVectorProperty GotoHomeSP;
 
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };

@@ -71,6 +71,10 @@ bool MoonLite::initProperties()
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
+    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "FOCUS_HOME", "Home", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = 50000.;
@@ -98,6 +102,7 @@ bool MoonLite::updateProperties()
         defineProperty(&StepModeSP);
         defineProperty(&TemperatureSettingNP);
         defineProperty(&TemperatureCompensateSP);
+        defineProperty(&GotoHomeSP);
 
         GetFocusParams();
 
@@ -109,6 +114,8 @@ bool MoonLite::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(GotoHomeSP.name);
+
     }
 
     return true;
@@ -288,6 +295,17 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
     return sendCommand(cmd);
 }
 
+bool MoonLite::setGotoHome()
+{
+    char cmd[ML_RES] = {0};
+    if(isMoving())
+    {
+        AbortFocuser();
+    }
+    snprintf(cmd, ML_RES, ":PH01#");
+    return sendCommand(cmd);
+}
+
 bool MoonLite::SyncFocuser(uint32_t ticks)
 {
     char cmd[ML_RES] = {0};
@@ -387,6 +405,24 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
             IDSetSwitch(&TemperatureCompensateSP, nullptr);
             return true;
         }
+
+        // Goto Home Position
+        if (strcmp(GotoHomeSP.name, name) == 0)
+        {
+            bool rc = setGotoHome();
+            if (!rc)
+            {
+                IUResetSwitch(&GotoHomeSP);
+                GotoHomeSP.s              = IPS_ALERT;
+                IDSetSwitch(&GotoHomeSP, nullptr);
+                return false;
+            }
+
+            GotoHomeSP.s = IPS_OK;
+            IDSetSwitch(&GotoHomeSP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
