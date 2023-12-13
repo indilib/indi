@@ -3,7 +3,7 @@
  Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
 
  The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi.
- The transformations are based on the paper Matrix Method for Coodinates Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
+ The transformations are based on the paper Matrix Method for Coordinates Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -1305,7 +1305,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     {
         if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON || (UseHourAngle && OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON))
         {
-            // Note if the telescope points West, OTA is at east of the pier, and viceversa.
+            // Note if the telescope points West, OTA is at east of the pier, and vice-versa.
             if(hourAngle > 0)
                 OTASide = -1;
             else

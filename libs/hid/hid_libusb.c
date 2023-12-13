@@ -152,7 +152,7 @@ static void free_hid_device(hid_device *dev)
 }
 
 #if 0
-//TODO: Implement this funciton on hidapi/libusb..
+//TODO: Implement this function on hidapi/libusb..
 static void register_error(hid_device * device, const char * op)
 {
 
@@ -770,7 +770,7 @@ static void *read_thread(void *param)
     /* Now that the read thread is stopping, Wake any threads which are
        waiting on data (in hid_read_timeout()). Do this under a mutex to
        make sure that a thread which is about to go to sleep waiting on
-       the condition acutally will go to sleep before the condition is
+       the condition actually will go to sleep before the condition is
        signaled. */
     pthread_mutex_lock(&dev->mutex);
     pthread_cond_broadcast(&dev->condition);
@@ -885,7 +885,7 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
                             int is_output = (ep->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT;
                             int is_input  = (ep->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_IN;
 
-                            /* Decide whether to use it for intput or output. */
+                            /* Decide whether to use it for input or output. */
                             if (dev->input_endpoint == 0 && is_interrupt && is_input)
                             {
                                 /* Use this endpoint for INPUT */
@@ -941,7 +941,7 @@ int HID_API_EXPORT hid_write(hid_device *dev, const unsigned char *data, size_t 
 
     if (dev->output_endpoint <= 0)
     {
-        /* No interrput out endpoint. Use the Control Endpoint */
+        /* No interrupt out endpoint. Use the Control Endpoint */
         res = libusb_control_transfer(dev->device_handle,
                                       LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT,
                                       0x09 /*HID Set_Report*/, (2 /*HID output*/ << 8) | report_number, dev->interface,

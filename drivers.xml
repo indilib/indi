@@ -111,10 +111,6 @@
             <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
             <version>2.3</version>
         </device>
-        <device label="Avalon Legacy" manufacturer="Avalon">
-            <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>2.1</version>
-        </device>
         <device label="Paramount" manufacturer="Software Bisque">
             <driver name="Paramount">indi_paramount_telescope</driver>
             <version>1.1</version>
@@ -491,7 +487,7 @@
         </device>
         <device label="Starlight EFS" manufacturer="Starlight Instruments">
             <driver name="SI EFS">indi_siefs_focus</driver>
-            <version>0.1</version>
+            <version>0.2</version>
         </device>
         <device label="Lacerta MFOC" manufacturer="Lacerta Optics">
             <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>

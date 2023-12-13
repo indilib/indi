@@ -305,7 +305,7 @@ bool MyDCP4ESP::sendCommand(const char *cmd, char *resp)
 
 // Determine which of the 4 channels have temperature probes attached. Only those with probes can be active
 // except for Channel 3 which can mirrior Channels 1 & 2 or be controlled manually.
-// Check to see if each channel can be set to Overide if it doesn't currently have a power output
+// Check to see if each channel can be set to Override if it doesn't currently have a power output
 bool MyDCP4ESP::getActiveChannels()
 {
     char cmd[MDCP_CMD_LENGTH] = {};
@@ -519,7 +519,7 @@ bool MyDCP4ESP::setAmbientOffset(float value)
     return sendCommand(cmd, nullptr); 
 }
 
-// set or reset Channel overide. Channel = 5 resets all channels
+// set or reset Channel override. Channel = 5 resets all channels
 bool MyDCP4ESP::setChannelBoost( unsigned int channel, unsigned int value)
 {
     char cmd[MDCP_CMD_LENGTH] = {};
@@ -839,7 +839,7 @@ bool MyDCP4ESP::readSettings()
 
     if ((ok == 1) && (ch3_mode <= 4))
     {
-        // Enabel/Disable Ch3 Manual Power setting if Ch3 Mode Manual enabled
+        // Enable/Disable Ch3 Manual Power setting if Ch3 Mode Manual enabled
         if ((ch3_mode == CH3MODE_MANUAL) && (!ch3ManualPower))
         {
             defineProperty(Ch3ManualPowerNP);

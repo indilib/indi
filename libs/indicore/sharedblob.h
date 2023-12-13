@@ -1,5 +1,6 @@
-#ifdef INDI_SHARED_BLOB_SUPPORT
 #pragma once
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,4 +48,3 @@ extern void IDSharedBlobSeal(void * ptr);
 
 void * IDSharedBlobAlloc(size_t size);
 
-#endif

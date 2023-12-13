@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     hid_device *handle;
     int i;
 
-#ifdef WIN32
+#ifdef _WIN32
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 #endif
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
     // Set the hid_read() function to be non-blocking.
     hid_set_nonblocking(handle, 1);
 
-    // Try to read from the device. There shoud be no
+    // Try to read from the device. There should be no
     // data here, but execution should not block.
     res = hid_read(handle, buf, 17);
 
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
             printf("waiting...\n");
         if (res < 0)
             printf("Unable to read()\n");
-#ifdef WIN32
+#ifdef _WIN32
         Sleep(500);
 #else
         usleep(500 * 1000);
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
     /* Free static HIDAPI objects. */
     hid_exit();
 
-#ifdef WIN32
+#ifdef _WIN32
     system("pause");
 #endif
 

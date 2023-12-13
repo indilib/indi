@@ -384,7 +384,7 @@ void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32
             case 11: // Novenber
                 ts += (30 * m_septaseconds_per_day);
                 break;
-            case 2: // Feburary
+            case 2: // February
                 if (is_leap_year(year))
                 {
                     ts += (29 * m_septaseconds_per_day);

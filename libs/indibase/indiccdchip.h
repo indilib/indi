@@ -304,7 +304,7 @@ class CCDChip
 
         /**
          * @brief setPixelSize Set CCD Chip pixel size
-         * @param x Horziontal pixel size in microns.
+         * @param x Horizontal pixel size in microns.
          * @param y Vertical pixel size in microns.
          */
         void setPixelSize(double x, double y);
@@ -380,7 +380,7 @@ class CCDChip
         void setNAxis(int value);
 
         /**
-         * @brief setImageExtension Set image exntension
+         * @brief setImageExtension Set image extension
          * @param ext extension (fits, jpeg, raw..etc)
          */
         void setImageExtension(const char *ext);

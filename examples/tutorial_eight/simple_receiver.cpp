@@ -81,7 +81,7 @@ bool SimpleReceiver::initProperties()
 
 /********************************************************************************************
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
-** This fucntion is called whenever the device is connected or disconnected.
+** This function is called whenever the device is connected or disconnected.
 *********************************************************************************************/
 bool SimpleReceiver::updateProperties()
 {
@@ -232,7 +232,7 @@ void SimpleReceiver::TimerHit()
             /* If target temperature is higher, then increase current Receiver temperature */
             if (currentReceiverTemperature < TemperatureRequest)
                 currentReceiverTemperature++;
-            /* If target temperature is lower, then decrese current Receiver temperature */
+            /* If target temperature is lower, then decrease current Receiver temperature */
             else if (currentReceiverTemperature > TemperatureRequest)
                 currentReceiverTemperature--;
             /* If they're equal, stop updating */

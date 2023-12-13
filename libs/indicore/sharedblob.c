@@ -26,21 +26,23 @@
 #include <linux/unistd.h>
 #endif
 
-#include <pthread.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h>
 #include <sys/mman.h>
+#include <pthread.h>
+#endif
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
 #include "shm_open_anon.h"
+static pthread_mutex_t shared_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 // A shared buffer will be allocated by chunk of at least 1M (must be ^ 2)
 #define BLOB_SIZE_UNIT 0x100000
-
-static pthread_mutex_t shared_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct shared_buffer
 {
@@ -62,10 +64,11 @@ static size_t allocation(size_t storage)
     return (storage + BLOB_SIZE_UNIT - 1) & ~(BLOB_SIZE_UNIT - 1);
 }
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
 static void sharedBufferAdd(shared_buffer * sb);
 static shared_buffer * sharedBufferRemove(void * mapstart);
+#endif
 static shared_buffer * sharedBufferFind(void * mapstart);
-
 
 void * IDSharedBlobAlloc(size_t size)
 {
@@ -105,6 +108,7 @@ ERROR:
 
 void * IDSharedBlobAttach(int fd, size_t size)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb = (shared_buffer*)malloc(sizeof(shared_buffer));
     if (sb == NULL) goto ERROR;
     sb->fd = fd;
@@ -125,12 +129,16 @@ ERROR:
         free(sb);
         errno = e;
     }
+#endif
+    (void)fd;
+    (void)size;
     return NULL;
 }
 
 
 void IDSharedBlobFree(void * ptr)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb = sharedBufferRemove(ptr);
     if (sb == NULL)
     {
@@ -149,10 +157,14 @@ void IDSharedBlobFree(void * ptr)
         perror("shared buffer close");
     }
     free(sb);
+#else
+    free(ptr);
+#endif
 }
 
 void IDSharedBlobDettach(void * ptr)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb = sharedBufferRemove(ptr);
     if (sb == NULL)
     {
@@ -166,6 +178,9 @@ void IDSharedBlobDettach(void * ptr)
         _exit(1);
     }
     free(sb);
+#else
+    free(ptr);
+#endif
 }
 
 void * IDSharedBlobRealloc(void * ptr, size_t size)
@@ -183,6 +198,9 @@ void * IDSharedBlobRealloc(void * ptr, size_t size)
         return realloc(ptr, size);
     }
 
+#if defined(_WIN32)
+    return NULL;
+#else
     if (sb->sealed)
     {
         IDSharedBlobFree(ptr);
@@ -226,16 +244,22 @@ void * IDSharedBlobRealloc(void * ptr, size_t size)
     sb->mapstart = remaped;
 
     return remaped;
+#endif
 }
 
 static void seal(shared_buffer * sb)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     void * ret = mmap(sb->mapstart, sb->allocated, PROT_READ, MAP_SHARED | MAP_FIXED, sb->fd, 0);
     if (ret == MAP_FAILED)
     {
         perror("remap readonly failed");
     }
     sb->sealed = 1;
+#else
+    (void)sb;
+    perror("seal unsupported on this platform");
+#endif
 }
 
 int IDSharedBlobGetFd(void * ptr)
@@ -251,17 +275,22 @@ int IDSharedBlobGetFd(void * ptr)
     // Make sure a shared blob is not modified after sharing
     seal(sb);
 
-    return sb->fd;
+    return sb->fd;    
 }
 
 void IDSharedBlobSeal(void * ptr)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     shared_buffer * sb;
     sb = sharedBufferFind(ptr);
     if (sb->sealed) return;
     seal(sb);
+#else
+    (void)ptr;
+#endif
 }
 
+#ifdef ENABLE_INDI_SHARED_MEMORY
 static shared_buffer * first = NULL, *last = NULL;
 
 static void sharedBufferAdd(shared_buffer * sb)
@@ -321,11 +350,17 @@ static shared_buffer * sharedBufferRemove(void * mapstart)
     pthread_mutex_unlock(&shared_buffer_mutex);
     return sb;
 }
+#endif
 
 static shared_buffer * sharedBufferFind(void * mapstart)
 {
+#ifdef ENABLE_INDI_SHARED_MEMORY
     pthread_mutex_lock(&shared_buffer_mutex);
     shared_buffer * sb  = sharedBufferFindUnlocked(mapstart);
     pthread_mutex_unlock(&shared_buffer_mutex);
     return sb;
+#else
+    (void)mapstart;
+    return NULL;
+#endif
 }

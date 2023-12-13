@@ -254,7 +254,7 @@ BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
 
             if (err_code < 0)
             {
-                // Silenty ignore property duplication errors
+                // Silently ignore property duplication errors
                 if (err_code != INDI_PROPERTY_DUPLICATED)
                 {
                     IDLog("Dispatch command error(%d): %s\n", err_code, msg);
@@ -317,7 +317,7 @@ bool BaseClient::connectServer()
 
     IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
 
-#ifndef _WINDOWS
+#if !defined (_WIN32)
     // System with unix support automatically connect over unix domain
     if (d->cServer != "localhost" || d->cServer != "127.0.0.1" || d->connectToHostAndWait("localhost:", d->cPort) == false)
 #endif

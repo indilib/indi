@@ -1,5 +1,7 @@
 FROM fedora:latest
 
+RUN cat /etc/os-release
+
 WORKDIR /tmp
 
 RUN dnf -y upgrade && dnf -y install \
@@ -25,7 +27,8 @@ RUN dnf -y install \
     ffmpeg-devel \
     libftdi-devel \
     gpsd-devel LibRaw-devel libdc1394-devel libgphoto2-devel \
-    boost-devel rtl-sdr-devel
+    boost-devel rtl-sdr-devel \
+    zeromq-devel
 
 # Install Qt5
 RUN dnf -y install \

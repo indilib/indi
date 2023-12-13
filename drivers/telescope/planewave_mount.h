@@ -104,6 +104,6 @@ class PlaneWave : public INDI::Telescope
         static const char DRIVER_STOP_CHAR { 0xA };
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {128};
 };

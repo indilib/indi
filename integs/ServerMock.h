@@ -25,7 +25,7 @@
 class IndiClientMock;
 
 /**
- * Instanciate a fake indi server
+ * Instantiate a fake indi server
  */
 class ServerMock
 {

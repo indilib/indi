@@ -91,7 +91,7 @@ class XISFWrapper;
  * It requires the client to explicitly support websockets. It is not recommended to use this
  * approach unless for the most demanding and FPS sensitive tasks.
  *
- * INDI::CCD and INDI::StreamManager both upload frames asynchrounously in a worker thread.
+ * INDI::CCD and INDI::StreamManager both upload frames asynchronously in a worker thread.
  * The CCD Buffer data is protected by the ccdBufferLock mutex. When reading the camera data
  * and writing to the buffer, it must be first locked by the mutex. After the write is complete
  * release the lock. For example:
@@ -103,7 +103,7 @@ class XISFWrapper;
  * ExposureComplete();
  * \endcode
  *
- * Similiary, before calling Streamer->newFrame, the buffer needs to be protected in a similiar fashion using
+ * Similarly, before calling Streamer->newFrame, the buffer needs to be protected in a similar fashion using
  * the same ccdBufferLock mutex.
  *
  * \example CCD Simulator
@@ -305,7 +305,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool StartExposure(float duration);
 
         /**
-         * \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class
+         * \brief Uploads target Chip exposed buffer as FITS to the client. Derived classes should class
          * this function when an exposure is complete.
          * @param targetChip chip that contains upload image data
          * \note This function is not implemented in CCD, it must be implemented in the child class
@@ -414,7 +414,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool UpdateGuiderFrameType(CCDChip::CCD_FRAME fType);
 
         /**
-         * \brief Setup CCD paramters for primary CCD. Child classes call this function to update
+         * \brief Setup CCD parameters for primary CCD. Child classes call this function to update
          * CCD parameters
          * \param x Frame X coordinates in pixels.
          * \param y Frame Y coordinates in pixels.
@@ -425,7 +425,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual void SetCCDParams(int x, int y, int bpp, float xf, float yf);
 
         /**
-         * \brief Setup CCD paramters for guide head CCD. Child classes call this function to update
+         * \brief Setup CCD parameters for guide head CCD. Child classes call this function to update
          * CCD parameters
          * \param x Frame X coordinates in pixels.
          * \param y Frame Y coordinates in pixels.

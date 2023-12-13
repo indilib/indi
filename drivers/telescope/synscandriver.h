@@ -79,9 +79,9 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
          * @brief sendCommand Send a string command to mount.
          * @param cmd Command to be sent
          * @param cmd_len length of command in bytes. If not specified it is treated as null-terminating string
-         * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to SYN_RES length.
+         * @param res If not nullptr, the function will read until it detects the default delimiter ('#') up to SYN_RES length.
          *        if nullptr, no read back is done and the function returns true.
-         * @param res_len length of buffer to read. If not specified, the buffer will be read until the delimeter is met.
+         * @param res_len length of buffer to read. If not specified, the buffer will be read until the delimiter is met.
          *        if specified, only res_len bytes are ready.
          * @return True if successful, false otherwise.
          */
@@ -184,7 +184,7 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         static const uint8_t SYN_RES = 64;
         // Timeout
         static const uint8_t SYN_TIMEOUT = 3;
-        // Delimeter
+        // Delimiter
         static const char SYN_DEL = {'#'};
         // Mount Information Tab
         static constexpr const char * MOUNT_TAB = "Mount Information";

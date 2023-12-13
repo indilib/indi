@@ -991,7 +991,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             else
             {
                 FITSHeaderTP.setState(IPS_OK);
-                // Specical keyword
+                // Special keyword
                 if (name == "INDI_CLEAR")
                 {
                     m_CustomFITSKeywords.clear();
@@ -1741,7 +1741,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             }
             CaptureFormatSP.apply();
 
-            if (m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
+            if (previousIndex >= 0 && m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
             {
                 m_ConfigCaptureFormatName = CaptureFormatSP.findOnSwitch()->getName();
                 saveConfig(true, CaptureFormatSP.getName());

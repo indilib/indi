@@ -1076,7 +1076,7 @@ void LX200Telescope::mountSim()
     ltv = tv;
     da  = LX200_GENERIC_SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
 

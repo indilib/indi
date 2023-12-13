@@ -211,7 +211,7 @@ void ShelyakDriver::scanProperties( )
     if ( sendCmd( &rsp, "GET;DEVICE_NAME;VALUE" ) )
     {
 
-        // try to find dthe device definition in the .json
+        // try to find the device definition in the .json
         json device;
         if( !findBoard( rsp.parts[4], &device ) )
         {

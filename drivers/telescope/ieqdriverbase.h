@@ -108,7 +108,7 @@ class Base
         **************************************************************************/
         /** Get iEQ current status info */
         bool getStatus(Info *info);
-        /** Initilizes communication with the mount and gets mount model */
+        /** Initializes communication with the mount and gets mount model */
         bool getModel();
         /** Get mainboard and controller firmware only */
         bool getMainFirmware();
@@ -152,7 +152,7 @@ class Base
          * after the command is successfully sent.
          * @param cmd_len if -1, it is assumed that the @a cmd is a null-terminated string. Otherwise, it would write @a cmd_len bytes from
          * the @a cmd buffer.
-         * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimeter DRIVER_STOP_CHAR
+         * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimiter DRIVER_STOP_CHAR
          *  up to DRIVER_LEN length. Otherwise, the function will read @a res_len from the device and store it in @a res.
          * @return True if successful, false otherwise.
          */

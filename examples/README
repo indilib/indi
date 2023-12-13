@@ -58,7 +58,7 @@ $ indiserver -v -p 8000 ./tutorial_four
 
 Now Tutorial Four shall run and load the Skeleton file. Usually skeleton files for drivers are stored under /usr/share/indi/ and end with _sk.xml
 ------------------------------------------------------------------------------------------
-For the inter-driver communications tutorial where it shows have a dome driver and a rain detector driver share information between each other, type the folliwng:
+For the inter-driver communications tutorial where it shows have a dome driver and a rain detector driver share information between each other, type the following:
 
 $ indiserver -v -p 8000 ./tutorial_dome ./tutorial_rain
 

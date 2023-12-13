@@ -67,7 +67,7 @@ int check_magellan_connection(int fd);
 /* Get Double from Sexagisemal */
 int getCommandSexa(int fd, double *value, const char *cmd);
 
-/* Get Calender data */
+/* Get Calendar data */
 int getCalendarDate(int fd, char *date);
 
 #ifdef __cplusplus

@@ -23,7 +23,7 @@
 /*
  $Log$
  Revision 1.4  2005/04/29 16:51:20  mutlaqja
- Adding initial support for Video 4 Linux 2 drivers. This mean that KStars can probably control Meade Lunar Planetary Imager (LPI). V4L2 requires a fairly recent kernel (> 2.6.9) and many drivers don't fully support it yet. It will take sometime. KStars still supports V4L1 and will continue so until V4L1 is obselete. Please test KStars video drivers if you can. Any comments welcomed.
+ Adding initial support for Video 4 Linux 2 drivers. This mean that KStars can probably control Meade Lunar Planetary Imager (LPI). V4L2 requires a fairly recent kernel (> 2.6.9) and many drivers don't fully support it yet. It will take sometime. KStars still supports V4L1 and will continue so until V4L1 is obsolete. Please test KStars video drivers if you can. Any comments welcomed.
 
  CCMAIL: kstars-devel@kde.org
 

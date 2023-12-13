@@ -27,11 +27,11 @@
     modprobe v4l2loopback video_nr=8 card_label="Indi Loopback" exclusive_caps=0,0
     gst-launch-0.10 -v videotestsrc ! 'video/x-raw-bayer, format=(string)bggr, width=640, height=480, framerate=(fraction)2/1' ! v4l2sink device=/dev/video8
 
-    For Gray16 format I use gst-launch with a videotstsrc in GRAY16 format writing in a FIFO and a C program reding the FIFO into the v4l2loopback device
+    For Gray16 format I use gst-launch with a videotstsrc in GRAY16 format writing in a FIFO and a C program reading the FIFO into the v4l2loopback device
     mkfifo /tmp/videopipe
     gst-launch-1.0  -v videotestsrc  ! video/x-raw,format=\(string\)GRAY16_LE,width=1024,height=576,framerate=\(fraction\)25/1 ! filesink location =/tmp/videopipe
     ./gray16_to_v4l2 /dev/video8 < /tmp/videopipe &
-    The C program ./gray16_to_v4l2 is adpated from https://github.com/umlaeute/v4l2loopback/blob/master/examples/yuv4mpeg_to_v4l2.c :
+    The C program ./gray16_to_v4l2 is adapated from https://github.com/umlaeute/v4l2loopback/blob/master/examples/yuv4mpeg_to_v4l2.c :
     process_header/read_header calls are suppressed (copy_frames uses a while (true) loop), frame_width and frame_height are constant
     and V4L2 pixel format is set to V4L2_PIX_FMT_Y16.
 

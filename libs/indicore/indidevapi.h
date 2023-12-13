@@ -38,7 +38,7 @@
  *   INDI Library wrapper functions instead of calling IDxxx directly.
  *   <ul>
  *    <li>IDMessage: Use @ref INDI::Logger "INDI Logging Framework" functions (e.g. LOG_DEBUG..etc) instead.</li>
- *    <li>IDDefXXX: use @ref INDI::DefaultDevice "INDI Default Device" defXXX functions intead.</li>
+ *    <li>IDDefXXX: use @ref INDI::DefaultDevice "INDI Default Device" defXXX functions instead.</li>
  *   </ul>
  *   </li>
  *  <li>IExxx functions to implement the event driven model.</li>
@@ -294,7 +294,7 @@ extern void IDSnoopBLOBs(const char *snooped_device, const char *snooped_propert
 
 /* @{ */
 
-/* signature of a callback, timout caller and work procedure function */
+/* signature of a callback, timeout caller and work procedure function */
 
 /** @typedef IE_CBF
  *  @brief Signature of a callback.
@@ -512,7 +512,7 @@ extern int IUFindOnSwitchIndex(const ISwitchVectorProperty *sp);
 
 /** @brief Returns the name of the first ON switch it finds in the supplied arguments.
  *  @note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
- *  @note This is a convience function intended to be used in ISNewSwitch(...) function to find out ON switch name without having to change actual switch state via IUUpdateSwitch(..)
+ *  @note This is a convenience function intended to be used in ISNewSwitch(...) function to find out ON switch name without having to change actual switch state via IUUpdateSwitch(..)
  *  @param states list of switch states passed by ISNewSwitch()
  *  @param names list of switch names passed by ISNewSwitch()
  *  @param n number of switches passed by ISNewSwitch()
@@ -822,10 +822,6 @@ extern const char *permStr(IPerm p);
 
 /** @brief print the boilerplate comment introducing xml */
 extern void xmlv1();
-
-// Advertize support for shared blob on this platform
-#define INDI_SHARED_BLOB_SUPPORT
-#include "sharedblob.h"
 
 #ifdef __cplusplus
 }

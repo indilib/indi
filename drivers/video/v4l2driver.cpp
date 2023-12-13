@@ -333,7 +333,7 @@ bool V4L2_Driver::updateProperties()
             std::string infoDeviceLabel = std::string(info->deviceLabel);
             std::transform(infoDeviceLabel.begin(), infoDeviceLabel.end(), infoDeviceLabel.begin(), ::tolower);
 
-            // Case insensitive comparision
+            // Case insensitive comparison
             if (infoDeviceName == deviceName || infoDeviceLabel == deviceName)
                 break;
             ++info;
@@ -852,7 +852,7 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
                 LOGF_WARN("Unable to adjust %s (ctrl_id =  0x%X)", ImageAdjustNP.np[i].label,
                           ctrl_id);
             }
-            /* Some controls may have been ajusted by the driver */
+            /* Some controls may have been adjusted by the driver */
             /* a read is mandatory as VIDIOC_S_CTRL is write only and does not return the actual new value */
             v4l_base->getControl(ctrl_id, &(ImageAdjustNP.np[i].value), errmsg);
 
@@ -1739,7 +1739,7 @@ bool V4L2_Driver::Connect()
             return false;
         }
 
-        /* Sucess! */
+        /* Success! */
         LOGF_INFO("%s is online.", getDeviceName());
 
         // If port not stored in config already then save it.

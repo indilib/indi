@@ -187,7 +187,7 @@ bool SkySafariClient::setSlewRate(int slewRate)
 
     int finalSlewRate = slewRate;
 
-    // If slew rate is betwee min and max, we intepolate
+    // If slew rate is between min and max, we interpolate
     if (slewRate > 0 && slewRate < maxSlewRate)
         finalSlewRate = static_cast<int>(ceil(slewRate * maxSlewRate / 3.0));
 

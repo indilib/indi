@@ -64,7 +64,8 @@ inline static size_t indi_strlcpy(char * dst, const char * src, size_t maxlen)
 // C++
 #ifdef __cplusplus
 
-#ifdef _WINDOWS
+// JM 2023.11.25: Not available in Vanilla Windows (Visual Studio 2022) but available with MINGW? How does this affect CYGWIN?
+#if defined (_WIN32) && !defined (__MINGW32__)
 typedef int mode_t;
 #endif
 

@@ -19,7 +19,7 @@ namespace AlignmentSubsystem
 /*! \class TelescopeDirectionVectorSupportFunctions
  *  \brief These functions are used to convert different coordinate systems to and from the
  *  telescope direction vectors (normalised vector/direction cosines) used for telescope coordinates in the
- *  alignment susbsystem.
+ *  alignment subsystem.
  */
 class TelescopeDirectionVectorSupportFunctions
 {

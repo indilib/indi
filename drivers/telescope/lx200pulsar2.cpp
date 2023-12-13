@@ -700,7 +700,7 @@ bool setHomePosition(const int fd, double hp_alt, double hp_az)
     double safe_hp_alt = std::min(std::max(0.0, hp_alt), 90.0);
     // There are odd limits for azimuth because the controller rounds
     // strangely, and defaults to a 180-degree value if it sees a number
-    // as out-of-bounds. The min value here (0.0004) will be intepreted
+    // as out-of-bounds. The min value here (0.0004) will be interpreted
     // as zero, max (359.9994) as 360.
     double safe_hp_az = std::min(std::max(0.0004, hp_az), 359.9994);
     sprintf(cmd, "#:YSX%+08.4lf,%08.4lf#", safe_hp_alt, safe_hp_az);

@@ -41,7 +41,7 @@ extern int dispatch(XMLEle *root, char msg[]);
 //extern void clientMsgCB(int fd, void *arg);
 
 /**
- * @defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuraion options.
+ * @defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuration options.
  * 
  * <p>Drivers can save properties states and values in an XML configuration file. The following functions take an optional filename
  * parameter which specifies the full path of the configuration file. If the filename is set to NULL, the configuration file
@@ -57,7 +57,7 @@ extern int dispatch(XMLEle *root, char msg[]);
  * 
  * <p>If no filename is supplied, each function will try to create the configuration files in the following order:</p>
  * <ol>
- * <li>INDICONFIG environment variable: The functions checks if the envrionment variable is defined, and if so, it shall
+ * <li>INDICONFIG environment variable: The functions checks if the environment variable is defined, and if so, it shall
  * be used as the configuration filename</li>
  * <li>Generate filename: If the <i>device_name</i> is supplied, the function will attempt to set the configuration filename to ~/.indi/device_name_config.xml</li>
  * </ol>
@@ -120,7 +120,7 @@ extern int IUSaveDefaultConfig(const char *source_config, const char *dest_confi
 /** @brief Add opening or closing tag to a configuration file.
  *  A configuration file root XML element is \<INDIDriver\>. This functions add \<INDIDriver\> or \</INDIDriver\> as required.
  *  @param fp file pointer to a configuration file.
- *  @param ctag If 0, \<INDIDriver\> is appened to the configuration file, otherwise \</INDIDriver\> is appeneded and the <i>fp</i> is closed.
+ *  @param ctag If 0, \<INDIDriver\> is appended to the configuration file, otherwise \</INDIDriver\> is appended and the <i>fp</i> is closed.
  *  @param dev device name. Used only for sending notification to the driver if silent is set to 1.
  *  @param silent If silent is 1, it will suppress any output messages to the driver.
  */

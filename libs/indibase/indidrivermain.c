@@ -65,8 +65,8 @@ static int messageHandling = PROCEED_IMMEDIATE;
 
 
 /* callback when INDI client message arrives on stdin.
- * collect and dispatch when see outter element closure.
- * exit if OS trouble or see incompatable INDI version.
+ * collect and dispatch when see outer element closure.
+ * exit if OS trouble or see incompatible INDI version.
  * arg is not used.
  */
 static void clientMsgCB(int fd, void *arg)
@@ -122,7 +122,7 @@ typedef struct DeferredMessage
     struct DeferredMessage * prev;
 } DeferredMessage;
 
-// Messages will accumulate here until beeing processed
+// Messages will accumulate here until being processed
 static DeferredMessage * firstDeferredMessage = NULL;
 static DeferredMessage * lastDeferredMessage = NULL;
 

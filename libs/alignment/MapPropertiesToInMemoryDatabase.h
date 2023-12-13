@@ -59,7 +59,7 @@ namespace AlignmentSubsystem
  *   - READ INCREMENT\n
  *     Increment the pointer before reading the entry.
  *   - LOAD DATABASE\n
- *     Load the databse from local storage.
+ *     Load the database from local storage.
  *   - SAVE DATABASE\n
  *     Save the database to local storage.
  * - ALIGNMENT_POINTSET_COMMIT\n

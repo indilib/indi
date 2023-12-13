@@ -63,7 +63,7 @@ class WeatherInterface
         virtual ~WeatherInterface();
 
         /**
-         * \brief Initilize focuser properties. It is recommended to call this function within
+         * \brief Initialize focuser properties. It is recommended to call this function within
          * initProperties() of your primary device
          * \param statusGroup group for status properties
          * \param paramsGroup group for parameter properties
@@ -114,7 +114,7 @@ class WeatherInterface
          * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
          * </ol>
          * @param name Name of parameter
-         * @param label Label of paremeter (in GUI)
+         * @param label Label of parameter (in GUI)
          * @param numMinOk minimum Ok range value.
          * @param numMaxOk maximum Ok range value.
          * @param percWarning percentage for Warning.

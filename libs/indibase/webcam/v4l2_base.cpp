@@ -463,7 +463,7 @@ bool V4L2_Base::isLXmodCapable()
  * verified against the buffer list. No processing is done actually, and
  * the buffer is immediately requeued.
  *
- * @param errmsg is the error messsage updated in case of error.
+ * @param errmsg is the error message updated in case of error.
  * @return 0 if frame read is processed, or -1 with error message updated.
  */
 int V4L2_Base::read_frame(char * errmsg)
@@ -713,7 +713,7 @@ int V4L2_Base::stop_capturing(char * errmsg)
             break;
 
         case IO_METHOD_MMAP:
-        /* Kernel 3.11 problem with streamoff: vb2_is_busy(queue) remains true so we can not change anything without diconnecting */
+        /* Kernel 3.11 problem with streamoff: vb2_is_busy(queue) remains true so we can not change anything without disconnecting */
         /* It seems that device should be closed/reopened to change any capture format settings. From V4L2 API Spec. (Data Negotiation) */
         /* Switching the logical stream or returning into "panel mode" is possible by closing and reopening the device. */
         /* Drivers may support a switch using VIDIOC_S_FMT. */

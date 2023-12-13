@@ -233,7 +233,7 @@ class SensorInterface : public DefaultDevice
         void setNAxis(int value);
 
         /**
-         * @brief setIntegrationExtension Set integration exntension
+         * @brief setIntegrationExtension Set integration extension
          * @param ext extension (fits, jpeg, raw..etc)
          */
         void setIntegrationFileExtension(const char *ext);
@@ -293,7 +293,7 @@ class SensorInterface : public DefaultDevice
         virtual bool StartIntegration(double duration);
 
         /**
-         * \brief Uploads target Device exposed buffer as FITS to the client. Dervied classes should class
+         * \brief Uploads target Device exposed buffer as FITS to the client. Derived classes should class
          * this function when an Integration is complete.
          * @param targetDevice device that contains upload integration data
          * \note This function is not implemented in Sensor, it must be implemented in the child class
@@ -322,7 +322,7 @@ class SensorInterface : public DefaultDevice
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
          * \param buf The buffer of the fits contents.
-         * \param len The lenght of the buffer.
+         * \param len The length of the buffer.
          * \note In additional to the standard FITS keywords, this function write the following
          * keywords the FITS file:
          * <ul>

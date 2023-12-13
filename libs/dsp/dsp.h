@@ -58,8 +58,8 @@ extern "C" {
 * The DSP API is a collection of essential routines used in astronomy signal processing<br>
 *
 * The DSP API is used for processing monodimensional or multidimensional buffers,<br>
-* generating, tranforming, stack, processing buffers, aligning, convoluting arrays,<br>
-* converting array element types, generate statistics, extract informations from buffers, convolute or<br>
+* generating, transforming, stack, processing buffers, aligning, convoluting arrays,<br>
+* converting array element types, generate statistics, extract information from buffers, convolute or<br>
 * cross-correlate different single or multi dimensional streams, rotate, scale, crop images.<br>
 *
 * \author Ilia Platone
@@ -280,7 +280,7 @@ typedef struct dsp_triangle_t
 } dsp_triangle;
 
 /**
-* \brief Alignment informations needed
+* \brief Alignment information needed
 */
 typedef struct dsp_align_info_t
 {
@@ -366,7 +366,7 @@ typedef union dsp_location_t
 typedef void *(*dsp_func_t) (void *, ...);
 
 /**
-* \brief Contains a set of informations and data relative to a buffer and how to use it
+* \brief Contains a set of information and data relative to a buffer and how to use it
 * \sa dsp_stream_new
 * \sa dsp_stream_add_dim
 * \sa dsp_stream_del_dim
@@ -469,7 +469,7 @@ DLL_EXPORT void dsp_fourier_idft(dsp_stream_p stream);
 DLL_EXPORT void dsp_fourier_2dsp(dsp_stream_p stream);
 
 /**
-* \brief Obtain the complex fourier tranform from the current magnitude and phase buffers
+* \brief Obtain the complex fourier transform from the current magnitude and phase buffers
 * \param stream the inout stream.
 */
 DLL_EXPORT void dsp_fourier_2complex_t(dsp_stream_p stream);
@@ -774,7 +774,7 @@ DLL_EXPORT void dsp_convolution_correlation(dsp_stream_p stream, dsp_stream_p ma
 * \brief Histogram of the inut stream
 * \param stream the stream on which execute
 * \param size the length of the median.
-* \return the output stream if successfull elaboration. NULL if an
+* \return the output stream if successful elaboration. NULL if an
 * error is encountered.
 */
 DLL_EXPORT double* dsp_stats_histogram(dsp_stream_p stream, int size);
@@ -1532,7 +1532,7 @@ DLL_EXPORT dsp_t* dsp_file_composite_2_bayer(dsp_stream_p *src, int red, int wid
 DLL_EXPORT void dsp_file_write_fits_bayer(const char* filename, int components, int bpp, dsp_stream_p* stream);
 
 /**
-* \brief Convert a bayer pattern dsp_t array into a contiguos component array
+* \brief Convert a bayer pattern dsp_t array into a contiguous component array
 * \param src the input buffer
 * \param red the location of the red pixel within the bayer pattern
 * \param width the picture width

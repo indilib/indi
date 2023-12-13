@@ -930,7 +930,7 @@ bool IEQPro::saveConfigItems(FILE *fp)
 //    ltv = tv;
 //    da  = SLEWRATE * dt;
 
-//    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+//    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
 //    switch (TrackState)
 //    {
 //        case SCOPE_IDLE:
@@ -1020,7 +1020,7 @@ bool IEQPro::SetCurrentPark()
 
 bool IEQPro::SetDefaultPark()
 {
-    // By defualt azimuth 0
+    // By default azimuth 0
     SetAxis1Park(0);
 
     // Altitude = latitude of observer

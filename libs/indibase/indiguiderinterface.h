@@ -90,7 +90,7 @@ class GuiderInterface
         ~GuiderInterface();
 
         /**
-         * @brief Initilize guider properties. It is recommended to call this function within
+         * @brief Initialize guider properties. It is recommended to call this function within
          * initProperties() of your primary device
          * @param deviceName Name of the primary device
          * @param groupName Group or tab name to be used to define guider properties.

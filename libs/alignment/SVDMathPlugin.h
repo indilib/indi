@@ -20,7 +20,7 @@ namespace AlignmentSubsystem
 class SVDMathPlugin : public BasicMathPlugin
 {
     private:
-        /// \brief Calculate tranformation matrices from the supplied vectors
+        /// \brief Calculate transformation matrices from the supplied vectors
         /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame
         /// \param[in] Alpha2 Pointer to the second coordinate in the alpha reference frame
         /// \param[in] Alpha3 Pointer to the third coordinate in the alpha reference frame

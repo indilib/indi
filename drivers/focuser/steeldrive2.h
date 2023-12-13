@@ -82,7 +82,7 @@ class SteelDriveII : public INDI::Focuser
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
 
-        // Focuser Informatin
+        // Focuser Information
         ITextVectorProperty InfoTP;
         IText InfoT[2] {};
         enum
@@ -164,6 +164,6 @@ class SteelDriveII : public INDI::Focuser
         static const char DRIVER_STOP_CHAR { 0x0A };
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {192};
 };

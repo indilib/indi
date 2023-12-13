@@ -709,7 +709,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 LOG_INFO("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
                 if (MotorCurrentNP[MOTOR_CURR_HOLD].getValue() < 2.0)
                 {
-                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficent to hold focus",
+                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficient to hold focus",
                               MotorCurrentNP[MOTOR_CURR_HOLD].getValue());
                 }
             }
@@ -985,7 +985,7 @@ void SestoSenso2::TimerHit()
             }
         }
 
-        // Also use temparature poll rate for tracking input voltage
+        // Also use temperature poll rate for tracking input voltage
         rc = updateVoltageIn();
         if (rc)
         {
