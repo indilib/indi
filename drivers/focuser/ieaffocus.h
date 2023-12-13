@@ -39,7 +39,7 @@ class iEAFFocus : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
 //	virtual bool saveConfigItems(FILE * fp) override;
-//	virtual bool ReverseFocuser(bool enabled) override;
+	virtual bool ReverseFocuser(bool enabled) override;
 
     private:
 	unsigned int maxpos{ 0 };   

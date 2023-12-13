@@ -422,13 +422,16 @@ bool iEAFFocus::MoveMyFocuser(uint32_t position)
     return true;
 }
 
-/*
+
 bool iEAFFocus::ReverseFocuser(bool enabled)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[12];
-
+  //  char cmd[12];
+    if (enabled)
+	{
+		;
+	}
 
     // Change Direction
     if ( (rc = tty_write(PortFD, ":FR#", 4, &nbytes_written)) != TTY_OK)
@@ -438,7 +441,7 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
         return false;
     }
 
-
+/*
 	if (enabled)
 	{
 	 FocusReverseS[INDI_ENABLED].s = ISS_ON;
@@ -450,9 +453,9 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
          FocusReverseS[INDI_DISABLED].s = ISS_ON;
 
 	}
+*/
 
-
-
+/*
     if     (FocusReverseS[INDI_DISABLED].s == ISS_ON)
 	{
 		FocusReverseS[INDI_ENABLED].s = ISS_ON;
@@ -461,12 +464,12 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
 	{
 	FocusReverseS[INDI_DISABLED].s = ISS_ON;
 	}
-
+*/
 
     return true;
 }
 
-*/
+
 
 void iEAFFocus::setZero()
 {
