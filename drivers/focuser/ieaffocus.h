@@ -1,5 +1,5 @@
 /*
-    IOPTRON iEAF Focuser
+    IOPTRON iEAF Focuser 2023
     Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,8 +38,8 @@ class iEAFFocus : public INDI::Focuser
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
-	virtual bool saveConfigItems(FILE * fp) override;
-	virtual bool ReverseFocuser(bool enabled) override;
+//	virtual bool saveConfigItems(FILE * fp) override;
+//	virtual bool ReverseFocuser(bool enabled) override;
 
     private:
 	unsigned int maxpos{ 0 };   

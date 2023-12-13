@@ -1,6 +1,5 @@
 /*
-   IOPTRON iEAF Focuser 
-   
+   IOPTRON iEAF Focuser 2023
     Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
 
     This library is free software; you can redistribute it and/or
@@ -64,9 +63,9 @@ bool iEAFFocus::initProperties()
 //    IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
 
-    MaxPositionNP[0].fill("MAXPOSITION", "Maximum position", "%5.0f", 1., 99999., 0., 99999.);
-    MaxPositionNP.fill(getDeviceName(), "FOCUS_MAXPOSITION", "Max. Position",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+//    MaxPositionNP[0].fill("MAXPOSITION", "Maximum position", "%5.0f", 1., 99999., 0., 99999.);
+//    MaxPositionNP.fill(getDeviceName(), "FOCUS_MAXPOSITION", "Max. Position",
+//                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
 
     /* Focuser temperature */
@@ -74,7 +73,7 @@ bool iEAFFocus::initProperties()
 //    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
 //                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%2.2f", 0., 50., 0., 50.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -86,9 +85,9 @@ bool iEAFFocus::initProperties()
     FocusRelPosN[0].value = 0.;
     FocusRelPosN[0].step = 10.;
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 99999.;
-    FocusAbsPosN[0].value = 0.;
+//    FocusAbsPosN[0].min = 0.;
+//    FocusAbsPosN[0].max = 99999.;
+//    FocusAbsPosN[0].value = 0.;
     FocusAbsPosN[0].step = 10.;
 
     addDebugControl();
@@ -104,10 +103,10 @@ bool iEAFFocus::updateProperties()
     {
 	defineProperty(TemperatureNP);
   //      defineProperty(&MaxPosNP);
-	defineProperty(MaxPositionNP);
+//	defineProperty(MaxPositionNP);
         defineProperty(SetZeroSP);
         GetFocusParams();
-        loadConfig(true);
+//        loadConfig(true);
 
         DEBUG(INDI::Logger::DBG_SESSION, "iEAF Focus parameters updated, focuser ready for use.");
     }
@@ -115,7 +114,7 @@ bool iEAFFocus::updateProperties()
     {
    	deleteProperty(TemperatureNP);
 	//deleteProperty(MaxPosNP.name);
-	deleteProperty(MaxPositionNP);
+//	deleteProperty(MaxPositionNP);
         deleteProperty(SetZeroSP);
     }
 
@@ -148,7 +147,7 @@ bool iEAFFocus::Ack()
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":DeviceInfo#",12, &nbytes_written)) != TTY_OK)
     {
-	errstr[MAXRBUF] = {0};    
+	errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "Init send getdeviceinfo  error: %s.", errstr);
         return false;
@@ -186,7 +185,7 @@ bool iEAFFocus::readReverseDirection()
     char joedeviceinfo[12];
 
     int ieafpos,ieafmove,ieaftemp,ieafdir;
-    float current_ieaf_temp;
+//    float current_ieaf_temp;
     sleep(2);
 
     tcflush(PortFD, TCIOFLUSH);
@@ -246,7 +245,6 @@ bool iEAFFocus::updateTemperature()
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
         return false;
-    
     }
     if ( (rc = tty_read_section(PortFD, resp, '#', iEAFFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -282,7 +280,7 @@ bool iEAFFocus::updateTemperature()
 
 
 
-}	
+}
 
 bool iEAFFocus::updatePosition()
 {
@@ -383,12 +381,11 @@ bool iEAFFocus::isMoving()
     tcflush(PortFD, TCIOFLUSH);
 
     resp[nbytes_read] = '\0';
-    
     rc=sscanf(resp,"%7d%d%5d%d",&ieafpos,&ieafmove,&ieaftemp,&ieafdir);
 
     if (rc > 0)
     {
-         if (ieafmove==1) 
+         if (ieafmove==1)
 	 {
 		 return true;
          }
@@ -425,7 +422,7 @@ bool iEAFFocus::MoveMyFocuser(uint32_t position)
     return true;
 }
 
-
+/*
 bool iEAFFocus::ReverseFocuser(bool enabled)
 {
     int nbytes_written = 0, rc = -1;
@@ -441,7 +438,7 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
         return false;
     }
 
-/*
+
 	if (enabled)
 	{
 	 FocusReverseS[INDI_ENABLED].s = ISS_ON;
@@ -453,23 +450,23 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
          FocusReverseS[INDI_DISABLED].s = ISS_ON;
 
 	}
-*/
 
-/*
+
+
     if     (FocusReverseS[INDI_DISABLED].s == ISS_ON)
 	{
 		FocusReverseS[INDI_ENABLED].s = ISS_ON;
 	}
-    else 
+    else
 	{
 	FocusReverseS[INDI_DISABLED].s = ISS_ON;
 	}
-*/
+
 
     return true;
 }
 
-
+*/
 
 void iEAFFocus::setZero()
 {
@@ -691,9 +688,9 @@ bool iEAFFocus::AbortFocuser()
 }
 
 
-bool iEAFFocus::saveConfigItems(FILE * fp)
-{
-    Focuser::saveConfigItems(fp);
+//bool iEAFFocus::saveConfigItems(FILE * fp)
+//{
+//    Focuser::saveConfigItems(fp);
 /*
     IUSaveConfigNumber(fp, &TemperatureSettingNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
@@ -705,5 +702,5 @@ bool iEAFFocus::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &DisplaySP);
 */
     //IUSaveConfigSwitch(fp, &DisplaySP);
-    return true;
-}
+//    return true;
+//}
