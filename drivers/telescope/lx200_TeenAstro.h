@@ -108,6 +108,12 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         bool sendScopeTime();
         bool sendScopeLocation();
 
+        void guideTimeoutNS();
+        void guideTimeoutWE();
+
+        static void guideTimeoutHelperNS(void * p);
+        static void guideTimeoutHelperWE(void * p);
+
         // User interface
 
         INumber SlewAccuracyN[2];
@@ -151,5 +157,8 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         char OldOSStat[RB_MAX_LEN];
         const char *statusCommand;           // :GU# for version 1.1, :GXI# for 1.2 and later
         const char *guideSpeedCommand;       // :SXR0
+
+        int GuideNSTID { -1 };
+        int GuideWETID { -1 };
 
 };
