@@ -58,7 +58,7 @@ extern std::mutex lx200CommsLock;
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(1, 3);           // don't forget to update drivers.xml
+    setVersion(1, 4);           // don't forget to update drivers.xml
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
