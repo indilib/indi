@@ -1152,25 +1152,25 @@ bool LX200_TeenAstro::SetGuideRate(float guideRate)
 IPState LX200_TeenAstro::GuideNorth(uint32_t ms)
 {
     SendPulseCmd(LX200_NORTH, ms);
-    return IPS_OK;
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideSouth(uint32_t ms)
 {
     SendPulseCmd(LX200_SOUTH, ms);
-    return IPS_OK;
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideEast(uint32_t ms)
 {
     SendPulseCmd(LX200_EAST, ms);
-    return IPS_OK;
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideWest(uint32_t ms)
 {
     SendPulseCmd(LX200_WEST, ms);
-    return IPS_OK;
+    return IPS_BUSY;
 }
 
 void LX200_TeenAstro::SendPulseCmd(int8_t direction, uint32_t duration_msec)
