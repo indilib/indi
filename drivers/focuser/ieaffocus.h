@@ -43,7 +43,7 @@ class iEAFFocus : public INDI::Focuser
 
     private:
 	unsigned int maxpos{ 0 };   
-        double targetPos, lastPos;
+        double lastPos;
 
         void GetFocusParams();
         void setZero();

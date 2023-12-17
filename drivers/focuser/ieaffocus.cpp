@@ -140,14 +140,14 @@ const char * iEAFFocus::getDefaultName()
 bool iEAFFocus::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
+//    char errstr[MAXRBUF];
     char resp[16];
     int ieafpos,ieafmodel,ieaflast;
     sleep(2);
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":DeviceInfo#",12, &nbytes_written)) != TTY_OK)
     {
-	errstr[MAXRBUF] = {0};
+	char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "Init send getdeviceinfo  error: %s.", errstr);
         return false;
@@ -155,6 +155,7 @@ bool iEAFFocus::Ack()
 
     if ( (rc = tty_read_section(PortFD, resp, '#', iEAFFOCUS_TIMEOUT * 2, &nbytes_read)) != TTY_OK)
     {
+	char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "Init read deviceinfo error: %s.", errstr);
         return false;
@@ -430,7 +431,7 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
   //  char cmd[12];
     if (enabled)
 	{
-		;
+	 ;
 	}
 
     // Change Direction
