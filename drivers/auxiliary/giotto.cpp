@@ -73,13 +73,14 @@ bool GIOTTO::updateProperties()
     {
         defineProperty(&LightSP);
         defineProperty(&LightIntensityNP);
-        updateLightBoxProperties();
     }
     else
     {
         deleteProperty(LightSP.name);
         deleteProperty(LightIntensityNP.name);
     }
+
+    updateLightBoxProperties();
 
     return true;
 }
