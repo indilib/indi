@@ -240,5 +240,12 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         ISwitchVectorProperty CrashSP;
         ISwitch CrashS[1];
 
+        INDI::PropertySwitch ResolutionSP {2};
+        inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
+        {
+            {1280, 1024},
+            {6000, 4000}
+        };
+
         static const constexpr char* SIMULATOR_TAB = "Simulator Config";
 };

@@ -189,6 +189,14 @@ bool CCDSim::initProperties()
     DirectorySP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     DirectorySP.fill(getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Resolution
+    for (uint8_t i = 0; i < Resolutions.size(); i++)
+    {
+        auto label = (std::ostringstream{} << Resolutions[i].first << " x " << Resolutions[i].second).str();
+        ResolutionSP[i].fill(label.c_str(), label.c_str(), i == 0 ? ISS_ON : ISS_OFF);
+    }
+    ResolutionSP.fill(getDeviceName(), "CCD_RESOLUTION", "Resolution", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
 
 #ifdef USE_EQUATORIAL_PE
@@ -274,6 +282,7 @@ bool CCDSim::updateProperties()
 
         defineProperty(DirectoryTP);
         defineProperty(DirectorySP);
+        defineProperty(ResolutionSP);
 
         setupParameters();
 
@@ -295,6 +304,7 @@ bool CCDSim::updateProperties()
         deleteProperty(OffsetNP.name);
         deleteProperty(DirectoryTP);
         deleteProperty(DirectorySP);
+        deleteProperty(ResolutionSP);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -1205,6 +1215,30 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             DirectorySP.apply(nullptr);
             return true;
         }
+        else if (ResolutionSP.isNameMatch(name))
+        {
+            ResolutionSP.update(states, names, n);
+            ResolutionSP.setState(IPS_OK);
+            ResolutionSP.apply();
+
+            int index = ResolutionSP.findOnSwitchIndex();
+            if (index >= 0 && index < static_cast<int>(Resolutions.size()))
+            {
+                SimulatorSettingsN[SIM_XRES].value = Resolutions[index].first;
+                SimulatorSettingsN[SIM_YRES].value = Resolutions[index].second;
+                SetCCDParams(SimulatorSettingsN[SIM_XRES].value,
+                             SimulatorSettingsN[SIM_YRES].value,
+                             16,
+                             SimulatorSettingsN[SIM_XSIZE].value,
+                             SimulatorSettingsN[SIM_YSIZE].value);
+                UpdateCCDFrame(0, 0, SimulatorSettingsN[SIM_XRES].value, SimulatorSettingsN[SIM_YRES].value);
+                uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
+                PrimaryCCD.setFrameBufferSize(nbuf);
+
+                IDSetNumber(&SimulatorSettingsNP, nullptr);
+            }
+            return true;
+        }
         else if (strcmp(name, CrashSP.name) == 0)
         {
             abort();
@@ -1360,6 +1394,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Directory
     DirectoryTP.save(fp);
+
+    // Resolution
+    ResolutionSP.save(fp);
 
     // Bayer
     IUSaveConfigSwitch(fp, &SimulateBayerSP);
