@@ -429,6 +429,10 @@
             <driver name="Rotator Simulator">indi_simulator_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
+               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
+               <version>1.0</version>
+        </device>
         <device label="Microtouch" manufacturer="Starizona">
             <driver name="Microtouch">indi_microtouch_focus</driver>
             <version>0.1</version>
@@ -721,14 +725,10 @@
             <driver name="DeepSkyDad FR1">indi_deepskydad_fr1</driver>
             <version>1.0</version>
         </device>
-        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
-               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
-               <version>1.0</version>
-        </device>
         <device label="Wanderer Cover V3" manufacturer="Wanderer Astro">
             <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
             <version>1.0</version>
-        </device>        
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
