@@ -192,8 +192,9 @@ bool CCDSim::initProperties()
     // Resolution
     for (uint8_t i = 0; i < Resolutions.size(); i++)
     {
-        auto label = (std::ostringstream{} << Resolutions[i].first << " x " << Resolutions[i].second).str();
-        ResolutionSP[i].fill(label.c_str(), label.c_str(), i == 0 ? ISS_ON : ISS_OFF);
+        std::ostringstream ss;
+        ss << Resolutions[i].first << " x " << Resolutions[i].second;
+        ResolutionSP[i].fill(ss.str().c_str(), ss.str().c_str(), i == 0 ? ISS_ON : ISS_OFF);
     }
     ResolutionSP.fill(getDeviceName(), "CCD_RESOLUTION", "Resolution", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
