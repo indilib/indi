@@ -52,7 +52,7 @@ LX200NYX101::LX200NYX101()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE,
-                                 SLEW_MODES);
+                           SLEW_MODES);
 }
 
 bool LX200NYX101::initProperties()
@@ -75,7 +75,7 @@ bool LX200NYX101::initProperties()
 
     // Overwrite TRACK_CUSTOM, with TRACK_KING
     IUFillSwitch(&TrackModeS[TRACK_KING], "TRACK_KING", "King", ISS_OFF);
-   
+
     // Elevation Limits
     ElevationLimitNP[OVERHEAD].fill("ELEVATION_OVERHEAD", "Overhead", "%g", 60, 90,   1, 90);
     ElevationLimitNP[HORIZON].fill("ELEVATION_HORIZON", "Horizon", "%g", -30, 0,   1, 0);
@@ -86,7 +86,7 @@ bool LX200NYX101::initProperties()
     MeridianLimitNP[0].fill("VALUE", "Degrees (+/- 120)", "%.f", -120, 120, 1, 0);
     MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Limit", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    // Flip 
+    // Flip
     FlipSP[0].fill("Flip", "Flip", ISS_OFF);
     FlipSP.fill(getDeviceName(), "FLIP", "Pier Side", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -104,82 +104,82 @@ bool LX200NYX101::initProperties()
     // Guide Rate
     int guideRate = 1;
     IUGetConfigOnSwitchIndex(getDeviceName(), "GUIDE_RATE", &guideRate);
-    GuideRateSP[0].fill("0.25","0.25", guideRate == 0 ? ISS_ON : ISS_OFF);
-    GuideRateSP[1].fill("0.50","0.50", guideRate == 1 ? ISS_ON : ISS_OFF);
-    GuideRateSP[2].fill("1.00","1.00", guideRate == 2 ? ISS_ON : ISS_OFF);
+    GuideRateSP[0].fill("0.25", "0.25", guideRate == 0 ? ISS_ON : ISS_OFF);
+    GuideRateSP[1].fill("0.50", "0.50", guideRate == 1 ? ISS_ON : ISS_OFF);
+    GuideRateSP[2].fill("1.00", "1.00", guideRate == 2 ? ISS_ON : ISS_OFF);
     GuideRateSP.fill(getDeviceName(), "GUIDE_RATE", "Guide Rate", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     //Go Home
-    HomeSP[0].fill("Home", "Go", ISS_OFF);
-    HomeSP.fill(getDeviceName(), "HOME_GO", "Home go", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    HomeSP[0].fill("GO", "Go", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home go", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     //Reset Home
     ResetHomeSP[0].fill("Home", "Reset", ISS_OFF);
     ResetHomeSP.fill(getDeviceName(), "HOME_RESET", "Home Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     verboseReport = false;
-    VerboseReportSP[0].fill("On","On",  ISS_OFF);
-    VerboseReportSP[1].fill("Off","Off", ISS_ON);
+    VerboseReportSP[0].fill("On", "On",  ISS_OFF);
+    VerboseReportSP[1].fill("Off", "Off", ISS_ON);
     VerboseReportSP.fill(getDeviceName(), "REPORT_VERBOSE", "Verbose", STATUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    Report[0].fill("Report","GU","-");
+    Report[0].fill("Report", "GU", "-");
     Report.fill(getDeviceName(), "Report", "Report", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-#ifdef DEBUG_NYX    
+#ifdef DEBUG_NYX
     DebugCommandTP[0].fill("Command", "", "");
     DebugCommandTP.fill(getDeviceName(), "DebugCommand", "", MAIN_CONTROL_TAB, IP_RW, 0,
                         IPS_IDLE);
 #endif
-    
-    IsTracking[0].fill("IsTracking","n","-");
-    IsTracking.fill(getDeviceName(),"IsTracking","IsTracking",STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IsSlewCompleted[0].fill("IsSlewCompleted","N","-");
-    IsSlewCompleted.fill(getDeviceName(),"IsSlewCompleted","IsSlewCompleted",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsTracking[0].fill("IsTracking", "n", "-");
+    IsTracking.fill(getDeviceName(), "IsTracking", "IsTracking", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IsParked[0].fill("IsParked","p/P","-");
-    IsParked.fill(getDeviceName(),"IsParked","IsParked",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsSlewCompleted[0].fill("IsSlewCompleted", "N", "-");
+    IsSlewCompleted.fill(getDeviceName(), "IsSlewCompleted", "IsSlewCompleted", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IsParkginInProgress[0].fill("IsParkginInProgress","I","-");
-    IsParkginInProgress.fill(getDeviceName(),"IsParkginInProgress","IsParkginInProgress",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsParked[0].fill("IsParked", "p/P", "-");
+    IsParked.fill(getDeviceName(), "IsParked", "IsParked", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IsAtHomePosition[0].fill("IsAtHomePosition","H","-");
-    IsAtHomePosition.fill(getDeviceName(),"IsAtHomePosition","IsAtHomePosition",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsParkginInProgress[0].fill("IsParkginInProgress", "I", "-");
+    IsParkginInProgress.fill(getDeviceName(), "IsParkginInProgress", "IsParkginInProgress", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    MountAltAz[0].fill("MountAltAz","A","-");
-    MountAltAz.fill(getDeviceName(),"MountAltAz","MountAltAz",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsAtHomePosition[0].fill("IsAtHomePosition", "H", "-");
+    IsAtHomePosition.fill(getDeviceName(), "IsAtHomePosition", "IsAtHomePosition", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    MountEquatorial[0].fill("MountEquatorial","E","-");
-    MountEquatorial.fill(getDeviceName(),"MountEquatorial","MountEquatorial",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    MountAltAz[0].fill("MountAltAz", "A", "-");
+    MountAltAz.fill(getDeviceName(), "MountAltAz", "MountAltAz", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    PierNone[0].fill("PierNone","","-");
-    PierNone.fill(getDeviceName(),"PierNone","PierNone",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    MountEquatorial[0].fill("MountEquatorial", "E", "-");
+    MountEquatorial.fill(getDeviceName(), "MountEquatorial", "MountEquatorial", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    PierEast[0].fill("PierEast","T","-");
-    PierEast.fill(getDeviceName(),"PierEast","PierEast",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    PierNone[0].fill("PierNone", "", "-");
+    PierNone.fill(getDeviceName(), "PierNone", "PierNone", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    PierWest[0].fill("PierWest","W","-");
-    PierWest.fill(getDeviceName(),"PierWest","PierWest",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    PierEast[0].fill("PierEast", "T", "-");
+    PierEast.fill(getDeviceName(), "PierEast", "PierEast", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    DoesRefractionComp[0].fill("DoesRefractionComp","r","-");
-    DoesRefractionComp.fill(getDeviceName(),"DoesRefractionComp","DoesRefractionComp",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    PierWest[0].fill("PierWest", "W", "-");
+    PierWest.fill(getDeviceName(), "PierWest", "PierWest", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    WaitingAtHome[0].fill("WaitingAtHome","w","-");
-    WaitingAtHome.fill(getDeviceName(),"WaitingAtHome","WaitingAtHome",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    DoesRefractionComp[0].fill("DoesRefractionComp", "r", "-");
+    DoesRefractionComp.fill(getDeviceName(), "DoesRefractionComp", "DoesRefractionComp", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IsHomePaused[0].fill("IsHomePaused","u","-");
-    IsHomePaused.fill(getDeviceName(),"IsHomePaused","IsHomePaused",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    WaitingAtHome[0].fill("WaitingAtHome", "w", "-");
+    WaitingAtHome.fill(getDeviceName(), "WaitingAtHome", "WaitingAtHome", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    ParkFailed[0].fill("ParkFailed","F","-");
-    ParkFailed.fill(getDeviceName(),"ParkFailed","ParkFailed",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    IsHomePaused[0].fill("IsHomePaused", "u", "-");
+    IsHomePaused.fill(getDeviceName(), "IsHomePaused", "IsHomePaused", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    SlewingHome[0].fill("SlewingHome","h","-");
-    SlewingHome.fill(getDeviceName(),"SlewingHome","SlewingHome",STATUS_TAB, IP_RO, 60, IPS_IDLE);
+    ParkFailed[0].fill("ParkFailed", "F", "-");
+    ParkFailed.fill(getDeviceName(), "ParkFailed", "ParkFailed", STATUS_TAB, IP_RO, 60, IPS_IDLE);
 
-    // Reboot 
+    SlewingHome[0].fill("SlewingHome", "h", "-");
+    SlewingHome.fill(getDeviceName(), "SlewingHome", "SlewingHome", STATUS_TAB, IP_RO, 60, IPS_IDLE);
+
+    // Reboot
     RebootSP[0].fill("Reboot", "Reboot", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT", "Reboot", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-  
+
     // Slew Rates
     strncpy(SlewRateS[0].label, "2x", MAXINDILABEL);
     strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
@@ -208,7 +208,7 @@ bool LX200NYX101::updateProperties()
         char status[DRIVER_LEN] = {0};
         if (sendCommand(":GU#", status))
         {
-            if(strchr(status,'P'))
+            if(strchr(status, 'P'))
                 SetParked(true);
             else
                 SetParked(false);
@@ -249,7 +249,7 @@ bool LX200NYX101::updateProperties()
             std::string c = status;
             MeridianLimitNP[0].setValue(std::stoi(c));
         }
-        
+
         defineProperty(MountTypeSP);
         defineProperty(GuideRateSP);
         defineProperty(HomeSP);
@@ -390,7 +390,7 @@ bool LX200NYX101::ReadScopeStatus()
     //bool _SlewingHome = false;
     SetPropertyText(SlewingHome, IPS_BUSY);
 
-    char status[DRIVER_LEN] = {0};    
+    char status[DRIVER_LEN] = {0};
     if(sendCommand(":GU#", status))
     {
         Report[0].text = status;
@@ -400,89 +400,92 @@ bool LX200NYX101::ReadScopeStatus()
         {
             switch (status[index++])
             {
-            case 'n':
-                _IsTracking = false;
-                SetPropertyText(IsTracking, IPS_BUSY);
-                continue;
-            case 'N':
-                _IsSlewCompleted = true;
-                 SetPropertyText(IsSlewCompleted, IPS_OK);
-                continue;
-            case 'p':
-                _IsParked = false;
-                SetPropertyText(IsParked, IPS_BUSY);
-                continue;
-            case 'P':
-                _IsParked = true;
-                SetPropertyText(IsParked, IPS_OK);
-                continue;
-            case 'I':
-                //_IsParkginInProgress = true;
-                SetPropertyText(IsParkginInProgress, IPS_OK);
-                continue;
-            case 'H':
-                //_IsAtHomePosition = true;
-                SetPropertyText(IsAtHomePosition, IPS_OK);
-                continue;
-            case '(':
-                _TrackingMode = TRACK_LUNAR;
-                continue;
-            case 'O':
-                _TrackingMode = TRACK_SOLAR;
-                continue;
-            case 'k':
-                _TrackingMode = TRACK_KING;
-                continue;
-            case 'A':
-                //_MountType = AltAz;
-                SetPropertyText(MountAltAz, IPS_OK);
-                SetPropertyText(MountEquatorial, IPS_BUSY);
-                continue;
-            case 'E':
-                //_MountType = Equatorial;
-                SetPropertyText(MountEquatorial, IPS_OK);
-                SetPropertyText(MountAltAz, IPS_BUSY);
-                continue;
-            case 'T':
-                _PierSide = PIER_EAST;
-                continue;
-            case 'W':
-                _PierSide = PIER_WEST;
-                continue;
-            case 'r':
-                _DoesRefractionComp = true;
-                SetPropertyText(DoesRefractionComp, IPS_OK);
-                continue;
-            case 'w':
-                //_WaitingAtHome = true;
-                SetPropertyText(WaitingAtHome, IPS_OK);
-                continue;
-            case 'u':
-                //_IsHomePaused = true;
-                SetPropertyText(IsHomePaused, IPS_OK);
-                continue;
-            case 'F':
-                //_ParkFailed = true;
-                SetPropertyText(ParkFailed, IPS_OK);
-                continue;
-            case 'h':
-                //_SlewingHome = true;
-                SetPropertyText(SlewingHome, IPS_OK);
-                continue;
-            case '#':
-                break;
-            default:
-                continue;
+                case 'n':
+                    _IsTracking = false;
+                    SetPropertyText(IsTracking, IPS_BUSY);
+                    continue;
+                case 'N':
+                    _IsSlewCompleted = true;
+                    SetPropertyText(IsSlewCompleted, IPS_OK);
+                    continue;
+                case 'p':
+                    _IsParked = false;
+                    SetPropertyText(IsParked, IPS_BUSY);
+                    continue;
+                case 'P':
+                    _IsParked = true;
+                    SetPropertyText(IsParked, IPS_OK);
+                    continue;
+                case 'I':
+                    //_IsParkginInProgress = true;
+                    SetPropertyText(IsParkginInProgress, IPS_OK);
+                    continue;
+                case 'H':
+                    //_IsAtHomePosition = true;
+                    SetPropertyText(IsAtHomePosition, IPS_OK);
+                    continue;
+                case '(':
+                    _TrackingMode = TRACK_LUNAR;
+                    continue;
+                case 'O':
+                    _TrackingMode = TRACK_SOLAR;
+                    continue;
+                case 'k':
+                    _TrackingMode = TRACK_KING;
+                    continue;
+                case 'A':
+                    //_MountType = AltAz;
+                    SetPropertyText(MountAltAz, IPS_OK);
+                    SetPropertyText(MountEquatorial, IPS_BUSY);
+                    continue;
+                case 'E':
+                    //_MountType = Equatorial;
+                    SetPropertyText(MountEquatorial, IPS_OK);
+                    SetPropertyText(MountAltAz, IPS_BUSY);
+                    continue;
+                case 'T':
+                    _PierSide = PIER_EAST;
+                    continue;
+                case 'W':
+                    _PierSide = PIER_WEST;
+                    continue;
+                case 'r':
+                    _DoesRefractionComp = true;
+                    SetPropertyText(DoesRefractionComp, IPS_OK);
+                    continue;
+                case 'w':
+                    //_WaitingAtHome = true;
+                    SetPropertyText(WaitingAtHome, IPS_OK);
+                    continue;
+                case 'u':
+                    //_IsHomePaused = true;
+                    SetPropertyText(IsHomePaused, IPS_OK);
+                    continue;
+                case 'F':
+                    //_ParkFailed = true;
+                    SetPropertyText(ParkFailed, IPS_OK);
+                    continue;
+                case 'h':
+                    //_SlewingHome = true;
+                    SetPropertyText(SlewingHome, IPS_OK);
+                    continue;
+                case '#':
+                    break;
+                default:
+                    continue;
             }
             break;
         }
     }
-    if(_DoesRefractionComp ){
+    if(_DoesRefractionComp )
+    {
         RefractSP[REFRACT_ON].setState(ISS_ON);
         RefractSP[REFRACT_OFF].setState(ISS_OFF);
         RefractSP.setState(IPS_OK);
         RefractSP.apply();
-     } else {
+    }
+    else
+    {
         RefractSP[REFRACT_ON].setState(ISS_OFF);
         RefractSP[REFRACT_OFF].setState(ISS_ON);
         RefractSP.setState(IPS_OK);
@@ -578,14 +581,14 @@ bool LX200NYX101::ISNewNumber(const char *dev, const char *name, double values[]
                 if (MeridianLimitNP.getState() == IPS_OK)
                 {
                     LOGF_INFO("Meridian!: ",  MeridianLimitNP[0].getValue());
-                    
+
                 }
             }
             else
             {
                 MeridianLimitNP.setState(IPS_OK);
             }
-            
+
             MeridianLimitNP.apply();
             return true;
         }
@@ -594,7 +597,7 @@ bool LX200NYX101::ISNewNumber(const char *dev, const char *name, double values[]
         {
             if(ElevationLimitNP.update(values, names, n))
             {
-                for(int i = 0; i<n; ++i)
+                for(int i = 0; i < n; ++i)
                 {
                     if(ElevationLimitNP[OVERHEAD].isNameMatch(names[i]))
                     {
@@ -612,7 +615,7 @@ bool LX200NYX101::ISNewNumber(const char *dev, const char *name, double values[]
             }
         }
     }
-    
+
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -709,15 +712,16 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
         {
             SafetyLimitSP.update(states, names, n);
             auto index = SafetyLimitSP.findOnSwitchIndex();
-            switch(index){
-            case SET_SAFETY_LIMIT:
-                sendCommand(":Sc1#");
-                sendCommand(":Sc#");
-                break;
-            case CLEAR_SAFETY_LIMIT:
-                sendCommand(":Sc0#");
-                sendCommand(":Sc#");
-                break;
+            switch(index)
+            {
+                case SET_SAFETY_LIMIT:
+                    sendCommand(":Sc1#");
+                    sendCommand(":Sc#");
+                    break;
+                case CLEAR_SAFETY_LIMIT:
+                    sendCommand(":Sc0#");
+                    sendCommand(":Sc#");
+                    break;
             }
             SafetyLimitSP.apply();
             return true;
@@ -727,13 +731,14 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             RefractSP.update(states, names, n);
             auto index = RefractSP.findOnSwitchIndex();
 
-            switch(index){
-            case REFRACT_ON:
-                sendCommand(":Tr#");
-                break;
-            case REFRACT_OFF:
-                sendCommand(":Tn#");
-                break;
+            switch(index)
+            {
+                case REFRACT_ON:
+                    sendCommand(":Tr#");
+                    break;
+                case REFRACT_OFF:
+                    sendCommand(":Tn#");
+                    break;
             }
             RefractSP.apply();
             return true;
@@ -784,20 +789,20 @@ bool LX200NYX101::ISNewText(const char *dev, const char *name, char *texts[], ch
         if (DebugCommandTP.isNameMatch(name))
         {
             DebugCommandTP.update(texts, names, n);
-            for(int i = 0; i<n; i++)
+            for(int i = 0; i < n; i++)
             {
                 if(DebugCommandTP[0].isNameMatch(names[i]))
                 {
                     char status[DRIVER_LEN] = {0};
                     sendCommand(texts[i]);
-                    i=n;
+                    i = n;
                 }
             }
             return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);
-    
+
 }
 #endif
 
@@ -806,36 +811,36 @@ bool LX200NYX101::SetSlewRate(int index)
     double value = 0.0;
     switch(index)
     {
-    case 0:
-        value = 0.01;
-        break;
-    case 1:
-        value = 0.03;
-        break;
-    case 2:
-        value = 0.07;
-        break;
-    case 3:
-        value = 0.27;
-        break;
-    case 4:
-        value = 0.50;
-        break;
-    case 5:
-        value = 0.65;
-        break;
-    case 6:
-        value = 0.80;
-        break;
-    case 7:
-        value = 1;
-        break;
-    case 8:
-        value = 2.5;
-        break;
-    case 9:
-        value = 5;
-        break;
+        case 0:
+            value = 0.01;
+            break;
+        case 1:
+            value = 0.03;
+            break;
+        case 2:
+            value = 0.07;
+            break;
+        case 3:
+            value = 0.27;
+            break;
+        case 4:
+            value = 0.50;
+            break;
+        case 5:
+            value = 0.65;
+            break;
+        case 6:
+            value = 0.80;
+            break;
+        case 7:
+            value = 1;
+            break;
+        case 8:
+            value = 2.5;
+            break;
+        case 9:
+            value = 5;
+            break;
     };
 
     char decCommand[DRIVER_LEN] = {0};
@@ -856,19 +861,20 @@ bool LX200NYX101::setGuideRate(int rate)
 
 bool LX200NYX101::SetTrackMode(uint8_t mode)
 {
-    switch(mode){
-    case TRACK_SIDEREAL:
-        return sendCommand(":TQ#");
-        break;
-    case TRACK_SOLAR:
-        return sendCommand(":TS#");
-        break;
-    case TRACK_LUNAR:
-        return sendCommand(":TL#");
-        break;
-    case TRACK_KING:
-        return sendCommand(":TK#");
-        break;
+    switch(mode)
+    {
+        case TRACK_SIDEREAL:
+            return sendCommand(":TQ#");
+            break;
+        case TRACK_SOLAR:
+            return sendCommand(":TS#");
+            break;
+        case TRACK_LUNAR:
+            return sendCommand(":TL#");
+            break;
+        case TRACK_KING:
+            return sendCommand(":TK#");
+            break;
     }
     return false;
 }

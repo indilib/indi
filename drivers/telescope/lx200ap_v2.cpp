@@ -129,8 +129,8 @@ bool LX200AstroPhysicsV2::initProperties()
     initRateLabels();
 
     // Home button for clutch aware mounts with encoders.
-    IUFillSwitch(&HomeAndReSyncS[0], "Home and ReSync", "Home and ReSync", ISS_OFF);
-    IUFillSwitchVector(&HomeAndReSyncSP, HomeAndReSyncS, 1, getDeviceName(), "HOME_AND_RESYNC",
+    IUFillSwitch(&HomeAndReSyncS[0], "GO", "Home and ReSync", ISS_OFF);
+    IUFillSwitchVector(&HomeAndReSyncSP, HomeAndReSyncS, 1, getDeviceName(), "TELESCOPE_HOME",
                        "HomeAndReSync", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Manual-set-mount-to-parked button for recovering from issues.

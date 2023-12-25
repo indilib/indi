@@ -72,8 +72,8 @@ bool LX200ZEQ25::initProperties()
     // 64x is the default
     SlewRateS[4].s = ISS_ON;
 
-    IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */

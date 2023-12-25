@@ -131,10 +131,10 @@ bool IOptronV3::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FIND", "Find", ISS_OFF);
+    IUFillSwitch(&HomeS[IOP_SET_HOME], "SET", "Set As Current", ISS_OFF);
+    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* v3.0 Create PEC Training switches */
