@@ -466,6 +466,7 @@ bool LX200AM5::Park()
 bool LX200AM5::UnPark()
 {
     TrackState = SCOPE_IDLE;
+    SetParked(false);
     return true;
 }
 
