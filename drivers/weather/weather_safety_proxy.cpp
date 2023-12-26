@@ -28,7 +28,12 @@
 #include <cstring>
 #include <curl/curl.h>
 
-#include "json.h"
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
+
 #include "weather_safety_proxy.h"
 
 using json = nlohmann::json;

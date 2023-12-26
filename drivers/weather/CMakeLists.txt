@@ -27,7 +27,7 @@ install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin)
 SET(weathersafetyproxy_SRC
     weather_safety_proxy.cpp)
 add_executable(indi_weather_safety_proxy ${weathersafetyproxy_SRC})
-target_link_libraries(indi_weather_safety_proxy indidriver ${CURL})
+target_link_libraries(indi_weather_safety_proxy indidriver ${CURL} ${JSONLIB})
 install(TARGETS indi_weather_safety_proxy RUNTIME DESTINATION bin)
 
 # ########## MBox Driver ###############
@@ -63,5 +63,5 @@ IF(UNITY_BUILD)
 ENDIF()
 
 add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
-target_link_libraries(indi_openweathermap_weather indidriver ${CURL})
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL} ${JSONLIB})
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
