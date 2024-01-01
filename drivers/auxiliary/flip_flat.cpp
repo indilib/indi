@@ -145,6 +145,14 @@ bool FlipFlat::Handshake()
 
     PortFD = serialConnection->getPortFD();
 
+    /* Try handshake first in case of virtual serial port where ioctl will fail*/
+    if (ping())
+    {
+        return true;
+    } 
+  
+    LOGF_DEBUG("Initial handshake unsuccessful, dropping RTS", command);
+
     /* Drop RTS */
     int i = 0;
     i |= TIOCM_RTS;
