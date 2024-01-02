@@ -150,6 +150,12 @@ bool FlipFlat::Handshake()
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMBIC, &i) != 0)
     {
+        /* Try ping anyway, to allow flip-flat implementations using virtual serial ports to proceed */
+        if(ping())
+        {
+          LOG_DEBUG("Successfully connected to flip-flat without hardware IOCTL");
+          return true;
+        }
         LOGF_ERROR("IOCTL error %s.", strerror(errno));
         return false;
     }
