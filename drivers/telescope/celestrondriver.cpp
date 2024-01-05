@@ -354,7 +354,11 @@ bool CelestronDriver::get_version(char *version, size_t size)
     if (!send_command("V", 1, response, 3, true, false))
         return false;
 
-    snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+    // Versions up to 2.2 have a single-digit minor version
+    if (static_cast<uint8_t>(response[0]) > 2)
+        snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+    else
+        snprintf(version, size, "%d.%d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
 
     LOGF_INFO("Controller version: %s", version);
     return true;
