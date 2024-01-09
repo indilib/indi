@@ -1078,6 +1078,8 @@ void SkywatcherAPIMount::TimerHit()
             {
                 m_ManualMotionActive = false;
                 resetTracking();
+                m_SkyTrackingTarget.rightascension = EqN[AXIS_RA].value;
+                m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
             }
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
