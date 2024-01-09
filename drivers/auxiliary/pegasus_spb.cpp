@@ -406,7 +406,7 @@ bool PegasusSPB::ISNewNumber(const char * dev, const char * name, double values[
             IPState result = IPS_OK;
             if (isConnected())
             {
-                if(!setDewPortPower(1, static_cast<int>(std::round(values[0]))))
+                if(!setDewPortPower(1, values[0]))
                 {
                     result = IPS_ALERT;
                 }
