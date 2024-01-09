@@ -66,8 +66,8 @@ bool Rainbow::initProperties()
     SetParkDataType(PARK_AZ_ALT);
 
     // Homing
-    IUFillSwitch(&HomeS[0], "HOME", "Go Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
     // Star Alignment on Sync

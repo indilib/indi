@@ -991,7 +991,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             else
             {
                 FITSHeaderTP.setState(IPS_OK);
-                // Specical keyword
+                // Special keyword
                 if (name == "INDI_CLEAR")
                 {
                     m_CustomFITSKeywords.clear();
@@ -1024,6 +1024,8 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                         else
                         {
                             // String
+                            // Escape the value since backslashes are reserved /
+                            std::replace(value.begin(), value.end(), '/', '\\');
                             FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
                             m_CustomFITSKeywords[name.c_str()] = record;
                         }
@@ -1032,6 +1034,7 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                     catch (std::exception &e)
                     {
                         // String
+                        std::replace(value.begin(), value.end(), '/', '\\');
                         FITSRecord record(name.c_str(), value.c_str(), comment.c_str());
                         m_CustomFITSKeywords[name.c_str()] = record;
                     }
@@ -1738,7 +1741,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             }
             CaptureFormatSP.apply();
 
-            if (m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
+            if (previousIndex >= 0 && m_ConfigCaptureFormatName != CaptureFormatSP.findOnSwitch()->getName())
             {
                 m_ConfigCaptureFormatName = CaptureFormatSP.findOnSwitch()->getName();
                 saveConfig(true, CaptureFormatSP.getName());
@@ -1944,16 +1947,17 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
     double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
-
     AutoCNumeric locale;
     fitsKeywords.push_back({"ROWORDER", "TOP-DOWN", "Row Order"});
-    fitsKeywords.push_back({"INSTRUME", getDeviceName(), "CCD Name"});
+    fitsKeywords.push_back({"INSTRUME", getDeviceName(), "Camera Name"});
 
     // Telescope
-    if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
+    // Only add keyword if not already exists in custom keywords
+    if (m_CustomFITSKeywords.count("TELESCOP") == 0 && strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
     {
         fitsKeywords.push_back({"TELESCOP", ActiveDeviceT[0].text, "Telescope name"});
     }
+
 
     // Which scope is in effect
     // Prefer Scope Info over snooped property which should be deprecated.

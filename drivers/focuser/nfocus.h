@@ -104,6 +104,6 @@ class NFocus : public INDI::Focuser
         static constexpr const uint8_t NFOCUS_TEMPERATURE_FREQ {10};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t NFOCUS_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t NFOCUS_LEN {64};
 };

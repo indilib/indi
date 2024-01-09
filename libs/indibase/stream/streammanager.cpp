@@ -1037,7 +1037,7 @@ bool StreamManagerPrivate::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)",
+            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoretical FPS %.f)",
                       StreamExposureNP[0].getValue(), 1 / StreamExposureNP[0].getValue());
 
             FPSAverage.reset();

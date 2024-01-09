@@ -3,7 +3,7 @@
  Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
 
  The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi.
- The transformations are based on the paper Matrix Method for Coodinates Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
+ The transformations are based on the paper Matrix Method for Coordinates Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -63,7 +63,7 @@ class TCP;
 
    Developers need to subclass INDI::Dome to implement any driver for Domes within INDI.
 
-  \note The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi. The transformations are based on the paper Matrix Method for Coodinates
+  \note The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi. The transformations are based on the paper Matrix Method for Coordinates
  Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
 
 \author Jasem Mutlaq
@@ -155,7 +155,7 @@ class Dome : public DefaultDevice
         {
             DOME_CAN_ABORT          = 1 << 0, /*!< Can the dome motion be aborted? */
             DOME_CAN_ABS_MOVE       = 1 << 1, /*!< Can the dome move to an absolute azimuth position? */
-            DOME_CAN_REL_MOVE       = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
+            DOME_CAN_REL_MOVE       = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degrees is Clockwise direction. Negative Degrees is counter clock wise direction */
             DOME_CAN_PARK           = 1 << 3, /*!< Can the dome park and unpark itself? */
             DOME_CAN_SYNC           = 1 << 4, /*!< Can the dome sync to arbitrary position? */
             DOME_HAS_SHUTTER        = 1 << 5, /*!< Does the dome has a shutter than can be opened and closed electronically? */
@@ -420,13 +420,13 @@ class Dome : public DefaultDevice
 
         /**
              * @brief SetRAPark Set current AZ parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
-             * @param value current Axis 1 value (AZ either in angles or encoder values as specificed by the DomeParkData type).
+             * @param value current Axis 1 value (AZ either in angles or encoder values as specified by the DomeParkData type).
              */
         void SetAxis1Park(double value);
 
         /**
              * @brief SetAxis1Park Set default AZ parking position.
-             * @param value Default Axis 1 value (AZ either in angles or encoder values as specificed by the DomeParkData type).
+             * @param value Default Axis 1 value (AZ either in angles or encoder values as specified by the DomeParkData type).
              */
         void SetAxis1ParkDefault(double steps);
 
@@ -603,7 +603,7 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 
-        // Backlash toogle
+        // Backlash toggle
         ISwitchVectorProperty DomeBacklashSP;
         ISwitch DomeBacklashS[2];
 

@@ -189,6 +189,15 @@ bool CCDSim::initProperties()
     DirectorySP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     DirectorySP.fill(getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Resolution
+    for (uint8_t i = 0; i < Resolutions.size(); i++)
+    {
+        std::ostringstream ss;
+        ss << Resolutions[i].first << " x " << Resolutions[i].second;
+        ResolutionSP[i].fill(ss.str().c_str(), ss.str().c_str(), i == 0 ? ISS_ON : ISS_OFF);
+    }
+    ResolutionSP.fill(getDeviceName(), "CCD_RESOLUTION", "Resolution", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
 
 #ifdef USE_EQUATORIAL_PE
@@ -274,6 +283,7 @@ bool CCDSim::updateProperties()
 
         defineProperty(DirectoryTP);
         defineProperty(DirectorySP);
+        defineProperty(ResolutionSP);
 
         setupParameters();
 
@@ -295,6 +305,7 @@ bool CCDSim::updateProperties()
         deleteProperty(OffsetNP.name);
         deleteProperty(DirectoryTP);
         deleteProperty(DirectorySP);
+        deleteProperty(ResolutionSP);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -311,9 +322,10 @@ int CCDSim::SetTemperature(double temperature)
         return 1;
     }
 
-    CoolerS[0].s = ISS_ON;
-    CoolerS[1].s = ISS_OFF;
-    CoolerSP.s   = IPS_BUSY;
+    auto isCooling = TemperatureRequest < temperature;
+    CoolerS[0].s = isCooling ? ISS_ON : ISS_OFF;
+    CoolerS[1].s = isCooling ? ISS_OFF : ISS_ON;
+    CoolerSP.s   = isCooling ? IPS_BUSY : IPS_IDLE;
     IDSetSwitch(&CoolerSP, nullptr);
     return 0;
 }
@@ -410,7 +422,7 @@ void CCDSim::TimerHit()
             float timeleft;
             timeleft = CalcTimeLeft(ExpStart, ExposureRequest);
 
-            //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
+            //IDLog("CCD Exposure left: %g - Request: %g\n", timeleft, ExposureRequest);
             if (timeleft < 0)
                 timeleft = 0;
 
@@ -723,7 +735,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                 while (fgets(line, 256, pp) != nullptr)
                 {
-                    //  ok, lets parse this line for specifcs we want
+                    //  ok, lets parse this line for specifics we want
                     char id[20];
                     char plate[6];
                     char ob[6];
@@ -1204,6 +1216,30 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             DirectorySP.apply(nullptr);
             return true;
         }
+        else if (ResolutionSP.isNameMatch(name))
+        {
+            ResolutionSP.update(states, names, n);
+            ResolutionSP.setState(IPS_OK);
+            ResolutionSP.apply();
+
+            int index = ResolutionSP.findOnSwitchIndex();
+            if (index >= 0 && index < static_cast<int>(Resolutions.size()))
+            {
+                SimulatorSettingsN[SIM_XRES].value = Resolutions[index].first;
+                SimulatorSettingsN[SIM_YRES].value = Resolutions[index].second;
+                SetCCDParams(SimulatorSettingsN[SIM_XRES].value,
+                             SimulatorSettingsN[SIM_YRES].value,
+                             16,
+                             SimulatorSettingsN[SIM_XSIZE].value,
+                             SimulatorSettingsN[SIM_YSIZE].value);
+                UpdateCCDFrame(0, 0, SimulatorSettingsN[SIM_XRES].value, SimulatorSettingsN[SIM_YRES].value);
+                uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
+                PrimaryCCD.setFrameBufferSize(nbuf);
+
+                IDSetNumber(&SimulatorSettingsNP, nullptr);
+            }
+            return true;
+        }
         else if (strcmp(name, CrashSP.name) == 0)
         {
             abort();
@@ -1359,6 +1395,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Directory
     DirectoryTP.save(fp);
+
+    // Resolution
+    ResolutionSP.save(fp);
 
     // Bayer
     IUSaveConfigSwitch(fp, &SimulateBayerSP);

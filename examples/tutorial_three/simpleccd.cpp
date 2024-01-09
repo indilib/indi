@@ -80,7 +80,7 @@ bool SimpleCCD::initProperties()
 
 /********************************************************************************************
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
-** This fucntion is called whenever the device is connected or disconnected.
+** This function is called whenever the device is connected or disconnected.
 *********************************************************************************************/
 bool SimpleCCD::updateProperties()
 {
@@ -201,7 +201,7 @@ void SimpleCCD::TimerHit()
             /* If target temperature is higher, then increase current CCD temperature */
             if (currentCCDTemperature < TemperatureRequest)
                 currentCCDTemperature++;
-            /* If target temperature is lower, then decrese current CCD temperature */
+            /* If target temperature is lower, then decrease current CCD temperature */
             else if (currentCCDTemperature > TemperatureRequest)
                 currentCCDTemperature--;
             /* If they're equal, stop updating */

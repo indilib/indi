@@ -208,7 +208,7 @@ class StreamManagerPrivate
         INDI::PropertySwitch EncoderSP {2};
         enum { ENCODER_RAW, ENCODER_MJPEG };
 
-        // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
+        // Recorder Selector. Static but should be implemented as a dynamic plugin interface
         INDI::PropertySwitch RecorderSP {2};
         enum { RECORDER_RAW, RECORDER_OGV };
 

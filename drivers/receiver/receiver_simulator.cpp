@@ -117,13 +117,13 @@ bool RadioSim::initProperties()
 
 /********************************************************************************************
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
-** This fucntion is called whenever the device is connected or disconnected.
+** This function is called whenever the device is connected or disconnected.
 *********************************************************************************************/
 bool RadioSim::updateProperties()
 {
     if (isConnected())
     {
-        // Inital values
+        // Initial values
         setupParams(1000000, 1420000000, 10000, 10);
 
         // Start the timer

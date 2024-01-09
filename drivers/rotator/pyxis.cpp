@@ -472,7 +472,7 @@ IPState Pyxis::MoveRotator(double angle)
     if (targetPA > 359)
         targetPA = 0;
 
-    // Rotator will only rotation +-180 degress from home (0 degrees) so it make take
+    // Rotator will only rotation +-180 degrees from home (0 degrees) so it make take
     // the long way to avoid cable wrap
     if (current <= 180 && targetPA < 180)
         direction = (targetPA >= current ? 1 : -1) ;

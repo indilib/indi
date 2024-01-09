@@ -63,7 +63,7 @@ static int directfd = -1;             /* direct filedes to server, if >= 0 */
 static int verbose;                   /* more tracing */
 static int eflag;                     /* print each updated expression value*/
 static int fflag;                     /* print final expression value */
-static int iflag;                     /* read expresion from stdin */
+static int iflag;                     /* read expression from stdin */
 static int oflag;                     /* print operands as they change */
 static int wflag;                     /* wait for expression to be true */
 static int bflag;                     /* beep when true */

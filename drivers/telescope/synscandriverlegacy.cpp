@@ -1530,7 +1530,7 @@ void SynscanLegacyDriver::MountSim()
     double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:

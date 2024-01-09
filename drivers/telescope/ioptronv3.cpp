@@ -131,10 +131,10 @@ bool IOptronV3::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FIND", "Find", ISS_OFF);
+    IUFillSwitch(&HomeS[IOP_SET_HOME], "SET", "Set As Current", ISS_OFF);
+    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* v3.0 Create PEC Training switches */
@@ -196,7 +196,7 @@ bool IOptronV3::initProperties()
     else
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    // Default WiFi connection parametes
+    // Default WiFi connection parameters
     tcpConnection->setDefaultHost("10.10.100.254");
     tcpConnection->setDefaultPort(8899);
 
@@ -1162,7 +1162,7 @@ void IOptronV3::mountSim()
     double currentSlewRate = Driver::IOP_SLEW_RATES[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
@@ -1253,7 +1253,7 @@ bool IOptronV3::SetCurrentPark()
 
 bool IOptronV3::SetDefaultPark()
 {
-    // By defualt azimuth 0
+    // By default azimuth 0
     SetAxis1Park(0);
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);

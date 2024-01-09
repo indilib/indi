@@ -25,7 +25,12 @@
 #pragma once
 
 #include <cstdint>
-#include "json.h"
+
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
 
 using json = nlohmann::json;
 
@@ -60,7 +65,7 @@ typedef enum
 } Units;
 
 /*****************************************************************************************
- * Communicaton class handle the serial communication with SestoSenso2/Esatto/Arco
+ * Communication class handle the serial communication with SestoSenso2/Esatto/Arco
  * models according to the USB Protocol specifications document in JSON.
 ******************************************************************************************/
 class Communication
@@ -77,9 +82,9 @@ class Communication
         bool sendRequest(const json &command, json *response = nullptr);
         template <typename T = int32_t> bool genericRequest(const std::string &node, const std::string &type, const json &command, T *response = nullptr);
         /**
-         * @brief Get paramter from device.
+         * @brief Get parameter from device.
          * @param type motor type, if MOT_NONE, then it's a generic device-wide get.
-         * @param paramter paramter name (e.g.SN)
+         * @param parameter parameter name (e.g.SN)
          * @param value where to store the queried value.
          * @return True if successful, false otherwise.
          * @example {"req":{"get":{"SN":""}}} --> {"res":{"get":{"SN":" ESATTO30001"}}
@@ -118,7 +123,7 @@ class Communication
         std::string m_DeviceName;
         int m_PortFD {-1};
 
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const int DRIVER_LEN {4096};
         static const char DRIVER_STOP_CHAR { 0xD };
         static const char DRIVER_TIMEOUT { 5 };

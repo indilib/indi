@@ -45,7 +45,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 0)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
@@ -95,6 +95,10 @@ OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
 OPTION(INDI_BUILD_XISF "Build XISF support" ON)
+
+# System provided or bundled libs
+OPTION(INDI_SYSTEM_HTTPLIB "Use system provided httplib" OFF)
+OPTION(INDI_SYSTEM_JSONLIB "Use system provided json library" OFF)
 
 if(UNIX AND NOT APPLE)
     OPTION(INDI_SHARED_MEMORY "Build INDI with support for UNIX protocol with shared memory" ON)
@@ -164,6 +168,32 @@ install(FILES
     ${INCLUDE_INSTALL_DIR}/libindi
     COMPONENT Devel
 )
+
+# ##################################################################################################
+# ####################################  bundled libs  ##############################################
+# ##################################################################################################
+if(INDI_SYSTEM_HTTPLIB)
+    find_package(httplib REQUIRED)
+    include_directories(${HTTPLIB_INCLUDE_DIR})
+    set(SYSTEM_HTTPLIB 1)
+    message(STATUS "Using system provided httplib version ${HTTPLIB_VERSION}")
+else()
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib)
+    set(SYSTEM_HTTPLIB 0)
+    message(STATUS "Using bundled httplib")
+endif(INDI_SYSTEM_HTTPLIB)
+
+if(INDI_SYSTEM_JSONLIB)
+    find_package(nlohmann_json REQUIRED)
+    set(SYSTEM_JSONLIB 1)
+    set(JSONLIB nlohmann_json::nlohmann_json)
+    add_definitions(-D_USE_SYSTEM_JSONLIB)
+    message(STATUS "Using system provided Niels Lohmann's json library")
+else(INDI_SYSTEM_JSONLIB)
+    set(SYSTEM_JSONLIB 0)
+    set(JSONLIB "")
+    message(STATUS "Using bundled json library")
+endif(INDI_SYSTEM_JSONLIB)
 
 # ###################################################################################################
 #
@@ -380,12 +410,22 @@ endif()
 # Install common dev files for all except server
 if(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/json.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/inicpp.h
         ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
     )
+    if(NOT SYSTEM_HTTPLIB)
+        install(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/httplib/httplib.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
+        )
+    endif(NOT SYSTEM_HTTPLIB)
+    if(NOT SYSTEM_JSONLIB)
+        install(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/indijson.hpp
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel
+        )
+    endif(NOT SYSTEM_JSONLIB)
 endif(INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

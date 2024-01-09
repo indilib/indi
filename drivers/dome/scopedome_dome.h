@@ -256,7 +256,7 @@ class ScopeDome : public INDI::Dome
 
         INDI::PropertyText CredentialsTP{2};
 
-        // Dynamic properies initialized based on card type
+        // Dynamic properties initialized based on card type
         INDI::PropertySwitch RelaysSP{0};
         INDI::PropertyNumber SensorsNP{0};
         INDI::PropertySwitch InputsSP{0};

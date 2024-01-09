@@ -25,7 +25,12 @@
 #include "esattoarco.h"
 
 #include "indicom.h"
-#include "json.h"
+
+#ifdef _USE_SYSTEM_JSONLIB
+#include <nlohmann/json.hpp>
+#else
+#include <indijson.hpp>
+#endif
 
 #include <cmath>
 #include <cstring>

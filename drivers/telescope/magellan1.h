@@ -24,7 +24,7 @@
 #include "indidevapi.h"
 
 /*
-   The device name below eventhough we have a Magellan I
+   The device name below even though we have a Magellan I
    should remain set to a KStars registered telescope so
    It allows the service to be stopped
 */

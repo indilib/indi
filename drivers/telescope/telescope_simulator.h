@@ -28,9 +28,9 @@
  * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
  *
  * It supports the following features:
- * + Sideral and Custom Tracking rates.
+ * + Sidereal and Custom Tracking rates.
  * + Goto & Sync
- * + NWSE Hand controller direciton key slew.
+ * + NWSE Hand controller direction key slew.
  * + Tracking On/Off.
  * + Parking & Unparking with custom parking positions.
  * + Setting Time & Location.

@@ -350,7 +350,7 @@ void LX200Basic::mountSim()
     ltv = tv;
     da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_TRACKING:

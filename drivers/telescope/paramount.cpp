@@ -132,7 +132,7 @@ bool Paramount::initProperties()
 
     // Homing
     IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
     // Tracking Mode
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -224,7 +224,7 @@ bool Paramount::updateProperties()
 *
 *    |No error. Error = 0.
 *
-* This is true everwhere except for the Handshake(), which just returns "1" on success.
+* This is true everywhere except for the Handshake(), which just returns "1" on success.
 *
 * In order to know when the response is complete, we append the # character in
 * Javascript commands and read from the port until the # character is reached.
@@ -886,7 +886,7 @@ void Paramount::mountSim()
         return;
     }
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:

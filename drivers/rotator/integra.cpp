@@ -948,7 +948,7 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     // check begin of result string
     if (expectStart != nullptr)
     {
-        correctRes = strstr(res, expectStart);      // the hw sometimes returns /r or /n at the beginning ot the response
+        correctRes = strstr(res, expectStart);      // the hw sometimes returns /r or /n at the beginning of the response
         if (correctRes == nullptr)
         {
             LOGF_ERROR("%s error: invalid response (%s)", name, res);

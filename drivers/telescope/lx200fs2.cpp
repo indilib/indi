@@ -359,7 +359,7 @@ bool LX200FS2::SetCurrentPark()
 
 bool LX200FS2::SetDefaultPark()
 {
-    // By defualt azimuth 0
+    // By default azimuth 0
     SetAxis1Park(0);
 
     // Altitude = latitude of observer

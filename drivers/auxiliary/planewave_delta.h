@@ -116,7 +116,7 @@ class DeltaT : public INDI::DefaultDevice
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
 
-        // Delta-T Informatin
+        // Delta-T Information
         ITextVectorProperty InfoTP;
         IText InfoT[1] {};
         enum

@@ -87,7 +87,7 @@ bool NearestMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 
     // JM: We iterate over all the sync point and compute the celestial and telescope horizontal coordinates
     // Since these are used to sort the nearest alignment points to the current target. The offsets of the
-    // nearest point celestial coordintes are then applied to the current target to correct for its position.
+    // nearest point celestial coordinates are then applied to the current target to correct for its position.
     // No complex transformations used.
     for (auto &oneSyncPoint : SyncPoints)
     {

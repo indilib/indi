@@ -765,7 +765,7 @@ bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint3
         }
         else if (efaDump(hexbuf, hexbuflen, cmd, cmd_len) != NULL)
         {
-            // expected there to always be an echo, so note this occurence
+            // expected there to always be an echo, so note this occurrence
             LOGF_DEBUG("no echo for command packet: %s", hexbuf);
         }
 

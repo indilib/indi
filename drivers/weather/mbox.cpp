@@ -220,7 +220,7 @@ MBox::AckResponse MBox::ack()
             return ACK_ERROR;
         }
 
-        // Read again if we only recieved a newline character
+        // Read again if we only received a newline character
         if (response[0] == '\n')
         {
             if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)

@@ -59,7 +59,7 @@ class INDI::BaseClient : public INDI::AbstractBaseClient
     public:
         /** @brief Connect to INDI server.
          *  @returns True if the connection is successful, false otherwise.
-         *  @note This function blocks until connection is either successull or unsuccessful.
+         *  @note This function blocks until connection is either successfull or unsuccessful.
          */
         bool connectServer() override;
 

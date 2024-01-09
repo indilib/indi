@@ -72,7 +72,7 @@ class TCFS : public INDI::Focuser
         TCFS();
         virtual ~TCFS() = default;
 
-        // Standard INDI interface fucntions
+        // Standard INDI interface functions
         virtual bool Handshake() override;
         virtual bool Disconnect() override;
         const char *getDefaultName() override;

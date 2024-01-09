@@ -70,7 +70,7 @@ class TTYBase
 
         /** \brief read buffer from terminal with a delimiter
             \param fd file descriptor
-            \param buf pointer to store data. Must be initilized and big enough to hold data.
+            \param buf pointer to store data. Must be initialized and big enough to hold data.
             \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
             \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
             \param timeout number of seconds to wait for terminal before a timeout error is issued.

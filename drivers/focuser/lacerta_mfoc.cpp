@@ -446,7 +446,7 @@ IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     return MoveAbsFocuser(targetTicks);
 }
-    //Waiting makes no sense - will be immediatly interrupted by the ekos system...
+    //Waiting makes no sense - will be immediately interrupted by the ekos system...
     //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
     //LOGF_INFO("sleep for %d ms", ticks);
     //usleep(ticks + 5000);

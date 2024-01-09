@@ -93,7 +93,7 @@ bool LX200AM5::initProperties()
 
     // Home/Zero position
     HomeSP[0].fill("GO", "Go", ISS_OFF);
-    HomeSP.fill(getDeviceName(), "GO_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Guide Rate
     GuideRateNP[0].fill("RATE", "Rate", "%.2f", 0.1, 0.9, 0.1, 0.5);
@@ -466,6 +466,7 @@ bool LX200AM5::Park()
 bool LX200AM5::UnPark()
 {
     TrackState = SCOPE_IDLE;
+    SetParked(false);
     return true;
 }
 

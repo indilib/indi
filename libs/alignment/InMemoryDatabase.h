@@ -52,7 +52,7 @@ class InMemoryDatabase
         }
 
         /// \brief Get the database reference position
-        /// \param[in] Position A pointer to a IGeographicCoordinates object to retunr the current position in
+        /// \param[in] Position A pointer to a IGeographicCoordinates object to return the current position in
         /// \return True if successful
         bool GetDatabaseReferencePosition(IGeographicCoordinates &Position);
 

@@ -148,6 +148,6 @@ class XAGYLWheel : public INDI::FilterWheel
         // Some commands optionally return an extra string.
         static constexpr const int OPTIONAL_TIMEOUT {1};
 
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const int DRIVER_LEN {64};
 };

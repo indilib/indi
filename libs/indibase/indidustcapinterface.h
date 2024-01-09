@@ -27,7 +27,7 @@
  * \class DustCapInterface
    \brief Provides interface to implement remotely controlled dust cover
 
-   \e IMPORTANT: initDustCapProperties() must be called before any other function to initilize the Dust Cap properties.
+   \e IMPORTANT: initDustCapProperties() must be called before any other function to initialize the Dust Cap properties.
 
    \e IMPORTANT: processDustCapSwitch() must be called in your driver ISNewSwitch function.
 \author Jasem Mutlaq
@@ -50,17 +50,17 @@ class DustCapInterface
 
         /**
              * @brief Park dust cap (close cover). Must be implemented by child.
-             * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
+             * @return If command completed immediately, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
              */
         virtual IPState ParkCap();
 
         /**
              * @brief unPark dust cap (open cover). Must be implemented by child.
-             * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
+             * @return If command completed immediately, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
              */
         virtual IPState UnParkCap();
 
-        /** \brief Initilize dust cap properties. It is recommended to call this function within initProperties() of your primary device
+        /** \brief Initialize dust cap properties. It is recommended to call this function within initProperties() of your primary device
                 \param deviceName Name of the primary device
                 \param groupName Group or tab name to be used to define focuser properties.
             */

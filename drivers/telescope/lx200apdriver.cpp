@@ -773,7 +773,7 @@ int selectAPV2CenterRate(int fd, int centerIndex, APRateTableState rateTable)
 //                                        'C'=Custom RA Tracking Rate (read specific value with :Rr# command)
 // C: Dec Tracking Status                 '9'=No Motion (to mimic RA Tracking), 'C'=Custom DEC Tracking Rate
 //                                        (read specific value with :Rd# command)
-// D: Slewing Satus (GOTO Slews)          'S'=Slewing, '0'=Not slewing
+// D: Slewing Status (GOTO Slews)         'S'=Slewing, '0'=Not slewing
 // E: Moving RA Axis                      'E'=Moving East, 'W'=Moving West, '0'=Not Moving
 //    (via a Move command/Slew/ST4 Port signal)
 // F: Moving Dec Axis                     'N'=Moving North (counter-clockwise), 'S'=Moving South (clockwise), '0'=Not Moving
@@ -840,7 +840,7 @@ int getApStatusStringInternal(int fd, char *statusString, bool complain)
 
 int getApStatusString(int fd, char *statusString)
 {
-    // I seem to get intermittant failures.
+    // I seem to get intermittent failures.
     // Try again on these after a 50ms delay, and the 250ms delay.
     if (getApStatusStringInternal(fd, statusString, false) != TTY_OK)
     {

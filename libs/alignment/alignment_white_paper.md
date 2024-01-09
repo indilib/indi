@@ -418,7 +418,7 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                     {
                         if (AzimuthOffsetMicrosteps < MICROSTEPS_PER_REVOLUTION / 2.0)
                         {
-                            // Foward
+                            // Forward
                             AxisDirectionRA = FORWARD;
                             AxisSlewRateRA = AzimuthOffsetMicrosteps;
                         }
@@ -434,7 +434,7 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                         AzimuthOffsetMicrosteps = abs(AzimuthOffsetMicrosteps);
                         if (AzimuthOffsetMicrosteps < MICROSTEPS_PER_REVOLUTION / 2.0)
                         {
-                            // Foward
+                            // Forward
                             AxisDirectionRA = REVERSE;
                             AxisSlewRateRA = AzimuthOffsetMicrosteps;
                         }
@@ -615,7 +615,7 @@ The Alignment Subsystem provides two API classes for use in clients. These are C
 
 	class LoaderClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
 
-Somewhere in the initialisation of your client make a call to the Initalise method of the AlignmentSubsystemForClients class for example:
+Somewhere in the initialisation of your client make a call to the Initialise method of the AlignmentSubsystemForClients class for example:
 
     void LoaderClient::Initialise(int argc, char* argv[])
     {
@@ -643,7 +643,7 @@ Somewhere in the initialisation of your client make a call to the Initalise meth
         setBLOBMode(B_ALSO, DeviceName.c_str(), NULL);
     }
 
-To hook the Alignment Subsystem into the clients property handling you must ensure that the following virtual functions are overriden.
+To hook the Alignment Subsystem into the clients property handling you must ensure that the following virtual functions are overridden.
 
     virtual void newBLOB(IBLOB *bp);
     virtual void newDevice(INDI::BaseDevice *dp);

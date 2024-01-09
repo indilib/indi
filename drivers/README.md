@@ -110,7 +110,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 </ul>
 <p class="alert alert-info">The <b>Slew Rate</b> dropdown is used to control the <b>manual</b> speeds when using the NSWE controls either directly or via a joystick. To set the <b>GOTO</b> speeds (when mount moves from one target to another via a GOTO command), you need to update the <b>Custom Speeds</b> control.</p>
 <h3>Site Management</h3>
-<p>Time, Locaiton, and Park settings are configured in the Site Management tab.</p>
+<p>Time, Location, and Park settings are configured in the Site Management tab.</p>
 <p><img style="display: block; margin-right: auto; margin-left: auto;" src="/images/devices/DRIVER_NAME/site_management.jpg" alt="Site Management" /></p>
 <ul>
 	<li><strong>UTC</strong>: UTC time and offsets must be set for proper operation of the driver upon connection. The UTC offset is in hours. East is positive and west is negative.</li>

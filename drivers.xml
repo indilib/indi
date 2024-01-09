@@ -33,7 +33,7 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.20</version>
+            <version>1.22</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
@@ -41,7 +41,7 @@
         </device>
         <device label="LX200 TeenAstro" manufacturer="TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
@@ -110,10 +110,6 @@
         <device label="Astro-Electronic FS-2" manufacturer="Astro-Electronic">
             <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
             <version>2.3</version>
-        </device>
-        <device label="Avalon Legacy" manufacturer="Avalon">
-            <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>2.1</version>
         </device>
         <device label="Paramount" manufacturer="Software Bisque">
             <driver name="Paramount">indi_paramount_telescope</driver>
@@ -317,6 +313,10 @@
             <driver name="RoboFocus">indi_robo_focus</driver>
             <version>1.0</version>
         </device>
+	<device label="iEAFFocus" manufacturer="iOptron">
+            <driver name="iEAFFocus">indi_ieaf_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Shoestring Astronomy FCUSB" manufacturer="Shoestring">
             <driver name="FCUSB">indi_fcusb_focus</driver>
             <version>0.3</version>
@@ -429,6 +429,10 @@
             <driver name="Rotator Simulator">indi_simulator_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
+               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
+               <version>1.0</version>
+        </device>
         <device label="Microtouch" manufacturer="Starizona">
             <driver name="Microtouch">indi_microtouch_focus</driver>
             <version>0.1</version>
@@ -487,7 +491,7 @@
         </device>
         <device label="Starlight EFS" manufacturer="Starlight Instruments">
             <driver name="SI EFS">indi_siefs_focus</driver>
-            <version>0.1</version>
+            <version>0.2</version>
         </device>
         <device label="Lacerta MFOC" manufacturer="Lacerta Optics">
             <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
@@ -671,7 +675,7 @@
         </device>
         <device label="SnapCap" manufacturer="GTD">
             <driver name="SnapCap">indi_snapcap</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="RBF Excalibur" manufacturer="RB Focus">
             <driver name="RBF Excalibur">indi_Excalibur</driver>
@@ -725,14 +729,10 @@
             <driver name="DeepSkyDad FR1">indi_deepskydad_fr1</driver>
             <version>1.0</version>
         </device>
-        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
-               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
-               <version>1.0</version>
-        </device>
         <device label="Wanderer Cover V3" manufacturer="Wanderer Astro">
             <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
             <version>1.0</version>
-        </device>        
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">

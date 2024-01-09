@@ -243,7 +243,7 @@ DLL_EXPORT long dsp_fits_alloc_fits_rows(fitsfile *fptr, unsigned long num_rows)
 * \param typecode The element type size
 * \param num_elements The total field size in elements, this should take into account the width and repeat multipliers
 * \param rown The row number where the field is located
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 * \sa dsp_fits_create_fits
 */
 DLL_EXPORT int dsp_fits_fill_fits_col(fitsfile *fptr, char* name, unsigned char *buf, int typecode, long num_elements,
@@ -254,7 +254,7 @@ DLL_EXPORT int dsp_fits_fill_fits_col(fitsfile *fptr, char* name, unsigned char 
 * \param fptr The fits file pointer created by dsp_fits_create_fits
 * \param name The name of the column
 * \param format This field should indicate the element size, width of each element and repetition eventually
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 */
 DLL_EXPORT int dsp_fits_append_fits_col(fitsfile *fptr, char* name, char* format);
 
@@ -278,7 +278,7 @@ DLL_EXPORT size_t dsp_fits_get_element_size(int typecode);
 * \param typecode This function will return the typecode to this variable
 * \param width This function will return the width to this variable
 * \param repeat This function will return the repeatition count to this variable
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 */
 DLL_EXPORT int dsp_fits_read_typecode(char* typestr, int *typecode, long *width, long *repeat);
 
@@ -288,7 +288,7 @@ DLL_EXPORT int dsp_fits_read_typecode(char* typestr, int *typecode, long *width,
 * \param column The column name of the selected field
 * \param rown The row position of the field
 * \param retval A preallocated buffer where the field value will be stored into
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 */
 DLL_EXPORT int dsp_fits_get_value(fitsfile *fptr, char* column, long rown, void **retval);
 
@@ -316,14 +316,14 @@ DLL_EXPORT fitsfile* dsp_fits_create_fits(size_t *size, void **buf);
 * \param columns An array of dsp_fits_column structs
 * \param ncols The dsp_fits_column array length
 * \param tablename The extension table name
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 */
 DLL_EXPORT int dsp_fits_add_table(fitsfile* fptr, dsp_fits_column *columns, int ncols,  const char* tablename);
 
 /**
 * \brief Close a fits file pointer
 * \param fptr The fits file pointer created by dsp_fits_create_fits
-* \return non-zero if any error occured
+* \return non-zero if any error occurred
 */
 DLL_EXPORT int dsp_fits_close_fits(fitsfile *fptr);
 /**\}*/

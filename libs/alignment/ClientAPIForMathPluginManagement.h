@@ -41,7 +41,7 @@ class ClientAPIForMathPluginManagement
              */
         bool EnumerateMathPlugins(MathPluginsList &AvailableMathPlugins);
 
-        /// \brief Intialise the API
+        /// \brief Initialise the API
         /// \param[in] BaseClient Pointer to the INDI:BaseClient class
         void Initialise(INDI::BaseClient *BaseClient);
 

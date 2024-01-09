@@ -1,4 +1,5 @@
 /*******************************************************************************
+ Copyright(c) 2023 Jasem Mutlaq
  Copyright(c) 2016 CloudMakers, s. r. o.. All rights reserved.
 
  This library is free software; you can redistribute it and/or
@@ -19,6 +20,8 @@
 #pragma once
 
 #include "indidome.h"
+#include "indipropertyswitch.h"
+#include "indipropertytext.h"
 
 class DomeScript : public INDI::Dome
 {
@@ -31,7 +34,9 @@ class DomeScript : public INDI::Dome
         virtual bool saveConfigItems(FILE *fp) override;
 
         void ISGetProperties(const char *dev) override;
-        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+
         bool updateProperties() override;
 
     protected:
@@ -49,8 +54,15 @@ class DomeScript : public INDI::Dome
         bool ReadDomeStatus();
         bool RunScript(int script, ...);
 
-        ITextVectorProperty ScriptsTP;
-        IText ScriptsT[15] {};
+        INDI::PropertyText ScriptsTP {15};
+
+        INDI::PropertySwitch TypeSP {2};
+        enum
+        {
+            Dome,
+            Rolloff
+        };
+
         double TargetAz { 0 };
         int TimeSinceUpdate { 0 };
 };

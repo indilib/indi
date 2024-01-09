@@ -522,7 +522,7 @@ bool LX200Classic::ReadScopeStatus()
         {
             //allow scope to make internal state change to settled on target.
             //otherwise changing to landmode slews the scope to same
-            //coordinates intepreted in landmode.
+            //coordinates interpreted in landmode.
             //Between isSlewComplete() and the beep there is nearly 3 seconds!
             settling = 3; //n iterations of default 1000ms
         }

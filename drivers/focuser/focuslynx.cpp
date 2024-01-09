@@ -120,7 +120,7 @@ const char *FocusLynxF1::getDefaultName()
  *
 * ***********************************************************************************/
 bool FocusLynxF1::Connect()
-/* Overide of connect() function
+/* Override of connect() function
  * different for F1 or F2 focuser
  * F1 connect only himself to the driver and
  * it is the only one who's connect to the communication port to establish the physical communication
@@ -304,7 +304,7 @@ bool FocusLynxF1::getHubConfig()
         IUSaveText(&HubT[0], text);
         IDSetText(&HubTP, nullptr);
 
-        //Save localy the Version of the firmware's Hub
+        //Save locally the Version of the firmware's Hub
         strncpy(version, text, sizeof(version));
 
         LOGF_DEBUG("Text =  %s,  Key = %s", text, key);
@@ -550,7 +550,7 @@ bool FocusLynxF1::getHubConfig()
     memset(response, 0, sizeof(response));
     memset(text, 0, sizeof(text));
 
-    // WIFI IP adress
+    // WIFI IP address
     if (isSimulation())
     {
         strncpy(response, "WF IP = 192.168.1.11\n", 32);
@@ -691,7 +691,7 @@ bool FocusLynxF1::getHubConfig()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES <%s>", response);
 
         if (strcmp(response, "END"))
@@ -791,7 +791,7 @@ const char *FocusLynxF2::getDefaultName()
  *
 * ***********************************************************************************/
 bool FocusLynxF2::Connect()
-/* Overide of connect() function
+/* Override of connect() function
  * different for F2 or F1 focuser
  * F2 don't connect himself to the hub
  */
@@ -846,7 +846,7 @@ bool FocusLynxF2::RemoteDisconnect()
         updateProperties();
     }
 
-    // When called by F1, the PortFD should be -1; For debbug purpose
+    // When called by F1, the PortFD should be -1; For debug purposes
     PortFD = lynxDriveF1->getPortFD();
     LOGF_INFO("Remote disconnection: %s is offline.", getDeviceName());
     LOGF_INFO("Value of F2 PortFD = %d", PortFD);

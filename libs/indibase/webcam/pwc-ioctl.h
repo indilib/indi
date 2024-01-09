@@ -164,7 +164,7 @@ struct pwc_mpt_angles
 {
     int absolute; /* write-only */
     int pan;      /* degrees * 100 */
-    int tilt;     /* degress * 100 */
+    int tilt;     /* degrees * 100 */
 };
 
 /* Range of angles of the camera, both horizontally and vertically.

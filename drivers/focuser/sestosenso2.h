@@ -186,7 +186,7 @@ class SestoSenso2 : public INDI::Focuser
         static constexpr const uint8_t SESTO_TEMPERATURE_FREQ {10};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t SESTO_TIMEOUT {5};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const int SESTO_LEN {1024};
 
 };

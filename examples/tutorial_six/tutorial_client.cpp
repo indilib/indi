@@ -91,7 +91,7 @@ MyClient::MyClient()
             // call lambda function if property changed
             property.onUpdate([property, this]()
             {
-                IDLog("Receving new CCD Temperature: %g C\n", property[0].getValue());
+                IDLog("Receiving new CCD Temperature: %g C\n", property[0].getValue());
                 if (property[0].getValue() == -20)
                 {
                     IDLog("CCD temperature reached desired value!\n");

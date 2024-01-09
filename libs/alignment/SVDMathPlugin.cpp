@@ -72,7 +72,7 @@ void SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &A
     gsl_matrix *pIntermediateMatrix1 = gsl_matrix_alloc(3, 3);
     MatrixMatrixMultiply(pBetaMatrix, pAlphaMatrix, pIntermediateMatrix1);
 
-    // 3. Compute the singular value decomoposition of the intermediate matrix
+    // 3. Compute the singular value decomposition of the intermediate matrix
     gsl_matrix *pV    = gsl_matrix_alloc(3, 3);
     gsl_vector *pS    = gsl_vector_alloc(3);
     gsl_vector *pWork = gsl_vector_alloc(3);

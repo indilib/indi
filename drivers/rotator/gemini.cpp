@@ -338,7 +338,7 @@ bool Gemini::Handshake()
 * ***********************************************************************************/
 const char *Gemini::getDefaultName()
 {
-    // Has to be overide by child instance
+    // Has to be overridden by child instance
     return "Gemini Focusing Rotator";
 }
 
@@ -1229,7 +1229,7 @@ bool Gemini::getFocusConfig()
     FocuserHomeOnStartSP.s   = IPS_OK;
     IDSetSwitch(&FocuserHomeOnStartSP, nullptr);
 
-    // Added By Philippe Besson the 28th of June for 'END' evalution
+    // Added By Philippe Besson the 28th of June for 'END' evaluation
     // END is reached
     memset(response, 0, sizeof(response));
     if (isSimulation())
@@ -1248,7 +1248,7 @@ bool Gemini::getFocusConfig()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
@@ -1490,7 +1490,7 @@ bool Gemini::getRotatorStatus()
     RotatorStatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
     IDSetLight(&RotatorStatusLP, nullptr);
 
-    // Added By Philippe Besson the 28th of June for 'END' evalution
+    // Added By Philippe Besson the 28th of June for 'END' evaluation
     // END is reached
     memset(response, 0, sizeof(response));
     if (isSimulation())
@@ -1509,7 +1509,7 @@ bool Gemini::getRotatorStatus()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
@@ -1801,7 +1801,7 @@ bool Gemini::getRotatorConfig()
     response[nbytes_read - 1] = '\0';
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
-    // Added By Philippe Besson the 28th of June for 'END' evalution
+    // Added By Philippe Besson the 28th of June for 'END' evaluation
     // END is reached
     memset(response, 0, sizeof(response));
     if (isSimulation())
@@ -1820,7 +1820,7 @@ bool Gemini::getRotatorConfig()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
@@ -2133,7 +2133,7 @@ bool Gemini::getFocusStatus()
     FocuserStatusLP.s = IPS_OK;
     IDSetLight(&FocuserStatusLP, nullptr);
 
-    // Added By Philippe Besson the 28th of June for 'END' evalution
+    // Added By Philippe Besson the 28th of June for 'END' evaluation
     // END is reached
     memset(response, 0, sizeof(response));
     if (isSimulation())
@@ -2152,7 +2152,7 @@ bool Gemini::getFocusStatus()
     {
         response[nbytes_read - 1] = '\0';
 
-        // Display the response to be sure to have read the complet TTY Buffer.
+        // Display the response to be sure to have read the complete TTY Buffer.
         LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))

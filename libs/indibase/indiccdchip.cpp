@@ -17,6 +17,7 @@
 *******************************************************************************/
 #include "indiccdchip.h"
 #include "indidevapi.h"
+#include "sharedblob.h"
 #include "locale_compat.h"
 
 #include <cstring>

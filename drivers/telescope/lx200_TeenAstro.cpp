@@ -58,7 +58,7 @@ extern std::mutex lx200CommsLock;
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(1, 3);           // don't forget to update drivers.xml
+    setVersion(1, 4);           // don't forget to update drivers.xml
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -274,7 +274,7 @@ bool LX200_TeenAstro::ReadScopeStatus()
     }
 
     // update mount status
-    getCommandString(PortFD, OSStat, statusCommand);       // returns a string containg controller status
+    getCommandString(PortFD, OSStat, statusCommand);       // returns a string containing controller status
     if (OSStat[15] != '0')
     {
         updateMountStatus(OSStat[15]);              // error
@@ -1152,25 +1152,65 @@ bool LX200_TeenAstro::SetGuideRate(float guideRate)
 IPState LX200_TeenAstro::GuideNorth(uint32_t ms)
 {
     SendPulseCmd(LX200_NORTH, ms);
-    return IPS_OK;
+    if(MovementNSSP.s == IPS_BUSY)
+        return IPS_ALERT;
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    GuideNSTID = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideSouth(uint32_t ms)
 {
     SendPulseCmd(LX200_SOUTH, ms);
-    return IPS_OK;
+    if(MovementNSSP.s == IPS_BUSY)
+        return IPS_ALERT;
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    GuideNSTID = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideEast(uint32_t ms)
 {
     SendPulseCmd(LX200_EAST, ms);
-    return IPS_OK;
+    if(MovementWESP.s == IPS_BUSY)
+        return IPS_ALERT;
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    GuideWETID = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
+    return IPS_BUSY;
 }
 
 IPState LX200_TeenAstro::GuideWest(uint32_t ms)
 {
     SendPulseCmd(LX200_WEST, ms);
-    return IPS_OK;
+    if(MovementWESP.s == IPS_BUSY)
+        return IPS_ALERT;
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    GuideWETID = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
+    return IPS_BUSY;
 }
 
 void LX200_TeenAstro::SendPulseCmd(int8_t direction, uint32_t duration_msec)
@@ -1265,7 +1305,7 @@ void LX200_TeenAstro::mountSim()
     ltv = tv;
     da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_TRACKING:
@@ -1371,5 +1411,30 @@ void LX200_TeenAstro::sendCommand(const char *cmd)
     INDI_UNUSED(rc);
 }
 
+void LX200_TeenAstro::guideTimeoutHelperNS(void * p)
+{
+    static_cast<LX200_TeenAstro *>(p)->guideTimeoutNS();
+}
 
+void LX200_TeenAstro::guideTimeoutHelperWE(void * p)
+{
+    static_cast<LX200_TeenAstro *>(p)->guideTimeoutWE();
+}
 
+void LX200_TeenAstro::guideTimeoutNS()
+{
+    GuideNSNP.np[0].value = 0;
+    GuideNSNP.np[1].value = 0;
+    GuideNSNP.s           = IPS_IDLE;
+    GuideNSTID            = 0;
+    IDSetNumber(&GuideNSNP, nullptr);
+}
+
+void LX200_TeenAstro::guideTimeoutWE()
+{
+    GuideWENP.np[0].value = 0;
+    GuideWENP.np[1].value = 0;
+    GuideWENP.s           = IPS_IDLE;
+    GuideWETID            = 0;
+    IDSetNumber(&GuideWENP, nullptr);
+}

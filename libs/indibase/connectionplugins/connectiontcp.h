@@ -30,7 +30,7 @@ namespace Connection
 {
 /**
  * @brief The TCP class manages connection with devices over the network via TCP/IP.
- * Upon successfull connection, reads & writes from and to the device are performed via the returned file descriptor
+ * Upon successful connection, reads & writes from and to the device are performed via the returned file descriptor
  * using standard UNIX read/write functions.
  */
 

@@ -42,7 +42,7 @@ class FocuserDriver : public INDI::Focuser
 
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        // If you define any Number properties, then you need to override ISNewNumber to repond to number property requests.
+        // If you define any Number properties, then you need to override ISNewNumber to respond to number property requests.
         //bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
@@ -94,7 +94,7 @@ class FocuserDriver : public INDI::Focuser
          * after the command is successfully sent.
          * @param cmd_len if -1, it is assumed that the @a cmd is a null-terminated string. Otherwise, it would write @a cmd_len bytes from
          * the @a cmd buffer.
-         * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimeter DRIVER_STOP_CHAR
+         * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimiter DRIVER_STOP_CHAR
          *  up to DRIVER_LEN length. Otherwise, the function will read @a res_len from the device and store it in @a res.
          * @return True if successful, false otherwise.
          */
@@ -137,6 +137,6 @@ class FocuserDriver : public INDI::Focuser
         static constexpr const uint8_t DRIVER_TEMPERATURE_FREQ {10};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
-        // Maximum buffer for sending/receving.
+        // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {64};
 };

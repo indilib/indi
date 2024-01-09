@@ -304,8 +304,10 @@ void Esatto::TimerHit()
 
     auto lastPos = FocusAbsPosN[0].value;
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0)) {
-        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false) {
+    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0))
+    {
+        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+        {
             // To prevent reporting a bit too old position as the final one
             updatePosition();
 
@@ -319,18 +321,24 @@ void Esatto::TimerHit()
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        auto lastValue = TemperatureNP[0].value;
         rc = updateTemperature();
-        if (rc && std::abs(lastValue - TemperatureNP[0].value) >= 0.1)
-            TemperatureNP.apply();
 
-        auto current12V = VoltageNP[VOLTAGE_12V].getValue();
-        auto currentUSB = VoltageNP[VOLTAGE_USB].getValue();
+        // Only update temperature if there is a change of 0.1 or more
+        if (rc && (std::abs(m_LastTemperature[TEMPERATURE_EXTERNAL] - TemperatureNP[TEMPERATURE_EXTERNAL].value) >= MEASUREMENT_THRESHOLD ||
+                   std::abs(m_LastTemperature[TEMPERATURE_MOTOR] - TemperatureNP[TEMPERATURE_MOTOR].value) >= MEASUREMENT_THRESHOLD ))
+        {
+            m_LastTemperature[TEMPERATURE_EXTERNAL] = TemperatureNP[TEMPERATURE_EXTERNAL].value;
+            m_LastTemperature[TEMPERATURE_MOTOR] = TemperatureNP[TEMPERATURE_MOTOR].value;
+            TemperatureNP.apply();
+        }
+
         if (updateVoltageIn())
         {
-            if (std::abs(current12V - VoltageNP[VOLTAGE_12V].getValue()) >= 0.1 ||
-                    std::abs(currentUSB - VoltageNP[VOLTAGE_USB].getValue()) >= 0.1)
+            if (std::abs(m_LastVoltage[VOLTAGE_12V] - VoltageNP[VOLTAGE_12V].getValue()) >= MEASUREMENT_THRESHOLD ||
+                    std::abs(m_LastVoltage[VOLTAGE_USB] - VoltageNP[VOLTAGE_USB].getValue()) >= MEASUREMENT_THRESHOLD)
             {
+                m_LastVoltage[VOLTAGE_12V] = VoltageNP[VOLTAGE_12V].getValue();
+                m_LastVoltage[VOLTAGE_USB] = VoltageNP[VOLTAGE_USB].getValue();
                 VoltageNP.apply();
                 if (VoltageNP[VOLTAGE_12V].getValue() < 11.0)
                     LOG_WARN("Please check 12v DC power supply is connected.");

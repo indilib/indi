@@ -52,7 +52,7 @@ Updated driver to use INDI::Telescope (JM)
 
     /* There is _one_ binary for all LX200 drivers, but each binary is renamed
     ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
-    ** fetch from std args the binary name and ISInit will create the apporpiate
+    ** fetch from std args the binary name and ISInit will create the appropriate
     ** device afterwards. If the binary name does not match any known devices,
     ** we simply create a generic device.
     */

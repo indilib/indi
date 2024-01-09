@@ -27,7 +27,7 @@
     #SC;HOLD;RUN;ACC;DEC! Shell_set_current_supply in HOLD, RUN, ACC, DEC situations (Value must be from 0 to 24, maximum hold value 10)
     #QM! Query max value
     #Qm! Query min value
-    #QT! Qeury temperature
+    #QT! Query temperature
     #QF! Query firmware version
     #QN! Read the device name	-> reply	QN;SESTOSENSO!
     #QP! Query_position

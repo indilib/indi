@@ -35,13 +35,14 @@
 namespace Connection
 {
 class Serial;
+class TCP;
 }
 
 class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
     public:
         SnapCap();
-        virtual ~SnapCap() = default;
+        virtual ~SnapCap();
 
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
@@ -51,6 +52,28 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
+
+        /** \struct SnapcapConnection
+                \brief Holds the connection mode of the Dome.
+            */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } DustcapConnection;
+
+        /**
+             * @brief setDustcapConnection Set Dustcap connection mode. Child class should call this in the constructor before Dustcap registers
+             * any connection interfaces
+             * @param value ORed combination of DustcapConnection values.
+             */
+        void setDustcapConnection(const uint8_t &value);
+
+        /**
+             * @return Get current Dustcap connection mode
+             */
+        uint8_t getDustcapConnection() const;
 
     protected:
         const char *getDefaultName() override;
@@ -100,5 +123,9 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         uint8_t prevMotorStatus{ 0xFF };
         uint8_t prevBrightness{ 0xFF };
 
-        Connection::Serial *serialConnection{ nullptr };
-};
+        Connection::Serial *serialConnection = nullptr;
+        Connection::TCP *tcpConnection       = nullptr;
+
+    private:
+        bool callHandshake();
+        uint8_t dustcapConnection = CONNECTION_SERIAL | CONNECTION_TCP;};

@@ -124,8 +124,8 @@ class CelestronSCT : public INDI::Focuser
         /////////////////////////////////////////////////////////////////////////////
         //        // Celestron Buffer
         //        static const uint8_t CELESTRON_LEN { 32 };
-        //        // Celestorn Delimeter
+        //        // Celestorn Delimiter
         //        static const char CELESTRON_DEL { '#' };
-        //        // Celestron Tiemout in seconds
+        //        // Celestron Timeout in seconds
         //        static const uint8_t CELESTRON_TIMEOUT { 3 };
 };

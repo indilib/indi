@@ -33,9 +33,9 @@ using RI = INDI::RotatorInterface;
    pure virtual functions. Only absolute position Rotators are supported. Angle is ranged from 0 to 360 increasing clockwise when looking at the back
    of the camera.
 
-   \e IMPORTANT: initRotatorProperties() must be called before any other function to initilize the Rotator properties.
+   \e IMPORTANT: initRotatorProperties() must be called before any other function to initialize the Rotator properties.
 
-   \e IMPORTANT: processRotatorNumber() must be called in your driver's ISNewNumber() function. Similary, processRotatorSwitch() must be called in ISNewSwitch()
+   \e IMPORTANT: processRotatorNumber() must be called in your driver's ISNewNumber() function. Similarly, processRotatorSwitch() must be called in ISNewSwitch()
 
 \author Jasem Mutlaq
 */
@@ -121,7 +121,7 @@ class RotatorInterface
         explicit RotatorInterface(DefaultDevice *defaultDevice);
 
         /**
-         * \brief Initilize Rotator properties. It is recommended to call this function within
+         * \brief Initialize Rotator properties. It is recommended to call this function within
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define Rotator properties.
          */
@@ -209,7 +209,7 @@ class RotatorInterface
         ISwitch ReverseRotatorS[2];
         ISwitchVectorProperty ReverseRotatorSP;
 
-        // Backlash toogle
+        // Backlash toggle
         ISwitchVectorProperty RotatorBacklashSP;
         ISwitch RotatorBacklashS[2];
 

@@ -1,5 +1,7 @@
 FROM debian:latest
 
+RUN cat /etc/os-release
+
 WORKDIR /tmp
 
 RUN apt-get update && apt-get -y upgrade && apt-get install -y \
@@ -18,8 +20,9 @@ RUN git clone https://github.com/google/googletest.git googletest && \
 # INDI 3rd Party
 RUN apt-get install -y \
     libftdi1-dev libavcodec-dev libavdevice-dev libavformat-dev libswscale-dev \
-    libgps-dev libraw-dev libdc1394-22-dev libgphoto2-dev \
-    libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev
+    libgps-dev libraw-dev libdc1394-dev libgphoto2-dev \
+    libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev \
+    libzmq3-dev
 
 # Install Qt5
 RUN apt-get install -y \

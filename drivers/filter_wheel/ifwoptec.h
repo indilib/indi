@@ -119,7 +119,7 @@ class FilterIFW : public INDI::FilterWheel
         ISwitchVectorProperty CharSetSP;
         ISwitch CharSetS[2];
 
-        // Firmware of teh IFW
+        // Firmware of the IFW
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
 
