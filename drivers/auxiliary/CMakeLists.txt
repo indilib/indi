@@ -101,6 +101,15 @@ add_executable(indi_pegasus_ppba ${pegasus_ppba_SRC})
 target_link_libraries(indi_pegasus_ppba indidriver)
 install(TARGETS indi_pegasus_ppba RUNTIME DESTINATION bin)
 
+
+# ########## Pegasus Saddle Power Box  Driver ###############
+SET(pegasus_spb_SRC
+    pegasus_spb.cpp)
+
+add_executable(indi_pegasus_spb ${pegasus_spb_SRC})
+target_link_libraries(indi_pegasus_spb indidriver)
+install(TARGETS indi_pegasus_spb RUNTIME DESTINATION bin)
+
 # ########## RB Focus Excalibur ###############
 SET(Excalibur_SRC
     Excalibur.cpp)
