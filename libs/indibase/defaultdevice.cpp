@@ -271,6 +271,8 @@ bool DefaultDevice::saveConfig(INDI::Property &property)
 bool DefaultDevice::saveConfig(bool silent, const char *property)
 {
     D_PTR(DefaultDevice);
+    if (d->isConfigLoading)
+        return false;
     silent = false;
     char errmsg[MAXRBUF] = {0};
 
@@ -864,7 +866,8 @@ bool DefaultDevice::initProperties()
     snprintf(interfaceStr, 16, "%d", getDriverInterface());
 
     // Connection Mode
-    d->ConnectionModeSP.onUpdate([d](){
+    d->ConnectionModeSP.onUpdate([d]()
+    {
         int activeConnectionMode = d->ConnectionModeSP.findOnSwitchIndex();
 
         if (activeConnectionMode >= 0 && activeConnectionMode < static_cast<int>(d->connections.size()))
@@ -893,7 +896,7 @@ bool DefaultDevice::initProperties()
     d->ConnectionSP[INDI_ENABLED ].fill("CONNECT",    "Connect",    ISS_OFF);
     d->ConnectionSP[INDI_DISABLED].fill("DISCONNECT", "Disconnect", ISS_ON);
     d->ConnectionSP.fill(getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    d->ConnectionSP.onNewValues([this](const INDI::PropertySwitch::NewValues &values)
+    d->ConnectionSP.onNewValues([this](const INDI::PropertySwitch::NewValues & values)
     {
         if (values.contains("CONNECT", ISS_ON))
         {
