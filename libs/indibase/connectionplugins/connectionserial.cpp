@@ -278,7 +278,7 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        if (std::string(PortT[0].text) != m_ConfigPort || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+        if (m_Permission != IP_RO && (std::string(PortT[0].text) != m_ConfigPort || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate))
         {
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
