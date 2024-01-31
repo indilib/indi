@@ -1,3 +1,42 @@
++ From 2.0.5 to 2.0.6
+
+      e9606865e 2024-01-30 Jasem Mutlaq         Add missing permission check                                                                                                                          
+      9bbf00e0d 2024-01-29 Jasem Mutlaq         Do not save config while config is in the loading phase                                                                                               
+      8e24b43d8 2024-01-21 Jasem Mutlaq         Add ability to configure serial or network devices that are read-only                                                                                 
+      783756644 2024-01-19 Jasem Mutlaq         Separate ZWO AM5 into 2 different aliases for WiFi and USB to make it easier for 1st time connections                                                 
+      4625cf2ef 2024-01-17 Jasem Mutlaq         Change label to more friendly name                                                                                                                    
+      9b00c50dc 2024-01-17 Efstathios Chrysikos PegasusAstro SaddlePowerBox (#1989)                                                                                                                   
+      c2e87c240 2024-01-16 Jasem Mutlaq         Add initial implementation for rotator safety limits. By default GOTOs requested 90 degrees from starting position are rejected                       
+      01d5c9ccd 2024-01-12 Jasem Mutlaq         Add alias for WARPDRIVE                                                                                                                               
+      8eedd8c25 2024-01-10 Jasem Mutlaq         Fix improper delete for multiple device per driver due to string matching                                                                             
+      d8dfba3e9 2024-01-09 Jasem Mutlaq         Need to reset sky tracking target after a manual slew is done                                                                                         
+      9de334357 2024-01-07 Timothy Ellsworth Bowers Fix version reporting on older Celestron NexStar mounts (#1988)                                                                                       
+      93ef452e9 2024-01-05 John Wells           Flip-flat: Allow handshake without ioctl on virtual serial connection (#1987)                                                                         
+      cf03e9194 2024-01-02 dependabot[bot]      Bump tj-actions/changed-files from 35 to 41 in /.github/workflows (#1986)                                                                             
+      5718ec732 2023-12-26 Mattia Verga         Allow using system provided json library (#1970)                                                                                                      
+      bacfa89f1 2023-12-25 Jasem Mutlaq         Must set parked to false in unpark                                                                                                                    
+      c83b11d72 2023-12-25 Jasem Mutlaq         Standardize Mount Homing                                                                                                                              
+      452b37c75 2023-12-23 Jasem Mutlaq         Fix bookworm compile error                                                                                                                            
+      474ad449f 2023-12-21 Jasem Mutlaq         Move rotator to focuser section. We need to create a new group dedicated to rotators                                                                  
+      63c7d48da 2023-12-19 Jasem Mutlaq         Add ability to change resolution                                                                                                                      
+      99a1a3df8 2023-12-19 Jasem Mutlaq         Move updateLightBox outside so that it is call on both connect and disconnect                                                                         
+      fdf1b7551 2023-12-18 Joe13905179063       iOptron iEAF indi driver (#1962)                                                                                                                      
+      19be18f9b 2023-12-15 gehelem              TeenAstro pulse behaviour #1977 (#1978)                                                                                                               
+      d0c8f94c3 2023-12-07 sterne-jaeger        Remove obsolete Avalon Legacy driver (#1976)                                                                                                          
+      2be49d518 2023-12-03 luzpaz               Fix various typos throughout the codebase (#1969)                                                                                                     
+      796e86257 2023-12-04 Eric Dejouhanet      fix(actions): upgrade actions versions. (#1972)                                                                                                       
+      0d5beb7fe 2023-12-02 Mario Haustein       Link against httplib if using system libraries (#1968)                                                                                                
+      d11ac07a0 2023-12-01 Jasem Mutlaq         Add reverse support to starlight EFS focuser. Not tested on hardware                                                                                  
+      fc28d1742 2023-12-01 Eric Dejouhanet      fix(docker): add zmq dependency, output OS info (#1967)                                                                                               
+      856ac85b9 2023-12-01 Jasem Mutlaq         INDI Library v2.0.5 release                                                                                                                           
+      c58d13f76 2023-12-01 Jasem Mutlaq         Fix compile on Windows                                                                                                                                
+      bc7fea519 2023-12-01 Jasem Mutlaq         Add missing header                                                                                                                                    
+      ae69e53ee 2023-12-01 Jasem Mutlaq         Do not redefine ssize_t if other libraries defined it                                                                                                 
+      4561ca46f 2023-12-01 Jasem Mutlaq         Explicitly include sharedblob when required                                                                                                           
+      5732b5179 2023-12-01 Jasem Mutlaq         Fix crasdh in case no capture format is selected                                                                                                      
+      88cb5d078 2023-11-30 Jasem Mutlaq         Possible fix for Windows VS 2022 compile error
+      
+      
 + From 2.0.4 to 2.0.5
 
       4729c8b1e 2023-11-25 Jasem Mutlaq         Another attempt at fixing MINGW32. Needs to test with CYGWIN                                                                                          
