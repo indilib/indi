@@ -56,43 +56,37 @@ bool AllunaTCS2::initProperties()
     //INDI::DustCapInterface::initDustCapProperties(getDeviceName(), "groupname");
 
     // Focuser temperature / ambient temperature, ekos uses first number of "FOCUS_TEMPERATURE" property
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE_AMBIENT", "Focuser Temp [C]", "%6.2f", -100, 100, 0, 0);
-    // Primary mirror temperature
-    IUFillNumber(&TemperatureN[1], "TEMPERATURE_PRIMARY", "Primary Temp [C]", "%6.2f", -100, 100, 0, 0);
-    // Secondary mirror temperature
-    IUFillNumber(&TemperatureN[2], "TEMPERATURE_SECONDARY", "Secondary Temp [C]", "%6.2f", -100, 100, 0, 0);
-    // Ambient humidity
-    IUFillNumber(&TemperatureN[3], "HUMIDITY", "Humidity [%]", "%6.2f", 0, 100, 0, 0);
-
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 4, getDeviceName(), "FOCUS_TEMPERATURE", "Climate",
-                       CLIMATE_TAB, IP_RO, 0, IPS_IDLE);
+    TemperatureNP[0].fill("TEMPERATURE", "Focuser Temp [C]", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP[1].fill("TEMPERATURE_PRIMARY", "Primary Temp [C]", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP[2].fill("TEMPERATURE_SECONDARY", "Secondary Temp [C]", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP[3].fill("HUMIDITY", "Humidity [%]", "%6.2f", 0, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(),"FOCUS_TEMPERATURE", "Climate",CLIMATE_TAB, IP_RO, 0, IPS_IDLE);
 
     // Climate control
-    IUFillSwitch(&ClimateControlS[CLIMATECONTROL_AUTO],  "CLIMATE_AUTO",  "On", ISS_OFF);
-    IUFillSwitch(&ClimateControlS[CLIMATECONTROL_MANUAL], "CLIMATE_MANUAL", "Off", ISS_ON);
-    IUFillSwitchVector(&ClimateControlSP, ClimateControlS, 2, getDeviceName(), "CLIMATE_CONTROL", "Climate Control", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    ClimateControlSP[AUTO].fill("CLIMATE_AUTO",  "On", ISS_OFF);
+    ClimateControlSP[MANUAL].fill("CLIMATE_MANUAL", "Off", ISS_ON);
+    ClimateControlSP.fill(getDeviceName(), "CLIMATE_CONTROL", "Climate Control", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&PrimaryDewHeaterS[DEWHEATER_ON],  "PRIMARY_HEATER_ON",  "On", ISS_OFF);
-    IUFillSwitch(&PrimaryDewHeaterS[DEWHEATER_OFF], "PRIMARY_HEATER_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&PrimaryDewHeaterSP, PrimaryDewHeaterS, 2, getDeviceName(), "PRIMARY_HEATER", "Heat primary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    IUFillSwitch(&SecondaryDewHeaterS[DEWHEATER_ON],  "SECONDARY_HEATER_ON",  "On", ISS_OFF);
-    IUFillSwitch(&SecondaryDewHeaterS[DEWHEATER_OFF], "SECONDARY_HEATER_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&SecondaryDewHeaterSP, SecondaryDewHeaterS, 2, getDeviceName(), "SECONDARY_HEATER", "Heat secondary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    PrimaryDewHeaterSP[ON].fill("PRIMARY_HEATER_ON",  "On", ISS_OFF);
+    PrimaryDewHeaterSP[OFF].fill("PRIMARY_HEATER_OFF", "Off", ISS_ON);
+    PrimaryDewHeaterSP.fill(getDeviceName(), "PRIMARY_HEATER", "Heat primary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&FanPowerN[0], "FANPOWER", "Fan power [130..255]", "%3.0f", 130, 255, 1, 255);
-    IUFillNumberVector(&FanPowerNP, FanPowerN, 1, getDeviceName(), "FANPOWER", "Fan Power",
-                       CLIMATE_TAB, IP_RW, 60, IPS_IDLE);
+    SecondaryDewHeaterSP[ON].fill("SECONDARY_HEATER_ON",  "On", ISS_OFF);
+    SecondaryDewHeaterSP[OFF].fill("SECONDARY_HEATER_OFF", "Off", ISS_ON);
+    SecondaryDewHeaterSP.fill(getDeviceName(), "SECONDARY_HEATER", "Heat secondary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    FanPowerNP[0].fill("FANPOWER", "Fan power [130..255]", "%3.0f", 130, 255, 1, 255);
+    FanPowerNP.fill(getDeviceName(), "FANPOWER", "Fan Power", CLIMATE_TAB, IP_RW, 60, IPS_IDLE);
 
     // Stepping Modes "SpeedStep" and "MicroStep"
-    IUFillSwitch(&SteppingModeS[STEPPING_SPEED], "STEPPING_SPEED", "SpeedStep", ISS_ON);
-    IUFillSwitch(&SteppingModeS[STEPPING_MICRO], "STEPPING_MICRO", "MicroStep", ISS_OFF);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 2, getDeviceName(), "STEPPING_MODE", "Mode",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    SteppingModeSP[SPEED].fill("STEPPING_SPEED", "SpeedStep", ISS_ON);
+    SteppingModeSP[MICRO].fill("STEPPING_MICRO", "MicroStep", ISS_OFF);
+    SteppingModeSP.fill(getDeviceName(), "STEPPING_MODE", "Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
     // Set limits as per documentation
     FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = (steppingMode == STEPPING_MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
+    FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
     FocusAbsPosN[0].step = 1;
 
     FocusRelPosN[0].min  = 0;
@@ -104,13 +98,17 @@ bool AllunaTCS2::initProperties()
     FocusMaxPosNP.p = IP_RO;
 
     // Dust Cover
-    IUFillSwitch(&CoverS[COVER_OPEN], "COVER_OPEN", "Open", ISS_OFF);
-    IUFillSwitch(&CoverS[COVER_CLOSED], "COVER_CLOSE", "Close", ISS_ON);
-    IUFillSwitchVector(&CoverSP, CoverS, 2, getDeviceName(), "COVER_CONTROL", "Cover Control", DUSTCOVER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    CoverSP[OPEN].fill("COVER_OPEN", "Open", ISS_OFF);
+    CoverSP[CLOSED].fill("COVER_CLOSE", "Close", ISS_ON);
+    CoverSP.fill(getDeviceName(), "COVER_CONTROL", "Cover Control", DUSTCOVER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     setDriverInterface(FOCUSER_INTERFACE); //| DUSTCAP_INTERFACE);
 
-    addAuxControls();
+    //addAuxControls();
+    addDebugControl();
+    addConfigurationControl();
+    addPollPeriodControl();
+
 
     return true;
 }
@@ -147,35 +145,35 @@ bool AllunaTCS2::updateProperties()
         getFanPower();
 
         // Focuser
-        defineProperty(&SteppingModeSP);
+        defineProperty(SteppingModeSP);
         defineProperty(&FocusMaxPosNP);
         defineProperty(&FocusAbsPosNP);
 
         // Climate
-        defineProperty(&TemperatureNP);
-        defineProperty(&ClimateControlSP);
-        defineProperty(&PrimaryDewHeaterSP);
-        defineProperty(&SecondaryDewHeaterSP);
-        defineProperty(&FanPowerNP);
+        defineProperty(TemperatureNP);
+        defineProperty(ClimateControlSP);
+        defineProperty(PrimaryDewHeaterSP);
+        defineProperty(SecondaryDewHeaterSP);
+        defineProperty(FanPowerNP);
 
         // Cover
-        defineProperty(&CoverSP);
+        defineProperty(CoverSP);
 
         LOG_INFO("AllunaTCS2 is ready.");
     }
     else
     {
-        deleteProperty(SteppingModeSP.name);
+        deleteProperty(SteppingModeSP);
         deleteProperty(FocusMaxPosNP.name);
         deleteProperty(FocusAbsPosNP.name);
 
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(ClimateControlSP.name);
-        deleteProperty(PrimaryDewHeaterSP.name);
-        deleteProperty(SecondaryDewHeaterSP.name);
-        deleteProperty(FanPowerNP.name);
+        deleteProperty(TemperatureNP);
+        deleteProperty(ClimateControlSP);
+        deleteProperty(PrimaryDewHeaterSP);
+        deleteProperty(SecondaryDewHeaterSP);
+        deleteProperty(FanPowerNP);
 
-        deleteProperty(CoverSP.name);
+        deleteProperty(CoverSP);
     }
 
     return true;
@@ -383,16 +381,16 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
                 LOG_ERROR("Cannot turn off Connected-LED");
         }
         // Stepping Mode?
-        if (!strcmp(name, SteppingModeSP.name))
+        if (SteppingModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SteppingModeSP, states, names, n);
-            SteppingModeSP.s = IPS_OK;
-            IDSetSwitch(&SteppingModeSP, nullptr);
+            SteppingModeSP.update(states, names, n);
+            SteppingModeSP.setState(IPS_OK);
+            SteppingModeSP.apply();
 
             // write new stepping mode to tcs2
-            setStepping((SteppingModeS[STEPPING_SPEED].s == ISS_ON) ? STEPPING_SPEED : STEPPING_MICRO);
+            setStepping((SteppingModeSP[SPEED].s == ISS_ON) ? SPEED : MICRO);
             // update maximum stepping position
-            FocusAbsPosN[0].max  = (steppingMode == STEPPING_MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
+            FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
             // update max position value
             FocusMaxPosN[0].value = FocusAbsPosN[0].max;
             // update maximum stepping postion for presets
@@ -400,7 +398,7 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             // Update clients
             IDSetNumber(&FocusAbsPosNP, nullptr); // not sure if this is necessary, because not shown in driver panel
             IDSetNumber(&FocusMaxPosNP, nullptr );
-            LOGF_INFO("Setting new max position to %d", (steppingMode == STEPPING_MICRO) ? 22400 : 1400 );
+            LOGF_INFO("Setting new max position to %d", (steppingMode == MICRO) ? 22400 : 1400 );
 
             defineProperty(&FocusMaxPosNP);
             defineProperty(&FocusAbsPosNP);
@@ -411,123 +409,123 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
         }
 
         // Cover Switch?
-        if (!strcmp(name, CoverSP.name))
+        if (CoverSP.isNameMatch(name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // Do nothing, if state is already what it should be
-            int currentCoverIndex = IUFindOnSwitchIndex(&CoverSP);
-            if (!strcmp(actionName, CoverS[currentCoverIndex].name))
+            int currentCoverIndex = CoverSP.findOnSwitchIndex();
+            if (CoverSP[currentCoverIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", CoverS[currentCoverIndex].label);
-               CoverSP.s = IPS_IDLE;
-               IDSetSwitch(&CoverSP, NULL);
+               DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", CoverSP[currentCoverIndex].label);
+               CoverSP.setState(IPS_IDLE);
+               CoverSP.apply();
                return true;
             }
 
             // Otherwise, let us update the switch state
-            IUUpdateSwitch(&CoverSP, states, names, n);
-            currentCoverIndex = IUFindOnSwitchIndex(&CoverSP);
+            CoverSP.update(states, names, n);
+            currentCoverIndex = CoverSP.findOnSwitchIndex();
             if ( setDustCover() ) {
                 isCoverMoving = true;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", CoverS[currentCoverIndex].label);
-                CoverSP.s = IPS_OK;
-                IDSetSwitch(&CoverSP, NULL);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", CoverSP[currentCoverIndex].label);
+                CoverSP.setState(IPS_OK);
+                CoverSP.apply();
                 return true;
             } else {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                CoverSP.s = IPS_ALERT;
-                IDSetSwitch(&CoverSP, NULL);
+                CoverSP.setState(IPS_ALERT);
+                CoverSP.apply();
             }
         }
 
         // Climate Control Switch?
-        if (!strcmp(name, ClimateControlSP.name))
+        if (ClimateControlSP.isNameMatch(name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // Do nothing, if state is already what it should be
-            int currentClimateControlIndex = IUFindOnSwitchIndex(&ClimateControlSP);
-            if (!strcmp(actionName, ClimateControlS[currentClimateControlIndex].name))
+            int currentClimateControlIndex = ClimateControlSP.findOnSwitchIndex();
+            if (ClimateControlSP[currentClimateControlIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control is already %s", ClimateControlS[currentClimateControlIndex].label);
-               ClimateControlSP.s = IPS_IDLE;
-               IDSetSwitch(&ClimateControlSP, NULL);
+               DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control is already %s", ClimateControlSP[currentClimateControlIndex].label);
+               ClimateControlSP.setState(IPS_IDLE);
+               ClimateControlSP.apply();
                return true;
             }
 
             // Otherwise, let us update the switch state
-            IUUpdateSwitch(&ClimateControlSP, states, names, n);
-            currentClimateControlIndex = IUFindOnSwitchIndex(&ClimateControlSP);
-            if ( setClimateControl((currentClimateControlIndex==CLIMATECONTROL_AUTO) ? CLIMATECONTROL_MANUAL: CLIMATECONTROL_AUTO) ) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ClimateControl is now %s", CoverS[currentClimateControlIndex].label);
-                ClimateControlSP.s = IPS_OK;
-                IDSetSwitch(&ClimateControlSP, NULL);
+            ClimateControlSP.update(states, names, n);
+            currentClimateControlIndex = ClimateControlSP.findOnSwitchIndex();
+            if ( setClimateControl((currentClimateControlIndex==AUTO) ? MANUAL: AUTO) ) {
+                DEBUGF(INDI::Logger::DBG_SESSION, "ClimateControl is now %s", CoverSP[currentClimateControlIndex].label);
+                ClimateControlSP.setState(IPS_OK);
+                ClimateControlSP.apply();
                 return true;
             } else {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                ClimateControlSP.s = IPS_ALERT;
-                IDSetSwitch(&ClimateControlSP, NULL);
+                ClimateControlSP.setState(IPS_ALERT);
+                ClimateControlSP.apply();
             }
         }
 
         // PrimaryDewHeater Switch?
-        if (!strcmp(name, PrimaryDewHeaterSP.name))
+        if (PrimaryDewHeaterSP.isNameMatch(name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // Do nothing, if state is already what it should be
-            int currentPrimaryDewHeaterIndex = IUFindOnSwitchIndex(&PrimaryDewHeaterSP);
-            if (!strcmp(actionName, PrimaryDewHeaterS[currentPrimaryDewHeaterIndex].name))
+            int currentPrimaryDewHeaterIndex = PrimaryDewHeaterSP.findOnSwitchIndex();
+            if (PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is already %s", PrimaryDewHeaterS[currentPrimaryDewHeaterIndex].label);
-               PrimaryDewHeaterSP.s = IPS_IDLE;
-               IDSetSwitch(&PrimaryDewHeaterSP, NULL);
+               DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is already %s", PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].label);
+               PrimaryDewHeaterSP.setState(IPS_IDLE);
+               PrimaryDewHeaterSP.apply();
                return true;
             }
 
             // Otherwise, let us update the switch state
-            IUUpdateSwitch(&PrimaryDewHeaterSP, states, names, n);
-            currentPrimaryDewHeaterIndex = IUFindOnSwitchIndex(&PrimaryDewHeaterSP);
-            if ( setPrimaryDewHeater((currentPrimaryDewHeaterIndex==DEWHEATER_OFF) ? DEWHEATER_ON: DEWHEATER_OFF) ) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is now %s", PrimaryDewHeaterS[currentPrimaryDewHeaterIndex].label);
-                PrimaryDewHeaterSP.s = IPS_OK;
-                IDSetSwitch(&PrimaryDewHeaterSP, NULL);
+            PrimaryDewHeaterSP.update(states, names, n);
+            currentPrimaryDewHeaterIndex = PrimaryDewHeaterSP.findOnSwitchIndex();
+            if ( setPrimaryDewHeater((currentPrimaryDewHeaterIndex==OFF) ? ON:OFF) ) {
+                DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is now %s", PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].label);
+                PrimaryDewHeaterSP.setState(IPS_OK);
+                PrimaryDewHeaterSP.apply();
                 return true;
             } else {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                PrimaryDewHeaterSP.s = IPS_ALERT;
-                IDSetSwitch(&PrimaryDewHeaterSP, NULL);
+                PrimaryDewHeaterSP.setState(IPS_ALERT);
+                PrimaryDewHeaterSP.apply();
             }
         }
 
         // SecondaryDewHeater Switch?
-        if (!strcmp(name, SecondaryDewHeaterSP.name))
+        if (SecondaryDewHeaterSP.isNameMatch(name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // Do nothing, if state is already what it should be
-            int currentSecondaryDewHeaterIndex = IUFindOnSwitchIndex(&SecondaryDewHeaterSP);
-            if (!strcmp(actionName, SecondaryDewHeaterS[currentSecondaryDewHeaterIndex].name))
+            int currentSecondaryDewHeaterIndex = SecondaryDewHeaterSP.findOnSwitchIndex();
+            if (SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is already %s", SecondaryDewHeaterS[currentSecondaryDewHeaterIndex].label);
-               SecondaryDewHeaterSP.s = IPS_IDLE;
-               IDSetSwitch(&SecondaryDewHeaterSP, NULL);
+               DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is already %s", SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
+               SecondaryDewHeaterSP.setState(IPS_IDLE);
+               SecondaryDewHeaterSP.apply();
                return true;
             }
 
             // Otherwise, let us update the switch state
-            IUUpdateSwitch(&SecondaryDewHeaterSP, states, names, n);
-            currentSecondaryDewHeaterIndex = IUFindOnSwitchIndex(&SecondaryDewHeaterSP);
-            if ( setSecondaryDewHeater((currentSecondaryDewHeaterIndex==DEWHEATER_OFF) ? DEWHEATER_ON: DEWHEATER_OFF) ) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is now %s", SecondaryDewHeaterS[currentSecondaryDewHeaterIndex].label);
-                SecondaryDewHeaterSP.s = IPS_OK;
-                IDSetSwitch(&SecondaryDewHeaterSP, NULL);
+            SecondaryDewHeaterSP.update(states, names, n);
+            currentSecondaryDewHeaterIndex = SecondaryDewHeaterSP.findOnSwitchIndex();
+            if ( setSecondaryDewHeater((currentSecondaryDewHeaterIndex==OFF) ? ON: OFF) ) {
+                DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is now %s", SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
+                SecondaryDewHeaterSP.setState(IPS_OK);
+                SecondaryDewHeaterSP.apply();
                 return true;
             } else {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                SecondaryDewHeaterSP.s = IPS_ALERT;
-                IDSetSwitch(&SecondaryDewHeaterSP, NULL);
+                SecondaryDewHeaterSP.setState(IPS_ALERT);
+                SecondaryDewHeaterSP.apply();
             }
         }
 
@@ -544,7 +542,7 @@ bool AllunaTCS2::ISNewNumber(const char *dev, const char *name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Fan Power
-        if (!strcmp(name, FanPowerNP.name))
+        if (!FanPowerNP.isNameMatch(name))
         {
             // Try to update settings
             int power=values[0];
@@ -552,15 +550,14 @@ bool AllunaTCS2::ISNewNumber(const char *dev, const char *name, double values[],
             if (power<0) power=0;
             if (setFanPower(power))
             {
-                IUUpdateNumber(&FanPowerNP, values, names, n);
-                FanPowerNP.s = IPS_OK;
+                FanPowerNP.update(values, names, n);
+                FanPowerNP.setState(IPS_OK);
             }
             else
             {
-                FanPowerNP.s = IPS_ALERT;
+                FanPowerNP.setState(IPS_ALERT);
             }
-
-            IDSetNumber(&FanPowerNP, nullptr);
+            FanPowerNP.apply();
             return true;
         }
 
@@ -683,15 +680,15 @@ void AllunaTCS2::TimerHit()
                     break;
                 case 'O': // cover started moving
                     LOG_INFO("TimerHit: cover started moving");
-                    CoverSP.s = IPS_BUSY;
-                    IDSetSwitch(&CoverSP, nullptr);
+                    CoverSP.setState(IPS_BUSY);
+                    CoverSP.apply();
                     break;
                 case 'H': // cover stopped moving
                     LOG_INFO("TimetHit: cover stopped moving");
                     isCoverMoving = false;
                     receiveDone();
-                    CoverSP.s = IPS_OK;
-                    IDSetSwitch(&CoverSP, nullptr);
+                    CoverSP.setState(IPS_OK);
+                    CoverSP.apply();
                     break;
                 default: // unexpected output
                     LOGF_INFO("TimerHit: unexpected response (%s)", res);
@@ -753,7 +750,7 @@ bool AllunaTCS2::getTemperature()
     }
     else if ( sendCommandOnly("GetTemperatures\n")  )
     {
-      TemperatureNP.s = IPS_BUSY;
+      TemperatureNP.setState(IPS_BUSY);
       isGetTemperature = true;
 
       // expect and process device output while present
@@ -767,23 +764,22 @@ bool AllunaTCS2::getTemperature()
          {
             case 'R': // ambient temperature value
                 sscanf(res, "R#%f", &value);
-                TemperatureN[0].value = value;
+                TemperatureNP[0].value = value;
                 break;
             case 'S': // primary mirror temperature value
                 sscanf(res, "S#%f", &value);
-                TemperatureN[1].value = value;
+                TemperatureNP[1].value = value;
                 break;
             case 'T': // secondary mirror temperature value
                 sscanf(res, "T#%f", &value);
-                TemperatureN[2].value = value;
+                TemperatureNP[2].value = value;
                 break;
             case 'd': // ambient humidity value
                 sscanf(res, "d#%f", &value);
-                TemperatureN[3].value = value;
+                TemperatureNP[3].value = value;
                 receiveDone();
                 isGetTemperature=false;
-                TemperatureNP.s = IPS_OK;
-                IDSetNumber(&TemperatureNP, nullptr);
+                TemperatureNP.setState(IPS_OK);
                 break;
             default: // unexpected output
                 LOGF_ERROR("GetTemperatures: unexpected response (%s)", res);
@@ -831,9 +827,9 @@ bool AllunaTCS2::getDustCover()
         return false;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Cover status read to be %s (%d)", (value==1)?"open":"closed", value);
-    CoverS[COVER_OPEN  ].s = (value==1)?ISS_ON:ISS_OFF;
-    CoverS[COVER_CLOSED].s = (value!=1)?ISS_ON:ISS_OFF;
-    CoverSP.s = IPS_OK;
+    CoverSP[OPEN ].setState((value==1)?ISS_ON:ISS_OFF);
+    CoverSP[CLOSED].setState((value!=1)?ISS_ON:ISS_OFF);
+    CoverSP.setState(IPS_OK);
 
     return true;
 }
@@ -852,13 +848,13 @@ bool AllunaTCS2::getStepping()
         return false;
 
     // mode=1: Microstep, mode=0: Speedstep
-    steppingMode = (mode == 0) ? STEPPING_SPEED : STEPPING_MICRO;
-    SteppingModeS[STEPPING_SPEED].s = (mode == 0) ? ISS_ON : ISS_OFF;
-    SteppingModeS[STEPPING_MICRO].s = (mode == 0) ? ISS_OFF : ISS_ON;
-    SteppingModeSP.s = IPS_OK;
+    steppingMode = (mode == 0) ? SPEED : MICRO;
+    SteppingModeSP[SPEED].setState((mode == 0) ? ISS_ON : ISS_OFF);
+    SteppingModeSP[MICRO].setState((mode == 0) ? ISS_OFF : ISS_ON);
+    SteppingModeSP.setState(IPS_OK);
 
     // Set limits as per documentation
-    FocusAbsPosN[0].max  = (steppingMode == STEPPING_MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
+    FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
     LOGF_INFO("readStepping: set max position to %d",(int)FocusAbsPosN[0].max);
     return true;
 }
@@ -868,8 +864,8 @@ bool AllunaTCS2::setStepping(SteppingMode mode)
     int value;
     char cmd[DRIVER_LEN] = {0};
     steppingMode=mode;
-    value = (mode == STEPPING_SPEED) ? 0 : 1;
-    LOGF_INFO("Setting stepping mde to: %s", (mode==STEPPING_SPEED)?"SPEED":"micro");
+    value = (mode == SPEED) ? 0 : 1;
+    LOGF_INFO("Setting stepping mde to: %s", (mode==SPEED)?"SPEED":"micro");
     LOGF_INFO("Setting stepping mode to: %d", value);
     snprintf(cmd, DRIVER_LEN, "SetFocuserMode %d\n", value);
     return sendCommand(cmd);
@@ -896,9 +892,9 @@ bool AllunaTCS2::getClimateControl()
         return false;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control status read to be %s (%d)", (value==1)?"automatic":"manual", value);
-    ClimateControlS[CLIMATECONTROL_AUTO  ].s = (value==1)?ISS_ON:ISS_OFF;
-    ClimateControlS[CLIMATECONTROL_MANUAL].s = (value!=1)?ISS_ON:ISS_OFF;
-    ClimateControlSP.s = IPS_OK;
+    ClimateControlSP[AUTO  ].setState((value==1)?ISS_ON:ISS_OFF);
+    ClimateControlSP[MANUAL].setState((value!=1)?ISS_ON:ISS_OFF);
+    ClimateControlSP.setState(IPS_OK);
 
     return true;
 }
@@ -907,7 +903,7 @@ bool AllunaTCS2::setClimateControl(ClimateControlMode mode)
 {
     char cmd[DRIVER_LEN] = {0};
     int value;
-    value = (mode == CLIMATECONTROL_AUTO) ? 1 : 0;
+    value = (mode == AUTO) ? 1 : 0;
     snprintf(cmd, DRIVER_LEN, "SetClimateControl %d\n", value); // enable/disable climate control
     return sendCommand(cmd);
 }
@@ -926,9 +922,9 @@ bool AllunaTCS2::getPrimaryDewHeater()
         return false;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater status read to be %s (%d)", (value==1)?"ON":"OFF", value);
-    PrimaryDewHeaterS[DEWHEATER_ON ].s = (value==1)?ISS_ON:ISS_OFF;
-    PrimaryDewHeaterS[DEWHEATER_OFF].s = (value!=1)?ISS_ON:ISS_OFF;
-    PrimaryDewHeaterSP.s = IPS_OK;
+    PrimaryDewHeaterSP[ON ].setState((value==1)?ISS_ON:ISS_OFF);
+    PrimaryDewHeaterSP[OFF].setState((value!=1)?ISS_ON:ISS_OFF);
+    PrimaryDewHeaterSP.setState(IPS_OK);
 
     return true;
 }
@@ -937,7 +933,7 @@ bool AllunaTCS2::setPrimaryDewHeater(DewHeaterMode mode)
 {
     char cmd[DRIVER_LEN] = {0};
     int value;
-    value = (mode == DEWHEATER_ON) ? 1 : 0;
+    value = (mode == ON) ? 1 : 0;
     snprintf(cmd, DRIVER_LEN, "SetAux1 %d\n", value); // enable/disable heating
     return sendCommand(cmd);
 }
@@ -956,9 +952,9 @@ bool AllunaTCS2::getSecondaryDewHeater()
         return false;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater status read to be %s (%d)", (value==1)?"ON":"OFF", value);
-    SecondaryDewHeaterS[DEWHEATER_ON ].s = (value==1)?ISS_ON:ISS_OFF;
-    SecondaryDewHeaterS[DEWHEATER_OFF].s = (value!=1)?ISS_ON:ISS_OFF;
-    SecondaryDewHeaterSP.s = IPS_OK;
+    SecondaryDewHeaterSP[ON ].setState((value==1)?ISS_ON:ISS_OFF);
+    SecondaryDewHeaterSP[OFF].setState((value!=1)?ISS_ON:ISS_OFF);
+    SecondaryDewHeaterSP.setState(IPS_OK);
 
     return true;
 }
@@ -967,7 +963,7 @@ bool AllunaTCS2::setSecondaryDewHeater(DewHeaterMode mode)
 {
     char cmd[DRIVER_LEN] = {0};
     int value;
-    value = (mode == DEWHEATER_ON) ? 1 : 0;
+    value = (mode == ON) ? 1 : 0;
     snprintf(cmd, DRIVER_LEN, "SetAux2 %d\n", value); // enable/disable heating
     return sendCommand(cmd);
 }
@@ -999,11 +995,11 @@ bool AllunaTCS2::getFanPower()
     if (value == -1)
         return false;
 
-    if (value != (int)FanPowerN[0].value) {
+    if (value != (int)FanPowerNP[0].value) {
       LOGF_INFO("FanPower read to be %d", value);
-      FanPowerN[0].value = (double)value;
-      FanPowerNP.s = IPS_OK;
-      IDSetNumber(&FanPowerNP, nullptr);
+      FanPowerNP[0].value = (double)value;
+      FanPowerNP.setState(IPS_OK);
+      FanPowerNP.apply();
     }
     return true;
 }

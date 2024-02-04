@@ -26,10 +26,7 @@
 */
 
 #pragma once
-#include "indibase.h"
 #include "indifocuser.h"
-#include "indifocuserinterface.h"
-#include "indidustcapinterface.h"
 #include <mutex>
 #include <chrono>
 #include <ctime>
@@ -73,40 +70,22 @@ class AllunaTCS2 : public INDI::Focuser //, public INDI::DustCapInterface
         bool isCoverMoving = false;
 
         // Climate
-
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[4]; // note: last value is humidity, not temperature.
-        ISwitchVectorProperty ClimateControlSP;
-        ISwitch ClimateControlS[2];
-        typedef enum
-        {
-            CLIMATECONTROL_AUTO,
-            CLIMATECONTROL_MANUAL,
-        } ClimateControlMode;
-        ISwitchVectorProperty PrimaryDewHeaterSP, SecondaryDewHeaterSP;
-        ISwitch PrimaryDewHeaterS[2], SecondaryDewHeaterS[2];
-        typedef enum
-        {
-            DEWHEATER_ON,
-            DEWHEATER_OFF,
-        } DewHeaterMode;
-        INumberVectorProperty FanPowerNP;
-        INumber FanPowerN[1];
+        INDI::PropertyNumber TemperatureNP{4}; // note: last value is humidity, not temperature.
+        INDI::PropertySwitch ClimateControlSP{2};
+        typedef enum { AUTO, MANUAL } ClimateControlMode;
+        INDI::PropertySwitch PrimaryDewHeaterSP{2}, SecondaryDewHeaterSP{2};
+        typedef enum { ON, OFF } DewHeaterMode;
+        INDI::PropertyNumber FanPowerNP{1};
 
         // Focuser
-        ISwitchVectorProperty SteppingModeSP;
-        ISwitch SteppingModeS[2];
-        typedef enum
-        {
-            STEPPING_MICRO = 1,
-            STEPPING_SPEED = 0,
-        } SteppingMode;
-        SteppingMode steppingMode=STEPPING_MICRO;
+        INDI::PropertySwitch SteppingModeSP{2};
+
+        typedef enum { MICRO = 1, SPEED = 0 } SteppingMode;
+        SteppingMode steppingMode=MICRO;
 
         // Dust cover
-        ISwitch CoverS[2];
-        ISwitchVectorProperty CoverSP;
-        enum { COVER_OPEN, COVER_CLOSED };
+        INDI::PropertySwitch CoverSP{2};
+        typedef enum { OPEN, CLOSED } CoverMode;
 
 
         ///////////////////////////////////////////////////////////////////////////////
