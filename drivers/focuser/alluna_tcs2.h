@@ -148,7 +148,6 @@ class AllunaTCS2 : public INDI::Focuser //, public INDI::DustCapInterface
         /// Class Variables
         /////////////////////////////////////////////////////////////////////////////
         int32_t m_TargetDiff { 0 };
-        uint16_t m_TemperatureCounter { 0 };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values

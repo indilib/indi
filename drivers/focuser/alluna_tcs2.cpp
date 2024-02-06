@@ -542,7 +542,7 @@ bool AllunaTCS2::ISNewNumber(const char *dev, const char *name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Fan Power
-        if (!FanPowerNP.isNameMatch(name))
+        if (FanPowerNP.isNameMatch(name))
         {
             // Try to update settings
             int power=values[0];
