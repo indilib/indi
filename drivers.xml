@@ -517,6 +517,10 @@
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Alluna TCS2" manufacturer="Alluna Optics">
+            <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true" manufacturer="Simulator">
