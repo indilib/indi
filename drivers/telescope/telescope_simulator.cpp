@@ -65,9 +65,9 @@ bool ScopeSim::initProperties()
 
 #ifdef USE_SIM_TAB
     // mount type and alignment properties, these are in the Simulation tab
-    mountTypeSP[0].fill("ALTAZ", "ALTAZ", ISS_OFF);
-    mountTypeSP[1].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
-    mountTypeSP[2].fill("EQ_GEM", "GEM", ISS_OFF);
+    mountTypeSP[ALTAZ].fill("ALTAZ", "ALTAZ", ISS_OFF);
+    mountTypeSP[EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
+    mountTypeSP[EQ_GEM].fill("EQ_GEM", "GEM", ISS_OFF);
     mountTypeSP.fill(getDeviceName() ,"MOUNT_TYPE", "Mount Type","Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_OFF);
