@@ -451,7 +451,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             if (IUUpdateSwitch(mountTypeSP, states, names, n) < 0)
                 return false;
 
-            mountTypeSP = IPS_OK;
+            mountTypeSP->setState(IPS_OK);
             IDSetSwitch(mountTypeSP, nullptr);
             updateMountAndPierSide();
             return true;
