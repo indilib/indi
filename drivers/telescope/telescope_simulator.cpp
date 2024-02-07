@@ -135,7 +135,7 @@ void ScopeSim::ISGetProperties(const char *dev)
 
 #ifdef USE_SIM_TAB
     defineProperty(mountTypeSP);
-    loadConfig(true, mountTypeSP->getName());
+    mountTypeSP.load();
     defineProperty(&simPierSideSP);
     loadConfig(true, simPierSideSP.name);
     defineProperty(&mountModelNP);
@@ -446,13 +446,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 #ifdef USE_SIM_TAB
-        if (strcmp(name, mountTypeSP.getName()) == 0)
+        if (mountTypeSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(mountTypeSP, states, names, n) < 0)
+            if (mountTypeSP.update(states, names, n))
                 return false;
 
-            mountTypeSP->setState(IPS_OK);
-            IDSetSwitch(mountTypeSP, nullptr);
+            mountTypeSP.setState(IPS_OK);
+            mountTypeSP.apply();
             updateMountAndPierSide();
             return true;
         }
@@ -618,7 +618,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 
 #ifdef USE_SIM_TAB
     IUSaveConfigNumber(fp, &GuideRateNP);
-    IUSaveConfigSwitch(fp, mountTypeSP);
+    mountTypeSP.save(fp);
     IUSaveConfigSwitch(fp, &simPierSideSP);
     IUSaveConfigNumber(fp, &mountModelNP);
     IUSaveConfigNumber(fp, &flipHourAngleNP);
@@ -640,7 +640,7 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 bool ScopeSim::updateMountAndPierSide()
 {
 #ifdef USE_SIM_TAB
-    int mountType = IUFindOnSwitchIndex(mountTypeSP);
+    int mountType = mountTypeSP.findOnSwitchIndex();
     int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
     if (mountType < 0 || pierSide < 0)
         return false;
