@@ -119,7 +119,14 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         // Simulator Tab properties
         // Scope type and alignment
         ISwitch mountTypeS[3];
-        ISwitchVectorProperty mountTypeSP;
+        INDI::PropertySwitch mountTypeSP {3};
+        enum
+        {
+            ALTAZ,
+            EQ_FORK,
+            EQ_GEM
+        };
+
         ISwitch simPierSideS[2];
         ISwitchVectorProperty simPierSideSP;
 
