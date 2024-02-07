@@ -128,7 +128,12 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         };
 
         ISwitch simPierSideS[2];
-        ISwitchVectorProperty simPierSideSP;
+        INDI::PropertySwitch simPierSideSP {2};
+        enum
+        {
+            PS_OFF,
+            PS_ON
+        };
 
         INumber mountModelN[6];
         INumberVectorProperty mountModelNP;

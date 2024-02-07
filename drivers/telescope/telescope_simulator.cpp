@@ -70,10 +70,10 @@ bool ScopeSim::initProperties()
     mountTypeSP[EQ_GEM].fill("EQ_GEM", "GEM", ISS_OFF);
     mountTypeSP.fill(getDeviceName() ,"MOUNT_TYPE", "Mount Type","Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_ON);
-    IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
-                       "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
+    simPierSideSP[PS_OFF].fill("PS_OFF", "Off", ISS_OFF);
+    simPierSideSP[PS_ON].fill("PS_ON", "On", ISS_ON);
+    simPierSideSP.fill(getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
+                       "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&mountModelN[0], "MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
     IUFillNumber(&mountModelN[1], "MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
@@ -136,8 +136,8 @@ void ScopeSim::ISGetProperties(const char *dev)
 #ifdef USE_SIM_TAB
     defineProperty(mountTypeSP);
     mountTypeSP.load();
-    defineProperty(&simPierSideSP);
-    loadConfig(true, simPierSideSP.name);
+    defineProperty(simPierSideSP);
+    simPierSideSP.load();
     defineProperty(&mountModelNP);
     loadConfig(true, mountModelNP.name);
     defineProperty(&mountAxisNP);
@@ -456,13 +456,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             updateMountAndPierSide();
             return true;
         }
-        if (strcmp(name, simPierSideSP.name) == 0)
+        if (simPierSideSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&simPierSideSP, states, names, n) < 0)
+            if (simPierSideSP.update(states, names, n))
                 return false;
 
-            simPierSideSP.s = IPS_OK;
-            IDSetSwitch(&simPierSideSP, nullptr);
+            simPierSideSP.setState(IPS_OK);
+            simPierSideSP.apply();
             updateMountAndPierSide();
             return true;
         }
@@ -619,7 +619,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 #ifdef USE_SIM_TAB
     IUSaveConfigNumber(fp, &GuideRateNP);
     mountTypeSP.save(fp);
-    IUSaveConfigSwitch(fp, &simPierSideSP);
+    simPierSideSP.save(fp);
     IUSaveConfigNumber(fp, &mountModelNP);
     IUSaveConfigNumber(fp, &flipHourAngleNP);
 #endif
@@ -641,7 +641,7 @@ bool ScopeSim::updateMountAndPierSide()
 {
 #ifdef USE_SIM_TAB
     int mountType = mountTypeSP.findOnSwitchIndex();
-    int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
+    int pierSide = simPierSideSP.findOnSwitchIndex();
     if (mountType < 0 || pierSide < 0)
         return false;
 
