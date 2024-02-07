@@ -770,7 +770,8 @@ class Telescope : public DefaultDevice
         };
 
         // Slew Rate
-        ISwitchVectorProperty SlewRateSP;
+        INDI::PropertySwitch SlewRateSP {4};
+
         ISwitch *SlewRateS {nullptr};
 
         // UTC and UTC Offset
