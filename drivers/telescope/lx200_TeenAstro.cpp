@@ -182,7 +182,7 @@ bool LX200_TeenAstro::updateProperties()
         defineProperty(&GuideRateNP);
 
         // Site Management
-        defineProperty(&ParkOptionSP);
+        defineProperty(ParkOptionSP);
         defineProperty(&SetHomeSP);
 
         defineProperty(&SiteSP);
@@ -210,7 +210,7 @@ bool LX200_TeenAstro::updateProperties()
         deleteProperty(SiteNameTP.name);
 
         // Site Management
-        deleteProperty(ParkOptionSP.name);
+        deleteProperty(ParkOptionSP);
         deleteProperty(SetHomeSP.name);
         // Guide
         deleteProperty(GuideNSNP.name);
