@@ -183,6 +183,10 @@
             <driver name="iEQ">indi_ieq_telescope</driver>
             <version>1.9</version>
         </device>
+        <device label="iOptron iMate" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
         <device label="iOptron CEM26" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.7</version>
