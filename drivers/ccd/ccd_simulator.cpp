@@ -136,9 +136,9 @@ bool CCDSim::initProperties()
                        "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
-    IUFillSwitch(&SimulateBayerS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&SimulateBayerSP, SimulateBayerS, 2, getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
+    SimulateBayerSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    SimulateBayerSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    SimulateBayerSP.fill(getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
@@ -265,7 +265,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&FocusSimulationNP);
-    defineProperty(&SimulateBayerSP);
+    defineProperty(SimulateBayerSP);
     defineProperty(&CrashSP);
 }
 
@@ -1151,15 +1151,15 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Simulate RGB
-        if (!strcmp(name, SimulateBayerSP.name))
+        if (SimulateBayerSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SimulateBayerSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&SimulateBayerSP);
+            SimulateBayerSP.update(states, names, n);
+            int index = SimulateBayerSP.findOnSwitchIndex();
             if (index == -1)
             {
-                SimulateBayerSP.s = IPS_ALERT;
+                SimulateBayerSP.setState(IPS_ALERT);
                 LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-                IDSetSwitch(&SimulateBayerSP, nullptr);
+                SimulateBayerSP.apply();
                 return false;
             }
 
@@ -1168,8 +1168,8 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             SimulateBayerS[INDI_ENABLED].s = m_SimulateBayer ? ISS_ON : ISS_OFF;
             SimulateBayerS[INDI_DISABLED].s = m_SimulateBayer ? ISS_OFF : ISS_ON;
-            SimulateBayerSP.s   = IPS_OK;
-            IDSetSwitch(&SimulateBayerSP, nullptr);
+            SimulateBayerSP.setState(IPS_OK);
+            SimulateBayerSP.apply();
 
             return true;
         }
@@ -1400,7 +1400,7 @@ bool CCDSim::saveConfigItems(FILE * fp)
     ResolutionSP.save(fp);
 
     // Bayer
-    IUSaveConfigSwitch(fp, &SimulateBayerSP);
+    SimulateBayerSP.save(fp);
 
     // Focus simulation
     IUSaveConfigNumber(fp, &FocusSimulationNP);

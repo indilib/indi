@@ -206,7 +206,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[SIM_N];
 
-        ISwitchVectorProperty SimulateBayerSP;
+        INDI::PropertySwitch SimulateBayerSP {2};
+        enum
+        {
+            INDI_ENABLED,
+            INDI_DISABLED
+        };
+
         ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser
