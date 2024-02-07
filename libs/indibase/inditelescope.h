@@ -699,6 +699,11 @@ class Telescope : public DefaultDevice
          */
         TelescopeStatus RememberTrackState {SCOPE_IDLE};
 
+        /**
+        * \defgroup INDI Mount Standard Properties
+        * @{
+        */
+
         // All telescopes should produce equatorial co-ordinates
         INumberVectorProperty EqNP;
         INumber EqN[2];
@@ -728,9 +733,18 @@ class Telescope : public DefaultDevice
         INumber ParkPositionN[2];
         INumberVectorProperty ParkPositionNP;
 
-        // Custom parking options
-        ISwitch ParkOptionS[4];
-        ISwitchVectorProperty ParkOptionSP;
+        /**
+        + NAME: TELESCOPE_PARK_POSITION
+        + DESCRIPTION: Mount parking position option. Set mount parking position from current or default positions and write or purge data from the standard ParkData.xml file.
+          ParkData.xml contains all the parking positions for all INDI devices and is read on startup. It indicates the parking position and status (Parked/Unparked)
+        + TYPE: SWITCH
+        + MEMBMERS:
+            + PARK_CURRENT: Use current mount position as the parking position
+            + PARK_DEFAULT: Use driver own default position (defined by driver) as the parking position
+            + PARK_WRITE_DATA: Write current parking information to ParkData.xml file.
+            + PARK_PURGE_DATA: Remove Park data from ParkData.xml file.
+        **/
+        INDI::PropertySwitch ParkOptionSP {4};
         enum
         {
             PARK_CURRENT,
@@ -855,6 +869,8 @@ class Telescope : public DefaultDevice
         // Track Rate
         INumberVectorProperty TrackRateNP;
         INumber TrackRateN[2];
+
+        /**@}*/
 
         // PEC State
         TelescopePECState lastPECState {PEC_UNKNOWN}, currentPECState {PEC_UNKNOWN};

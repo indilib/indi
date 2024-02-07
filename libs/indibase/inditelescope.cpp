@@ -91,12 +91,11 @@ bool Telescope::initProperties()
     IUFillNumberVector(&TargetNP, TargetN, 2, getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&ParkOptionS[PARK_CURRENT], "PARK_CURRENT", "Current", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[PARK_DEFAULT], "PARK_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[PARK_WRITE_DATA], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[PARK_PURGE_DATA], "PARK_PURGE_DATA", "Purge Data", ISS_OFF);
-    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 4, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options",
-                       SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    ParkOptionSP[PARK_CURRENT].fill("PARK_CURRENT", "Current", ISS_OFF);
+    ParkOptionSP[PARK_DEFAULT].fill("PARK_DEFAULT", "Default", ISS_OFF);
+    ParkOptionSP[PARK_WRITE_DATA].fill("PARK_WRITE_DATA", "Write Data", ISS_OFF);
+    ParkOptionSP[PARK_PURGE_DATA].fill("PARK_PURGE_DATA", "Purge Data", ISS_OFF);
+    ParkOptionSP.fill(getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
     IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
@@ -346,7 +345,7 @@ bool Telescope::updateProperties()
             if (parkDataType != PARK_NONE)
             {
                 defineProperty(&ParkPositionNP);
-                defineProperty(&ParkOptionSP);
+                defineProperty(ParkOptionSP);
             }
         }
 
@@ -406,7 +405,7 @@ bool Telescope::updateProperties()
             if (parkDataType != PARK_NONE)
             {
                 deleteProperty(ParkPositionNP.name);
-                deleteProperty(ParkOptionSP.name);
+                deleteProperty(ParkOptionSP);
             }
         }
 
@@ -1363,14 +1362,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Park Options
         ///////////////////////////////////
-        if (!strcmp(name, ParkOptionSP.name))
+        if (ParkOptionSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&ParkOptionSP);
+            ParkOptionSP.update(states, names, n);
+            auto index = ParkOptionSP.findOnSwitchIndex();
             if (index == -1)
                 return false;
 
-            IUResetSwitch(&ParkOptionSP);
+            ParkOptionSP.reset();
 
             bool rc = false;
 
@@ -1378,8 +1377,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     MovementWESP.s == IPS_BUSY)
             {
                 LOG_INFO("Can not change park position while slewing or already parked...");
-                ParkOptionSP.s = IPS_ALERT;
-                IDSetSwitch(&ParkOptionSP, nullptr);
+                ParkOptionSP.setState(IPS_ALERT);
+                ParkOptionSP.apply();
                 return false;
             }
 
@@ -1407,9 +1406,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     break;
             }
 
-            ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ParkOptionSP, nullptr);
-
+            ParkOptionSP.setState(rc ? IPS_OK : IPS_ALERT);
+            ParkOptionSP.apply();
             return true;
         }
 
@@ -1786,7 +1784,8 @@ void Telescope::generateCoordSet()
         ++j;
     }
 
-    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set",
+                       MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
 
