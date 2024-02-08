@@ -149,8 +149,8 @@ bool CCDSim::initProperties()
                        SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // Simulate Crash
-    IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
-    IUFillSwitchVector(&CrashSP, CrashS, 1, getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
+    CrashSP[CRASH].fill("CRASH", "Crash driver", ISS_OFF);
+    CrashSP.fill(getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     // Periodic Error
@@ -266,7 +266,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineProperty(&EqPENP);
     defineProperty(&FocusSimulationNP);
     defineProperty(SimulateBayerSP);
-    defineProperty(&CrashSP);
+    defineProperty(CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -1240,7 +1240,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             }
             return true;
         }
-        else if (strcmp(name, CrashSP.name) == 0)
+        else if (CrashSP.isNameMatch(name))
         {
             abort();
         }

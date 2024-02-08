@@ -243,7 +243,12 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INDI::PropertyText DirectoryTP {1};
         INDI::PropertySwitch DirectorySP {2};
 
-        ISwitchVectorProperty CrashSP;
+        INDI::PropertySwitch CrashSP {1};
+        enum
+        {
+            CRASH
+        };
+
         ISwitch CrashS[1];
 
         INDI::PropertySwitch ResolutionSP {2};
