@@ -448,7 +448,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 #ifdef USE_SIM_TAB
         if (mountTypeSP.isNameMatch(name))
         {
-            if (mountTypeSP.update(states, names, n))
+            if (!mountTypeSP.update(states, names, n))
                 return false;
 
             mountTypeSP.setState(IPS_OK);
@@ -458,7 +458,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
         if (simPierSideSP.isNameMatch(name))
         {
-            if (simPierSideSP.update(states, names, n))
+            if (!simPierSideSP.update(states, names, n))
                 return false;
 
             simPierSideSP.setState(IPS_OK);
