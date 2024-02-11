@@ -103,8 +103,12 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         bool guidingNS = false;
         bool guidingEW = false;
 
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
+        enum
+        {
+            GUIDE_RATE_WE,
+            GUIDE_RATE_NS
+        };
 
         Axis axisPrimary { "HaAxis" };         // hour angle mount axis
         Axis axisSecondary { "DecAxis" };       // declination mount axis
@@ -133,13 +137,30 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
             PS_ON
         };
 
-        INumber mountModelN[6];
-        INumberVectorProperty mountModelNP;
-        INumber mountAxisN[2];
-        INumberVectorProperty mountAxisNP;
+        INDI::PropertyNumber mountModelNP {6};
+        enum
+        {
+            MM_IH,
+            MM_ID,
+            MM_CH,
+            MM_NP,
+            MM_MA,
+            MM_ME
+        };
 
-        INumber flipHourAngleN[1];
-        INumberVectorProperty flipHourAngleNP;
+        INDI::PropertyNumber mountAxisNP {2};
+        enum
+        {
+            PRIMARY,
+            SECONDARY
+        };
+
+        INDI::PropertyNumber flipHourAngleNP {1};
+        enum
+        {
+            FLIP_HA
+        };
+
 #endif
 
 };
