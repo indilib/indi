@@ -62,7 +62,7 @@ bool CCDSim::setupParameters()
     m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].value;
     m_SkyGlow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
     m_MaxVal        = SimulatorSettingsNP[SIM_MAXVAL].value;
-    m_Bias          = OffsetN[0].value;
+    m_Bias          = OffsetNP[0].value;
     m_LimitingMag   = SimulatorSettingsNP[SIM_LIMITINGMAG].value;
     m_SaturationMag = SimulatorSettingsNP[SIM_SATURATION].value;
     //  An oag is offset this much from center of scope position (arcminutes);
@@ -165,18 +165,18 @@ bool CCDSim::initProperties()
     IUFillNumberVector(&FWHMNP, FWHMN, 1, focuser, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     // Cooler
-    IUFillSwitch(&CoolerS[INDI_ENABLED], "COOLER_ON", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[INDI_DISABLED], "COOLER_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
+    CoolerSP[INDI_ENABLED].fill("COOLER_ON", "ON", ISS_OFF);
+    CoolerSP[INDI_DISABLED].fill("COOLER_OFF", "OFF", ISS_ON);
+    CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Gain
-    IUFillNumber(&GainN[0], "GAIN", "value", "%.f", 0, 100, 10, 90);
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    GainNP[GAIN].fill("GAIN", "value", "%.f", 0, 100, 10, 90);
+    GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Offset
-    IUFillNumber(&OffsetN[0], "OFFSET", "value", "%.f", 0, 6000, 500, 0);
-    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    OffsetNP[OFFSET].fill("OFFSET", "value", "%.f", 0, 6000, 500, 0);
+    OffsetNP.fill(getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Directory to read images from. This is useful to test real images captured by camera
     // For each capture, one file is read (sorted by name) and is sent to client.
@@ -276,10 +276,10 @@ bool CCDSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineProperty(&CoolerSP);
+            defineProperty(CoolerSP);
 
-        defineProperty(&GainNP);
-        defineProperty(&OffsetNP);
+        defineProperty(GainNP);
+        defineProperty(OffsetNP);
 
         defineProperty(DirectoryTP);
         defineProperty(DirectorySP);
@@ -299,10 +299,10 @@ bool CCDSim::updateProperties()
     else
     {
         if (HasCooler())
-            deleteProperty(CoolerSP.name);
+            deleteProperty(CoolerSP.getName());
 
-        deleteProperty(GainNP.name);
-        deleteProperty(OffsetNP.name);
+        deleteProperty(GainNP.getName());
+        deleteProperty(OffsetNP.getName());
         deleteProperty(DirectoryTP);
         deleteProperty(DirectorySP);
         deleteProperty(ResolutionSP);
@@ -323,10 +323,10 @@ int CCDSim::SetTemperature(double temperature)
     }
 
     auto isCooling = TemperatureRequest < temperature;
-    CoolerS[0].s = isCooling ? ISS_ON : ISS_OFF;
-    CoolerS[1].s = isCooling ? ISS_OFF : ISS_ON;
-    CoolerSP.s   = isCooling ? IPS_BUSY : IPS_IDLE;
-    IDSetSwitch(&CoolerSP, nullptr);
+    CoolerSP[INDI_ENABLED].setState(isCooling ? ISS_ON : ISS_OFF);
+    CoolerSP[INDI_DISABLED].setState(isCooling ? ISS_OFF : ISS_ON);
+    CoolerSP.setState(isCooling ? IPS_BUSY : IPS_IDLE);
+    CoolerSP.apply();
     return 0;
 }
 
@@ -503,10 +503,10 @@ void CCDSim::TimerHit()
         // Above 20, cooler is off
         if (TemperatureN[0].value >= 20)
         {
-            CoolerS[0].s = ISS_OFF;
-            CoolerS[1].s = ISS_ON;
-            CoolerSP.s   = IPS_IDLE;
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP[INDI_ENABLED].s = ISS_OFF;
+            CoolerSP[INDI_DISABLED].s = ISS_ON;
+            CoolerSP.setState(IPS_IDLE);
+            CoolerSP.apply();
         }
     }
 
@@ -537,7 +537,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    exposure_time *= (1 + sqrt(GainN[0].value));
+    exposure_time *= (1 + sqrt(GainNP[GAIN].value));
 
     auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
@@ -1081,19 +1081,19 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (!strcmp(name, GainNP.name))
+        if (GainNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GainNP, values, names, n);
-            GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, nullptr);
+            GainNP.update(values, names, n);
+            GainNP.setState(IPS_OK);
+            GainNP.apply();
             return true;
         }
-        if (!strcmp(name, OffsetNP.name))
+        if (OffsetNP.isNameMatch(name))
         {
-            IUUpdateNumber(&OffsetNP, values, names, n);
-            OffsetNP.s = IPS_OK;
-            IDSetNumber(&OffsetNP, nullptr);
-            m_Bias = OffsetN[0].value;
+            OffsetNP.update(values, names, n);
+            OffsetNP.setState(IPS_OK);
+            OffsetNP.apply();
+            m_Bias = OffsetNP[OFFSET].value;
             return true;
         }
         else if (SimulatorSettingsNP.isNameMatch(name))
@@ -1173,22 +1173,22 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             return true;
         }
-        else if (strcmp(name, CoolerSP.name) == 0)
+        else if (CoolerSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&CoolerSP, states, names, n);
+            CoolerSP.update(states, names, n);
 
-            if (CoolerS[0].s == ISS_ON)
-                CoolerSP.s = IPS_BUSY;
+            if (CoolerSP[INDI_ENABLED].getState() == ISS_ON)
+                CoolerSP.setState(IPS_BUSY);
             else
             {
-                CoolerSP.s          = IPS_IDLE;
+                CoolerSP.setState(IPS_IDLE);
                 m_TargetTemperature = 20;
                 TemperatureNP.s     = IPS_BUSY;
                 m_TemperatureCheckTimer.start();
                 m_TemperatureElapsedTimer.start();
             }
 
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP.apply();
 
             return true;
         }
@@ -1390,8 +1390,8 @@ bool CCDSim::saveConfigItems(FILE * fp)
     SimulatorSettingsNP.save(fp);
 
     // Gain
-    IUSaveConfigNumber(fp, &GainNP);
-    IUSaveConfigNumber(fp, &OffsetNP);
+    GainNP.save(fp);
+    OffsetNP.save(fp);
 
     // Directory
     DirectoryTP.save(fp);
@@ -1531,7 +1531,7 @@ void CCDSim::addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRe
 {
     INDI::CCD::addFITSKeywords(targetChip, fitsKeyword);
 
-    fitsKeyword.push_back({"GAIN", GainN[0].value, 3, "Gain"});
+    fitsKeyword.push_back({"GAIN", GainNP[GAIN].value, 3, "Gain"});
 }
 
 bool CCDSim::loadNextImage()

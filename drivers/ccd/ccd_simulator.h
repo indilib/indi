@@ -234,14 +234,19 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INDI::PropertyNumber EqPENP {2};
 
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
+        INDI::PropertySwitch CoolerSP {2};
 
-        INumber GainN[1];
-        INumberVectorProperty GainNP;
+        INDI::PropertyNumber GainNP {1};
+        enum
+        {
+            GAIN
+        };
 
-        INumber OffsetN[1];
-        INumberVectorProperty OffsetNP;
+        INDI::PropertyNumber OffsetNP {1};
+        enum
+        {
+            OFFSET
+        };
 
         INDI::PropertyText DirectoryTP {1};
         INDI::PropertySwitch DirectorySP {2};
