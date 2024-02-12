@@ -48,8 +48,8 @@ GuideSim::GuideSim()
 bool GuideSim::SetupParms()
 {
     int nbuf;
-    SetCCDParams(SimulatorSettingsN[0].value, SimulatorSettingsN[1].value, 16, SimulatorSettingsN[2].value,
-                 SimulatorSettingsN[3].value);
+    SetCCDParams(SimulatorSettingsNP[SIM_XRES].value, SimulatorSettingsNP[SIM_YRES].value, 16, SimulatorSettingsNP[SIM_XSIZE].value,
+                 SimulatorSettingsNP[SIM_YRES].value);
 
     if (HasCooler())
     {
@@ -58,20 +58,20 @@ bool GuideSim::SetupParms()
     }
 
     //  Kwiq
-    maxnoise      = SimulatorSettingsN[8].value;
-    skyglow       = SimulatorSettingsN[9].value;
-    maxval        = SimulatorSettingsN[4].value;
-    bias          = SimulatorSettingsN[5].value;
-    limitingmag   = SimulatorSettingsN[7].value;
-    saturationmag = SimulatorSettingsN[6].value;
-    OAGoffset = SimulatorSettingsN[10].value; //  An oag is offset this much from center of scope position (arcminutes);
-    polarError = SimulatorSettingsN[11].value;
-    polarDrift = SimulatorSettingsN[12].value;
-    rotationCW = SimulatorSettingsN[13].value;
+    maxnoise      = SimulatorSettingsNP[SIM_NOISE].value;
+    skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
+    maxval        = SimulatorSettingsNP[SIM_MAXVAL].value;
+    bias          = SimulatorSettingsNP[SIM_BIAS].value;
+    limitingmag   = SimulatorSettingsNP[SIM_BIAS].value;
+    saturationmag = SimulatorSettingsNP[SIM_SATURATION].value;
+    OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].value; //  An oag is offset this much from center of scope position (arcminutes);
+    polarError = SimulatorSettingsNP[SIM_POLAR].value;
+    polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].value;
+    rotationCW = SimulatorSettingsNP[SIM_ROTATION].value;
     //  Kwiq++
-    king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
-    king_theta = SimulatorSettingsN[15].value * 0.0174532925;
-    TimeFactor = SimulatorSettingsN[16].value;
+    king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].value * 0.0174532925;
+    king_theta = SimulatorSettingsNP[SIM_KING_THETA].value * 0.0174532925;
+    TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -117,26 +117,26 @@ bool GuideSim::initProperties()
     CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
     addCaptureFormat(format);
 
-    IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
-    IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
-    IUFillNumber(&SimulatorSettingsN[2], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 2.4);
-    IUFillNumber(&SimulatorSettingsN[3], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 2.4);
-    IUFillNumber(&SimulatorSettingsN[4], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
-    IUFillNumber(&SimulatorSettingsN[5], "SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[6], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
-    IUFillNumber(&SimulatorSettingsN[7], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
-    IUFillNumber(&SimulatorSettingsN[8], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[9], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
-    IUFillNumber(&SimulatorSettingsN[10], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[11], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
+    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
+    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
+    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 2.4);
+    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 2.4);
+    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
+    SimulatorSettingsNP[SIM_BIAS].fill("SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[SIM_SATURATION].fill("SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
+    SimulatorSettingsNP[SIM_LIMITINGMAG].fill("SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
+    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[SIM_SKYGLOW].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
+    SimulatorSettingsNP[SIM_OAGOFFSET].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
+    SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
                  0); /* PAE = Polar Alignment Error */
-    IUFillNumber(&SimulatorSettingsN[12], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[13], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[14], "SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[15], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
+    SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
+    SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
+    SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
+    SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
-    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
+    SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                        "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
@@ -215,7 +215,7 @@ void GuideSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineProperty(&SimulatorSettingsNP);
+    defineProperty(SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
     defineProperty(ToggleTimeoutSP);
@@ -1011,27 +1011,27 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
-            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
-            SimulatorSettingsNP.s = IPS_OK;
+            SimulatorSettingsNP.update(values, names, n);
+            SimulatorSettingsNP.setState(IPS_OK);
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(&SimulatorSettingsNP, nullptr);
+            SimulatorSettingsNP.apply();
 
-            maxnoise      = SimulatorSettingsN[8].value;
-            skyglow       = SimulatorSettingsN[9].value;
-            maxval        = SimulatorSettingsN[4].value;
-            bias          = SimulatorSettingsN[5].value;
-            limitingmag   = SimulatorSettingsN[7].value;
-            saturationmag = SimulatorSettingsN[6].value;
-            OAGoffset = SimulatorSettingsN[10].value;
-            polarError = SimulatorSettingsN[11].value;
-            polarDrift = SimulatorSettingsN[12].value;
-            rotationCW = SimulatorSettingsN[13].value;
+            maxnoise      = SimulatorSettingsNP[SIM_NOISE].value;
+            skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
+            maxval        = SimulatorSettingsNP[SIM_MAXVAL].value;
+            bias          = SimulatorSettingsNP[SIM_BIAS].value;
+            limitingmag   = SimulatorSettingsNP[SIM_LIMITINGMAG].value;
+            saturationmag = SimulatorSettingsNP[SIM_SATURATION].value;
+            OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].value;
+            polarError = SimulatorSettingsNP[SIM_POLAR].value;
+            polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].value;
+            rotationCW = SimulatorSettingsNP[SIM_ROTATION].value;
             //  Kwiq++
-            king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
-            king_theta = SimulatorSettingsN[15].value * 0.0174532925;
-            TimeFactor = SimulatorSettingsN[16].value;
+            king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].value * 0.0174532925;
+            king_theta = SimulatorSettingsNP[SIM_KING_THETA].value * 0.0174532925;
+            TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].value;
 
             return true;
         }
@@ -1176,7 +1176,7 @@ bool GuideSim::saveConfigItems(FILE * fp)
 
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
+    SimulatorSettingsNP.save(fp);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);

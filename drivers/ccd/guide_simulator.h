@@ -160,8 +160,27 @@ class GuideSim : public INDI::CCD
 
         //  And this lives in our simulator settings page
 
-        INumberVectorProperty SimulatorSettingsNP;
-        INumber SimulatorSettingsN[17];
+        INDI::PropertyNumber SimulatorSettingsNP {17};
+        enum
+        {
+            SIM_XRES,
+            SIM_YRES,
+            SIM_XSIZE,
+            SIM_YSIZE,
+            SIM_MAXVAL,
+            SIM_BIAS,
+            SIM_SATURATION,
+            SIM_LIMITINGMAG,
+            SIM_NOISE,
+            SIM_SKYGLOW,
+            SIM_OAGOFFSET,
+            SIM_POLAR,
+            SIM_POLARDRIFT,
+            SIM_ROTATION,
+            SIM_KING_GAMMA,
+            SIM_KING_THETA,
+            SIM_TIME_FACTOR
+        };
 
         ISwitchVectorProperty SimulateRgbSP;
         ISwitch SimulateRgbS[2];
