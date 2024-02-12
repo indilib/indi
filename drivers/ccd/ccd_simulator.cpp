@@ -142,10 +142,10 @@ bool CCDSim::initProperties()
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
-    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
-    IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
-    IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
-    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation",
+    FocusSimulationNP[SIM_FOCUS_POSITION].fill("SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
+    FocusSimulationNP[SIM_FOCUS_MAX].fill("SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
+    FocusSimulationNP[SIM_SEEING].fill("SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
+    FocusSimulationNP.fill(getDeviceName(), "SIM_FOCUSING", "Focus Simulation",
                        SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // Simulate Crash
@@ -264,7 +264,7 @@ void CCDSim::ISGetProperties(const char * dev)
 
     defineProperty(SimulatorSettingsNP);
     defineProperty(&EqPENP);
-    defineProperty(&FocusSimulationNP);
+    defineProperty(FocusSimulationNP);
     defineProperty(SimulateBayerSP);
     defineProperty(CrashSP);
 }
@@ -1134,12 +1134,12 @@ SimulatorSettingsNP.setState(IPS_OK);
             INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
-        else if (!strcmp(name, FocusSimulationNP.name))
+        else if (FocusSimulationNP.isNameMatch(name))
         {
             // update focus simulation parameters
-            IUUpdateNumber(&FocusSimulationNP, values, names, n);
-            FocusSimulationNP.s = IPS_OK;
-            IDSetNumber(&FocusSimulationNP, nullptr);
+            FocusSimulationNP.update(values, names, n);
+            FocusSimulationNP.setState(IPS_OK);
+            FocusSimulationNP.apply();
         }
     }
 
@@ -1323,9 +1323,9 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
                 FocuserPos = atol(pcdataXMLEle(ep));
 
                 // calculate FWHM
-                double focus       = FocusSimulationN[0].value;
-                double max         = FocusSimulationN[1].value;
-                double optimalFWHM = FocusSimulationN[2].value;
+                double focus       = FocusSimulationNP[SIM_FOCUS_POSITION].value;
+                double max         = FocusSimulationNP[SIM_FOCUS_MAX].value;
+                double optimalFWHM = FocusSimulationNP[SIM_SEEING].value;
 
                 // limit to +/- 10
                 double ticks = 20 * (FocuserPos - focus) / max;
@@ -1403,7 +1403,7 @@ bool CCDSim::saveConfigItems(FILE * fp)
     SimulateBayerSP.save(fp);
 
     // Focus simulation
-    IUSaveConfigNumber(fp, &FocusSimulationNP);
+    FocusSimulationNP.save(fp);
 
     return true;
 }

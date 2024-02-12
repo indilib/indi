@@ -224,8 +224,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         // FocuserPosition[2] is the seeing (in arcsec)
         // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
         // publish these values)
-        INumberVectorProperty FocusSimulationNP;
-        INumber FocusSimulationN[3];
+        INDI::PropertyNumber FocusSimulationNP {3};
+        enum
+        {
+            SIM_FOCUS_POSITION,
+            SIM_FOCUS_MAX,
+            SIM_SEEING
+        };
 
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
