@@ -232,8 +232,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_SEEING
         };
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
+        INDI::PropertyNumber EqPENP {2};
 
         ISwitch CoolerS[2];
         ISwitchVectorProperty CoolerSP;
@@ -252,8 +251,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         {
             CRASH
         };
-
-        ISwitch CrashS[1];
 
         INDI::PropertySwitch ResolutionSP {2};
         inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =

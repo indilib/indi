@@ -154,9 +154,9 @@ bool CCDSim::initProperties()
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     // Periodic Error
-    IUFillNumber(&EqPEN[AXIS_RA], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[AXIS_DE], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
+    EqPENP[AXIS_RA].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqPENP[AXIS_DE].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqPENP.fill(getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // FWHM
@@ -263,7 +263,7 @@ void CCDSim::ISGetProperties(const char * dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineProperty(SimulatorSettingsNP);
-    defineProperty(&EqPENP);
+    defineProperty(EqPENP);
     defineProperty(FocusSimulationNP);
     defineProperty(SimulateBayerSP);
     defineProperty(CrashSP);
@@ -1109,24 +1109,24 @@ SimulatorSettingsNP.setState(IPS_OK);
         }
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
         // This can be useful to simulate Periodic Error or cone error or any arbitrary error.
-        else if (!strcmp(name, EqPENP.name))
+        else if (EqPENP.isNameMatch(name))
         {
-            IUUpdateNumber(&EqPENP, values, names, n);
-            EqPENP.s = IPS_OK;
+            EqPENP.update(values, names, n);
+            EqPENP.setState(IPS_OK);
 
             INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.rightascension  = EqPEN[AXIS_RA].value;
-            epochPos.declination = EqPEN[AXIS_DE].value;
+            epochPos.rightascension  = EqPENP[AXIS_RA].value;
+            epochPos.declination = EqPENP[AXIS_DE].value;
 
-            RA = EqPEN[AXIS_RA].value;
-            Dec = EqPEN[AXIS_DE].value;
+            RA = EqPENP[AXIS_RA].value;
+            Dec = EqPENP[AXIS_DE].value;
 
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
             currentRA  = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
             usePE = true;
 
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP.apply();
             return true;
         }
         else if (!strcmp(name, FilterSlotNP.name))
