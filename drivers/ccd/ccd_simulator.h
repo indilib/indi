@@ -203,8 +203,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         std::deque<std::string> m_AllFiles, m_RemainingFiles;
 
         //  And this lives in our simulator settings page
-        INumberVectorProperty SimulatorSettingsNP;
-        INumber SimulatorSettingsN[SIM_N];
+        INDI::PropertyNumber SimulatorSettingsNP {16};
 
         INDI::PropertySwitch SimulateBayerSP {2};
         enum

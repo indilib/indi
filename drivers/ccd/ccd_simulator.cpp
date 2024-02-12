@@ -53,26 +53,26 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
 
 bool CCDSim::setupParameters()
 {
-    SetCCDParams(SimulatorSettingsN[SIM_XRES].value,
-                 SimulatorSettingsN[SIM_YRES].value,
+    SetCCDParams(SimulatorSettingsNP[SIM_XRES].value,
+                 SimulatorSettingsNP[SIM_YRES].value,
                  16,
-                 SimulatorSettingsN[SIM_XSIZE].value,
-                 SimulatorSettingsN[SIM_YSIZE].value);
+                 SimulatorSettingsNP[SIM_XSIZE].value,
+                 SimulatorSettingsNP[SIM_YSIZE].value);
 
-    m_MaxNoise      = SimulatorSettingsN[SIM_NOISE].value;
-    m_SkyGlow       = SimulatorSettingsN[SIM_SKYGLOW].value;
-    m_MaxVal        = SimulatorSettingsN[SIM_MAXVAL].value;
+    m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].value;
+    m_SkyGlow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
+    m_MaxVal        = SimulatorSettingsNP[SIM_MAXVAL].value;
     m_Bias          = OffsetN[0].value;
-    m_LimitingMag   = SimulatorSettingsN[SIM_LIMITINGMAG].value;
-    m_SaturationMag = SimulatorSettingsN[SIM_SATURATION].value;
+    m_LimitingMag   = SimulatorSettingsNP[SIM_LIMITINGMAG].value;
+    m_SaturationMag = SimulatorSettingsNP[SIM_SATURATION].value;
     //  An oag is offset this much from center of scope position (arcminutes);
-    m_OAGOffset = SimulatorSettingsN[SIM_OAGOFFSET].value;
-    m_PolarError = SimulatorSettingsN[SIM_POLAR].value;
-    m_PolarDrift = SimulatorSettingsN[SIM_POLARDRIFT].value;
-    m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
-    m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
-    m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
-    RotatorAngle = SimulatorSettingsN[SIM_ROTATION].value;
+    m_OAGOffset = SimulatorSettingsNP[SIM_OAGOFFSET].value;
+    m_PolarError = SimulatorSettingsNP[SIM_POLAR].value;
+    m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].value;
+    m_PEPeriod = SimulatorSettingsNP[SIM_PE_PERIOD].value;
+    m_PEMax = SimulatorSettingsNP[SIM_PE_MAX].value;
+    m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].value;
+    RotatorAngle = SimulatorSettingsNP[SIM_ROTATION].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -115,25 +115,25 @@ bool CCDSim::initProperties()
     CaptureFormat format = {"INDI_MONO", "Mono", 16, true};
     addCaptureFormat(format);
 
-    IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
-    IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
-    IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
-    IUFillNumber(&SimulatorSettingsN[SIM_YSIZE], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 1, 30, 5, 5.2);
-    IUFillNumber(&SimulatorSettingsN[SIM_MAXVAL], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 255, 65000, 1000, 65000);
-    IUFillNumber(&SimulatorSettingsN[SIM_SATURATION], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 1, 1.0);
-    IUFillNumber(&SimulatorSettingsN[SIM_LIMITINGMAG], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 1, 17.0);
-    IUFillNumber(&SimulatorSettingsN[SIM_NOISE], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 500, 10);
-    IUFillNumber(&SimulatorSettingsN[SIM_SKYGLOW], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 500, 19.5);
-    IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (seconds)", "%4.1f", 0, 60, 5, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
-    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
+    SimulatorSettingsNP[SIM_XRES].fill("SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
+    SimulatorSettingsNP[SIM_YRES].fill("SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
+    SimulatorSettingsNP[SIM_XSIZE].fill("SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    SimulatorSettingsNP[SIM_YSIZE].fill("SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    SimulatorSettingsNP[SIM_MAXVAL].fill("SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 255, 65000, 1000, 65000);
+    SimulatorSettingsNP[SIM_SATURATION].fill("SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 1, 1.0);
+    SimulatorSettingsNP[SIM_LIMITINGMAG].fill("SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 1, 17.0);
+    SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 500, 10);
+    SimulatorSettingsNP[SIM_SKYGLOW].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 500, 19.5);
+    SimulatorSettingsNP[SIM_OAGOFFSET].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
+    SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
+    SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
+    SimulatorSettingsNP[SIM_PE_PERIOD].fill("SIM_PEPERIOD", "PE Period (seconds)", "%4.1f", 0, 60, 5, 0);
+    SimulatorSettingsNP[SIM_PE_MAX].fill("SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
+    SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
+    SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
 
-    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
+                             "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     SimulateBayerSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
@@ -262,7 +262,7 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineProperty(&SimulatorSettingsNP);
+    defineProperty(SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&FocusSimulationNP);
     defineProperty(SimulateBayerSP);
@@ -1096,15 +1096,15 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             m_Bias = OffsetN[0].value;
             return true;
         }
-        else if (!strcmp(name, SimulatorSettingsNP.name))
+        else if (SimulatorSettingsNP.isNameMatch(name))
         {
-            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
-            SimulatorSettingsNP.s = IPS_OK;
+            SimulatorSettingsNP.update(values, names, n);
+SimulatorSettingsNP.setState(IPS_OK);
 
             //  Reset our parameters now
             setupParameters();
-            IDSetNumber(&SimulatorSettingsNP, nullptr);
-            saveConfig(true, SimulatorSettingsNP.name);
+            SimulatorSettingsNP.apply();
+            saveConfig(true, SimulatorSettingsNP.getName());
             return true;
         }
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
@@ -1225,18 +1225,18 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             int index = ResolutionSP.findOnSwitchIndex();
             if (index >= 0 && index < static_cast<int>(Resolutions.size()))
             {
-                SimulatorSettingsN[SIM_XRES].value = Resolutions[index].first;
-                SimulatorSettingsN[SIM_YRES].value = Resolutions[index].second;
-                SetCCDParams(SimulatorSettingsN[SIM_XRES].value,
-                             SimulatorSettingsN[SIM_YRES].value,
+                SimulatorSettingsNP[SIM_XRES].value = Resolutions[index].first;
+                SimulatorSettingsNP[SIM_YRES].value = Resolutions[index].second;
+                SetCCDParams(SimulatorSettingsNP[SIM_XRES].value,
+                             SimulatorSettingsNP[SIM_YRES].value,
                              16,
-                             SimulatorSettingsN[SIM_XSIZE].value,
-                             SimulatorSettingsN[SIM_YSIZE].value);
-                UpdateCCDFrame(0, 0, SimulatorSettingsN[SIM_XRES].value, SimulatorSettingsN[SIM_YRES].value);
+                             SimulatorSettingsNP[SIM_XSIZE].value,
+                             SimulatorSettingsNP[SIM_YSIZE].value);
+                UpdateCCDFrame(0, 0, SimulatorSettingsNP[SIM_XRES].value, SimulatorSettingsNP[SIM_YRES].value);
                 uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
                 PrimaryCCD.setFrameBufferSize(nbuf);
 
-                IDSetNumber(&SimulatorSettingsNP, nullptr);
+                SimulatorSettingsNP.apply();
             }
             return true;
         }
@@ -1387,7 +1387,7 @@ bool CCDSim::saveConfigItems(FILE * fp)
     INDI::FilterInterface::saveConfigItems(fp);
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
+    SimulatorSettingsNP.save(fp);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
