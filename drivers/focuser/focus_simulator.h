@@ -67,16 +67,25 @@ class FocusSim : public INDI::Focuser
         double initTicks { 0 };
 
         // Seeing in arcseconds
-        INumberVectorProperty SeeingNP;
-        INumber SeeingN[1];
+        INDI::PropertyNumber SeeingNP {1};
+        enum
+        {
+            SIM_SEEING
+        };
 
         // FWHM to be used by CCD driver to draw 'fuzzy' stars
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+        INDI::PropertyNumber FWHMNP {1};
+        enum
+        {
+            SIM_FWHM
+        };
 
         // Temperature in celcius degrees
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[1];
+        INDI::PropertyNumber TemperatureNP {1};
+        enum
+        {
+            TEMPERATURE
+        };
 
         INDI::PropertyNumber DelayNP {1};
 
@@ -89,6 +98,6 @@ class FocusSim : public INDI::Focuser
             MODE_TIMER,
             MODE_COUNT
         };
-        ISwitchVectorProperty ModeSP;
-        ISwitch ModeS[MODE_COUNT];
+        INDI::PropertySwitch ModeSP {4};
+//        ISwitch ModeS[MODE_COUNT];
 };
