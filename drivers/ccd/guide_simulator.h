@@ -182,17 +182,32 @@ class GuideSim : public INDI::CCD
             SIM_TIME_FACTOR
         };
 
-        ISwitchVectorProperty SimulateRgbSP;
-        ISwitch SimulateRgbS[2];
+        INDI::PropertySwitch SimulateRgbSP {2};
+        enum
+        {
+            SIMULATE_YES,
+            SIMULATE_NO
+        };
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
+        INDI::PropertyNumber EqPENP {2};
+        enum
+        {
+            RA_PE,
+            DEC_PE
+        };
 
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
+        INDI::PropertySwitch CoolerSP {2};
+        enum
+        {
+            COOLER_ON,
+            COOLER_OFF
+        };
 
-        INumber GainN[1];
-        INumberVectorProperty GainNP;
+        INDI::PropertyNumber GainNP {1};
+        enum
+        {
+            GAIN
+        };
 
         INDI::PropertySwitch ToggleTimeoutSP {2};
 

@@ -140,23 +140,23 @@ bool GuideSim::initProperties()
                        "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
-    IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
-    IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
+    SimulateRgbSP[SIMULATE_YES].fill("SIMULATE_YES", "Yes", ISS_OFF);
+    SimulateRgbSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
+    SimulateRgbSP.fill(getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
+    CoolerSP[COOLER_ON].fill("COOLER_ON", "ON", ISS_OFF);
+    CoolerSP[COOLER_OFF].fill("COOLER_OFF", "OFF", ISS_ON);
+    CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Gain
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    GainNP[GAIN].fill("GAIN", "Gain", "%.f", 0, 100, 10, 50);
+    GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
+    EqPENP[RA_PE].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqPENP[DEC_PE].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqPENP.fill(getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // Timeout
@@ -216,8 +216,8 @@ void GuideSim::ISGetProperties(const char * dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineProperty(SimulatorSettingsNP);
-    defineProperty(&EqPENP);
-    defineProperty(&SimulateRgbSP);
+    defineProperty(EqPENP);
+    defineProperty(SimulateRgbSP);
     defineProperty(ToggleTimeoutSP);
 }
 
@@ -228,9 +228,9 @@ bool GuideSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineProperty(&CoolerSP);
+            defineProperty(CoolerSP);
 
-        defineProperty(&GainNP);
+        defineProperty(GainNP);
 
         SetupParms();
 
@@ -243,9 +243,9 @@ bool GuideSim::updateProperties()
     else
     {
         if (HasCooler())
-            deleteProperty(CoolerSP.name);
+            deleteProperty(CoolerSP.getName());
 
-        deleteProperty(GainNP.name);
+        deleteProperty(GainNP.getName());
     }
 
     return true;
@@ -260,10 +260,10 @@ int GuideSim::SetTemperature(double temperature)
         return 1;
     }
 
-    CoolerS[0].s = ISS_ON;
-    CoolerS[1].s = ISS_OFF;
-    CoolerSP.s   = IPS_BUSY;
-    IDSetSwitch(&CoolerSP, nullptr);
+    CoolerSP[COOLER_ON].s = ISS_ON;
+    CoolerSP[COOLER_OFF].s = ISS_OFF;
+    CoolerSP.setState(IPS_BUSY);
+    CoolerSP.apply();
     return 0;
 }
 
@@ -369,10 +369,10 @@ void GuideSim::TimerHit()
         // Above 20, cooler is off
         if (TemperatureN[0].value >= 20)
         {
-            CoolerS[0].s = ISS_OFF;
-            CoolerS[0].s = ISS_ON;
-            CoolerSP.s   = IPS_IDLE;
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP[COOLER_ON].s = ISS_OFF;
+            CoolerSP[COOLER_OFF].s = ISS_ON;
+            CoolerSP.setState(IPS_IDLE);
+            CoolerSP.apply();
         }
     }
 
@@ -392,7 +392,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    exposure_time *= (1 + sqrt(GainN[0].value));
+    exposure_time *= (1 + sqrt(GainNP[GAIN].value));
 
     auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
@@ -1001,11 +1001,11 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (!strcmp(name, GainNP.name))
+        if (GainNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GainNP, values, names, n);
-            GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, nullptr);
+            GainNP.update(values, names, n);
+            GainNP.setState(IPS_OK);
+            GainNP.apply();
             return true;
         }
 
@@ -1038,17 +1038,17 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
 
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
         // This can be useful to simulate Periodic Error or cone error or any arbitrary error.
-        if (!strcmp(name, EqPENP.name))
+        if (EqPENP.isNameMatch(name))
         {
-            IUUpdateNumber(&EqPENP, values, names, n);
-            EqPENP.s = IPS_OK;
+            EqPENP.update(values, names, n);
+            EqPENP.setState(IPS_OK);
 
-            INDI::IEquatorialCoordinates epochPos { EqPEN[AXIS_RA].value, EqPEN[AXIS_DE].value }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { EqPENP[AXIS_RA].value, EqPENP[AXIS_DE].value }, J2000Pos { 0, 0 };
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
             currentRA  = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
             usePE = true;
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP.apply();
             return true;
         }
     }
@@ -1061,43 +1061,43 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (!strcmp(name, SimulateRgbSP.name))
+        if (SimulateRgbSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SimulateRgbSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+            SimulateRgbSP.update(states, names, n);
+            int index = SimulateRgbSP.findOnSwitchIndex();
             if (index == -1)
             {
-                SimulateRgbSP.s = IPS_ALERT;
+                SimulateRgbSP.setState(IPS_ALERT);
                 LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-                IDSetSwitch(&SimulateRgbSP, nullptr);
+                SimulateRgbSP.apply();
                 return false;
             }
 
             simulateRGB = index == 0;
             setRGB(simulateRGB);
 
-            SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
-            SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
-            SimulateRgbSP.s   = IPS_OK;
-            IDSetSwitch(&SimulateRgbSP, nullptr);
+            SimulateRgbSP[SIMULATE_YES].setState(simulateRGB ? ISS_ON : ISS_OFF);
+            SimulateRgbSP[SIMULATE_NO].setState(simulateRGB ? ISS_OFF : ISS_ON);
+            SimulateRgbSP.setState(IPS_OK);
+            SimulateRgbSP.apply();
 
             return true;
         }
 
-        if (strcmp(name, CoolerSP.name) == 0)
+        if (CoolerSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&CoolerSP, states, names, n);
+            CoolerSP.update(states, names, n);
 
-            if (CoolerS[0].s == ISS_ON)
-                CoolerSP.s = IPS_BUSY;
+            if (CoolerSP[COOLER_ON].getState() == ISS_ON)
+                CoolerSP.setState(IPS_BUSY);
             else
             {
-                CoolerSP.s         = IPS_IDLE;
+                CoolerSP.setState(IPS_IDLE);
                 TemperatureRequest = 20;
                 TemperatureNP.s    = IPS_BUSY;
             }
 
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP.apply();
 
             return true;
         }
@@ -1179,10 +1179,10 @@ bool GuideSim::saveConfigItems(FILE * fp)
     SimulatorSettingsNP.save(fp);
 
     // Gain
-    IUSaveConfigNumber(fp, &GainNP);
+    GainNP.save(fp);
 
     // RGB
-    IUSaveConfigSwitch(fp, &SimulateRgbSP);
+    SimulateRgbSP.save(fp);
 
     return true;
 }
@@ -1292,5 +1292,5 @@ void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITS
 {
     INDI::CCD::addFITSKeywords(targetChip, fitsKeywords);
 
-    fitsKeywords.push_back({"GAIN", GainN[0].value, 3, "Gain"});
+    fitsKeywords.push_back({"GAIN", GainNP[GAIN].value, 3, "Gain"});
 }
