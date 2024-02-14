@@ -56,12 +56,12 @@ bool WeatherSimulator::initProperties()
 {
     INDI::Weather::initProperties();
 
-    IUFillNumber(&ControlWeatherN[CONTROL_WEATHER], "Weather", "Weather", "%.f", 0, 1, 1, 0);
-    IUFillNumber(&ControlWeatherN[CONTROL_TEMPERATURE], "Temperature", "Temperature", "%.2f", -50, 70, 10, 15);
-    IUFillNumber(&ControlWeatherN[CONTROL_WIND], "Wind", "Wind", "%.2f", 0, 100, 5, 0);
-    IUFillNumber(&ControlWeatherN[CONTROL_GUST], "Gust", "Gust", "%.2f", 0, 50, 5, 0);
-    IUFillNumber(&ControlWeatherN[CONTROL_RAIN], "Precip", "Precip", "%.f", 0, 100, 10, 0);
-    IUFillNumberVector(&ControlWeatherNP, ControlWeatherN, 5, getDeviceName(), "WEATHER_CONTROL", "Control", MAIN_CONTROL_TAB,
+    ControlWeatherNP[CONTROL_WEATHER].fill("Weather", "Weather", "%.f", 0, 1, 1, 0);
+    ControlWeatherNP[CONTROL_TEMPERATURE].fill("Temperature", "Temperature", "%.2f", -50, 70, 10, 15);
+    ControlWeatherNP[CONTROL_WIND].fill("Wind", "Wind", "%.2f", 0, 100, 5, 0);
+    ControlWeatherNP[CONTROL_GUST].fill("Gust", "Gust", "%.2f", 0, 50, 5, 0);
+    ControlWeatherNP[CONTROL_RAIN].fill( "Precip", "Precip", "%.f", 0, 100, 10, 0);
+    ControlWeatherNP.fill(getDeviceName(), "WEATHER_CONTROL", "Control", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0);
@@ -85,20 +85,20 @@ bool WeatherSimulator::updateProperties()
     INDI::Weather::updateProperties();
 
     if (isConnected())
-        defineProperty(&ControlWeatherNP);
+        defineProperty(ControlWeatherNP);
     else
-        deleteProperty(ControlWeatherNP.name);
+        deleteProperty(ControlWeatherNP.getName());
 
     return true;
 }
 
 IPState WeatherSimulator::updateWeather()
 {
-    setParameterValue("WEATHER_FORECAST", ControlWeatherN[CONTROL_WEATHER].value);
-    setParameterValue("WEATHER_TEMPERATURE", ControlWeatherN[CONTROL_TEMPERATURE].value);
-    setParameterValue("WEATHER_WIND_SPEED", ControlWeatherN[CONTROL_WIND].value);
-    setParameterValue("WEATHER_WIND_GUST", ControlWeatherN[CONTROL_GUST].value);
-    setParameterValue("WEATHER_RAIN_HOUR", ControlWeatherN[CONTROL_RAIN].value);
+    setParameterValue("WEATHER_FORECAST", ControlWeatherNP[CONTROL_WEATHER].value);
+    setParameterValue("WEATHER_TEMPERATURE", ControlWeatherNP[CONTROL_TEMPERATURE].value);
+    setParameterValue("WEATHER_WIND_SPEED", ControlWeatherNP[CONTROL_WIND].value);
+    setParameterValue("WEATHER_WIND_GUST", ControlWeatherNP[CONTROL_GUST].value);
+    setParameterValue("WEATHER_RAIN_HOUR", ControlWeatherNP[CONTROL_RAIN].value);
 
     return IPS_OK;
 }
@@ -107,11 +107,11 @@ bool WeatherSimulator::ISNewNumber(const char *dev, const char *name, double val
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ControlWeatherNP.name))
+        if (ControlWeatherNP.isNameMatch(name))
         {
-            IUUpdateNumber(&ControlWeatherNP, values, names, n);
-            ControlWeatherNP.s = IPS_OK;
-            IDSetNumber(&ControlWeatherNP, nullptr);
+            ControlWeatherNP.update(values, names, n);
+            ControlWeatherNP.setState(IPS_OK);
+            ControlWeatherNP.apply();
             LOG_INFO("Values are updated and should be active on the next weather update.");
             return true;
         }
@@ -124,7 +124,7 @@ bool WeatherSimulator::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &ControlWeatherNP);
+    ControlWeatherNP.save(fp);
 
     return true;
 }
