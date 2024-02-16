@@ -208,13 +208,16 @@ bool WandererBoxProV3::getData()
             throw std::exception();
     // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
     int nbytes_read_version = 0;
-    version[64] = {0};
+    char version[64] = {0};
     tty_read_section(PortFD, version, 'A', 5, &nbytes_read_version);
 
     version[nbytes_read_version - 1] = '\0';
     IUSaveText(&FirmwareT[0], version);
     IDSetText(&FirmwareTP, nullptr);
-
+    if(std::stoi(version)<=20240216)
+    {
+        deleteProperty(CalibrateSP.name);
+    }
 
     // Temp probe 1//////////////////////////////////////////////////////////////////////////////////////////
     char temp1[64] = {0};
@@ -699,14 +702,8 @@ bool WandererBoxProV3::updateProperties()
     {
 
         defineProperty(&FirmwareTP);
-        if(std::stoi(version)>=20240216)
-        {
-            defineProperty(&CalibrateSP);
-        }
-        else
-        {
-            LOGF_INFO("The firmware is outdated, please upgrade to the latest firmware, or power reading calibration will be unavailable.","failed");
-        }
+        defineProperty(&CalibrateSP);
+
         defineProperty(&PowerMonitorNP);
 
 

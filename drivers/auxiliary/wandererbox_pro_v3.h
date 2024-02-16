@@ -54,7 +54,6 @@ class WandererBoxProV3 : public INDI::DefaultDevice
 
     private:
 
-        char version[64] = {0};
         bool sendCommand(std::string command);
         bool DC5DIFFMODE=false;
         bool DC5CONSTMODE=false;
