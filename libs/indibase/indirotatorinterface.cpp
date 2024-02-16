@@ -77,7 +77,7 @@ void RotatorInterface::initProperties(const char *groupName)
 
 
     // Rotator Limits
-    RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 10, 180, 10, 90);
+    RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 0, 180, 30, 0);
     RotatorLimitsNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_LIMITS", "Limits", groupName, IP_RW, 60, IPS_IDLE);
 }
 
@@ -101,11 +101,13 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             }
 
             // If value is outside safe zone, then prevent motion
-            if ( (values[0] < 180 && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
-                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) < (360 - RotatorLimitsNP[0].getValue())))
+            if (RotatorLimitsNP[0].getValue() > 0 && ((values[0] < 180
+                    && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
+                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) < (360 - RotatorLimitsNP[0].getValue()))))
             {
                 GotoRotatorNP.s = IPS_ALERT;
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], RotatorLimitsNP[0].getValue());
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                             "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], RotatorLimitsNP[0].getValue());
                 IDSetNumber(&GotoRotatorNP, nullptr);
             }
             else
@@ -173,6 +175,8 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             RotatorLimitsNP.update(values, names, n);
             RotatorLimitsNP.setState(IPS_OK);
             RotatorLimitsNP.apply();
+            if (RotatorLimitsNP[0].getValue() == 0)
+                DEBUGDEVICE(dev, Logger::DBG_SESSION, "Rotator limits are disabled.");
             m_RotatorOffset = GotoRotatorN[0].value;
             return true;
         }
