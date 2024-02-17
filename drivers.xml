@@ -75,6 +75,10 @@
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
         </device>
+        <device label="NYX-101" manufacturer="Pegasus Astro">
+            <driver name="LX200 Autostar">indi_lx200autostar</driver>
+            <version>2.1</version>
+        </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
             <version>2.1</version>
@@ -747,6 +751,10 @@
         </device>
         <device label="WandererBox Pro V3" manufacturer="Wanderer Astro">
             <driver name="WandererBox Pro V3">indi_wandererbox_pro_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
             <version>1.0</version>
         </device>
     </devGroup>
