@@ -646,21 +646,21 @@ void WandererBoxProV3::updateDC34(int res)
 
 void WandererBoxProV3::updateDC5(int res)
 {
-    dc5ControlNP[0].value = res;
+    dc5ControlNP[0].setValue(res);
     dc5ControlNP.setState(IPS_OK);
     dc5ControlNP.apply();
 }
 
 void WandererBoxProV3::updateDC6(int res)
 {
-    dc6ControlNP[0].value = res;
+    dc6ControlNP[0].setValue(res);
     dc6ControlNP.setState(IPS_OK);
     dc6ControlNP.apply();
 }
 
 void WandererBoxProV3::updateDC7(int res)
 {
-    dc7ControlNP[0].value = res;
+    dc7ControlNP[0].setValue(res);
     dc7ControlNP.setState(IPS_OK);
     dc7ControlNP.apply();
 }
@@ -683,7 +683,7 @@ void WandererBoxProV3::updateDC10_11(int res)
 
 void WandererBoxProV3::updateDC34SET(double res)
 {
-    setDC34voltageNP[setDC34voltage].value = res/10.0;
+    setDC34voltageNP[setDC34voltage].setValue(res/10);
     setDC34voltageNP.setState(IPS_OK);
     setDC34voltageNP.apply();
 }
