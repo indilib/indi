@@ -745,6 +745,10 @@
             <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
             <version>1.0</version>
         </device>
+        <device label="WandererBox Pro V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Pro V3">indi_wandererbox_pro_v3</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
