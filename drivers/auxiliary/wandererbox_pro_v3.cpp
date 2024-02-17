@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2024 Frank Wang. All rights reserved.
 
   WandererBox Pro V3
 
@@ -400,11 +400,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc5ControlNP);
             deleteProperty(dc5diffSETNP);
             deleteProperty(dc5constSETNP);
-            LOGF_INFO("Temp probe 1 not connected, Dew Point Difference Mode for DC5 has exited!","Updated");
+            LOGF_ERROR("Temp probe 1 not connected, Dew Point Difference Mode for DC5 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc5diffSP[DC5_Manual].s = ISS_ON;
-            dc5diffSP[DC5_DPD_Mode].s = ISS_OFF;
-            dc5diffSP[DC5_CT_Mode].s = ISS_OFF;
+            dc5diffSP[DC5_Manual].setState( ISS_ON);
+            dc5diffSP[DC5_DPD_Mode].setState( ISS_OFF);
+            dc5diffSP[DC5_CT_Mode].setState( ISS_OFF);
             dc5diffSP.setState(IPS_OK);
             dc5diffSP.apply();
         }
@@ -415,10 +415,10 @@ bool WandererBoxProV3::getData()
             defineProperty(dc5ControlNP);
             deleteProperty(dc5diffSETNP);
             deleteProperty(dc5constSETNP);
-            LOGF_INFO("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC5 has exited!","Updated");
-            dc5diffSP[DC5_Manual].s = ISS_ON;
-            dc5diffSP[DC5_DPD_Mode].s = ISS_OFF;
-            dc5diffSP[DC5_CT_Mode].s = ISS_OFF;
+            LOGF_ERROR("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC5 has exited!","Updated");
+            dc5diffSP[DC5_Manual].setState( ISS_ON);
+            dc5diffSP[DC5_DPD_Mode].setState( ISS_OFF);
+            dc5diffSP[DC5_CT_Mode].setState( ISS_OFF);
             dc5diffSP.setState(IPS_OK);
             dc5diffSP.apply();
         }
@@ -429,11 +429,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc5ControlNP);
             deleteProperty(dc5diffSETNP);
             deleteProperty(dc5constSETNP);
-            LOGF_INFO("Temp probe 1 not connected, Constant Temperature Mode for DC5 has exited!","Updated");
+            LOGF_ERROR("Temp probe 1 not connected, Constant Temperature Mode for DC5 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc5diffSP[DC5_Manual].s = ISS_ON;
-            dc5diffSP[DC5_DPD_Mode].s = ISS_OFF;
-            dc5diffSP[DC5_CT_Mode].s = ISS_OFF;
+            dc5diffSP[DC5_Manual].setState( ISS_ON);
+            dc5diffSP[DC5_DPD_Mode].setState( ISS_OFF);
+            dc5diffSP[DC5_CT_Mode].setState( ISS_OFF);
             dc5diffSP.setState(IPS_OK);
             dc5diffSP.apply();
         }
@@ -462,11 +462,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc6ControlNP);
             deleteProperty(dc6diffSETNP);
             deleteProperty(dc6constSETNP);
-            LOGF_INFO("Temp probe 2 not connected, Dew Point Difference Mode for DC6 has exited!","Updated");
+            LOGF_ERROR("Temp probe 2 not connected, Dew Point Difference Mode for DC6 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc6diffSP[DC6_Manual].s = ISS_ON;
-            dc6diffSP[DC6_DPD_Mode].s = ISS_OFF;
-            dc6diffSP[DC6_CT_Mode].s = ISS_OFF;
+            dc6diffSP[DC6_Manual].setState( ISS_ON);
+            dc6diffSP[DC6_DPD_Mode].setState( ISS_OFF);
+            dc6diffSP[DC6_CT_Mode].setState( ISS_OFF);
             dc6diffSP.setState(IPS_OK);
             dc6diffSP.apply();
         }
@@ -477,10 +477,10 @@ bool WandererBoxProV3::getData()
             defineProperty(dc6ControlNP);
             deleteProperty(dc6diffSETNP);
             deleteProperty(dc6constSETNP);
-            LOGF_INFO("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC6 has exited!","Updated");
-            dc6diffSP[DC6_Manual].s = ISS_ON;
-            dc6diffSP[DC6_DPD_Mode].s = ISS_OFF;
-            dc6diffSP[DC6_CT_Mode].s = ISS_OFF;
+            LOGF_ERROR("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC6 has exited!","Updated");
+            dc6diffSP[DC6_Manual].setState( ISS_ON);
+            dc6diffSP[DC6_DPD_Mode].setState( ISS_OFF);
+            dc6diffSP[DC6_CT_Mode].setState( ISS_OFF);
             dc6diffSP.setState(IPS_OK);
             dc6diffSP.apply();
         }
@@ -491,11 +491,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc6ControlNP);
             deleteProperty(dc6diffSETNP);
             deleteProperty(dc6constSETNP);
-            LOGF_INFO("Temp probe 2 not connected, Constant Temperature Mode for DC6 has exited!","Updated");
+            LOGF_ERROR("Temp probe 2 not connected, Constant Temperature Mode for DC6 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc6diffSP[DC6_Manual].s = ISS_ON;
-            dc6diffSP[DC6_DPD_Mode].s = ISS_OFF;
-            dc6diffSP[DC6_CT_Mode].s = ISS_OFF;
+            dc6diffSP[DC6_Manual].setState( ISS_ON);
+            dc6diffSP[DC6_DPD_Mode].setState( ISS_OFF);
+            dc6diffSP[DC6_CT_Mode].setState( ISS_OFF);
             dc6diffSP.setState(IPS_OK);
             dc6diffSP.apply();
         }
@@ -523,11 +523,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc7ControlNP);
             deleteProperty(dc7diffSETNP);
             deleteProperty(dc7constSETNP);
-            LOGF_INFO("Temp probe 3 not connected, Dew Point Difference Mode for DC7 has exited!","Updated");
+            LOGF_ERROR("Temp probe 3 not connected, Dew Point Difference Mode for DC7 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc7diffSP[DC7_Manual].s = ISS_ON;
-            dc7diffSP[DC7_DPD_Mode].s = ISS_OFF;
-            dc7diffSP[DC7_CT_Mode].s = ISS_OFF;
+            dc7diffSP[DC7_Manual].setState( ISS_ON);
+            dc7diffSP[DC7_DPD_Mode].setState( ISS_OFF);
+            dc7diffSP[DC7_CT_Mode].setState( ISS_OFF);
             dc7diffSP.setState(IPS_OK);
             dc7diffSP.apply();
         }
@@ -538,10 +538,10 @@ bool WandererBoxProV3::getData()
             defineProperty(dc7ControlNP);
             deleteProperty(dc7diffSETNP);
             deleteProperty(dc7constSETNP);
-            LOGF_INFO("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC7 has exited!","Updated");
-            dc7diffSP[DC7_Manual].s = ISS_ON;
-            dc7diffSP[DC7_DPD_Mode].s = ISS_OFF;
-            dc7diffSP[DC7_CT_Mode].s = ISS_OFF;
+            LOGF_ERROR("DHT22 Humidity&Temperature sensor not connected, Dew Point Difference Mode for DC7 has exited!","Updated");
+            dc7diffSP[DC7_Manual].setState( ISS_ON);
+            dc7diffSP[DC7_DPD_Mode].setState( ISS_OFF);
+            dc7diffSP[DC7_CT_Mode].setState( ISS_OFF);
             dc7diffSP.setState(IPS_OK);
             dc7diffSP.apply();
         }
@@ -552,11 +552,11 @@ bool WandererBoxProV3::getData()
             defineProperty(dc7ControlNP);
             deleteProperty(dc7diffSETNP);
             deleteProperty(dc7constSETNP);
-            LOGF_INFO("Temp probe 3 not connected, Constant Temperature Mode for DC7 has exited!","Updated");
+            LOGF_ERROR("Temp probe 3 not connected, Constant Temperature Mode for DC7 has exited!","Updated");
             LOGF_INFO("You need to insert the probe firmly to the end!","Updated");
-            dc7diffSP[DC7_Manual].s = ISS_ON;
-            dc7diffSP[DC7_DPD_Mode].s = ISS_OFF;
-            dc7diffSP[DC7_CT_Mode].s = ISS_OFF;
+            dc7diffSP[DC7_Manual].setState( ISS_ON);
+            dc7diffSP[DC7_DPD_Mode].setState( ISS_OFF);
+            dc7diffSP[DC7_CT_Mode].setState( ISS_OFF);
             dc7diffSP.setState(IPS_OK);
             dc7diffSP.apply();
         }
@@ -573,12 +573,12 @@ bool WandererBoxProV3::getData()
 
 void WandererBoxProV3::updateENV(double temp1,double temp2,double temp3,double DHTH,double DHTT)
 {
-    ENVMonitorNP[Probe1_Temp].value = temp1;
-    ENVMonitorNP[Probe2_Temp].value = temp2;
-    ENVMonitorNP[Probe3_Temp].value = temp3;
-    ENVMonitorNP[ENV_Humidity].value = DHTH;
-    ENVMonitorNP[ENV_Temp].value = DHTT;
-    ENVMonitorNP[DEW_Point].value = (237.7 * ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100)))) / (17.27 - ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100))));;
+    ENVMonitorNP[Probe1_Temp].setValue(temp1);
+    ENVMonitorNP[Probe2_Temp].setValue(temp2);
+    ENVMonitorNP[Probe3_Temp].setValue(temp3);
+    ENVMonitorNP[ENV_Humidity].setValue(DHTH);
+    ENVMonitorNP[ENV_Temp].setValue(DHTT);
+    ENVMonitorNP[DEW_Point].setValue((237.7 * ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100)))) / (17.27 - ((17.27 * DHTT) / (237.7 + DHTT) + log((DHTH / 100)))));;
     ENVMonitorNP.setState(IPS_OK);
     ENVMonitorNP.apply();
 
@@ -588,58 +588,58 @@ void WandererBoxProV3::updateENV(double temp1,double temp2,double temp3,double D
 void WandererBoxProV3::updatePower(double Tcurrent,double V19_current,double AR_current,double voltage)
 {
     // Power Monitor
-    PowerMonitorNP[VOLTAGE].value = voltage;
-    PowerMonitorNP[TOTAL_CURRENT].value = Tcurrent;
-    PowerMonitorNP[V19_CURRENT].value = V19_current;
-    PowerMonitorNP[AR_CURRENT].value = AR_current;
+    PowerMonitorNP[VOLTAGE].setValue(voltage);
+    PowerMonitorNP[TOTAL_CURRENT].setValue(Tcurrent);
+    PowerMonitorNP[V19_CURRENT].setValue(V19_current);
+    PowerMonitorNP[AR_CURRENT].setValue(AR_current);
     PowerMonitorNP.setState(IPS_OK);
     PowerMonitorNP.apply();
 }
 
 void WandererBoxProV3::updateUSB31(int res)
 {
-    usb31ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    usb31ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    usb31ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    usb31ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     usb31ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     usb31ControlSP.apply();
 }
 
 void WandererBoxProV3::updateUSB32(int res)
 {
-    usb32ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    usb32ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    usb32ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    usb32ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     usb32ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     usb32ControlSP.apply();
 }
 
 void WandererBoxProV3::updateUSB33(int res)
 {
-    usb33ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    usb33ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    usb33ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    usb33ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     usb33ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     usb33ControlSP.apply();
 }
 
 void WandererBoxProV3::updateUSB21(int res)
 {
-    usb21ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    usb21ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    usb21ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    usb21ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     usb21ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     usb21ControlSP.apply();
 }
 
 void WandererBoxProV3::updateUSB22(int res)
 {
-    usb22ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    usb22ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    usb22ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    usb22ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     usb22ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     usb22ControlSP.apply();
 }
 
 void WandererBoxProV3::updateDC34(int res)
 {
-    dc3_4ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    dc3_4ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    dc3_4ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    dc3_4ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     dc3_4ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     dc3_4ControlSP.apply();
 }
@@ -667,16 +667,16 @@ void WandererBoxProV3::updateDC7(int res)
 
 void WandererBoxProV3::updateDC8_9(int res)
 {
-    dc8_9ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    dc8_9ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    dc8_9ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    dc8_9ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     dc8_9ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     dc8_9ControlSP.apply();
 }
 
 void WandererBoxProV3::updateDC10_11(int res)
 {
-    dc10_11ControlSP[INDI_ENABLED].s = (res== 1) ? ISS_ON : ISS_OFF;
-    dc10_11ControlSP[INDI_DISABLED].s = (res== 0) ? ISS_ON : ISS_OFF;
+    dc10_11ControlSP[INDI_ENABLED].setState( (res== 1) ? ISS_ON : ISS_OFF);
+    dc10_11ControlSP[INDI_DISABLED].setState( (res== 0) ? ISS_ON : ISS_OFF);
     dc10_11ControlSP.setState((res== 1) ? IPS_OK : IPS_IDLE);
     dc10_11ControlSP.apply();
 }
@@ -957,7 +957,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC5DIFFMODE=false;
             DC5CONSTMODE=false;
-            dc5diffSP[DC5_Manual].s = ISS_ON;
+            dc5diffSP[DC5_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC5 activated! Please adjust the duty cycle manually, you can also use DC5 as an ordinary switch.","Updated");
             dc5diffSP.apply();
         }
@@ -980,7 +980,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC5DIFFMODE=false;
             DC5CONSTMODE=false;
-            dc5diffSP[DC5_Manual].s = ISS_ON;
+            dc5diffSP[DC5_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC5 activated! Please adjust the duty cycle manually, you can also use DC5 as an ordinary switch.","Updated");
             dc5diffSP.apply();
         }
@@ -1023,7 +1023,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC6DIFFMODE=false;
             DC6CONSTMODE=false;
-            dc6diffSP[DC6_Manual].s = ISS_ON;
+            dc6diffSP[DC6_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC6 activated! Please adjust the duty cycle manually, you can also use DC6 as an ordinary switch.","Updated");
             dc6diffSP.apply();
         }
@@ -1046,7 +1046,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC6DIFFMODE=false;
             DC6CONSTMODE=false;
-            dc6diffSP[DC6_Manual].s = ISS_ON;
+            dc6diffSP[DC6_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC6 activated! Please adjust the duty cycle manually, you can also use DC6 as an ordinary switch.","Updated");
             dc6diffSP.apply();
         }
@@ -1089,7 +1089,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC7DIFFMODE=false;
             DC7CONSTMODE=false;
-            dc7diffSP[DC7_Manual].s = ISS_ON;
+            dc7diffSP[DC7_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC7 activated! Please adjust the duty cycle manually, you can also use DC7 as an ordinary switch.","Updated");
             dc7diffSP.apply();
         }
@@ -1112,7 +1112,7 @@ bool WandererBoxProV3::ISNewSwitch(const char *dev, const char *name, ISState *s
         {
             DC7DIFFMODE=false;
             DC7CONSTMODE=false;
-            dc7diffSP[DC7_Manual].s = ISS_ON;
+            dc7diffSP[DC7_Manual].setState( ISS_ON);
             LOGF_INFO("Manual Mode for DC7 activated! Please adjust the duty cycle manually, you can also use DC7 as an ordinary switch.","Updated");
             dc7diffSP.apply();
         }

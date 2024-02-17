@@ -1,7 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2024 Frank Wang. All rights reserved.
 
-    WandererBox Pro V3
+  WandererBox Pro V3
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
