@@ -205,11 +205,11 @@ bool WandererBoxProV3::getData()
             throw std::exception();
         // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
         int nbytes_read_version = 0;
-        version[64] = {0};
+        char version[64] = {0};
         tty_read_section(PortFD, version, 'A', 5, &nbytes_read_version);
 
         version[nbytes_read_version - 1] = '\0';
-
+        firmware=std::atoi(version);
 
 
         // Temp probe 1//////////////////////////////////////////////////////////////////////////////////////////
@@ -697,10 +697,10 @@ bool WandererBoxProV3::updateProperties()
     if (isConnected())
     {
 
-        if(std::stoi(version)>=20240216)
+        if(firmware>=20240216)
         {
             defineProperty(CalibrateSP);
-            LOGF_INFO("Firmware version: %s", version);
+            LOGF_INFO("Firmware version: %d", firmware);
         }
         else
         {
