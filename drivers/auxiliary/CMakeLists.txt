@@ -1,6 +1,14 @@
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES 99-indi_auxiliary.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
+# ########## Wanderer Box Plus V3 ###############
+SET(indi_wandererbox_plus_v3_SRC
+    wandererbox_plus_v3.cpp)
+
+add_executable(indi_wandererbox_plus_v3 ${indi_wandererbox_plus_v3_SRC})
+target_link_libraries(indi_wandererbox_plus_v3 indidriver)
+install(TARGETS indi_wandererbox_plus_v3 RUNTIME DESTINATION bin)
+
 # ########## Wanderer Box Pro V3 ###############
 SET(indi_wandererbox_pro_v3_SRC
     wandererbox_pro_v3.cpp)
