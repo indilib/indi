@@ -46,6 +46,9 @@ class PropertyBasic : public INDI::Property
         ~PropertyBasic();
 
     public:
+        void setDeviceName(const char *name);
+        void setDeviceName(const std::string &name);
+
         void setName(const char *name);
         void setName(const std::string &name);
 
@@ -63,6 +66,7 @@ class PropertyBasic : public INDI::Property
         void setTimestamp(const std::string &timestamp);
 
     public:
+        const char *getDeviceName()         const;
         const char *getName()               const;
         const char *getLabel()              const;
         const char *getGroupName()          const;
