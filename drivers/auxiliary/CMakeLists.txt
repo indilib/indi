@@ -1,6 +1,29 @@
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES 99-indi_auxiliary.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
+# ########## WandererCover V4-EC###############
+SET(indi_wanderercover_v4_ec_SRC
+    wanderer_cover_v4_ec.cpp)
+
+add_executable(indi_wanderercover_v4_ec ${indi_wanderercover_v4_ec_SRC})
+target_link_libraries(indi_wanderercover_v4_ec indidriver)
+install(TARGETS indi_wanderercover_v4_ec RUNTIME DESTINATION bin)
+
+# ########## Wanderer Box Plus V3 ###############
+SET(indi_wandererbox_plus_v3_SRC
+    wandererbox_plus_v3.cpp)
+
+add_executable(indi_wandererbox_plus_v3 ${indi_wandererbox_plus_v3_SRC})
+target_link_libraries(indi_wandererbox_plus_v3 indidriver)
+install(TARGETS indi_wandererbox_plus_v3 RUNTIME DESTINATION bin)
+
+# ########## Wanderer Box Pro V3 ###############
+SET(indi_wandererbox_pro_v3_SRC
+    wandererbox_pro_v3.cpp)
+
+add_executable(indi_wandererbox_pro_v3 ${indi_wandererbox_pro_v3_SRC})
+target_link_libraries(indi_wandererbox_pro_v3 indidriver)
+install(TARGETS indi_wandererbox_pro_v3 RUNTIME DESTINATION bin)
 
 # ########## Wanderer Cover V3 ###############
 SET(wandererCover_SRC

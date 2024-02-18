@@ -75,10 +75,6 @@
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
         </device>
-        <device label="NYX-101" manufacturer="Pegasus Astro">
-            <driver name="LX200 Autostar">indi_lx200autostar</driver>
-            <version>2.1</version>
-        </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
             <version>2.1</version>
@@ -517,6 +513,10 @@
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Alluna TCS2" manufacturer="Alluna Optics">
+            <driver name="Alluna TCS2">indi_alluna_tcs2</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true" manufacturer="Simulator">
@@ -743,6 +743,18 @@
         </device>
         <device label="Wanderer Cover V3" manufacturer="Wanderer Astro">
             <driver name="Wanderer Cover V3">indi_wanderer_cover</driver>
+            <version>1.0</version>
+        </device>
+        <device label="WandererBox Pro V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Pro V3">indi_wandererbox_pro_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="WandererBox Plus V3" manufacturer="Wanderer Astro">
+            <driver name="WandererBox Plus V3">indi_wandererbox_plus_v3</driver>
+            <version>1.0</version>
+        </device>
+        <device label="WandererCover V4-EC" manufacturer="Wanderer Astro">
+            <driver name="WandererCover V4-EC">indi_wanderercover_v4_ec</driver>
             <version>1.0</version>
         </device>
     </devGroup>

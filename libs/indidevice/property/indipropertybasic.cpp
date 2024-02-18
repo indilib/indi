@@ -77,6 +77,20 @@ PropertyBasic<T>::PropertyBasic(const std::shared_ptr<PropertyBasicPrivate> &dd)
 { }
 
 template <typename T>
+void PropertyBasic<T>::setDeviceName(const char *name)
+{
+    D_PTR(PropertyBasic);
+    d->typedProperty.setDeviceName(name);
+}
+
+template <typename T>
+void PropertyBasic<T>::setDeviceName(const std::string &name)
+{
+    D_PTR(PropertyBasic);
+    d->typedProperty.setDeviceName(name);
+}
+
+template <typename T>
 void PropertyBasic<T>::setName(const char *name)
 {
     D_PTR(PropertyBasic);
@@ -151,6 +165,13 @@ void PropertyBasic<T>::setTimestamp(const std::string &timestamp)
 {
     D_PTR(PropertyBasic);
     d->typedProperty.setTimestamp(timestamp);
+}
+
+template <typename T>
+const char *PropertyBasic<T>::getDeviceName() const
+{
+    D_PTR(const PropertyBasic);
+    return d->typedProperty.getDeviceName();
 }
 
 template <typename T>

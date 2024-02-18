@@ -203,6 +203,8 @@ bool LX200AstroPhysicsV2::initProperties()
     IUFillSwitchVector(&APPECRecordSP, APPECRecordS, 2, getDeviceName(), "APPECRecord", "Record PEC", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
+
     // Without below, it will not write the ParkData.xml file.
     // However, ParkData.xml is not used.
     // SetParkDataType(PARK_AZ_ALT);
@@ -283,10 +285,6 @@ void LX200AstroPhysicsV2::ISGetProperties(const char *dev)
         defineProperty(&APPECStateTP);
         defineProperty(&APPECRecordSP);
         defineProperty(&APMountStatusTP);
-    }
-    else
-    {
-        LOG_INFO("ISGetProperties: Not Connected");
     }
 }
 
