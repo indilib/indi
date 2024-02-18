@@ -609,6 +609,8 @@ bool LX200_OnStep::updateProperties()
             {
                 LOG_INFO("Rotator found.");
                 OSRotator1 = true;
+                setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
+                syncDriverInfo();
                 RI::updateProperties();
             }
             if (rotator_response[0] == 'D')
