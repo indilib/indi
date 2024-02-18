@@ -78,16 +78,33 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
         const char *controlledCCD { nullptr };
         const char *controlledFilterWheel { nullptr };
 
-        ITextVectorProperty ControlledDeviceTP;
-        IText ControlledDeviceT[2] {};
-        INumberVectorProperty GroupCountNP;
-        INumber GroupCountN[1];
-        INumberVectorProperty ProgressNP;
-        INumber ProgressN[3];
+        INDI::PropertyText ControlledDeviceTP {2};
+        enum
+        {
+            CCD,
+            FILTER
+        };
+
+        INDI::PropertyNumber GroupCountNP {1};
+        enum
+        {
+            GROUP_COUNT
+        };
+
+        INDI::PropertyNumber ProgressNP {3};
+        enum
+        {
+          GROUP,
+          IMAGE,
+          REMAINING_TIME
+        };
+//        INumber ProgressN[3];
         ISwitchVectorProperty BatchSP;
         ISwitch BatchS[2];
-        ILightVectorProperty StatusLP;
-        ILight StatusL[2];
+        INDI::PropertyLight StatusLP {2};
+
+//        ILight StatusL[2];
+
         ITextVectorProperty ImageNameTP;
         IText ImageNameT[2];
         INumberVectorProperty DownloadNP;
