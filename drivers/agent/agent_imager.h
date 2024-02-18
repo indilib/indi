@@ -98,12 +98,13 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
           IMAGE,
           REMAINING_TIME
         };
-//        INumber ProgressN[3];
-        ISwitchVectorProperty BatchSP;
-        ISwitch BatchS[2];
+        INDI::PropertySwitch BatchSP {2};
+        enum
+        {
+            START,
+            ABORT
+        };
         INDI::PropertyLight StatusLP {2};
-
-//        ILight StatusL[2];
 
         ITextVectorProperty ImageNameTP;
         IText ImageNameT[2];

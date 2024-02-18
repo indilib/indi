@@ -247,9 +247,9 @@ bool Imager::initProperties()
     ProgressNP.fill(getDefaultName(), "PROGRESS", "Batch execution progress", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&BatchS[0], "START", "Start batch", ISS_OFF);
-    IUFillSwitch(&BatchS[1], "ABORT", "Abort batch", ISS_OFF);
-    IUFillSwitchVector(&BatchSP, BatchS, 2, getDefaultName(), "BATCH", "Batch control", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY,
+    BatchSP[START].fill("START", "Start batch", ISS_OFF);
+    BatchSP[ABORT].fill("ABORT", "Abort batch", ISS_OFF);
+    BatchSP.fill(getDefaultName(), "BATCH", "Batch control", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY,
                        60, IPS_IDLE);
 
     IUFillText(&ImageNameT[0], "IMAGE_FOLDER", "Image folder", "/tmp");
@@ -310,8 +310,8 @@ bool Imager::updateProperties()
         ProgressNP[IMAGE].value = image = 0;
         ProgressNP.setState(IPS_IDLE);
         defineProperty(ProgressNP);
-        BatchSP.s = IPS_IDLE;
-        defineProperty(&BatchSP);
+        BatchSP.setState(IPS_IDLE);
+        defineProperty(BatchSP);
         DownloadN[0].value = 0;
         DownloadN[1].value = 0;
         DownloadNP.s       = IPS_IDLE;
@@ -323,7 +323,7 @@ bool Imager::updateProperties()
     {
         deleteProperty(StatusLP.getName());
         deleteProperty(ProgressNP.getName());
-        deleteProperty(BatchSP.name);
+        deleteProperty(BatchSP.getName());
         deleteProperty(DownloadNP.name);
         deleteProperty(FitsBP.name);
     }
@@ -376,23 +376,23 @@ bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (Imager::DEVICE_NAME == dev)
     {
-        if (std::string{name} == std::string{BatchSP.name})
+        if (BatchSP.isNameMatch(name))
         {
             for (int i = 0; i < n; i++)
             {
-                if (strcmp(names[i], BatchS[0].name) == 0 && states[i] == ISS_ON)
+                if (strcmp(names[i], BatchSP[START].getName()) == 0 && states[i] == ISS_ON)
                 {
                     if (!isRunning())
                         startBatch();
                 }
-                if (strcmp(names[i], BatchS[1].name) == 0 && states[i] == ISS_ON)
+                if (strcmp(names[i], BatchSP[ABORT].getName()) == 0 && states[i] == ISS_ON)
                 {
                     if (isRunning())
                         abortBatch();
                 }
             }
-            BatchSP.s = IPS_OK;
-            IDSetSwitch(&BatchSP, nullptr);
+            BatchSP.setState(IPS_OK);
+            BatchSP.apply();
             return true;
         }
     }
