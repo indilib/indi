@@ -62,8 +62,6 @@ private:
     INDI::PropertySwitch SetZeroSP{1};
     bool sendCommand(std::string command);
     bool Move(const char *cmd);
-    ISwitchVectorProperty HomeSP;
-    ISwitch HomeS[1];
     bool haltcommand = false;
     bool ReverseState=false;
     int reversecoefficient=1;
