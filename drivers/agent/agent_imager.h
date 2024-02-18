@@ -106,15 +106,22 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
         };
         INDI::PropertyLight StatusLP {2};
 
-        ITextVectorProperty ImageNameTP;
-        IText ImageNameT[2];
-        INumberVectorProperty DownloadNP;
-        INumber DownloadN[2];
-        IBLOBVectorProperty FitsBP;
-        IBLOB FitsB[1];
+        INDI::PropertyText ImageNameTP {2};
+        enum
+        {
+            IMAGE_FOLDER,
+            IMAGE_NAME_PREFIX
+        };
 
-        INumberVectorProperty CCDImageExposureNP;
-        INumber CCDImageExposureN[1];
+        INDI::PropertyNumber DownloadNP {2};
+        INDI::PropertyBlob FitsBP {1};
+
+        INDI::PropertyNumber CCDImageExposureNP {1};
+        enum
+        {
+            CCD_EXPOSURE_VALUE
+        };
+//        INumber CCDImageExposureN[1];
         INumberVectorProperty CCDImageBinNP;
         INumber CCDImageBinN[2];
         ISwitch CCDUploadS[3];
