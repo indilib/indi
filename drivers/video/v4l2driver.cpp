@@ -53,10 +53,11 @@ static const PixelSizeInfo CameraDatabase[] =
     { "Skyris 132M", "Skyris 132M", nullptr, 3.75f, -1, false },
     { "Skyris 236C", "Skyris 236C", nullptr, 2.8f, -1, false },
     { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, false },
-    { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iPolar", "iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider", "iOptron iGuider 1", nullptr, 3.75f, -1, true },
+    { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", "iOptron iPolar", 3.75f, -1, true },
+    { "iOptron iPolar", "iOptron iPolar", "iOptron iPolar", 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", "iOptron iGuider", 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider 1", "iOptron iGuider", 3.75f, -1, true },
+    { "iOptron iGuider", "iOptron iGuider External: iOptr", "iOptron iGuider", 3.75f, -1, true },
     { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "Logitech HD C270", "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
@@ -72,7 +73,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     strncpy(defaultVideoPort, path.c_str(), 256);
     strncpy(configPort, path.c_str(), 256);
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     allocateBuffers();
 
@@ -262,7 +263,6 @@ void V4L2_Driver::ISGetProperties(const char * dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineProperty(&PortTP);
-    loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {
@@ -974,6 +974,13 @@ bool V4L2_Driver::setManualExposure(double duration)
     // INT control for manual exposure duration is an integer in 1/10000 seconds
     long ticks = lround(duration * 10000.0f);
 
+    // iOptron iPolar & iGuider have different tick rate
+    // With max about 5000 ticks
+    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    {
+        ticks = std::min(5000l, lround(duration * 1333.33));
+    }
+
     /* First check the presence of an absolute exposure control */
     if (nullptr == AbsExposureN)
     {
@@ -1047,6 +1054,12 @@ bool V4L2_Driver::setManualExposure(double duration)
 
     frame_duration.tv_sec  = ticks / 10000;
     frame_duration.tv_usec = (ticks % 10000) * 100;
+
+    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    {
+        frame_duration.tv_sec  = ticks / 1333;
+        frame_duration.tv_usec = (ticks % 1333) * 100;
+    }
 
     if( v4l_capture_started )
     {
@@ -1228,7 +1241,7 @@ bool V4L2_Driver::startlongexposure(double timeinsec)
 
 void V4L2_Driver::lxtimerCallback(void * userpointer)
 {
-    V4L2_Driver * p = (V4L2_Driver *)userpointer;
+    auto p = static_cast<V4L2_Driver *>(userpointer);
 
     p->lx->stopLx();
     if (p->lx->getLxmode() == LXSERIAL)
@@ -1242,7 +1255,6 @@ void V4L2_Driver::lxtimerCallback(void * userpointer)
     IERmTimer(p->lxtimer);
     if (!p->v4l_base->isstreamactive())
         p->is_capturing = p->start_capturing(false); // jump to new/updateFrame
-    //p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
 }
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
@@ -1312,7 +1324,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
 
 void V4L2_Driver::newFrame(void * p)
 {
-    ((V4L2_Driver *)(p))->newFrame();
+    static_cast<V4L2_Driver *>(p)->newFrame();
 }
 
 /** @internal Stack normalized luminance pixels coming from the camera in an accumulator frame.
@@ -1366,7 +1378,6 @@ void V4L2_Driver::newFrame()
     struct timeval current_frame_duration = frame_received;
     gettimeofday(&frame_received, nullptr);
     timersub(&frame_received, &current_frame_duration, &current_frame_duration);
-
 
     if (Streamer->isBusy())
     {
@@ -1770,7 +1781,7 @@ bool V4L2_Driver::Disconnect()
 
 const char * V4L2_Driver::getDefaultName()
 {
-    return (const char *)"V4L2 CCD";
+    return "V4L2 CCD";
 }
 
 /* Retrieves basic data from the device upon connection.*/
@@ -1883,14 +1894,10 @@ void V4L2_Driver::updateV4L2Controls()
     }
 
     if(!AbsExposureN)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Absolute exposure duration control is not possible on the device!", "");
-    }
+        LOG_WARN("Absolute exposure duration control is not possible on the device!");
 
     if(!ManualExposureSP)
-        DEBUGF(INDI::Logger::DBG_WARNING, "Manual/auto exposure control is not possible on the device!", "");
-
-    //v4l_base->enumerate_ctrl();
+        LOG_WARN("Manual/auto exposure control is not possible on the device!");
 }
 
 void V4L2_Driver::allocateBuffers()

@@ -47,6 +47,7 @@ static class Loader
             {"iOptron iPolar", "iOptron iPolar"},
             {"iOptron iGuider: iOptron iGuide", "iOptron iGuider"},
             {"iOptron iGuider 1", "iOptron iGuider"},
+            {"iOptron iGuider External: iOptr", "iOptron iGuider"},
             {"mmal service 16.1", "Raspberry Pi High Quality Camera"},
             {"UVC Camera (046d:0825)", "Logitech HD C270"},
             {"USB 2.0 Camera: USB Camera", "IMX290 Camera"},
