@@ -894,13 +894,11 @@ bool SestoSenso2::AbortFocuser()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SestoSenso2::checkMotionProgressCallback()
 {
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    lastPos = FocusAbsPosN[0].value;
     if (isMotionComplete())
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
         IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        lastPos = FocusAbsPosN[0].value;
 
         if (CalibrationSP.getState() == IPS_BUSY)
         {
@@ -910,14 +908,11 @@ void SestoSenso2::checkMotionProgressCallback()
         }
         else
             LOG_INFO("Focuser reached requested position.");
+        FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
         return;
     }
-    else
-    {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-    }
 
-    lastPos = FocusAbsPosN[0].value;
     m_MotionProgressTimer.start(500);
 }
 
