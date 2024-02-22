@@ -518,10 +518,10 @@ void MoonLite::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureNP[0].value) >= 0.5)
+        if (std::abs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
             TemperatureNP.apply();
-            lastTemperature = static_cast<uint32_t>(TemperatureNP[0].value);
+            lastTemperature = static_cast<uint32_t>(TemperatureNP[0].getValue());
         }
     }
 
