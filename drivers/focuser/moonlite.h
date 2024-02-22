@@ -126,8 +126,7 @@ class MoonLite : public INDI::Focuser
         INumberVectorProperty TemperatureNP;
 
         // Full/Half Step modes
-        ISwitch StepModeS[2];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {2};
 
         // Temperature Settings
         INumber TemperatureSettingN[2];

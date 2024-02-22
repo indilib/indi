@@ -49,9 +49,9 @@ bool MoonLite::initProperties()
     FocusSpeedN[0].value = 1;
 
     // Step Mode
-    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "Half Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_ON);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    StepModeSP[FOCUS_HALF_STEP].fill("FOCUS_HALF_STEP", "Half Step", ISS_OFF);
+    StepModeSP[FOCUS_FULL_STEP].fill("FOCUS_FULL_STEP", "Full Step", ISS_ON);
+    StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Focuser temperature
@@ -95,7 +95,7 @@ bool MoonLite::updateProperties()
     if (isConnected())
     {
         defineProperty(&TemperatureNP);
-        defineProperty(&StepModeSP);
+        defineProperty(StepModeSP);
         defineProperty(&TemperatureSettingNP);
         defineProperty(&TemperatureCompensateSP);
 
@@ -106,7 +106,7 @@ bool MoonLite::updateProperties()
     else
     {
         deleteProperty(TemperatureNP.name);
-        deleteProperty(StepModeSP.name);
+        deleteProperty(StepModeSP.getName());
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
     }
@@ -158,9 +158,9 @@ bool MoonLite::readStepMode()
         return false;
 
     if (strcmp(res, "FF#") == 0)
-        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_HALF_STEP].setState(ISS_ON);
     else if (strcmp(res, "00#") == 0)
-        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_FULL_STEP].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%s)", res);
@@ -337,32 +337,32 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(StepModeSP.name, name) == 0)
+        if (StepModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int current_mode = StepModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&StepModeSP, states, names, n);
+            StepModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int target_mode = StepModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.setState(IPS_OK);
+                StepModeSP.apply();
             }
 
             bool rc = setStepMode(target_mode == 0 ? FOCUS_HALF_STEP : FOCUS_FULL_STEP);
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
 
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
+            StepModeSP.setState(IPS_OK);
+            StepModeSP.apply();
             return true;
         }
 
@@ -429,7 +429,7 @@ void MoonLite::GetFocusParams()
         IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (readStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
+        StepModeSP.apply();
 }
 
 bool MoonLite::SetFocuserSpeed(int speed)
@@ -550,7 +550,7 @@ bool MoonLite::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StepModeSP);
+    StepModeSP.save(fp);
 
     return true;
 }
