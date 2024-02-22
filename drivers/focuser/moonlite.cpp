@@ -66,9 +66,9 @@ bool MoonLite::initProperties()
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate",
+    TemperatureCompensateSP[Enable].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[Disable].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
@@ -97,7 +97,7 @@ bool MoonLite::updateProperties()
         defineProperty(TemperatureNP);
         defineProperty(StepModeSP);
         defineProperty(TemperatureSettingNP);
-        defineProperty(&TemperatureCompensateSP);
+        defineProperty(TemperatureCompensateSP);
 
         GetFocusParams();
 
@@ -108,7 +108,7 @@ bool MoonLite::updateProperties()
         deleteProperty(TemperatureNP.getName());
         deleteProperty(StepModeSP.getName());
         deleteProperty(TemperatureSettingNP.getName());
-        deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(TemperatureCompensateSP.getName());
     }
 
     return true;
@@ -367,24 +367,24 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
         }
 
         // Temperature Compensation Mode
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
 
-            bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
+            bool rc = setTemperatureCompensation((TemperatureCompensateSP[Enable].getState() == ISS_ON));
 
             if (!rc)
             {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
                 return false;
             }
 
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.setState(IPS_OK);
+            TemperatureCompensateSP.apply();
             return true;
         }
     }

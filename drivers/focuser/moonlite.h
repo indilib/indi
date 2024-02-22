@@ -140,8 +140,12 @@ class MoonLite : public INDI::Focuser
         };
 
         // Temperature Compensation Enable/Disable
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
+        enum
+        {
+            Enable,
+            Disable
+        };
 
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };
