@@ -215,7 +215,7 @@ bool MoonLite::readTemperatureCoefficient()
     uint8_t coefficient = 0;
     int rc = sscanf(res, "%hhX", &coefficient);
     if (rc > 0)
-        // Signed HEX two digits
+        // Signed HEX of two digits
         TemperatureSettingNP[1].setValue(static_cast<int8_t>(coefficient) / 2.0);
     else
     {
