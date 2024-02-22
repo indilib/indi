@@ -49,26 +49,26 @@ bool MoonLite::initProperties()
     FocusSpeedN[0].value = 1;
 
     // Step Mode
-    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "Half Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_ON);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    StepModeSP[FOCUS_HALF_STEP].fill("FOCUS_HALF_STEP", "Half Step", ISS_OFF);
+    StepModeSP[FOCUS_FULL_STEP].fill("FOCUS_FULL_STEP", "Full Step", ISS_ON);
+    StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -100, 100, 0.5, 0);
-    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -100, 100, 0.5, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "T. Settings", "",
+    TemperatureSettingNP[Calibration].fill("Calibration", "", "%6.2f", -100, 100, 0.5, 0);
+    TemperatureSettingNP[Coefficient].fill("Coefficient", "", "%6.2f", -100, 100, 0.5, 0);
+    TemperatureSettingNP.fill(getDeviceName(), "T. Settings", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate",
+    TemperatureCompensateSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
@@ -94,10 +94,10 @@ bool MoonLite::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&StepModeSP);
-        defineProperty(&TemperatureSettingNP);
-        defineProperty(&TemperatureCompensateSP);
+        defineProperty(TemperatureNP);
+        defineProperty(StepModeSP);
+        defineProperty(TemperatureSettingNP);
+        defineProperty(TemperatureCompensateSP);
 
         GetFocusParams();
 
@@ -105,10 +105,10 @@ bool MoonLite::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(StepModeSP.name);
-        deleteProperty(TemperatureSettingNP.name);
-        deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(StepModeSP.getName());
+        deleteProperty(TemperatureSettingNP.getName());
+        deleteProperty(TemperatureCompensateSP.getName());
     }
 
     return true;
@@ -158,9 +158,9 @@ bool MoonLite::readStepMode()
         return false;
 
     if (strcmp(res, "FF#") == 0)
-        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_HALF_STEP].setState(ISS_ON);
     else if (strcmp(res, "00#") == 0)
-        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_FULL_STEP].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%s)", res);
@@ -195,7 +195,7 @@ bool MoonLite::readTemperature()
     int rc = sscanf(res, "%X", &temp);
     if (rc > 0)
         // Signed hex
-        TemperatureN[0].value = static_cast<int16_t>(temp) / 2.0;
+        TemperatureNP[0].setValue(static_cast<int16_t>(temp) / 2.0);
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -337,54 +337,54 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(StepModeSP.name, name) == 0)
+        if (StepModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int current_mode = StepModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&StepModeSP, states, names, n);
+            StepModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int target_mode = StepModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.setState(IPS_OK);
+                StepModeSP.apply();
             }
 
             bool rc = setStepMode(target_mode == 0 ? FOCUS_HALF_STEP : FOCUS_FULL_STEP);
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
 
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
+            StepModeSP.setState(IPS_OK);
+            StepModeSP.apply();
             return true;
         }
 
         // Temperature Compensation Mode
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
 
-            bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
+            bool rc = setTemperatureCompensation((TemperatureCompensateSP[INDI_ENABLED].getState() == ISS_ON));
 
             if (!rc)
             {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
                 return false;
             }
 
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.setState(IPS_OK);
+            TemperatureCompensateSP.apply();
             return true;
         }
     }
@@ -397,19 +397,19 @@ bool MoonLite::ISNewNumber(const char * dev, const char * name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Settings
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
+        if (TemperatureSettingNP.isNameMatch(name))
         {
-            IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                    !setTemperatureCoefficient(TemperatureSettingN[1].value))
+            TemperatureSettingNP.update(values, names, n);
+            if (!setTemperatureCalibration(TemperatureSettingNP[Calibration].getValue()) ||
+                !setTemperatureCoefficient(TemperatureSettingNP[Coefficient].getValue()))
             {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_ALERT);
+                TemperatureSettingNP.apply();
                 return false;
             }
 
-            TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, nullptr);
+            TemperatureSettingNP.setState(IPS_OK);
+            TemperatureSettingNP.apply();
             return true;
         }
     }
@@ -423,13 +423,13 @@ void MoonLite::GetFocusParams()
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (readTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
     if (readSpeed())
         IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (readStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
+        StepModeSP.apply();
 }
 
 bool MoonLite::SetFocuserSpeed(int speed)
@@ -518,10 +518,10 @@ void MoonLite::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (std::abs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = static_cast<uint32_t>(TemperatureN[0].value);
+            TemperatureNP.apply();
+            lastTemperature = static_cast<uint32_t>(TemperatureNP[0].getValue());
         }
     }
 
@@ -550,7 +550,7 @@ bool MoonLite::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StepModeSP);
+    StepModeSP.save(fp);
 
     return true;
 }
