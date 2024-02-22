@@ -55,14 +55,14 @@ bool MoonLite::initProperties()
                        IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[TEMPERATURE].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -100, 100, 0.5, 0);
-    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -100, 100, 0.5, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "T. Settings", "",
+    TemperatureSettingNP[Calibration].fill("Calibration", "", "%6.2f", -100, 100, 0.5, 0);
+    TemperatureSettingNP[Coefficient].fill("Coefficient", "", "%6.2f", -100, 100, 0.5, 0);
+    TemperatureSettingNP.fill(getDeviceName(), "T. Settings", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
@@ -94,9 +94,9 @@ bool MoonLite::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
+        defineProperty(TemperatureNP);
         defineProperty(StepModeSP);
-        defineProperty(&TemperatureSettingNP);
+        defineProperty(TemperatureSettingNP);
         defineProperty(&TemperatureCompensateSP);
 
         GetFocusParams();
@@ -105,9 +105,9 @@ bool MoonLite::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(TemperatureNP.getName());
         deleteProperty(StepModeSP.getName());
-        deleteProperty(TemperatureSettingNP.name);
+        deleteProperty(TemperatureSettingNP.getName());
         deleteProperty(TemperatureCompensateSP.name);
     }
 
@@ -195,7 +195,7 @@ bool MoonLite::readTemperature()
     int rc = sscanf(res, "%X", &temp);
     if (rc > 0)
         // Signed hex
-        TemperatureN[0].value = static_cast<int16_t>(temp) / 2.0;
+        TemperatureNP[TEMPERATURE].setValue(static_cast<int16_t>(temp) / 2.0);
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -397,19 +397,19 @@ bool MoonLite::ISNewNumber(const char * dev, const char * name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Settings
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
+        if (TemperatureSettingNP.isNameMatch(name))
         {
-            IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                    !setTemperatureCoefficient(TemperatureSettingN[1].value))
+            TemperatureSettingNP.update(values, names, n);
+            if (!setTemperatureCalibration(TemperatureSettingNP[Calibration].getValue()) ||
+                !setTemperatureCoefficient(TemperatureSettingNP[Coefficient].getValue()))
             {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_ALERT);
+                TemperatureSettingNP.apply();
                 return false;
             }
 
-            TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, nullptr);
+            TemperatureSettingNP.setState(IPS_OK);
+            TemperatureSettingNP.apply();
             return true;
         }
     }
@@ -423,7 +423,7 @@ void MoonLite::GetFocusParams()
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (readTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
     if (readSpeed())
         IDSetNumber(&FocusSpeedNP, nullptr);
@@ -518,10 +518,10 @@ void MoonLite::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[TEMPERATURE].value) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = static_cast<uint32_t>(TemperatureN[0].value);
+            TemperatureNP.apply();
+            lastTemperature = static_cast<uint32_t>(TemperatureNP[TEMPERATURE].value);
         }
     }
 

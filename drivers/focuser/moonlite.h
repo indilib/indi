@@ -122,15 +122,22 @@ class MoonLite : public INDI::Focuser
         uint32_t targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
+        enum
+        {
+            TEMPERATURE
+        };
 
         // Full/Half Step modes
         INDI::PropertySwitch StepModeSP {2};
 
         // Temperature Settings
-        INumber TemperatureSettingN[2];
-        INumberVectorProperty TemperatureSettingNP;
+        INDI::PropertyNumber TemperatureSettingNP {2};
+        enum
+        {
+            Calibration,
+            Coefficient
+        };
 
         // Temperature Compensation Enable/Disable
         ISwitch TemperatureCompensateS[2];
