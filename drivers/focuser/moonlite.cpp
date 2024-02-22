@@ -55,7 +55,7 @@ bool MoonLite::initProperties()
                        IPS_IDLE);
 
     // Focuser temperature
-    TemperatureNP[TEMPERATURE].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -66,8 +66,8 @@ bool MoonLite::initProperties()
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    TemperatureCompensateSP[Enable].fill("Enable", "", ISS_OFF);
-    TemperatureCompensateSP[Disable].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     TemperatureCompensateSP.fill(getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -195,7 +195,7 @@ bool MoonLite::readTemperature()
     int rc = sscanf(res, "%X", &temp);
     if (rc > 0)
         // Signed hex
-        TemperatureNP[TEMPERATURE].setValue(static_cast<int16_t>(temp) / 2.0);
+        TemperatureNP[0].setValue(static_cast<int16_t>(temp) / 2.0);
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -372,7 +372,7 @@ bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states
             int last_index = TemperatureCompensateSP.findOnSwitchIndex();
             TemperatureCompensateSP.update(states, names, n);
 
-            bool rc = setTemperatureCompensation((TemperatureCompensateSP[Enable].getState() == ISS_ON));
+            bool rc = setTemperatureCompensation((TemperatureCompensateSP[INDI_ENABLED].getState() == ISS_ON));
 
             if (!rc)
             {
@@ -518,10 +518,10 @@ void MoonLite::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureNP[TEMPERATURE].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[0].value) >= 0.5)
         {
             TemperatureNP.apply();
-            lastTemperature = static_cast<uint32_t>(TemperatureNP[TEMPERATURE].value);
+            lastTemperature = static_cast<uint32_t>(TemperatureNP[0].value);
         }
     }
 

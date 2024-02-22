@@ -123,10 +123,6 @@ class MoonLite : public INDI::Focuser
 
         // Read Only Temperature Reporting
         INDI::PropertyNumber TemperatureNP {1};
-        enum
-        {
-            TEMPERATURE
-        };
 
         // Full/Half Step modes
         INDI::PropertySwitch StepModeSP {2};
@@ -141,11 +137,6 @@ class MoonLite : public INDI::Focuser
 
         // Temperature Compensation Enable/Disable
         INDI::PropertySwitch TemperatureCompensateSP {2};
-        enum
-        {
-            Enable,
-            Disable
-        };
 
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };
