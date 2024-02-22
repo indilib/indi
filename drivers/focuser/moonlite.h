@@ -102,6 +102,8 @@ class MoonLite : public INDI::Focuser
         bool readStepMode();
         // Read and update Temperature
         bool readTemperature();
+        // Read and update Temperature Coefficient
+		bool readTemperatureCoefficient();
         // Read and update Position
         bool readPosition();
         // Read and update speed
