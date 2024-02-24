@@ -45,6 +45,19 @@ typedef unsigned long ulong;
 
 class Lx;
 
+// Pixel size info for different cameras
+typedef struct PixelSizeInfo
+{
+    const char * deviceLabel; // Device label used by INDI
+    const char * deviceName; // device name reported by V4L
+    const char * commonName; // if null, use device name
+    float pixelSizeX;
+    float pixelSizeY; // if negative, use pixelSizeX also for Y
+    uint32_t width;     // Default width, if 0 then don't set anything
+    uint32_t height;    // Default height, if 0 then don't set anything
+    bool tested; //if False print please report message
+} PixelSizeInfo;
+
 class V4L2_Driver : public INDI::CCD
 {
 public:
@@ -80,6 +93,8 @@ public:
 
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
+
+        bool updateCaptureSize(uint32_t width, uint32_t height);
 
         /* Structs */
         typedef struct
@@ -214,6 +229,7 @@ public:
         int stdtimer;
 
         short lxstate;
+        PixelSizeInfo * m_Info {nullptr};
 
         char defaultVideoPort[256] = {"/dev/video0"};
         char configPort[256] = {0};
