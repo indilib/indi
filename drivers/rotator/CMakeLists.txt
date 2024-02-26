@@ -70,6 +70,14 @@ add_executable(indi_wanderer_rotator_mini ${WandererRotatorMini_SRC})
 target_link_libraries(indi_wanderer_rotator_mini indidriver)
 install(TARGETS indi_wanderer_rotator_mini RUNTIME DESTINATION bin)
 
+# ############### Wanderer Rotator Lite V2 ################
+SET(WandererRotatorLiteV2_SRC
+    wanderer_rotator_lite_v2.cpp)
+
+add_executable(indi_wanderer_rotator_lite_v2 ${WandererRotatorLiteV2_SRC})
+target_link_libraries(indi_wanderer_rotator_lite_v2 indidriver)
+install(TARGETS indi_wanderer_rotator_lite_v2 RUNTIME DESTINATION bin)
+
 
 # ############### Integra85 Focusing Rotator ################
 SET(integra_SRC
