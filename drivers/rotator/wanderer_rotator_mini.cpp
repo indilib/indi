@@ -40,7 +40,7 @@ static std::unique_ptr<WandererRotatorMini> wandererrotatormini(new WandererRota
 
 WandererRotatorMini::WandererRotatorMini()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
 }
 bool WandererRotatorMini::initProperties()
@@ -48,13 +48,16 @@ bool WandererRotatorMini::initProperties()
 
     INDI::Rotator::initProperties();
 
-    SetCapability(ROTATOR_CAN_REVERSE | ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
+    SetCapability(ROTATOR_CAN_REVERSE | ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME);
 
     addAuxControls();
     // Calibrate
     SetZeroSP[0].fill("Set_Zero", "Mechanical Zero", ISS_OFF);
     SetZeroSP.fill(getDeviceName(), "Set_Zero", "Set Current As", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,60, IPS_IDLE);
 
+    // BACKLASH
+    BacklashNP[BACKLASH].fill( "BACKLASH", "Degree", "%.2f", 0, 3, 0.1, 0);
+    BacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -69,14 +72,12 @@ bool WandererRotatorMini::updateProperties()
     if (isConnected())
     {
         defineProperty(SetZeroSP);
-        if(firmware<20240208)
-        {
-            LOG_ERROR("The firmware is outdated, please upgrade to the latest firmware, or the driver cannot function properly!");
-        }
+        defineProperty(BacklashNP);
     }
     else
     {
         deleteProperty(SetZeroSP);
+        deleteProperty(BacklashNP);
     }
     return true;
 }
@@ -99,7 +100,32 @@ bool WandererRotatorMini::ISNewSwitch(const char *dev, const char *name, ISState
     return Rotator::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool WandererRotatorMini::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+{
+    if (dev && !strcmp(dev, getDeviceName()))
+    {
+        // backlash
+        if (BacklashNP.isNameMatch(name))
+        {
+            bool rc1 = false;
+            BacklashNP.update(values, names, n);
+            backlash=BacklashNP[BACKLASH].value;
 
+            char cmd[16];
+            snprintf(cmd, 16, "%d", (int)(backlash*10+1600000));
+            rc1=sendCommand(cmd);
+
+            BacklashNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
+            if (BacklashNP.getState() == IPS_OK)
+                BacklashNP.update(values, names, n);
+            BacklashNP.apply();
+            LOG_INFO("Backlash Set");
+            return true;
+        }
+
+    }
+    return Rotator::ISNewNumber(dev, name, values, names, n);
+}
 
 const char *WandererRotatorMini::getDefaultName()
 {
@@ -124,7 +150,7 @@ bool WandererRotatorMini::Handshake()
     //Device Model//////////////////////////////////////////////////////////////////////////////////////////////////////
     if ((rc = tty_read_section(PortFD, name, 'A', 3, &nbytes_read_name)) != TTY_OK)
     {
-            tcflush(PortFD, TCIOFLUSH);
+        tcflush(PortFD, TCIOFLUSH);
         if ((rc = tty_write_string(PortFD, "1500001", &nbytes_written)) != TTY_OK)
         {
             char errorMessage[MAXRBUF];
@@ -156,6 +182,12 @@ bool WandererRotatorMini::Handshake()
     version[nbytes_read_version - 1] = '\0';
     LOGF_INFO("Firmware Version:%s", version);
     firmware=std::atoi(version);
+    if(firmware<20240226)
+    {
+        LOG_ERROR("The firmware is outdated, please upgrade to the latest firmware!");
+        return false;
+    }
+
     // Angle//////////////////////////////////////////////////////////////////////////////////////////
     char M_angle[64] = {0};
     int nbytes_read_M_angle= 0;
@@ -173,9 +205,33 @@ bool WandererRotatorMini::Handshake()
         rc=tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
         M_angle[nbytes_read_M_angle - 1] = '\0';
         M_angleread = std::strtod(M_angle,NULL);
-
     }
     GotoRotatorN[0].value=abs(M_angleread/1000);
+    //backlash/////////////////////////////////////////////////////////////////////
+    char M_backlash[64] = {0};
+    int nbytes_read_M_backlash= 0;
+    tty_read_section(PortFD, M_backlash, 'A', 5, &nbytes_read_M_backlash);
+    M_backlash[nbytes_read_M_angle - 1] = '\0';
+    M_backlashread = std::strtod(M_backlash,NULL);
+
+    BacklashNP[BACKLASH].setValue(M_backlashread);
+    BacklashNP.setState(IPS_OK);
+    BacklashNP.apply();
+    //reverse/////////////////////////////////////////////////////////////////////
+    char M_reverse[64] = {0};
+    int nbytes_read_M_reverse= 0;
+    tty_read_section(PortFD, M_reverse, 'A', 5, &nbytes_read_M_reverse);
+    M_reverse[nbytes_read_M_angle - 1] = '\0';
+    M_reverseread = std::strtod(M_reverse,NULL);
+    if(M_reverseread==0)
+    {
+        ReverseRotator(false);
+    }
+    else
+    {
+        ReverseRotator(true);
+    }
+
     tcflush(PortFD, TCIOFLUSH);
     return true;
 }
@@ -184,16 +240,9 @@ bool WandererRotatorMini::Handshake()
 IPState WandererRotatorMini::MoveRotator(double angle)
 {
     angle = angle - GotoRotatorN[0].value;
-    if (angle * positionhistory < 0 && angle > 0)
-    {
-        angle = angle + backlash;
-    }
-    if (angle * positionhistory < 0 && angle < 0)
-    {
-        angle = angle - backlash;
-    }
+
     char cmd[16];
-    int position = (int)(reversecoefficient * angle * 1142);
+    int position = (int)(angle * 1142+1000000);
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
     Move(cmd);
@@ -202,12 +251,13 @@ IPState WandererRotatorMini::MoveRotator(double angle)
 }
 
 
-
 bool WandererRotatorMini::AbortRotator()
 {
 
-    haltcommand = true;
 
+    if (GotoRotatorNP.s == IPS_BUSY)
+    {
+            haltcommand = true;
     int nbytes_written = 0, rc = -1;
     tcflush(PortFD, TCIOFLUSH);
     if ((rc = tty_write_string(PortFD, "Stop", &nbytes_written)) != TTY_OK)
@@ -217,8 +267,8 @@ bool WandererRotatorMini::AbortRotator()
         LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
     }
-
     SetTimer(100);
+    }
     return true;
 }
 
@@ -228,15 +278,17 @@ bool WandererRotatorMini::AbortRotator()
 ///
 IPState WandererRotatorMini::HomeRotator()
 {
+    if(GotoRotatorN[0].value!=0)
+    {
+    double angle = -1 * GotoRotatorN[0].value;
 
-    double angle = -1 * reversecoefficient * GotoRotatorN[0].value;
-    positionhistory = -1* GotoRotatorN[0].value;
     char cmd[16];
-    int position = (int)(angle * 1142);
+    int position = (int)(angle * 1142+1000000);
     snprintf(cmd, 16, "%d", position);
     GotoRotatorNP.s = IPS_BUSY;
     Move(cmd);
     LOG_INFO("Moving to zero...");
+    }
     return IPS_OK;
 }
 
@@ -246,23 +298,25 @@ bool WandererRotatorMini::ReverseRotator(bool enabled)
 
     if (enabled)
     {
-        if(M_angleread>0)
+        char cmd[16];
+        snprintf(cmd, 16, "%d", 1700001);
+        if (sendCommand(cmd)!= true)
         {
-            HomeRotator();
-            LOG_WARN("The rotator will first move to zero and then reverse the rotation direction to prevent cable wrap...");
+            LOG_ERROR("Serial write error.");
+            return false;
         }
-        reversecoefficient = -1;
         ReverseState = true;
         return true;
     }
     else
     {
-        if(M_angleread<0)
+        char cmd[16];
+        snprintf(cmd, 16, "%d", 1700000);
+        if (sendCommand(cmd)!= true)
         {
-            HomeRotator();
-            LOG_WARN("The rotator will first move to zero and then reverse the rotation direction to prevent cable wrap...");
+            LOG_ERROR("Serial write error.");
+            return false;
         }
-        reversecoefficient = 1;
         ReverseState = false;
         return true;
     }
@@ -281,8 +335,8 @@ void WandererRotatorMini::TimerHit()
         {
             GotoRotatorN[0].value=GotoRotatorN[0].value+1*positionhistory/abs(positionhistory);
             IDSetNumber(&GotoRotatorNP, nullptr);
-            nowtime=nowtime+270;
-            SetTimer(270);
+            nowtime=nowtime+220;
+            SetTimer(220);
             return;
         }
         else
@@ -332,7 +386,7 @@ bool WandererRotatorMini::Move(const char *cmd)
     }
     SetTimer(2000);
     nowtime=0;
-    estime=abs(std::atoi(cmd)/1142*260);
+    estime=abs((std::atoi(cmd)-1000000)/1142*220);
     return true;
 }
 
@@ -350,26 +404,6 @@ bool WandererRotatorMini::sendCommand(std::string command)
         return false;
     }
     return true;
-}
-
-
-bool WandererRotatorMini::SetRotatorBacklash(int32_t steps)
-{
-    backlash = (double)(steps / 1142);
-    return true;
-}
-
-bool WandererRotatorMini::SetRotatorBacklashEnabled(bool enabled)
-{
-    if(enabled)
-    {
-        return SetRotatorBacklash(RotatorBacklashN[0].value);
-    }
-    else
-    {
-        return SetRotatorBacklash(0);
-    }
-
 }
 
 

@@ -36,6 +36,7 @@ public:
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
 
 
@@ -48,8 +49,7 @@ protected:
 
     virtual bool AbortRotator() override;
     virtual void TimerHit() override;
-    virtual bool SetRotatorBacklash(int32_t steps) override;
-    virtual bool SetRotatorBacklashEnabled(bool enabled) override;
+
 
 
 
@@ -57,6 +57,8 @@ protected:
 private:
     int firmware=0;
     double M_angleread=0;
+    double M_backlashread=0;
+    double M_reverseread=0;
     double initangle=0;
     bool Handshake() override;
     INDI::PropertySwitch SetZeroSP{1};
@@ -64,14 +66,18 @@ private:
     bool Move(const char *cmd);
     bool haltcommand = false;
     bool ReverseState=false;
-    int reversecoefficient=1;
     double backlash=0.5;
     double positionhistory=0;
     int estime=0;
     int nowtime=0;
 
-};
+    INDI::PropertyNumber BacklashNP{1};
+    enum
+    {
+        BACKLASH,
+    };
 
+};
 
 
 
