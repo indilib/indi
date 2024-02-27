@@ -74,3 +74,11 @@ SET(nexdome_beaver_SRC
 add_executable(indi_nexdome_beaver ${nexdome_beaver_SRC})
 target_link_libraries(indi_nexdome_beaver indidriver)
 install(TARGETS indi_nexdome_beaver RUNTIME DESTINATION bin)
+
+# ############### DragonLAIR ################
+SET(dragonlair_SRC
+    dragonlair.cpp)
+
+add_executable(indi_dragonlair_dome ${dragonlair_SRC})
+target_link_libraries(indi_dragonlair_dome indidriver)
+install(TARGETS indi_dragonlair_dome RUNTIME DESTINATION bin)
