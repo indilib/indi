@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2024 Frank Wang. All rights reserved.
 
-  WandererRotator Mini V1/V2
+  WandererRotator Lite V2
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -28,10 +28,10 @@
 #include "indirotator.h"
 #include "indirotatorinterface.h"
 #include "indipropertyswitch.h"
-class WandererRotatorMini : public INDI::Rotator
+class WandererRotatorLiteV2 : public INDI::Rotator
 {
 public:
-    WandererRotatorMini();
+    WandererRotatorLiteV2();
 
     virtual bool initProperties() override;
     virtual bool updateProperties() override;

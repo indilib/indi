@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2024 Frank Wang. All rights reserved.
 
-  WandererRotator Mini V1/V2
+  WandererRotator Lite V2
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -22,7 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "wanderer_rotator_mini.h"
+#include "wanderer_rotator_lite_v2.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 #include <cmath>
@@ -35,15 +35,15 @@
 #include <iostream>
 
 
-// We declare an auto pointer to WandererRotatorMini.
-static std::unique_ptr<WandererRotatorMini> wandererrotatormini(new WandererRotatorMini());
+// We declare an auto pointer to WandererRotatorLiteV2.
+static std::unique_ptr<WandererRotatorLiteV2> wandererrotatorlitev2(new WandererRotatorLiteV2());
 
-WandererRotatorMini::WandererRotatorMini()
+WandererRotatorLiteV2::WandererRotatorLiteV2()
 {
-    setVersion(1, 1);
+    setVersion(1, 0);
 
 }
-bool WandererRotatorMini::initProperties()
+bool WandererRotatorLiteV2::initProperties()
 {
 
     INDI::Rotator::initProperties();
@@ -65,7 +65,7 @@ bool WandererRotatorMini::initProperties()
     return true;
 }
 
-bool WandererRotatorMini::updateProperties()
+bool WandererRotatorLiteV2::updateProperties()
 {
     INDI::Rotator::updateProperties();
 
@@ -82,7 +82,7 @@ bool WandererRotatorMini::updateProperties()
     return true;
 }
 
-bool WandererRotatorMini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool WandererRotatorLiteV2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
     if (dev && !strcmp(dev, getDeviceName()))
@@ -100,7 +100,7 @@ bool WandererRotatorMini::ISNewSwitch(const char *dev, const char *name, ISState
     return Rotator::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool WandererRotatorMini::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+bool WandererRotatorLiteV2::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
@@ -127,12 +127,12 @@ bool WandererRotatorMini::ISNewNumber(const char * dev, const char * name, doubl
     return Rotator::ISNewNumber(dev, name, values, names, n);
 }
 
-const char *WandererRotatorMini::getDefaultName()
+const char *WandererRotatorLiteV2::getDefaultName()
 {
-    return "WandererRotator Mini";
+    return "WandererRotator Lite V2";
 }
 
-bool WandererRotatorMini::Handshake()
+bool WandererRotatorLiteV2::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     tcflush(PortFD, TCIOFLUSH);
@@ -168,9 +168,9 @@ bool WandererRotatorMini::Handshake()
         }
     }
     name[nbytes_read_name - 1] = '\0';
-    if(strcmp(name, "WandererRotatorMini")!=0)
+    if(strcmp(name, "WandererRotatorLiteV2")!=0)
     {
-        LOGF_ERROR("The device is not WandererRotator Mini!","Updated");
+        LOGF_ERROR("The device is not WandererRotator Lite V2!","Updated");
         LOGF_INFO("The device is %s",name);
         return false;
     }
@@ -237,12 +237,12 @@ bool WandererRotatorMini::Handshake()
 }
 
 
-IPState WandererRotatorMini::MoveRotator(double angle)
+IPState WandererRotatorLiteV2::MoveRotator(double angle)
 {
     angle = angle - GotoRotatorN[0].value;
 
     char cmd[16];
-    int position = (int)(angle * 1142+1000000);
+    int position = (int)(angle * 1199+1000000);
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
     Move(cmd);
@@ -251,7 +251,7 @@ IPState WandererRotatorMini::MoveRotator(double angle)
 }
 
 
-bool WandererRotatorMini::AbortRotator()
+bool WandererRotatorLiteV2::AbortRotator()
 {
 
 
@@ -273,17 +273,17 @@ bool WandererRotatorMini::AbortRotator()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief WandererRotatorMini::HomeRotator
+/// \brief WandererRotatorLiteV2::HomeRotator
 /// \return
 ///
-IPState WandererRotatorMini::HomeRotator()
+IPState WandererRotatorLiteV2::HomeRotator()
 {
     if(GotoRotatorN[0].value!=0)
     {
     double angle = -1 * GotoRotatorN[0].value;
 
     char cmd[16];
-    int position = (int)(angle * 1142+1000000);
+    int position = (int)(angle * 1199+1000000);
     snprintf(cmd, 16, "%d", position);
     GotoRotatorNP.s = IPS_BUSY;
     Move(cmd);
@@ -293,7 +293,7 @@ IPState WandererRotatorMini::HomeRotator()
 }
 
 
-bool WandererRotatorMini::ReverseRotator(bool enabled)
+bool WandererRotatorLiteV2::ReverseRotator(bool enabled)
 {
 
     if (enabled)
@@ -325,7 +325,7 @@ bool WandererRotatorMini::ReverseRotator(bool enabled)
 
 
 
-void WandererRotatorMini::TimerHit()
+void WandererRotatorLiteV2::TimerHit()
 {
 
     if (GotoRotatorNP.s == IPS_BUSY || haltcommand == true)
@@ -335,8 +335,8 @@ void WandererRotatorMini::TimerHit()
         {
             GotoRotatorN[0].value=GotoRotatorN[0].value+1*positionhistory/abs(positionhistory);
             IDSetNumber(&GotoRotatorNP, nullptr);
-            nowtime=nowtime+220;
-            SetTimer(220);
+            nowtime=nowtime+240;
+            SetTimer(240);
             return;
         }
         else
@@ -372,7 +372,7 @@ void WandererRotatorMini::TimerHit()
 
 
 
-bool WandererRotatorMini::Move(const char *cmd)
+bool WandererRotatorLiteV2::Move(const char *cmd)
 {
     initangle=GotoRotatorN[0].value;
     int nbytes_written = 0, rc = -1;
@@ -386,12 +386,12 @@ bool WandererRotatorMini::Move(const char *cmd)
     }
     SetTimer(2000);
     nowtime=0;
-    estime=abs((std::atoi(cmd)-1000000)/1142*220);
+    estime=abs((std::atoi(cmd)-1000000)/1199*240);
     return true;
 }
 
 
-bool WandererRotatorMini::sendCommand(std::string command)
+bool WandererRotatorLiteV2::sendCommand(std::string command)
 {
     int nbytes_written = 0, rc = -1;
     std::string command_termination = "\n";
