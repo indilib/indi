@@ -128,6 +128,8 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
 
         // Dew
         bool setAutoDewEnabled(bool enabled);
+        bool setAutoDewAggression(uint8_t value);
+        bool getAutoDewAggression();
         bool setDewPWM(uint8_t id, uint8_t value);
 
         // Focuser
@@ -211,6 +213,13 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         // Auto Dew
         ISwitch AutoDewS[2];
         ISwitchVectorProperty AutoDewSP;
+
+        INumber AutoDewSettingsN[1];
+        INumberVectorProperty AutoDewSettingsNP;
+        enum
+        {
+            AUTO_DEW_AGGRESSION
+        };
 
         // Dew PWM
         INumber DewPWMN[2];
