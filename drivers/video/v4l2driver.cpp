@@ -62,7 +62,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     strncpy(defaultVideoPort, path.c_str(), 256);
     strncpy(configPort, path.c_str(), 256);
 
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     allocateBuffers();
 
@@ -940,11 +940,47 @@ bool V4L2_Driver::setManualExposure(double duration)
     // INT control for manual exposure duration is an integer in 1/10000 seconds
     long ticks = lround(duration * 10000.0f);
 
-    // iOptron iPolar & iGuider have different tick rate
-    // With max about 5000 ticks
+
+    /*
+    iGuider and iPolar do not have a linear relationship between duration and ticks, as demonstrated in the table 
+    below. It contains exposure durations in seconds as set in ASCOM, and the resulting values sent to the camera 
+    via a SET CUR USB request to the 'Exposure Time (Absolute)' control in the USB Video Control Input Terminal. 
+    
+    The third column is an approximation to this value using the formula: 
+
+        duration <= 0.2 ? duration * 100 : 19.53 * pow(4, duration)
+
+    The constant 19.53 above iscalculated as 5000 / 4^4, as it appears the maximum tick of 5000 corresponds 
+    to a 4 second duration.
+
+    Note that the negative exposure values seen in the iOptron iGuider manual and some of the settings dialogs appear
+    to used in the ASCOM driver but aren't sent to the camera over USB.
+
+    Duration (s)   Value from USB sniff   Approximation
+    0.01           1                      1.00
+    0.02           2                      2.00
+    0.05           5                      5.00
+    0.1            10                     10.00
+    0.2            20                     20.00
+    0.5            39                     39.06
+    1              78                     78.12
+    1.5            156                    156.24
+    2              312                    312.48
+    2.5            625                    624.96
+    3              1250                   1,249.92
+    3.5            2500                   2,499.84
+
+    */
     if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
     {
-        ticks = std::min(5000l, lround(duration * 1333.33));
+        if (duration <= 0.02f)
+        {
+            ticks = lround(duration * 100.0f);
+        }
+        else
+        {
+            ticks = lround(19.53 * pow(4, duration));
+        }
     }
 
     /* First check the presence of an absolute exposure control */
@@ -1005,6 +1041,16 @@ bool V4L2_Driver::setManualExposure(double duration)
                           duration, StackModeSP[m_StackMode].getName());
             }
             ticks = AbsExposureN->max;
+            if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+            {
+                frame_duration.tv_sec  = 4;
+                frame_duration.tv_usec = 0;
+            }
+            else
+            {
+                frame_duration.tv_sec  = ticks / 10000;
+                frame_duration.tv_usec = (ticks % 10000) * 100;
+            }
         }
         /* We can't expose as long as requested and stacking is not configured, bail out */
         else
@@ -1015,16 +1061,10 @@ bool V4L2_Driver::setManualExposure(double duration)
             return false;
         }
     }
-    /* Lower-than-minimal exposure duration is left managed below */
-
-
-    frame_duration.tv_sec  = ticks / 10000;
-    frame_duration.tv_usec = (ticks % 10000) * 100;
-
-    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    else
     {
-        frame_duration.tv_sec  = ticks / 1333;
-        frame_duration.tv_usec = (ticks % 1333) * 100;
+        frame_duration.tv_sec  = floor(duration);
+        frame_duration.tv_usec = (duration - frame_duration.tv_sec) * 1000000;
     }
 
     if( v4l_capture_started )
