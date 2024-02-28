@@ -297,11 +297,11 @@ bool ScopeSim::ReadScopeStatus()
     double axisRA = axisPrimary.position.Degrees();
     double axisDE = axisSecondary.position.Degrees();
     // No need to spam log until we have some actual changes.
-    if (std::fabs(mountAxisNP[AXIS_RA].value - axisRA) > 0.0001 ||
-            std::fabs(mountAxisNP[AXIS_DE].value - axisDE) > 0.0001)
+    if (std::fabs(mountAxisNP[AXIS_RA].getValue() - axisRA) > 0.0001 ||
+            std::fabs(mountAxisNP[AXIS_DE].getValue() - axisDE) > 0.0001)
     {
-        mountAxisNP[AXIS_RA].value = axisRA;
-        mountAxisNP[AXIS_DE].value = axisDE;
+        mountAxisNP[AXIS_RA].setValue(axisRA);
+        mountAxisNP[AXIS_DE].setValue(axisDE);
 
         LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
         LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
@@ -567,7 +567,7 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 IPState ScopeSim::GuideNorth(uint32_t ms)
 {
-    double rate = GuideRateNP[DEC_AXIS].value;
+    double rate = GuideRateNP[DEC_AXIS].getValue();
     axisSecondary.StartGuide(rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -575,7 +575,7 @@ IPState ScopeSim::GuideNorth(uint32_t ms)
 
 IPState ScopeSim::GuideSouth(uint32_t ms)
 {
-    double rate = GuideRateNP[DEC_AXIS].value;
+    double rate = GuideRateNP[DEC_AXIS].getValue();
     axisSecondary.StartGuide(-rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -583,7 +583,7 @@ IPState ScopeSim::GuideSouth(uint32_t ms)
 
 IPState ScopeSim::GuideEast(uint32_t ms)
 {
-    double rate = GuideRateNP[RA_AXIS].value;
+    double rate = GuideRateNP[RA_AXIS].getValue();
     axisPrimary.StartGuide(-rate, ms);
     guidingEW = true;
     return IPS_BUSY;
@@ -591,7 +591,7 @@ IPState ScopeSim::GuideEast(uint32_t ms)
 
 IPState ScopeSim::GuideWest(uint32_t ms)
 {
-    double rate = GuideRateNP[RA_AXIS].value;
+    double rate = GuideRateNP[RA_AXIS].getValue();
     axisPrimary.StartGuide(rate, ms);
     guidingEW = true;
     return IPS_BUSY;
