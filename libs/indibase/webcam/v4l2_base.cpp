@@ -2998,21 +2998,16 @@ std::map<std::string, std::string> V4L2_Base::enumerate()
         std::vector<std::string> detectedDevices;
         int devCount = 0;
         devCount = scandir(prefix.c_str(), &namelist, video_dev_file_select, alphasort);
-        if (devCount > 0)
+        // Need to do this in reverse because some devices might have two end points
+        // e.g. /dev/video0 and /dev/video1 for the same device but only /dev/video0 can be used to control it.
+        for (int i = devCount - 1; i >= 0; i--)
         {
-            while (devCount--)
-            {
-                if (detectedDevices.size() < 10)
-                {
-                    std::string s(namelist[devCount]->d_name);
-                    s.erase(s.find_last_not_of(" \n\r\t") + 1);
-                    detectedDevices.push_back(prefix + s);
-                }
-                free(namelist[devCount]);
-            }
-            free(namelist);
+            std::string s(namelist[i]->d_name);
+            s.erase(s.find_last_not_of(" \n\r\t") + 1);
+            detectedDevices.push_back(prefix + s);
+            free(namelist[i]);
         }
-
+        free(namelist);
         return detectedDevices;
     };
 

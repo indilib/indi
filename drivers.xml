@@ -437,9 +437,17 @@
             <driver name="Rotator Simulator">indi_simulator_rotator</driver>
             <version>1.0</version>
         </device>
-        <device label="Wanderer Rotator Lite" manufacturer="Wanderer Astro">
+        <device label="Rotator Lite" manufacturer="Wanderer Astro">
                <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
                <version>1.0</version>
+        </device>
+                <device label="Rotator Mini V1-2" manufacturer="Wanderer Astro">
+               <driver name="Wanderer Rotator Mini">indi_wanderer_rotator_mini</driver>
+        <version>1.1</version>
+                </device>
+                <device label="Rotator Lite V2" manufacturer="Wanderer Astro">
+               <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
+        <version>1.0</version>
         </device>
         <device label="Microtouch" manufacturer="Starizona">
             <driver name="Microtouch">indi_microtouch_focus</driver>

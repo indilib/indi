@@ -113,6 +113,11 @@ bool ScopeSim::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
+    HomeSP[Find].fill("FIND", "Find", ISS_OFF);
+    HomeSP[Set].fill("SET", "Set As Current", ISS_OFF);
+    HomeSP[Go].fill("GO", "Go", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // RA is a rotating frame, while HA or Alt/Az is not
     SetParkDataType(PARK_HA_DEC);
 
@@ -144,17 +149,6 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineProperty(flipHourAngleNP);
     flipHourAngleNP.load();
 #endif
-    /*
-    if (isConnected())
-    {
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
-        defineProperty(&EqPENV);
-        defineProperty(&PEErrNSSP);
-        defineProperty(&PEErrWESP);
-    }
-    */
 }
 
 bool ScopeSim::updateProperties()
@@ -169,6 +163,7 @@ bool ScopeSim::updateProperties()
         defineProperty(&GuideWENP);
         defineProperty(GuideRateNP);
         GuideRateNP.load();
+        defineProperty(HomeSP);
 
         if (InitPark())
         {
@@ -204,6 +199,7 @@ bool ScopeSim::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.getName());
+        deleteProperty(HomeSP);
     }
 
     return true;
@@ -261,7 +257,15 @@ bool ScopeSim::ReadScopeStatus()
                 TrackState = SCOPE_TRACKING;
                 SetTrackEnabled(true);
                 EqNP.s = IPS_IDLE;
-                LOG_INFO("Telescope slew is complete. Tracking...");
+
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                    LOG_INFO("Home position reached.");
+                }
+                else
+                    LOG_INFO("Telescope slew is complete. Tracking...");
 
                 // check the slew accuracy
                 auto dRa = targetRA - currentRA;
@@ -444,6 +448,45 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Home Position
+        if (HomeSP.isNameMatch(name))
+        {
+            HomeSP.update(states, names, n);
+            auto onSwitch = HomeSP.findOnSwitchIndex();
+            if (onSwitch == Find)
+            {
+                HomeSP.setState(IPS_BUSY);
+                LOG_INFO("Finding home position...");
+                m_Home[AXIS_RA] = alignment.lst().Hours();
+                m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+                Goto(m_Home[AXIS_RA], m_Home[AXIS_DE]);
+            }
+            else if (onSwitch == Set)
+            {
+                HomeSP.setState(IPS_OK);
+                m_Home[AXIS_RA] = (alignment.lst() - Angle(EqN[AXIS_RA].value, Angle::HOURS)).HoursHa();
+                m_Home[AXIS_DE] = EqN[AXIS_DE].value;
+                LOG_INFO("Setting home position to current position.");
+            }
+            else if (onSwitch == Go)
+            {
+                HomeSP.setState(IPS_BUSY);
+                LOG_INFO("Going to home position.");
+                if (m_Home[AXIS_RA] == 0)
+                {
+                    m_Home[AXIS_RA] = 0;
+                    m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+                }
+
+                // Home HA to home RA
+                auto ra = (alignment.lst() - Angle(m_Home[AXIS_RA], Angle::HOURS)).Hours();
+                Goto(ra, m_Home[AXIS_DE]);
+            }
+
+            HomeSP.reset();
+            HomeSP.apply();
+            return true;
+        }
 #ifdef USE_SIM_TAB
         if (mountTypeSP.isNameMatch(name))
         {

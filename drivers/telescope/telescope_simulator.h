@@ -110,6 +110,15 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
             GUIDE_RATE_NS
         };
 
+        INDI::PropertySwitch HomeSP {3};
+        enum
+        {
+            Find,
+            Set,
+            Go
+        };
+        double m_Home[2] = {0, 0};
+
         Axis axisPrimary { "HaAxis" };         // hour angle mount axis
         Axis axisSecondary { "DecAxis" };       // declination mount axis
 

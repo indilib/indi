@@ -29,41 +29,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
 
-// Pixel size info for different cameras
-typedef struct PixelSizeInfo
-{
-    const char * deviceLabel; // Device label used by INDI
-    const char * deviceName; // device name reported by V4L
-    const char * commonName; // if null, use device name
-    float pixelSizeX;
-    float pixelSizeY; // if negative, use pixelSizeX also for Y
-    bool tested; //if False print please report message
-} PixelSizeInfo;
-
 static const PixelSizeInfo CameraDatabase[] =
 {
-    { "NexImage 5", "NexImage 5", nullptr, 2.2f, -1, true },
-    { "Logitech Webcam Pro 9000", "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, true },
-    { "SVBONY SV105", "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, true },
-    { "SVBONY SV205", "SVBONY SV205: SVBONY SV205", "SVBONY SV205", 4.0f, -1, true },
-    { "NexImage 10", "NexImage 10", nullptr, 1.67f, -1, true },
-    { "NexImage Burst Color", "NexImage Burst Color", nullptr, 3.75f, -1, false },
-    { "NexImage Burst Mono", "NexImage Burst Mono", nullptr, 3.75f, -1, false },
-    { "Skyris 132C", "Skyris 132C", nullptr, 3.75f, -1, false },
-    { "Skyris 132M", "Skyris 132M", nullptr, 3.75f, -1, false },
-    { "Skyris 236C", "Skyris 236C", nullptr, 2.8f, -1, false },
-    { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, false },
-    { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iPolar", "iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider", "iOptron iGuider 1", nullptr, 3.75f, -1, true },
-    { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
-    { "Logitech HD C270", "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
-    { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
-    { "IMX290 H264 Camera", "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
-    { "Microsoft LifeCam Cinema", "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
-    { "OpenAstroGuider", "OpenAstroGuider IMX290", nullptr, 2.9f, -1, false },
-    { nullptr, nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
+    { "NexImage 5", "NexImage 5", nullptr, 2.2f, -1, 0, 0, true },
+    { "Logitech Webcam Pro 9000", "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, 0, 0, true },
+    { "SVBONY SV105", "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, 0, 0, true },
+    { "SVBONY SV205", "SVBONY SV205: SVBONY SV205", "SVBONY SV205", 4.0f, -1, 0, 0, true },
+    { "NexImage 10", "NexImage 10", nullptr, 1.67f, -1, 0, 0, true },
+    { "NexImage Burst Color", "NexImage Burst Color", nullptr, 3.75f, -1, 0, 0, false },
+    { "NexImage Burst Mono", "NexImage Burst Mono", nullptr, 3.75f, -1, 0, 0, false },
+    { "Skyris 132C", "Skyris 132C", nullptr, 3.75f, -1, 0, 0, false },
+    { "Skyris 132M", "Skyris 132M", nullptr, 3.75f, -1, 0, 0, false },
+    { "Skyris 236C", "Skyris 236C", nullptr, 2.8f, -1, 0, 0, false },
+    { "Skyris 236M", "Skyris 236M", nullptr, 2.8f, -1, 0, 0, false },
+    { "iOptron iPolar", "iOptron iPolar: iOptron iPolar", "iOptron iPolar", 3.75f, -1, 0, 0, true },
+    { "iOptron iPolar", "iOptron iPolar", "iOptron iPolar", 3.75f, -1, 0, 0, true },
+    { "iOptron iGuider", "iOptron iGuider: iOptron iGuide", "iOptron iGuider", 3.75f, -1, 1280, 960, true },
+    { "iOptron iGuider", "iOptron iGuider 1", "iOptron iGuider", 3.75f, -1, 1280, 960, true },
+    { "iOptron iGuider", "iOptron iGuider External: iOptr", "iOptron iGuider", 3.75f, -1, 1280, 960, true },
+    { "Raspberry Pi High Quality Camera", "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, 0, 0, true },
+    { "Logitech HD C270", "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, 0, 0, true },
+    { "IMX290 Camera", "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, 0, 0, true },
+    { "IMX290 H264 Camera", "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, 0, 0, true },
+    { "Microsoft LifeCam Cinema", "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, 0, 0, false },
+    { "OpenAstroGuider", "OpenAstroGuider IMX290", nullptr, 2.9f, -1, 0, 0, false },
+    { nullptr, nullptr, nullptr, 5.6f, -1, 0, 0, false}  // sentinel and default pixel size, needs to be last
 };
 
 V4L2_Driver::V4L2_Driver(std::string label, std::string path)
@@ -72,7 +62,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     strncpy(defaultVideoPort, path.c_str(), 256);
     strncpy(configPort, path.c_str(), 256);
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     allocateBuffers();
 
@@ -262,7 +252,6 @@ void V4L2_Driver::ISGetProperties(const char * dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineProperty(&PortTP);
-    loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {
@@ -321,52 +310,37 @@ bool V4L2_Driver::updateProperties()
         defineProperty(&CaptureColorSpaceTP);
 #endif
 
-        // Check if we have pixel size info
-        const PixelSizeInfo * info = CameraDatabase;
-        std::string deviceName = std::string(v4l_base->getDeviceName());
-        // to lower case.
-        std::transform(deviceName.begin(), deviceName.end(), deviceName.begin(), ::tolower);
-        while (info->deviceName)
+        if (m_Info)
         {
-            std::string infoDeviceName = std::string(info->deviceName);
-            std::transform(infoDeviceName.begin(), infoDeviceName.end(), infoDeviceName.begin(), ::tolower);
-            std::string infoDeviceLabel = std::string(info->deviceLabel);
-            std::transform(infoDeviceLabel.begin(), infoDeviceLabel.end(), infoDeviceLabel.begin(), ::tolower);
+            const char * commonName = m_Info->commonName;
+            float pixX             = m_Info->pixelSizeX;
+            float pixY             = m_Info->pixelSizeY;
 
-            // Case insensitive comparison
-            if (infoDeviceName == deviceName || infoDeviceLabel == deviceName)
-                break;
-            ++info;
-        }
+            if (!commonName)
+                commonName = m_Info->deviceName;
+            if (pixY < 0)
+                pixY = pixX;
 
-        const char * commonName = info->commonName;
-        float pixX             = info->pixelSizeX;
-        float pixY             = info->pixelSizeY;
-
-        if (!commonName)
-            commonName = info->deviceName;
-        if (pixY < 0)
-            pixY = pixX;
-
-        if (info->deviceName)
-        {
-            LOGF_INFO("Setting pixel size correctly for %s", commonName);
-            if (info->tested == false)
+            if (m_Info->deviceName)
             {
-                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq",
-                          v4l_base->getDeviceName(), commonName);
+                LOGF_INFO("Setting pixel size correctly for %s", commonName);
+                if (m_Info->tested == false)
+                {
+                    LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq",
+                              v4l_base->getDeviceName(), commonName);
+                }
             }
+            else
+            {
+                LOGF_INFO("Setting pixel size to default of %5.2f", pixX);
+                LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: %s, "
+                          "Common Name (Eg: NexImage 10), Pixel Size to the following thread: https://bit.ly/2S1Vxjq",
+                          v4l_base->getDeviceName());
+            }
+            SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
         }
-        else
-        {
-            LOGF_INFO("Setting pixel size to default of %5.2f", pixX);
-            LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: %s, "
-                      "Common Name (Eg: NexImage 10), Pixel Size to the following thread: https://bit.ly/2S1Vxjq",
-                      v4l_base->getDeviceName());
-        }
-        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
-        PrimaryCCD.setImageExtension("fits");
 
+        PrimaryCCD.setImageExtension("fits");
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
         return true;
@@ -561,36 +535,20 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             if (index >= 0)
                 sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
-            if (w == 0 || h == 0 || v4l_base->setcapturesize(w, h, errmsg) == -1)
+
+            if (updateCaptureSize(w, h) == false)
             {
-                LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesSP.s = IPS_ALERT;
                 IDSetSwitch(&CaptureSizesSP, nullptr);
                 return false;
             }
-
-            if (FrameRatesSP.sp != nullptr)
-                deleteProperty(FrameRatesSP.name);
-            else if (FrameRateNP.np != nullptr)
-                deleteProperty(FrameRateNP.name);
-            v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
-            if (FrameRatesSP.sp != nullptr)
-                defineProperty(&FrameRatesSP);
-            else if (FrameRateNP.np != nullptr)
-                defineProperty(&FrameRateNP);
-
-            PrimaryCCD.setFrame(0, 0, w, h);
-            V4LFrame->width  = w;
-            V4LFrame->height = h;
-            PrimaryCCD.setResolution(w, h);
-            updateFrameSize();
-            Streamer->setSize(w, h);
-
-            CaptureSizesSP.s = IPS_OK;
-            IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
-
-            saveConfig(true, CaptureSizesSP.name);
-            return true;
+            else
+            {
+                CaptureSizesSP.s = IPS_OK;
+                IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
+                saveConfig(true, CaptureSizesSP.name);
+                return true;
+            }
         }
     }
 
@@ -783,7 +741,6 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
         else
         {
             unsigned int sizes[2], w = 0, h = 0;
-            double rsizes[2];
 
             if (strcmp(names[0], "Width") == 0)
             {
@@ -795,39 +752,20 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
                 sizes[0] = values[1];
                 sizes[1] = values[0];
             }
-            if (v4l_base->setcapturesize(sizes[0], sizes[1], errmsg) == -1)
+
+            if (updateCaptureSize(sizes[0], sizes[1]) == false)
             {
-                LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesNP.s = IPS_ALERT;
                 IDSetNumber(&CaptureSizesNP, nullptr);
                 return false;
             }
-            if (strcmp(names[0], "Width") == 0)
-            {
-                w         = v4l_base->getWidth();
-                rsizes[0] = (double)w;
-                h         = v4l_base->getHeight();
-                rsizes[1] = (double)h;
-            }
             else
             {
-                w         = v4l_base->getWidth();
-                rsizes[1] = (double)w;
-                h         = v4l_base->getHeight();
-                rsizes[0] = (double)h;
+                IUUpdateNumber(&CaptureSizesNP, values, names, n);
+                CaptureSizesNP.s = IPS_OK;
+                IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
+                return true;
             }
-
-            PrimaryCCD.setFrame(0, 0, w, h);
-            IUUpdateNumber(&CaptureSizesNP, rsizes, names, n);
-            V4LFrame->width  = w;
-            V4LFrame->height = h;
-            PrimaryCCD.setResolution(w, h);
-            CaptureSizesNP.s = IPS_OK;
-            updateFrameSize();
-            Streamer->setSize(w, h);
-
-            IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
-            return true;
         }
     }
 
@@ -869,6 +807,34 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+}
+
+bool V4L2_Driver::updateCaptureSize(uint32_t width, uint32_t height)
+{
+    char errorMessage[MAXRBUF] = {0};
+    if (v4l_base->setcapturesize(width, height, errorMessage) == -1)
+    {
+        LOGF_ERROR("Failed to update capture size to %dx%d: %s", width, height, errorMessage);
+        return false;
+    }
+
+    if (FrameRatesSP.sp != nullptr)
+        deleteProperty(FrameRatesSP.name);
+    else if (FrameRateNP.np != nullptr)
+        deleteProperty(FrameRateNP.name);
+    v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
+    if (FrameRatesSP.sp != nullptr)
+        defineProperty(&FrameRatesSP);
+    else if (FrameRateNP.np != nullptr)
+        defineProperty(&FrameRateNP);
+
+    PrimaryCCD.setFrame(0, 0, width, height);
+    V4LFrame->width  = width;
+    V4LFrame->height = height;
+    PrimaryCCD.setResolution(width, height);
+    updateFrameSize();
+    Streamer->setSize(width, height);
+    return true;
 }
 
 bool V4L2_Driver::StartExposure(float duration)
@@ -974,6 +940,13 @@ bool V4L2_Driver::setManualExposure(double duration)
     // INT control for manual exposure duration is an integer in 1/10000 seconds
     long ticks = lround(duration * 10000.0f);
 
+    // iOptron iPolar & iGuider have different tick rate
+    // With max about 5000 ticks
+    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    {
+        ticks = std::min(5000l, lround(duration * 1333.33));
+    }
+
     /* First check the presence of an absolute exposure control */
     if (nullptr == AbsExposureN)
     {
@@ -1047,6 +1020,12 @@ bool V4L2_Driver::setManualExposure(double duration)
 
     frame_duration.tv_sec  = ticks / 10000;
     frame_duration.tv_usec = (ticks % 10000) * 100;
+
+    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    {
+        frame_duration.tv_sec  = ticks / 1333;
+        frame_duration.tv_usec = (ticks % 1333) * 100;
+    }
 
     if( v4l_capture_started )
     {
@@ -1228,7 +1207,7 @@ bool V4L2_Driver::startlongexposure(double timeinsec)
 
 void V4L2_Driver::lxtimerCallback(void * userpointer)
 {
-    V4L2_Driver * p = (V4L2_Driver *)userpointer;
+    auto p = static_cast<V4L2_Driver *>(userpointer);
 
     p->lx->stopLx();
     if (p->lx->getLxmode() == LXSERIAL)
@@ -1242,7 +1221,6 @@ void V4L2_Driver::lxtimerCallback(void * userpointer)
     IERmTimer(p->lxtimer);
     if (!p->v4l_base->isstreamactive())
         p->is_capturing = p->start_capturing(false); // jump to new/updateFrame
-    //p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
 }
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
@@ -1312,7 +1290,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
 
 void V4L2_Driver::newFrame(void * p)
 {
-    ((V4L2_Driver *)(p))->newFrame();
+    static_cast<V4L2_Driver *>(p)->newFrame();
 }
 
 /** @internal Stack normalized luminance pixels coming from the camera in an accumulator frame.
@@ -1366,7 +1344,6 @@ void V4L2_Driver::newFrame()
     struct timeval current_frame_duration = frame_received;
     gettimeofday(&frame_received, nullptr);
     timersub(&frame_received, &current_frame_duration, &current_frame_duration);
-
 
     if (Streamer->isBusy())
     {
@@ -1770,27 +1747,75 @@ bool V4L2_Driver::Disconnect()
 
 const char * V4L2_Driver::getDefaultName()
 {
-    return (const char *)"V4L2 CCD";
+    return "V4L2 CCD";
 }
 
 /* Retrieves basic data from the device upon connection.*/
 void V4L2_Driver::getBasicData()
 {
-    //int xmax, ymax, xmin, ymin;
-    unsigned int w, h;
     int inputindex = -1, formatindex = -1;
     struct v4l2_fract frate;
+
+    // Check if we have pixel size info
+    const PixelSizeInfo * info = CameraDatabase;
+    std::string deviceName = std::string(v4l_base->getDeviceName());
+    // to lower case.
+    std::transform(deviceName.begin(), deviceName.end(), deviceName.begin(), ::tolower);
+    while (info->deviceName)
+    {
+        std::string infoDeviceName = std::string(info->deviceName);
+        std::transform(infoDeviceName.begin(), infoDeviceName.end(), infoDeviceName.begin(), ::tolower);
+        std::string infoDeviceLabel = std::string(info->deviceLabel);
+        std::transform(infoDeviceLabel.begin(), infoDeviceLabel.end(), infoDeviceLabel.begin(), ::tolower);
+
+        // Case insensitive comparison
+        if (infoDeviceName == deviceName || infoDeviceLabel == deviceName)
+            break;
+        ++info;
+    }
+
+    m_Info = const_cast<PixelSizeInfo*>(info);
 
     v4l_base->getinputs(&InputsSP);
     v4l_base->getcaptureformats(&CaptureFormatsSP);
     v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
     v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
 
-    w                = v4l_base->getWidth();
-    h                = v4l_base->getHeight();
+    // CHeck if we need to set the default widthxheight for this camera model
+    if (m_Info && m_Info->width > 0 && CaptureSizesSP.sp != nullptr)
+    {
+        char name[MAXINDINAME] = {0};
+        auto captureSizeChangeRequired = true;
+        // First check config and see if it is already set to the same desired resolution we want
+        if (IUGetConfigOnSwitchName(getDeviceName(), CaptureSizesSP.name, name, MAXINDINAME) == 0)
+        {
+            uint32_t w = 0, h = 0;
+            if (sscanf(name, "%ux%u", &w, &h) == 2)
+            {
+                if (w == m_Info->width && h == m_Info->height)
+                    captureSizeChangeRequired = false;
+            }
+        }
+
+        // If we need to change size then let's do that
+        if (captureSizeChangeRequired)
+        {
+            auto resolution = std::to_string(m_Info->width) + "x" + std::to_string(m_Info->height);
+            auto control = IUFindSwitch(&CaptureSizesSP, resolution.c_str());
+            if (control)
+            {
+                ISState states[1] = {ISS_ON};
+                const char * names[] = { resolution.c_str() };
+                ISNewSwitch(getDeviceName(), CaptureSizesSP.name, states, (char **) names, 1);
+            }
+        }
+    }
+
+    auto w = v4l_base->getWidth();
+    auto h = v4l_base->getHeight();
     V4LFrame->width  = w;
     V4LFrame->height = h;
-    V4LFrame->bpp    = v4l_base->getBpp();
+    V4LFrame->bpp = v4l_base->getBpp();
 
     inputindex  = IUFindOnSwitchIndex(&InputsSP);
     formatindex = IUFindOnSwitchIndex(&CaptureFormatsSP);
@@ -1821,8 +1846,6 @@ void V4L2_Driver::getBasicData()
     PrimaryCCD.setFrame(0, 0, w, h);
     PrimaryCCD.setBPP(V4LFrame->bpp);
     updateFrameSize();
-    //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
-    //recorder->setsize(w, h);
     INDI_PIXEL_FORMAT pixelFormat;
     uint8_t pixelDepth = 8;
     if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
@@ -1883,14 +1906,10 @@ void V4L2_Driver::updateV4L2Controls()
     }
 
     if(!AbsExposureN)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Absolute exposure duration control is not possible on the device!", "");
-    }
+        LOG_WARN("Absolute exposure duration control is not possible on the device!");
 
     if(!ManualExposureSP)
-        DEBUGF(INDI::Logger::DBG_WARNING, "Manual/auto exposure control is not possible on the device!", "");
-
-    //v4l_base->enumerate_ctrl();
+        LOG_WARN("Manual/auto exposure control is not possible on the device!");
 }
 
 void V4L2_Driver::allocateBuffers()
@@ -1970,6 +1989,9 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     auto fps = getProperty("V4L2_FRAMEINT_DISCRETE");
     if (fps.isValid())
         fps.save(fp);
+
+    if (CaptureSizesSP.sp != nullptr)
+        IUSaveConfigSwitch(fp, &CaptureSizesSP);
 
     return Streamer->saveConfigItems(fp);
 }
