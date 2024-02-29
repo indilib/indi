@@ -48,8 +48,8 @@ GuideSim::GuideSim()
 bool GuideSim::SetupParms()
 {
     int nbuf;
-    SetCCDParams(SimulatorSettingsNP[SIM_XRES].value, SimulatorSettingsNP[SIM_YRES].value, 16, SimulatorSettingsNP[SIM_XSIZE].value,
-                 SimulatorSettingsNP[SIM_YRES].value);
+    SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16, SimulatorSettingsNP[SIM_XSIZE].getValue(),
+                 SimulatorSettingsNP[SIM_YRES].getValue());
 
     if (HasCooler())
     {
@@ -58,20 +58,20 @@ bool GuideSim::SetupParms()
     }
 
     //  Kwiq
-    maxnoise      = SimulatorSettingsNP[SIM_NOISE].value;
-    skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
-    maxval        = SimulatorSettingsNP[SIM_MAXVAL].value;
-    bias          = SimulatorSettingsNP[SIM_BIAS].value;
-    limitingmag   = SimulatorSettingsNP[SIM_BIAS].value;
-    saturationmag = SimulatorSettingsNP[SIM_SATURATION].value;
-    OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].value; //  An oag is offset this much from center of scope position (arcminutes);
-    polarError = SimulatorSettingsNP[SIM_POLAR].value;
-    polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].value;
-    rotationCW = SimulatorSettingsNP[SIM_ROTATION].value;
+    maxnoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
+    skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
+    maxval        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
+    bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
+    limitingmag   = SimulatorSettingsNP[SIM_BIAS].getValue();
+    saturationmag = SimulatorSettingsNP[SIM_SATURATION].getValue();
+    OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue(); //  An oag is offset this much from center of scope position (arcminutes);
+    polarError = SimulatorSettingsNP[SIM_POLAR].getValue();
+    polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
+    rotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
     //  Kwiq++
-    king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].value * 0.0174532925;
-    king_theta = SimulatorSettingsNP[SIM_KING_THETA].value * 0.0174532925;
-    TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].value;
+    king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * 0.0174532925;
+    king_theta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * 0.0174532925;
+    TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -260,8 +260,8 @@ int GuideSim::SetTemperature(double temperature)
         return 1;
     }
 
-    CoolerSP[COOLER_ON].s = ISS_ON;
-    CoolerSP[COOLER_OFF].s = ISS_OFF;
+    CoolerSP[COOLER_ON].setState(ISS_ON);
+    CoolerSP[COOLER_OFF].setState(ISS_OFF);
     CoolerSP.setState(IPS_BUSY);
     CoolerSP.apply();
     return 0;
@@ -369,8 +369,8 @@ void GuideSim::TimerHit()
         // Above 20, cooler is off
         if (TemperatureN[0].value >= 20)
         {
-            CoolerSP[COOLER_ON].s = ISS_OFF;
-            CoolerSP[COOLER_OFF].s = ISS_ON;
+            CoolerSP[COOLER_ON].setState(ISS_OFF);
+            CoolerSP[COOLER_OFF].setState(ISS_ON);
             CoolerSP.setState(IPS_IDLE);
             CoolerSP.apply();
         }
@@ -392,7 +392,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    exposure_time *= (1 + sqrt(GainNP[0].value));
+    exposure_time *= (1 + sqrt(GainNP[0].getValue()));
 
     auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
 
@@ -1018,20 +1018,20 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             SetupParms();
             SimulatorSettingsNP.apply();
 
-            maxnoise      = SimulatorSettingsNP[SIM_NOISE].value;
-            skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].value;
-            maxval        = SimulatorSettingsNP[SIM_MAXVAL].value;
-            bias          = SimulatorSettingsNP[SIM_BIAS].value;
-            limitingmag   = SimulatorSettingsNP[SIM_LIMITINGMAG].value;
-            saturationmag = SimulatorSettingsNP[SIM_SATURATION].value;
-            OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].value;
-            polarError = SimulatorSettingsNP[SIM_POLAR].value;
-            polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].value;
-            rotationCW = SimulatorSettingsNP[SIM_ROTATION].value;
+            maxnoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
+            skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
+            maxval        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
+            bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
+            limitingmag   = SimulatorSettingsNP[SIM_LIMITINGMAG].getValue();
+            saturationmag = SimulatorSettingsNP[SIM_SATURATION].getValue();
+            OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue();
+            polarError = SimulatorSettingsNP[SIM_POLAR].getValue();
+            polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
+            rotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
             //  Kwiq++
-            king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].value * 0.0174532925;
-            king_theta = SimulatorSettingsNP[SIM_KING_THETA].value * 0.0174532925;
-            TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].value;
+            king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * 0.0174532925;
+            king_theta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * 0.0174532925;
+            TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
 
             return true;
         }
@@ -1043,7 +1043,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             EqPENP.update(values, names, n);
             EqPENP.setState(IPS_OK);
 
-            INDI::IEquatorialCoordinates epochPos { EqPENP[AXIS_RA].value, EqPENP[AXIS_DE].value }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { EqPENP[AXIS_RA].getValue(), EqPENP[AXIS_DE].getValue() }, J2000Pos { 0, 0 };
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
             currentRA  = J2000Pos.rightascension;
             currentDE = J2000Pos.declination;
@@ -1292,5 +1292,5 @@ void GuideSim::addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITS
 {
     INDI::CCD::addFITSKeywords(targetChip, fitsKeywords);
 
-    fitsKeywords.push_back({"GAIN", GainNP[0].value, 3, "Gain"});
+    fitsKeywords.push_back({"GAIN", GainNP[0].getValue(), 3, "Gain"});
 }
