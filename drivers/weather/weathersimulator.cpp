@@ -94,11 +94,11 @@ bool WeatherSimulator::updateProperties()
 
 IPState WeatherSimulator::updateWeather()
 {
-    setParameterValue("WEATHER_FORECAST", ControlWeatherNP[CONTROL_WEATHER].value);
-    setParameterValue("WEATHER_TEMPERATURE", ControlWeatherNP[CONTROL_TEMPERATURE].value);
-    setParameterValue("WEATHER_WIND_SPEED", ControlWeatherNP[CONTROL_WIND].value);
-    setParameterValue("WEATHER_WIND_GUST", ControlWeatherNP[CONTROL_GUST].value);
-    setParameterValue("WEATHER_RAIN_HOUR", ControlWeatherNP[CONTROL_RAIN].value);
+    setParameterValue("WEATHER_FORECAST", ControlWeatherNP[CONTROL_WEATHER].getValue());
+    setParameterValue("WEATHER_TEMPERATURE", ControlWeatherNP[CONTROL_TEMPERATURE].getValue());
+    setParameterValue("WEATHER_WIND_SPEED", ControlWeatherNP[CONTROL_WIND].getValue());
+    setParameterValue("WEATHER_WIND_GUST", ControlWeatherNP[CONTROL_GUST].getValue());
+    setParameterValue("WEATHER_RAIN_HOUR", ControlWeatherNP[CONTROL_RAIN].getValue());
 
     return IPS_OK;
 }
