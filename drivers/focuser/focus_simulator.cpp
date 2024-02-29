@@ -69,7 +69,7 @@ void FocusSim::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineProperty(&ModeSP);
+    defineProperty(ModeSP);
     loadConfig(true, "Mode");
 }
 
@@ -80,28 +80,28 @@ bool FocusSim::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&SeeingN[0], "SIM_SEEING", "arcseconds", "%4.2f", 0, 60, 0, 3.5);
-    IUFillNumberVector(&SeeingNP, SeeingN, 1, getDeviceName(), "SEEING_SETTINGS", "Seeing", MAIN_CONTROL_TAB, IP_RW, 60,
-                       IPS_IDLE);
+    SeeingNP[SIM_SEEING].fill("SIM_SEEING", "arcseconds", "%4.2f", 0, 60, 0, 3.5);
+    SeeingNP.fill(getDeviceName(), "SEEING_SETTINGS", "Seeing", MAIN_CONTROL_TAB, IP_RW, 60,
+                  IPS_IDLE);
 
-    IUFillNumber(&FWHMN[0], "SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, getDeviceName(), "FWHM", "FWHM", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    FWHMNP[SIM_FWHM].fill("SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
+    FWHMNP.fill(getDeviceName(), "FWHM", "FWHM", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[TEMPERATURE].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     DelayNP[0].fill("DELAY_VALUE", "Value (uS)", "%.f", 0, 60000, 100, 100);
     DelayNP.fill(getDeviceName(), "DELAY", "Delay", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&ModeS[MODE_ALL], "All", "All", ISS_ON);
-    IUFillSwitch(&ModeS[MODE_ABSOLUTE], "Absolute", "Absolute", ISS_OFF);
-    IUFillSwitch(&ModeS[MODE_RELATIVE], "Relative", "Relative", ISS_OFF);
-    IUFillSwitch(&ModeS[MODE_TIMER], "Timer", "Timer", ISS_OFF);
-    IUFillSwitchVector(&ModeSP, ModeS, MODE_COUNT, getDeviceName(), "Mode", "Mode", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    ModeSP[MODE_ALL].fill("All", "All", ISS_ON);
+    ModeSP[MODE_ABSOLUTE].fill("Absolute", "Absolute", ISS_OFF);
+    ModeSP[MODE_RELATIVE].fill("Relative", "Relative", ISS_OFF);
+    ModeSP[MODE_TIMER].fill("Timer", "Timer", ISS_OFF);
+    ModeSP.fill(getDeviceName(), "Mode", "Mode", MAIN_CONTROL_TAB, IP_RW,
+                ISR_1OFMANY, 60, IPS_IDLE);
 
-    initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
+    initTicks = sqrt(FWHMNP[SIM_FWHM].value - SeeingNP[SIM_SEEING].value) / 0.75;
 
     FocusSpeedN[0].min   = 1;
     FocusSpeedN[0].max   = 5;
@@ -124,16 +124,16 @@ bool FocusSim::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SeeingNP);
-        defineProperty(&FWHMNP);
-        defineProperty(&TemperatureNP);
+        defineProperty(SeeingNP);
+        defineProperty(FWHMNP);
+        defineProperty(TemperatureNP);
         defineProperty(DelayNP);
     }
     else
     {
-        deleteProperty(SeeingNP.name);
-        deleteProperty(FWHMNP.name);
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(SeeingNP.getName());
+        deleteProperty(FWHMNP.getName());
+        deleteProperty(TemperatureNP.getName());
         deleteProperty(DelayNP);
     }
 
@@ -148,39 +148,39 @@ bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Modes
-        if (strcmp(ModeSP.name, name) == 0)
+        if (ModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ModeSP, states, names, n);
+            ModeSP.update(states, names, n);
             uint32_t cap = 0;
-            int index    = IUFindOnSwitchIndex(&ModeSP);
+            int index    = ModeSP.findOnSwitchIndex();
 
             switch (index)
             {
-                case MODE_ALL:
-                    cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
-                    break;
+            case MODE_ALL:
+                cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
+                break;
 
-                case MODE_ABSOLUTE:
-                    cap = FOCUSER_CAN_ABS_MOVE;
-                    break;
+            case MODE_ABSOLUTE:
+                cap = FOCUSER_CAN_ABS_MOVE;
+                break;
 
-                case MODE_RELATIVE:
-                    cap = FOCUSER_CAN_REL_MOVE;
-                    break;
+            case MODE_RELATIVE:
+                cap = FOCUSER_CAN_REL_MOVE;
+                break;
 
-                case MODE_TIMER:
-                    cap = FOCUSER_HAS_VARIABLE_SPEED;
-                    break;
+            case MODE_TIMER:
+                cap = FOCUSER_HAS_VARIABLE_SPEED;
+                break;
 
-                default:
-                    ModeSP.s = IPS_ALERT;
-                    IDSetSwitch(&ModeSP, "Unknown mode index %d", index);
-                    return true;
+            default:
+                ModeSP.setState(IPS_ALERT);
+                ModeSP.apply("Unknown mode index %d", index);
+                return true;
             }
 
             FI::SetCapability(cap);
-            ModeSP.s = IPS_OK;
-            IDSetSwitch(&ModeSP, nullptr);
+            ModeSP.setState(IPS_OK);
+            ModeSP.apply();
             return true;
         }
     }
@@ -197,19 +197,19 @@ bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], c
     {
         if (strcmp(name, "SEEING_SETTINGS") == 0)
         {
-            SeeingNP.s = IPS_OK;
-            IUUpdateNumber(&SeeingNP, values, names, n);
+            SeeingNP.setState(IPS_OK);
+            SeeingNP.update(values, names, n);
 
-            IDSetNumber(&SeeingNP, nullptr);
+            SeeingNP.apply();
             return true;
         }
 
         if (strcmp(name, "FOCUS_TEMPERATURE") == 0)
         {
-            TemperatureNP.s = IPS_OK;
-            IUUpdateNumber(&TemperatureNP, values, names, n);
+            TemperatureNP.setState(IPS_OK);
+            TemperatureNP.update(values, names, n);
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
             return true;
         }
 
@@ -234,7 +234,7 @@ bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], c
 IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     double mid         = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    int mode           = IUFindOnSwitchIndex(&ModeSP);
+    int mode           = ModeSP.findOnSwitchIndex();
     double targetTicks = ((dir == FOCUS_INWARD) ? -1 : 1) * (speed * duration);
 
     internalTicks += targetTicks;
@@ -254,10 +254,10 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     double ticks = initTicks + (internalTicks - mid) / 5000.0;
 
-    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
+    FWHMNP[SIM_FWHM].value = 0.5625 * ticks * ticks + SeeingNP[SIM_SEEING].value;
 
     LOGF_DEBUG("TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMN[0].value);
+               FWHMNP[SIM_FWHM].value);
 
     if (mode == MODE_ALL)
     {
@@ -265,10 +265,10 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    if (FWHMN[0].value < SeeingN[0].value)
-        FWHMN[0].value = SeeingN[0].value;
+    if (FWHMNP[SIM_FWHM].value < SeeingNP[SIM_SEEING].value)
+        FWHMNP[SIM_FWHM].value = SeeingNP[SIM_SEEING].value;
 
-    IDSetNumber(&FWHMNP, nullptr);
+    FWHMNP.apply();
 
     return IPS_OK;
 }
@@ -290,15 +290,15 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
     FocusAbsPosN[0].value = targetTicks;
 
-    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
+    FWHMNP[SIM_FWHM].value = 0.5625 * ticks * ticks + SeeingNP[SIM_SEEING].value;
 
     LOGF_DEBUG("ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMN[0].value);
+               FWHMNP[SIM_FWHM].value);
 
-    if (FWHMN[0].value < SeeingN[0].value)
-        FWHMN[0].value = SeeingN[0].value;
+    if (FWHMNP[SIM_FWHM].value < SeeingNP[SIM_SEEING].value)
+        FWHMNP[SIM_FWHM].value = SeeingNP[SIM_SEEING].value;
 
-    IDSetNumber(&FWHMNP, nullptr);
+    FWHMNP.apply();
 
     return IPS_OK;
 }
