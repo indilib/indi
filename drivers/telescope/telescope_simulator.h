@@ -165,10 +165,6 @@ private:
     };
 
     INDI::PropertyNumber flipHourAngleNP {1};
-    enum
-    {
-        FLIP_HA
-    };
 
 #endif
 

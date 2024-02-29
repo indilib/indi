@@ -84,7 +84,7 @@ bool ScopeSim::initProperties()
     mountModelNP.fill(getDeviceName(), "MOUNT_MODEL", "Mount Model",
                       "Simulation", IP_WO, 0, IPS_IDLE);
 
-    flipHourAngleNP[FLIP_HA].fill("FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
+    flipHourAngleNP[0].fill("FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
     flipHourAngleNP.fill(getDeviceName(), "FLIP_HA", "Flip Posn.",
                          "Simulation", IP_WO, 0, IPS_IDLE);
 
@@ -433,7 +433,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             flipHourAngleNP.update(values, names, n);
             flipHourAngleNP.setState(IPS_OK);
             flipHourAngleNP.apply();
-            alignment.setFlipHourAngle(flipHourAngleNP[FLIP_HA].getValue());
+            alignment.setFlipHourAngle(flipHourAngleNP[0].getValue());
             return true;
         }
 #endif
