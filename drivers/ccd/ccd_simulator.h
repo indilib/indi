@@ -211,9 +211,6 @@ protected:
         INDI_ENABLED,
         INDI_DISABLED
     };
-
-    ISwitch SimulateBayerS[2];
-
     //  We are going to snoop these from focuser
     INumberVectorProperty FWHMNP;
     INumber FWHMN[1];
@@ -237,25 +234,13 @@ protected:
     INDI::PropertySwitch CoolerSP {2};
 
     INDI::PropertyNumber GainNP {1};
-    enum
-    {
-        GAIN
-    };
 
     INDI::PropertyNumber OffsetNP {1};
-    enum
-    {
-        OFFSET
-    };
 
     INDI::PropertyText DirectoryTP {1};
     INDI::PropertySwitch DirectorySP {2};
 
     INDI::PropertySwitch CrashSP {1};
-    enum
-    {
-        CRASH
-    };
 
     INDI::PropertySwitch ResolutionSP {2};
     inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
