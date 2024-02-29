@@ -68,24 +68,12 @@ private:
 
     // Seeing in arcseconds
     INDI::PropertyNumber SeeingNP {1};
-    enum
-    {
-        SIM_SEEING
-    };
 
     // FWHM to be used by CCD driver to draw 'fuzzy' stars
     INDI::PropertyNumber FWHMNP {1};
-    enum
-    {
-        SIM_FWHM
-    };
 
     // Temperature in celcius degrees
     INDI::PropertyNumber TemperatureNP {1};
-    enum
-    {
-        TEMPERATURE
-    };
 
     INDI::PropertyNumber DelayNP {1};
 

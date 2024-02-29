@@ -80,14 +80,14 @@ bool FocusSim::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    SeeingNP[SIM_SEEING].fill("SIM_SEEING", "arcseconds", "%4.2f", 0, 60, 0, 3.5);
+    SeeingNP[0].fill("SIM_SEEING", "arcseconds", "%4.2f", 0, 60, 0, 3.5);
     SeeingNP.fill(getDeviceName(), "SEEING_SETTINGS", "Seeing", MAIN_CONTROL_TAB, IP_RW, 60,
                   IPS_IDLE);
 
-    FWHMNP[SIM_FWHM].fill("SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
+    FWHMNP[0].fill("SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
     FWHMNP.fill(getDeviceName(), "FWHM", "FWHM", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    TemperatureNP[TEMPERATURE].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -101,7 +101,7 @@ bool FocusSim::initProperties()
     ModeSP.fill(getDeviceName(), "Mode", "Mode", MAIN_CONTROL_TAB, IP_RW,
                 ISR_1OFMANY, 60, IPS_IDLE);
 
-    initTicks = sqrt(FWHMNP[SIM_FWHM].value - SeeingNP[SIM_SEEING].value) / 0.75;
+    initTicks = sqrt(FWHMNP[0].getValue() - SeeingNP[0].getValue()) / 0.75;
 
     FocusSpeedN[0].min   = 1;
     FocusSpeedN[0].max   = 5;
@@ -174,7 +174,8 @@ bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             default:
                 ModeSP.setState(IPS_ALERT);
-                ModeSP.apply("Unknown mode index %d", index);
+                LOG_INFO("Unknown mode index");
+                ModeSP.apply();
                 return true;
             }
 
@@ -254,10 +255,10 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     double ticks = initTicks + (internalTicks - mid) / 5000.0;
 
-    FWHMNP[SIM_FWHM].value = 0.5625 * ticks * ticks + SeeingNP[SIM_SEEING].value;
+    FWHMNP[0].setValue(0.5625 * ticks * ticks + SeeingNP[0].getValue());
 
     LOGF_DEBUG("TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMNP[SIM_FWHM].value);
+               FWHMNP[0].getValue());
 
     if (mode == MODE_ALL)
     {
@@ -265,8 +266,8 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    if (FWHMNP[SIM_FWHM].value < SeeingNP[SIM_SEEING].value)
-        FWHMNP[SIM_FWHM].value = SeeingNP[SIM_SEEING].value;
+    if (FWHMNP[0].getValue() < SeeingNP[0].getValue())
+        FWHMNP[0].setValue(SeeingNP[0].getValue());
 
     FWHMNP.apply();
 
@@ -290,13 +291,13 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
     FocusAbsPosN[0].value = targetTicks;
 
-    FWHMNP[SIM_FWHM].value = 0.5625 * ticks * ticks + SeeingNP[SIM_SEEING].value;
+    FWHMNP[0].setValue(0.5625 * ticks * ticks + SeeingNP[0].getValue());
 
     LOGF_DEBUG("ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMNP[SIM_FWHM].value);
+               FWHMNP[0].getValue());
 
-    if (FWHMNP[SIM_FWHM].value < SeeingNP[SIM_SEEING].value)
-        FWHMNP[SIM_FWHM].value = SeeingNP[SIM_SEEING].value;
+    if (FWHMNP[0].getValue() < SeeingNP[0].getValue())
+        FWHMNP[0].setValue(SeeingNP[0].getValue());
 
     FWHMNP.apply();
 
