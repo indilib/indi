@@ -41,211 +41,213 @@
  */
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-    public:
+public:
 
-        enum
-        {
-            SIM_XRES,
-            SIM_YRES,
-            SIM_XSIZE,
-            SIM_YSIZE,
-            SIM_MAXVAL,
-            SIM_SATURATION,
-            SIM_LIMITINGMAG,
-            SIM_NOISE,
-            SIM_SKYGLOW,
-            SIM_OAGOFFSET,
-            SIM_POLAR,
-            SIM_POLARDRIFT,
-            SIM_PE_PERIOD,
-            SIM_PE_MAX,
-            SIM_TIME_FACTOR,
-            SIM_ROTATION,
-            SIM_N
-        };
+    enum
+    {
+        SIM_XRES,
+        SIM_YRES,
+        SIM_XSIZE,
+        SIM_YSIZE,
+        SIM_MAXVAL,
+        SIM_SATURATION,
+        SIM_LIMITINGMAG,
+        SIM_NOISE,
+        SIM_SKYGLOW,
+        SIM_OAGOFFSET,
+        SIM_POLAR,
+        SIM_POLARDRIFT,
+        SIM_PE_PERIOD,
+        SIM_PE_MAX,
+        SIM_TIME_FACTOR,
+        SIM_ROTATION,
+        SIM_N
+    };
 
-        CCDSim();
-        virtual ~CCDSim() override = default;
+    CCDSim();
+    virtual ~CCDSim() override = default;
 
-        const char *getDefaultName() override;
+    const char *getDefaultName() override;
 
-        bool initProperties() override;
-        bool updateProperties() override;
+    bool initProperties() override;
+    bool updateProperties() override;
 
-        void ISGetProperties(const char *dev) override;
+    void ISGetProperties(const char *dev) override;
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        virtual bool ISSnoopDevice(XMLEle *root) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
-        static void *streamVideoHelper(void *context);
-        void *streamVideo();
+    static void *streamVideoHelper(void *context);
+    void *streamVideo();
 
-    protected:
+protected:
 
-        bool Connect() override;
-        bool Disconnect() override;
+    bool Connect() override;
+    bool Disconnect() override;
 
-        bool StartExposure(float duration) override;
-        bool StartGuideExposure(float) override;
+    bool StartExposure(float duration) override;
+    bool StartGuideExposure(float) override;
 
-        bool AbortExposure() override;
-        bool AbortGuideExposure() override;
+    bool AbortExposure() override;
+    bool AbortGuideExposure() override;
 
-        void TimerHit() override;
+    void TimerHit() override;
 
-        int DrawCcdFrame(INDI::CCDChip *targetChip);
+    int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
-        int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
+    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-        virtual IPState GuideNorth(uint32_t) override;
-        virtual IPState GuideSouth(uint32_t) override;
-        virtual IPState GuideEast(uint32_t) override;
-        virtual IPState GuideWest(uint32_t) override;
+    virtual IPState GuideNorth(uint32_t) override;
+    virtual IPState GuideSouth(uint32_t) override;
+    virtual IPState GuideEast(uint32_t) override;
+    virtual IPState GuideWest(uint32_t) override;
 
-        virtual bool saveConfigItems(FILE *fp) override;
-        virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeyword) override;
-        virtual void activeDevicesUpdated() override;
-        virtual int SetTemperature(double temperature) override;
-        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
-        virtual bool UpdateCCDBin(int hor, int ver) override;
-        virtual bool UpdateGuiderBin(int hor, int ver) override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeyword) override;
+    virtual void activeDevicesUpdated() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int hor, int ver) override;
+    virtual bool UpdateGuiderBin(int hor, int ver) override;
 
-        virtual bool SetCaptureFormat(uint8_t index) override;
+    virtual bool SetCaptureFormat(uint8_t index) override;
 
-        virtual bool StartStreaming() override;
-        virtual bool StopStreaming() override;
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 
-        // Filter
-        bool SelectFilter(int) override;
-        int QueryFilter() override;
+    // Filter
+    bool SelectFilter(int) override;
+    int QueryFilter() override;
 
-    protected:
+protected:
 
-        float CalcTimeLeft(timeval, float);
-        bool watchDirectory();
-        bool loadNextImage();
-        bool setupParameters();
+    float CalcTimeLeft(timeval, float);
+    bool watchDirectory();
+    bool loadNextImage();
+    bool setupParameters();
 
-        // Turns on/off Bayer RGB simulation.
-        void setBayerEnabled(bool onOff);
+    // Turns on/off Bayer RGB simulation.
+    void setBayerEnabled(bool onOff);
 
-        double flux(double magnitude) const;
+    double flux(double magnitude) const;
 
-        double TemperatureRequest { 0 };
+    double TemperatureRequest { 0 };
 
-        float ExposureRequest { 0 };
-        struct timeval ExpStart
-        {
-            0, 0
-        };
+    float ExposureRequest { 0 };
+    struct timeval ExpStart
+    {
+        0, 0
+    };
 
-        float GuideExposureRequest { 0 };
-        struct timeval GuideExpStart
-        {
-            0, 0
-        };
+    float GuideExposureRequest { 0 };
+    struct timeval GuideExpStart
+    {
+        0, 0
+    };
 
-        int testvalue { 0 };
-        bool ShowStarField { true };
-        int m_Bias { 1500 };
-        int m_MaxNoise { 20 };
-        int m_MaxVal { 65000 };
-        int maxpix { 0 };
-        int minpix { 65000 };
-        float m_SkyGlow { 40 };
-        float m_LimitingMag { 11.5 };
-        float m_SaturationMag { 2 };
-        float seeing { 3.5 };
-        float ImageScalex { 1.0 };
-        float ImageScaley { 1.0 };
-        //  An oag is offset this much from center of scope position (arcminutes)
-        float m_OAGOffset { 0 };
-        float m_RotationCW { 0 };
-        float m_TimeFactor { 1 };
+    int testvalue { 0 };
+    bool ShowStarField { true };
+    int m_Bias { 1500 };
+    int m_MaxNoise { 20 };
+    int m_MaxVal { 65000 };
+    int maxpix { 0 };
+    int minpix { 65000 };
+    float m_SkyGlow { 40 };
+    float m_LimitingMag { 11.5 };
+    float m_SaturationMag { 2 };
+    float seeing { 3.5 };
+    float ImageScalex { 1.0 };
+    float ImageScaley { 1.0 };
+    //  An oag is offset this much from center of scope position (arcminutes)
+    float m_OAGOffset { 0 };
+    float m_RotationCW { 0 };
+    float m_TimeFactor { 1 };
 
-        bool m_SimulateBayer { false };
+    bool m_SimulateBayer { false };
 
-        //  our zero point calcs used for drawing stars
-        //float k { 0 };
-        //float z { 0 };
+    //  our zero point calcs used for drawing stars
+    //float k { 0 };
+    //float z { 0 };
 
-        bool AbortGuideFrame { false };
-        bool AbortPrimaryFrame { false };
+    bool AbortGuideFrame { false };
+    bool AbortPrimaryFrame { false };
 
-        /// Guide rate is 7 arcseconds per second
-        float GuideRate { 7 };
+    /// Guide rate is 7 arcseconds per second
+    float GuideRate { 7 };
 
-        /// PEPeriod in minutes
-        float m_PEPeriod { 0 };
-        // PE max in arcsecs
-        float m_PEMax { 0 };
+    /// PEPeriod in minutes
+    float m_PEPeriod { 0 };
+    // PE max in arcsecs
+    float m_PEMax { 0 };
 
-        double currentRA { 0 };
-        double currentDE { 0 };
-        bool usePE { false };
-        time_t RunStart;
+    double currentRA { 0 };
+    double currentDE { 0 };
+    bool usePE { false };
+    time_t RunStart;
 
-        float guideNSOffset {0};
-        float guideWEOffset {0};
+    float guideNSOffset {0};
+    float guideWEOffset {0};
 
-        float m_PolarError { 0 };
-        float m_PolarDrift { 0 };
+    float m_PolarError { 0 };
+    float m_PolarDrift { 0 };
 
-        double m_LastTemperature {0};
+    double m_LastTemperature {0};
 
-        int streamPredicate {0};
-        pthread_t primary_thread;
-        bool terminateThread;
+    int streamPredicate {0};
+    pthread_t primary_thread;
+    bool terminateThread;
 
-        std::deque<std::string> m_AllFiles, m_RemainingFiles;
+    std::deque<std::string> m_AllFiles, m_RemainingFiles;
 
-        //  And this lives in our simulator settings page
-        INumberVectorProperty SimulatorSettingsNP;
-        INumber SimulatorSettingsN[SIM_N];
+    //  And this lives in our simulator settings page
+    INDI::PropertyNumber SimulatorSettingsNP {16};
 
-        ISwitchVectorProperty SimulateBayerSP;
-        ISwitch SimulateBayerS[2];
+    INDI::PropertySwitch SimulateBayerSP {2};
+    enum
+    {
+        INDI_ENABLED,
+        INDI_DISABLED
+    };
+    //  We are going to snoop these from focuser
+    INumberVectorProperty FWHMNP;
+    INumber FWHMN[1];
 
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+    // Focuser positions for focusing simulation
+    // FocuserPosition[0] is the position where the scope is in focus
+    // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
+    // FocuserPosition[2] is the seeing (in arcsec)
+    // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
+    // publish these values)
+    INDI::PropertyNumber FocusSimulationNP {3};
+    enum
+    {
+        SIM_FOCUS_POSITION,
+        SIM_FOCUS_MAX,
+        SIM_SEEING
+    };
 
-        // Focuser positions for focusing simulation
-        // FocuserPosition[0] is the position where the scope is in focus
-        // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
-        // FocuserPosition[2] is the seeing (in arcsec)
-        // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
-        // publish these values)
-        INumberVectorProperty FocusSimulationNP;
-        INumber FocusSimulationN[3];
+    INDI::PropertyNumber EqPENP {2};
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
+    INDI::PropertySwitch CoolerSP {2};
 
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
+    INDI::PropertyNumber GainNP {1};
 
-        INumber GainN[1];
-        INumberVectorProperty GainNP;
+    INDI::PropertyNumber OffsetNP {1};
 
-        INumber OffsetN[1];
-        INumberVectorProperty OffsetNP;
+    INDI::PropertyText DirectoryTP {1};
+    INDI::PropertySwitch DirectorySP {2};
 
-        INDI::PropertyText DirectoryTP {1};
-        INDI::PropertySwitch DirectorySP {2};
+    INDI::PropertySwitch CrashSP {1};
 
-        ISwitchVectorProperty CrashSP;
-        ISwitch CrashS[1];
-
-        INDI::PropertySwitch ResolutionSP {2};
-        inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
+    INDI::PropertySwitch ResolutionSP {2};
+    inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
         {
             {1280, 1024},
             {6000, 4000}
         };
 
-        static const constexpr char* SIMULATOR_TAB = "Simulator Config";
+    static const constexpr char* SIMULATOR_TAB = "Simulator Config";
 };
