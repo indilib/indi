@@ -83,6 +83,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     frame_received.tv_usec = 0;
 
     v4l_capture_started = false;
+    waiting_for_iguider_to_start = false;
 
     m_StackMode = STACK_NONE;
 
@@ -862,6 +863,20 @@ bool V4L2_Driver::StartExposure(float duration)
         }
     }
 
+    // The iGuider/iPolar takes an excessive amount of time to start up when it has a long exposure
+    // (eg for a 2 second exposure, startup is about 12 seconds). To work around this, we start it up
+    // with a short exposure, then after the first frame, set the exposure to the intended value.
+    if (!v4l_capture_started && (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar")))
+    {
+        LOG_INFO("Setting exposure to 0.01 to get iGuider started quickly");
+        waiting_for_iguider_to_start = true;
+        setShutter(0.01);
+        V4LFrame->expose = duration;
+        PrimaryCCD.setExposureDuration(duration);
+        start_capturing(false);
+        return is_capturing;
+    }
+
     if (setShutter(duration))
     {
         V4LFrame->expose = duration;
@@ -1067,7 +1082,9 @@ bool V4L2_Driver::setManualExposure(double duration)
         frame_duration.tv_usec = (duration - frame_duration.tv_sec) * 1000000;
     }
 
-    if( v4l_capture_started )
+    /* Lower-than-minimal exposure duration is left managed below */
+
+    if( v4l_capture_started && !strstr(getDeviceName(), "iGuider") && !strstr(getDeviceName(), "iPolar"))
     {
         if( AbsExposureN->value != ticks )
         {
@@ -1485,15 +1502,22 @@ void V4L2_Driver::newFrame()
             return; //skip this frame
         }
 
+        if (waiting_for_iguider_to_start) {
+            LOGF_INFO("Setting iGuider duration to %f", V4LFrame->expose);
+            setShutter(V4LFrame->expose);
+            waiting_for_iguider_to_start = false;
+            return;
+        }
+
         struct timeval capture_frame_dif = { .tv_sec = 0, .tv_usec = 0 };
         timersub(&frame_received, &capture_start, &capture_frame_dif);
 
-        float cfd = (float) capture_frame_dif.tv_sec + (float) capture_frame_dif.tv_usec / 1000000.0f;
+        float cfd = (float) current_frame_duration.tv_sec + (float) current_frame_duration.tv_usec / 1000000.0f;
         float fd = (float) frame_duration.tv_sec + (float) frame_duration.tv_usec / 1000000.0f;
 
-        if( cfd < fd * 0.9 )
+        if( cfd < fd * 0.9 || cfd > fd * 1.1)
         {
-            LOGF_DEBUG("Skip early frame cfd = %ld.%06ld seconds.", capture_frame_dif.tv_sec, capture_frame_dif.tv_usec);
+            LOGF_INFO("Skipping incorrectly sized frame cfd = %ld.%06ld seconds.", capture_frame_dif.tv_sec, capture_frame_dif.tv_usec);
             return;
         }
 

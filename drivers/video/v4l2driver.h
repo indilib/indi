@@ -233,4 +233,5 @@ public:
 
         char defaultVideoPort[256] = {"/dev/video0"};
         char configPort[256] = {0};
+        bool waiting_for_iguider_to_start;
 };
