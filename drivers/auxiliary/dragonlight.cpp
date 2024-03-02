@@ -339,15 +339,15 @@ void DragonLIGHT::discoverDevices()
 
         IDLog("Received: %s\n", recvbuff);
 
-        nlohmann::json doc = nlohmann::json::parse(recvbuff);
+        nlohmann::json doc = nlohmann::json::parse(recvbuff, nullptr, false, true);
 
-        if (doc.contains("deviceType"))
+        if (!doc.is_discarded() && doc.contains("deviceType"))
         {
             char deviceIP[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &(Recv_addr.sin_addr), deviceIP, INET_ADDRSTRLEN);
 
             std::string deviceType = doc["deviceType"];
-            std::string serialNumber = doc["serialNumber"];
+            std::string serialNumber = doc["SerialNumber"].is_string() ? doc["SerialNumber"].get<std::string>() : "";
 
             LOGF_INFO("Found %s %s at %s\n", deviceType.c_str(), serialNumber.c_str(), deviceIP);
         }

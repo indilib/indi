@@ -24,29 +24,8 @@
 
 #include "dragonlair.h"
 
-#include "indicom.h"
-
-#include <cmath>
-#include <cstring>
-#include <ctime>
-#include <memory>
-
-#if defined(_WIN32) || defined(__USE_W32_SOCKETS)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
-#ifdef _MSC_VER
-#pragma comment(lib, "IPHLPAPI.lib")
-#pragma comment(lib, "Ws2_32.lib")
-#endif
-#else
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) || defined(__DragonFly__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#endif
+#include <httplib.h>
+#include <string.h>
 
 #ifdef _USE_SYSTEM_JSONLIB
 #include <nlohmann/json.hpp>
@@ -71,11 +50,25 @@ bool DragonLAIR::initProperties()
 
     INDI::Dome::initProperties();
 
+    FirmwareTP[0].fill("Version", "Version", nullptr);
+    FirmwareTP[1].fill("Serial", "Serial", nullptr);
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
     IPAddressTP[0].fill("IP Address", "IP Address", nullptr);
     IPAddressTP.fill(getDeviceName(), "IP_ADDRESS", "IP Address", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     DiscoverSwitchSP[0].fill("DISCOVER", "Discover", ISS_OFF);
     DiscoverSwitchSP.fill(getDeviceName(), "DISCOVER", "Discover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    SafetySensorLP[0].fill("SAFETY_SENSOR_1", "Safety Sensor 1", IPS_IDLE);
+    SafetySensorLP[1].fill("SAFETY_SENSOR_2", "Safety Sensor 2", IPS_IDLE);
+    SafetySensorLP[2].fill("SAFETY_SENSOR_3", "Safety Sensor 3", IPS_IDLE);
+    SafetySensorLP[3].fill("SAFETY_SENSOR_4", "Safety Sensor 4", IPS_IDLE);
+    SafetySensorLP.fill(getDeviceName(), "SAFETY_SENSOR", "Safety Sensor", MAIN_CONTROL_TAB, IPS_IDLE);
+
+    LimitSwitchLP[0].fill("LIMIT_SWITCH_1", "Fully Open Switch", IPS_IDLE);
+    LimitSwitchLP[1].fill("LIMIT_SWITCH_2", "Fully Closed Switch", IPS_IDLE);
+    LimitSwitchLP.fill(getDeviceName(), "LIMIT_SWITCH", "Limit Switch", MAIN_CONTROL_TAB, IPS_IDLE);
 
     SetParkDataType(PARK_NONE);
 
@@ -155,7 +148,15 @@ bool DragonLAIR::updateProperties()
 
     if (isConnected())
     {
-        // TODO: Add any custom properties that need to be updated here.
+        defineProperty(FirmwareTP);
+        defineProperty(SafetySensorLP);
+        defineProperty(LimitSwitchLP);
+    }
+    else
+    {
+        deleteProperty(FirmwareTP);
+        deleteProperty(SafetySensorLP);
+        deleteProperty(LimitSwitchLP);
     }
 
     return true;
@@ -259,29 +260,132 @@ bool DragonLAIR::Abort()
 
 void DragonLAIR::updateStatus()
 {
-    // if we are not moving, and neither limit switch is tripped, we are
-    //      setDomeState(DOME_IDLE);
-    //
-    // if we are fully opened we are
-    //      SetParked(false);
-    //
-    // if we are fully closed we are
-    //      SetParked(true);
+    httplib::Client cli(IPAddressTP[0].getText(), 80);
+
+    auto result = cli.Get("/indi/status");
+    if (result.value().status == 200)
+    {
+        nlohmann::json j = nlohmann::json::parse(result.value().body, nullptr, false, true);
+
+        if (j.is_discarded())
+        {
+            LOG_ERROR("Error parsing JSON.");
+            return;
+        }
+
+        std::string version = j["version"];
+        std::string serial = j["serialNumber"];
+
+        FirmwareTP[0].setText(version.c_str());
+        FirmwareTP[1].setText(serial.c_str());
+        FirmwareTP.setState(IPS_OK);
+        FirmwareTP.apply();
+
+        std::string safetySensor1 = j["roof"]["safetySensor1"];
+        std::string safetySensor2 = j["roof"]["safetySensor2"];
+        std::string safetySensor3 = j["roof"]["safetySensor3"];
+        std::string safetySensor4 = j["roof"]["safetySensor4"];
+
+        SafetySensorLP[0].setState(safetySensor1 == "disabled" ? IPS_IDLE : safetySensor1 == "unsafe" ? IPS_ALERT : IPS_OK);
+        SafetySensorLP[1].setState(safetySensor2 == "disabled" ? IPS_IDLE : safetySensor2 == "unsafe" ? IPS_ALERT : IPS_OK);
+        SafetySensorLP[2].setState(safetySensor3 == "disabled" ? IPS_IDLE : safetySensor3 == "unsafe" ? IPS_ALERT : IPS_OK);
+        SafetySensorLP[3].setState(safetySensor4 == "disabled" ? IPS_IDLE : safetySensor4 == "unsafe" ? IPS_ALERT : IPS_OK);
+        SafetySensorLP.apply();
+
+        bool isRoofFullyClosed = j["roof"]["isRoofFullyClosed"];
+        bool isRoofFullyOpen = j["roof"]["isRoofFullyOpen"];
+
+        LimitSwitchLP[0].setState(isRoofFullyOpen ? IPS_OK : IPS_BUSY);
+        LimitSwitchLP[1].setState(isRoofFullyClosed ? IPS_OK : IPS_BUSY);
+        LimitSwitchLP.apply();
+
+        bool isRoofClosing = j["roof"]["isRoofClosing"];
+        bool isRoofOpening = j["roof"]["isRoofOpening"];
+
+        IDLog("Dome state: %d\n", Dome::getDomeState());
+
+        if (isRoofFullyClosed)
+        {
+            if (Dome::getDomeState() != DOME_PARKED)
+            {
+                SetParked(true);
+            }
+        }
+        else if (isRoofFullyOpen)
+        {
+            if (Dome::getDomeState() != DOME_UNPARKED)
+            {
+                SetParked(false);
+            }
+        }
+        else if (isRoofClosing)
+        {
+            if (Dome::getDomeState() != DOME_PARKING)
+            {
+                setDomeState(DOME_PARKING);
+            }
+        }
+        else if (isRoofOpening)
+        {
+            if (Dome::getDomeState() != DOME_UNPARKING)
+            {
+                setDomeState(DOME_UNPARKING);
+            }
+        }
+        else if (Dome::getDomeState() != DOME_IDLE)
+        {
+            setDomeState(DOME_IDLE);
+        }
+    }
+    else
+    {
+        LOG_ERROR("Error on updateStatus.");
+    }
 }
 
 void DragonLAIR::openRoof()
 {
+    httplib::Client cli(IPAddressTP[0].getText(), 80);
 
+    auto result = cli.Post("/indi/roof/open");
+    if (result.value().status == 200)
+    {
+        LOG_INFO("Roof is opening...");
+    }
+    else
+    {
+        LOG_ERROR("Error on openRoof.");
+    }
 }
 
 void DragonLAIR::closeRoof()
 {
+    httplib::Client cli(IPAddressTP[0].getText(), 80);
 
+    auto result = cli.Post("/indi/roof/close");
+    if (result.value().status == 200)
+    {
+        LOG_INFO("Roof is closing...");
+    }
+    else
+    {
+        LOG_ERROR("Error on closeRoof.");
+    }
 }
 
 void DragonLAIR::stopRoof()
 {
+    httplib::Client cli(IPAddressTP[0].getText(), 80);
 
+    auto result = cli.Post("/indi/roof/abort");
+    if (result.value().status == 200)
+    {
+        LOG_INFO("Roof is stopping...");
+    }
+    else
+    {
+        LOG_ERROR("Error on stopRoof.");
+    }
 }
 
 #define DDA_DISCOVERY_PORT 0xdda
@@ -332,9 +436,9 @@ void DragonLAIR::discoverDevices()
 
         IDLog("Received: %s\n", recvbuff);
 
-        nlohmann::json doc = nlohmann::json::parse(recvbuff);
+        nlohmann::json doc = nlohmann::json::parse(recvbuff, nullptr, false, true);
 
-        if (doc.contains("deviceType"))
+        if (!doc.is_discarded() && doc.contains("deviceType"))
         {
             char deviceIP[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &(Recv_addr.sin_addr), deviceIP, INET_ADDRSTRLEN);

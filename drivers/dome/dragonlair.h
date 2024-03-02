@@ -59,6 +59,10 @@ class DragonLAIR : public INDI::Dome
         void stopRoof();
         void discoverDevices();
 
+        INDI::PropertyText FirmwareTP {2};
         INDI::PropertyText IPAddressTP {1};
         INDI::PropertySwitch DiscoverSwitchSP {1};
+
+        INDI::PropertyLight SafetySensorLP {4};
+        INDI::PropertyLight LimitSwitchLP {2};
 };
