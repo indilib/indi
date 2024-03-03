@@ -27,24 +27,31 @@ class Imager;
 
 class Group
 {
-    public:
-        explicit Group(int id, Imager *imager);
+public:
+    explicit Group(int id, Imager *imager);
 
-        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        void defineProperties();
-        void deleteProperties();
+    void defineProperties();
+    void deleteProperties();
 
-        int filterSlot() const;
-        int binning() const;
-        double exposure() const;
-        int count() const;
-    private:
-        std::string groupName;
-        std::string groupSettingsName;
-        Imager* imager;
-        INumberVectorProperty GroupSettingsNP;
-        std::vector<INumber> GroupSettingsN;
+    int filterSlot() const;
+    int binning() const;
+    double exposure() const;
+    int count() const;
+private:
+    std::string groupName;
+    std::string groupSettingsName;
+    Imager* imager;
+    INDI::PropertyNumber GroupSettingsNP {4};
+    enum
+    {
+        IMAGE_COUNT,
+        CCD_BINNING,
+        FILTER_SLOT,
+        CCD_EXPOSURE_VALUE
+    };
+    //        std::vector<INumber> GroupSettingsN;
 };
 
 
