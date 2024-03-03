@@ -105,12 +105,12 @@ void Imager::initiateNextFilter()
                 initiateNextCapture();
             }
         }
-        else if (filterSlot != 0 && FilterSlotN[0].value != filterSlot)
+        else if (filterSlot != 0 && FilterSlotNP[0].getValue() != filterSlot)
         {
-            FilterSlotN[0].value = filterSlot;
-            sendNewNumber(&FilterSlotNP);
+            FilterSlotNP[0].setValue(filterSlot);
+            sendNewNumber(FilterSlotNP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
-                       group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+                       group, maxGroup, image, maxImage, (int)FilterSlotNP[0].getValue(), FilterSlotNP.getDeviceName());
         }
         else
         {
@@ -132,17 +132,17 @@ void Imager::initiateNextCapture()
                 ProgressNP.apply();
                 return;
             }
-            CCDImageBinN[0].value = currentGroup()->binning();
-            CCDImageBinN[1].value = currentGroup()->binning();
-            sendNewNumber(&CCDImageBinNP);
-            CCDImageExposureNP[CCD_EXPOSURE_VALUE].setValue(currentGroup()->exposure());
+            CCDImageBinNP[HOR_BIN].setValue(currentGroup()->binning());
+            CCDImageBinNP[VER_BIN].setValue(currentGroup()->binning());
+            sendNewNumber(CCDImageBinNP);
+            CCDImageExposureNP[0].setValue(currentGroup()->exposure());
             sendNewNumber(CCDImageExposureNP);
-            IUSaveText(&CCDUploadSettingsT[0], ImageNameTP[IMAGE_FOLDER].text);
-            IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
-            sendNewSwitch(&CCDUploadSP);
-            sendNewText(&CCDUploadSettingsTP);
+            CCDUploadSettingsTP[UPLOAD_DIR].setText(ImageNameTP[IMAGE_FOLDER].getText());
+            CCDUploadSettingsTP[UPLOAD_PREFIX].setText("_TMP_");
+            sendNewSwitch(CCDUploadSP);
+            sendNewText(CCDUploadSettingsTP);
             LOGF_DEBUG("Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
-                       maxGroup, image, maxImage, CCDImageExposureNP[CCD_EXPOSURE_VALUE].value, (int)CCDImageBinN[0].value,
+                       maxGroup, image, maxImage, CCDImageExposureNP[0].getValue(), (int)CCDImageBinNP[HOR_BIN].getValue(),
                        CCDImageExposureNP.getDeviceName());
         }
     }
@@ -175,15 +175,15 @@ void Imager::batchDone()
 
 void Imager::initiateDownload()
 {
-    int group = (int)DownloadNP[GROUP].value;
-    int image = (int)DownloadNP[IMAGE].value;
+    int group = (int)DownloadNP[GROUP].getValue();
+    int image = (int)DownloadNP[IMAGE].getValue();
     char name[128] = {0};
     std::ifstream file;
 
     if (group == 0 || image == 0)
         return;
 
-    sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].text, ImageNameTP[IMAGE_NAME_PREFIX].text, group, image, format);
+    sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image, format);
     file.open(name, std::ios::in | std::ios::binary | std::ios::ate);
     DownloadNP[GROUP].setValue(0);
     DownloadNP[IMAGE].setValue(0);
@@ -200,9 +200,10 @@ void Imager::initiateDownload()
         DownloadNP.setState(IPS_BUSY);
         LOG_INFO("Download initiated");
         DownloadNP.apply();
-        strncpy(FitsBP[0].format, format, MAXINDIBLOBFMT);
-        FitsBP[IMAGE].setBlob(data);
-        FitsBP[IMAGE].setBlobLen(FitsBP[IMAGE].size = size);
+//        strncpy(FitsBP[0].format, format, MAXINDIBLOBFMT);
+        FitsBP[0].setFormat(format);
+        FitsBP[0].setBlob(data);
+        FitsBP[0].setBlobLen(FitsBP[0].getSize() == size);
         FitsBP.setState(IPS_OK);
         FitsBP.apply();
         DownloadNP.setState(IPS_OK);
@@ -267,40 +268,40 @@ bool Imager::initProperties()
     DownloadNP.fill(getDefaultName(), "DOWNLOAD", "Download image", DOWNLOAD_TAB, IP_RW, 60,
                     IPS_IDLE);
 
-    FitsBP[IMAGE].fill("IMAGE", "Image", "");
+    FitsBP[0].fill("IMAGE", "Image", "");
     FitsBP.fill(getDefaultName(), "IMAGE", "Image Data", DOWNLOAD_TAB, IP_RO, 60, IPS_IDLE);
 
     defineProperty(GroupCountNP);
     defineProperty(ControlledDeviceTP);
     defineProperty(ImageNameTP);
 
-    for (int i = 0; i < GroupCountNP[0].value; i++)
+    for (int i = 0; i < GroupCountNP[0].getValue(); i++)
     {
         groups[i]->defineProperties();
     }
 
-    CCDImageExposureNP[CCD_EXPOSURE_VALUE].fill("CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0, 36000, 0, 1.0);
-    CCDImageExposureNP.fill(ControlledDeviceTP[CCD].text, "CCD_EXPOSURE", "Expose",
+    CCDImageExposureNP[0].fill("CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0, 36000, 0, 1.0);
+    CCDImageExposureNP.fill(ControlledDeviceTP[CCD].getText(), "CCD_EXPOSURE", "Expose",
                             MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&CCDImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
-    IUFillNumber(&CCDImageBinN[1], "VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
-    IUFillNumberVector(&CCDImageBinNP, CCDImageBinN, 2, ControlledDeviceTP[CCD].getText(), "CCD_BINNING", "Binning",
+    CCDImageBinNP[HOR_BIN].fill("HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
+    CCDImageBinNP[VER_BIN].fill("VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
+    CCDImageBinNP.fill(ControlledDeviceTP[CCD].getText(), "CCD_BINNING", "Binning",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&CCDUploadS[0], "UPLOAD_CLIENT", "Client", ISS_OFF);
-    IUFillSwitch(&CCDUploadS[1], "UPLOAD_LOCAL", "Local", ISS_ON);
-    IUFillSwitch(&CCDUploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
-    IUFillSwitchVector(&CCDUploadSP, CCDUploadS, 3, ControlledDeviceTP[CCD].getText(), "UPLOAD_MODE", "Upload", OPTIONS_TAB,
+    CCDUploadSP[UPLOAD_CLIENT].fill("UPLOAD_CLIENT", "Client", ISS_OFF);
+    CCDUploadSP[UPLOAD_LOCAL].fill("UPLOAD_LOCAL", "Local", ISS_ON);
+    CCDUploadSP[UPLOAD_BOTH].fill("UPLOAD_BOTH", "Both", ISS_OFF);
+    CCDUploadSP.fill(ControlledDeviceTP[CCD].getText(), "UPLOAD_MODE", "Upload", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&CCDUploadSettingsT[0], "UPLOAD_DIR", "Dir", "");
-    IUFillText(&CCDUploadSettingsT[1], "UPLOAD_PREFIX", "Prefix", IMAGE_PREFIX);
-    IUFillTextVector(&CCDUploadSettingsTP, CCDUploadSettingsT, 2, ControlledDeviceTP[CCD].getText(), "UPLOAD_SETTINGS",
+    CCDUploadSettingsTP[UPLOAD_DIR].fill("UPLOAD_DIR", "Dir", "");
+    CCDUploadSettingsTP[UPLOAD_PREFIX].fill("UPLOAD_PREFIX", "Prefix", IMAGE_PREFIX);
+    CCDUploadSettingsTP.fill(ControlledDeviceTP[CCD].getText(), "UPLOAD_SETTINGS",
                      "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, ControlledDeviceTP[FILTER].getText(), "FILTER_SLOT", "Filter Slot",
+    FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
+    FilterSlotNP.fill(ControlledDeviceTP[FILTER].getText(), "FILTER_SLOT", "Filter Slot",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
@@ -311,8 +312,8 @@ bool Imager::updateProperties()
     if (isConnected())
     {
         defineProperty(StatusLP);
-        ProgressNP[GROUP].value = group = 0;
-        ProgressNP[IMAGE].value = image = 0;
+        ProgressNP[GROUP].setValue(group = 0);
+        ProgressNP[IMAGE].setValue(image = 0);
         ProgressNP.setState(IPS_IDLE);
         defineProperty(ProgressNP);
         BatchSP.setState(IPS_IDLE);
@@ -349,9 +350,9 @@ bool Imager::ISNewNumber(const char *dev, const char *name, double values[], cha
             for (int i = 0; i < maxGroup; i++)
                 groups[i]->deleteProperties();
             GroupCountNP.update(values, names, n);
-            maxGroup = (int)GroupCountNP[0].value;
+            maxGroup = (int)GroupCountNP[0].getValue();
             if (maxGroup > MAX_GROUP_COUNT)
-                GroupCountNP[0].value = maxGroup = MAX_GROUP_COUNT;
+                GroupCountNP[0].setValue(maxGroup = MAX_GROUP_COUNT);
             for (int i = 0; i < maxGroup; i++)
                 groups[i]->defineProperties();
             GroupCountNP.setState(IPS_OK);
@@ -366,7 +367,7 @@ bool Imager::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
         if (strncmp(name, GROUP_PREFIX, GROUP_PREFIX_LEN) == 0)
         {
-            for (int i = 0; i < GroupCountNP[0].value; i++)
+            for (int i = 0; i < GroupCountNP[0].getValue(); i++)
                 if (groups[i]->ISNewNumber(dev, name, values, names, n))
                 {
                     return true;
@@ -408,19 +409,17 @@ bool Imager::ISNewText(const char *dev, const char *name, char *texts[], char *n
 {
     if (Imager::DEVICE_NAME == dev)
     {
-        //        if (std::string{name} == std::string{ControlledDeviceTP.name})
         if (ControlledDeviceTP.isNameMatch(name))
         {
             ControlledDeviceTP.update(texts, names, n);
             ControlledDeviceTP.apply();
-            strncpy(StatusLP[CCD].label, ControlledDeviceTP[CCD].getText(), sizeof(StatusLP[CCD].label));
 
-            ControlledDeviceTP[CCD].setText(CCDImageExposureNP.getDeviceName());
+            StatusLP[CCD].setLabel(ControlledDeviceTP[CCD].getText());
+            CCDImageExposureNP.setDeviceName(ControlledDeviceTP[CCD].getText());
+            CCDImageBinNP.setDeviceName(ControlledDeviceTP[CCD].getText());
+            StatusLP[FILTER].setLabel(ControlledDeviceTP[FILTER].getText());
+            FilterSlotNP.setDeviceName(ControlledDeviceTP[FILTER].getText());
 
-
-            strncpy(CCDImageBinNP.device, ControlledDeviceTP[CCD].getText(), sizeof(CCDImageBinNP.device));
-            strncpy(StatusLP[FILTER].label, ControlledDeviceTP[FILTER].getText(), sizeof(StatusLP[FILTER].label));
-            strncpy(FilterSlotNP.device, ControlledDeviceTP[FILTER].text, sizeof(FilterSlotNP.device));
             return true;
         }
         if (ImageNameTP.isNameMatch(name))
@@ -596,7 +595,7 @@ void Imager::updateProperty(INDI::Property property)
     if (deviceName == controlledFilterWheel && property.isNameMatch("FILTER_SLOT"))
     {
         INDI::PropertyNumber propertyNumber{property};
-        FilterSlotN[0].value = propertyNumber[0].getValue();
+        FilterSlotNP[0].setValue(propertyNumber[0].getValue());
         if (property.getState() == IPS_OK)
             initiateNextCapture();
         return;
@@ -608,7 +607,7 @@ void Imager::updateProperty(INDI::Property property)
         char name[128] = {0};
 
         strncpy(format, strrchr(propertyText[0].getText(), '.'), sizeof(format));
-        sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].text, ImageNameTP[IMAGE_NAME_PREFIX].text, group, image, format);
+        sprintf(name, IMAGE_NAME, ImageNameTP[IMAGE_FOLDER].getText(), ImageNameTP[IMAGE_NAME_PREFIX].getText(), group, image, format);
         rename(propertyText[0].getText(), name);
         LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
                    maxImage, name);

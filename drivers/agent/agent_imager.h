@@ -113,19 +113,30 @@ private:
     INDI::PropertyBlob FitsBP {1};
 
     INDI::PropertyNumber CCDImageExposureNP {1};
+    INDI::PropertyNumber CCDImageBinNP {2};
     enum
     {
-        CCD_EXPOSURE_VALUE
+        HOR_BIN,
+        VER_BIN
     };
-    INumberVectorProperty CCDImageBinNP;
-    INumber CCDImageBinN[2];
-    ISwitch CCDUploadS[3];
-    ISwitchVectorProperty CCDUploadSP;
-    IText CCDUploadSettingsT[2] {};
-    ITextVectorProperty CCDUploadSettingsTP;
+    INDI::PropertySwitch CCDUploadSP {3};
+    enum
+    {
+        UPLOAD_CLIENT,
+        UPLOAD_LOCAL,
+        UPLOAD_BOTH
+    };
 
-    INumberVectorProperty FilterSlotNP;
-    INumber FilterSlotN[1];
+    INDI::PropertyText CCDUploadSettingsTP {2};
+    enum
+    {
+        UPLOAD_DIR,
+        UPLOAD_PREFIX
+    };
+
+//    ITextVectorProperty CCDUploadSettingsTP;
+
+    INDI::PropertyNumber FilterSlotNP {1};
 
     std::vector<std::shared_ptr<Group>> groups;
     std::shared_ptr<Group> currentGroup() const;
