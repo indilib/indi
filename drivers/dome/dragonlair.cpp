@@ -94,6 +94,12 @@ bool DragonLAIR::ISSnoopDevice(XMLEle *root)
 
 bool DragonLAIR::Connect()
 {
+    if (strlen(IPAddressTP[0].getText()) == 0)
+    {
+        LOG_ERROR("IP Address is not set.");
+        return false;
+    }
+
     SetTimer(getCurrentPollingPeriod());
     return true;
 }
@@ -260,6 +266,12 @@ bool DragonLAIR::Abort()
 
 void DragonLAIR::updateStatus()
 {
+    if (strlen(IPAddressTP[0].getText()) == 0)
+    {
+        LOG_ERROR("IP Address is not set.");
+        return;
+    }
+
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
     auto result = cli.Get("/indi/status");
@@ -345,6 +357,12 @@ void DragonLAIR::updateStatus()
 
 void DragonLAIR::openRoof()
 {
+    if (strlen(IPAddressTP[0].getText()) == 0)
+    {
+        LOG_ERROR("IP Address is not set.");
+        return;
+    }
+
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
     auto result = cli.Post("/indi/roof/open");
@@ -360,6 +378,12 @@ void DragonLAIR::openRoof()
 
 void DragonLAIR::closeRoof()
 {
+    if (strlen(IPAddressTP[0].getText()) == 0)
+    {
+        LOG_ERROR("IP Address is not set.");
+        return;
+    }
+
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
     auto result = cli.Post("/indi/roof/close");
@@ -375,6 +399,12 @@ void DragonLAIR::closeRoof()
 
 void DragonLAIR::stopRoof()
 {
+    if (strlen(IPAddressTP[0].getText()) == 0)
+    {
+        LOG_ERROR("IP Address is not set.");
+        return;
+    }
+
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
     auto result = cli.Post("/indi/roof/abort");
