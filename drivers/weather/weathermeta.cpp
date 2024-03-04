@@ -57,23 +57,23 @@ bool WeatherMeta::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_WEATHER_1", "Station #1", nullptr);
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER_2", "Station #2", nullptr);
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_WEATHER_3", "Station #3", nullptr);
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_WEATHER_4", "Station #4", nullptr);
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB,
+    ActiveDeviceTP[ACTIVE_WEATHER_1].fill("ACTIVE_WEATHER_1", "Station #1", nullptr);
+    ActiveDeviceTP[ACTIVE_WEATHER_2].fill( "ACTIVE_WEATHER_2", "Station #2", nullptr);
+    ActiveDeviceTP[ACTIVE_WEATHER_3].fill( "ACTIVE_WEATHER_3", "Station #3", nullptr);
+    ActiveDeviceTP[ACTIVE_WEATHER_4].fill("ACTIVE_WEATHER_4", "Station #4", nullptr);
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Station Status
-    IUFillLight(&StationL[0], "STATION_STATUS_1", "Station #1", IPS_IDLE);
-    IUFillLight(&StationL[1], "STATION_STATUS_2", "Station #2", IPS_IDLE);
-    IUFillLight(&StationL[2], "STATION_STATUS_3", "Station #3", IPS_IDLE);
-    IUFillLight(&StationL[3], "STATION_STATUS_4", "Station #4", IPS_IDLE);
-    IUFillLightVector(&StationLP, StationL, 4, getDeviceName(), "WEATHER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
+    StationLP[STATION_STATUS_1].fill("STATION_STATUS_1", "Station #1", IPS_IDLE);
+    StationLP[STATION_STATUS_2].fill("STATION_STATUS_2", "Station #2", IPS_IDLE);
+    StationLP[STATION_STATUS_3].fill("STATION_STATUS_3", "Station #3", IPS_IDLE);
+    StationLP[STATION_STATUS_4].fill("STATION_STATUS_4", "Station #4", IPS_IDLE);
+    StationLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
     // Update Period
-    IUFillNumber(&UpdatePeriodN[0], "PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
-    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
+    UpdatePeriodNP[0].fill("PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
+    UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
@@ -87,7 +87,7 @@ void WeatherMeta::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(ActiveDeviceTP);
 
     loadConfig(true, "ACTIVE_DEVICES");
 }
@@ -101,17 +101,17 @@ bool WeatherMeta::updateProperties()
         // If Active devices are already defined, let's set the active devices as labels
         for (int i = 0; i < 4; i++)
         {
-            if (ActiveDeviceT[i].text != nullptr && ActiveDeviceT[i].text[0] != 0)
-                strncpy(StationL[i].label, ActiveDeviceT[i].text, MAXINDILABEL);
+            if (ActiveDeviceTP[i].getText() != nullptr && ActiveDeviceTP[i].getText()[0] != 0)
+                StationLP[i].setLabel(ActiveDeviceTP[i].getText());
         }
 
-        defineProperty(&StationLP);
-        defineProperty(&UpdatePeriodNP);
+        defineProperty(StationLP);
+        defineProperty(UpdatePeriodNP);
     }
     else
     {
-        deleteProperty(StationLP.name);
-        deleteProperty(UpdatePeriodNP.name);
+        deleteProperty(StationLP.getName());
+        deleteProperty(UpdatePeriodNP.getName());
     }
     return true;
 }
@@ -120,32 +120,32 @@ bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, ActiveDeviceTP.name) == 0)
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+             ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.apply();
 
-            if (ActiveDeviceT[0].text != nullptr)
+            if (ActiveDeviceTP[ACTIVE_WEATHER_1].getText() != nullptr)
             {
-                IDSnoopDevice(ActiveDeviceT[0].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[0].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_1].getText(), "WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_1].getText(), "WEATHER_UPDATE");
             }
-            if (ActiveDeviceT[1].text != nullptr)
+            if (ActiveDeviceTP[ACTIVE_WEATHER_1].text != nullptr)
             {
-                IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_1].getText(), "WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_1].getText(), "WEATHER_UPDATE");
             }
-            if (ActiveDeviceT[2].text != nullptr)
+            if (ActiveDeviceTP[ACTIVE_WEATHER_3].getText() != nullptr)
             {
-                IDSnoopDevice(ActiveDeviceT[2].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[2].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_3].getText(), "WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_3].getText(), "WEATHER_UPDATE");
             }
-            if (ActiveDeviceT[3].text != nullptr)
+            if (ActiveDeviceTP[ACTIVE_WEATHER_4].getText() != nullptr)
             {
-                IDSnoopDevice(ActiveDeviceT[3].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[3].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_4].getText(), "WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_4].getText(), "WEATHER_UPDATE");
             }
 
             return true;
@@ -159,8 +159,8 @@ bool WeatherMeta::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigNumber(fp, &UpdatePeriodNP);
+    ActiveDeviceTP.save(fp);
+    UpdatePeriodNP.save(fp);
 
     return true;
 }
@@ -176,14 +176,14 @@ bool WeatherMeta::ISSnoopDevice(XMLEle *root)
         {
             for (int i = 0; i < 4; i++)
             {
-                if (ActiveDeviceT[i].text != nullptr && strcmp(ActiveDeviceT[i].text, deviceName) == 0)
+                if (ActiveDeviceTP[i].getText() != nullptr && strcmp(ActiveDeviceTP[i].getText(), deviceName) == 0)
                 {
                     IPState stationState;
 
                     if (crackIPState(findXMLAttValu(root, "state"), &stationState) < 0)
                         break;
 
-                    StationL[i].s = stationState;
+                    StationLP[i].setState(stationState);
 
                     updateOverallState();
 
@@ -200,7 +200,7 @@ bool WeatherMeta::ISSnoopDevice(XMLEle *root)
 
             for (int i = 0; i < 4; i++)
             {
-                if (ActiveDeviceT[i].text != nullptr && strcmp(ActiveDeviceT[i].text, deviceName) == 0)
+                if (ActiveDeviceTP[i].getText() != nullptr && strcmp(ActiveDeviceTP[i].getText(), deviceName) == 0)
                 {
                     updatePeriods[i] = atof(pcdataXMLEle(ep));
 
@@ -216,20 +216,20 @@ bool WeatherMeta::ISSnoopDevice(XMLEle *root)
 
 void WeatherMeta::updateOverallState()
 {
-    StationLP.s = IPS_IDLE;
+    StationLP.setState(IPS_IDLE);
 
     for (int i = 0; i < 4; i++)
     {
-        if (StationL[i].s > StationLP.s)
-            StationLP.s = StationL[i].s;
+        if (StationLP[i].getState() > StationLP.getState())
+            StationLP.setState(StationLP[i].getState());
     }
 
-    IDSetLight(&StationLP, nullptr);
+    StationLP.apply();
 }
 
 void WeatherMeta::updateUpdatePeriod()
 {
-    double minPeriod = UpdatePeriodN[0].max;
+    double minPeriod = UpdatePeriodNP[0].getMin();
 
     for (int i = 0; i < 4; i++)
     {
@@ -237,9 +237,9 @@ void WeatherMeta::updateUpdatePeriod()
             minPeriod = updatePeriods[i];
     }
 
-    if (minPeriod != UpdatePeriodN[0].max)
+    if (minPeriod != UpdatePeriodNP[0].getMax())
     {
-        UpdatePeriodN[0].value = minPeriod;
-        IDSetNumber(&UpdatePeriodNP, nullptr);
+        UpdatePeriodNP[0].setValue(minPeriod);
+        UpdatePeriodNP.apply();
     }
 }
