@@ -56,6 +56,18 @@ static const PixelSizeInfo CameraDatabase[] =
     { nullptr, nullptr, nullptr, 5.6f, -1, 0, 0, false}  // sentinel and default pixel size, needs to be last
 };
 
+static const double IOptronDurations[] = { 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, -1 };
+static const double IOptronTicks[] = { 1, 2, 5, 10, 20, 39, 78, 156, 312, 625, 1250, 2500, -1 };
+
+#define MAX_IOPTRON_INDEX (sizeof(IOptronDurations) / sizeof(double) - 2)
+#define MAX_IOPTRON_DURATION (IOptronDurations[MAX_IOPTRON_INDEX])
+#define MAX_IOPTRON_TICKS (IOptronTicks[MAX_IOPTRON_INDEX])
+
+#define IOPTRON_ABS_EXPOSURE_CTRL_ID 0x9A0902
+#define IOPTRON_AUTO_EXPOSURE_CTRL_ID 0x9A0901
+#define IOPTRON_WATCHDOG_PERIOD_IN_MS 10000
+
+
 V4L2_Driver::V4L2_Driver(std::string label, std::string path)
 {
     setDeviceName(label.c_str());
@@ -83,13 +95,13 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     frame_received.tv_usec = 0;
 
     v4l_capture_started = false;
-    waiting_for_iguider_to_start = false;
 
     m_StackMode = STACK_NONE;
 
     lx       = new Lx();
     lxtimer  = -1;
     stdtimer = -1;
+    iOptronWatchdogTimer = -1;
 }
 
 V4L2_Driver::V4L2_Driver()
@@ -121,6 +133,7 @@ V4L2_Driver::V4L2_Driver()
     lx       = new Lx();
     lxtimer  = -1;
     stdtimer = -1;
+    iOptronWatchdogTimer = -1;
 }
 
 V4L2_Driver::~V4L2_Driver()
@@ -279,6 +292,18 @@ void V4L2_Driver::ISGetProperties(const char * dev)
         defineProperty(&ColorProcessingSP);
         defineProperty(&CaptureColorSpaceTP);
 #endif
+
+        // iOptron cameras take an excessively long time to start if started with a longer exposure time (eg 8 seconds to
+        // start with a 1s exposure, 28 seconds to start with a 3.5s exposure). Here we start the camera up with a small duration
+        // to get the camera going. Changing the exposure after it has started does not cause a delay.
+        if (!v4l_capture_started && isIOptron() )
+        {
+            char errmsg[ERRMSGSIZ];
+            v4l_base->setINTControl(IOPTRON_ABS_EXPOSURE_CTRL_ID, 1, errmsg);
+            v4l_base->setOPTControl(IOPTRON_AUTO_EXPOSURE_CTRL_ID, 1, errmsg); // Manual
+            v4l_base->start_capturing(errmsg);
+            v4l_capture_started = true;
+        }
     }
 }
 
@@ -721,6 +746,20 @@ bool V4L2_Driver::ISNewText(const char * dev, const char * name, char * texts[],
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
+int findIndexOfNearestValue(double value, const double allowed_values[])
+{
+    int n = 1;
+    while (allowed_values[n] != -1)
+    {
+        if (value < (allowed_values[n-1] + allowed_values[n]) / 2.0) 
+        {
+            return n - 1;
+        }
+        n++;
+    }
+    return n - 1;
+}
+
 bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     char errmsg[ERRMSGSIZ];
@@ -780,7 +819,15 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
             unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
-            double const value = ImageAdjustNP.np[i].value;
+
+            // iOptron cameras only accept some tick values. Round the value to the nearest one.
+            if (isIOptron() && ctrl_id == IOPTRON_ABS_EXPOSURE_CTRL_ID) 
+            {
+                int n = findIndexOfNearestValue(ImageAdjustNP.np[i].value, IOptronTicks);
+                ImageAdjustNP.np[i].value = IOptronTicks[n];
+            }
+
+            const double value = ImageAdjustNP.np[i].value;
 
             LOGF_DEBUG("  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
                        ImageAdjustNP.np[i].label, value, ctrl_id);
@@ -805,6 +852,16 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
         ImageAdjustNP.s = IPS_OK;
         IDSetNumber(&ImageAdjustNP, nullptr);
         return true;
+    }
+
+    // Ensure duration is set to one of the allowed durations, or, if we're going to stack, a value greater than the maximum
+    if (isIOptron() && strcmp(name, "CCD_EXPOSURE") == 0 && values[0] < MAX_IOPTRON_DURATION) {
+        int n = findIndexOfNearestValue(values[0], IOptronDurations);
+        if (values[0] != IOptronDurations[n]) 
+        {
+            LOGF_WARN("Changing duration to nearest value supported by camera (from %fs to %fs)", values[0], IOptronDurations[n]);
+            values[0] = IOptronDurations[n];
+        }
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -863,20 +920,6 @@ bool V4L2_Driver::StartExposure(float duration)
         }
     }
 
-    // The iGuider/iPolar takes an excessive amount of time to start up when it has a long exposure
-    // (eg for a 2 second exposure, startup is about 12 seconds). To work around this, we start it up
-    // with a short exposure, then after the first frame, set the exposure to the intended value.
-    if (!v4l_capture_started && (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar")))
-    {
-        LOG_INFO("Setting exposure to 0.01 to get iGuider started quickly");
-        waiting_for_iguider_to_start = true;
-        setShutter(0.01);
-        V4LFrame->expose = duration;
-        PrimaryCCD.setExposureDuration(duration);
-        start_capturing(false);
-        return is_capturing;
-    }
-
     if (setShutter(duration))
     {
         V4LFrame->expose = duration;
@@ -896,6 +939,17 @@ bool V4L2_Driver::StartExposure(float duration)
         }
         else
             stdtimer = -1;
+
+        // iGuider/iPolar occasionally fails to start. We deal with this in the same was
+        // as the iOptron ASCOM driver on windows: if it hasn't responded with a frame in
+        // 10 seconds, stop and start the capture.
+        if (isIOptron())
+        {
+            valid_frame_has_arrived = false;
+            if (-1 != iOptronWatchdogTimer)
+                IERmTimer(iOptronWatchdogTimer);
+            iOptronWatchdogTimer = IEAddTimer(IOPTRON_WATCHDOG_PERIOD_IN_MS, (IE_TCF *)iOptronWatchdogCallback, this);
+        }
     }
 
     return is_capturing;
@@ -944,6 +998,11 @@ bool V4L2_Driver::setShutter(double duration)
     }
 }
 
+bool V4L2_Driver::isIOptron()
+{
+    return strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar");
+}
+
 bool V4L2_Driver::setManualExposure(double duration)
 {
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
@@ -955,46 +1014,17 @@ bool V4L2_Driver::setManualExposure(double duration)
     // INT control for manual exposure duration is an integer in 1/10000 seconds
     long ticks = lround(duration * 10000.0f);
 
-
-    /*
-    iGuider and iPolar do not have a linear relationship between duration and ticks, as demonstrated in the table 
-    below. It contains exposure durations in seconds as set in ASCOM, and the resulting values sent to the camera 
-    via a SET CUR USB request to the 'Exposure Time (Absolute)' control in the USB Video Control Input Terminal. 
-    
-    The third column is an approximation to this value using the formula: 
-
-        duration <= 0.2 ? duration * 100 : 19.53 * pow(4, duration)
-
-    The constant 19.53 above iscalculated as 5000 / 4^4, as it appears the maximum tick of 5000 corresponds 
-    to a 4 second duration.
-
-    Note that the negative exposure values seen in the iOptron iGuider manual and some of the settings dialogs appear
-    to used in the ASCOM driver but aren't sent to the camera over USB.
-
-    Duration (s)   Value from USB sniff   Approximation
-    0.01           1                      1.00
-    0.02           2                      2.00
-    0.05           5                      5.00
-    0.1            10                     10.00
-    0.2            20                     20.00
-    0.5            39                     39.06
-    1              78                     78.12
-    1.5            156                    156.24
-    2              312                    312.48
-    2.5            625                    624.96
-    3              1250                   1,249.92
-    3.5            2500                   2,499.84
-
-    */
-    if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+    // iOptron tick values are non-linear, so look them up.
+    bool ioptron_maximum_duration_exceeded = false;
+    if (isIOptron())
     {
-        if (duration <= 0.02f)
+        if (duration <= MAX_IOPTRON_DURATION) 
         {
-            ticks = lround(duration * 100.0f);
+            ticks = IOptronTicks[findIndexOfNearestValue(duration, IOptronDurations)];
         }
         else
         {
-            ticks = lround(19.53 * pow(4, duration));
+            ioptron_maximum_duration_exceeded = true;
         }
     }
 
@@ -1034,7 +1064,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         }
     }
     /* Then if we have an exposure control, check the requested exposure duration */
-    else if (AbsExposureN->max < ticks)
+    else if (AbsExposureN->max < ticks || ioptron_maximum_duration_exceeded)
     {
         if( CaptureFormatSP[IMAGE_MONO].getState() == ISS_ON && m_StackMode == STACK_NONE )
         {
@@ -1055,14 +1085,15 @@ bool V4L2_Driver::setManualExposure(double duration)
                           (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
                           duration, StackModeSP[m_StackMode].getName());
             }
-            ticks = AbsExposureN->max;
-            if (strstr(getDeviceName(), "iGuider") || strstr(getDeviceName(), "iPolar"))
+            if (isIOptron())
             {
-                frame_duration.tv_sec  = 4;
-                frame_duration.tv_usec = 0;
+                ticks = MAX_IOPTRON_TICKS;
+                frame_duration.tv_sec  = floor(MAX_IOPTRON_DURATION);
+                frame_duration.tv_usec = (MAX_IOPTRON_DURATION - frame_duration.tv_sec) * 1000000;
             }
             else
             {
+                ticks = AbsExposureN->max;
                 frame_duration.tv_sec  = ticks / 10000;
                 frame_duration.tv_usec = (ticks % 10000) * 100;
             }
@@ -1084,7 +1115,7 @@ bool V4L2_Driver::setManualExposure(double duration)
 
     /* Lower-than-minimal exposure duration is left managed below */
 
-    if( v4l_capture_started && !strstr(getDeviceName(), "iGuider") && !strstr(getDeviceName(), "iPolar"))
+    if ( v4l_capture_started )
     {
         if( AbsExposureN->value != ticks )
         {
@@ -1185,6 +1216,31 @@ void V4L2_Driver::stdtimerCallback(void * userpointer)
     p->PrimaryCCD.setExposureLeft(remaining);
 }
 
+// iPolar and iGuider cameras occasionally fail to restart once capturing is stopped. This occurs in Windows too. Here
+// we take the same approach as the iOptron ASCOM driver and restart the capture if no frames have been received for a while.
+void V4L2_Driver::iOptronWatchdogCallback(void * userpointer)
+{
+    V4L2_Driver * p = (V4L2_Driver *)userpointer;
+
+    if (p->valid_frame_has_arrived)
+    {
+        p->iOptronWatchdogTimer = -1;
+        return;
+    }
+
+    INDI::Logger::getInstance().print(p->getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "Valid frame hasn't arrived yet. Restart capturing.");
+
+    char errmsg[ERRMSGSIZ];
+    p->v4l_base->stop_capturing(errmsg);
+
+    p->v4l_base->setINTControl(IOPTRON_ABS_EXPOSURE_CTRL_ID, p->AbsExposureN->value, errmsg);
+    p->v4l_base->setOPTControl(IOPTRON_AUTO_EXPOSURE_CTRL_ID, 1, errmsg); // Manual
+
+    p->v4l_base->start_capturing(errmsg);
+
+    p->iOptronWatchdogTimer = IEAddTimer(IOPTRON_WATCHDOG_PERIOD_IN_MS, (IE_TCF *)iOptronWatchdogCallback, userpointer);
+}
+
 bool V4L2_Driver::start_capturing(bool do_stream)
 {
     // FIXME Must migrate completely to Stream
@@ -1232,6 +1288,14 @@ bool V4L2_Driver::stop_capturing()
     if (!is_capturing && !v4l_capture_started)
     {
         LOG_WARN("No exposure or streaming in progress");
+        return true;
+    }
+
+    // For iGuider/iPolar we don't stop capturing, as it doesn't reliably restart. This
+    // is the same behaviour as IOptron's ASCOM driver in Windows.
+    if (isIOptron())
+    {
+        is_capturing = false;
         return true;
     }
 
@@ -1502,28 +1566,37 @@ void V4L2_Driver::newFrame()
             return; //skip this frame
         }
 
-        if (waiting_for_iguider_to_start) {
-            LOGF_INFO("Setting iGuider duration to %f", V4LFrame->expose);
-            setShutter(V4LFrame->expose);
-            waiting_for_iguider_to_start = false;
-            return;
-        }
-
         struct timeval capture_frame_dif = { .tv_sec = 0, .tv_usec = 0 };
         timersub(&frame_received, &capture_start, &capture_frame_dif);
 
-        float cfd = (float) current_frame_duration.tv_sec + (float) current_frame_duration.tv_usec / 1000000.0f;
-        float fd = (float) frame_duration.tv_sec + (float) frame_duration.tv_usec / 1000000.0f;
+        float time_since_capture_started = (float) capture_frame_dif.tv_sec + (float) capture_frame_dif.tv_usec / 1000000.0f;
+        float expected_frame_duration = (float) frame_duration.tv_sec + (float) frame_duration.tv_usec / 1000000.0f;
 
-        if( cfd < fd * 0.9 || cfd > fd * 1.1)
+        if( time_since_capture_started < expected_frame_duration * 0.9 )
         {
-            LOGF_INFO("Skipping incorrectly sized frame cfd = %ld.%06ld seconds.", capture_frame_dif.tv_sec, capture_frame_dif.tv_usec);
+            LOGF_DEBUG("Skip early frame cfd = %ld.%06ld seconds.", capture_frame_dif.tv_sec, capture_frame_dif.tv_usec);
             return;
+        }
+
+        // Since we don't clear the frame buffer when changing exposures, we can get several frames coming through with the old
+        // duration. Discard these.
+        float current_frame_duration_f = (float) current_frame_duration.tv_sec + (float) current_frame_duration.tv_usec / 1000000.0f;
+        if( m_StackMode == STACK_NONE && (current_frame_duration_f < expected_frame_duration * 0.9 || current_frame_duration_f > expected_frame_duration * 1.1))
+        {
+            LOGF_DEBUG("Skip frame with incorrect duration (%f seconds)", current_frame_duration_f);
+            return;
+        }
+
+        valid_frame_has_arrived = true;
+        if (iOptronWatchdogTimer != -1) 
+        {
+            IERmTimer(iOptronWatchdogTimer);
+            iOptronWatchdogTimer = -1;
         }
 
         timeradd(&elapsed_exposure, &frame_duration, &elapsed_exposure);
 
-        LOGF_DEBUG("Frame took %ld.%06ld s, e = %ld.%06ld s, t = %ld.%06ld s., cfd = %ld.%06ld s.",
+        LOGF_INFO("Frame took %ld.%06ld s, e = %ld.%06ld s, t = %ld.%06ld s., cfd = %ld.%06ld s.",
                    current_frame_duration.tv_sec, current_frame_duration.tv_usec,
                    elapsed_exposure.tv_sec, elapsed_exposure.tv_usec,
                    exposure_duration.tv_sec, exposure_duration.tv_usec,
@@ -1714,7 +1787,7 @@ void V4L2_Driver::newFrame()
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
-            if (PrimaryCCD.getExposureDuration() >= 3)
+            //if (PrimaryCCD.getExposureDuration() >= 3)
                 LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
@@ -1733,6 +1806,7 @@ void V4L2_Driver::newFrame()
             if (PrimaryCCD.getExposureDuration() >= 3)
                 LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",  subframeCount, current_exposure.tv_sec,
                           current_exposure.tv_usec);
+
             ExposureComplete(&PrimaryCCD);
         }
     }
@@ -1740,7 +1814,8 @@ void V4L2_Driver::newFrame()
     {
         non_capture_frames++;
 
-        if( non_capture_frames > 10 )
+        // We don't abort for iGuider/iPolar as it doesn't reliably restart after having the stream stopped. This is the same behaviour as the ASCOM driver.
+        if( non_capture_frames > 10 && !isIOptron())
         {
             /* If we arrive here, PrimaryCCD is not exposing anymore, we can't forward the frame and we can't be aborted neither, thus abort the exposure right now.
             * That issue can be reproduced when clicking the "Set" button on the "Main Control" tab while an exposure is running.
