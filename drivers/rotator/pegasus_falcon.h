@@ -94,14 +94,11 @@ class PegasusFalcon : public INDI::Rotator
         /// Properties
         ////////////////////////////////////////////////////////////////////////////////////
         /// Reboot Device
-        ISwitchVectorProperty ReloadFirmwareSP;
-        ISwitch ReloadFirmwareS[1];
+        INDI::PropertySwitch ReloadFirmwareSP {1};
         /// Derotation
-        INumberVectorProperty DerotateNP;
-        INumber DerotateN[1];
+        INDI::PropertyNumber DerotateNP {1};
         /// Firmware
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1] {};
+        INDI::PropertyText FirmwareTP {1};
 
         std::vector<std::string> lastStatusData;
 
