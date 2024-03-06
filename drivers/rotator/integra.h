@@ -90,18 +90,20 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
         uint32_t rotatorDegreesToTicks(double angle);
         double rotatorTicksToDegrees(uint32_t ticks);
 
-        INumber MaxPositionN[2];
-        INumberVectorProperty MaxPositionNP;
+        // INumber MaxPositionN[2];
+        INDI::PropertyNumber MaxPositionNP {2};
+        enum
+        {
+            FOCUSER,
+            ROTATOR
+        };
 
-        INumber SensorN[2];
-        INumberVectorProperty SensorNP;
+        INDI::PropertyNumber SensorNP {1};
         enum { SENSOR_TEMPERATURE };
 
-        ISwitch FindHomeS[HOMING_COUNT];
-        ISwitchVectorProperty FindHomeSP;
+        INDI::PropertySwitch FindHomeSP {3};
 
-        INumber RotatorAbsPosN[1];
-        INumberVectorProperty RotatorAbsPosNP;
+        INDI::PropertyNumber RotatorAbsPosNP {1};
 
         double lastTemperature { 0 };
         int timeToReadTemperature = 0;
