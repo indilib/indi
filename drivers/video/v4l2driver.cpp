@@ -296,17 +296,6 @@ void V4L2_Driver::ISGetProperties(const char * dev)
         defineProperty(&CaptureColorSpaceTP);
 #endif
 
-        // iOptron cameras take an excessively long time to start if started with a longer exposure time (eg 8 seconds to
-        // start with a 1s exposure, 28 seconds to start with a 3.5s exposure). Here we start the camera up with a small duration
-        // to get the camera going. Changing the exposure after it has started does not cause a delay.
-        if (!v4l_capture_started && isIOptron() )
-        {
-            char errmsg[ERRMSGSIZ];
-            v4l_base->setINTControl(IOPTRON_ABS_EXPOSURE_CTRL_ID, 1, errmsg);
-            v4l_base->setOPTControl(IOPTRON_AUTO_EXPOSURE_CTRL_ID, 1, errmsg); // Manual
-            v4l_base->start_capturing(errmsg);
-            v4l_capture_started = true;
-        }
     }
 }
 
