@@ -737,6 +737,10 @@
             <driver name="myDewControllerPro">indi_myDewControllerPro</driver>
             <version>1.0</version>
         </device>
+        <device label="CheapoDC" manufacturer="DIY">
+            <driver name="CheapoDC">indi_cheapodc</driver>
+            <version>1.0</version>
+        </device>
         <device label="MyDCP4ESP32" manufacturer="DIY">
             <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>

@@ -264,6 +264,14 @@ add_executable(indi_myDewControllerPro ${myDewControllerPro_SRC})
 target_link_libraries(indi_myDewControllerPro indidriver)
 install(TARGETS indi_myDewControllerPro RUNTIME DESTINATION bin)
 
+# ########## CheapoDC Driver ###############
+SET(cheapodc_SRC
+    cheapodc.cpp)
+
+add_executable(indi_cheapodc ${cheapodc_SRC})
+target_link_libraries(indi_cheapodc indidriver)
+install(TARGETS indi_cheapodc RUNTIME DESTINATION bin)
+
 # ########## MYDCP4ESP32 Driver ###############
 SET(mydcp4esp32_SRC
     mydcp4esp32.cpp)
