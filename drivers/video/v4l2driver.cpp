@@ -101,7 +101,9 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     lx       = new Lx();
     lxtimer  = -1;
     stdtimer = -1;
-    iOptronWatchdogTimer = -1;
+    
+    ioptron_watchdog_timer.callOnTimeout(std::bind(&V4L2_Driver::iOptronWatchdogCallback, this));
+    ioptron_watchdog_timer.setInterval(IOPTRON_WATCHDOG_PERIOD_IN_MS);
 }
 
 V4L2_Driver::V4L2_Driver()
@@ -133,7 +135,8 @@ V4L2_Driver::V4L2_Driver()
     lx       = new Lx();
     lxtimer  = -1;
     stdtimer = -1;
-    iOptronWatchdogTimer = -1;
+    ioptron_watchdog_timer.callOnTimeout(std::bind(&V4L2_Driver::iOptronWatchdogCallback, this));
+    ioptron_watchdog_timer.setInterval(IOPTRON_WATCHDOG_PERIOD_IN_MS);
 }
 
 V4L2_Driver::~V4L2_Driver()
@@ -855,13 +858,9 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
     }
 
     // Ensure duration is set to one of the allowed durations, or, if we're going to stack, a value greater than the maximum
-    if (isIOptron() && strcmp(name, "CCD_EXPOSURE") == 0 && values[0] < MAX_IOPTRON_DURATION) {
-        int n = findIndexOfNearestValue(values[0], IOptronDurations);
-        if (values[0] != IOptronDurations[n]) 
-        {
-            LOGF_WARN("Changing duration to nearest value supported by camera (from %fs to %fs)", values[0], IOptronDurations[n]);
-            values[0] = IOptronDurations[n];
-        }
+    if (isIOptron() && strcmp(name, "CCD_EXPOSURE") == 0 && values[0] < MAX_IOPTRON_DURATION) 
+    {
+        values[0] = IOptronDurations[findIndexOfNearestValue(values[0], IOptronDurations)];
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -946,9 +945,7 @@ bool V4L2_Driver::StartExposure(float duration)
         if (isIOptron())
         {
             valid_frame_has_arrived = false;
-            if (-1 != iOptronWatchdogTimer)
-                IERmTimer(iOptronWatchdogTimer);
-            iOptronWatchdogTimer = IEAddTimer(IOPTRON_WATCHDOG_PERIOD_IN_MS, (IE_TCF *)iOptronWatchdogCallback, this);
+            ioptron_watchdog_timer.start();
         }
     }
 
@@ -1218,27 +1215,22 @@ void V4L2_Driver::stdtimerCallback(void * userpointer)
 
 // iPolar and iGuider cameras occasionally fail to restart once capturing is stopped. This occurs in Windows too. Here
 // we take the same approach as the iOptron ASCOM driver and restart the capture if no frames have been received for a while.
-void V4L2_Driver::iOptronWatchdogCallback(void * userpointer)
+void V4L2_Driver::iOptronWatchdogCallback()
 {
-    V4L2_Driver * p = (V4L2_Driver *)userpointer;
-
-    if (p->valid_frame_has_arrived)
+    if (valid_frame_has_arrived)
     {
-        p->iOptronWatchdogTimer = -1;
+        ioptron_watchdog_timer.stop();
         return;
     }
 
-    INDI::Logger::getInstance().print(p->getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "Valid frame hasn't arrived yet. Restart capturing.");
+    LOG_DEBUG("Valid frame hasn't arrived yet. Restart capturing.");
 
     char errmsg[ERRMSGSIZ];
-    p->v4l_base->stop_capturing(errmsg);
+    v4l_base->stop_capturing(errmsg);
 
-    p->v4l_base->setINTControl(IOPTRON_ABS_EXPOSURE_CTRL_ID, p->AbsExposureN->value, errmsg);
-    p->v4l_base->setOPTControl(IOPTRON_AUTO_EXPOSURE_CTRL_ID, 1, errmsg); // Manual
-
-    p->v4l_base->start_capturing(errmsg);
-
-    p->iOptronWatchdogTimer = IEAddTimer(IOPTRON_WATCHDOG_PERIOD_IN_MS, (IE_TCF *)iOptronWatchdogCallback, userpointer);
+    v4l_base->setINTControl(IOPTRON_ABS_EXPOSURE_CTRL_ID, AbsExposureN->value, errmsg);
+    v4l_base->setOPTControl(IOPTRON_AUTO_EXPOSURE_CTRL_ID, 1, errmsg); // Manual
+    v4l_base->start_capturing(errmsg);
 }
 
 bool V4L2_Driver::start_capturing(bool do_stream)
@@ -1588,10 +1580,9 @@ void V4L2_Driver::newFrame()
         }
 
         valid_frame_has_arrived = true;
-        if (iOptronWatchdogTimer != -1) 
+        if (ioptron_watchdog_timer.isActive())
         {
-            IERmTimer(iOptronWatchdogTimer);
-            iOptronWatchdogTimer = -1;
+            ioptron_watchdog_timer.stop();
         }
 
         timeradd(&elapsed_exposure, &frame_duration, &elapsed_exposure);

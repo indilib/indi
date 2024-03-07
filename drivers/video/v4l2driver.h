@@ -186,7 +186,7 @@ public:
         bool startlongexposure(double timeinsec);
         static void lxtimerCallback(void *userpointer);
         static void stdtimerCallback(void *userpointer);
-        static void iOptronWatchdogCallback(void *userpointer);
+        void iOptronWatchdogCallback();
 
         /* start/stop functions */
         bool start_capturing(bool do_stream);
@@ -233,7 +233,7 @@ public:
         Lx *lx;
         int lxtimer;
         int stdtimer;
-        int iOptronWatchdogTimer;
+        INDI::Timer ioptron_watchdog_timer;
 
         short lxstate;
         PixelSizeInfo * m_Info {nullptr};
