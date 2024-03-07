@@ -45,6 +45,7 @@ static class Loader
             {"Skyris 236M", "Skyris 236M"},
             {"iOptron iPolar: iOptron iPolar", "iOptron iPolar"},
             {"iOptron iPolar", "iOptron iPolar"},
+            {"iOptron iPolar 1.1: iOptron iPo", "iOptron iPolar"},
             {"iOptron iGuider: iOptron iGuide", "iOptron iGuider"},
             {"iOptron iGuider 1", "iOptron iGuider"},
             {"iOptron iGuider External: iOptr", "iOptron iGuider"},
