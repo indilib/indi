@@ -186,12 +186,17 @@ public:
         bool startlongexposure(double timeinsec);
         static void lxtimerCallback(void *userpointer);
         static void stdtimerCallback(void *userpointer);
+        void iOptronWatchdogCallback();
 
         /* start/stop functions */
         bool start_capturing(bool do_stream);
         bool stop_capturing();
 
         virtual void updateV4L2Controls();
+
+        bool isIOptron();
+
+        void resetDevice(int bus_num, int dev_num);
 
         /* Variables */
         INDI::V4L2_Base *v4l_base;
@@ -222,11 +227,13 @@ public:
         bool v4l_capture_started;
         bool is_capturing;
         bool is_exposing;
+        bool valid_frame_has_arrived;
 
         //Long Exposure
         Lx *lx;
         int lxtimer;
         int stdtimer;
+        INDI::Timer ioptron_watchdog_timer;
 
         short lxstate;
         PixelSizeInfo * m_Info {nullptr};
