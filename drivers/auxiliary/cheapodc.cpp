@@ -55,12 +55,12 @@ bool CheapoDC::initProperties()
     OutputPowerNP.fill(getDeviceName(), "OUTPUT", "Output", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Minimum Output Power */
-    MinimumOutputNP[0].fill("MINIMUMOUTPUT", "Minimum (%)", "%3.0f", 0, 99, 1, prevMinOutput);
-    MinimumOutputNP.fill(getDeviceName(), "MINIMUMOUTPUT", "Output", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    MinimumOutputNP[0].fill("MINIMUMOUTPUT", "Power (%)", "%3.0f", 0, 99, 1, prevMinOutput);
+    MinimumOutputNP.fill(getDeviceName(), "MINIMUMOUTPUT", "Output Min", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Maximum Output Power */
-    MaximumOutputNP[0].fill("MAXIMUMOUTPUT", "Maximum (%)", "%3.0f", 1, 100, 1, prevMaxOutput);
-    MaximumOutputNP.fill(getDeviceName(), "MAXIMUMOUTPUT", "Output", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    MaximumOutputNP[0].fill("MAXIMUMOUTPUT", "Power (%)", "%3.0f", 1, 100, 1, prevMaxOutput);
+    MaximumOutputNP.fill(getDeviceName(), "MAXIMUMOUTPUT", "Output Max", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     XtrnTemperatureNP[0].fill("WEATHERQUERY", "Weather Query (\u2103)", "%3.2f", -50., 120., 0., 0.);
     XtrnTemperatureNP[1].fill("EXTERNALINPUT", "External Input (\u2103)", "%3.2f", -50., 120., 0., 0.);
@@ -1151,7 +1151,7 @@ bool CheapoDC::readSettings()
 
     ok = sscanf(resp, "%f", &temp_ambient);
 
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
     if (!sendGetCommand(CDC_CMD_ATPX, resp))
         return false;
 
@@ -1168,7 +1168,7 @@ bool CheapoDC::readSettings()
         LOG_ERROR("GET temperature values failure");
 
     // Get Humidity
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_HU, resp))
         return false;
@@ -1185,7 +1185,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Humidity: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_HU);
 
     // Get Dew Point
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_DP, resp))
         return false;
@@ -1201,7 +1201,7 @@ bool CheapoDC::readSettings()
     else
         LOGF_ERROR("Get Dew point: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_DP);
     // Get Set Point
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_SP, resp))
         return false;
@@ -1218,7 +1218,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Set Point: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_SP);
 
     // Get Power output
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_DCO, resp))
         return false;
@@ -1235,7 +1235,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Power Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_DCO);
 
     // Get Minimum output
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_OMIN, resp))
         return false;
@@ -1262,7 +1262,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Minimum Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_OMIN);
 
     // Get Maximum output
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_OMAX, resp))
         return false;
@@ -1290,7 +1290,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Maximum Output: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_OMAX);
 
     // Get Track Point Offset
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_TPO, resp))
         return false;
@@ -1307,7 +1307,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Track Point Offset: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_TPO);
 
     // Get Tracking Range
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_TKR, resp))
         return false;
@@ -1324,7 +1324,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Update Output Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_TKR);
 
     // Get Output Update Period
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_UOE, resp))
         return false;
@@ -1341,7 +1341,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Query Weather Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_UOE);
 
     // Get Query Weather Period
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_WQE, resp))
         return false;
@@ -1358,7 +1358,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Query Weather Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_WQE);
 
     // Get Latitude
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_LAT, resp))
         return false;
@@ -1375,7 +1375,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Latitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LAT);
 
     // Get Longitude
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_LON, resp))
         return false;
@@ -1392,7 +1392,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Longitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LON);
 
     // Get Set Point Mode
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_SPM, resp))
         return false;
@@ -1412,7 +1412,7 @@ bool CheapoDC::readSettings()
     // Get API Key if using OpenWeather
     if (usingOpenWeather)
     {
-        memset(resp, '\0', CDC_RESPONSE_LENGTH);
+        memset(resp, '\0', sizeof(resp));
 
         if (!sendGetCommand(CDC_CMD_WKEY, resp))
             return false;
@@ -1422,7 +1422,7 @@ bool CheapoDC::readSettings()
         WeatherQueryAPIKeyTP.apply();
 
         // Get Query Station name also only if using OpenWeather
-        memset(resp, '\0', CDC_RESPONSE_LENGTH);
+        memset(resp, '\0', sizeof(resp));
 
         if (!sendGetCommand(CDC_CMD_WUL, resp))
             return false;
@@ -1432,9 +1432,7 @@ bool CheapoDC::readSettings()
         LocationNameTP.apply();
     }
     // Get Last Weather Update date time
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
-    memset(dateBuf, '\0', CDC_RESPONSE_LENGTH);
-    memset(timeBuf, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_LWUD, dateBuf))
         return false;
@@ -1478,7 +1476,7 @@ bool CheapoDC::readSettings()
     }
 
     // Get Controller Mode
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_DCM, resp))
         return false;
@@ -1514,7 +1512,7 @@ bool CheapoDC::readSettings()
         LOGF_ERROR("Get Controller Mode: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_DCM);
 
     // Get Temperature Mode
-    memset(resp, '\0', CDC_RESPONSE_LENGTH);
+    memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_DCTM, resp))
         return false;
