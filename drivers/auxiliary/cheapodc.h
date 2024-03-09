@@ -123,7 +123,6 @@ private:
     };
 
     int timerIndex;
-    int CDCFirmware = 0;
     unsigned int previousControllerMode = MANUAL;
     unsigned int prevMinOutput = 0;
     unsigned int prevMaxOutput = 100;
@@ -137,7 +136,6 @@ private:
     char temperatureDevice[MAXINDIDEVICE] = {"Focuser Simulator"};
     char temperatureProperty[MAXINDINAME] = {"FOCUS_TEMPERATURE"};
     char temperatureAttribute[MAXINDINAME] = {"TEMPERATURE"};
-    bool snoopSet = false;
     bool setSnoopLocation = false;
     bool setSnoopTemperature = false;
     bool usingOpenWeather = true;

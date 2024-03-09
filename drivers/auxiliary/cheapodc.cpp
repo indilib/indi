@@ -445,7 +445,7 @@ bool CheapoDC::sendGetCommand(const char *cmd, char *resp)
         catch (json::exception &e)
         {
             // output exception information
-            LOGF_ERROR("Error parsing GET %s response %s Error: %s", cmd, getResponseST, e.what());
+            LOGF_ERROR("Error parsing GET %s response %s Error: %s", cmd, getResponseST.c_str(), e.what());
             return false;
         }
     }
@@ -1399,7 +1399,7 @@ bool CheapoDC::readSettings()
 
     ok = sscanf(resp, "%d", &setPointMode);
 
-    if ((ok == 1) && (setPointMode >= DEWPOINT) && (setPointMode <= MIDPOINT))
+    if ((ok == 1) && (setPointMode <= MIDPOINT))
     {
         SetPointModeSP.reset();
         SetPointModeSP[setPointMode].setState(ISS_ON);
@@ -1483,7 +1483,7 @@ bool CheapoDC::readSettings()
 
     ok = sscanf(resp, "%d", &controllerMode);
 
-    if ((ok == 1) && (controllerMode >= AUTOMATIC) && (controllerMode <= OFF))
+    if ((ok == 1) && (controllerMode <= OFF))
     {
         ControllerModeSP.reset();
         ControllerModeSP[controllerMode].setState(ISS_ON);
@@ -1519,7 +1519,7 @@ bool CheapoDC::readSettings()
 
     ok = sscanf(resp, "%d", &temperatureMode);
 
-    if ((ok == 1) && (temperatureMode >= WEATHER_QUERY) && (temperatureMode <= TEMPERATURE))
+    if ((ok == 1) && (temperatureMode <= TEMPERATURE))
     {
         TemperatureModeSP.reset();
         TemperatureModeSP[temperatureMode].setState(ISS_ON);
