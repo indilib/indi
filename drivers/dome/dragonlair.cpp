@@ -50,6 +50,10 @@ bool DragonLAIR::initProperties()
 
     INDI::Dome::initProperties();
 
+    MotorStatsNP[0].fill("Voltage", "Voltage", "%0.2f V", 0.0, 18.0, 0.01, 0.00);
+    MotorStatsNP[1].fill("Current", "Current", "%0.2f A", 0.0, 18.0, 0.01, 0.00);
+    MotorStatsNP.fill(getDeviceName(), "MOTOR_STATS", "Motor Stats", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
     FirmwareTP[0].fill("Version", "Version", nullptr);
     FirmwareTP[1].fill("Serial", "Serial", nullptr);
     FirmwareTP.fill(getDeviceName(), "FIRMWARE", "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -94,6 +98,8 @@ bool DragonLAIR::ISSnoopDevice(XMLEle *root)
 
 bool DragonLAIR::Connect()
 {
+    IDLog("Connecting...\n");
+
     if (strlen(IPAddressTP[0].getText()) == 0)
     {
         LOG_ERROR("IP Address is not set.");
@@ -111,7 +117,7 @@ bool DragonLAIR::Disconnect()
 
 const char *DragonLAIR::getDefaultName()
 {
-    return (const char *)"DragonLAIR Roll Off Roof";
+    return (const char *)"DragonLAIR";
 }
 
 bool DragonLAIR::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -145,7 +151,7 @@ bool DragonLAIR::ISNewText(const char *dev, const char *name, char *texts[], cha
         return true;
     }
 
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+    return INDI::Dome::ISNewText(dev, name, texts, names, n);
 }
 
 bool DragonLAIR::updateProperties()
@@ -154,12 +160,14 @@ bool DragonLAIR::updateProperties()
 
     if (isConnected())
     {
+        defineProperty(MotorStatsNP);
         defineProperty(FirmwareTP);
         defineProperty(SafetySensorLP);
         defineProperty(LimitSwitchLP);
     }
     else
     {
+        deleteProperty(MotorStatsNP);
         deleteProperty(FirmwareTP);
         deleteProperty(SafetySensorLP);
         deleteProperty(LimitSwitchLP);
@@ -274,84 +282,109 @@ void DragonLAIR::updateStatus()
 
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
-    auto result = cli.Get("/indi/status");
-    if (result.value().status == 200)
+    try
     {
-        nlohmann::json j = nlohmann::json::parse(result.value().body, nullptr, false, true);
+        IDLog("Updating status...\n");
 
-        if (j.is_discarded())
+        httplib::Result result = cli.Get("/indi/status");
+        if (!result)
         {
-            LOG_ERROR("Error parsing JSON.");
+            LOG_ERROR("Unable to connect.");
             return;
         }
 
-        std::string version = j["version"];
-        std::string serial = j["serialNumber"];
-
-        FirmwareTP[0].setText(version.c_str());
-        FirmwareTP[1].setText(serial.c_str());
-        FirmwareTP.setState(IPS_OK);
-        FirmwareTP.apply();
-
-        std::string safetySensor1 = j["roof"]["safetySensor1"];
-        std::string safetySensor2 = j["roof"]["safetySensor2"];
-        std::string safetySensor3 = j["roof"]["safetySensor3"];
-        std::string safetySensor4 = j["roof"]["safetySensor4"];
-
-        SafetySensorLP[0].setState(safetySensor1 == "disabled" ? IPS_IDLE : safetySensor1 == "unsafe" ? IPS_ALERT : IPS_OK);
-        SafetySensorLP[1].setState(safetySensor2 == "disabled" ? IPS_IDLE : safetySensor2 == "unsafe" ? IPS_ALERT : IPS_OK);
-        SafetySensorLP[2].setState(safetySensor3 == "disabled" ? IPS_IDLE : safetySensor3 == "unsafe" ? IPS_ALERT : IPS_OK);
-        SafetySensorLP[3].setState(safetySensor4 == "disabled" ? IPS_IDLE : safetySensor4 == "unsafe" ? IPS_ALERT : IPS_OK);
-        SafetySensorLP.apply();
-
-        bool isRoofFullyClosed = j["roof"]["isRoofFullyClosed"];
-        bool isRoofFullyOpen = j["roof"]["isRoofFullyOpen"];
-
-        LimitSwitchLP[0].setState(isRoofFullyOpen ? IPS_OK : IPS_BUSY);
-        LimitSwitchLP[1].setState(isRoofFullyClosed ? IPS_OK : IPS_BUSY);
-        LimitSwitchLP.apply();
-
-        bool isRoofClosing = j["roof"]["isRoofClosing"];
-        bool isRoofOpening = j["roof"]["isRoofOpening"];
-
-        IDLog("Dome state: %d\n", Dome::getDomeState());
-
-        if (isRoofFullyClosed)
+        if (result.value().status == 200)
         {
-            if (Dome::getDomeState() != DOME_PARKED)
+            nlohmann::json j = nlohmann::json::parse(result.value().body, nullptr, false, true);
+
+            if (j.is_discarded())
             {
-                SetParked(true);
+                LOG_ERROR("Error parsing JSON.");
+                return;
+            }
+
+            std::string version = j["version"];
+            std::string serial = j["serialNumber"];
+            uint32_t voltageMV = j["voltage"];
+            uint32_t currentMA = j["current"];
+
+            MotorStatsNP[0].setValue(voltageMV / 1000.0);
+            MotorStatsNP[1].setValue(currentMA / 1000.0);
+            MotorStatsNP.setState(IPS_OK);
+            MotorStatsNP.apply();
+
+            FirmwareTP[0].setText(version.c_str());
+            FirmwareTP[1].setText(serial.c_str());
+            FirmwareTP.setState(IPS_OK);
+            FirmwareTP.apply();
+
+            std::string safetySensor1 = j["roof"]["safetySensor1"];
+            std::string safetySensor2 = j["roof"]["safetySensor2"];
+            std::string safetySensor3 = j["roof"]["safetySensor3"];
+            std::string safetySensor4 = j["roof"]["safetySensor4"];
+
+            SafetySensorLP[0].setState(safetySensor1 == "disabled" ? IPS_IDLE : safetySensor1 == "unsafe" ? IPS_ALERT : IPS_OK);
+            SafetySensorLP[1].setState(safetySensor2 == "disabled" ? IPS_IDLE : safetySensor2 == "unsafe" ? IPS_ALERT : IPS_OK);
+            SafetySensorLP[2].setState(safetySensor3 == "disabled" ? IPS_IDLE : safetySensor3 == "unsafe" ? IPS_ALERT : IPS_OK);
+            SafetySensorLP[3].setState(safetySensor4 == "disabled" ? IPS_IDLE : safetySensor4 == "unsafe" ? IPS_ALERT : IPS_OK);
+            SafetySensorLP.apply();
+
+            bool isRoofFullyClosed = j["roof"]["isRoofFullyClosed"];
+            bool isRoofFullyOpen = j["roof"]["isRoofFullyOpen"];
+
+            LimitSwitchLP[0].setState(isRoofFullyOpen ? IPS_OK : IPS_BUSY);
+            LimitSwitchLP[1].setState(isRoofFullyClosed ? IPS_OK : IPS_BUSY);
+            LimitSwitchLP.apply();
+
+            bool isRoofClosing = j["roof"]["isRoofClosing"];
+            bool isRoofOpening = j["roof"]["isRoofOpening"];
+
+            IDLog("Dome state: %d\n", Dome::getDomeState());
+
+            if (isRoofFullyClosed)
+            {
+                if (Dome::getDomeState() != DOME_PARKED)
+                {
+                    SetParked(true);
+                }
+            }
+            else if (isRoofFullyOpen)
+            {
+                if (Dome::getDomeState() != DOME_UNPARKED)
+                {
+                    SetParked(false);
+                }
+            }
+            else if (isRoofClosing)
+            {
+                if (Dome::getDomeState() != DOME_PARKING)
+                {
+                    setDomeState(DOME_PARKING);
+                }
+            }
+            else if (isRoofOpening)
+            {
+                if (Dome::getDomeState() != DOME_UNPARKING)
+                {
+                    setDomeState(DOME_UNPARKING);
+                }
+            }
+            else if (Dome::getDomeState() != DOME_IDLE)
+            {
+                setDomeState(DOME_IDLE);
             }
         }
-        else if (isRoofFullyOpen)
+        else
         {
-            if (Dome::getDomeState() != DOME_UNPARKED)
-            {
-                SetParked(false);
-            }
-        }
-        else if (isRoofClosing)
-        {
-            if (Dome::getDomeState() != DOME_PARKING)
-            {
-                setDomeState(DOME_PARKING);
-            }
-        }
-        else if (isRoofOpening)
-        {
-            if (Dome::getDomeState() != DOME_UNPARKING)
-            {
-                setDomeState(DOME_UNPARKING);
-            }
-        }
-        else if (Dome::getDomeState() != DOME_IDLE)
-        {
-            setDomeState(DOME_IDLE);
+            LOG_ERROR("Error on updateStatus.");
         }
     }
-    else
+    catch(const std::exception &e)
     {
-        LOG_ERROR("Error on updateStatus.");
+        IDLog("Caught exception\n");
+
+        // LOGF_ERROR("Error on updateStatus: %s\n", e.what());
+        // IDLog("Error on updateStatus: %s\n", e.what());
     }
 }
 
@@ -363,16 +396,29 @@ void DragonLAIR::openRoof()
         return;
     }
 
-    httplib::Client cli(IPAddressTP[0].getText(), 80);
+    try
+    {
+        httplib::Client cli(IPAddressTP[0].getText(), 80);
 
-    auto result = cli.Post("/indi/roof/open");
-    if (result.value().status == 200)
-    {
-        LOG_INFO("Roof is opening...");
+        auto result = cli.Post("/indi/roof/open");
+        if (!result)
+        {
+            LOG_ERROR("Unable to connect.");
+            return;
+        }
+
+        if (result.value().status == 200)
+        {
+            LOG_INFO("Roof is opening...");
+        }
+        else
+        {
+            LOG_ERROR("Error on openRoof.");
+        }
     }
-    else
+    catch(const std::exception &e)
     {
-        LOG_ERROR("Error on openRoof.");
+        LOGF_ERROR("Error on openRoof: %s\n", e.what());
     }
 }
 
@@ -384,16 +430,29 @@ void DragonLAIR::closeRoof()
         return;
     }
 
-    httplib::Client cli(IPAddressTP[0].getText(), 80);
+    try
+    {
+        httplib::Client cli(IPAddressTP[0].getText(), 80);
 
-    auto result = cli.Post("/indi/roof/close");
-    if (result.value().status == 200)
-    {
-        LOG_INFO("Roof is closing...");
+        auto result = cli.Post("/indi/roof/close");
+        if (!result)
+        {
+            LOG_ERROR("Unable to connect.");
+            return;
+        }
+
+        if (result.value().status == 200)
+        {
+            LOG_INFO("Roof is closing...");
+        }
+        else
+        {
+            LOG_ERROR("Error on closeRoof.");
+        }
     }
-    else
+    catch(const std::exception &e)
     {
-        LOG_ERROR("Error on closeRoof.");
+        LOGF_ERROR("Error on closeRoof: %s\n", e.what());
     }
 }
 
@@ -405,16 +464,29 @@ void DragonLAIR::stopRoof()
         return;
     }
 
-    httplib::Client cli(IPAddressTP[0].getText(), 80);
+    try
+    {
+        httplib::Client cli(IPAddressTP[0].getText(), 80);
 
-    auto result = cli.Post("/indi/roof/abort");
-    if (result.value().status == 200)
-    {
-        LOG_INFO("Roof is stopping...");
+        auto result = cli.Post("/indi/roof/abort");
+        if (!result)
+        {
+            LOG_ERROR("Unable to connect.");
+            return;
+        }
+
+        if (result.value().status == 200)
+        {
+            LOG_INFO("Roof is stopping...");
+        }
+        else
+        {
+            LOG_ERROR("Error on stopRoof.");
+        }
     }
-    else
+    catch(const std::exception &e)
     {
-        LOG_ERROR("Error on stopRoof.");
+        LOGF_ERROR("Error on stopRoof: %s\n", e.what());
     }
 }
 

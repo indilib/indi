@@ -115,6 +115,11 @@ bool DragonLIGHT::EnableLightBox(bool enable)
     std::string endpoint = enable ? "/indi/turnon" : "/indi/turnoff";
 
     auto result = cli.Post(endpoint);
+    if (!result)
+    {
+        LOG_ERROR("Unable to connect.");
+        return false;
+    }
 
     IDLog("EnableLightBox: %d\n", result.value().status);
     IDLog("EnableLightBox: %s\n", result.value().body.c_str());
@@ -148,6 +153,12 @@ bool DragonLIGHT::SetLightBoxBrightness(uint16_t value)
     j["brightness"] = value;
 
     auto result = cli.Post(endpoint, j.dump(), "application/json");
+    if (!result)
+    {
+        LOG_ERROR("Unable to connect.");
+        return false;
+    }
+
     if (result.value().status == 200)
     {
         return true;
@@ -260,6 +271,12 @@ void DragonLIGHT::updateStatus()
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
     auto result = cli.Get("/indi/status");
+    if (!result)
+    {
+        LOG_ERROR("Unable to connect.");
+        return;
+    }
+
     if (result.value().status == 200)
     {
         nlohmann::json j = nlohmann::json::parse(result.value().body);

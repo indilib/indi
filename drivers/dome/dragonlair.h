@@ -65,4 +65,6 @@ class DragonLAIR : public INDI::Dome
 
         INDI::PropertyLight SafetySensorLP {4};
         INDI::PropertyLight LimitSwitchLP {2};
+
+        INDI::PropertyNumber MotorStatsNP {2};
 };
