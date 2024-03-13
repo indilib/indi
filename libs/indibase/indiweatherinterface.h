@@ -23,6 +23,7 @@
 #include "indibase.h"
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
+#include "indipropertylight.h"
 #include "inditimer.h"
 
 #include <stdint.h>
@@ -61,6 +62,9 @@ class WeatherInterface
     protected:
         explicit WeatherInterface(DefaultDevice *defaultDevice);
         virtual ~WeatherInterface();
+
+
+        const char *getDeviceName() const;       
 
         /**
          * \brief Initialize focuser properties. It is recommended to call this function within
@@ -156,16 +160,13 @@ class WeatherInterface
         bool syncCriticalParameters();
 
         // Parameters
-        INumber *ParametersN {nullptr};
-        INumberVectorProperty ParametersNP;
+        INDI::PropertyNumber ParametersNP {0};
 
         // Parameter Ranges
-        INumberVectorProperty *ParametersRangeNP {nullptr};
-        uint8_t nRanges {0};
+        std::vector<INDI::PropertyNumber> ParametersRangeNP;
 
         // Weather status
-        ILight *critialParametersL {nullptr};
-        ILightVectorProperty critialParametersLP;
+        INDI::PropertyLight critialParametersLP {0};
 
         // Update Period
         INDI::PropertyNumber UpdatePeriodNP {1};

@@ -36,16 +36,11 @@ WeatherInterface::WeatherInterface(DefaultDevice *defaultDevice) : m_defaultDevi
 
 WeatherInterface::~WeatherInterface()
 {
-    for (int i = 0; i < ParametersNP.nnp; i++)
-    {
-        free(ParametersN[i].aux0);
-        free(ParametersN[i].aux1);
-        free(ParametersRangeNP[i].np);
-    }
+}
 
-    free(ParametersN);
-    free(ParametersRangeNP);
-    free(critialParametersL);
+const char *WeatherInterface::getDeviceName() const
+{
+    return m_defaultDevice->getDeviceName();
 }
 
 void WeatherInterface::initProperties(const char *statusGroup, const char *paramsGroup)
@@ -54,26 +49,24 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
 
     // Update Period
     UpdatePeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60, 60);
-    UpdatePeriodNP.fill(m_defaultDevice->getDeviceName(), "WEATHER_UPDATE", "Update", statusGroup,
+    UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", statusGroup,
                         IP_RW, 60, IPS_IDLE);
 
     // Refresh
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
-    RefreshSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_REFRESH", "Weather", statusGroup, IP_RW, ISR_ATMOST1, 0,
+    RefreshSP.fill(getDeviceName(), "WEATHER_REFRESH", "Weather", statusGroup, IP_RW, ISR_ATMOST1, 0,
                    IPS_IDLE);
 
     // Override
     OverrideSP[0].fill("OVERRIDE", "Override Status", ISS_OFF);
-    OverrideSP.fill(m_defaultDevice->getDeviceName(), "WEATHER_OVERRIDE", "Safety", statusGroup, IP_RW,
+    OverrideSP.fill(getDeviceName(), "WEATHER_OVERRIDE", "Safety", statusGroup, IP_RW,
                     ISR_NOFMANY, 0, IPS_IDLE);
 
     // Parameters
-    IUFillNumberVector(&ParametersNP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_PARAMETERS", "Parameters",
-                       paramsGroup, IP_RO, 60, IPS_OK);
+    ParametersNP.fill(getDeviceName(), "WEATHER_PARAMETERS", "Parameters", paramsGroup, IP_RO, 60, IPS_OK);
 
     // Weather Status
-    IUFillLightVector(&critialParametersLP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_STATUS", "Status",
-                      statusGroup, IPS_IDLE);
+    critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
 }
 
 bool WeatherInterface::updateProperties()
@@ -85,15 +78,15 @@ bool WeatherInterface::updateProperties()
         m_defaultDevice->defineProperty(OverrideSP);
 
         if (critialParametersL)
-            m_defaultDevice->defineProperty(&critialParametersLP);
+            m_defaultDevice->defineProperty(critialParametersLP);
 
         if (ParametersN)
-            m_defaultDevice->defineProperty(&ParametersNP);
+            m_defaultDevice->defineProperty(ParametersNP);
 
-        if (ParametersRangeNP)
+        if (ParametersRangeNP.count() > 0)
         {
-            for (int i = 0; i < nRanges; i++)
-                m_defaultDevice->defineProperty(&ParametersRangeNP[i]);
+            for (auto &oneProperty : ParametersRangeNP)
+                m_defaultDevice->defineProperty(oneProperty);
         }
 
         checkWeatherUpdate();
@@ -104,16 +97,16 @@ bool WeatherInterface::updateProperties()
         m_defaultDevice->deleteProperty(RefreshSP);
         m_defaultDevice->deleteProperty(OverrideSP);
 
-        if (critialParametersL)
+        if (critialParametersL.count() > 0)
             m_defaultDevice->deleteProperty(critialParametersLP.name);
 
-        if (ParametersN)
+        if (ParametersN.count() > 0)
             m_defaultDevice->deleteProperty(ParametersNP.name);
 
-        if (ParametersRangeNP)
+        if (ParametersRangeNP.count() > 0)
         {
-            for (int i = 0; i < nRanges; i++)
-                m_defaultDevice->deleteProperty(ParametersRangeNP[i].name);
+            for (auto &oneProperty : ParametersRangeNP)
+                m_defaultDevice->deleteProperty(oneProperty);
         }
 
     }
@@ -137,9 +130,9 @@ void WeatherInterface::checkWeatherUpdate()
             {
                 // Override weather state if required
                 if (OverrideSP[0].getState() == ISS_ON)
-                    critialParametersLP.s = IPS_OK;
+                    critialParametersLP.setState(IPS_OK);
 
-                IDSetLight(&critialParametersLP, nullptr);
+                critialParametersLP.apply();
             }
 
             ParametersNP.s = state;
@@ -232,22 +225,21 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
     else
     {
         // Parameter ranges
-        for (int i = 0; i < nRanges; i++)
+        for (auto &oneRange : ParametersRangeNP)
         {
-            if (!strcmp(name, ParametersRangeNP[i].name))
+            if (oneRange.isNameMatch(name))
             {
-                IUUpdateNumber(&ParametersRangeNP[i], values, names, n);
+                oneRange.update(values, names, n);
 
-                ParametersN[i].min               = ParametersRangeNP[i].np[0].value;
-                ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
-                *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
+                // ParametersN[i].min               = ParametersRangeNP[i].np[0].value;
+                // ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
+                // *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
 
                 if (syncCriticalParameters())
-                    IDSetLight(&critialParametersLP, nullptr);
+                    critialParametersLP.apply();
 
-                ParametersRangeNP[i].s = IPS_OK;
-                IDSetNumber(&ParametersRangeNP[i], nullptr);
-
+                oneRange.setState(IPS_OK);
+                oneRange.apply();
                 return true;
             }
         }
@@ -258,22 +250,15 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
 
 IPState WeatherInterface::updateWeather()
 {
-    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
-                "updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
+    LOG_ERROR("updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk,
-                                    double percWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
 {
-    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(),
-                 numMinOk,
-                 numMaxOk, percWarning);
+    LOGF_DEBUG("Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk, numMaxOk, percWarning);
 
-    ParametersN = (ParametersN == nullptr) ? static_cast<INumber *>(malloc(sizeof(INumber))) :
-                  static_cast<INumber *>(realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber)));
-
-    IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
+    ParametersNP[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
 
     double *warn = static_cast<double *>(malloc(sizeof(double)));
     *warn = percWarning;
