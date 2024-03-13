@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 // Alias
 using WI = INDI::WeatherInterface;
