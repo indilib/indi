@@ -63,9 +63,6 @@ class WeatherInterface
         explicit WeatherInterface(DefaultDevice *defaultDevice);
         virtual ~WeatherInterface();
 
-
-        const char *getDeviceName() const;       
-
         /**
          * \brief Initialize focuser properties. It is recommended to call this function within
          * initProperties() of your primary device

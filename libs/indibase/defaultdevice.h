@@ -569,6 +569,7 @@ class DefaultDevice : public ParentDevice
         friend class Connection::TCP;
         friend class FilterInterface;
         friend class FocuserInterface;
+        friend class WeatherInterface;
 
     protected:
         DefaultDevice(const std::shared_ptr<DefaultDevicePrivate> &dd);

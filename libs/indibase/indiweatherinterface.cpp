@@ -27,6 +27,8 @@
 namespace INDI
 {
 
+#define getDeviceName m_defaultDevice->getDeviceName
+
 WeatherInterface::WeatherInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
     m_UpdateTimer.callOnTimeout(std::bind(&WeatherInterface::checkWeatherUpdate, this));
@@ -36,11 +38,6 @@ WeatherInterface::WeatherInterface(DefaultDevice *defaultDevice) : m_defaultDevi
 
 WeatherInterface::~WeatherInterface()
 {
-}
-
-const char *WeatherInterface::getDeviceName() const
-{
-    return m_defaultDevice->getDeviceName();
 }
 
 void WeatherInterface::initProperties(const char *statusGroup, const char *paramsGroup)
@@ -226,15 +223,12 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
             {
                 oneRange.update(values, names, n);
 
-                // ParametersN[i].min               = ParametersRangeNP[i].np[0].value;
-                // ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
-                // *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
-
                 if (syncCriticalParameters())
                     critialParametersLP.apply();
 
                 oneRange.setState(IPS_OK);
                 oneRange.apply();
+                m_defaultDevice->saveConfig(oneRange);
                 return true;
             }
         }
@@ -312,6 +306,9 @@ IPState WeatherInterface::checkParameterState(const std::string &name) const
     auto percentageWarning = (*oneRange)[PERCENT_WARNING].getValue();
     auto rangeWarn = (maxLimit - minLimit) * (percentageWarning / 100);
 
+    if (minLimit == 0 && maxLimit == 0)
+        return IPS_IDLE;
+
     auto oneParameter = ParametersNP.findWidgetByName(name.c_str());
     if (!oneParameter)
         return IPS_IDLE;
@@ -320,7 +317,7 @@ IPState WeatherInterface::checkParameterState(const std::string &name) const
 
     if (value < minLimit || value > maxLimit)
         return IPS_ALERT;
-    else if (  ((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
+    else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
         return IPS_BUSY;
     else
         return IPS_OK;
@@ -337,7 +334,7 @@ bool WeatherInterface::syncCriticalParameters()
         return false;
 
     std::vector<IPState> preStates(critialParametersLP.count());
-    for (int i = 0; i < critialParametersLP.count(); i++)
+    for (size_t i = 0; i < critialParametersLP.count(); i++)
         preStates[i] = critialParametersLP[i].getState();
 
     critialParametersLP.setState(IPS_IDLE);
@@ -358,7 +355,7 @@ bool WeatherInterface::syncCriticalParameters()
                 break;
 
             case IPS_ALERT:
-                oneCriticalParam.setState(IPS_BUSY);
+                oneCriticalParam.setState(IPS_ALERT);
                 LOGF_WARN("Caution: Parameter %s value (%.2f) is in the danger zone!", oneParameter->getLabel(), oneParameter->getValue());
                 break;
 
@@ -373,7 +370,7 @@ bool WeatherInterface::syncCriticalParameters()
     }
 
     // if Any state changed, return true.
-    for (int i = 0; i < critialParametersLP.count(); i++)
+    for (size_t i = 0; i < critialParametersLP.count(); i++)
     {
         if (preStates[i] != critialParametersLP[i].getState())
             return true;
