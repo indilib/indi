@@ -729,9 +729,9 @@ bool PegasusPPBA::getSensorData()
                 lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
         {
             if (WI::syncCriticalParameters())
-                IDSetLight(&critialParametersLP, nullptr);
-            ParametersNP.s = IPS_OK;
-            IDSetNumber(&ParametersNP, nullptr);
+                critialParametersLP.apply();
+            ParametersNP.setState(IPS_OK);
+            ParametersNP.apply();
         }
 
         // Power Status

@@ -1400,9 +1400,9 @@ bool PegasusUPB::getSensorData()
         if (sensorUpdated(result, 4, 6))
         {
             if (WI::syncCriticalParameters())
-                IDSetLight(&critialParametersLP, nullptr);
-            ParametersNP.s = IPS_OK;
-            IDSetNumber(&ParametersNP, nullptr);
+                critialParametersLP.apply();
+            ParametersNP.setState(IPS_OK);
+            ParametersNP.apply();
         }
 
         // Port Status

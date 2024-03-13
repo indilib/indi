@@ -3274,9 +3274,9 @@ bool LX200_OnStep::ReadScopeStatus()
     WI::updateProperties();
 
     if (WI::syncCriticalParameters())
-        IDSetLight(&critialParametersLP, nullptr);
-    ParametersNP.s = IPS_OK;
-    IDSetNumber(&ParametersNP, nullptr);
+        critialParametersLP.apply();
+    ParametersNP.setState(IPS_OK);
+    ParametersNP.apply();
 
     if (TMCDrivers)
     {
