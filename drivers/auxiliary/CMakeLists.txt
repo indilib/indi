@@ -299,3 +299,11 @@ SET(alto_SRC
 add_executable(indi_alto ${alto_SRC})
 target_link_libraries(indi_alto indidriver)
 install(TARGETS indi_alto RUNTIME DESTINATION bin)
+
+# ########## DragonLIGHT ###############
+SET(dragonlight_SRC
+    dragonlight.cpp)
+
+add_executable(indi_dragon_light ${dragonlight_SRC})
+target_link_libraries(indi_dragon_light indidriver)
+install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
