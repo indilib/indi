@@ -108,7 +108,7 @@ const char *DragonLIGHT::getDefaultName()
 
 bool DragonLIGHT::EnableLightBox(bool enable)
 {
-    LOGF_INFO("EnableLightBox: %d\n", enable);
+    LOGF_DEBUG("EnableLightBox: %d", enable);
 
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
@@ -121,17 +121,7 @@ bool DragonLIGHT::EnableLightBox(bool enable)
         return false;
     }
 
-    IDLog("EnableLightBox: %d\n", result.value().status);
-    IDLog("EnableLightBox: %s\n", result.value().body.c_str());
-
-    if (result.value().status == 200)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return (result.value().status == 200);
 }
 
 bool DragonLIGHT::SetLightBoxBrightness(uint16_t value)
@@ -314,14 +304,12 @@ void DragonLIGHT::updateStatus()
 
 void DragonLIGHT::discoverDevices()
 {
-    IDLog("Sending discovery packet\n");
-
     int s;
 
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (s == -1)
     {
-        IDLog("Error creating socket\n");
+        LOG_ERROR("Error creating socket for discovery.");
         return;
     }
 
@@ -354,8 +342,6 @@ void DragonLIGHT::discoverDevices()
         if (n < 0)
             break;
 
-        IDLog("Received: %s\n", recvbuff);
-
         nlohmann::json doc = nlohmann::json::parse(recvbuff, nullptr, false, true);
 
         if (!doc.is_discarded() && doc.contains("deviceType"))
@@ -366,11 +352,9 @@ void DragonLIGHT::discoverDevices()
             std::string deviceType = doc["deviceType"];
             std::string serialNumber = doc["SerialNumber"].is_string() ? doc["SerialNumber"].get<std::string>() : "";
 
-            LOGF_INFO("Found %s %s at %s\n", deviceType.c_str(), serialNumber.c_str(), deviceIP);
+            LOGF_INFO("Found %s %s at %s", deviceType.c_str(), serialNumber.c_str(), deviceIP);
         }
     }
-
-    IDLog("discovery complete\n");
 
     close(s);
 

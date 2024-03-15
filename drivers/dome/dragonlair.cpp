@@ -78,8 +78,6 @@ bool DragonLAIR::initProperties()
 
     addAuxControls();
 
-    LOGF_INFO("Can Park: %d\n", CanPark());
-
     return true;
 }
 
@@ -100,8 +98,6 @@ bool DragonLAIR::ISSnoopDevice(XMLEle *root)
 
 bool DragonLAIR::Connect()
 {
-    IDLog("Connecting...\n");
-
     if (strlen(IPAddressTP[0].getText()) == 0)
     {
         LOG_ERROR("IP Address is not set.");
@@ -288,8 +284,6 @@ void DragonLAIR::updateStatus()
 
     try
     {
-        IDLog("Updating status...\n");
-
         httplib::Result result = cli.Get("/indi/status");
         if (!result)
         {
@@ -343,8 +337,6 @@ void DragonLAIR::updateStatus()
             bool isRoofClosing = j["roof"]["isRoofClosing"];
             bool isRoofOpening = j["roof"]["isRoofOpening"];
 
-            IDLog("Dome state: %d\n", Dome::getDomeState());
-
             if (isRoofFullyClosed)
             {
                 if (Dome::getDomeState() != DOME_PARKED)
@@ -385,7 +377,7 @@ void DragonLAIR::updateStatus()
     }
     catch(const std::exception &e)
     {
-        LOGF_ERROR("Error on updateStatus: %s\n", e.what());
+        LOGF_ERROR("Error on updateStatus: %s", e.what());
     }
 }
 
@@ -419,7 +411,7 @@ void DragonLAIR::openRoof()
     }
     catch(const std::exception &e)
     {
-        LOGF_ERROR("Error on openRoof: %s\n", e.what());
+        LOGF_ERROR("Error on openRoof: %s", e.what());
     }
 }
 
@@ -453,7 +445,7 @@ void DragonLAIR::closeRoof()
     }
     catch(const std::exception &e)
     {
-        LOGF_ERROR("Error on closeRoof: %s\n", e.what());
+        LOGF_ERROR("Error on closeRoof: %s", e.what());
     }
 }
 
@@ -487,7 +479,7 @@ void DragonLAIR::stopRoof()
     }
     catch(const std::exception &e)
     {
-        LOGF_ERROR("Error on stopRoof: %s\n", e.what());
+        LOGF_ERROR("Error on stopRoof: %s", e.what());
     }
 }
 
@@ -497,14 +489,12 @@ void DragonLAIR::stopRoof()
 
 void DragonLAIR::discoverDevices()
 {
-    IDLog("Sending discovery packet\n");
-
     int s;
 
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (s == -1)
     {
-        IDLog("Error creating socket\n");
+        LOG_ERROR("Error creating socket for discovery.");
         return;
     }
 
@@ -537,8 +527,6 @@ void DragonLAIR::discoverDevices()
         if (n < 0)
             break;
 
-        IDLog("Received: %s\n", recvbuff);
-
         nlohmann::json doc = nlohmann::json::parse(recvbuff, nullptr, false, true);
 
         if (!doc.is_discarded() && doc.contains("deviceType"))
@@ -549,11 +537,9 @@ void DragonLAIR::discoverDevices()
             std::string deviceType = doc["deviceType"];
             std::string serialNumber = doc["serialNumber"];
 
-            LOGF_INFO("Found %s %s at %s\n", deviceType.c_str(), serialNumber.c_str(), deviceIP);
+            LOGF_INFO("Found %s %s at %s", deviceType.c_str(), serialNumber.c_str(), deviceIP);
         }
     }
-
-    IDLog("discovery complete\n");
 
     close(s);
 
