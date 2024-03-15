@@ -50,8 +50,8 @@ bool DragonLAIR::initProperties()
 
     INDI::Dome::initProperties();
 
-    MotorStatsNP[0].fill("Voltage", "Voltage", "%0.2f V", 0.0, 18.0, 0.01, 0.00);
-    MotorStatsNP[1].fill("Current", "Current", "%0.2f A", 0.0, 18.0, 0.01, 0.00);
+    MotorStatsNP[0].fill("Voltage", "Voltage", "%0.2f V", 0.0, 24.0, 0.01, 0.00);
+    MotorStatsNP[1].fill("Current", "Current", "%0.2f A", 0.0, 24.0, 0.01, 0.00);
     MotorStatsNP.fill(getDeviceName(), "MOTOR_STATS", "Motor Stats", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     FirmwareTP[0].fill("Version", "Version", nullptr);
@@ -77,6 +77,8 @@ bool DragonLAIR::initProperties()
     SetParkDataType(PARK_NONE);
 
     addAuxControls();
+
+    LOGF_INFO("Can Park: %d\n", CanPark());
 
     return true;
 }
@@ -105,6 +107,8 @@ bool DragonLAIR::Connect()
         LOG_ERROR("IP Address is not set.");
         return false;
     }
+
+    InitPark();
 
     SetTimer(getCurrentPollingPeriod());
     return true;
@@ -381,10 +385,7 @@ void DragonLAIR::updateStatus()
     }
     catch(const std::exception &e)
     {
-        IDLog("Caught exception\n");
-
-        // LOGF_ERROR("Error on updateStatus: %s\n", e.what());
-        // IDLog("Error on updateStatus: %s\n", e.what());
+        LOGF_ERROR("Error on updateStatus: %s\n", e.what());
     }
 }
 
