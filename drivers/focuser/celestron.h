@@ -82,6 +82,18 @@ class CelestronSCT : public INDI::Focuser
         // Get initial focuser parameters when we first connect
         bool getStartupParameters();
 
+        // truePos vs absPos:
+        // servo encoder values increase in CCW direction
+        // CCW travel moves primary mirror toward corrector plate, shifting focal plane away from OTA (i.e. increasingly "inside focus")
+        // max CCW travel corresponds to intrafocal limit
+        
+        // "absPos" is the position referenced to the INDI focus interface (0 = intrafocal limit, increasing values toward extrafocal limit)
+        inline uint32_t absPos(uint32_t truePos) { return truePosMax - truePos;}
+
+        // "truePos" is the position of the servo motor encoder reported over serial connection
+        inline uint32_t truePos(uint32_t absPos) { return truePosMax - absPos;}        
+        
+
         ///////////////////////////////////////////////////////////////////////////////
         /// Read Data From Controller
         ///////////////////////////////////////////////////////////////////////////////
@@ -103,8 +115,11 @@ class CelestronSCT : public INDI::Focuser
         //        INumber BacklashN[1];
         //        INumberVectorProperty BacklashNP;
 
-        INumber FocusMinPosN[1];
-        INumberVectorProperty FocusMinPosNP;
+        // INumber FocusMinPosN[1];
+        // INumberVectorProperty FocusMinPosNP;
+
+        uint32_t truePosMax;
+        uint32_t truePosMin;
 
         bool backlashMove;      // set if a final move is needed
         uint32_t finalPosition;
