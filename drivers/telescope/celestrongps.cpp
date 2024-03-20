@@ -77,6 +77,9 @@ CelestronGPS::CelestronGPS() : FI(this)
     // focuser
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_BACKLASH);
 
+    focusTrueMax = 0;
+    focusTrueMin = 0xffffffff;
+
     // Set minimum properties.
     // ISGetProperties in INDI::Telescope checks for CanGOTO which must be set.
     SetTelescopeCapability(TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 9);
@@ -230,9 +233,9 @@ bool CelestronGPS::initProperties()
     //                       FOCUS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser min limit, read from the hardware
-    IUFillNumber(&FocusMinPosN[0], "FOCUS_MIN_VALUE", "Steps", "%.f", 0, 40000., 1., 0.);
-    IUFillNumberVector(&FocusMinPosNP, FocusMinPosN, 1, getDeviceName(), "FOCUS_MIN", "Min. Position",
-                       FOCUS_TAB, IP_RO, 0, IPS_IDLE);
+    // IUFillNumber(&FocusMinPosN[0], "FOCUS_MIN_VALUE", "Steps", "%.f", 0, 40000., 1., 0.);
+    // IUFillNumberVector(&FocusMinPosNP, FocusMinPosN, 1, getDeviceName(), "FOCUS_MIN", "Min. Position",
+    //                    FOCUS_TAB, IP_RO, 0, IPS_IDLE);
 
     return true;
 }
@@ -492,13 +495,14 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.hasFocuser)
         {
             //defineProperty(&FocusBacklashNP);
-            defineProperty(&FocusMinPosNP);
+            //defineProperty(&FocusMinPosNP);
+
             if (focusReadLimits())
             {
                 IUUpdateMinMax(&FocusAbsPosNP);
 
                 IDSetNumber(&FocusMaxPosNP, nullptr);
-                IDSetNumber(&FocusMinPosNP, nullptr);
+                // IDSetNumber(&FocusMinPosNP, nullptr);
                 // focuser move capability is only set if the focus limits are valid
                 FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
                 setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
@@ -518,7 +522,7 @@ bool CelestronGPS::updateProperties()
         INDI::Telescope::updateProperties();
 
         FI::updateProperties();
-        deleteProperty(FocusMinPosNP.name);
+        //deleteProperty(FocusMinPosNP.name);
 
         //GUIDE Delete properties.
         deleteProperty(GuideNSNP.name);
@@ -955,10 +959,10 @@ bool CelestronGPS::ReadScopeStatus()
         // Check position
         double lastPosition = FocusAbsPosN[0].value;
 
-        int pos = driver.foc_position();
-        if (pos >= 0)
+        int absPos = focusTrue2Abs(driver.foc_position());
+        if (absPos >= 0)
         {
-            FocusAbsPosN[0].value = pos;
+            FocusAbsPosN[0].value = absPos;
             // Only update if there is actual change
             if (fabs(lastPosition - FocusAbsPosN[0].value) > 1)
                 IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -975,8 +979,8 @@ bool CelestronGPS::ReadScopeStatus()
                 if (focusBacklashMove)
                 {
                     focusBacklashMove = false;
-                    if (driver.foc_move(focusPosition))
-                        LOGF_INFO("Focus final move %i", focusPosition);
+                    if (driver.foc_move(focusAbs2True(focusAbsPosition)))
+                        LOGF_INFO("Focus final move %i", focusAbsPosition);
                     else
                         LOG_INFO("Backlash move failed");
                 }
@@ -1640,7 +1644,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &CelestronTrackModeSP);
     IUSaveConfigSwitch(fp, &DSTSettingSP);
 
-    IUSaveConfigNumber(fp, &FocusMinPosNP);
+   //  IUSaveConfigNumber(fp, &FocusMinPosNP);
 
     return true;
 }
@@ -2024,7 +2028,7 @@ bool CelestronGPS::savePecData()
 // focus control
 IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
 {
-    uint32_t position = targetTicks;
+    uint32_t absPosition = targetTicks;
 
     if (!focuserIsCalibrated)
     {
@@ -2039,13 +2043,13 @@ IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
             (FocusBacklashN[0].value > 0 && delta < 0))
     {
         focusBacklashMove = true;
-        focusPosition = position;
-        position -= FocusBacklashN[0].value;
+        focusAbsPosition = absPosition;
+        absPosition -= FocusBacklashN[0].value;
     }
 
-    LOGF_INFO("Focus %s move %d", focusBacklashMove ? "backlash" : "direct", position);
+    LOGF_INFO("Focus %s move %d", focusBacklashMove ? "backlash" : "direct", absPosition);
 
-    if(!driver.foc_move(position))
+    if(!driver.foc_move(focusAbs2True(absPosition)))
         return IPS_ALERT;
 
     return IPS_BUSY;
@@ -2076,18 +2080,19 @@ bool CelestronGPS::focusReadLimits()
     int low, high;
     bool valid = driver.foc_limits(&low, &high);
 
-    FocusAbsPosN[0].max = high;
-    FocusAbsPosN[0].min = low;
+    focusTrueMax = high;
+    focusTrueMin = low;
+
+    FocusAbsPosN[0].max = FocusMaxPosN[0].value = focusTrue2Abs(focusTrueMin);
     FocusAbsPosNP.s = IPS_OK;
     IUUpdateMinMax(&FocusAbsPosNP);
 
-    FocusMaxPosN[0].value = high;
     FocusMaxPosNP.s = IPS_OK;
     IDSetNumber(&FocusMaxPosNP, nullptr);
 
-    FocusMinPosN[0].value = low;
-    FocusMinPosNP.s = IPS_OK;
-    IDSetNumber(&FocusMinPosNP, nullptr);
+    // FocusMinPosN[0].value = low;
+    // FocusMinPosNP.s = IPS_OK;
+    // IDSetNumber(&FocusMinPosNP, nullptr);
 
     focuserIsCalibrated = valid;
 

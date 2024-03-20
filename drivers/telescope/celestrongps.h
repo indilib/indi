@@ -190,11 +190,18 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //        INumber FocusBacklashN[1];
         //        INumberVectorProperty FocusBacklashNP;
 
-        INumber FocusMinPosN[1];
-        INumberVectorProperty FocusMinPosNP;
+        // INumber FocusMinPosN[1];
+        // INumberVectorProperty FocusMinPosNP;
 
         bool focusBacklashMove;      // set if a final move is needed
-        uint32_t focusPosition;
+        uint32_t focusAbsPosition;
         bool focusReadLimits();
         bool focuserIsCalibrated;
+
+        uint32_t focusTrueMax;
+        uint32_t focusTrueMin;
+
+        inline uint32_t focusTrue2Abs(uint32_t truePos) {return focusTrueMax - truePos;}
+        inline uint32_t focusAbs2True(uint32_t absPos) {return focusTrueMax - absPos;}
+
 };
