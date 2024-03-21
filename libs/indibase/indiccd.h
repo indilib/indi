@@ -728,8 +728,8 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertyNumber ScopeInfoNP {2};
         enum
         {
-            FocalLength,
-            Aperture
+            FOCAL_LENGTH,
+            APERTURE
         };
 
         // Websocket Support
