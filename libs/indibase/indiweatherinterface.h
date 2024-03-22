@@ -23,10 +23,12 @@
 #include "indibase.h"
 #include "indipropertynumber.h"
 #include "indipropertyswitch.h"
+#include "indipropertylight.h"
 #include "inditimer.h"
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 // Alias
 using WI = INDI::WeatherInterface;
@@ -125,10 +127,10 @@ class WeatherInterface
          * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
          * observatory. The parameter state can affect the overall weather driver state which signals
          * the client to take appropriate action depending on the severity of the state.
-         * @param param Name of critical parameter.
+         * @param name Name of critical parameter.
          * @return True if critical parameter was set, false if parameter is not found.
          */
-        bool setCriticalParameter(std::string param);
+        bool setCriticalParameter(std::string name);
 
         /**
          * @brief setParameterValue Update weather parameter value
@@ -147,8 +149,6 @@ class WeatherInterface
          */
         IPState checkParameterState(const std::string &param) const;
 
-        IPState checkParameterState(const INumber &parameter) const;
-
         /**
          * @brief updateWeatherState Send update weather state to client
          * @returns true if any parameters changed from last update. False if no states changed.
@@ -156,16 +156,19 @@ class WeatherInterface
         bool syncCriticalParameters();
 
         // Parameters
-        INumber *ParametersN {nullptr};
-        INumberVectorProperty ParametersNP;
+        INDI::PropertyNumber ParametersNP {0};
 
         // Parameter Ranges
-        INumberVectorProperty *ParametersRangeNP {nullptr};
-        uint8_t nRanges {0};
+        std::vector<INDI::PropertyNumber> ParametersRangeNP;
+        enum
+        {
+            MIN_OK,
+            MAX_OK,
+            PERCENT_WARNING,
+        };
 
         // Weather status
-        ILight *critialParametersL {nullptr};
-        ILightVectorProperty critialParametersLP;
+        INDI::PropertyLight critialParametersLP {0};
 
         // Update Period
         INDI::PropertyNumber UpdatePeriodNP {1};
@@ -177,7 +180,7 @@ class WeatherInterface
 
 
     private:
-        void createParameterRange(std::string name, std::string label);
+        void createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
         DefaultDevice *m_defaultDevice { nullptr };
         std::string m_ParametersGroup;
         INDI::Timer m_UpdateTimer;

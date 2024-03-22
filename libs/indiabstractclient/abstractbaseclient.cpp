@@ -126,8 +126,8 @@ int AbstractBaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
     if (auto device = watchDevice.getDeviceByName(devName))
     {
-        device.detach();
         watchDevice.deleteDevice(device);
+        device.detach();
         return 0;
     }
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);

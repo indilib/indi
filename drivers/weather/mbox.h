@@ -64,14 +64,11 @@ class MBox : public INDI::Weather
 
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
-        INumber CalibrationN[3];
-        INumberVectorProperty CalibrationNP;
+        INDI::PropertyNumber CalibrationNP {3};
 
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
+        INDI::PropertySwitch ResetSP {1};
 
-        IText FirmwareT[1] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {1};
 
 
 

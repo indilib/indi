@@ -92,6 +92,8 @@ bool SQM::initProperties()
     addDebugControl();
     addPollPeriodControl();
 
+    setDriverInterface(AUX_INTERFACE);
+
     return true;
 }
 

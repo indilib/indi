@@ -151,7 +151,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
         IUUpdateText(FilterNameTP, texts, names, n);
         FilterNameTP->s = IPS_OK;
 
-        if (SetFilterNames() == true)
+        if (m_defaultDevice->isConfigLoading() || SetFilterNames() == true)
         {
             IDSetText(FilterNameTP, nullptr);
             return true;

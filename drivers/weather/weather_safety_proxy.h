@@ -86,23 +86,17 @@ class WeatherSafetyProxy : public INDI::Weather
         IPState executeCurl();
         IPState parseSafetyJSON(const std::string &buffer);
 
-        IText keywordT[1] {};
-        ITextVectorProperty keywordTP;
+        INDI::PropertyText keywordTP {1};
 
-        IText ScriptsT[WSP_SCRIPT_COUNT] {};
-        ITextVectorProperty ScriptsTP;
+        INDI::PropertyText ScriptsTP {1};
 
-        IText UrlT[WSP_URL_COUNT] {};
-        ITextVectorProperty UrlTP;
+        INDI::PropertyText UrlTP {1};
 
-        ISwitch ScriptOrCurlS[WSP_USE_COUNT];
-        ISwitchVectorProperty ScriptOrCurlSP;
+        INDI::PropertySwitch ScriptOrCurlSP {2};
 
-        IText reasonsT[1] {};
-        ITextVectorProperty reasonsTP;
+        INDI::PropertyText reasonsTP {1};
 
-        INumber softErrorHysteresisN[WSP_SOFT_ERROR_COUNT];
-        INumberVectorProperty softErrorHysteresisNP;
+        INDI::PropertyNumber softErrorHysteresisNP {2};
 
         int Safety = -1;
         int SofterrorCount = 0;

@@ -259,6 +259,15 @@ add_executable(indi_steeldrive_focus ${steeldrive_SRC})
 target_link_libraries(indi_steeldrive_focus indidriver)
 install(TARGETS indi_steeldrive_focus RUNTIME DESTINATION bin)
 
+################ Alluna TCS2 Focuser ################
+
+SET(allunatcs2_SRC
+    alluna_tcs2.cpp)
+
+add_executable(indi_alluna_tcs2 ${allunatcs2_SRC})
+target_link_libraries(indi_alluna_tcs2 indidriver)
+install(TARGETS indi_alluna_tcs2 RUNTIME DESTINATION bin)
+
 # ############### FocusLynx Focuser ################
 SET(focuslynx_SRC
     focuslynxbase.cpp

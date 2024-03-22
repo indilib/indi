@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -60,7 +60,9 @@ bool LX200AM5::initProperties()
     tcpConnection->setDefaultHost("192.168.4.1");
     tcpConnection->setDefaultPort(4030);
     tcpConnection->setLANSearchEnabled(true);
-    setActiveConnection(tcpConnection);
+
+    if (strstr(getDeviceName(), "WiFi"))
+        setActiveConnection(tcpConnection);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Properties

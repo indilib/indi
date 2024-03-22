@@ -188,6 +188,9 @@ bool IOptronV3::initProperties()
     MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Limit", MB_TAB, IP_RW, 60, IPS_IDLE);
     MeridianLimitNP.load();
 
+    if (strstr(getDeviceName(), "iMate"))
+        serialConnection->setDefaultPort("/dev/ttyS7");
+
     // Baud rates.
     // 230400 for 120
     // 115000 for everything else

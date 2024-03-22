@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indibase.h"
+#include "indipropertynumber.h"
 #include <stdint.h>
 
 using RI = INDI::RotatorInterface;
@@ -216,6 +217,10 @@ class RotatorInterface
         // Backlash steps
         INumberVectorProperty RotatorBacklashNP;
         INumber RotatorBacklashN[1];
+
+        // Rotator Limits
+        INDI::PropertyNumber RotatorLimitsNP {1};
+        double m_RotatorOffset {0};
 
         uint32_t rotatorCapability = 0;
         DefaultDevice *m_defaultDevice { nullptr };

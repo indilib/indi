@@ -45,6 +45,19 @@ typedef unsigned long ulong;
 
 class Lx;
 
+// Pixel size info for different cameras
+typedef struct PixelSizeInfo
+{
+    const char * deviceLabel; // Device label used by INDI
+    const char * deviceName; // device name reported by V4L
+    const char * commonName; // if null, use device name
+    float pixelSizeX;
+    float pixelSizeY; // if negative, use pixelSizeX also for Y
+    uint32_t width;     // Default width, if 0 then don't set anything
+    uint32_t height;    // Default height, if 0 then don't set anything
+    bool tested; //if False print please report message
+} PixelSizeInfo;
+
 class V4L2_Driver : public INDI::CCD
 {
 public:
@@ -80,6 +93,8 @@ public:
 
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
+
+        bool updateCaptureSize(uint32_t width, uint32_t height);
 
         /* Structs */
         typedef struct
@@ -171,12 +186,17 @@ public:
         bool startlongexposure(double timeinsec);
         static void lxtimerCallback(void *userpointer);
         static void stdtimerCallback(void *userpointer);
+        void iOptronWatchdogCallback();
 
         /* start/stop functions */
         bool start_capturing(bool do_stream);
         bool stop_capturing();
 
         virtual void updateV4L2Controls();
+
+        bool isIOptron();
+
+        void resetDevice(int bus_num, int dev_num);
 
         /* Variables */
         INDI::V4L2_Base *v4l_base;
@@ -207,13 +227,16 @@ public:
         bool v4l_capture_started;
         bool is_capturing;
         bool is_exposing;
+        bool valid_frame_has_arrived;
 
         //Long Exposure
         Lx *lx;
         int lxtimer;
         int stdtimer;
+        INDI::Timer ioptron_watchdog_timer;
 
         short lxstate;
+        PixelSizeInfo * m_Info {nullptr};
 
         char defaultVideoPort[256] = {"/dev/video0"};
         char configPort[256] = {0};

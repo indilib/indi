@@ -135,6 +135,10 @@ bool PegasusPPBA::initProperties()
     IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
+    IUFillNumber(&AutoDewSettingsN[AUTO_DEW_AGGRESSION], "AGGRESSION", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
+    IUFillNumberVector(&AutoDewSettingsNP, AutoDewSettingsN, 1, getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
+
+
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
@@ -213,7 +217,10 @@ bool PegasusPPBA::updateProperties()
 
         // Dew
         defineProperty(&AutoDewSP);
+        defineProperty(&AutoDewSettingsNP);
         defineProperty(&DewPWMNP);
+
+        getAutoDewAggression();
 
         // Focuser
         if (m_HasExternalMotor)
@@ -227,6 +234,7 @@ bool PegasusPPBA::updateProperties()
 
         // Firmware
         defineProperty(&FirmwareTP);
+        sendFirmware();
 
         setupComplete = true;
     }
@@ -244,6 +252,7 @@ bool PegasusPPBA::updateProperties()
 
         // Dew
         deleteProperty(AutoDewSP.name);
+        deleteProperty(AutoDewSettingsNP.name);
         deleteProperty(DewPWMNP.name);
 
         if (m_HasExternalMotor)
@@ -295,8 +304,7 @@ bool PegasusPPBA::Handshake()
         {
             tcflush(PortFD, TCIOFLUSH);
             tty_write_string(PortFD, command, &nbytes_written);
-            stopChar = 0xA;
-            tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read);
+            tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, 0xA, 1, &nbytes_read);
         }
 
         if (tty_rc != TTY_OK)
@@ -506,6 +514,16 @@ bool PegasusPPBA::ISNewNumber(const char * dev, const char * name, double values
             return true;
         }
 
+        // Auto Dew Settings
+        if (!strcmp(name, AutoDewSettingsNP.name))
+        {        
+            AutoDewSettingsNP.s = setAutoDewAggression(static_cast<uint8_t>(values[AUTO_DEW_AGGRESSION] / 100.0 * 255.0)) ? IPS_OK : IPS_ALERT;
+            if (AutoDewSettingsNP.s == IPS_OK)
+                IUUpdateNumber(&AutoDewSettingsNP, values, names, n);
+            IDSetNumber(&AutoDewSettingsNP, nullptr);
+            return true;
+        }
+
         // Focuser Settings
         if (!strcmp(name, FocuserSettingsNP.name))
         {
@@ -593,6 +611,18 @@ bool PegasusPPBA::setAutoDewEnabled(bool enabled)
     return false;
 }
 
+bool PegasusPPBA::setAutoDewAggression(uint8_t value)
+{
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PD:%d", value);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+
+    return false;
+}
+
 bool PegasusPPBA::setPowerOnBoot()
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
@@ -632,6 +662,7 @@ bool PegasusPPBA::saveConfigItems(FILE * fp)
     }
     WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
+    IUSaveConfigNumber(fp, &AutoDewSettingsNP);
     return true;
 }
 
@@ -698,9 +729,9 @@ bool PegasusPPBA::getSensorData()
                 lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
         {
             if (WI::syncCriticalParameters())
-                IDSetLight(&critialParametersLP, nullptr);
-            ParametersNP.s = IPS_OK;
-            IDSetNumber(&ParametersNP, nullptr);
+                critialParametersLP.apply();
+            ParametersNP.setState(IPS_OK);
+            ParametersNP.apply();
         }
 
         // Power Status
@@ -789,6 +820,23 @@ bool PegasusPPBA::getConsumptionData()
     }
 
     return false;
+}
+
+bool PegasusPPBA::getAutoDewAggression()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("DA", res))
+    {
+        
+        uint32_t value = 0;
+        sscanf(res, "%*[^:]:%d", &value);
+        AutoDewSettingsN[AUTO_DEW_AGGRESSION].value = 100 * value / 255;
+    }
+    else
+        AutoDewSettingsNP.s = IPS_ALERT;
+        
+    IDSetNumber(&AutoDewSettingsNP, nullptr);
+    return AutoDewSettingsNP.s != IPS_ALERT;
 }
 
 bool PegasusPPBA::getMetricsData()

@@ -41,7 +41,7 @@ extern const char *CONNECTION_TAB;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
+TCP::TCP(INDI::DefaultDevice *dev, IPerm permission) : Interface(dev, CONNECTION_TCP), m_Permission(permission)
 {
     char defaultHostname[MAXINDINAME] = {0};
     char defaultPort[MAXINDINAME] = {0};
@@ -56,7 +56,7 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
     IUFillText(&AddressT[0], "ADDRESS", "Address", defaultHostname);
     IUFillText(&AddressT[1], "PORT", "Port", defaultPort);
     IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
-                     IP_RW, 60, IPS_IDLE);
+                     m_Permission, 60, IPS_IDLE);
 
     int connectionTypeIndex = 0;
     if (IUGetConfigOnSwitchIndex(dev->getDeviceName(), "CONNECTION_TYPE", &connectionTypeIndex) == 0)
@@ -359,8 +359,11 @@ bool TCP::Disconnect()
 void TCP::Activated()
 {
     m_Device->defineProperty(&AddressTP);
-    m_Device->defineProperty(&TcpUdpSP);
-    m_Device->defineProperty(&LANSearchSP);
+    if (m_Permission != IP_RO)
+    {
+        m_Device->defineProperty(&TcpUdpSP);
+        m_Device->defineProperty(&LANSearchSP);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -369,8 +372,11 @@ void TCP::Activated()
 void TCP::Deactivated()
 {
     m_Device->deleteProperty(AddressTP.name);
-    m_Device->deleteProperty(TcpUdpSP.name);
-    m_Device->deleteProperty(LANSearchSP.name);
+    if (m_Permission != IP_RO)
+    {
+        m_Device->deleteProperty(TcpUdpSP.name);
+        m_Device->deleteProperty(LANSearchSP.name);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -378,9 +384,12 @@ void TCP::Deactivated()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool TCP::saveConfigItems(FILE * fp)
 {
-    IUSaveConfigText(fp, &AddressTP);
-    IUSaveConfigSwitch(fp, &TcpUdpSP);
-    IUSaveConfigSwitch(fp, &LANSearchSP);
+    if (m_Permission != IP_RO)
+    {
+        IUSaveConfigText(fp, &AddressTP);
+        IUSaveConfigSwitch(fp, &TcpUdpSP);
+        IUSaveConfigSwitch(fp, &LANSearchSP);
+    }
 
     return true;
 }

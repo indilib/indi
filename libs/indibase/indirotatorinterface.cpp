@@ -74,6 +74,11 @@ void RotatorInterface::initProperties(const char *groupName)
     IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS",
                        "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
+
+
+    // Rotator Limits
+    RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 0, 180, 30, 0);
+    RotatorLimitsNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_LIMITS", "Limits", groupName, IP_RW, 60, IPS_IDLE);
 }
 
 bool RotatorInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -95,10 +100,23 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 return true;
             }
 
-            GotoRotatorNP.s = MoveRotator(values[0]);
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            if (GotoRotatorNP.s == IPS_BUSY)
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
+            // If value is outside safe zone, then prevent motion
+            if (RotatorLimitsNP[0].getValue() > 0 && ((values[0] < 180
+                    && (std::abs(values[0] - m_RotatorOffset)) > RotatorLimitsNP[0].getValue()) ||
+                    (values[0] > 180 && (std::abs(values[0] - m_RotatorOffset)) < (360 - RotatorLimitsNP[0].getValue()))))
+            {
+                GotoRotatorNP.s = IPS_ALERT;
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                             "Rotator target %.2f exceeds safe limits of %.2f degrees...", values[0], RotatorLimitsNP[0].getValue());
+                IDSetNumber(&GotoRotatorNP, nullptr);
+            }
+            else
+            {
+                GotoRotatorNP.s = MoveRotator(values[0]);
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                if (GotoRotatorNP.s == IPS_BUSY)
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
+            }
             return true;
         }
         ////////////////////////////////////////////
@@ -116,7 +134,11 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
             bool rc = SyncRotator(values[0]);
             SyncRotatorNP.s = rc ? IPS_OK : IPS_ALERT;
             if (rc)
+            {
                 SyncRotatorN[0].value = values[0];
+                // Always reset offset after a sync
+                m_RotatorOffset = values[0];
+            }
 
             IDSetNumber(&SyncRotatorNP, nullptr);
             return true;
@@ -143,6 +165,19 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                     RotatorBacklashNP.s = IPS_ALERT;
             }
             IDSetNumber(&RotatorBacklashNP, nullptr);
+            return true;
+        }
+        ////////////////////////////////////////////
+        // Limits
+        ////////////////////////////////////////////
+        else if (RotatorLimitsNP.isNameMatch(name))
+        {
+            RotatorLimitsNP.update(values, names, n);
+            RotatorLimitsNP.setState(IPS_OK);
+            RotatorLimitsNP.apply();
+            if (RotatorLimitsNP[0].getValue() == 0)
+                DEBUGDEVICE(dev, Logger::DBG_SESSION, "Rotator limits are disabled.");
+            m_RotatorOffset = GotoRotatorN[0].value;
             return true;
         }
     }
@@ -264,6 +299,7 @@ bool RotatorInterface::updateProperties()
             m_defaultDevice->defineProperty(&RotatorBacklashSP);
             m_defaultDevice->defineProperty(&RotatorBacklashNP);
         }
+        m_defaultDevice->defineProperty(RotatorLimitsNP);
     }
     else
     {
@@ -282,6 +318,7 @@ bool RotatorInterface::updateProperties()
             m_defaultDevice->deleteProperty(RotatorBacklashSP.name);
             m_defaultDevice->deleteProperty(RotatorBacklashNP.name);
         }
+        m_defaultDevice->deleteProperty(RotatorLimitsNP);
     }
 
     return true;
@@ -340,6 +377,7 @@ bool RotatorInterface::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &RotatorBacklashSP);
         IUSaveConfigNumber(fp, &RotatorBacklashNP);
     }
+    RotatorLimitsNP.save(fp);
 
     return true;
 }

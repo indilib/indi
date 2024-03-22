@@ -43,7 +43,7 @@ class TCP : public Interface
             TYPE_UDP
         };
 
-        TCP(INDI::DefaultDevice *dev);
+        TCP(INDI::DefaultDevice *dev, IPerm permission = IP_RW);
         virtual ~TCP() = default;
 
         virtual bool Connect() override;
@@ -115,6 +115,7 @@ class TCP : public Interface
         ISwitchVectorProperty LANSearchSP;
 
         // Variables
+        IPerm m_Permission = IP_RW;
         std::string m_ConfigHost;
         std::string m_ConfigPort;
         int m_ConfigConnectionType {-1};

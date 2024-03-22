@@ -28,31 +28,30 @@
 
 class WeatherSimulator : public INDI::Weather
 {
-    public:
-        WeatherSimulator();
+public:
+    WeatherSimulator();
 
-        //  Generic indi device entries
-        bool Connect() override;
-        bool Disconnect() override;
-        const char *getDefaultName() override;
+    //  Generic indi device entries
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 
-        virtual bool initProperties() override;
-        virtual bool updateProperties() override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    protected:
-        virtual IPState updateWeather() override;
-        virtual bool saveConfigItems(FILE *fp) override;
+protected:
+    virtual IPState updateWeather() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    private:
-        INumber ControlWeatherN[5];
-        INumberVectorProperty ControlWeatherNP;
-        enum
-        {
-            CONTROL_WEATHER,
-            CONTROL_TEMPERATURE,
-            CONTROL_WIND,
-            CONTROL_GUST,
-            CONTROL_RAIN
-        };
+private:
+    INDI::PropertyNumber ControlWeatherNP {5};
+    enum
+    {
+        CONTROL_WEATHER,
+        CONTROL_TEMPERATURE,
+        CONTROL_WIND,
+        CONTROL_GUST,
+        CONTROL_RAIN
+    };
 };

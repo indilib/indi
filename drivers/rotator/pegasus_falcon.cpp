@@ -61,19 +61,19 @@ bool PegasusFalcon::initProperties()
     /// Main Control Panel
     ////////////////////////////////////////////////////////////////////////////
     // Reload Firmware
-    IUFillSwitch(&ReloadFirmwareS[0], "RELOAD", "Reload", ISS_OFF);
-    IUFillSwitchVector(&ReloadFirmwareSP, ReloadFirmwareS, 1, getDeviceName(), "RELOAD_FIRMWARE", "Firmware", MAIN_CONTROL_TAB,
+    ReloadFirmwareSP[0].fill("RELOAD", "Reload", ISS_OFF);
+    ReloadFirmwareSP.fill(getDeviceName(), "RELOAD_FIRMWARE", "Firmware", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
 
     // Derotate
-    IUFillNumber(&DerotateN[0], "INTERVAL", "Interval (ms)", "%.f", 0, 10000, 1000, 0);
-    IUFillNumberVector(&DerotateNP, DerotateN, 1, getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
+    DerotateNP[0].fill("INTERVAL", "Interval (ms)", "%.f", 0, 10000, 1000, 0);
+    DerotateNP.fill(getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
                        60, IPS_IDLE);
 
     // Firmware
-    IUFillText(&FirmwareT[0], "VERSION", "Version", "NA");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
+    FirmwareTP[0].fill("VERSION", "Version", "NA");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     return true;
@@ -86,17 +86,17 @@ bool PegasusFalcon::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineProperty(&DerotateNP);
-        defineProperty(&FirmwareTP);
-        defineProperty(&ReloadFirmwareSP);
+        defineProperty(DerotateNP);
+        defineProperty(FirmwareTP);
+        defineProperty(ReloadFirmwareSP);
 
     }
     else
     {
         // Main Control
-        deleteProperty(DerotateNP.name);
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(ReloadFirmwareSP.name);
+        deleteProperty(DerotateNP.getName());
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(ReloadFirmwareSP.getName());
     }
 
     return true;
@@ -123,20 +123,20 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // De-rotation
-        if (!strcmp(name, DerotateNP.name))
+        if (DerotateNP.getName())
         {
             const uint32_t ms = static_cast<uint32_t>(values[0]);
             if (setDerotation(ms))
             {
-                DerotateN[0].value = values[0];
+                DerotateNP[0].setValue(values[0]);
                 if (values[0] > 0)
                     LOGF_INFO("De-rotation is enabled and set to 1 step per %u milliseconds.", ms);
                 else
                     LOG_INFO("De-rotaiton is disabled.");
             }
             else
-                DerotateNP.s = IPS_ALERT;
-            IDSetNumber(&DerotateNP, nullptr);
+                DerotateNP.setState(IPS_ALERT);
+            DerotateNP.apply();
             return true;
         }
         // Firmware 1.4 bug:
@@ -160,10 +160,10 @@ bool PegasusFalcon::ISNewSwitch(const char * dev, const char * name, ISState * s
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // ReloadFirmware
-        if (!strcmp(name, ReloadFirmwareSP.name))
+        if (ReloadFirmwareSP.isNameMatch(name))
         {
-            ReloadFirmwareSP.s = reloadFirmware() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ReloadFirmwareSP, nullptr);
+            ReloadFirmwareSP.setState(reloadFirmware() ? IPS_OK : IPS_ALERT);
+            ReloadFirmwareSP.apply();
             LOG_INFO("Reloading firmware...");
             return true;
         }
@@ -251,7 +251,7 @@ bool PegasusFalcon::setDerotation(uint32_t ms)
 bool PegasusFalcon::saveConfigItems(FILE * fp)
 {
     INDI::Rotator::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &DerotateNP);
+    DerotateNP.save(fp);
     return true;
 }
 
@@ -274,7 +274,7 @@ bool PegasusFalcon::getFirmware()
     char res[DRIVER_LEN] = {0};
     if (sendCommand("FV", res))
     {
-        IUSaveText(&FirmwareT[0], res + 3);
+        FirmwareTP[0].setText(res + 3);
         return true;
     }
 
@@ -316,12 +316,12 @@ bool PegasusFalcon::getStatusData()
         //const bool limit = std::stoi(result[4]) == 1;
 
         const bool derotation = std::stoi(result[5]) == 1;
-        const bool wasDerotated = DerotateN[0].value > 0;
+        const bool wasDerotated = DerotateNP[0].getValue() > 0;
         // TODO check if we get value from firmware
         if (derotation != wasDerotated)
         {
-            DerotateNP.s = derotation ? IPS_BUSY : IPS_IDLE;;
-            IDSetNumber(&DerotateNP, nullptr);
+            DerotateNP.setState(derotation ? IPS_BUSY : IPS_IDLE);
+            DerotateNP.apply();
         }
 
         const bool reversed = std::stoi(result[6]) == 1;

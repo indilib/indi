@@ -59,7 +59,8 @@ IPState RotatorSimulator::MoveRotator(double angle)
 
 bool RotatorSimulator::SyncRotator(double angle)
 {
-    INDI_UNUSED(angle);
+    GotoRotatorN[0].value = angle;
+    IDSetNumber(&GotoRotatorNP, nullptr);
     return true;
 }
 

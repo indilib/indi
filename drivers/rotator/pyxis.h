@@ -62,24 +62,19 @@ class Pyxis : public INDI::Rotator
         void queryParams();
 
         // Rotation Rate
-        INumber RotationRateN[1];
-        INumberVectorProperty RotationRateNP;
+        INDI::PropertyNumber RotationRateNP {1};
 
         // Stepping
-        ISwitch SteppingS[2];
-        ISwitchVectorProperty SteppingSP;
+        INDI::PropertySwitch SteppingSP {2};
         enum { FULL_STEP, HALF_STEP};
 
         // Power
-        ISwitch PowerS[2];
-        ISwitchVectorProperty PowerSP;
+        INDI::PropertySwitch PowerSP {2};
         enum { POWER_SLEEP, POWER_WAKEUP};
 
         // Firmware version; tells us if 2 inch or 3 inch device
-        IText FirmwareT[1] {};
-        ITextVectorProperty FirmwareTP;
-        IText ModelT[1] {};
-        ITextVectorProperty ModelTP;
+        INDI::PropertyText FirmwareTP {1};
+        INDI::PropertyText ModelTP {1};
 
         uint16_t targetPA = {0};
 

@@ -39,7 +39,8 @@ BaseDevice WatchDeviceProperty::getDeviceByName(const char *name)
     return it != data.end() ? it->second.device : BaseDevice();
 }
 
-WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name, const std::function<ParentDevice()> &constructor)
+WatchDeviceProperty::DeviceInfo &WatchDeviceProperty::ensureDeviceByName(const char *name,
+        const std::function<ParentDevice()> &constructor)
 {
     auto &it = data[name];
     if (!it.device.isValid())
@@ -101,7 +102,7 @@ bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
 {
     for (auto it = data.begin(); it != data.end();)
     {
-        if (it->second.device == device)
+        if (it->second.device.getDeviceName() == device.getDeviceName())
         {
             it = data.erase(it);
             return true;
@@ -112,7 +113,8 @@ bool WatchDeviceProperty::deleteDevice(const BaseDevice &device)
     return false;
 }
 
-int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg, const std::function<ParentDevice()> &constructor)
+int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errmsg,
+                                    const std::function<ParentDevice()> &constructor)
 {
     auto deviceName = root.getAttribute("device");
     if (!deviceName.isValid() || deviceName.toString() == "" || !isDeviceWatched(deviceName))
@@ -131,7 +133,8 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
             return 0;
     }
 
-    static const std::set<std::string> defVectors{
+    static const std::set<std::string> defVectors
+    {
         "defTextVector",  "defNumberVector", "defSwitchVector",
         "defLightVector", "defBLOBVector"
     };
@@ -141,7 +144,8 @@ int WatchDeviceProperty::processXml(const INDI::LilXmlElement &root, char *errms
         return deviceInfo.device.buildProp(root, errmsg);
     }
 
-    static const std::set<std::string> setVectors{
+    static const std::set<std::string> setVectors
+    {
         "setTextVector",  "setNumberVector", "setSwitchVector",
         "setLightVector", "setBLOBVector"
     };
