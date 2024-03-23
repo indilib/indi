@@ -353,8 +353,8 @@ bool CCD::initProperties()
     IUFillNumberVector(&CCDRotationNP, CCDRotationN, 1, getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    ScopeInfoNP[FocalLength].fill("FOCAL_LENGTH", "Focal Length (mm)", "%.2f", 10, 10000, 100, 0);
-    ScopeInfoNP[Aperture].fill("APERTURE", "Aperture (mm)", "%.2f", 10, 3000, 100, 0);
+    ScopeInfoNP[FOCAL_LENGTH].fill("FOCAL_LENGTH", "Focal Length (mm)", "%g", 0, 10000, 1, 0);
+    ScopeInfoNP[APERTURE].fill("APERTURE", "Aperture (mm)", "%g", 0, 3000, 1, 0);
     ScopeInfoNP.fill(getDeviceName(), "SCOPE_INFO", "Scope", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
@@ -1228,10 +1228,17 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Scope Information
         if (ScopeInfoNP.isNameMatch(name))
         {
-            ScopeInfoNP.update(values, names, n);
-            ScopeInfoNP.setState(IPS_OK);
-            ScopeInfoNP.apply();
-            saveConfig(true, ScopeInfoNP.getName());
+            const bool success = ScopeInfoNP.update(values, names, n);
+            if (success)
+            {
+                ScopeInfoNP.setState(IPS_OK);
+                ScopeInfoNP.apply();
+                saveConfig(true, ScopeInfoNP.getName());
+            } else
+            {
+                ScopeInfoNP.setState(IPS_ALERT);
+            }
+
             return true;
         }
 
@@ -1961,8 +1968,8 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
 
     // Which scope is in effect
     // Prefer Scope Info over snooped property which should be deprecated.
-    effectiveFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ?  ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
-    effectiveAperture = ScopeInfoNP[Aperture].getValue() > 0 ?  ScopeInfoNP[Aperture].getValue() : snoopedAperture;
+    effectiveFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ?  ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
+    effectiveAperture = ScopeInfoNP[APERTURE].getValue() > 0 ?  ScopeInfoNP[APERTURE].getValue() : snoopedAperture;
 
     if (std::isnan(effectiveFocalLength))
         LOG_WARN("Telescope focal length is missing.");

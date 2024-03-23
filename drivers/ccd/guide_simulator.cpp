@@ -394,7 +394,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     exposure_time *= (1 + sqrt(GainNP[0].getValue()));
 
-    auto targetFocalLength = ScopeInfoNP[FocalLength].getValue() > 0 ? ScopeInfoNP[FocalLength].getValue() : snoopedFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
 
     if (ShowStarField)
     {
