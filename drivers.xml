@@ -417,6 +417,10 @@
             <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
             <version>1.0</version>
         </device>
+          <device label="Pegasus FocusCube3" manufacturer="Pegasus Astro">
+            <driver name="Pegasus FocusCube3">indi_pegasus_focuscube3</driver>
+            <version>1.0</version>
+        </device>
          <device label="Pegasus ProdigyMF" manufacturer="Pegasus Astro">
             <driver name="Pegasus MMC-7000AH">indi_pegasus_prodigyMF</driver>
             <version>1.0</version>

@@ -203,6 +203,14 @@ add_executable(indi_pegasus_focuscube ${pegasusfocuscube_SRC})
 target_link_libraries(indi_pegasus_focuscube indidriver)
 install(TARGETS indi_pegasus_focuscube RUNTIME DESTINATION bin)
 
+# ############### Pegasus FocusCube3 Focuser ################
+SET(pegasusfocuscube3_SRC
+    pegasus_focuscube3.cpp)
+
+add_executable(indi_pegasus_focuscube3 ${pegasusfocuscube3_SRC})
+target_link_libraries(indi_pegasus_focuscube3 indidriver)
+install(TARGETS indi_pegasus_focuscube3 RUNTIME DESTINATION bin)
+
 # ############### Pegasus ProdigyMF Focuser ################
 SET(pegasusprodigyMF_SRC
     pegasus_prodigyMF.cpp)
