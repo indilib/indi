@@ -67,10 +67,10 @@ bool Telescope::initProperties()
     DefaultDevice::initProperties();
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_GPS", "GPS", "GPS Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_DOME", "DOME", "Dome Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
-                     IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP[GPS].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
+    ActiveDeviceTP[DOME].fill("ACTIVE_DOME", "DOME", "Dome Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP.load();
 
     // Use locking if dome is closed (and or) park scope if dome is closing
     IUFillSwitch(&DomePolicyS[DOME_IGNORED], "DOME_IGNORED", "Dome ignored", ISS_ON);
@@ -235,11 +235,11 @@ bool Telescope::initProperties()
         registerConnection(tcpConnection);
     }
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TIME_UTC");
+    IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "TIME_UTC");
 
-    IDSnoopDevice(ActiveDeviceT[1].text, "DOME_PARK");
-    IDSnoopDevice(ActiveDeviceT[1].text, "DOME_SHUTTER");
+    IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
+    IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_SHUTTER");
 
     addPollPeriodControl();
 
@@ -266,13 +266,11 @@ bool Telescope::initProperties()
 
 void Telescope::ISGetProperties(const char *dev)
 {
-    //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
     if (CanGOTO())
     {
-        defineProperty(&ActiveDeviceTP);
-        loadConfig(true, "ACTIVE_DEVICES");
+        defineProperty(ActiveDeviceTP);
 
         ISState isDomeIgnored = ISS_OFF;
         if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.name, DomePolicyS[DOME_IGNORED].name, &isDomeIgnored) == 0)
@@ -589,7 +587,7 @@ bool Telescope::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
+    ActiveDeviceTP.save(fp);
     IUSaveConfigSwitch(fp, &DomePolicySP);
 
     // Ensure that we only save valid locations
@@ -708,18 +706,18 @@ bool Telescope::ISNewText(const char *dev, const char *name, char *texts[], char
             return processTimeInfo(texts[utcindex], texts[offsetindex]);
         }
 
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.apply();
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TIME_UTC");
+            IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "TIME_UTC");
 
-            IDSnoopDevice(ActiveDeviceT[1].text, "DOME_PARK");
-            IDSnoopDevice(ActiveDeviceT[1].text, "DOME_SHUTTER");
+            IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
+            IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_SHUTTER");
             return true;
         }
     }
@@ -1434,7 +1432,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 #endif
             DomePolicySP.s = IPS_OK;
             IDSetSwitch(&DomePolicySP, nullptr);
-            triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
+            triggerSnoop(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
             return true;
         }
 

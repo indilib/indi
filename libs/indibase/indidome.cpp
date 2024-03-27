@@ -262,7 +262,6 @@ void Dome::ISGetProperties(const char * dev)
     DefaultDevice::ISGetProperties(dev);
 
     defineProperty(&ActiveDeviceTP);
-    loadConfig(true, "ACTIVE_DEVICES");
 
     ISState isMountIgnored = ISS_OFF;
     if (IUGetConfigSwitch(getDeviceName(), MountPolicySP.name, MountPolicyS[MOUNT_IGNORED].name, &isMountIgnored) == 0)

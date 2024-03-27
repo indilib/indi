@@ -106,7 +106,6 @@ void AstrometryDriver::ISGetProperties(const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     defineProperty(&ActiveDeviceTP);
-    loadConfig(true, "ACTIVE_DEVICES");
 }
 
 bool AstrometryDriver::updateProperties()

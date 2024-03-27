@@ -88,6 +88,7 @@ class Weather : public DefaultDevice, public WeatherInterface
         Weather();
 
         virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -95,7 +96,7 @@ class Weather : public DefaultDevice, public WeatherInterface
 
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    protected:        
+    protected:
         /** \brief Update weather station location
          *  \param latitude Site latitude in degrees.
          *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
@@ -127,13 +128,12 @@ class Weather : public DefaultDevice, public WeatherInterface
         INumber LocationN[3];
 
         // Active devices to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
 
         Connection::Serial *serialConnection {nullptr};
         Connection::TCP *tcpConnection       {nullptr};
 
-        int PortFD = -1;        
+        int PortFD = -1;
 
     private:
         bool processLocationInfo(double latitude, double longitude, double elevation);

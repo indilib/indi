@@ -51,11 +51,11 @@ bool Weather::initProperties()
                        IPS_OK);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_GPS", "GPS", "GPS Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
-                     IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP[0].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP.load();
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
 
     if (weatherConnection & CONNECTION_SERIAL)
     {
@@ -82,6 +82,12 @@ bool Weather::initProperties()
     return true;
 }
 
+void Weather::ISGetProperties(const char *dev)
+{
+    DefaultDevice::ISGetProperties(dev);
+    defineProperty(ActiveDeviceTP);
+}
+
 bool Weather::updateProperties()
 {
     DefaultDevice::updateProperties();
@@ -91,7 +97,6 @@ bool Weather::updateProperties()
         WI::updateProperties();
 
         defineProperty(&LocationNP);
-        defineProperty(&ActiveDeviceTP);
 
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
     }
@@ -100,7 +105,6 @@ bool Weather::updateProperties()
         WI::updateProperties();
 
         deleteProperty(LocationNP.name);
-        deleteProperty(ActiveDeviceTP.name);
     }
 
     return true;
@@ -154,14 +158,13 @@ bool INDI::Weather::ISNewText(const char *dev, const char *name, char *texts[], 
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, nullptr);
-
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+            ActiveDeviceTP.apply();
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
             return true;
         }
     }
@@ -246,7 +249,7 @@ bool Weather::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    IUSaveConfigText(fp, &ActiveDeviceTP);
+    ActiveDeviceTP.save(fp);
     IUSaveConfigNumber(fp, &LocationNP);
     return true;
 }

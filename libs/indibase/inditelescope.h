@@ -779,8 +779,12 @@ class Telescope : public DefaultDevice
         void sendTimeFromSystem();
 
         // Active GPS/Dome device to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[2] {};
+        INDI::PropertyText ActiveDeviceTP {2};
+        enum
+        {
+            GPS,
+            DOME
+        };
 
         // Switch to lock if dome is closed.
         ISwitchVectorProperty DomePolicySP;
