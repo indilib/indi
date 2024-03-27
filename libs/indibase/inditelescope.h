@@ -782,8 +782,8 @@ class Telescope : public DefaultDevice
         INDI::PropertyText ActiveDeviceTP {2};
         enum
         {
-            GPS,
-            DOME
+            ACTIVE_GPS,
+            ACTIVE_DOME
         };
 
         // Switch to lock if dome is closed.

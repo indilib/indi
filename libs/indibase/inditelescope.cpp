@@ -67,8 +67,8 @@ bool Telescope::initProperties()
     DefaultDevice::initProperties();
 
     // Active Devices
-    ActiveDeviceTP[GPS].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
-    ActiveDeviceTP[DOME].fill("ACTIVE_DOME", "DOME", "Dome Simulator");
+    ActiveDeviceTP[ACTIVE_GPS].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
+    ActiveDeviceTP[ACTIVE_DOME].fill("ACTIVE_DOME", "DOME", "Dome Simulator");
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     ActiveDeviceTP.load();
 
@@ -235,11 +235,11 @@ bool Telescope::initProperties()
         registerConnection(tcpConnection);
     }
 
-    IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "GEOGRAPHIC_COORD");
-    IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "TIME_UTC");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_GPS].getText(), "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_GPS].getText(), "TIME_UTC");
 
-    IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
-    IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_SHUTTER");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_SHUTTER");
 
     addPollPeriodControl();
 
@@ -713,11 +713,11 @@ bool Telescope::ISNewText(const char *dev, const char *name, char *texts[], char
             //  Update client display
             ActiveDeviceTP.apply();
 
-            IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "GEOGRAPHIC_COORD");
-            IDSnoopDevice(ActiveDeviceTP[GPS].getText(), "TIME_UTC");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_GPS].getText(), "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_GPS].getText(), "TIME_UTC");
 
-            IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
-            IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_SHUTTER");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_SHUTTER");
 
             saveConfig(ActiveDeviceTP);
             return true;
@@ -1434,7 +1434,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 #endif
             DomePolicySP.s = IPS_OK;
             IDSetSwitch(&DomePolicySP, nullptr);
-            triggerSnoop(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
+            triggerSnoop(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
             return true;
         }
 
