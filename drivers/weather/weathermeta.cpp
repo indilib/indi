@@ -62,7 +62,7 @@ bool WeatherMeta::initProperties()
     ActiveDeviceTP[ACTIVE_WEATHER_3].fill( "ACTIVE_WEATHER_3", "Station #3", nullptr);
     ActiveDeviceTP[ACTIVE_WEATHER_4].fill("ACTIVE_WEATHER_4", "Station #4", nullptr);
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB,
-                     IP_RW, 60, IPS_IDLE);
+                        IP_RW, 60, IPS_IDLE);
 
     // Station Status
     StationLP[STATION_STATUS_1].fill("STATION_STATUS_1", "Station #1", IPS_IDLE);
@@ -74,7 +74,7 @@ bool WeatherMeta::initProperties()
     // Update Period
     UpdatePeriodNP[0].fill("PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
     UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
-                       IP_RO, 60, IPS_IDLE);
+                        IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
 
@@ -122,7 +122,7 @@ bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], ch
     {
         if (ActiveDeviceTP.isNameMatch(name))
         {
-             ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.setState(IPS_OK);
             ActiveDeviceTP.update(texts, names, n);
             //  Update client display
             ActiveDeviceTP.apply();
@@ -147,6 +147,8 @@ bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], ch
                 IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_4].getText(), "WEATHER_STATUS");
                 IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER_4].getText(), "WEATHER_UPDATE");
             }
+
+            saveConfig(ActiveDeviceTP);
 
             return true;
         }

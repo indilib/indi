@@ -457,15 +457,15 @@ bool CCD::initProperties()
     char skyquality[MAXINDIDEVICE] = {"SQM"};
     IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_SKYQUALITY", skyquality, MAXINDIDEVICE);
 
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", telescope);
-    IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", rotator);
-    IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", focuser);
-    IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", filter);
-    IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", skyquality);
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
-                     IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", telescope);
+    ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", rotator);
+    ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", focuser);
+    ActiveDeviceTP[ACTIVE_FILTER].fill("ACTIVE_FILTER", "Filter", filter);
+    ActiveDeviceTP[ACTIVE_SKYQUALITY].fill("ACTIVE_SKYQUALITY", "Sky Quality", skyquality);
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    ActiveDeviceTP.load();
 
-    auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
+    auto mount = ActiveDeviceTP[ACTIVE_TELESCOPE].getText() ? ActiveDeviceTP[ACTIVE_TELESCOPE].getText() : "";
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -488,20 +488,20 @@ bool CCD::initProperties()
     IDSnoopDevice(mount, "TELESCOPE_PIER_SIDE");
 
     // Snoop Rotator
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_ROTATOR].getText(), "ABS_ROTATOR_ANGLE");
 
     // JJ ed 2019-12-10
     // Snoop Focuser
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "ABS_FOCUS_POSITION");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FOCUS_TEMPERATURE");
     //
 
     // Snoop Filter Wheel
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_NAME");
 
     // Snoop Sky Quality Meter
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_SKYQUALITY].getText(), "SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -516,7 +516,7 @@ bool CCD::initProperties()
 void CCD::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(ActiveDeviceTP);
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
@@ -888,22 +888,22 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.apply();
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
-            strncpy(J2000EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
-            if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
+            strncpy(EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
+            strncpy(J2000EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
+            if (strlen(ActiveDeviceTP[ACTIVE_TELESCOPE].getText()) > 0)
             {
-                LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceT[ACTIVE_TELESCOPE].text);
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_COORD");
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
+                LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_COORD");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "TELESCOPE_INFO");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "GEOGRAPHIC_COORD");
             }
             else
             {
@@ -919,10 +919,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 Altitude = std::numeric_limits<double>::quiet_NaN();
             }
 
-            if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
+            if (strlen(ActiveDeviceTP[ACTIVE_ROTATOR].getText()) > 0)
             {
-                LOGF_DEBUG("Snopping on Rotator %s", ActiveDeviceT[ACTIVE_ROTATOR].text);
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+                LOGF_DEBUG("Snopping on Rotator %s", ActiveDeviceTP[ACTIVE_ROTATOR].getText());
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_ROTATOR].getText(), "ABS_ROTATOR_ANGLE");
             }
             else
             {
@@ -931,11 +931,11 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
 
             // JJ ed 2019-12-10
-            if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
+            if (strlen(ActiveDeviceTP[ACTIVE_FOCUSER].getText()) > 0)
             {
-                LOGF_DEBUG("Snopping on Focuser %s", ActiveDeviceT[ACTIVE_FOCUSER].text);
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
+                LOGF_DEBUG("Snopping on Focuser %s", ActiveDeviceTP[ACTIVE_FOCUSER].getText());
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "ABS_FOCUS_POSITION");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FOCUS_TEMPERATURE");
             }
             else
             {
@@ -945,11 +945,11 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             }
 
 
-            if (strlen(ActiveDeviceT[ACTIVE_FILTER].text) > 0)
+            if (strlen(ActiveDeviceTP[ACTIVE_FILTER].getText()) > 0)
             {
-                LOGF_DEBUG("Snopping on Filter Wheel %s", ActiveDeviceT[ACTIVE_FILTER].text);
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
+                LOGF_DEBUG("Snopping on Filter Wheel %s", ActiveDeviceTP[ACTIVE_FILTER].getText());
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_NAME");
             }
             else
             {
@@ -957,10 +957,12 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 CurrentFilterSlot = -1;
             }
 
-            IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_SKYQUALITY].getText(), "SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
+
+            saveConfig(ActiveDeviceTP);
 
             //  We processed this one, so, tell the world we did it
             return true;
@@ -1234,7 +1236,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 ScopeInfoNP.setState(IPS_OK);
                 ScopeInfoNP.apply();
                 saveConfig(true, ScopeInfoNP.getName());
-            } else
+            }
+            else
             {
                 ScopeInfoNP.setState(IPS_ALERT);
             }
@@ -1960,15 +1963,16 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
 
     // Telescope
     // Only add keyword if not already exists in custom keywords
-    if (m_CustomFITSKeywords.count("TELESCOP") == 0 && strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
+    if (m_CustomFITSKeywords.count("TELESCOP") == 0 && strlen(ActiveDeviceTP[ACTIVE_TELESCOPE].getText()) > 0)
     {
-        fitsKeywords.push_back({"TELESCOP", ActiveDeviceT[0].text, "Telescope name"});
+        fitsKeywords.push_back({"TELESCOP", ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "Telescope name"});
     }
 
 
     // Which scope is in effect
     // Prefer Scope Info over snooped property which should be deprecated.
-    effectiveFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ?  ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
+    effectiveFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ?  ScopeInfoNP[FOCAL_LENGTH].getValue() :
+                           snoopedFocalLength;
     effectiveAperture = ScopeInfoNP[APERTURE].getValue() > 0 ?  ScopeInfoNP[APERTURE].getValue() : snoopedAperture;
 
     if (std::isnan(effectiveFocalLength))
@@ -2783,7 +2787,7 @@ bool CCD::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
+    ActiveDeviceTP.save(fp);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &FastExposureToggleSP);

@@ -658,10 +658,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * + **Filter Wheel**: Listens for FILTER_SLOT and FILTER_NAME properties.
          * + **SQM**: Listens for sky quality meter magnitude.
          */
-        ITextVectorProperty ActiveDeviceTP;
-
-        // JJ ed 2019-12-10
-        IText ActiveDeviceT[5] {};
+        INDI::PropertyText ActiveDeviceTP {5};
         enum
         {
             ACTIVE_TELESCOPE,

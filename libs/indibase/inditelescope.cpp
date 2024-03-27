@@ -718,6 +718,8 @@ bool Telescope::ISNewText(const char *dev, const char *name, char *texts[], char
 
             IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_PARK");
             IDSnoopDevice(ActiveDeviceTP[DOME].getText(), "DOME_SHUTTER");
+
+            saveConfig(ActiveDeviceTP);
             return true;
         }
     }

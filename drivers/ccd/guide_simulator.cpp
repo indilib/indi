@@ -48,7 +48,8 @@ GuideSim::GuideSim()
 bool GuideSim::SetupParms()
 {
     int nbuf;
-    SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16, SimulatorSettingsNP[SIM_XSIZE].getValue(),
+    SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16,
+                 SimulatorSettingsNP[SIM_XSIZE].getValue(),
                  SimulatorSettingsNP[SIM_YRES].getValue());
 
     if (HasCooler())
@@ -64,7 +65,8 @@ bool GuideSim::SetupParms()
     bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
     limitingmag   = SimulatorSettingsNP[SIM_BIAS].getValue();
     saturationmag = SimulatorSettingsNP[SIM_SATURATION].getValue();
-    OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue(); //  An oag is offset this much from center of scope position (arcminutes);
+    OAGoffset =
+        SimulatorSettingsNP[SIM_OAGOFFSET].getValue(); //  An oag is offset this much from center of scope position (arcminutes);
     polarError = SimulatorSettingsNP[SIM_POLAR].getValue();
     polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
     rotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
@@ -165,9 +167,9 @@ bool GuideSim::initProperties()
     ToggleTimeoutSP.fill(getDeviceName(), "CCD_TIMEOUT", "Timeout", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
 
     uint32_t cap = 0;
@@ -394,7 +396,8 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     exposure_time *= (1 + sqrt(GainNP[0].getValue()));
 
-    auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() :
+                             snoopedFocalLength;
 
     if (ShowStarField)
     {
@@ -597,7 +600,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // remember it is the center of the simulated image
             double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr);
             double J2_mnt_rar = rar - J2_mnt_d_rar
-                ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
+                                ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
 
             // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
             // system a star at true dec = 88 is seen at 89 deg in the mount's system
@@ -605,7 +608,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // and set it to 87 deg then the real location is at 88 deg.
             double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
             double J2_mnt_decr = decr + J2_mnt_d_decr
-                ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
+                                 ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
             //            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
             if (J2_mnt_decr > M_PI / 2.)
             {
@@ -1118,9 +1121,9 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
 void GuideSim::activeDevicesUpdated()
 {
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
 }
 

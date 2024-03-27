@@ -160,7 +160,7 @@ bool CCDSim::initProperties()
                 IPS_IDLE);
 
     // FWHM
-    auto focuser = ActiveDeviceT[ACTIVE_FOCUSER].text ? ActiveDeviceT[ACTIVE_FOCUSER].text : "";
+    auto focuser = ActiveDeviceTP[ACTIVE_FOCUSER].getText() ? ActiveDeviceTP[ACTIVE_FOCUSER].getText() : "";
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, focuser, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -198,14 +198,13 @@ bool CCDSim::initProperties()
     }
     ResolutionSP.fill(getDeviceName(), "CCD_RESOLUTION", "Resolution", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    auto mount = ActiveDeviceT[ACTIVE_TELESCOPE].text ? ActiveDeviceT[ACTIVE_TELESCOPE].text : "";
+    auto mount = ActiveDeviceTP[ACTIVE_TELESCOPE].getText() ? ActiveDeviceTP[ACTIVE_TELESCOPE].getText() : "";
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(mount, "EQUATORIAL_PE");
 #else
     IDSnoopDevice(mount, "EQUATORIAL_EOD_COORD");
 #endif
-
 
     IDSnoopDevice(focuser, "FWHM");
 
@@ -539,7 +538,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     exposure_time *= (1 + sqrt(GainNP[0].getValue()));
 
-    auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() : snoopedFocalLength;
+    auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() :
+                             snoopedFocalLength;
 
     if (ShowStarField)
     {
@@ -1293,11 +1293,11 @@ void CCDSim::activeDevicesUpdated()
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
 
-    strncpy(FWHMNP.device, ActiveDeviceT[ACTIVE_FOCUSER].text, MAXINDIDEVICE);
+    strncpy(FWHMNP.device, ActiveDeviceTP[ACTIVE_FOCUSER].getText(), MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle * root)

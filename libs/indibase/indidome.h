@@ -563,8 +563,7 @@ class Dome : public DefaultDevice
         uint32_t capability;
         DomeParkData parkDataType;
 
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
 
         // Switch to lock id mount is unparked
         ISwitchVectorProperty MountPolicySP;

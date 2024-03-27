@@ -165,6 +165,7 @@ bool INDI::Weather::ISNewText(const char *dev, const char *name, char *texts[], 
             //  Update client display
             ActiveDeviceTP.apply();
             IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
+            saveConfig(ActiveDeviceTP);
             return true;
         }
     }
