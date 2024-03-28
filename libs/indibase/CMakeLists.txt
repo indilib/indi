@@ -215,79 +215,94 @@ list(APPEND ${PROJECT_NAME}_PRIVATE_HEADERS
     # TODO
 )
 
+# If we build a shared library, we link other build products to it
+# If we do not build a shared library, we link the static library
+# If we build neither, we linke the object library
+if(INDI_BUILD_SHARED)
+    set(TARGET_SHARED ${PROJECT_NAME})
+    set(TARGET_STATIC ${PROJECT_NAME}_STATIC)
+    set(TARGET_OBJECT ${PROJECT_NAME}_OBJECT)
+elseif(INDI_BUILD_STATIC)
+    set(TARGET_STATIC ${PROJECT_NAME})
+    set(TARGET_OBJECT ${PROJECT_NAME}_OBJECT)
+else()
+    set(TARGET_OBJECT ${PROJECT_NAME})
+endif()
+
 # Build Object Library
-add_library(${PROJECT_NAME}_OBJECT OBJECT)
-set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
+if(TRUE)
+    add_library(${PROJECT_NAME}_OBJECT OBJECT)
+    set_property(TARGET ${PROJECT_NAME}_OBJECT PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
+    target_compile_definitions(${PROJECT_NAME}_OBJECT PRIVATE "-DHAVE_LIBNOVA")
 
-target_sources(${PROJECT_NAME}_OBJECT
-    PUBLIC
-    ${${PROJECT_NAME}_HEADERS}
-    PRIVATE
-    ${${PROJECT_NAME}_SOURCES}
-    ${${PROJECT_NAME}_PRIVATE_HEADERS}
-)
+    target_sources(${PROJECT_NAME}_OBJECT
+        PUBLIC
+        ${${PROJECT_NAME}_HEADERS}
+        PRIVATE
+        ${${PROJECT_NAME}_SOURCES}
+        ${${PROJECT_NAME}_PRIVATE_HEADERS}
+    )
 
-target_link_libraries(${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+    target_link_libraries(${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
 
-install(FILES
-    ${${PROJECT_NAME}_HEADERS}
-    DESTINATION
-    ${INCLUDE_INSTALL_DIR}/libindi
-    COMPONENT Devel
-)
+    install(FILES
+        ${${PROJECT_NAME}_HEADERS}
+        DESTINATION
+        ${INCLUDE_INSTALL_DIR}/libindi
+        COMPONENT Devel
+    )
 
-install(FILES
-    connectionplugins/connectioninterface.h
-    connectionplugins/connectionserial.h
-    connectionplugins/connectiontcp.h
-    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins
-    COMPONENT Devel
-)
+    install(FILES
+        connectionplugins/connectioninterface.h
+        connectionplugins/connectionserial.h
+        connectionplugins/connectiontcp.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins
+        COMPONENT Devel
+    )
 
-install(FILES
-    dsp/manager.h
-    dsp/dspinterface.h
-    dsp/transforms.h
-    dsp/convolution.h
-    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/dsp
-    COMPONENT Devel
-)
+    install(FILES
+        dsp/manager.h
+        dsp/dspinterface.h
+        dsp/transforms.h
+        dsp/convolution.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/dsp
+        COMPONENT Devel
+    )
+endif()
 
 # Build Static Library
 if(INDI_BUILD_STATIC)
-    add_library(${PROJECT_NAME}static STATIC)
+    add_library(${TARGET_STATIC} STATIC)
 
-    target_link_libraries(${PROJECT_NAME}static ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
-    target_include_directories(${PROJECT_NAME}static PUBLIC .)
+    target_link_libraries(${TARGET_STATIC} ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
+    target_include_directories(${TARGET_STATIC} PUBLIC .)
 
-    set_target_properties(${PROJECT_NAME}static PROPERTIES
+    set_target_properties(${TARGET_STATIC} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME} # this same name like shared library - backwards compatibility
     )
 
-    install(TARGETS ${PROJECT_NAME}static
+    install(TARGETS ${TARGET_STATIC}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
 
 # Build Shared Library
 if(INDI_BUILD_SHARED)
-    add_library(${PROJECT_NAME} SHARED)
+    add_library(${TARGET_SHARED} SHARED)
 
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_OBJECT ${${PROJECT_NAME}_LIBS})
+    target_link_libraries(${TARGET_SHARED} PUBLIC ${TARGET_OBJECT} ${${PROJECT_NAME}_LIBS})
+    target_include_directories(${TARGET_SHARED} PUBLIC .)
 
-    target_include_directories(${PROJECT_NAME} PUBLIC .)
-
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+    set_target_properties(${TARGET_SHARED} PROPERTIES
         VERSION ${CMAKE_INDI_VERSION_STRING}
         SOVERSION ${INDI_SOVERSION}
         OUTPUT_NAME ${PROJECT_NAME}
     )
 
-    install(TARGETS ${PROJECT_NAME}
+    install(TARGETS ${TARGET_SHARED}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()

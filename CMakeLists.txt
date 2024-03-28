@@ -316,6 +316,13 @@ if(INDI_BUILD_DRIVERS)
         include_directories(${ZLIB_INCLUDE_DIR})
         include_directories(libs/indibase)
         include_directories(libs/indibase/timer)
+        include_directories(libs/indiclient)
+        include_directories(libs/indiabstractclient)
+        include_directories(libs/indicore)
+        include_directories(libs/indidevice)
+        include_directories(libs/indidevice/property)
+        include_directories(${CMAKE_CURRENT_BINARY_DIR}/libs/indicore)
+
 
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
