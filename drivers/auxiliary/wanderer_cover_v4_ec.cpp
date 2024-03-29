@@ -46,9 +46,8 @@ WandererCoverV4EC::WandererCoverV4EC()
 
 bool WandererCoverV4EC::initProperties()
 {
-
     INDI::DefaultDevice::initProperties();
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
     addAuxControls();
 
     //Data read
@@ -56,12 +55,12 @@ bool WandererCoverV4EC::initProperties()
     DataNP[openset_read].fill( "Open_Position", "Open Position Set(°)", "%4.2f", 0, 999, 100, 0);
     DataNP[position_read].fill( "Current_Position", "Current Position(°)", "%4.2f", 0, 999, 100, 0);
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
-    DataNP.fill(getDeviceName(), "STATUS", "Real Time Status",MAIN_CONTROL_TAB, IP_RO,60, IPS_IDLE);
+    DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Open&Close Control
     OCcontrolSP[Open].fill( "Open", "Open", ISS_OFF);
     OCcontrolSP[Close].fill( "Close", "Close", ISS_ON);
-    OCcontrolSP.fill(getDeviceName(), "Move Cover", "Move Cover", MAIN_CONTROL_TAB, IP_RW,ISR_ATMOST1, 60, IPS_IDLE);
+    OCcontrolSP.fill(getDeviceName(), "Move Cover", "Move Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Light
     SetLightNP[Light].fill( "Flat_Light", "PWM", "%.2f", 0, 255, 5, 0);
@@ -79,12 +78,14 @@ bool WandererCoverV4EC::initProperties()
     OpenSetNP[OpenSet].fill( "OpenSet", "100-300", "%.2f", 100, 300, 0.01, 150);
     OpenSetNP.fill(getDeviceName(), "OpenSet", "Open Position(°)", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    setDefaultPollingPeriod(2000);
+
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     serialConnection->registerHandshake([&]()
-                                        {
-                                            return getData();
-                                        });
+    {
+        return getData();
+    });
     registerConnection(serialConnection);
 
     return true;
@@ -96,80 +97,82 @@ bool WandererCoverV4EC::getData()
     {
         PortFD = serialConnection->getPortFD();
         tcflush(PortFD, TCIOFLUSH);
-        int nbytes_read_name = 0,rc=-1;
+        int nbytes_read_name = 0, rc = -1;
         char name[64] = {0};
-        
+
         //Device Model//////////////////////////////////////////////////////////////////////////////////////////////////////
         if ((rc = tty_read_section(PortFD, name, 'A', 3, &nbytes_read_name)) != TTY_OK)
         {
             char errorMessage[MAXRBUF];
             tty_error_msg(rc, errorMessage, MAXRBUF);
-            if(Ismoving==false)
+            if(Ismoving == false)
             {
-                LOGF_INFO("No data received, the device may not be WandererCover V4-EC, please check the serial port!","Updated");
-                LOGF_ERROR("Device read error: %s", errorMessage);
+                LOGF_ERROR("No data received, the device may not be WandererCover V4-EC, please check the serial port! Error: %s",
+                           errorMessage);
             }
             return false;
         }
         name[nbytes_read_name - 1] = '\0';
-        if(strcmp(name, "ZXWBProV3")==0||strcmp(name, "ZXWBPlusV3")==0||strcmp(name, "UltimateV2")==0||strcmp(name, "PlusV2")==0)
+        if(strcmp(name, "ZXWBProV3") == 0 || strcmp(name, "ZXWBPlusV3") == 0 || strcmp(name, "UltimateV2") == 0
+                || strcmp(name, "PlusV2") == 0)
         {
-            LOGF_INFO("The device is not WandererCover V4-EC!","Updated");
+            LOG_WARN("The device is not WandererCover V4-EC!");
             return false;
         }
-        if(strcmp(name, "WandererCoverV4")!=0)
+
+        if(strcmp(name, "WandererCoverV4") != 0)
             throw std::exception();
         // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
         int nbytes_read_version = 0;
         char version[64] = {0};
         tty_read_section(PortFD, version, 'A', 5, &nbytes_read_version);
-        
+
         version[nbytes_read_version - 1] = '\0';
-        firmware=std::atoi(version);
+        firmware = std::atoi(version);
         // Close position set//////////////////////////////////////////////////////////////////////////////////////////
         char closeset[64] = {0};
-        int nbytes_read_closeset= 0;
+        int nbytes_read_closeset = 0;
         tty_read_section(PortFD, closeset, 'A', 5, &nbytes_read_closeset);
         closeset[nbytes_read_closeset - 1] = '\0';
-        closesetread = std::strtod(closeset,NULL);
+        closesetread = std::strtod(closeset, NULL);
 
         // Open position set//////////////////////////////////////////////////////////////////////////////////////////
         char openset[64] = {0};
-        int nbytes_read_openset= 0;
+        int nbytes_read_openset = 0;
         tty_read_section(PortFD, openset, 'A', 5, &nbytes_read_openset);
         openset[nbytes_read_openset - 1] = '\0';
-        opensetread = std::strtod(openset,NULL);
+        opensetread = std::strtod(openset, NULL);
         // Current Position//////////////////////////////////////////////////////////////////////////////////////////
         char position[64] = {0};
-        int nbytes_read_position= 0;
+        int nbytes_read_position = 0;
         tty_read_section(PortFD, position, 'A', 5, &nbytes_read_position);
         position[nbytes_read_position - 1] = '\0';
-        positionread = std::strtod(position,NULL);
-        
+        positionread = std::strtod(position, NULL);
+
         // Voltage//////////////////////////////////////////////////////////////////////////////////////////
         char voltage[64] = {0};
-        int nbytes_read_voltage= 0;
+        int nbytes_read_voltage = 0;
         tty_read_section(PortFD, voltage, 'A', 5, &nbytes_read_voltage);
         voltage[nbytes_read_voltage - 1] = '\0';
-        voltageread = std::strtod(voltage,NULL);
-        updateData(closesetread,opensetread,positionread,voltageread);
+        voltageread = std::strtod(voltage, NULL);
+        updateData(closesetread, opensetread, positionread, voltageread);
 
-        if(voltageread<=7)
+        if(voltageread <= 7)
         {
-            LOGF_ERROR("No power input!","failed");
+            LOG_ERROR("No power input!");
         }
 
-        Ismoving=false;
+        Ismoving = false;
         OCcontrolSP.setState( IPS_OK);
     }
-    catch(std::exception& e)
+    catch(std::exception &e)
     {
         //LOGF_INFO("Data read failed","failed");
     }
     return true;
 }
 
-void WandererCoverV4EC::updateData(double closesetread,double opensetread,double positionread,double voltageread)
+void WandererCoverV4EC::updateData(double closesetread, double opensetread, double positionread, double voltageread)
 {
     DataNP[closeset_read].setValue(closesetread);
     DataNP[openset_read].setValue(opensetread);
@@ -178,14 +181,12 @@ void WandererCoverV4EC::updateData(double closesetread,double opensetread,double
     DataNP.setState(IPS_OK);
     DataNP.apply();
 
-    OCcontrolSP[Open].setState( (positionread+10>=opensetread) ? ISS_ON : ISS_OFF);
-    OCcontrolSP[Close].setState( (positionread-10<=closesetread) ? ISS_ON : ISS_OFF);
-    OCcontrolSP.setState((OCcontrolSP[Open].getState()==ISS_ON||OCcontrolSP[Close].getState()==ISS_ON) ? IPS_OK : IPS_IDLE);
+    OCcontrolSP[Open].setState( (positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF);
+    OCcontrolSP[Close].setState( (positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF);
+    OCcontrolSP.setState((OCcontrolSP[Open].getState() == ISS_ON
+                          || OCcontrolSP[Close].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
     OCcontrolSP.apply();
 }
-
-
-
 
 bool WandererCoverV4EC::updateProperties()
 {
@@ -193,15 +194,14 @@ bool WandererCoverV4EC::updateProperties()
 
     if (isConnected())
     {
-
-        if(firmware>=20240101)
+        if(firmware >= 20240101)
         {
             LOGF_INFO("Firmware version: %d", firmware);
         }
         else
         {
             LOGF_INFO("Firmware version: %d", firmware);
-            LOGF_INFO("New firmware available!","failed");
+            LOG_INFO("New firmware available!");
         }
 
         defineProperty(DataNP);
@@ -229,13 +229,12 @@ bool WandererCoverV4EC::updateProperties()
 
 bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     // Open&Close
     if (OCcontrolSP.isNameMatch(name))
     {
-        if(DataNP[voltage_read].value<=7)
+        if(DataNP[voltage_read].value <= 7)
         {
-            LOGF_ERROR("No power input!","failed");
+            LOG_ERROR("No power input!");
             OCcontrolSP.setState(IPS_ALERT);
             return false;
         }
@@ -244,9 +243,9 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
         char cmd[128] = {0};
         snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
         sendCommand(cmd);
-        LOGF_INFO("Moving...", "NULL");
+        LOG_INFO("Moving...");
         OCcontrolSP.apply();
-        Ismoving=true;
+        Ismoving = true;
         return true;
     }
 
@@ -264,7 +263,7 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
             bool rc1 = false;
             for (int i = 0; i < n; i++)
             {
-                if(static_cast<int>(values[i])>0)
+                if(static_cast<int>(values[i]) > 0)
                     rc1 = sendCommand(std::to_string(static_cast<int>(values[i])));
                 else
                     rc1 = sendCommand("9999");
@@ -298,10 +297,10 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 
             for (int i = 0; i < n; i++)
             {
-                if(values[i]<10||values[i]>90)
+                if(values[i] < 10 || values[i] > 90)
                 {
                     CloseSetNP.setState(IPS_ALERT);
-                    LOGF_ERROR("Out of range! Allowed closed angle: 10-90 degrees.","NULL");
+                    LOG_ERROR("Out of range! Allowed closed angle: 10-90 degrees.");
                     return false;
                 }
                 rc1 = setClose(values[i]);
@@ -320,10 +319,10 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 
             for (int i = 0; i < n; i++)
             {
-                if(values[i]<100||values[i]>300)
+                if(values[i] < 100 || values[i] > 300)
                 {
                     OpenSetNP.setState(IPS_ALERT);
-                    LOGF_ERROR("Out of range! Allowed open angle: 100-300 degrees.","NULL");
+                    LOG_ERROR("Out of range! Allowed open angle: 100-300 degrees.");
                     return false;
                 }
                 rc1 = setOpen(values[i]);
@@ -344,7 +343,6 @@ const char *WandererCoverV4EC::getDefaultName()
 {
     return "WandererCover V4-EC";
 }
-
 
 bool WandererCoverV4EC::sendCommand(std::string command)
 {
@@ -376,7 +374,7 @@ bool WandererCoverV4EC::setDewPWM(int id, int value)
 bool WandererCoverV4EC::setClose(double value)
 {
     char cmd[64] = {0};
-    snprintf(cmd, 64, "%d", (int)(value*100+10000));
+    snprintf(cmd, 64, "%d", (int)(value * 100 + 10000));
     if (sendCommand(cmd))
     {
         return true;
@@ -388,7 +386,7 @@ bool WandererCoverV4EC::setClose(double value)
 bool WandererCoverV4EC::setOpen(double value)
 {
     char cmd[64] = {0};
-    snprintf(cmd, 64, "%d", (int)(value*100+40000));
+    snprintf(cmd, 64, "%d", (int)(value * 100 + 40000));
     if (sendCommand(cmd))
     {
         return true;
@@ -401,12 +399,12 @@ void WandererCoverV4EC::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(2000);
+        SetTimer(getPollingPeriod());
         return;
     }
 
     getData();
-    SetTimer(2000);
+    SetTimer(getPollingPeriod());
 }
 
 bool WandererCoverV4EC::saveConfigItems(FILE * fp)

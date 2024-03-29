@@ -25,9 +25,6 @@
 #pragma once
 
 #include "defaultdevice.h"
-#include <vector>
-#include <stdint.h>
-
 
 namespace Connection
 {
@@ -45,13 +42,10 @@ public:
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool updateProperties() override;
 
-
-
 protected:
     const char *getDefaultName() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual void TimerHit() override;
-
 
 
 private:
@@ -66,11 +60,11 @@ private:
     double voltageread=0;
     bool Ismoving=false;
     bool setDewPWM(int id, int value);
-        bool setClose(double value);
-        bool setOpen(double value);
+    bool setClose(double value);
+    bool setOpen(double value);
     void updateData(double closesetread,double opensetread,double positionread,double voltageread);
 
-        INDI::PropertySwitch OCcontrolSP{2};
+    INDI::PropertySwitch OCcontrolSP{2};
     enum
         {
             Open,
@@ -110,7 +104,6 @@ private:
     {
         OpenSet,
     };
-
 
     int PortFD{ -1 };
 
