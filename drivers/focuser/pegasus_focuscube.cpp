@@ -91,7 +91,7 @@ bool PegasusFocusCube::initProperties()
 
     // Backlash compensation
     FocusBacklashN[0].min   = 1; // 0 is off.
-    FocusBacklashN[0].max   = 1000;
+    FocusBacklashN[0].max   = 10000;
     FocusBacklashN[0].value = 1;
     FocusBacklashN[0].step  = 1;
 
