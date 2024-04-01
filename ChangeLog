@@ -1,3 +1,64 @@
++ From 2.0.6 to 2.0.7
+
+      be4195ca2 2024-03-29 Jasem Mutlaq         Fix interface not reported correctly in driver and incorrect usage of the logging functions                                                           
+      ebf5a12a3 2024-03-28 Eric Dejouhanet      fix(cmake): rework static/shared/object build. (#2036)                                                                                                
+      16142e015 2024-03-28 Eric Dejouhanet      fix(actions): fix stale issue management. (#2035)                                                                                                     
+      b53b71eb7 2024-03-27 Jasem Mutlaq         Fix name conflict                                                                                                                                     
+      223db9d19 2024-03-27 Jasem Mutlaq         Migrate ActiveDeviceTP to new property standard                                                                                                       
+      d494b3e16 2024-03-27 Jasem Mutlaq         Fix active device issue with config update                                                                                                            
+      c5f64f5ea 2024-03-23 hcomet               Driver for new DIY Dew Controller - CheapoDC (#2024)                                                                                                  
+      372d2939d 2024-03-23 Thomas Stibor        Fix setting ScopeInfo property (#2032)                                                                                                                
+      4c1f01887 2024-03-23 Efstathios Chrysikos Pegasus FocusCube3 (#2034)                                                                                                                            
+      dcaa4ce8e 2024-03-20 Ian Jessen           SCT focuser interface compliance (#2026) (#2031)                                                                                                      
+      24bc01946 2024-03-17 Jasem Mutlaq         Add a stale workflow                                                                                                                                  
+      624a463bd 2024-03-15 Rick Bassham         feat: Dark Dragons Astro Devices (#2029)                                                                                                              
+      ae2651209 2024-03-13 Jasem Mutlaq         Weather Interface Refactor (#2025)                                                                                                                    
+      f5b4ea40b 2024-03-07 Jasem Mutlaq         Fix issues with iPolar capture                                                                                                                        
+      6409e2351 2024-03-07 Jasem Mutlaq         Add missing iPolar label                                                                                                                              
+      315deea40 2024-03-07 Jasem Mutlaq         Add additional iPolar model                                                                                                                           
+      c36010556 2024-03-08 Ben Galvin           Fix iguider issues (#2012)                                                                                                                            
+      bd07f295f 2024-03-06 naheedsa             Migrate Pegasus falcon (#2021)                                                                                                                        
+      ad344f506 2024-03-06 naheedsa             Migrate Integra (#2022)                                                                                                                               
+      8ed790643 2024-03-05 naheedsa             Migrate Pyxis (#2020)                                                                                                                                 
+      ca39f81cf 2024-03-04 naheedsa             Migrate Weather watcher (#2018)                                                                                                                       
+      7062907e4 2024-03-04 naheedsa             Migrate Weather Meta (#2019)                                                                                                                          
+      6cb22894e 2024-03-03 naheedsa             Migrate mBox (#2017)                                                                                                                                  
+      303ead679 2024-03-03 naheedsa             Migrate Agent Imager driver and avoid using a single ENUM (#2014)                                                                                     
+      e18938b4c 2024-03-03 naheedsa             Migrate Safety proxy (#2016)                                                                                                                          
+      27e59c3b2 2024-03-03 naheedsa             Migrate Agent group (#2015)                                                                                                                           
+      e76b3c568 2024-03-03 Jasem Mutlaq         Check if we are already loading config, in this case we should not re-save to config again                                                            
+      563b4e97a 2024-03-01 naheedsa             Migrate Weather Simulator (#2011)                                                                                                                     
+      77efa953d 2024-03-01 naheedsa             Migrate CCD simulator (#2008)                                                                                                                         
+      97b1ebf59 2024-02-29 naheedsa             Migrate Focus Simulator (#2010)                                                                                                                       
+      c63d9d080 2024-02-29 naheedsa             Migrate Guide simulator (#2009)                                                                                                                       
+      89922e28d 2024-02-29 naheedsa             Migrate Telescope Simulator (#2007)                                                                                                                   
+      2a66a0fd7 2024-02-28 Ian Jessen           Support setting autodew aggression (#1992) (#2006)                                                                                                    
+      2a4e2e158 2024-02-27 Frank Wang           Driver for WandererRotator Mini V1/V2 and Lite V2 updated (#2005)                                                                                     
+      8b44046d8 2024-02-26 Jasem Mutlaq         Add homing support to telescope simulator to aid in testing                                                                                           
+      27a19631c 2024-02-24 Jasem Mutlaq         Add default width and height for some cameras                                                                                                         
+      4ddd74577 2024-02-23 Huib Wouters         added support for the :GC# command for Moonlite focuser (#2004)                                                                                       
+      1d5d6e25c 2024-02-22 naheedsa             Migrate Moonlite driver properties (#2002)                                                                                                            
+      2d692502e 2024-02-21 Jasem Mutlaq         iteration in V4L2 needs to be in reversed                                                                                                             
+      9c1d42818 2024-02-21 Jasem Mutlaq         Fix V4l2 enumerate                                                                                                                                    
+      6b5119817 2024-02-21 Jasem Mutlaq         Some minor improvements to iGuider + iPolar                                                                                                           
+      782473156 2024-02-21 Frank Wang           Driver for WandererRotator Mini V1&V2 added (#2000)                                                                                                   
+      c472ba735 2024-02-21 Edoardo Zanoni       Sesto Senso 2 changing state before changing position (#2001)                                                                                         
+      edad9f064 2024-02-19 Jasem Mutlaq         Set Auxiliary interface                                                                                                                               
+      2d988f249 2024-02-18 Jasem Mutlaq         Add and get device name for basic property                                                                                                            
+      7d7bc273b 2024-02-18 Jasem Mutlaq         Must update driver interface when rotator is detected                                                                                                 
+      5354d4a47 2024-02-18 Frank Wang           Driver for WandererCover V4-EC added (#1998)                                                                                                          
+      0a634259e 2024-02-17 Frank Wang           Driver For WandererBox Plus V3 added (#1997)                                                                                                          
+      398a89104 2024-02-17 Frank Wang           Driver for WandererBox Pro V3 added (#1996)                                                                                                           
+      aa8f88f6b 2024-02-17 Jasem Mutlaq         Remove obsolete driver                                                                                                                                
+      509578ab1 2024-02-16 Jasem Mutlaq         Do not set status to IPS_OK until checkMotionProgressCallback is invoked. Fixes #1995                                                                 
+      ca7f5b736 2024-02-16 Jasem Mutlaq         Rotator limits should be disabled by default (0) and only explicitly enabled if there is a valud > 0                                                  
+      910b7ea12 2024-02-15 Jasem Mutlaq         Set default connection type to UDP                                                                                                                    
+      5e699cab0 2024-02-07 Peter Englmaier      Initial release of Alluna TCS2 Driver (#1991)                                                                                                         
+      33df75f68 2024-02-07 Jasem Mutlaq         Update properties to match INDI::Telescope                                                                                                            
+      321755891 2024-02-07 Jasem Mutlaq         Initial support for iOptron iMate                                                                                                                     
+      637e32541 2024-02-07 Jasem Mutlaq         Add documentation for INDI standard property.                                                                                                         
+      517624907 2024-02-05 Jasem Mutlaq         Fix LX200Telescope longitude format. Must always be in INDI standard format 0 to +360 eastwards                                                       
+
 + From 2.0.5 to 2.0.6
 
       e9606865e 2024-01-30 Jasem Mutlaq         Add missing permission check                                                                                                                          

@@ -1,3 +1,9 @@
+libindi (2.0.7) focal; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 1 Apr 2024 10:00:00 +0300
+
 libindi (2.0.6) focal; urgency=medium
 
   * Minor release.
