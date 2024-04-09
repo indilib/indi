@@ -63,18 +63,18 @@ bool PegasusFalcon::initProperties()
     // Reload Firmware
     ReloadFirmwareSP[0].fill("RELOAD", "Reload", ISS_OFF);
     ReloadFirmwareSP.fill(getDeviceName(), "RELOAD_FIRMWARE", "Firmware", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1,
-                       60, IPS_IDLE);
+                          IP_RW, ISR_ATMOST1,
+                          60, IPS_IDLE);
 
     // Derotate
     DerotateNP[0].fill("INTERVAL", "Interval (ms)", "%.f", 0, 10000, 1000, 0);
     DerotateNP.fill(getDeviceName(), "ROTATOR_DEROTATE", "Derotation", MAIN_CONTROL_TAB, IP_RW,
-                       60, IPS_IDLE);
+                    60, IPS_IDLE);
 
     // Firmware
     FirmwareTP[0].fill("VERSION", "Version", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
-                     IPS_IDLE);
+                    IPS_IDLE);
 
     return true;
 }
@@ -123,7 +123,7 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // De-rotation
-        if (DerotateNP.getName())
+        if (DerotateNP.isNameMatch(name))
         {
             const uint32_t ms = static_cast<uint32_t>(values[0]);
             if (setDerotation(ms))
@@ -133,6 +133,7 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
                     LOGF_INFO("De-rotation is enabled and set to 1 step per %u milliseconds.", ms);
                 else
                     LOG_INFO("De-rotaiton is disabled.");
+                DerotateNP.setState(IPS_OK);
             }
             else
                 DerotateNP.setState(IPS_ALERT);
@@ -141,13 +142,15 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
         }
         // Firmware 1.4 bug:
         // If new angle differs 0.01° the rotator sometimes reports success even though there was no movement!
-        if (!strcmp(name, "ABS_ROTATOR_ANGLE"))
+        else if (!strcmp(name, "ABS_ROTATOR_ANGLE"))
+        {
             if (std::abs(values[0] - GotoRotatorN[0].value) <= 0.01)
             {
                 GotoRotatorNP.s = IPS_OK;
                 IDSetNumber(&GotoRotatorNP, nullptr);
                 return true;
             }
+        }
     }
     return Rotator::ISNewNumber(dev, name, values, names, n);
 }
