@@ -87,7 +87,7 @@ bool WeatherSimulator::updateProperties()
     if (isConnected())
         defineProperty(ControlWeatherNP);
     else
-        deleteProperty(ControlWeatherNP.getName());
+        deleteProperty(ControlWeatherNP);
 
     return true;
 }

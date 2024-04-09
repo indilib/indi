@@ -198,7 +198,7 @@ bool ScopeSim::updateProperties()
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.getName());
+        deleteProperty(GuideRateNP);
         deleteProperty(HomeSP);
     }
 

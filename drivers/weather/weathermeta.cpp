@@ -110,8 +110,8 @@ bool WeatherMeta::updateProperties()
     }
     else
     {
-        deleteProperty(StationLP.getName());
-        deleteProperty(UpdatePeriodNP.getName());
+        deleteProperty(StationLP);
+        deleteProperty(UpdatePeriodNP);
     }
     return true;
 }

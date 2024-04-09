@@ -93,5 +93,5 @@ void Group::defineProperties()
 
 void Group::deleteProperties()
 {
-    imager->deleteProperty(GroupSettingsNP.getName());
+    imager->deleteProperty(GroupSettingsNP);
 }

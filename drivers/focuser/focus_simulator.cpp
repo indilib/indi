@@ -131,9 +131,9 @@ bool FocusSim::updateProperties()
     }
     else
     {
-        deleteProperty(SeeingNP.getName());
-        deleteProperty(FWHMNP.getName());
-        deleteProperty(TemperatureNP.getName());
+        deleteProperty(SeeingNP);
+        deleteProperty(FWHMNP);
+        deleteProperty(TemperatureNP);
         deleteProperty(DelayNP);
     }
 
