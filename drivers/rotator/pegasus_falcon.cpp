@@ -94,9 +94,9 @@ bool PegasusFalcon::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(DerotateNP.getName());
-        deleteProperty(FirmwareTP.getName());
-        deleteProperty(ReloadFirmwareSP.getName());
+        deleteProperty(DerotateNP);
+        deleteProperty(FirmwareTP);
+        deleteProperty(ReloadFirmwareSP);
     }
 
     return true;
