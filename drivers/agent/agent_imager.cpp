@@ -327,11 +327,11 @@ bool Imager::updateProperties()
     }
     else
     {
-        deleteProperty(StatusLP.getName());
-        deleteProperty(ProgressNP.getName());
-        deleteProperty(BatchSP.getName());
-        deleteProperty(DownloadNP.getName());
-        deleteProperty(FitsBP.getName());
+        deleteProperty(StatusLP);
+        deleteProperty(ProgressNP);
+        deleteProperty(BatchSP);
+        deleteProperty(DownloadNP);
+        deleteProperty(FitsBP);
     }
     return true;
 }

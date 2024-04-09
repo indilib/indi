@@ -96,9 +96,9 @@ bool MBox::updateProperties()
     }
     else
     {
-        deleteProperty(CalibrationNP.getName());
-        deleteProperty(ResetSP.getName());
-        deleteProperty(FirmwareTP.getName());
+        deleteProperty(CalibrationNP);
+        deleteProperty(ResetSP);
+        deleteProperty(FirmwareTP);
     }
 
     return true;

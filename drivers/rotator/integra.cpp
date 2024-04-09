@@ -161,15 +161,15 @@ bool Integra::updateProperties()
     }
     else
     {
-        deleteProperty(MaxPositionNP.getName());
+        deleteProperty(MaxPositionNP);
 
         // Focus
-        deleteProperty(SensorNP.getName());
-        deleteProperty(FindHomeSP.getName());
+        deleteProperty(SensorNP);
+        deleteProperty(FindHomeSP);
 
         // Rotator
         RI::updateProperties();
-        deleteProperty(RotatorAbsPosNP.getName());
+        deleteProperty(RotatorAbsPosNP);
     }
 
     return true;

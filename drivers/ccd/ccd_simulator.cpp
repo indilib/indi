@@ -298,10 +298,10 @@ bool CCDSim::updateProperties()
     else
     {
         if (HasCooler())
-            deleteProperty(CoolerSP.getName());
+            deleteProperty(CoolerSP);
 
-        deleteProperty(GainNP.getName());
-        deleteProperty(OffsetNP.getName());
+        deleteProperty(GainNP);
+        deleteProperty(OffsetNP);
         deleteProperty(DirectoryTP);
         deleteProperty(DirectorySP);
         deleteProperty(ResolutionSP);

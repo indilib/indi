@@ -245,9 +245,9 @@ bool GuideSim::updateProperties()
     else
     {
         if (HasCooler())
-            deleteProperty(CoolerSP.getName());
+            deleteProperty(CoolerSP);
 
-        deleteProperty(GainNP.getName());
+        deleteProperty(GainNP);
     }
 
     return true;

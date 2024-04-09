@@ -119,11 +119,11 @@ bool Pyxis::updateProperties()
     }
     else
     {
-        deleteProperty(RotationRateNP.getName());
-        deleteProperty(SteppingSP.getName());
-        deleteProperty(PowerSP.getName());
-        deleteProperty(FirmwareTP.getName()) ;
-        deleteProperty(ModelTP.getName()) ;
+        deleteProperty(RotationRateNP);
+        deleteProperty(SteppingSP);
+        deleteProperty(PowerSP);
+        deleteProperty(FirmwareTP) ;
+        deleteProperty(ModelTP) ;
     }
 
     return true;

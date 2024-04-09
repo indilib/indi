@@ -119,7 +119,7 @@ bool WeatherSafetyProxy::updateProperties()
     }
     else
     {
-        deleteProperty(reasonsTP.getName());
+        deleteProperty(reasonsTP);
     }
 
     return true;
