@@ -313,5 +313,5 @@ SET(dragonlight_SRC
     dragonlight.cpp)
 
 add_executable(indi_dragon_light ${dragonlight_SRC})
-target_link_libraries(indi_dragon_light indidriver)
+target_link_libraries(indi_dragon_light indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
