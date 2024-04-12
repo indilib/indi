@@ -206,10 +206,10 @@ bool SkywatcherAPI::CheckIfDCMotor()
     return false;
 }
 
-bool SkywatcherAPI::IsMerlinMount() const
-{
-    return MountCode >= 0x80 && MountCode < 0x90;
-}
+// bool SkywatcherAPI::IsMerlinMount() const
+// {
+//     return MountCode >= 0x80 && MountCode < 0x90;
+// }
 
 long SkywatcherAPI::DegreesPerSecondToClocksTicksPerMicrostep(AXISID Axis, double DegreesPerSecond)
 {
@@ -277,8 +277,8 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
     if (MountCode == _114GT)
         tmpMicrostepsPerRevolution = 0x205318; // for 114GT mount
 
-    if (IsMerlinMount())
-        tmpMicrostepsPerRevolution = (long)((double)tmpMicrostepsPerRevolution * 0.655);
+    // if (IsMerlinMount())
+    //     tmpMicrostepsPerRevolution = (long)((double)tmpMicrostepsPerRevolution * 0.655);
 
     MicrostepsPerRevolution[(int)Axis] = tmpMicrostepsPerRevolution;
 

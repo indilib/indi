@@ -129,7 +129,7 @@ class SkywatcherAPI
 
         /// \brief Check if the current mount is a Merlin (AltAz)
         /// \return True if the current mount is Merlin otherwise false.
-        bool IsMerlinMount() const;
+        //bool IsMerlinMount() const;
 
         /// \brief Check if the current mount is AZ GTi
         /// \return True if the current mount is AZ GTi otherwise false.
