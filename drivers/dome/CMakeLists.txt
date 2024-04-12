@@ -80,5 +80,5 @@ SET(dragonlair_SRC
     dragonlair.cpp)
 
 add_executable(indi_dragonlair_dome ${dragonlair_SRC})
-target_link_libraries(indi_dragonlair_dome indidriver)
+target_link_libraries(indi_dragonlair_dome indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragonlair_dome RUNTIME DESTINATION bin)
