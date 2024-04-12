@@ -50,7 +50,7 @@ bool GuideSim::SetupParms()
     int nbuf;
     SetCCDParams(SimulatorSettingsNP[SIM_XRES].getValue(), SimulatorSettingsNP[SIM_YRES].getValue(), 16,
                  SimulatorSettingsNP[SIM_XSIZE].getValue(),
-                 SimulatorSettingsNP[SIM_YRES].getValue());
+                 SimulatorSettingsNP[SIM_YSIZE].getValue());
 
     if (HasCooler())
     {
