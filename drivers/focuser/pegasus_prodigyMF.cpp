@@ -61,7 +61,7 @@ bool PegasusProdigyMF::initProperties()
 
     // Max Speed
     IUFillNumber(&MaxSpeedN[0], "Value", "", "%6.2f", 100, 1000., 100., 400.);
-    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);    
+    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
 
 
@@ -81,8 +81,8 @@ bool PegasusProdigyMF::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
-    FocusMaxPosN[0].max = 2000;
-    FocusMaxPosN[0].value = 2000;
+    FocusMaxPosN[0].max = 20000;
+    FocusMaxPosN[0].value = 20000;
     FocusAbsPosN[0].min = 0;
 
 
@@ -221,15 +221,6 @@ bool PegasusProdigyMF::move(uint32_t newPosition)
     this->ignoreResponse();
 
     return true;
-}
-
-bool PegasusProdigyMF::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-
-    }
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool PegasusProdigyMF::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
