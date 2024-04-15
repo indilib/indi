@@ -156,16 +156,13 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         ///////////////////////////////////////////////////////////
 
         // Set/Get Temperature
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Enable/Disable temperature compnesation
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
         // Enable/Disable temperature compnesation on start
-        ISwitch TemperatureCompensateOnStartS[2];
-        ISwitchVectorProperty TemperatureCompensateOnStartSP;
+        INDI::PropertySwitch TemperatureCompensateOnStartSP {2};
 
         // Temperature Coefficient
         INumber TemperatureCoeffN[5];

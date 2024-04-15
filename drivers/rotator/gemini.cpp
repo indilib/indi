@@ -88,20 +88,20 @@ bool Gemini::initProperties()
     // Focuser Properties
     ///////////////////////////////////////////////////////////
 
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensation", "",
+    TemperatureCompensateSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "T. Compensation", "",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation on start
-    IUFillSwitch(&TemperatureCompensateOnStartS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateOnStartS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateOnStartSP, TemperatureCompensateOnStartS, 2, getDeviceName(),
+    TemperatureCompensateOnStartSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateOnStartSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
+    TemperatureCompensateOnStartSP.fill(getDeviceName(),
                        "T. Compensation @Start", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Temperature Coefficient
@@ -243,11 +243,11 @@ bool Gemini::updateProperties()
     if (isConnected())
     {
         // Focuser Properties
-        defineProperty(&TemperatureNP);
+        defineProperty(TemperatureNP);
         defineProperty(&TemperatureCoeffNP);
         defineProperty(&TemperatureCompensateModeSP);
-        defineProperty(&TemperatureCompensateSP);
-        defineProperty(&TemperatureCompensateOnStartSP);
+        defineProperty(TemperatureCompensateSP);
+        defineProperty(TemperatureCompensateOnStartSP);
         //        defineProperty(&FocusBacklashSP);
         //        defineProperty(&FocusBacklashNP);
         defineProperty(&FocuserHomeOnStartSP);
@@ -283,11 +283,11 @@ bool Gemini::updateProperties()
     else
     {
         // Focuser Properties
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(TemperatureNP);
         deleteProperty(TemperatureCoeffNP.name);
         deleteProperty(TemperatureCompensateModeSP.name);
-        deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(TemperatureCompensateOnStartSP.name);
+        deleteProperty(TemperatureCompensateSP);
+        deleteProperty(TemperatureCompensateOnStartSP);
         //        deleteProperty(FocusBacklashSP.name);
         //        deleteProperty(FocusBacklashNP.name);
         deleteProperty(FocuserGotoSP.name);
@@ -350,42 +350,42 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
-            if (setTemperatureCompensation(TemperatureCompensateS[0].s == ISS_ON))
+            int prevIndex = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
+            if (setTemperatureCompensation(TemperatureCompensateSP[INDI_ENABLED].getState() == ISS_ON))
             {
-                TemperatureCompensateSP.s = IPS_OK;
+                TemperatureCompensateSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateSP.s           = IPS_ALERT;
-                TemperatureCompensateS[prevIndex].s = ISS_ON;
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP[prevIndex].setState(ISS_ON);
             }
 
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.apply();
             return true;
         }
 
         // Temperature Compensation on Start
-        if (!strcmp(TemperatureCompensateOnStartSP.name, name))
+        if (TemperatureCompensateOnStartSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&TemperatureCompensateOnStartSP);
-            IUUpdateSwitch(&TemperatureCompensateOnStartSP, states, names, n);
-            if (setTemperatureCompensationOnStart(TemperatureCompensateOnStartS[0].s == ISS_ON))
+            int prevIndex = TemperatureCompensateOnStartSP.findOnSwitchIndex();
+            TemperatureCompensateOnStartSP.update(states, names, n);
+            if (setTemperatureCompensationOnStart(TemperatureCompensateOnStartSP[INDI_ENABLED].getState() == ISS_ON))
             {
-                TemperatureCompensateOnStartSP.s = IPS_OK;
+                TemperatureCompensateOnStartSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&TemperatureCompensateOnStartSP);
-                TemperatureCompensateOnStartSP.s           = IPS_ALERT;
-                TemperatureCompensateOnStartS[prevIndex].s = ISS_ON;
+                TemperatureCompensateOnStartSP.reset();
+                TemperatureCompensateOnStartSP.setState(IPS_ALERT);
+                TemperatureCompensateOnStartSP[prevIndex].setState(ISS_ON);
             }
 
-            IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
+            TemperatureCompensateOnStartSP.apply();
             return true;
         }
 
@@ -938,7 +938,7 @@ bool Gemini::getFocusConfig()
     // Temperature Compensation On?
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "TComp ON = %d\n", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TComp ON = %d\n", TemperatureCompensateSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -955,11 +955,11 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&TemperatureCompensateSP);
-    TemperatureCompensateS[0].s = TCompOn ? ISS_ON : ISS_OFF;
-    TemperatureCompensateS[0].s = TCompOn ? ISS_OFF : ISS_ON;
-    TemperatureCompensateSP.s   = IPS_OK;
-    IDSetSwitch(&TemperatureCompensateSP, nullptr);
+    TemperatureCompensateSP.reset();
+    TemperatureCompensateSP[INDI_ENABLED].setState(TCompOn ? ISS_ON : ISS_OFF);
+    TemperatureCompensateSP[INDI_ENABLED].setState(TCompOn ? ISS_OFF : ISS_ON);
+    TemperatureCompensateSP.setState(IPS_OK);
+    TemperatureCompensateSP.apply();
 
     memset(response, 0, sizeof(response));
 
@@ -1177,7 +1177,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "TC Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TC Start = %d\n", TemperatureCompensateOnStartSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1194,11 +1194,11 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&TemperatureCompensateOnStartSP);
-    TemperatureCompensateOnStartS[0].s = TCOnStart ? ISS_ON : ISS_OFF;
-    TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
-    TemperatureCompensateOnStartSP.s   = IPS_OK;
-    IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
+    TemperatureCompensateOnStartSP.reset();
+    TemperatureCompensateOnStartSP[INDI_ENABLED].setState(TCOnStart ? ISS_ON : ISS_OFF);
+    TemperatureCompensateOnStartSP[INDI_DISABLED].setState(TCOnStart ? ISS_OFF : ISS_ON);
+    TemperatureCompensateOnStartSP.setState(IPS_OK);
+    TemperatureCompensateOnStartSP.apply();
 
     // Get Status Parameters
     memset(response, 0, sizeof(response));
@@ -1903,8 +1903,8 @@ bool Gemini::getFocusStatus()
     int rc = sscanf(response, "%15[^=]=%f", key, &temperature);
     if (rc == 2)
     {
-        TemperatureN[0].value = temperature;
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP[0].setValue(temperature);
+        TemperatureNP.apply();
     }
     else
     {
@@ -1913,10 +1913,10 @@ bool Gemini::getFocusStatus()
 
         if (rc != 2 || strcmp(np, "NP"))
         {
-            if (TemperatureNP.s != IPS_ALERT)
+            if (TemperatureNP.getState() != IPS_ALERT)
             {
-                TemperatureNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureNP, nullptr);
+                TemperatureNP.setState(IPS_ALERT);
+                TemperatureNP.apply();
             }
             return false;
         }
@@ -3309,8 +3309,8 @@ bool Gemini::saveConfigItems(FILE *fp)
     // Rotator Configs
     RI::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
-    IUSaveConfigSwitch(fp, &TemperatureCompensateOnStartSP);
+    TemperatureCompensateSP.save(fp);
+    TemperatureCompensateOnStartSP.save(fp);
     IUSaveConfigNumber(fp, &TemperatureCoeffNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
     IUSaveConfigSwitch(fp, &FocuserHomeOnStartSP);
