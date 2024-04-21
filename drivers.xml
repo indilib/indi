@@ -641,6 +641,10 @@
             <driver name="Astrometry">indi_astrometry</driver>
             <version>0.1</version>
         </device>
+        <device label="AstroLink 4 mini II" manufacturer="Astrojolo">
+            <driver name="AstroLink 4 mini II">indi_astrolink4mini2</driver>
+            <version>0.2</version>
+        </device>
         <device label="SkySafari" manufacturer="Others">
             <driver name="SkySafari">indi_skysafari</driver>
             <version>0.2</version>
