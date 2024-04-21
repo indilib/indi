@@ -52,8 +52,7 @@ class WandererRotatorLite : public INDI::Rotator
         bool Handshake() override;
         bool sendCommand(const char *cmd);
         bool Move(const char *cmd);
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
+        INDI::PropertySwitch HomeSP {1};
         bool SetHomePosition();
         bool haltcommand = false;
         bool ReverseState;

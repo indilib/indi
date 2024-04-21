@@ -44,8 +44,8 @@ bool WandererRotatorLite::initProperties()
     INDI::Rotator::initProperties();
     setDefaultPollingPeriod(500);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
-    IUFillSwitch(&HomeS[0], "SetHomeButton", "Set Current Position as Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "SetHome", "Set Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 5,
+    HomeSP[0].fill("SetHomeButton", "Set Current Position as Home", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "SetHome", "Set Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 5,
                        IPS_IDLE);
 
     return true;
@@ -58,13 +58,13 @@ bool WandererRotatorLite::updateProperties()
     if (isConnected())
     {
 
-        defineProperty(&HomeSP);
+        defineProperty(HomeSP);
         deleteProperty(PresetNP.name);
         deleteProperty(PresetGotoSP.name);
     }
     else
     {
-        deleteProperty(HomeSP.name);
+        deleteProperty(HomeSP);
         deleteProperty(PresetNP.name);
         deleteProperty(PresetGotoSP.name);
     }
@@ -75,13 +75,13 @@ bool WandererRotatorLite::ISNewSwitch(const char *dev, const char *name, ISState
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, HomeSP.name))
+        if (HomeSP.isNameMatch(name))
         {
 
-            HomeSP.s = SetHomePosition() ? IPS_OK : IPS_ALERT;
+            HomeSP.setState(SetHomePosition() ? IPS_OK : IPS_ALERT);
             GotoRotatorN[0].value = 0;
             LOG_INFO("Home is set");
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             IDSetNumber(&GotoRotatorNP, nullptr);
             return true;
 
