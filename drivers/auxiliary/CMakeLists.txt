@@ -157,6 +157,16 @@ add_executable(indi_astromech_lpm ${lpm_SRC})
 target_link_libraries(indi_astromech_lpm indidriver)
 install(TARGETS indi_astromech_lpm RUNTIME DESTINATION bin)
 
+
+# ########## Astrolink Mini v2 #############
+SET(astrolinkminiv2_SRC
+    indi_astrolink4mini2.cpp)
+
+add_executable(indi_astrolink4mini2 ${astrolinkminiv2_SRC})
+target_link_libraries(indi_astrolink4mini2 indidriver)
+install(TARGETS indi_astrolink4mini2 RUNTIME DESTINATION bin)
+
+
 # ########## Sky Quality Meter ###############
 SET(sqm_SRC
     sqm.cpp)
