@@ -49,39 +49,39 @@ bool nFrameRotator::initProperties()
 
 
     // Stepping Modes
-    IUFillSwitch(&SteppingModeS[STEPPING_WAVE], "STEPPING_WAVE", "Wave", ISS_OFF);
-    IUFillSwitch(&SteppingModeS[STEPPING_HALF], "STEPPING_HALF", "Half", ISS_OFF);
-    IUFillSwitch(&SteppingModeS[STEPPING_FULL], "STEPPING_FULL", "Full", ISS_ON);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Mode",
+    SteppingModeSP[STEPPING_WAVE].fill("STEPPING_WAVE", "Wave", ISS_OFF);
+    SteppingModeSP[STEPPING_HALF].fill( "STEPPING_HALF", "Half", ISS_OFF);
+    SteppingModeSP[STEPPING_FULL].fill( "STEPPING_FULL", "Full", ISS_ON);
+    SteppingModeSP.fill(getDeviceName(), "STEPPING_MODE", "Mode",
                        STEPPING_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Stepping Phase
-    IUFillNumber(&SteppingPhaseN[0], "PHASES", "Wiring", "%.f", 0, 2, 1, 0);
-    IUFillNumberVector(&SteppingPhaseNP, SteppingPhaseN, 1, getDeviceName(), "STEPPING_PHASE", "Phase",
+    SteppingPhaseNP[0].fill("PHASES", "Wiring", "%.f", 0, 2, 1, 0);
+    SteppingPhaseNP.fill(getDeviceName(), "STEPPING_PHASE", "Phase",
                        STEPPING_TAB, IP_RW, 0, IPS_OK);
 
 
-    IUFillNumber(&RotatorSpeedN[0], "ROTATE_SPEED_VALUE", "Step Rate", "%3.0f", 0.0, 255.0, 1.0, 255.0);
-    IUFillNumberVector(&RotatorSpeedNP, RotatorSpeedN, 1, getDeviceName(), "ROTATE_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 0,
+    RotatorSpeedNP[0].fill("ROTATE_SPEED_VALUE", "Step Rate", "%3.0f", 0.0, 255.0, 1.0, 255.0);
+    RotatorSpeedNP.fill(getDeviceName(), "ROTATE_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_OK);
 
     // Max Speed
-    IUFillNumber(&MaxSpeedN[0], "RATE", "Rate", "%.f", 1, 254, 10, 0);
-    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MAX_SPEED", "Max Speed", MAIN_CONTROL_TAB, IP_RW, 0,
+    MaxSpeedNP[0].fill("RATE", "Rate", "%.f", 1, 254, 10, 0);
+    MaxSpeedNP.fill(getDeviceName(), "MAX_SPEED", "Max Speed", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_OK);
 
     // Coil Energized Status
-    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_OFF], "COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
-    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_ON", "Energized", ISS_OFF);
+    CoilStatusSP[COIL_ENERGIZED_OFF].fill("COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
+    CoilStatusSP[COIL_ENERGIZED_ON].fill("COIL_ENERGIZED_ON", "Energized", ISS_OFF);
     //    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_OFF", "Energized", ISS_OFF);
-    IUFillSwitchVector(&CoilStatusSP, CoilStatusS, 2, getDeviceName(), "COIL_MODE", "Coil After Move",
+    CoilStatusSP.fill(getDeviceName(), "COIL_MODE", "Coil After Move",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
-    IUFillNumber(&SettingN[PARAM_STEPS_DEGREE], "PARAM_STEPS_DEGREE", "Steps/Degree", "%.2f", 1., 10000., 500., 1000.);
-    IUFillNumberVector(&SettingNP, SettingN, 1, getDeviceName(), "ROTATOR_SETTINGS", "Parameters", SETTINGS_TAB, IP_RW, 0,
+    SettingNP[PARAM_STEPS_DEGREE].fill("PARAM_STEPS_DEGREE", "Steps/Degree", "%.2f", 1., 10000., 500., 1000.);
+    SettingNP.fill(getDeviceName(), "ROTATOR_SETTINGS", "Parameters", SETTINGS_TAB, IP_RW, 0,
                        IPS_OK);
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Value", "%.f", 0., 1000000., 0., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Steps", MAIN_CONTROL_TAB,
+    RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Value", "%.f", 0., 1000000., 0., 0.);
+    RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Steps", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE );
 
 
@@ -92,9 +92,9 @@ bool nFrameRotator::initProperties()
     GotoRotatorN[0].max  = 999999;
     GotoRotatorN[0].step = 1000;
 
-    RotatorSpeedN[0].min  = 1;
-    RotatorSpeedN[0].max  = 254;
-    RotatorSpeedN[0].step = 10;
+    RotatorSpeedNP[0].setMin(1);
+    RotatorSpeedNP[0].setMax(254);
+    RotatorSpeedNP[0].setStep(10);
 
     return true;
 }
@@ -111,14 +111,14 @@ bool nFrameRotator::updateProperties()
     if (isConnected())
     {
         // Read these values before defining focuser interface properties
-        defineProperty(&RotatorAbsPosNP);
-        defineProperty(&SettingNP);
-        defineProperty(&RotatorSpeedNP);
+        defineProperty(RotatorAbsPosNP);
+        defineProperty(SettingNP);
+        defineProperty(RotatorSpeedNP);
         defineProperty(&GotoRotatorNP);
-        loadConfig(true, SettingNP.name);
+        SettingNP.load();
         readPosition();
         readSpeedInfo();
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.apply();
         IDSetNumber(&GotoRotatorNP, nullptr);
 
         loadConfig(true, PresetNP.name);
@@ -126,10 +126,10 @@ bool nFrameRotator::updateProperties()
         bool rc = getStartupValues();
 
         // Settings
-        defineProperty(&MaxSpeedNP);
-        defineProperty(&SteppingModeSP);
-        defineProperty(&SteppingPhaseNP);
-        defineProperty(&CoilStatusSP);
+        defineProperty(MaxSpeedNP);
+        defineProperty(SteppingModeSP);
+        defineProperty(SteppingPhaseNP);
+        defineProperty(CoilStatusSP);
 
         if (rc)
             LOG_INFO("nFrameRotator is ready.");
@@ -139,12 +139,12 @@ bool nFrameRotator::updateProperties()
     else
     {
 
-        deleteProperty(MaxSpeedNP.name);
-        deleteProperty(SteppingModeSP.name);
-        deleteProperty(SteppingPhaseNP.name);
-        deleteProperty(CoilStatusSP.name);
-        deleteProperty(RotatorSpeedNP.name);
-        deleteProperty(RotatorAbsPosNP.name);
+        deleteProperty(MaxSpeedNP);
+        deleteProperty(SteppingModeSP);
+        deleteProperty(SteppingPhaseNP);
+        deleteProperty(CoilStatusSP);
+        deleteProperty(RotatorSpeedNP);
+        deleteProperty(RotatorAbsPosNP);
     }
 
     return true;
@@ -238,81 +238,81 @@ bool nFrameRotator::ISNewNumber(const char *dev, const char *name, double values
     {
 
         // Stepping Phase
-        if (!strcmp(name, SteppingPhaseNP.name))
+        if (SteppingPhaseNP.isNameMatch(name))
         {
             if (setSteppingPhase(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&SteppingPhaseNP, values, names, n);
-                SteppingPhaseNP.s = IPS_OK;
+                SteppingPhaseNP.update(values, names, n);
+                SteppingPhaseNP.setState(IPS_OK);
             }
             else
-                SteppingPhaseNP.s = IPS_ALERT;
+                SteppingPhaseNP.setState(IPS_ALERT);
 
-            IDSetNumber(&SteppingPhaseNP, nullptr);
+            SteppingPhaseNP.apply();
             return true;
         }
 
         // Current speed
 
-        if (!strcmp(name, RotatorSpeedNP.name))
+        if (RotatorSpeedNP.isNameMatch(name))
         {
             if (SetRotatorSpeed(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&RotatorSpeedNP, values, names, n);
-                RotatorSpeedNP.s = IPS_OK;
+                RotatorSpeedNP.update(values, names, n);
+                RotatorSpeedNP.setState(IPS_OK);
             }
             else
             {
-                RotatorSpeedNP.s = IPS_ALERT;
+                RotatorSpeedNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&RotatorSpeedNP, nullptr);
+            RotatorSpeedNP.apply();
             return true;
         }
 
         // Max Speed
-        if (!strcmp(name, MaxSpeedNP.name))
+        if (MaxSpeedNP.isNameMatch(name))
         {
             if (setMaxSpeed(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&MaxSpeedNP, values, names, n);
-                MaxSpeedNP.s = IPS_OK;
+                MaxSpeedNP.update(values, names, n);
+                MaxSpeedNP.setState(IPS_OK);
 
                 // We must update the Min/Max of focus speed
-                RotatorSpeedN[0].max = values[0];
-                IUUpdateMinMax(&RotatorSpeedNP);
+                RotatorSpeedNP[0].setMax(values[0]);
+                RotatorSpeedNP.updateMinMax();
             }
             else
             {
-                MaxSpeedNP.s = IPS_ALERT;
+                MaxSpeedNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&MaxSpeedNP, nullptr);
+            MaxSpeedNP.apply();
             return true;
         }
-        if (!strcmp(name, SettingNP.name))
+        if (SettingNP.isNameMatch(name))
         {
             bool rc = true;
-            std::vector<double> prevValue(SettingNP.nnp);
-            for (uint8_t i = 0; i < SettingNP.nnp; i++)
-                prevValue[i] = SettingN[i].value;
-            IUUpdateNumber(&SettingNP, values, names, n);
+            std::vector<double> prevValue(SettingNP.count());
+            for (uint8_t i = 0; i < SettingNP.count(); i++)
+                prevValue[i] = SettingNP[i].getValue();
+            SettingNP.update(values, names, n);
 
 
-            if (SettingN[PARAM_STEPS_DEGREE].value != prevValue[PARAM_STEPS_DEGREE])
+            if (SettingNP[PARAM_STEPS_DEGREE].value != prevValue[PARAM_STEPS_DEGREE])
             {
-                GotoRotatorN[0].value = calculateAngle(RotatorAbsPosN[0].value);
+                GotoRotatorN[0].value = calculateAngle(RotatorAbsPosNP[0].getValue());
                 IDSetNumber(&GotoRotatorNP, nullptr);
             }
 
             if (!rc)
             {
-                for (uint8_t i = 0; i < SettingNP.nnp; i++)
-                    SettingN[i].value = prevValue[i];
+                for (uint8_t i = 0; i < SettingNP.count(); i++)
+                    SettingNP[i].setValue(prevValue[i]);
             }
 
-            SettingNP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&SettingNP, nullptr);
+            SettingNP.setState(rc ? IPS_OK : IPS_ALERT);
+            SettingNP.apply();
             return true;
         }
 
@@ -327,24 +327,24 @@ bool nFrameRotator::ISNewSwitch(const char * dev, const char * name, ISState * s
     {
 
         // Stepping Mode
-        if (!strcmp(name, SteppingModeSP.name))
+        if (SteppingModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SteppingModeSP, states, names, n);
-            SteppingModeSP.s = IPS_OK;
-            IDSetSwitch(&SteppingModeSP, nullptr);
+            SteppingModeSP.update(states, names, n);
+            SteppingModeSP.setState(IPS_OK);
+            SteppingModeSP.apply();
             return true;
         }
 
         // Coil Status after Move is done
-        if (!strcmp(name, CoilStatusSP.name))
+        if (CoilStatusSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&CoilStatusSP);
+            int prevIndex = CoilStatusSP.findOnSwitchIndex();
             LOGF_DEBUG("SETCOIL PINDEX=%d", prevIndex);
-            IUUpdateSwitch(&CoilStatusSP, states, names, n);
-            int state = IUFindOnSwitchIndex(&CoilStatusSP);
+            CoilStatusSP.update(states, names, n);
+            int state = CoilStatusSP.findOnSwitchIndex();
             if (setCoilStatus(state))
             {
-                CoilStatusSP.s = IPS_OK;
+                CoilStatusSP.setState(IPS_OK);
                 if (state == COIL_ENERGIZED_ON)
                     LOG_WARN("Coil shall be kept energized after motion is complete. Watch for motor heating!");
                 else
@@ -352,13 +352,13 @@ bool nFrameRotator::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
             else
             {
-                IUResetSwitch(&CoilStatusSP);
-                CoilStatusS[prevIndex].s = ISS_ON;
-                CoilStatusSP.s = IPS_ALERT;
+                CoilStatusSP.reset();
+                CoilStatusSP[prevIndex].setState(ISS_ON);
+                CoilStatusSP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to update coil energization status.");
             }
 
-            IDSetSwitch(&CoilStatusSP, nullptr);
+            CoilStatusSP.apply();
             return true;
         }
     }
@@ -378,7 +378,7 @@ IPState nFrameRotator::MoveRotator(double angle)
 {
     requestedAngle = angle ;
 
-    LOGF_DEBUG("Angle = <%f> Step/Deg=<%d>", angle, (int)SettingN[PARAM_STEPS_DEGREE].value);
+    LOGF_DEBUG("Angle = <%f> Step/Deg=<%d>", angle, (int)SettingNP[PARAM_STEPS_DEGREE].getValue());
     // Find closest distance
     double r = (angle > 180) ? 360 - angle : angle;
     int sign = (angle >= 0 && angle <= 180) ? 1 : -1;
@@ -388,8 +388,8 @@ IPState nFrameRotator::MoveRotator(double angle)
     r *= sign;
     r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
 
-    double newTarget = r * SettingN[PARAM_STEPS_DEGREE].value + m_ZeroPosition;
-    m_TargetDiff = (int)newTarget - (int)RotatorAbsPosN[0].value;
+    double newTarget = r * SettingNP[PARAM_STEPS_DEGREE].getValue() + m_ZeroPosition;
+    m_TargetDiff = (int)newTarget - (int)RotatorAbsPosNP[0].getValue();
     return IPS_BUSY;
 }
 
@@ -414,16 +414,16 @@ void nFrameRotator::TimerHit()
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if ( ((RotatorAbsPosNP.s == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY) && isMoving() == false) || wantAbort == true)
+    if ( ((RotatorAbsPosNP.getState() == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY) && isMoving() == false) || wantAbort == true)
     {
         LOGF_DEBUG("wantAbort = %d, diff = %d", wantAbort, m_TargetDiff);
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            RotatorAbsPosNP.s = IPS_OK;
+            RotatorAbsPosNP.setState(IPS_OK);
             GotoRotatorNP.s = IPS_OK;
             LOGF_DEBUG("HIT reqAngle=%f diff=%d", requestedAngle, m_TargetDiff);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            RotatorAbsPosNP.apply();
             wantAbort = false;
         }
         else
@@ -433,7 +433,7 @@ void nFrameRotator::TimerHit()
             // therefore for larger movements, we break it down.
             int nextMotion = (std::abs(m_TargetDiff) > 999) ? 999 : std::abs(m_TargetDiff);
             int direction = m_TargetDiff > 0 ? ROTATE_OUTWARD : ROTATE_INWARD;
-            int mode = IUFindOnSwitchIndex(&SteppingModeSP);
+            int mode = SteppingModeSP.findOnSwitchIndex();
             char cmd[NFRAME_LEN] = {0};
             snprintf(cmd, NFRAME_LEN, ":F%d%d%03d#", direction, mode, nextMotion);
             if (sendCommand(cmd) == false)
@@ -444,10 +444,10 @@ void nFrameRotator::TimerHit()
                     GotoRotatorNP.s = IPS_ALERT;
                     IDSetNumber(&GotoRotatorNP, nullptr);
                 }
-                if (RotatorAbsPosNP.s == IPS_BUSY)
+                if (RotatorAbsPosNP.getState() == IPS_BUSY)
                 {
-                    RotatorAbsPosNP.s = IPS_ALERT;
-                    IDSetNumber(&RotatorAbsPosNP, nullptr);
+                    RotatorAbsPosNP.setState(IPS_ALERT);
+                    RotatorAbsPosNP.apply();
                 }
             }
             else
@@ -462,9 +462,9 @@ void nFrameRotator::TimerHit()
     }
     if (m_TargetDiff == 0)
     {
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.apply();
     }
-    IDSetNumber(&RotatorAbsPosNP, nullptr);
+    RotatorAbsPosNP.apply();
     IDSetNumber(&GotoRotatorNP, nullptr);
 
     SetTimer(getCurrentPollingPeriod());
@@ -497,10 +497,10 @@ bool nFrameRotator::readPosition()
         return false;
     //    LOGF_DEBUG("readPosFBPNB=< %d >", pos);
 
-    RotatorAbsPosN[0].value = pos;
+    RotatorAbsPosNP[0].setValue(pos);
     //    if(m_TargetDiff != 0)
-    GotoRotatorN[0].value = calculateAngle(RotatorAbsPosN[0].value );
-    IDSetNumber(&RotatorAbsPosNP, nullptr);
+    GotoRotatorN[0].value = calculateAngle(RotatorAbsPosNP[0].getValue() );
+    RotatorAbsPosNP.apply();
     IDSetNumber(&GotoRotatorNP, nullptr);
 
     return true;
@@ -526,16 +526,16 @@ bool nFrameRotator::readSpeedInfo()
     if (current_step == 1e6)
         return false;
 
-    MaxSpeedN[0].value = 254 - max_step + 1;
-    MaxSpeedNP.s = IPS_OK;
+    MaxSpeedNP[0].setValue(254 - max_step + 1);
+    MaxSpeedNP.setState(IPS_OK);
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    RotatorSpeedN[0].max   = 254 - max_step + 1;
-    RotatorSpeedN[0].value = 254 - current_step + 1;
-    IDSetNumber(&RotatorSpeedNP, nullptr);
-    RotatorSpeedNP.s = IPS_OK;
-    LOGF_DEBUG("Speed= %f cs=%d", RotatorSpeedN[0].value, current_step);
+    RotatorSpeedNP[0].setMax(254 - max_step + 1);
+    RotatorSpeedNP[0].setValue(254 - current_step + 1);
+    RotatorSpeedNP.apply();
+    RotatorSpeedNP.setState(IPS_OK);
+    LOGF_DEBUG("Speed= %f cs=%d", RotatorSpeedNP[0].getValue(), current_step);
 
     return true;
 }
@@ -553,8 +553,8 @@ bool nFrameRotator::readSteppingInfo()
     if (phase == 1e6)
         return false;
 
-    SteppingPhaseN[0].value = phase;
-    SteppingPhaseNP.s = IPS_OK;
+    SteppingPhaseNP[0].setValue(phase);
+    SteppingPhaseNP.setState(IPS_OK);
 
     return true;
 }
@@ -566,12 +566,12 @@ bool nFrameRotator::readCoilStatus()
     if (sendCommand(":RC", res, 3, 1) == false)
         return false;
 
-    IUResetSwitch(&CoilStatusSP);
+    CoilStatusSP.reset();
     LOGF_DEBUG("Coil status = %c", res[0]);
 
-    CoilStatusS[COIL_ENERGIZED_OFF].s = (res[0] == '0') ? ISS_OFF : ISS_ON;
-    CoilStatusS[COIL_ENERGIZED_ON].s  = (res[0] == '0') ? ISS_ON : ISS_OFF;
-    CoilStatusSP.s = IPS_OK;
+    CoilStatusSP[COIL_ENERGIZED_OFF].setState((res[0] == '0') ? ISS_OFF : ISS_ON);
+    CoilStatusSP[COIL_ENERGIZED_ON].setState((res[0] == '0') ? ISS_ON : ISS_OFF);
+    CoilStatusSP.setState(IPS_OK);
 
     return true;
 }
@@ -589,7 +589,7 @@ bool nFrameRotator::SyncRotator(double angle)
 
     r *= sign;
     r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
-    double newTarget = r * SettingN[PARAM_STEPS_DEGREE].value + m_ZeroPosition;
+    double newTarget = r * SettingNP[PARAM_STEPS_DEGREE].getValue() + m_ZeroPosition;
 
     char cmd[NFRAME_LEN] = {0};
     snprintf(cmd, NFRAME_LEN, "#:CP+%06d#", (int)newTarget);
@@ -637,8 +637,8 @@ bool nFrameRotator::saveConfigItems(FILE *fp)
 {
     INDI::Rotator::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &SteppingModeSP);
-    IUSaveConfigNumber(fp, &SettingNP);
+    SteppingModeSP.save(fp);
+    SettingNP.save(fp);
 
 
     return true;
@@ -648,7 +648,7 @@ double nFrameRotator::calculateAngle(uint32_t steps)
     int diff = (static_cast<int32_t>(steps) - m_ZeroPosition) *
                (IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1);
     //    LOGF_DEBUG("RANGE=%f",(int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.);
-    return range360((float(diff) + 0.5) / SettingN[PARAM_STEPS_DEGREE].value);
+    return range360((float(diff) + 0.5) / SettingNP[PARAM_STEPS_DEGREE].getValue());
     //   return (int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.;
 }
 
@@ -663,6 +663,6 @@ void nFrameRotator::ISGetProperties(const char *dev)
 {
     INDI::Rotator::ISGetProperties(dev);
 
-    loadConfig(true, SettingNP.name);
+    SettingNP.load();
 }
 
