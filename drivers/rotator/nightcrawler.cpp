@@ -62,17 +62,17 @@ bool NightCrawler::initProperties()
     FocusSpeedN[0].value = 1;
 
     // Focus Sync
-    IUFillNumber(&SyncFocusN[0], "FOCUS_SYNC_OFFSET", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&SyncFocusNP, SyncFocusN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0,
+    SyncFocusNP[0].fill("FOCUS_SYNC_OFFSET", "Ticks", "%.f", 0, 100000., 0., 0.);
+    SyncFocusNP.fill(getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_IDLE );
 
     // Voltage
-    IUFillNumber(&VoltageN[0], "VALUE", "Value (v)", "%.2f", 0, 30., 1., 0.);
-    IUFillNumberVector(&VoltageNP, VoltageN, 1, getDeviceName(), "Voltage", "Voltage", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+    VoltageNP[0].fill("VALUE", "Value (v)", "%.2f", 0, 30., 1., 0.);
+    VoltageNP.fill(getDeviceName(), "Voltage", "Voltage", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     // Temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Value (C)", "%.2f", -100, 100., 1., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+    TemperatureNP[0].fill("TEMPERATURE", "Value (C)", "%.2f", -100, 100., 1., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
                        IP_RO, 0, IPS_IDLE );
 
     // Temperature offset
@@ -81,39 +81,39 @@ bool NightCrawler::initProperties()
                        MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE );
 
     // Motor Step Delay
-    IUFillNumber(&FocusStepDelayN[0], "FOCUS_STEP", "Value", "%.f", 7, 100., 1., 7.);
-    IUFillNumberVector(&FocusStepDelayNP, FocusStepDelayN, 1, getDeviceName(), "FOCUS_STEP_DELAY", "Step Rate", SETTINGS_TAB,
+    FocusStepDelayNP[0].fill("FOCUS_STEP", "Value", "%.f", 7, 100., 1., 7.);
+    FocusStepDelayNP.fill(getDeviceName(), "FOCUS_STEP_DELAY", "Step Rate", SETTINGS_TAB,
                        IP_RW, 0, IPS_IDLE );
 
     // Limit Switch
-    IUFillLight(&LimitSwitchL[ROTATION_SWITCH], "ROTATION_SWITCH", "Rotation Home", IPS_OK);
-    IUFillLight(&LimitSwitchL[OUT_SWITCH], "OUT_SWITCH", "Focus Out Limit", IPS_OK);
-    IUFillLight(&LimitSwitchL[IN_SWITCH], "IN_SWITCH", "Focus In Limit", IPS_OK);
-    IUFillLightVector(&LimitSwitchLP, LimitSwitchL, 3, getDeviceName(), "LIMIT_SWITCHES", "Limit Switch", SETTINGS_TAB,
+    LimitSwitchLP[ROTATION_SWITCH].fill("ROTATION_SWITCH", "Rotation Home", IPS_OK);
+    LimitSwitchLP[OUT_SWITCH].fill("OUT_SWITCH", "Focus Out Limit", IPS_OK);
+    LimitSwitchLP[IN_SWITCH].fill("IN_SWITCH", "Focus In Limit", IPS_OK);
+    LimitSwitchLP.fill(getDeviceName(), "LIMIT_SWITCHES", "Limit Switch", SETTINGS_TAB,
                       IPS_IDLE);
 
     // Home selection
-    IUFillSwitch(&HomeSelectionS[MOTOR_FOCUS], "FOCUS", "Focuser", ISS_ON);
-    IUFillSwitch(&HomeSelectionS[MOTOR_ROTATOR], "ROTATOR", "Rotator", ISS_ON);
-    IUFillSwitch(&HomeSelectionS[MOTOR_AUX], "AUX", "Aux", ISS_OFF);
-    IUFillSwitchVector(&HomeSelectionSP, HomeSelectionS, 3, getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB,
+    HomeSelectionSP[MOTOR_FOCUS].fill("FOCUS", "Focuser", ISS_ON);
+    HomeSelectionSP[MOTOR_ROTATOR].fill( "ROTATOR", "Rotator", ISS_ON);
+    HomeSelectionSP[MOTOR_AUX].fill("AUX", "Aux", ISS_OFF);
+    HomeSelectionSP.fill(getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB,
                        IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Home Find
-    IUFillSwitch(&FindHomeS[0], "FIND", "Start", ISS_OFF);
-    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY,
+    FindHomeSP[0].fill("FIND", "Start", ISS_OFF);
+    FindHomeSP.fill(getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Encoders
-    IUFillSwitch(&EncoderS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&EncoderS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "ENCODERS", "Encoders", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
+    EncoderSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    EncoderSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    EncoderSP.fill(getDeviceName(), "ENCODERS", "Encoders", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Brightness
-    IUFillNumber(&BrightnessN[BRIGHTNESS_DISPLAY], "BRIGHTNESS_DISPLAY", "Display", "%.f", 0, 255., 10., 150.);
-    IUFillNumber(&BrightnessN[BRIGHTNESS_SLEEP], "BRIGHTNESS_SLEEP", "Sleep", "%.f", 1, 255., 10., 16.);
-    IUFillNumberVector(&BrightnessNP, BrightnessN, 2, getDeviceName(), "BRIGHTNESS", "Brightness", SETTINGS_TAB, IP_RW, 0,
+    BrightnessNP[BRIGHTNESS_DISPLAY].fill("BRIGHTNESS_DISPLAY", "Display", "%.f", 0, 255., 10., 150.);
+    BrightnessNP[BRIGHTNESS_SLEEP].fill("BRIGHTNESS_SLEEP", "Sleep", "%.f", 1, 255., 10., 16.);
+    BrightnessNP.fill(getDeviceName(), "BRIGHTNESS", "Brightness", SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE );
 
     //////////////////////////////////////////////////////
@@ -123,13 +123,13 @@ bool NightCrawler::initProperties()
     INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
+    RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
+    RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
                        0, IPS_IDLE );
 
     // Rotator Step Delay
-    IUFillNumber(&RotatorStepDelayN[0], "ROTATOR_STEP", "Value", "%.f", 7, 100., 1., 7.);
-    IUFillNumberVector(&RotatorStepDelayNP, RotatorStepDelayN, 1, getDeviceName(), "ROTATOR_STEP_DELAY", "Step Rate",
+    RotatorStepDelayNP[0].fill("ROTATOR_STEP", "Value", "%.f", 7, 100., 1., 7.);
+    RotatorStepDelayNP.fill(getDeviceName(), "ROTATOR_STEP_DELAY", "Step Rate",
                        ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // For custom focuser, set max steps
@@ -141,24 +141,24 @@ bool NightCrawler::initProperties()
     /////////////////////////////////////////////////////
 
     // Aux GOTO
-    IUFillNumber(&GotoAuxN[0], "AUX_ABSOLUTE_POSITION", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&GotoAuxNP, GotoAuxN, 1, getDeviceName(), "ABS_AUX_POSITION", "Goto", AUX_TAB, IP_RW, 0, IPS_IDLE );
+    GotoAuxNP[0].fill("AUX_ABSOLUTE_POSITION", "Ticks", "%.f", 0, 100000., 0., 0.);
+    GotoAuxNP.fill(getDeviceName(), "ABS_AUX_POSITION", "Goto", AUX_TAB, IP_RW, 0, IPS_IDLE );
 
     // Abort Aux
-    IUFillSwitch(&AbortAuxS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortAuxSP, AbortAuxS, 1, getDeviceName(), "AUX_ABORT_MOTION", "Abort Motion", AUX_TAB, IP_RW,
+    AbortAuxSP[0].fill("ABORT", "Abort", ISS_OFF);
+    AbortAuxSP.fill(getDeviceName(), "AUX_ABORT_MOTION", "Abort Motion", AUX_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     // Aux Sync
-    IUFillNumber(&SyncAuxN[0], "AUX_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&SyncAuxNP, SyncAuxN, 1, getDeviceName(), "SYNC_AUX", "Sync", AUX_TAB, IP_RW, 0, IPS_IDLE );
+    SyncAuxNP[0].fill("AUX_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
+    SyncAuxNP.fill(getDeviceName(), "SYNC_AUX", "Sync", AUX_TAB, IP_RW, 0, IPS_IDLE );
 
     // Aux Step Delay
-    IUFillNumber(&AuxStepDelayN[0], "AUX_STEP", "Value", "%.f", 7, 100., 1., 7.);
-    IUFillNumberVector(&AuxStepDelayNP, AuxStepDelayN, 1, getDeviceName(), "AUX_STEP_DELAY", "Step Rate", AUX_TAB, IP_RW, 0,
+    AuxStepDelayNP[0].fill( "AUX_STEP", "Value", "%.f", 7, 100., 1., 7.);
+    AuxStepDelayNP.fill(getDeviceName(), "AUX_STEP_DELAY", "Step Rate", AUX_TAB, IP_RW, 0,
                        IPS_IDLE );
 
-    /* Relative and absolute movement */
+    /* Relative and absolte movement */
     FocusRelPosN[0].min = 0.;
     FocusRelPosN[0].max = 50000.;
     FocusRelPosN[0].value = 0;
@@ -187,54 +187,54 @@ bool NightCrawler::updateProperties()
     if (isConnected())
     {
         // Focus
-        defineProperty(&SyncFocusNP);
-        defineProperty(&VoltageNP);
-        defineProperty(&TemperatureNP);
+        defineProperty(SyncFocusNP);
+        defineProperty(VoltageNP);
+        defineProperty(TemperatureNP);
         defineProperty(&TemperatureOffsetNP);
-        defineProperty(&FocusStepDelayNP);
-        defineProperty(&LimitSwitchLP);
-        defineProperty(&EncoderSP);
-        defineProperty(&BrightnessNP);
-        defineProperty(&HomeSelectionSP);
-        defineProperty(&FindHomeSP);
+        defineProperty(FocusStepDelayNP);
+        defineProperty(LimitSwitchLP);
+        defineProperty(EncoderSP);
+        defineProperty(BrightnessNP);
+        defineProperty(HomeSelectionSP);
+        defineProperty(FindHomeSP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
-        defineProperty(&RotatorAbsPosNP);
-        defineProperty(&RotatorStepDelayNP);
+        defineProperty(RotatorAbsPosNP);
+        defineProperty(RotatorStepDelayNP);
         defineProperty(CustomRotatorStepNP);
 
         // Aux
-        defineProperty(&GotoAuxNP);
-        defineProperty(&AbortAuxSP);
-        defineProperty(&SyncAuxNP);
-        defineProperty(&AuxStepDelayNP);
+        defineProperty(GotoAuxNP);
+        defineProperty(AbortAuxSP);
+        defineProperty(SyncAuxNP);
+        defineProperty(AuxStepDelayNP);
     }
     else
     {
         // Focus
-        deleteProperty(SyncFocusNP.name);
-        deleteProperty(VoltageNP.name);
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(SyncFocusNP);
+        deleteProperty(VoltageNP);
+        deleteProperty(TemperatureNP);
         deleteProperty(TemperatureOffsetNP.name);
-        deleteProperty(FocusStepDelayNP.name);
-        deleteProperty(LimitSwitchLP.name);
-        deleteProperty(EncoderSP.name);
-        deleteProperty(BrightnessNP.name);
-        deleteProperty(FindHomeSP.name);
-        deleteProperty(HomeSelectionSP.name);
+        deleteProperty(FocusStepDelayNP);
+        deleteProperty(LimitSwitchLP);
+        deleteProperty(EncoderSP);
+        deleteProperty(BrightnessNP);
+        deleteProperty(FindHomeSP);
+        deleteProperty(HomeSelectionSP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
-        deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotatorStepDelayNP.name);
+        deleteProperty(RotatorAbsPosNP);
+        deleteProperty(RotatorStepDelayNP);
         deleteProperty(CustomRotatorStepNP);
 
         // Aux
-        deleteProperty(GotoAuxNP.name);
-        deleteProperty(AbortAuxSP.name);
-        deleteProperty(SyncAuxNP.name);
-        deleteProperty(AuxStepDelayNP.name);
+        deleteProperty(GotoAuxNP);
+        deleteProperty(AbortAuxSP);
+        deleteProperty(SyncAuxNP);
+        deleteProperty(AuxStepDelayNP);
     }
 
     return true;
@@ -323,20 +323,20 @@ bool NightCrawler::getFocuserType()
 
     if (strcmp(resp, "2.5 NC") == 0)
     {
-        RotatorAbsPosN[0].min = -NC_25_STEPS / 2.0;
-        RotatorAbsPosN[0].max = NC_25_STEPS / 2.0;
+        RotatorAbsPosNP[0].setMin(-NC_25_STEPS / 2.0);
+        RotatorAbsPosNP[0].setMax(NC_25_STEPS / 2.0);
         m_RotatorStepsPerRevolution = NC_25_STEPS;
     }
     else if (strcmp(resp, "3.0 NC") == 0)
     {
-        RotatorAbsPosN[0].min = -NC_30_STEPS / 2.0;
-        RotatorAbsPosN[0].max = NC_30_STEPS / 2.0;
+        RotatorAbsPosNP[0].setMin(-NC_30_STEPS / 2.0);
+        RotatorAbsPosNP[0].setMax(NC_30_STEPS / 2.0);
         m_RotatorStepsPerRevolution = NC_30_STEPS;
     }
     else
     {
-        RotatorAbsPosN[0].min = -NC_35_STEPS / 2.0;
-        RotatorAbsPosN[0].max = NC_35_STEPS / 2.0;
+        RotatorAbsPosNP[0].setMin(-NC_35_STEPS / 2.0);
+        RotatorAbsPosNP[0].setMax(NC_35_STEPS / 2.0);
         m_RotatorStepsPerRevolution = NC_35_STEPS;
     }
 
@@ -420,9 +420,9 @@ bool NightCrawler::getPosition(MotorType type)
         if (type == MOTOR_FOCUS)
             FocusAbsPosN[0].value = position;
         else if (type == MOTOR_ROTATOR)
-            RotatorAbsPosN[0].value = position;
+            RotatorAbsPosNP[0].setValue(position);
         else
-            GotoAuxN[0].value = position;
+            GotoAuxNP[0].setValue(position);
 
         return true;
     }
@@ -459,7 +459,7 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
 {
     if(strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, HomeSelectionSP.name) == 0)
+        if (HomeSelectionSP.isNameMatch(name))
         {
             bool atLeastOne = false;
 
@@ -474,63 +474,63 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             if (!atLeastOne)
             {
-                HomeSelectionSP.s = IPS_ALERT;
+                HomeSelectionSP.setState(IPS_ALERT);
                 LOG_ERROR("At least one selection must be on.");
-                IDSetSwitch(&HomeSelectionSP, nullptr);
+                HomeSelectionSP.apply();
                 return false;
             }
 
-            IUUpdateSwitch(&HomeSelectionSP, states, names, n);
-            HomeSelectionSP.s = IPS_OK;
-            IDSetSwitch(&HomeSelectionSP, nullptr);
+            HomeSelectionSP.update(states, names, n);
+            HomeSelectionSP.setState(IPS_OK);
+            HomeSelectionSP.apply();
             return true;
         }
-        else if (strcmp(name, FindHomeSP.name) == 0)
+        else if (FindHomeSP.isNameMatch(name))
         {
             uint8_t selection = 0;
 
-            if (HomeSelectionS[MOTOR_FOCUS].s == ISS_ON)
+            if (HomeSelectionSP[MOTOR_FOCUS].getState() == ISS_ON)
                 selection |= 0x01;
-            if (HomeSelectionS[MOTOR_ROTATOR].s == ISS_ON)
+            if (HomeSelectionSP[MOTOR_ROTATOR].getState() == ISS_ON)
                 selection |= 0x02;
-            if (HomeSelectionS[MOTOR_AUX].s == ISS_ON)
+            if (HomeSelectionSP[MOTOR_AUX].getState() == ISS_ON)
                 selection |= 0x04;
 
             if (findHome(selection))
             {
-                FindHomeSP.s = IPS_BUSY;
-                FindHomeS[0].s = ISS_ON;
+                FindHomeSP.setState(IPS_BUSY);
+                FindHomeSP[0].setState(ISS_ON);
                 LOG_WARN("Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
             }
             else
             {
-                FindHomeSP.s = IPS_ALERT;
-                FindHomeS[0].s = ISS_OFF;
+                FindHomeSP.setState(IPS_ALERT);
+                FindHomeSP[0].setState(ISS_OFF);
                 LOG_ERROR("Failed to start homing process.");
             }
 
-            IDSetSwitch(&FindHomeSP, nullptr);
+            FindHomeSP.apply();
             return true;
         }
-        else if (strcmp(name, EncoderSP.name) == 0)
+        else if (EncoderSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&EncoderSP, states, names, n);
-            EncoderSP.s = setEncodersEnabled(EncoderS[0].s == ISS_ON) ? IPS_OK : IPS_ALERT;
-            if (EncoderSP.s == IPS_OK)
-                LOGF_INFO("Encoders are %s", (EncoderS[0].s == ISS_ON) ? "ON" : "OFF");
-            IDSetSwitch(&EncoderSP, nullptr);
+            EncoderSP.update(states, names, n);
+            EncoderSP.setState(setEncodersEnabled(EncoderSP[0].getState() == ISS_ON) ? IPS_OK : IPS_ALERT);
+            if (EncoderSP.getState() == IPS_OK)
+                LOGF_INFO("Encoders are %s", (EncoderSP[0].getState() == ISS_ON) ? "ON" : "OFF");
+            EncoderSP.apply();
             return true;
         }
-        else if (strcmp(name, AbortAuxSP.name) == 0)
+        else if (AbortAuxSP.isNameMatch(name))
         {
-            AbortAuxSP.s = stopMotor(MOTOR_AUX) ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&AbortAuxSP, nullptr);
-            if (AbortAuxSP.s == IPS_OK)
+            AbortAuxSP.setState(stopMotor(MOTOR_AUX) ? IPS_OK : IPS_ALERT);
+            AbortAuxSP.apply();
+            if (AbortAuxSP.getState() == IPS_OK)
             {
-                if (GotoAuxNP.s != IPS_OK)
+                if (GotoAuxNP.getState() != IPS_OK)
                 {
-                    GotoAuxNP.s = IPS_OK;
-                    IDSetNumber(&GotoAuxNP, nullptr);
+                    GotoAuxNP.setState(IPS_OK);
+                    GotoAuxNP.apply();
                 }
             }
             return true;
@@ -549,24 +549,24 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, SyncFocusNP.name) == 0)
+        if (SyncFocusNP.isNameMatch(name))
         {
             bool rc = syncMotor(MOTOR_FOCUS, static_cast<uint32_t>(values[0]));
-            SyncFocusNP.s = rc ? IPS_OK : IPS_ALERT;
+            SyncFocusNP.setState(rc ? IPS_OK : IPS_ALERT);
             if (rc)
-                SyncFocusN[0].value = values[0];
+                SyncFocusNP[0].setValue(values[0]);
 
-            IDSetNumber(&SyncFocusNP, nullptr);
+            SyncFocusNP.apply();
             return true;
         }
-        else if (strcmp(name, SyncAuxNP.name) == 0)
+        else if (SyncAuxNP.isNameMatch(name))
         {
             bool rc = syncMotor(MOTOR_AUX, static_cast<uint32_t>(values[0]));
-            SyncAuxNP.s = rc ? IPS_OK : IPS_ALERT;
+            SyncAuxNP.setState(rc ? IPS_OK : IPS_ALERT);
             if (rc)
-                SyncAuxN[0].value = values[0];
+                SyncAuxNP[0].setValue(values[0]);
 
-            IDSetNumber(&SyncAuxNP, nullptr);
+            SyncAuxNP.apply();
             return true;
         }
         else if (strcmp(name, TemperatureOffsetNP.name) == 0)
@@ -576,59 +576,59 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             IDSetNumber(&TemperatureOffsetNP, nullptr);
             return true;
         }
-        else if (strcmp(name, FocusStepDelayNP.name) == 0)
+        else if (FocusStepDelayNP.isNameMatch(name))
         {
             bool rc = setStepDelay(MOTOR_FOCUS, static_cast<uint32_t>(values[0]));
-            FocusStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            FocusStepDelayNP.setState(rc ? IPS_OK : IPS_ALERT);
             if (rc)
-                FocusStepDelayN[0].value = values[0];
-            IDSetNumber(&FocusStepDelayNP, nullptr);
+                FocusStepDelayNP[0].setValue(values[0]);
+            FocusStepDelayNP.apply();
             return true;
         }
-        else if (strcmp(name, RotatorStepDelayNP.name) == 0)
+        else if (RotatorStepDelayNP.isNameMatch(name))
         {
             bool rc = setStepDelay(MOTOR_ROTATOR, static_cast<uint32_t>(values[0]));
-            RotatorStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            RotatorStepDelayNP.setState(rc ? IPS_OK : IPS_ALERT);
             if (rc)
-                RotatorStepDelayN[0].value = values[0];
-            IDSetNumber(&RotatorStepDelayNP, nullptr);
+                RotatorStepDelayNP[0].setValue(values[0]);
+            RotatorStepDelayNP.apply();
             return true;
         }
-        else if (strcmp(name, AuxStepDelayNP.name) == 0)
+        else if (AuxStepDelayNP.isNameMatch(name))
         {
             bool rc = setStepDelay(MOTOR_AUX, static_cast<uint32_t>(values[0]));
-            AuxStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            AuxStepDelayNP.setState(rc ? IPS_OK : IPS_ALERT);
             if (rc)
-                AuxStepDelayN[0].value = values[0];
-            IDSetNumber(&AuxStepDelayNP, nullptr);
+                AuxStepDelayNP[0].setValue(values[0]);
+            AuxStepDelayNP.apply();
             return true;
         }
-        else if (strcmp(name, BrightnessNP.name) == 0)
+        else if (BrightnessNP.isNameMatch(name))
         {
-            IUUpdateNumber(&BrightnessNP, values, names, n);
-            bool rcDisplay = setDisplayBrightness(static_cast<uint8_t>(BrightnessN[BRIGHTNESS_DISPLAY].value));
-            bool rcSleep = setSleepBrightness(static_cast<uint8_t>(BrightnessN[BRIGHTNESS_SLEEP].value));
+            BrightnessNP.update(values, names, n);
+            bool rcDisplay = setDisplayBrightness(static_cast<uint8_t>(BrightnessNP[BRIGHTNESS_DISPLAY].getValue()));
+            bool rcSleep = setSleepBrightness(static_cast<uint8_t>(BrightnessNP[BRIGHTNESS_SLEEP].getValue()));
             if (rcDisplay && rcSleep)
-                BrightnessNP.s = IPS_OK;
+                BrightnessNP.setState(IPS_OK);
             else
-                BrightnessNP.s = IPS_ALERT;
+                BrightnessNP.setState(IPS_ALERT);
 
-            IDSetNumber(&BrightnessNP, nullptr);
+            BrightnessNP.apply();
             return true;
         }
-        else if (strcmp(name, GotoAuxNP.name) == 0)
+        else if (GotoAuxNP.isNameMatch(name))
         {
             bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
-            GotoAuxNP.s = rc ? IPS_BUSY : IPS_OK;
-            IDSetNumber(&GotoAuxNP, nullptr);
+            GotoAuxNP.setState(rc ? IPS_BUSY : IPS_OK);
+            GotoAuxNP.apply();
             LOGF_INFO("Aux moving to %.f...", values[0]);
             return true;
         }
-        else if (strcmp(name, RotatorAbsPosNP.name) == 0)
+        else if (RotatorAbsPosNP.isNameMatch(name))
         {
-            RotatorAbsPosNP.s = (gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
-            if (RotatorAbsPosNP.s == IPS_BUSY)
+            RotatorAbsPosNP.setState(gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
+            RotatorAbsPosNP.apply();
+            if (RotatorAbsPosNP.getState() == IPS_BUSY)
                 LOGF_INFO("Rotator moving to %.f ticks...", values[0]);
             return true;
         }
@@ -641,11 +641,11 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             auto customValue = CustomRotatorStepNP[0].getValue();
             if (customValue > 0)
             {
-                RotatorAbsPosN[0].min =  customValue / 2.0;
-                RotatorAbsPosN[0].max = customValue / 2.0;
+                RotatorAbsPosNP[0].setMin(customValue / 2.0);
+                RotatorAbsPosNP[0].setMax(customValue / 2.0);
                 m_RotatorStepsPerRevolution = customValue;
                 m_RotatorTicksPerDegree = m_RotatorStepsPerRevolution / 360.0;
-                IUUpdateMinMax(&RotatorAbsPosNP);
+                RotatorAbsPosNP.updateMinMax();
 
                 LOGF_INFO("Custom steps per revolution updated to %.f. Ticks per degree %.2f", customValue,
                           m_RotatorTicksPerDegree);
@@ -711,7 +711,7 @@ void NightCrawler::TimerHit()
     bool rc = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
-    if (FindHomeSP.s == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
+    if (FindHomeSP.getState() == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
     {
         if (isHomingComplete())
         {
@@ -719,9 +719,9 @@ void NightCrawler::TimerHit()
             HomeRotatorSP.s = IPS_OK;
             IDSetSwitch(&HomeRotatorSP, nullptr);
 
-            FindHomeS[0].s = ISS_OFF;
-            FindHomeSP.s = IPS_OK;
-            IDSetSwitch(&FindHomeSP, nullptr);
+            FindHomeSP[0].setState(ISS_OFF);
+            FindHomeSP.setState(IPS_OK);
+            FindHomeSP.apply();
 
             LOG_INFO("Homing is complete.");
         }
@@ -732,29 +732,29 @@ void NightCrawler::TimerHit()
 
     // #2 Get Temperature
     rc = getTemperature();
-    if (rc && std::abs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(TemperatureNP[0].getValue() - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastTemperature = TemperatureN[0].value;
-        IDSetNumber(&TemperatureNP, nullptr);
+        lastTemperature = TemperatureNP[0].getValue();
+        TemperatureNP.apply();
     }
 
     // #3 Get Voltage
     rc = getVoltage();
-    if (rc && std::abs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(VoltageNP[0].getValue() - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastVoltage = VoltageN[0].value;
-        IDSetNumber(&VoltageNP, nullptr);
+        lastVoltage = VoltageNP[0].getValue();
+        VoltageNP.apply();
     }
 
     // #4 Get Limit Switch Status
     rc = getLimitSwitchStatus();
-    if (rc && (LimitSwitchL[ROTATION_SWITCH].s != rotationLimit || LimitSwitchL[OUT_SWITCH].s != outSwitchLimit
-               || LimitSwitchL[IN_SWITCH].s != inSwitchLimit))
+    if (rc && (LimitSwitchLP[ROTATION_SWITCH].getState() != rotationLimit || LimitSwitchLP[OUT_SWITCH].getState() != outSwitchLimit
+               || LimitSwitchLP[IN_SWITCH].getState() != inSwitchLimit))
     {
-        rotationLimit = LimitSwitchL[ROTATION_SWITCH].s;
-        outSwitchLimit = LimitSwitchL[OUT_SWITCH].s;
-        inSwitchLimit = LimitSwitchL[IN_SWITCH].s;
-        IDSetLight(&LimitSwitchLP, nullptr);
+        rotationLimit = LimitSwitchLP[ROTATION_SWITCH].getState();
+        outSwitchLimit = LimitSwitchLP[OUT_SWITCH].getState();
+        inSwitchLimit = LimitSwitchLP[IN_SWITCH].getState();
+        LimitSwitchLP.apply();
     }
 
     // #5 Focus Position & Status
@@ -786,12 +786,12 @@ void NightCrawler::TimerHit()
     // #6 Rotator Position & Status
     bool absRotatorUpdated = false;
 
-    if (RotatorAbsPosNP.s == IPS_BUSY)
+    if (RotatorAbsPosNP.getState() == IPS_BUSY)
     {
         // Stopped moving
         if (!isMotorMoving(MOTOR_ROTATOR))
         {
-            RotatorAbsPosNP.s = IPS_OK;
+            RotatorAbsPosNP.setState(IPS_OK);
             GotoRotatorNP.s = IPS_OK;
             absRotatorUpdated = true;
             LOG_INFO("Rotator motion complete.");
@@ -800,50 +800,50 @@ void NightCrawler::TimerHit()
     rc = getPosition(MOTOR_ROTATOR);
     // If absolute position is zero, we must sync to 180 degrees so we can rotate in both directions freely.
     // Also sometimes Rotator motor returns negative result, we must sync it to 180 degrees as well.
-    while (RotatorAbsPosN[0].value < -m_RotatorStepsPerRevolution || RotatorAbsPosN[0].value > m_RotatorStepsPerRevolution)
+    while (RotatorAbsPosNP[0].getValue() < -m_RotatorStepsPerRevolution || RotatorAbsPosNP[0].getValue() > m_RotatorStepsPerRevolution)
     {
         // Update value to take care of multiple rotations.
-        const auto newOffset = static_cast<int32_t>(RotatorAbsPosN[0].value) % m_RotatorStepsPerRevolution;
+        const auto newOffset = static_cast<int32_t>(RotatorAbsPosNP[0].getValue()) % m_RotatorStepsPerRevolution;
         LOGF_INFO("Out of bounds value detected. Syncing rotator position to %d", newOffset);
         syncMotor(MOTOR_ROTATOR, newOffset);
         rc = getPosition(MOTOR_ROTATOR);
     }
-    if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(RotatorAbsPosNP[0].getValue() - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastRotatorPosition = RotatorAbsPosN[0].value;
+        lastRotatorPosition = RotatorAbsPosNP[0].getValue();
         if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
-            GotoRotatorN[0].value = range360(360 - (RotatorAbsPosN[0].value / m_RotatorTicksPerDegree));
+            GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
         else
-            GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
+            GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
     {
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.apply();
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
     // #7 Aux Position & Status
     bool absAuxUpdated = false;
 
-    if (GotoAuxNP.s == IPS_BUSY)
+    if (GotoAuxNP.getState() == IPS_BUSY)
     {
         // Stopped moving
         if (!isMotorMoving(MOTOR_AUX))
         {
-            GotoAuxNP.s = IPS_OK;
+            GotoAuxNP.setState(IPS_OK);
             absAuxUpdated = true;
             LOG_INFO("Aux motion complete.");
         }
     }
     rc = getPosition(MOTOR_AUX);
-    if (rc && std::abs(GotoAuxN[0].value - lastAuxPosition) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(GotoAuxNP[0].getValue() - lastAuxPosition) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastAuxPosition = GotoAuxN[0].value;
+        lastAuxPosition = GotoAuxNP[0].getValue();
         absAuxUpdated = true;
     }
     if (absAuxUpdated)
-        IDSetNumber(&GotoAuxNP, nullptr);
+        GotoAuxNP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -1023,7 +1023,7 @@ bool NightCrawler::getTemperature()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    TemperatureN[0].value = atoi(res) / 10.0;
+    TemperatureNP[0].setValue(atoi(res) / 10.0);
 
     return true;
 }
@@ -1058,7 +1058,7 @@ bool NightCrawler::getVoltage()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    VoltageN[0].value = atoi(res) / 10.0;
+    VoltageNP[0].setValue(atoi(res) / 10.0);
 
     return true;
 }
@@ -1119,11 +1119,11 @@ bool NightCrawler::getStepDelay(MotorType type)
     LOGF_DEBUG("RES <%s>", res);
 
     if (type == MOTOR_FOCUS)
-        FocusStepDelayN[0].value = atoi(res);
+        FocusStepDelayNP[0].setValue(atoi(res));
     else if (type == MOTOR_ROTATOR)
-        RotatorStepDelayN[0].value = atoi(res);
+        RotatorStepDelayNP[0].setValue(atoi(res));
     else
-        AuxStepDelayN[0].value = atoi(res);
+        AuxStepDelayNP[0].setValue(atoi(res));
 
     return true;
 }
@@ -1195,9 +1195,9 @@ bool NightCrawler::getLimitSwitchStatus()
 
     int value = atoi(res);
 
-    LimitSwitchL[ROTATION_SWITCH].s = (value & 0x01) ? IPS_ALERT : IPS_OK;
-    LimitSwitchL[OUT_SWITCH].s      = (value & 0x02) ? IPS_ALERT : IPS_OK;
-    LimitSwitchL[IN_SWITCH].s       = (value & 0x04) ? IPS_ALERT : IPS_OK;
+    LimitSwitchLP[ROTATION_SWITCH].setState((value & 0x01) ? IPS_ALERT : IPS_OK);
+    LimitSwitchLP[OUT_SWITCH].setState((value & 0x02) ? IPS_ALERT : IPS_OK);
+    LimitSwitchLP[IN_SWITCH].setState((value & 0x04) ? IPS_ALERT : IPS_OK);
 
     return true;
 }
@@ -1366,10 +1366,10 @@ bool NightCrawler::saveConfigItems(FILE *fp)
     Focuser::saveConfigItems(fp);
     RI::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &BrightnessNP);
-    IUSaveConfigNumber(fp, &FocusStepDelayNP);
-    IUSaveConfigNumber(fp, &RotatorStepDelayNP);
-    IUSaveConfigNumber(fp, &AuxStepDelayNP);
+    BrightnessNP.save(fp);
+    FocusStepDelayNP.save(fp);
+    RotatorStepDelayNP.apply();
+    AuxStepDelayNP.save(fp);
     CustomRotatorStepNP.save(fp);
 
     return true;
@@ -1379,17 +1379,17 @@ IPState NightCrawler::HomeRotator()
 {
     if (findHome(0x02))
     {
-        FindHomeSP.s = IPS_BUSY;
-        FindHomeS[0].s = ISS_ON;
-        IDSetSwitch(&FindHomeSP, nullptr);
+        FindHomeSP.setState(IPS_BUSY);
+        FindHomeSP[0].setState(ISS_ON);
+        FindHomeSP.apply();
         LOG_WARN("Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
         return IPS_BUSY;
     }
     else
     {
-        FindHomeSP.s = IPS_ALERT;
-        FindHomeS[0].s = ISS_OFF;
-        IDSetSwitch(&FindHomeSP, nullptr);
+        FindHomeSP.setState(IPS_ALERT);
+        FindHomeSP[0].setState(ISS_OFF);
+        FindHomeSP.apply();
         LOG_ERROR("Failed to start homing process.");
         return IPS_ALERT;
     }
@@ -1406,17 +1406,17 @@ IPState NightCrawler::MoveRotator(double angle)
         newAngle *= -1;
 
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
-    if (newTarget < RotatorAbsPosN[0].min)
-        newTarget = RotatorAbsPosN[0].min;
-    else if (newTarget > RotatorAbsPosN[0].max)
-        newTarget = RotatorAbsPosN[0].max;
+    if (newTarget < RotatorAbsPosNP[0].getMin())
+        newTarget = RotatorAbsPosNP[0].getMin();
+    else if (newTarget > RotatorAbsPosNP[0].getMax())
+        newTarget = RotatorAbsPosNP[0].getMax();
 
     bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
 
     if (rc)
     {
-        RotatorAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_BUSY);
+        RotatorAbsPosNP.apply();
         return IPS_BUSY;
     }
 
@@ -1431,10 +1431,10 @@ bool NightCrawler::SyncRotator(double angle)
         newAngle *= -1;
 
     auto newTarget = newAngle * m_RotatorTicksPerDegree;
-    if (newTarget < RotatorAbsPosN[0].min)
-        newTarget = RotatorAbsPosN[0].min;
-    else if (newTarget > RotatorAbsPosN[0].max)
-        newTarget = RotatorAbsPosN[0].max;
+    if (newTarget < RotatorAbsPosNP[0].getMin())
+        newTarget = RotatorAbsPosNP[0].getMin();
+    else if (newTarget > RotatorAbsPosNP[0].getMax())
+        newTarget = RotatorAbsPosNP[0].getMax();
 
     return syncMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
 }
@@ -1442,10 +1442,10 @@ bool NightCrawler::SyncRotator(double angle)
 bool NightCrawler::AbortRotator()
 {
     bool rc = stopMotor(MOTOR_ROTATOR);
-    if (rc && RotatorAbsPosNP.s != IPS_OK)
+    if (rc && RotatorAbsPosNP.getState() != IPS_OK)
     {
-        RotatorAbsPosNP.s = IPS_OK;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_OK);
+        RotatorAbsPosNP.apply();
     }
 
     return rc;
@@ -1455,9 +1455,9 @@ bool NightCrawler::ReverseRotator(bool enabled)
 {
     // Immediately update the angle after reverse is set.
     if (enabled)
-        GotoRotatorN[0].value = range360(360 - (RotatorAbsPosN[0].value / m_RotatorTicksPerDegree));
+        GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
     else
-        GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / m_RotatorTicksPerDegree);
+        GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
     IDSetNumber(&GotoRotatorNP, nullptr);
     return true;
 }
