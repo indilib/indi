@@ -72,13 +72,10 @@ class DeepSkyDadFR1 : public INDI::Rotator
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Firmware version
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1] {};
+        INDI::PropertyText FirmwareTP {1};
 
         // Speed mode
-        ISwitch SpeedModeS[2];
-        ISwitchVectorProperty SpeedModeSP;
+        INDI::PropertySwitch SpeedModeSP {2};
         // Step size
-        ISwitch StepSizeS[4];
-        ISwitchVectorProperty StepSizeSP;
+        INDI::PropertySwitch StepSizeSP {4};
 };
