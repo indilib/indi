@@ -1242,6 +1242,9 @@ bool IOptronV3::SetCurrentPark()
     INDI::IHorizontalCoordinates horizontalCoords {0, 0};
     INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
     double parkAZ = horizontalCoords.azimuth;
+    // Wrap to 0
+    if (parkAZ >= 360)
+        parkAZ = 0;
     double parkAlt = horizontalCoords.altitude;
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
