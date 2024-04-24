@@ -154,12 +154,10 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
         /// Reboot Device
-        ISwitch RebootS[1];
-        ISwitchVectorProperty RebootSP;
+        INDI::PropertySwitch RebootSP {1};
 
         // Power Sensors
-        INumber PowerSensorsN[9];
-        INumberVectorProperty PowerSensorsNP;
+        INDI::PropertyNumber PowerSensorsNP {9};
         enum
         {
             SENSOR_VOLTAGE,
@@ -177,14 +175,12 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Power Group
         ////////////////////////////////////////////////////////////////////////////////////
 
-        ISwitch QuadOutS[2];
-        ISwitchVectorProperty QuadOutSP;
+        INDI::PropertySwitch QuadOutSP {2};
 
         //        ISwitch AdjOutS[2];
         //        ISwitchVectorProperty AdjOutSP;
 
-        ISwitch AdjOutVoltS[6];
-        ISwitchVectorProperty AdjOutVoltSP;
+        INDI::PropertySwitch AdjOutVoltSP {6};
         enum
         {
             ADJOUT_OFF,
@@ -196,34 +192,35 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         };
 
         // Select which power is ON on bootup
-        ISwitch PowerOnBootS[4];
-        ISwitchVectorProperty PowerOnBootSP;
+        INDI::PropertySwitch PowerOnBootSP {4};
+        enum
+        {
+          POWER_PORT_1,
+          POWER_PORT_2,
+          POWER_PORT_3,
+          POWER_PORT_4
+        };
 
         // Short circuit warn
-        ILight PowerWarnL[1];
-        ILightVectorProperty PowerWarnLP;
+        INDI::PropertyLight PowerWarnLP {1};
 
-        ISwitch LedIndicatorS[2];
-        ISwitchVectorProperty LedIndicatorSP;
+        INDI::PropertySwitch LedIndicatorSP{2};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Dew Group
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Auto Dew
-        ISwitch AutoDewS[2];
-        ISwitchVectorProperty AutoDewSP;
+        INDI::PropertySwitch AutoDewSP {2};
 
-        INumber AutoDewSettingsN[1];
-        INumberVectorProperty AutoDewSettingsNP;
+        INDI::PropertyNumber AutoDewSettingsNP {1};
         enum
         {
             AUTO_DEW_AGGRESSION
         };
 
         // Dew PWM
-        INumber DewPWMN[2];
-        INumberVectorProperty DewPWMNP;
+        INDI::PropertyNumber DewPWMNP {2};
         enum
         {
             DEW_PWM_A,
@@ -235,16 +232,14 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Focuser speed
-        INumber FocuserSettingsN[1];
-        INumberVectorProperty FocuserSettingsNP;
+        INDI::PropertyNumber FocuserSettingsNP {1};
         enum
         {
             SETTING_MAX_SPEED,
         };
 
         // Microstepping
-        ISwitchVectorProperty FocuserDriveSP;
-        ISwitch FocuserDriveS[4];
+        INDI::PropertySwitch FocuserDriveSP {4};
         enum
         {
             STEP_FULL,
@@ -259,8 +254,7 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::FocuserInterface, p
         /// Firmware
         ////////////////////////////////////////////////////////////////////////////////////
 
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2] {};
+        INDI::PropertyText FirmwareTP {2};
         enum
         {
             FIRMWARE_VERSION,
