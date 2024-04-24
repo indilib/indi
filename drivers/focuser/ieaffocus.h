@@ -1,6 +1,9 @@
 /*
-    IOPTRON iEAF Focuser 2023
-    Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
+    iOptron iEAF Focuser
+
+    Copyright (C) 2013 Paul de Backer (74.0632@gmail.com)
+    Copyright (C) 2024 Jasem Mutlaq
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -14,11 +17,9 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 */
 
-#ifndef IEAFFOCUS_H
-#define IEAFFOCUS_H
+#pragma once
 
 #include "indifocuser.h"
 
@@ -32,46 +33,25 @@ class iEAFFocus : public INDI::Focuser
         const char * getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
+
         virtual IPState MoveAbsFocuser(uint32_t ticks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
-//	virtual bool saveConfigItems(FILE * fp) override;
-	virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
     private:
-	unsigned int maxpos{ 0 };   
-        double lastPos;
+        bool m_isMoving {false};
 
         void GetFocusParams();
         void setZero();
-        bool updateMaxPos();
-        bool updateTemperature();
-        bool updatePosition();
-        bool isMoving();
+        bool updateInfo();
         bool Ack();
-
         bool MoveMyFocuser(uint32_t position);
-        bool setMaxPos(uint32_t maxPos);
-	bool readReverseDirection();
 
-
-//      INumber MaxPosN[1];
-//      INumberVectorProperty MaxPosNP;
-//      ISwitch SetZeroS[1];
-//      ISwitchVectorProperty SetZeroSP;
-
-//	INumber TemperatureN[1];
-//      INumberVectorProperty TemperatureNP;
-
-
-	INDI::PropertyNumber TemperatureNP{1};
-	INDI::PropertyNumber MaxPositionNP{1};
-	INDI::PropertySwitch SetZeroSP{1};
-
-
+        INDI::PropertyNumber TemperatureNP {1};
+        INDI::PropertySwitch SetZeroSP {1};
 };
 
-#endif // IEAFFOCUS_H
