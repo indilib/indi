@@ -1,14 +1,8 @@
 /*
-  Skeleton Focuser Driver
+  Alluna TCS2 Focus, Dust Cover, Climate, Rotator, and Settings
+  (Dust Cover and Rotator are not implemented)
 
-  Modify this driver when developing new absolute position
-  based focusers. This driver uses serial communication by default
-  but it can be changed to use networked TCP/UDP connection as well.
-
-  Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
-
-  Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
-  for their support in writing this driver.
+  Copyright(c) 2022 Peter Englmaier. All rights reserved.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
