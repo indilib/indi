@@ -780,6 +780,7 @@ bool AllunaTCS2::getTemperature()
                 receiveDone();
                 isGetTemperature=false;
                 TemperatureNP.setState(IPS_OK);
+                TemperatureNP.apply(); // update clients
                 break;
             default: // unexpected output
                 LOGF_ERROR("GetTemperatures: unexpected response (%s)", res);
