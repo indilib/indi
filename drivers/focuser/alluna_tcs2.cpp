@@ -739,7 +739,7 @@ bool AllunaTCS2::getTemperature()
     // d#{ambient-humidity}<CR><LF>
 
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
-    if ( !first_run && seconds.count() < 300 ) // update every 300 seconds
+    if ( !first_run && seconds.count() < 10 ) // update every 10 seconds
     {
         if (tcs.try_lock()) {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature
@@ -978,7 +978,7 @@ bool AllunaTCS2::getFanPower()
     char res[DRIVER_LEN] = {0};
 
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
-    if ( !first_run && seconds.count() < 3 ) // update every 3 seconds
+    if ( !first_run && seconds.count() < 30 ) // update every 30 seconds
     {
         if (tcs.try_lock()) {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature
