@@ -594,7 +594,7 @@ bool AllunaTCS2::AbortFocuser()
 
 void AllunaTCS2::TimerHit()
 {
-    //LOG_INFO("TimerHit");
+    LOG_INFO("TimerHit");
     if (!isConnected())
         return; // No need to reset timer if we are not connected anymore
 
@@ -866,7 +866,7 @@ bool AllunaTCS2::setStepping(SteppingMode mode)
     char cmd[DRIVER_LEN] = {0};
     steppingMode=mode;
     value = (mode == SPEED) ? 0 : 1;
-    LOGF_INFO("Setting stepping mde to: %s", (mode==SPEED)?"SPEED":"micro");
+    LOGF_INFO("Setting stepping mode to: %s", (mode==SPEED)?"SPEED":"micro");
     LOGF_INFO("Setting stepping mode to: %d", value);
     snprintf(cmd, DRIVER_LEN, "SetFocuserMode %d\n", value);
     return sendCommand(cmd);
