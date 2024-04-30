@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <driversList>
- 	<devGroup group="Spectrographs">
+    <devGroup group="Spectrographs">
         <device label="Shelyak Usis" manufacturer="Shelyak">
             <driver name="Shelyak Usis">shelyak_usis</driver>
             <version>1.2</version>
         </device>
-	</devGroup>
+    </devGroup>
     <devGroup group="Telescopes">
-		<device label="Shelyak Usis" manufacturer="Shelyak">
+        <device label="Shelyak Usis" manufacturer="Shelyak">
             <driver name="Shelyak Usis">shelyak_usis</driver>
             <version>1.2</version>
         </device>
@@ -70,7 +70,7 @@
         <device label="EQ500X" manufacturer="Omegon">
             <driver name="EQ500X">indi_eq500x_telescope</driver>
             <version>1.0</version>
-        </device>        
+        </device>
         <device label="AstroPhysics V2" manufacturer="Astrophysics">
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
@@ -321,7 +321,7 @@
             <driver name="RoboFocus">indi_robo_focus</driver>
             <version>1.0</version>
         </device>
-	<device label="iEAFFocus" manufacturer="iOptron">
+        <device label="iEAFFocus" manufacturer="iOptron">
             <driver name="iEAFFocus">indi_ieaf_focus</driver>
             <version>1.0</version>
         </device>
@@ -409,7 +409,7 @@
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.1</version>
         </device>
-	    <device label="Pegasus Prodigy MF" manufacturer="Pegasus Astro">
+        <device label="Pegasus Prodigy MF" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.1</version>
         </device>
@@ -417,11 +417,11 @@
             <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
             <version>1.0</version>
         </device>
-          <device label="Pegasus FocusCube3" manufacturer="Pegasus Astro">
+        <device label="Pegasus FocusCube3" manufacturer="Pegasus Astro">
             <driver name="Pegasus FocusCube3">indi_pegasus_focuscube3</driver>
             <version>1.0</version>
         </device>
-         <device label="Pegasus ProdigyMF" manufacturer="Pegasus Astro">
+        <device label="Pegasus ProdigyMF" manufacturer="Pegasus Astro">
             <driver name="Pegasus MMC-7000AH">indi_pegasus_prodigyMF</driver>
             <version>1.0</version>
         </device>
@@ -437,21 +437,25 @@
             <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="Integra 85" manufacturer="Gemini Telescope">
+            <driver name="Integra85">indi_integra_focus</driver>
+            <version>1.1</version>
+        </device>
         <device label="Rotator Simulator" manufacturer="Simulator">
             <driver name="Rotator Simulator">indi_simulator_rotator</driver>
             <version>1.0</version>
         </device>
         <device label="Rotator Lite" manufacturer="Wanderer Astro">
-               <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
-               <version>1.0</version>
+            <driver name="Wanderer Rotator Lite">indi_wanderer_lite_rotator</driver>
+            <version>1.0</version>
         </device>
-                <device label="Rotator Mini V1-2" manufacturer="Wanderer Astro">
-               <driver name="Wanderer Rotator Mini">indi_wanderer_rotator_mini</driver>
-        <version>1.1</version>
-                </device>
-                <device label="Rotator Lite V2" manufacturer="Wanderer Astro">
-               <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
-        <version>1.0</version>
+        <device label="Rotator Mini V1-2" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Mini">indi_wanderer_rotator_mini</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Rotator Lite V2" manufacturer="Wanderer Astro">
+            <driver name="Wanderer Rotator Lite V2">indi_wanderer_rotator_lite_v2</driver>
+            <version>1.0</version>
         </device>
         <device label="Microtouch" manufacturer="Starizona">
             <driver name="Microtouch">indi_microtouch_focus</driver>
@@ -521,7 +525,7 @@
             <driver name="Lacerta MFOC FMC">indi_lacerta_mfoc_fmc_focus</driver>
             <version>0.1</version>
         </device>
-	<device label="ActiveFocuser" manufacturer="Optique Unterlinden">
+        <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
             <version>1.0</version>
         </device>
@@ -669,7 +673,7 @@
             <driver name="Pegasus UCH">indi_pegasus_uch</driver>
             <version>1.6</version>
         </device>
-         <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
+        <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
             <version>1.2</version>
         </device>
@@ -753,11 +757,11 @@
             <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>
         </device>
-		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
+        <device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>
             <version>1.0</version>
         </device>
-		<device label="DeepSkyDad FR1" manufacturer="DeepSkyDad">
+        <device label="DeepSkyDad FR1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad FR1">indi_deepskydad_fr1</driver>
             <version>1.0</version>
         </device>
