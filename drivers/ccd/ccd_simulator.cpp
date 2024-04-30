@@ -171,7 +171,7 @@ bool CCDSim::initProperties()
                   ISR_1OFMANY, 0, IPS_IDLE);
 
     // Gain
-    GainNP[0].fill("GAIN", "value", "%.f", 0, 100, 10, 90);
+    GainNP[0].fill("GAIN", "value", "%.f", 0, 300, 10, 90);
     GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Offset
