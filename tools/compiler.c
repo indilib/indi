@@ -490,7 +490,7 @@ static void skip_double()
  * "look-ahead" token.
  * if error, fill in a message in err_msg[] and return ERR.
  */
-static int compile(prec) int prec;
+static int compile(int prec)
 {
     int expect_binop = 0; /* set after we have seen any operand.
 				 * used by SUB so it can tell if it really 
