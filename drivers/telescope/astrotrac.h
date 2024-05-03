@@ -109,6 +109,7 @@ class AstroTrac :
         /// Velocity
         ///////////////////////////////////////////////////////////////////////////////////////////////
         bool getVelocity(INDI_EQ_AXIS axis);
+        bool getVelocity(INDI_EQ_AXIS axis, double &value);
 
         /**
          * @brief setVelocity set motor velocity
@@ -193,6 +194,7 @@ class AstroTrac :
 
         /// Mount internal coordinates
         INDI::IEquatorialCoordinates m_MountInternalCoordinates;
+
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Static Constants
         ///////////////////////////////////////////////////////////////////////////////////////////////
