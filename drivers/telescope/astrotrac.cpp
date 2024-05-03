@@ -96,7 +96,9 @@ bool AstroTrac::initProperties()
     EncoderNP[AXIS_DE].fill("AXIS_DE", "Declination", "%.2f", -3600, 3600, 100, 0);
     EncoderNP.fill(getDeviceName(), "MOUNT_ENCODERS", "Encoders", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
-    /* How fast do we guide compared to sidereal rate */
+    // How fast to guide compared to sidereal rate.
+    // The default rate is 0.1x sidereal, which is apparently the best for the mount accoring to the author of X2 plugin.
+    // Users may need to calibrate guiding for longer to see movement
     GuideRateNP[AXIS_RA].fill("GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.1);
     GuideRateNP[AXIS_DE].fill("GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.1);
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
@@ -221,9 +223,9 @@ bool AstroTrac::getAcceleration(INDI_EQ_AXIS axis)
         try
         {
             std::string acceleration = std::regex_replace(
-                response,
-                std::regex("<.a(\\d+)>"),
-                std::string("$1"));
+                                           response,
+                                           std::regex("<.a(\\d+)>"),
+                                           std::string("$1"));
 
             AccelerationNP[axis].setValue(std::stoi(acceleration));
             return true;
@@ -263,9 +265,9 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis, double &value)
         try
         {
             std::string velocity = std::regex_replace(
-                response,
-                std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
-                std::string("$1"));
+                                       response,
+                                       std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
+                                       std::string("$1"));
 
             value = std::stod(velocity) * (m_Location.latitude >= 0 ? 1 : -1);
             return true;
@@ -382,9 +384,9 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
             char regex_str[64] = {0};
             snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
             std::string position = std::regex_replace(
-                response,
-                std::regex(regex_str),
-                std::string("$1"));
+                                       response,
+                                       std::regex(regex_str),
+                                       std::string("$1"));
 
             EncoderNP[axis].setValue(std::stod(position));
             return true;
@@ -398,9 +400,9 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
                 char regex_str[64] = {0};
                 snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", other + 1);
                 std::string position = std::regex_replace(
-                    response,
-                    std::regex(regex_str),
-                    std::string("$1"));
+                                           response,
+                                           std::regex(regex_str),
+                                           std::string("$1"));
 
                 EncoderNP[other].setValue(std::stod(position));
                 return true;
@@ -622,7 +624,7 @@ double AstroTrac::calculateSlewTime(double distance)
     {
         // Time is equal to twice the time required to accelerate or decelerate, plus the remaining distance at max slew speed
         return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (distance - accelerate_decelerate) /
-                                                                                   MAX_SLEW_VELOCITY);
+                MAX_SLEW_VELOCITY);
     }
 }
 
@@ -643,7 +645,8 @@ bool AstroTrac::ReadScopeStatus()
     {
         getRADEFromEncoders(EncoderNP[AXIS_RA].getValue(), EncoderNP[AXIS_DE].getValue(), ra, de);
         // Send to client if changed.
-        if (std::fabs(lastHAEncoder - EncoderNP[AXIS_RA].getValue()) > 0 || std::fabs(lastDEEncoder - EncoderNP[AXIS_DE].getValue()) > 0)
+        if (std::fabs(lastHAEncoder - EncoderNP[AXIS_RA].getValue()) > 0
+                || std::fabs(lastDEEncoder - EncoderNP[AXIS_DE].getValue()) > 0)
         {
             EncoderNP.apply();
         }
@@ -772,7 +775,8 @@ bool AstroTrac::ISNewNumber(const char *dev, const char *name, double values[], 
         {
             AccelerationNP.update(values, names, n);
 
-            if (setAcceleration(AXIS_RA, AccelerationNP[AXIS_RA].getValue()) && setAcceleration(AXIS_DE, AccelerationNP[AXIS_DE].getValue()))
+            if (setAcceleration(AXIS_RA, AccelerationNP[AXIS_RA].getValue())
+                    && setAcceleration(AXIS_DE, AccelerationNP[AXIS_DE].getValue()))
                 AccelerationNP.setState(IPS_OK);
             else
                 AccelerationNP.setState(IPS_ALERT);
@@ -1023,12 +1027,13 @@ IPState AstroTrac::GuideSouth(uint32_t ms)
     // final velocity guiding south is rate - dDE
     setVelocity(AXIS_DE, rate - dDE);
     INDI::Timer::singleShot(ms, [this]()
-                            {
+    {
         // reset tracking
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
         GuideNSN[AXIS_RA].value = GuideNSN[AXIS_DE].value = 0;
         GuideNSNP.s = IPS_OK;
-        IDSetNumber(&GuideNSNP, nullptr); });
+        IDSetNumber(&GuideNSNP, nullptr);
+    });
     return IPS_BUSY;
 }
 
@@ -1057,10 +1062,10 @@ IPState AstroTrac::GuideEast(uint32_t ms)
     double rate = std::fabs(lastRARate) > 0 ? lastRARate : TRACKRATE_SIDEREAL;
 
     // absolute movement in arcseconds
-     double dRA = std::fabs(GuideRateNP.at(AXIS_RA)->getValue() * rate * ms / 1000.0);
+    double dRA = std::fabs(GuideRateNP.at(AXIS_RA)->getValue() * rate * ms / 1000.0);
 
     // not sure if this logic belongs here or the calling function
-    // // compensate final RA velocity for declination
+    // // compensate RA velocity for declination
     // TelescopeDirectionVector TDV;
     // TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     // double skyRA = 0, skyDE = 0;
@@ -1072,12 +1077,13 @@ IPState AstroTrac::GuideEast(uint32_t ms)
     // final velocity guiding east is rate + dRA, i.e the guide star will appear to move east
     setVelocity(AXIS_RA, rate + dRA);
     INDI::Timer::singleShot(ms, [this]()
-                            {
+    {
         // reset the tracking mode
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
         GuideWEN[AXIS_RA].value = GuideWEN[AXIS_DE].value = 0;
         GuideWENP.s = IPS_OK;
-        IDSetNumber(&GuideWENP, nullptr); });
+        IDSetNumber(&GuideWENP, nullptr);
+    });
 
     return IPS_BUSY;
 }
@@ -1104,15 +1110,13 @@ IPState AstroTrac::GuideWest(uint32_t ms)
     getVelocity(AXIS_RA, lastRARate);
 
     // if the current RA rate is zero, which is a valid custom tracking rate, just assume sidereal
-    //**************************************************************************************************
-    // returns negative sideral for testing only, release should be positive
-    double rate = std::fabs(lastRARate) > 0 ? lastRARate : -TRACKRATE_SIDEREAL;
+    double rate = std::fabs(lastRARate) > 0 ? lastRARate : TRACKRATE_SIDEREAL;
 
     // absolute movement in arcseconds
     double dRA = std::fabs(GuideRateNP.at(AXIS_RA)->getValue() * rate * ms / 1000.0);
 
     // not sure if this logic belongs here or the calling function
-    // // compensate final RA velocity for declination
+    // // compensate RA velocity for declination
     // TelescopeDirectionVector TDV;
     // TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     // double skyRA = 0, skyDE = 0;
@@ -1208,8 +1212,10 @@ void AstroTrac::simulateMount()
 
     if (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY)
     {
-        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(&MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
-        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(&MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
+                                &MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
+                                &MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
 
         haVelocity *= MovementWESP.s == IPS_BUSY ? 1 : 0;
         deVelocity *= MovementNSSP.s == IPS_BUSY ? 1 : 0;
@@ -1235,46 +1241,46 @@ void AstroTrac::simulateMount()
     {
         switch (TrackState)
         {
-        case SCOPE_IDLE:
-        case SCOPE_PARKED:
+            case SCOPE_IDLE:
+            case SCOPE_PARKED:
+                break;
+
+            case SCOPE_SLEWING:
+            case SCOPE_PARKING:
+            {
+                // In degrees
+                double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
+
+                // Hour Angle
+                double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
+                if (std::abs(dHA) <= elapsedDistance)
+                    SimData.currentMechanicalHA = SimData.targetMechanicalHA;
+                else if (dHA > 0)
+                    SimData.currentMechanicalHA += elapsedDistance;
+                else
+                    SimData.currentMechanicalHA -= elapsedDistance;
+
+                // Declination
+                double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
+                if (std::abs(dDE) <= elapsedDistance)
+                    SimData.currentMechanicalDE = SimData.targetMechanicalDE;
+                else if (dDE > 0)
+                    SimData.currentMechanicalDE += elapsedDistance;
+                else
+                    SimData.currentMechanicalDE -= elapsedDistance;
+            }
             break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-        {
-            // In degrees
-            double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
-
-            // Hour Angle
-            double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
-            if (std::abs(dHA) <= elapsedDistance)
-                SimData.currentMechanicalHA = SimData.targetMechanicalHA;
-            else if (dHA > 0)
-                SimData.currentMechanicalHA += elapsedDistance;
-            else
-                SimData.currentMechanicalHA -= elapsedDistance;
-
-            // Declination
-            double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
-            if (std::abs(dDE) <= elapsedDistance)
-                SimData.currentMechanicalDE = SimData.targetMechanicalDE;
-            else if (dDE > 0)
-                SimData.currentMechanicalDE += elapsedDistance;
-            else
-                SimData.currentMechanicalDE -= elapsedDistance;
-        }
-        break;
-
-        case SCOPE_TRACKING:
-        {
-            // Increase HA axis at selected tracking rate (arcsec/s).
-            SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
-            if (SimData.currentMechanicalHA > 180)
-                SimData.currentMechanicalHA = 180;
-            else if (SimData.currentMechanicalHA < -180)
-                SimData.currentMechanicalHA = -180;
-        }
-        break;
+            case SCOPE_TRACKING:
+            {
+                // Increase HA axis at selected tracking rate (arcsec/s).
+                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+                if (SimData.currentMechanicalHA > 180)
+                    SimData.currentMechanicalHA = 180;
+                else if (SimData.currentMechanicalHA < -180)
+                    SimData.currentMechanicalHA = -180;
+            }
+            break;
         }
     }
 
@@ -1451,7 +1457,7 @@ std::vector<std::string> AstroTrac::split(const std::string &input, const std::s
     // passing -1 as the submatch index parameter performs splitting
     std::regex re(regex);
     std::sregex_token_iterator
-        first{input.begin(), input.end(), re, -1},
-        last;
+    first{input.begin(), input.end(), re, -1},
+          last;
     return {first, last};
 }
