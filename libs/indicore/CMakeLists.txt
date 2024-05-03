@@ -51,6 +51,7 @@ if(UNIX)
     list(APPEND ${PROJECT_NAME}_SOURCES        
         sharedblob_parse.cpp
         shm_open_anon.c)
+    target_link_libraries(${PROJECT_NAME} rt)
 endif()
 
 target_compile_definitions(${PROJECT_NAME}
