@@ -50,7 +50,7 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef __linux__
+#if defined(__linux __) || defined(__NetBSD__)
 #include <sys/ioctl.h>
 #endif
 
