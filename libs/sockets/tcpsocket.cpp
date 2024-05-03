@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <chrono>
 #include <algorithm>
+#include <netinet/in.h>
 
 // SocketAddress
 const char *SocketAddress::unixDomainPrefix = "localhost:";
