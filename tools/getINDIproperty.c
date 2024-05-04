@@ -57,8 +57,8 @@ typedef struct
     char *d;    /* device to seek */
     char *p;    /* property to seek */
     char *e;    /* element to seek */
-    unsigned int wc : 1; /* whether pattern uses wild cards */
-    unsigned int ok : 1; /* something matched this query */
+    char wc; /* whether pattern uses wild cards */
+    char ok; /* something matched this query */
 } SearchDef;
 static SearchDef *srchs; /* properties to look for */
 static int nsrchs;
