@@ -730,8 +730,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             if (pp != nullptr)
             {
                 char line[256];
-                int stars = 0;
-                int lines = 0;
 
                 while (fgets(line, 256, pp) != nullptr)
                 {
@@ -753,9 +751,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                                     &band, &c, plate, ob, &dist, &dir);
                     if (rc == 12)
                     {
-                        lines++;
-                        stars++;
-
                         //  Convert the ra/dec to standard co-ordinates
                         double sx;    //  standard co-ords
                         double sy;    //
@@ -931,14 +926,13 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     //  scale up linearly for exposure time
     flux = flux * exposure_time;
 
-    float qx;
     //  we need a box size that gives a radius at least 3 times fwhm
-    qx       = seeing / ImageScalex;
-    qx       = qx * 3;
+    //qx       = seeing / ImageScalex;
+    //qx       = qx * 3;
     //boxsizex = (int)qx;
     //boxsizex++;
-    qx       = seeing / ImageScaley;
-    qx       = qx * 3;
+    auto qx = seeing / ImageScaley;
+    qx = qx * 3;
     boxsizey = static_cast<int>(qx);
     boxsizey++;
 
