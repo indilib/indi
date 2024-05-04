@@ -129,8 +129,8 @@ dsp_stream_p dsp_stream_new()
 {
     dsp_stream_p stream = (dsp_stream_p)malloc(sizeof(dsp_stream) * 1);
     stream->is_copy = 0;
-    stream->buf = (dsp_t*)malloc(sizeof(dsp_t) * 0);
-    stream->dft.buf = (double*)malloc(sizeof(dsp_t) * 0);
+    stream->buf = 0;
+    stream->dft.buf = 0;
     stream->magnitude = NULL;
     stream->phase = NULL;
     stream->sizes = (int*)malloc(sizeof(int) * 1);
