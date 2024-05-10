@@ -19,6 +19,9 @@
 #include "filter_simulator.h"
 
 #include <memory>
+#include <chrono>
+#include <random>
+#include <thread>
 
 // We declare an auto pointer to FilterSim.
 std::unique_ptr<FilterSim> filter_sim(new FilterSim());
@@ -43,6 +46,12 @@ bool FilterSim::Disconnect()
 
 bool FilterSim::SelectFilter(int f)
 {
+    // Sleep randomly between 1500 and 2000ms to simulate filter selection
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(1500, 2000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(dist(gen)));
+
     CurrentFilter = f;
     SetTimer(500);
     return true;
