@@ -30,4 +30,4 @@ RUN apt-get install -y \
 
 # Install deb package tools
 RUN apt-get install -y \
-    cdbs
+    cdbs debhelper
