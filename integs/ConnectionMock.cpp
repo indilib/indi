@@ -225,8 +225,6 @@ char ConnectionMock::peekChar(const std::string & expected) {
     return ret;
 }
 
-enum XmlStatus { PRE, TAGNAME, WAIT_ATTRIB, ATTRIB, QUOTE, WAIT_CLOSE };
-
 static std::string parseXmlFragmentFromString(const std::string &str)
 {
     ssize_t pos = 0;

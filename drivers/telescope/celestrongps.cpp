@@ -729,7 +729,7 @@ bool CelestronGPS::ReadScopeStatus()
     if (HasPierSide())
     {
         // read the pier side close to reading the Radec so they should match
-        char sop;
+        char sop = '?';
         char psc = 'u';
         if (driver.get_pier_side(&sop))
         {
@@ -2077,7 +2077,7 @@ bool CelestronGPS::AbortFocuser()
 // read the focuser limits from the hardware
 bool CelestronGPS::focusReadLimits()
 {
-    int low, high;
+    int low = 0, high = 0;
     bool valid = driver.foc_limits(&low, &high);
 
     focusTrueMax = high;
