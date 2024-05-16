@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <connectionplugins/connectionserial.h>
 
 #define iEAFFOCUS_TIMEOUT 4
 #define TEMPERATURE_THRESHOLD 0.1
@@ -59,6 +60,7 @@ bool iEAFFocus::initProperties()
     INDI::Focuser::initProperties();
 
     setDefaultPollingPeriod(1500);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%2.2f", 0., 50., 0., 50.);
     TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
