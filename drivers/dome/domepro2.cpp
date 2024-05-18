@@ -106,7 +106,7 @@ bool DomePro2::setupInitialParameters()
         SettingsNP.s = IPS_OK;
 
     if (getDomeAzPos())
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     return true;
 }
@@ -198,7 +198,7 @@ bool DomePro2::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 }
             }
 
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             return true;
         }
 
@@ -277,7 +277,7 @@ bool DomePro2::ISNewNumber(const char *dev, const char *name, double values[], c
             }
 
             SettingsNP.s = allSet ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&SettingsNP, nullptr);
+            SettingsNP.apply();
             return true;
         }
 
@@ -295,7 +295,7 @@ void DomePro2::TimerHit()
 
     double currentAz = DomeAbsPosN[0].value;
     if(getDomeAzPos() && std::abs(currentAz - DomeAbsPosN[0].value) > DOME_AZ_THRESHOLD)
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     std::string domeStatus = StatusT[STATUS_DOME].text;
     std::string shutterStatus = StatusT[STATUS_SHUTTER].text;
@@ -316,7 +316,7 @@ void DomePro2::TimerHit()
                 {
                     IUResetSwitch(&HomeSP);
                     HomeSP.s = IPS_IDLE;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.apply();
                 }
             }
         }
@@ -334,7 +334,7 @@ void DomePro2::TimerHit()
                 setShutterState(SHUTTER_UNKNOWN);
         }
 
-        IDSetText(&StatusTP, nullptr);
+        StatusTP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -463,7 +463,7 @@ bool DomePro2::Abort()
     {
         IUResetSwitch(&HomeSP);
         HomeSP.s = IPS_IDLE;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP.apply();
     }
 
     return true;

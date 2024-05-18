@@ -138,8 +138,7 @@ class DomePro2 : public INDI::Dome
             VERSION_HARDWARE
         };
 
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[2] {};
+        INDI::PropertySwitch HomeSP;
         enum
         {
             HOME_DISCOVER,

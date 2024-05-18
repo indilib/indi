@@ -116,8 +116,8 @@ bool DDW::Handshake()
 
     parseGINF(response.c_str());
     cmdState = IDLE;
-    DomeAbsPosNP.s = IPS_OK;
-    IDSetNumber(&DomeAbsPosNP, nullptr);
+    DomeAbsPosNP.setState(IPS_OK);
+    DomeAbsPosNP.apply();
     return true;
 }
 
@@ -250,7 +250,7 @@ void DDW::parseGINF(const char *response)
         ticksPerRev = dticks;
         homeAz = 360.0 * homepos / ticksPerRev;
 
-        DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
+        DomeAbsPosNP[0].setValue(360.0 * azimuth / ticksPerRev);
 
         ShutterState newState;
         switch (shutter)
@@ -328,8 +328,8 @@ void DDW::TimerHit()
                 LOGF_DEBUG("Tick counter %d", tick);
 
                 // Update current position
-                DomeAbsPosN[0].value = 359.0 * tick / ticksPerRev;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeAbsPosNP[0].setValue(359.0 * tick / ticksPerRev);
+                DomeAbsPosNP.apply();
                 break;
             }
             case 'O':
@@ -378,7 +378,7 @@ void DDW::TimerHit()
                         if(prevState == SHUTTER_OPERATION)
                         {
                             // First phase of parking done, now move to park position
-                            DomeAbsPosNP.s = MoveAbs(GetAxis1Park());
+                            DomeAbsPosNP.setState(MoveAbs(GetAxis1Park()));
                         }
                         else
                         {
@@ -394,7 +394,7 @@ void DDW::TimerHit()
                             if (gotoPending)
                             {
                                 LOGF_DEBUG("Performing pending goto to %f", gotoTarget);
-                                DomeAbsPosNP.s = MoveAbs(gotoTarget);
+                                DomeAbsPosNP.setState(MoveAbs(gotoTarget));
                                 gotoPending = false;
                             }
                             else
@@ -405,7 +405,7 @@ void DDW::TimerHit()
                         }
                         break;
                 }
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeAbsPosNP.apply();
                 break;
             }
             default:
@@ -457,14 +457,10 @@ IPState DDW::Park()
     }
 
     // First close the shutter if wanted (moves to home position), then move to park position
-    if (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
-    {
+    if (ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON)
         return ControlShutter(SHUTTER_CLOSE);
-    }
-    else
-    {
-        return MoveAbs(GetAxis1Park());
-    }
+
+    return MoveAbs(GetAxis1Park());
 }
 
 /************************************************************************************
@@ -478,7 +474,7 @@ IPState DDW::UnPark()
         return IPS_ALERT;
     }
 
-    if (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)
+    if (ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON)
     {
         return ControlShutter(SHUTTER_OPEN);
     }
@@ -535,7 +531,7 @@ bool DDW::saveConfigItems(FILE *fp)
 * ***********************************************************************************/
 bool DDW::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 /************************************************************************************

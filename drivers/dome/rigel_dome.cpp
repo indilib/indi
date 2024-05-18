@@ -57,25 +57,21 @@ bool RigelDome::initProperties()
 {
     INDI::Dome::initProperties();
 
-    IUFillSwitch(&OperationS[OPERATION_FIND_HOME], "OPERATION_FIND_HOME", "Find Home", ISS_OFF);
-    IUFillSwitch(&OperationS[OPERATION_CALIBRATE], "OPERATION_CALIBRATE", "Calibrate", ISS_OFF);
-    IUFillSwitchVector(&OperationSP, OperationS, 2, getDeviceName(), "OPERATION", "Operation", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+    OperationSP[OPERATION_FIND_HOME].fill("OPERATION_FIND_HOME", "Find Home", ISS_OFF);
+    OperationSP[OPERATION_CALIBRATE].fill("OPERATION_CALIBRATE", "Calibrate", ISS_OFF);
+    OperationSP.fill(getDeviceName(), "OPERATION", "Operation", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillText(&InfoT[INFO_FIRMWARE], "FIRMWARE", "Version", "NA");
-    IUFillText(&InfoT[INFO_MODEL], "MODEL", "Model", "NA");
-    IUFillText(&InfoT[INFO_TICKS], "TICKS_PER_REV", "Ticks/Rev", "NA");
-    IUFillText(&InfoT[INFO_BATTERY], "BATTERY", "Battery", "NA");
-    IUFillTextVector(&InfoTP, InfoT, 4, getDeviceName(), "FIRMWARE_INFO", "Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    InfoTP[INFO_FIRMWARE].fill("FIRMWARE", "Version", "NA");
+    InfoTP[INFO_MODEL].fill("MODEL", "Model", "NA");
+    InfoTP[INFO_TICKS].fill("TICKS_PER_REV", "Ticks/Rev", "NA");
+    InfoTP[INFO_BATTERY].fill("BATTERY", "Battery", "NA");
+    InfoTP.fill(getDeviceName(), "FIRMWARE_INFO", "Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&HomePositionN[AXIS_AZ], "HOME_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumberVector(&HomePositionNP, HomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION", "Home Position",
-                       SITE_TAB, IP_RW, 60, IPS_IDLE);
+    HomePositionNP[AXIS_AZ].fill("HOME_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    HomePositionNP.fill(getDeviceName(), "DOME_HOME_POSITION", "Home Position", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-
     SetParkDataType(PARK_AZ);
-
     addAuxControls();
 
     return true;
@@ -88,19 +84,19 @@ bool RigelDome::getStartupValues()
 {
     targetAz = 0;
 
-    InfoTP.s = (readFirmware() && readModel() && readStepsPerRevolution()) ? IPS_OK : IPS_ALERT;
+    InfoTP.setState((readFirmware() && readModel() && readStepsPerRevolution()) ? IPS_OK : IPS_ALERT);
     if (HasShutter())
         readBatteryLevels();
-    IDSetText(&InfoTP, nullptr);
+    InfoTP.apply();
 
     if (readPosition())
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     if (readShutterStatus())
-        IDSetSwitch(&DomeShutterSP, nullptr);
+        DomeShutterSP.apply();
 
     if (readHomePosition())
-        IDSetNumber(&HomePositionNP, nullptr);
+        HomePositionNP.apply();
 
     if (InitPark())
     {
@@ -152,17 +148,17 @@ bool RigelDome::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&OperationSP);
-        defineProperty(&InfoTP);
-        defineProperty(&HomePositionNP);
+        defineProperty(OperationSP);
+        defineProperty(InfoTP);
+        defineProperty(HomePositionNP);
 
         getStartupValues();
     }
     else
     {
-        deleteProperty(OperationSP.name);
-        deleteProperty(InfoTP.name);
-        deleteProperty(HomePositionNP.name);
+        deleteProperty(OperationSP);
+        deleteProperty(InfoTP);
+        deleteProperty(HomePositionNP);
     }
 
     return true;
@@ -175,41 +171,41 @@ bool RigelDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(OperationSP.name, name))
+        if (OperationSP.isNameMatch(name))
         {
             const char *requestedOperation = IUFindOnSwitchName(states, names, n);
-            if (!strcmp(requestedOperation, OperationS[OPERATION_FIND_HOME].name))
+            if (OperationSP[OPERATION_FIND_HOME].isNameMatch(requestedOperation))
             {
                 if (home())
                 {
-                    IUResetSwitch(&OperationSP);
-                    OperationS[OPERATION_FIND_HOME].s = ISS_ON;
-                    OperationSP.s = IPS_BUSY;
+                    OperationSP.reset();
+                    OperationSP[OPERATION_FIND_HOME].s = ISS_ON;
+                    OperationSP.setState(IPS_BUSY);
                     LOG_INFO("Dome is moving to home position...");
                     setDomeState(DOME_MOVING);
                 }
                 else
                 {
-                    OperationSP.s = IPS_ALERT;
+                    OperationSP.setState(IPS_ALERT);
                 }
             }
-            else if (!strcmp(requestedOperation, OperationS[OPERATION_CALIBRATE].name))
+            else if (OperationSP[OPERATION_CALIBRATE].isNameMatch(requestedOperation))
             {
                 if (calibrate())
                 {
-                    IUResetSwitch(&OperationSP);
-                    OperationS[OPERATION_CALIBRATE].s = ISS_ON;
-                    OperationSP.s = IPS_BUSY;
+                    OperationSP.reset();
+                    OperationSP[OPERATION_CALIBRATE].s = ISS_ON;
+                    OperationSP.setState(IPS_BUSY);
                     LOG_INFO("Dome is calibrating...");
                     setDomeState(DOME_MOVING);
                 }
                 else
                 {
-                    OperationSP.s = IPS_ALERT;
+                    OperationSP.setState(IPS_ALERT);
                 }
             }
 
-            IDSetSwitch(&OperationSP, nullptr);
+            OperationSP.apply();
             return true;
         }
     }
@@ -224,14 +220,14 @@ bool RigelDome::ISNewNumber(const char * dev, const char * name, double values[]
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, HomePositionNP.name) == 0)
+        if (HomePositionNP.isNameMatch(name))
         {
-            IUUpdateNumber(&HomePositionNP, values, names, n);
-            HomePositionNP.s = IPS_OK;
-            float homeAz = HomePositionN[AXIS_AZ].value;
+            HomePositionNP.update(values, names, n);
+            HomePositionNP.setState(IPS_OK);
+            auto homeAz = HomePositionNP[AXIS_AZ].getValue();
             setHome(homeAz);
             LOGF_INFO("Setting home position to %3.1f", homeAz);
-            IDSetNumber(&HomePositionNP, nullptr);
+            HomePositionNP.apply();
             return true;
         }
     }
@@ -251,25 +247,25 @@ void RigelDome::TimerHit()
 
     bool isMoving = (m_rawMotorState != M_Idle && m_rawMotorState != M_MovingAtSideral);
 
-    if (DomeAbsPosNP.s == IPS_BUSY && isMoving == false)
+    if (DomeAbsPosNP.getState() == IPS_BUSY && isMoving == false)
     {
-        bool isHoming = (OperationSP.s == IPS_BUSY && OperationS[OPERATION_FIND_HOME].s == ISS_ON);
-        bool isCalibrating = (OperationSP.s == IPS_BUSY && OperationS[OPERATION_CALIBRATE].s == ISS_ON);
+        bool isHoming = (OperationSP.getState() == IPS_BUSY && OperationSP[OPERATION_FIND_HOME].getState() == ISS_ON);
+        bool isCalibrating = (OperationSP.getState() == IPS_BUSY && OperationSP[OPERATION_CALIBRATE].getState() == ISS_ON);
 
         if (isHoming)
         {
             LOG_INFO("Dome completed homing...");
-            IUResetSwitch(&OperationSP);
-            OperationSP.s = IPS_OK;
-            IDSetSwitch(&OperationSP, nullptr);
+            OperationSP.reset();
+            OperationSP.setState(IPS_OK);
+            OperationSP.apply();
             setDomeState(DOME_SYNCED);
         }
         else if (isCalibrating)
         {
             LOG_INFO("Dome completed calibration...");
-            IUResetSwitch(&OperationSP);
-            OperationSP.s = IPS_OK;
-            IDSetSwitch(&OperationSP, nullptr);
+            OperationSP.reset();
+            OperationSP.setState(IPS_OK);
+            OperationSP.apply();
             setDomeState(DOME_SYNCED);
         }
         else if (getDomeState() == DOME_PARKING)
@@ -279,16 +275,16 @@ void RigelDome::TimerHit()
         }
         else
         {
-            LOGF_INFO("Dome reached requested azimuth: %.3f Degrees", DomeAbsPosN[0].value);
+            LOGF_INFO("Dome reached requested azimuth: %.3f Degrees", DomeAbsPosNP[0].getValue());
             setDomeState(DOME_SYNCED);
         }
     }
     else
     {
-        if (DomeAbsPosNP.s != IPS_BUSY && isMoving)
-            DomeAbsPosNP.s = IPS_BUSY;
+        if (DomeAbsPosNP.getState() != IPS_BUSY && isMoving)
+            DomeAbsPosNP.setState(IPS_BUSY);
 
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
 
     if (HasShutter())
@@ -300,7 +296,7 @@ void RigelDome::TimerHit()
         }
 
         if (readBatteryLevels())
-            IDSetText(&InfoTP, nullptr);
+            InfoTP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -325,13 +321,7 @@ IPState RigelDome::MoveAbs(double az)
 /////////////////////////////////////////////////////////////////////////////
 IPState RigelDome::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;
-
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
-
+    targetAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
     // It will take a few cycles to reach final position
     return MoveAbs(targetAz);
 }
@@ -441,17 +431,17 @@ bool RigelDome::Abort()
 {
     if (sendCommand("STOP"))
     {
-        if (OperationSP.s == IPS_BUSY)
+        if (OperationSP.getState() == IPS_BUSY)
         {
-            LOGF_INFO("%s is aborted.", OperationS[OPERATION_CALIBRATE].s == ISS_ON ? "Calibration" : "Finding home");
-            IUResetSwitch(&OperationSP);
-            OperationSP.s = IPS_ALERT;
-            IDSetSwitch(&OperationSP, nullptr);
+            LOGF_INFO("%s is aborted.", OperationSP[OPERATION_CALIBRATE].getState() == ISS_ON ? "Calibration" : "Finding home");
+            OperationSP.reset();
+            OperationSP.setState(IPS_ALERT);
+            OperationSP.apply();
         }
         else if (getShutterState() == SHUTTER_MOVING)
         {
-            DomeShutterSP.s = IPS_ALERT;
-            IDSetSwitch(&DomeShutterSP, nullptr);
+            DomeShutterSP.setState(IPS_ALERT);
+            DomeShutterSP.apply();
             LOG_WARN("Shutter motion aborted!");
         }
         else
@@ -470,7 +460,7 @@ bool RigelDome::Abort()
 /////////////////////////////////////////////////////////////////////////////
 bool RigelDome::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 
@@ -516,7 +506,7 @@ bool RigelDome::readStepsPerRevolution()
     if (sendCommand("ENCREV", res) == false)
         return false;
 
-    IUSaveText(&InfoT[INFO_TICKS], res);
+    InfoTP[INFO_TICKS].setText(res);
     return true;
 }
 
@@ -537,7 +527,7 @@ bool RigelDome::readBatteryLevels()
 
     char levels[DRIVER_LEN] = {0};
     snprintf(levels, DRIVER_LEN, "%.2fv (%d%%)", volts / 1000.0, percent);
-    IUSaveText(&InfoT[INFO_BATTERY], levels);
+    InfoTP[INFO_BATTERY].setText(levels);
     return true;
 }
 
@@ -550,7 +540,7 @@ bool RigelDome::readPosition()
     if (sendCommand("ANGLE", res) == false)
         return false;
 
-    DomeAbsPosN[0].value = std::stod(res);
+    DomeAbsPosNP[0].setValue(std::stod(res));
     return true;
 }
 
@@ -561,7 +551,7 @@ bool RigelDome::readHomePosition()
     if (sendCommand("HOME", res) == false)
         return false;
 
-    HomePositionN[0].value = std::stod(res);
+    HomePositionNP[0].setValue(std::stod(res));
     return true;
 }
 
@@ -592,7 +582,7 @@ bool RigelDome::readState()
     if (fields.size() < 13)
         return false;
 
-    DomeAbsPosN[0].value = std::stod(fields[0]);
+    DomeAbsPosNP[0].setValue(std::stod(fields[0]));
     m_rawMotorState = static_cast<RigelMotorState>(std::stoi(fields[1]));
     m_rawShutterState = static_cast<RigelShutterState>(std::stoi(fields[5]));
     return true;
@@ -647,8 +637,7 @@ bool RigelDome::readFirmware()
     if (sendCommand("VER", res) == false)
         return false;
 
-    IUSaveText(&InfoT[INFO_FIRMWARE], res);
-
+    InfoTP[INFO_FIRMWARE].setText(res);
     return true;
 }
 
@@ -662,8 +651,7 @@ bool RigelDome::readModel()
     if (sendCommand("PULSAR", res) == false)
         return false;
 
-    IUSaveText(&InfoT[INFO_MODEL], res);
-
+    InfoTP[INFO_MODEL].setText(res);
     return true;
 }
 
@@ -768,7 +756,7 @@ IPState RigelDome::Move(DomeDirection dir, DomeMotionCommand operation)
 
     if (operation == MOTION_START)
     {
-        target = DomeAbsPosN[0].value;
+        target = DomeAbsPosN[0].getValue();
         if(dir == DOME_CW)
         {
             target += 5;
@@ -785,7 +773,7 @@ IPState RigelDome::Move(DomeDirection dir, DomeMotionCommand operation)
     }
     else
     {
-        target = DomeAbsPosN[0].value;
+        target = DomeAbsPosNP[0].getValue();
     }
 
     MoveAbs(target);

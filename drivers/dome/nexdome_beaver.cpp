@@ -240,7 +240,7 @@ bool Beaver::echo()
 
     // retrieve the current az from the dome
     if (rotatorGetAz())
-        LOGF_INFO("Dome reports az: %.1f", DomeAbsPosN[0].value);
+        LOGF_INFO("Dome reports az: %.1f", DomeAbsPosNP[0].getValue());
     else
         return false;
 
@@ -420,14 +420,14 @@ bool Beaver::ISNewNumber(const char *dev, const char *name, double values[], cha
         ///////////////////////////////////////////////////////////////////////////////
         /// Park Position
         ///////////////////////////////////////////////////////////////////////////////
-        if (strcmp(name, ParkPositionNP.name) == 0)
+        if (ParkPositionNP.isNameMatch(name))
         {
-            IUUpdateNumber(&ParkPositionNP, values, names, n);
-            if (rotatorSetPark(ParkPositionN[AXIS_RA].value))
+            ParkPositionNP.update(values, names, n);
+            if (rotatorSetPark(ParkPositionNP[AXIS_RA].getValue()))
             {
-                ParkPositionNP.s = IPS_OK;
-                SetAxis1Park(ParkPositionN[AXIS_RA].value);
-                IDSetNumber(&ParkPositionNP, nullptr);
+                ParkPositionNP.setState(IPS_OK);
+                SetAxis1Park(ParkPositionNP[AXIS_RA].getValue());
+                ParkPositionNP.apply();
                 return true;
             }
             else
@@ -452,7 +452,7 @@ void Beaver::TimerHit()
 
     // Get Position and sets az pos field
     rotatorGetAz();
-    LOGF_DEBUG("Rotator position: %f", DomeAbsPosN[0].value);
+    LOGF_DEBUG("Rotator position: %f", DomeAbsPosNP[0].getValue());
 
     // Query rotator status
     uint16_t domeStatus = 0;
@@ -639,14 +639,8 @@ IPState Beaver::MoveAbs(double az)
 //////////////////////////////////////////////////////////////////////////////
 IPState Beaver::MoveRel(double azDiff)
 {
-
     azDiff = domeDir * azDiff;
-    m_TargetRotatorAz = DomeAbsPosN[0].value + azDiff;
-
-    if (m_TargetRotatorAz < DomeAbsPosN[0].min)
-        m_TargetRotatorAz += DomeAbsPosN[0].max;
-    if (m_TargetRotatorAz > DomeAbsPosN[0].max)
-        m_TargetRotatorAz -= DomeAbsPosN[0].max;
+    m_TargetRotatorAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
     LOGF_DEBUG("Requested rel move of %.1f", azDiff);
     lastAzDiff = fabs(azDiff);
     return MoveAbs(m_TargetRotatorAz);
@@ -741,8 +735,8 @@ bool Beaver::rotatorGetAz()
     double res = 0;
     if (sendCommand("!dome getaz#", res))
     {
-        DomeAbsPosN[0].value = res;
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP[0].setValue(res);
+        DomeAbsPosNP.apply();
         return true;
     }
     return false;
@@ -776,12 +770,12 @@ IPState Beaver::Park()
         RotatorStatusTP[0].setText(rStatus);
         RotatorStatusTP.apply();
         // check shutter policy
-        if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON))
+        if (shutterOnLine() && (ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON))
         {
             if(ControlShutter(SHUTTER_CLOSE))
             {
-                DomeShutterS[SHUTTER_OPEN].s = ISS_OFF;
-                DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
+                DomeShutterSP[SHUTTER_OPEN].setState(ISS_OFF);
+                DomeShutterSP[SHUTTER_CLOSE].setState(ISS_ON);
             }
             else
                 return IPS_ALERT;
@@ -800,12 +794,12 @@ IPState Beaver::UnPark()
     RotatorStatusTP[0].setText(rStatus);
     RotatorStatusTP.apply();
     // check shutter policy
-    if (shutterOnLine() && (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON))
+    if (shutterOnLine() && (ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON))
     {
         if(ControlShutter(SHUTTER_OPEN))
         {
-            DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
-            DomeShutterS[SHUTTER_CLOSE].s = ISS_OFF;
+            DomeShutterSP[SHUTTER_OPEN].setState(ISS_ON);
+            DomeShutterSP[SHUTTER_CLOSE].setState(ISS_OFF);
         }
         else
             return IPS_ALERT;
@@ -838,11 +832,11 @@ bool Beaver::SetCurrentPark()
 {
     double res = 0;
     char cmd[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "!domerot setpark %.2f#", DomeAbsPosN[0].value);
+    snprintf(cmd, DRIVER_LEN, "!domerot setpark %.2f#", DomeAbsPosNP[0].getValue());
     if (sendCommand(cmd, res))
     {
-        SetAxis1Park(DomeAbsPosN[0].value);
-        LOGF_INFO("Park set to current: %.2f", DomeAbsPosN[0].value);
+        SetAxis1Park(DomeAbsPosNP[0].getValue());
+        LOGF_INFO("Park set to current: %.2f", DomeAbsPosNP[0].getValue());
     }
     return true;
 
