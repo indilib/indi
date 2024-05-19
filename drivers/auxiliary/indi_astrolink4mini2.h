@@ -165,11 +165,14 @@ private:
     std::string doubleToStr(double val);
     std::string intToStr(double val);
 
-    ISwitch FocuserSelectS[2];
-    ISwitchVectorProperty FocuserSelectSP;
+    INDI::PropertySwitch FocuserSelectSP {2};
+    enum
+    {
+        FOC_SEL_1,
+        FOC_SEL_2
+    };
 
-    INumber Focuser1SettingsN[6];
-    INumberVectorProperty Focuser1SettingsNP;
+    INDI::PropertyNumber Focuser1SettingsNP {6};
     enum
     {
         FS1_SPEED,
@@ -179,8 +182,7 @@ private:
         FS1_COMPENSATION,
         FS1_COMP_THRESHOLD
     };
-    INumber Focuser2SettingsN[6];
-    INumberVectorProperty Focuser2SettingsNP;
+    INDI::PropertyNumber Focuser2SettingsNP {6};
     enum
     {
         FS2_SPEED,
@@ -191,8 +193,7 @@ private:
         FS2_COMP_THRESHOLD
     };
 
-    ISwitch Focuser1ModeS[3];
-    ISwitchVectorProperty Focuser1ModeSP;
+    INDI::PropertySwitch Focuser1ModeSP {3};
     enum
     {
         FS1_MODE_UNI,
@@ -200,8 +201,7 @@ private:
         FS1_MODE_MICRO_H
     };
 
-    ISwitch Focuser2ModeS[3];
-    ISwitchVectorProperty Focuser2ModeSP;
+    INDI::PropertySwitch Focuser2ModeSP {3};
     enum
     {
         FS2_MODE_UNI,
@@ -209,8 +209,7 @@ private:
         FS2_MODE_MICRO_H
     };
 
-    INumber PowerDataN[5];
-    INumberVectorProperty PowerDataNP;
+    INDI::PropertyNumber PowerDataNP {5};
     enum
     {
         POW_VIN,
@@ -220,16 +219,37 @@ private:
         POW_WH
     };
 
-    ISwitch Power1S[2];
-    ISwitchVectorProperty Power1SP;
-    ISwitch Power2S[2];
-    ISwitchVectorProperty Power2SP;
-    ISwitch Power3S[2];
-    ISwitchVectorProperty Power3SP;
-    INumber PWMN[2];
-    INumberVectorProperty PWMNP;
-    ISwitch PowerDefaultOnS[3];
-    ISwitchVectorProperty PowerDefaultOnSP;
+    INDI::PropertySwitch Power1SP {2};
+    enum
+    {
+        PWR1BTN_ON,
+        PWR1BTN_OFF
+    };
+    INDI::PropertySwitch Power2SP {2};
+    enum
+    {
+        PWR2BTN_ON,
+        PWR2BTN_OFF
+    };
+    INDI::PropertySwitch Power3SP {2};
+    enum
+    {
+        PWR3BTN_ON,
+        PWR3BTN_OFF
+    };
+    INDI::PropertyNumber PWMNP {2};
+    enum
+    {
+        PWM1_VAL,
+        PWM2_VAL
+    };
+    INDI::PropertySwitch PowerDefaultOnSP {3};
+    enum
+    {
+        POW_DEF_ON1,
+        POW_DEF_ON2,
+        POW_DEF_ON3
+    };
 
     static constexpr const char *POWER_TAB{"Power"};
     static constexpr const char *ENVIRONMENT_TAB{"Environment"};

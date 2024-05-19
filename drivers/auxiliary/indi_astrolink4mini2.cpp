@@ -90,7 +90,7 @@ bool IndiAstroLink4mini2::initProperties()
 
     char focuserSelectLabel[15];
     memset(focuserSelectLabel, 0, 15);
-    setFindex(IUGetConfigOnSwitchName(getDeviceName(), FocuserSelectSP.name, focuserSelectLabel, 15) == 0 ? 0 : 1);
+    setFindex(IUGetConfigOnSwitchName(getDeviceName(), FocuserSelectSP.getName(), focuserSelectLabel, 15) == 0 ? 0 : 1);
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -116,66 +116,66 @@ bool IndiAstroLink4mini2::initProperties()
     serialConnection->setDefaultPort("/dev/ttyUSB0");
     serialConnection->setDefaultBaudRate(serialConnection->B_38400);
 
-    IUFillSwitch(&FocuserSelectS[0], "FOC_SEL_1", "Focuser 1", (getFindex() == 0 ? ISS_ON : ISS_OFF));
-    IUFillSwitch(&FocuserSelectS[1], "FOC_SEL_2", "Focuser 2", (getFindex() > 0 ? ISS_ON : ISS_OFF));
-    IUFillSwitchVector(&FocuserSelectSP, FocuserSelectS, 2, getDeviceName(), "FOCUSER_SELECT", "Focuser select", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    FocuserSelectSP[FOC_SEL_1].fill("FOC_SEL_1", "Focuser 1", (getFindex() == 0 ? ISS_ON : ISS_OFF));
+    FocuserSelectSP[FOC_SEL_2].fill("FOC_SEL_2", "Focuser 2", (getFindex() > 0 ? ISS_ON : ISS_OFF));
+    FocuserSelectSP.fill(getDeviceName(), "FOCUSER_SELECT", "Focuser select", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Power readings
-    IUFillNumber(&PowerDataN[POW_VIN], "VIN", "Input voltage [V]", "%.1f", 0, 15, 10, 0);
-    IUFillNumber(&PowerDataN[POW_REG], "REG", "Regulated voltage [V]", "%.1f", 0, 15, 10, 0);
-    IUFillNumber(&PowerDataN[POW_ITOT], "ITOT", "Total current [A]", "%.1f", 0, 15, 10, 0);
-    IUFillNumber(&PowerDataN[POW_AH], "AH", "Energy consumed [Ah]", "%.1f", 0, 1000, 10, 0);
-    IUFillNumber(&PowerDataN[POW_WH], "WH", "Energy consumed [Wh]", "%.1f", 0, 10000, 10, 0);
-    IUFillNumberVector(&PowerDataNP, PowerDataN, 4, getDeviceName(), "POWER_DATA", "Power data", POWER_TAB, IP_RO, 60, IPS_IDLE);
+    PowerDataNP[POW_VIN].fill("VIN", "Input voltage [V]", "%.1f", 0, 15, 10, 0);
+    PowerDataNP[POW_REG].fill("REG", "Regulated voltage [V]", "%.1f", 0, 15, 10, 0);
+    PowerDataNP[POW_ITOT].fill("ITOT", "Total current [A]", "%.1f", 0, 15, 10, 0);
+    PowerDataNP[POW_AH].fill("AH", "Energy consumed [Ah]", "%.1f", 0, 1000, 10, 0);
+    PowerDataNP[POW_WH].fill("WH", "Energy consumed [Wh]", "%.1f", 0, 10000, 10, 0);
+    PowerDataNP.fill(getDeviceName(), "POWER_DATA", "Power data", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power lines
-    IUFillSwitch(&Power1S[0], "PWR1BTN_ON", "ON", ISS_OFF);
-    IUFillSwitch(&Power1S[1], "PWR1BTN_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&Power1SP, Power1S, 2, getDeviceName(), "DC1", "Port 1", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    Power1SP[PWR1BTN_ON].fill("PWR1BTN_ON", "ON", ISS_OFF);
+    Power1SP[PWR1BTN_OFF].fill( "PWR1BTN_OFF", "OFF", ISS_ON);
+    Power1SP.fill(getDeviceName(), "DC1", "Port 1", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&Power2S[0], "PWR2BTN_ON", "ON", ISS_OFF);
-    IUFillSwitch(&Power2S[1], "PWR2BTN_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&Power2SP, Power2S, 2, getDeviceName(), "DC2", "Port 2", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    Power2SP[PWR2BTN_ON].fill("PWR2BTN_ON", "ON", ISS_OFF);
+    Power2SP[PWR2BTN_OFF].fill("PWR2BTN_OFF", "OFF", ISS_ON);
+    Power2SP.fill(getDeviceName(), "DC2", "Port 2", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&Power3S[0], "PWR3BTN_ON", "ON", ISS_OFF);
-    IUFillSwitch(&Power3S[1], "PWR3BTN_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&Power3SP, Power3S, 2, getDeviceName(), "DC3", "Port 3", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    Power3SP[PWR3BTN_ON].fill( "PWR3BTN_ON", "ON", ISS_OFF);
+    Power3SP[PWR3BTN_OFF].fill("PWR3BTN_OFF", "OFF", ISS_ON);
+    Power3SP.fill(getDeviceName(), "DC3", "Port 3", POWER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&PWMN[0], "PWM1_VAL", "A", "%3.0f", 0, 100, 10, 0);
-    IUFillNumber(&PWMN[1], "PWM2_VAL", "B", "%3.0f", 0, 100, 10, 0);
-    IUFillNumberVector(&PWMNP, PWMN, 2, getDeviceName(), "PWM", "PWM", POWER_TAB, IP_RW, 60, IPS_IDLE);
+    PWMNP[PWM1_VAL].fill("PWM1_VAL", "A", "%3.0f", 0, 100, 10, 0);
+    PWMNP[PWM2_VAL].fill("PWM2_VAL", "B", "%3.0f", 0, 100, 10, 0);
+    PWMNP.fill(getDeviceName(), "PWM", "PWM", POWER_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&PowerDefaultOnS[0], "POW_DEF_ON1", "DC1", ISS_OFF);
-    IUFillSwitch(&PowerDefaultOnS[1], "POW_DEF_ON2", "DC2", ISS_OFF);
-    IUFillSwitch(&PowerDefaultOnS[2], "POW_DEF_ON3", "DC3", ISS_OFF);
-    IUFillSwitchVector(&PowerDefaultOnSP, PowerDefaultOnS, 3, getDeviceName(), "POW_DEF_ON", "Power default ON", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    PowerDefaultOnSP[POW_DEF_ON1].fill("POW_DEF_ON1", "DC1", ISS_OFF);
+    PowerDefaultOnSP[POW_DEF_ON2].fill("POW_DEF_ON2", "DC2", ISS_OFF);
+    PowerDefaultOnSP[POW_DEF_ON3].fill("POW_DEF_ON3", "DC3", ISS_OFF);
+    PowerDefaultOnSP.fill(getDeviceName(), "POW_DEF_ON", "Power default ON", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // focuser settings
-    IUFillNumber(&Focuser1SettingsN[FS1_SPEED], "FS1_SPEED", "Speed [pps]", "%.0f", 10, 200, 1, 100);
-    IUFillNumber(&Focuser1SettingsN[FS1_CURRENT], "FS1_CURRENT", "Current [mA]", "%.0f", 100, 2000, 100, 400);
-    IUFillNumber(&Focuser1SettingsN[FS1_HOLD], "FS1_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
-    IUFillNumber(&Focuser1SettingsN[FS1_STEP_SIZE], "FS1_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
-    IUFillNumber(&Focuser1SettingsN[FS1_COMPENSATION], "FS1_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
-    IUFillNumber(&Focuser1SettingsN[FS1_COMP_THRESHOLD], "FS1_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
-    IUFillNumberVector(&Focuser1SettingsNP, Focuser1SettingsN, 6, getDeviceName(), "FOCUSER1_SETTINGS", "Focuser 1 settings", FOC1_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    Focuser1SettingsNP[FS1_SPEED].fill("FS1_SPEED", "Speed [pps]", "%.0f", 10, 200, 1, 100);
+    Focuser1SettingsNP[FS1_CURRENT].fill("FS1_CURRENT", "Current [mA]", "%.0f", 100, 2000, 100, 400);
+    Focuser1SettingsNP[FS1_HOLD].fill("FS1_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
+    Focuser1SettingsNP[FS1_STEP_SIZE].fill("FS1_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
+    Focuser1SettingsNP[FS1_COMPENSATION].fill("FS1_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
+    Focuser1SettingsNP[FS1_COMP_THRESHOLD].fill("FS1_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
+    Focuser1SettingsNP.fill(getDeviceName(), "FOCUSER1_SETTINGS", "Focuser 1 settings", FOC1_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&Focuser2SettingsN[FS2_SPEED], "FS2_SPEED", "Speed [pps]", "%.0f", 10, 200, 1, 100);
-    IUFillNumber(&Focuser2SettingsN[FS2_CURRENT], "FS2_CURRENT", "Current [mA]", "%.0f", 100, 2000, 100, 400);
-    IUFillNumber(&Focuser2SettingsN[FS2_HOLD], "FS2_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
-    IUFillNumber(&Focuser2SettingsN[FS2_STEP_SIZE], "FS2_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
-    IUFillNumber(&Focuser2SettingsN[FS2_COMPENSATION], "FS2_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
-    IUFillNumber(&Focuser2SettingsN[FS2_COMP_THRESHOLD], "FS2_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
-    IUFillNumberVector(&Focuser2SettingsNP, Focuser2SettingsN, 6, getDeviceName(), "FOCUSER2_SETTINGS", "Focuser 2 settings", FOC2_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    Focuser2SettingsNP[FS2_SPEED].fill("FS2_SPEED", "Speed [pps]", "%.0f", 10, 200, 1, 100);
+    Focuser2SettingsNP[FS2_CURRENT].fill("FS2_CURRENT", "Current [mA]", "%.0f", 100, 2000, 100, 400);
+    Focuser2SettingsNP[FS2_HOLD].fill("FS2_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
+    Focuser2SettingsNP[FS2_STEP_SIZE].fill("FS2_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
+    Focuser2SettingsNP[FS2_COMPENSATION].fill("FS2_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
+    Focuser2SettingsNP[FS2_COMP_THRESHOLD].fill("FS2_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
+    Focuser2SettingsNP.fill(getDeviceName(), "FOCUSER2_SETTINGS", "Focuser 2 settings", FOC2_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&Focuser1ModeS[FS1_MODE_UNI], "FS1_MODE_UNI", "Unipolar", ISS_ON);
-    IUFillSwitch(&Focuser1ModeS[FS1_MODE_MICRO_L], "FS1_MODE_MICRO_L", "Microstep 1/8", ISS_OFF);
-    IUFillSwitch(&Focuser1ModeS[FS1_MODE_MICRO_H], "FS1_MODE_MICRO_H", "Microstep 1/32", ISS_OFF);
-    IUFillSwitchVector(&Focuser1ModeSP, Focuser1ModeS, 3, getDeviceName(), "FOCUSER1_MODE", "Focuser mode", FOC1_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    Focuser1ModeSP[FS1_MODE_UNI].fill("FS1_MODE_UNI", "Unipolar", ISS_ON);
+    Focuser1ModeSP[FS1_MODE_MICRO_L].fill("FS1_MODE_MICRO_L", "Microstep 1/8", ISS_OFF);
+    Focuser1ModeSP[FS1_MODE_MICRO_H].fill( "FS1_MODE_MICRO_H", "Microstep 1/32", ISS_OFF);
+    Focuser1ModeSP.fill(getDeviceName(), "FOCUSER1_MODE", "Focuser mode", FOC1_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&Focuser2ModeS[FS2_MODE_UNI], "FS2_MODE_UNI", "Unipolar", ISS_ON);
-    IUFillSwitch(&Focuser2ModeS[FS2_MODE_MICRO_L], "FS2_MODE_MICRO_L", "Microstep 1/8", ISS_OFF);
-    IUFillSwitch(&Focuser2ModeS[FS2_MODE_MICRO_H], "FS2_MODE_MICRO_H", "Microstep 1/32", ISS_OFF);
-    IUFillSwitchVector(&Focuser2ModeSP, Focuser2ModeS, 3, getDeviceName(), "FOCUSER2_MODE", "Focuser mode", FOC2_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    Focuser2ModeSP[FS2_MODE_UNI].fill("FS2_MODE_UNI", "Unipolar", ISS_ON);
+    Focuser2ModeSP[FS2_MODE_MICRO_L].fill("FS2_MODE_MICRO_L", "Microstep 1/8", ISS_OFF);
+    Focuser2ModeSP[FS2_MODE_MICRO_H].fill("FS2_MODE_MICRO_H", "Microstep 1/32", ISS_OFF);
+    Focuser2ModeSP.fill(getDeviceName(), "FOCUSER2_MODE", "Focuser mode", FOC2_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Environment Group
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
@@ -194,31 +194,31 @@ bool IndiAstroLink4mini2::updateProperties()
     {
         FI::updateProperties();
         WI::updateProperties();
-        defineProperty(&FocuserSelectSP);
-        defineProperty(&Focuser1SettingsNP);
-        defineProperty(&Focuser2SettingsNP);
-        defineProperty(&Focuser1ModeSP);
-        defineProperty(&Focuser2ModeSP);
-        defineProperty(&PowerDataNP);
-        defineProperty(&Power1SP);
-        defineProperty(&Power2SP);
-        defineProperty(&Power3SP);
-        defineProperty(&PWMNP);
-        defineProperty(&PowerDefaultOnSP);
+        defineProperty(FocuserSelectSP);
+        defineProperty(Focuser1SettingsNP);
+        defineProperty(Focuser2SettingsNP);
+        defineProperty(Focuser1ModeSP);
+        defineProperty(Focuser2ModeSP);
+        defineProperty(PowerDataNP);
+        defineProperty(Power1SP);
+        defineProperty(Power2SP);
+        defineProperty(Power3SP);
+        defineProperty(PWMNP);
+        defineProperty(PowerDefaultOnSP);
     }
     else
     {
-        deleteProperty(PowerDataNP.name);
-        deleteProperty(Focuser1SettingsNP.name);
-        deleteProperty(Focuser2SettingsNP.name);
-        deleteProperty(Focuser1ModeSP.name);
-        deleteProperty(Focuser2ModeSP.name);
-        deleteProperty(FocuserSelectSP.name);
-        deleteProperty(Power1SP.name);
-        deleteProperty(Power2SP.name);
-        deleteProperty(Power3SP.name);
-        deleteProperty(PWMNP.name);
-        deleteProperty(PowerDefaultOnSP.name);
+        deleteProperty(PowerDataNP);
+        deleteProperty(Focuser1SettingsNP);
+        deleteProperty(Focuser2SettingsNP);
+        deleteProperty(Focuser1ModeSP);
+        deleteProperty(Focuser2ModeSP);
+        deleteProperty(FocuserSelectSP);
+        deleteProperty(Power1SP);
+        deleteProperty(Power2SP);
+        deleteProperty(Power3SP);
+        deleteProperty(PWMNP);
+        deleteProperty(PowerDefaultOnSP);
         WI::updateProperties();
         FI::updateProperties();
     }
@@ -234,28 +234,28 @@ bool IndiAstroLink4mini2::ISNewNumber(const char *dev, const char *name, double 
         char res[ASTROLINK4_LEN] = {0};
 
         // Handle PWM
-        if (!strcmp(name, PWMNP.name))
+        if (PWMNP.isNameMatch(name))
         {
             bool allOk = true;
-            if (PWMN[0].value != values[0])
+            if (PWMNP[PWM1_VAL].getValue() != values[0])
             {
                 sprintf(cmd, "B:0:%d", static_cast<uint8_t>(values[0]));
                 allOk = allOk && sendCommand(cmd, res);
             }
-            if (PWMN[1].value != values[1])
+            if (PWMNP[PWM2_VAL].getValue() != values[1])
             {
                 sprintf(cmd, "B:1:%d", static_cast<uint8_t>(values[1]));
                 allOk = allOk && sendCommand(cmd, res);
             }
-            PWMNP.s = (allOk) ? IPS_BUSY : IPS_ALERT;
+            PWMNP.setState((allOk) ? IPS_BUSY : IPS_ALERT);
             if (allOk)
-                IUUpdateNumber(&PWMNP, values, names, n);
-            IDSetNumber(&PWMNP, nullptr);
+                PWMNP.update(values, names, n);
+            PWMNP.apply();
             return true;
         }
 
         // Focuser settings
-        if (!strcmp(name, Focuser1SettingsNP.name))
+        if (Focuser1SettingsNP.isNameMatch(name))
         {
             bool allOk = true;
             std::map<int, std::string> updates;
@@ -270,17 +270,17 @@ bool IndiAstroLink4mini2::ISNewNumber(const char *dev, const char *name, double 
             updates.clear();
             if (allOk)
             {
-                Focuser1SettingsNP.s = IPS_BUSY;
-                IUUpdateNumber(&Focuser1SettingsNP, values, names, n);
-                IDSetNumber(&Focuser1SettingsNP, nullptr);
+                Focuser1SettingsNP.setState(IPS_BUSY);
+                Focuser1SettingsNP.update(values, names, n);
+                Focuser1SettingsNP.apply();
                 DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 1 temperature compensation is %s", (values[FS1_COMPENSATION] > 0) ? "enabled" : "disabled");
                 return true;
             }
-            Focuser1SettingsNP.s = IPS_ALERT;
+            Focuser1SettingsNP.setState(IPS_ALERT);
             return true;
         }
 
-        if (!strcmp(name, Focuser2SettingsNP.name))
+        if (Focuser2SettingsNP.isNameMatch(name))
         {
             bool allOk = true;
             std::map<int, std::string> updates;
@@ -295,13 +295,13 @@ bool IndiAstroLink4mini2::ISNewNumber(const char *dev, const char *name, double 
             updates.clear();
             if (allOk)
             {
-                Focuser2SettingsNP.s = IPS_BUSY;
-                IUUpdateNumber(&Focuser2SettingsNP, values, names, n);
-                IDSetNumber(&Focuser2SettingsNP, nullptr);
+                Focuser2SettingsNP.setState(IPS_BUSY);
+                Focuser2SettingsNP.update(values, names, n);
+                Focuser2SettingsNP.apply();
                 DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 2 temperature compensation is %s", (values[FS2_COMPENSATION] > 0) ? "enabled" : "disabled");
                 return true;
             }
-            Focuser2SettingsNP.s = IPS_ALERT;
+            Focuser2SettingsNP.setState(IPS_ALERT);
             return true;
         }
 
@@ -319,46 +319,46 @@ bool IndiAstroLink4mini2::ISNewSwitch(const char *dev, const char *name, ISState
         char res[ASTROLINK4_LEN] = {0};
 
         // handle power line 1
-        if (!strcmp(name, Power1SP.name))
+        if (Power1SP.isNameMatch(name))
         {
-            sprintf(cmd, "C:0:%s", (strcmp(Power1S[0].name, names[0])) ? "0" : "1");
+            sprintf(cmd, "C:0:%s", (strcmp(Power1SP[PWR1BTN_ON].getName(), names[0])) ? "0" : "1");
             bool allOk = sendCommand(cmd, res);
-            Power1SP.s = allOk ? IPS_BUSY : IPS_ALERT;
+            Power1SP.setState(allOk ? IPS_BUSY : IPS_ALERT);
             if (allOk)
-                IUUpdateSwitch(&Power1SP, states, names, n);
+                Power1SP.update(states, names, n);
 
-            IDSetSwitch(&Power1SP, nullptr);
+            Power1SP.apply();
             return true;
         }
 
         // handle power line 2
-        if (!strcmp(name, Power2SP.name))
+        if (Power2SP.isNameMatch(name))
         {
-            sprintf(cmd, "C:1:%s", (strcmp(Power2S[0].name, names[0])) ? "0" : "1");
+            sprintf(cmd, "C:1:%s", (strcmp(Power2SP[PWR2BTN_ON].getName(), names[0])) ? "0" : "1");
             bool allOk = sendCommand(cmd, res);
-            Power2SP.s = allOk ? IPS_BUSY : IPS_ALERT;
+            Power2SP.setState(allOk ? IPS_BUSY : IPS_ALERT);
             if (allOk)
-                IUUpdateSwitch(&Power2SP, states, names, n);
+                Power2SP.update(states, names, n);
 
-            IDSetSwitch(&Power2SP, nullptr);
+            Power2SP.apply();
             return true;
         }
 
         // handle power line 3
-        if (!strcmp(name, Power3SP.name))
+        if (Power3SP.isNameMatch(name))
         {
-            sprintf(cmd, "C:2:%s", (strcmp(Power3S[0].name, names[0])) ? "0" : "1");
+            sprintf(cmd, "C:2:%s", (strcmp(Power3SP[PWR3BTN_ON].getName(), names[0])) ? "0" : "1");
             bool allOk = sendCommand(cmd, res);
-            Power3SP.s = allOk ? IPS_BUSY : IPS_ALERT;
+            Power3SP.setState(allOk ? IPS_BUSY : IPS_ALERT);
             if (allOk)
-                IUUpdateSwitch(&Power3SP, states, names, n);
+                Power3SP.update(states, names, n);
 
-            IDSetSwitch(&Power3SP, nullptr);
+            Power3SP.apply();
             return true;
         }
 
         // Power default on
-        if (!strcmp(name, PowerDefaultOnSP.name))
+        if (PowerDefaultOnSP.isNameMatch(name))
         {
             std::map<int, std::string> updates;
             updates[U_OUT1_DEF] = (states[0] == ISS_ON) ? "1" : "0";
@@ -366,63 +366,63 @@ bool IndiAstroLink4mini2::ISNewSwitch(const char *dev, const char *name, ISState
             updates[U_OUT3_DEF] = (states[2] == ISS_ON) ? "1" : "0";
             if (updateSettings("u", "U", updates))
             {
-                PowerDefaultOnSP.s = IPS_BUSY;
-                IUUpdateSwitch(&PowerDefaultOnSP, states, names, n);
-                IDSetSwitch(&PowerDefaultOnSP, nullptr);
+                PowerDefaultOnSP.setState(IPS_BUSY);
+                PowerDefaultOnSP.update(states, names, n);
+                PowerDefaultOnSP.apply();
                 return true;
             }
-            PowerDefaultOnSP.s = IPS_ALERT;
+            PowerDefaultOnSP.setState(IPS_ALERT);
             return true;
         }
 
         // Focuser Mode
-        if (!strcmp(name, Focuser1ModeSP.name))
+        if (Focuser1ModeSP.isNameMatch(name))
         {
             std::string value = "0";
-            if (!strcmp(Focuser1ModeS[FS1_MODE_UNI].name, names[0]))
+            if (!strcmp(Focuser1ModeSP[FS1_MODE_UNI].getName(), names[0]))
                 value = "0";
-            if (!strcmp(Focuser1ModeS[FS1_MODE_MICRO_L].name, names[0]))
+            if (!strcmp(Focuser1ModeSP[FS1_MODE_MICRO_L].getName(), names[0]))
                 value = "1";
-            if (!strcmp(Focuser1ModeS[FS1_MODE_MICRO_H].name, names[0]))
+            if (!strcmp(Focuser1ModeSP[FS1_MODE_MICRO_H].getName(), names[0]))
                 value = "2";
             if (updateSettings("u", "U", U_FOC1_MODE, value.c_str()))
             {
-                Focuser1ModeSP.s = IPS_BUSY;
-                IUUpdateSwitch(&Focuser1ModeSP, states, names, n);
-                IDSetSwitch(&Focuser1ModeSP, nullptr);
+                Focuser1ModeSP.setState(IPS_BUSY);
+                Focuser1ModeSP.update(states, names, n);
+                Focuser1ModeSP.apply();
                 return true;
             }
-            Focuser1ModeSP.s = IPS_ALERT;
+            Focuser1ModeSP.setState(IPS_ALERT);
             return true;
         }
-        if (!strcmp(name, Focuser2ModeSP.name))
+        if (Focuser2ModeSP.isNameMatch(name))
         {
             std::string value = "0";
-            if (!strcmp(Focuser2ModeS[FS2_MODE_UNI].name, names[0]))
+            if (!strcmp(Focuser2ModeSP[FS2_MODE_UNI].getName(), names[0]))
                 value = "0";
-            if (!strcmp(Focuser2ModeS[FS2_MODE_MICRO_L].name, names[0]))
+            if (!strcmp(Focuser2ModeSP[FS2_MODE_MICRO_L].getName(), names[0]))
                 value = "1";
-            if (!strcmp(Focuser2ModeS[FS2_MODE_MICRO_H].name, names[0]))
+            if (!strcmp(Focuser2ModeSP[FS2_MODE_MICRO_H].getName(), names[0]))
                 value = "2";
             if (updateSettings("u", "U", U_FOC2_MODE, value.c_str()))
             {
-                Focuser2ModeSP.s = IPS_BUSY;
-                IUUpdateSwitch(&Focuser2ModeSP, states, names, n);
-                IDSetSwitch(&Focuser2ModeSP, nullptr);
+                Focuser2ModeSP.setState(IPS_BUSY);
+                Focuser2ModeSP.update(states, names, n);
+                Focuser2ModeSP.apply();
                 return true;
             }
-            Focuser2ModeSP.s = IPS_ALERT;
+            Focuser2ModeSP.setState(IPS_ALERT);
             return true;
         }
 
         // Stepper select
-        if (!strcmp(name, FocuserSelectSP.name))
+        if (FocuserSelectSP.isNameMatch(name))
         {
-            setFindex((strcmp(FocuserSelectS[0].name, names[0])) ? 1 : 0);
+            setFindex((strcmp(FocuserSelectSP[0].getName(), names[0])) ? 1 : 0);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser index set by switch to %i", getFindex());
-            FocuserSelectSP.s = FocusMaxPosNP.s = FocusReverseSP.s = FocusAbsPosNP.s = IPS_BUSY;
-            IUUpdateSwitch(&FocuserSelectSP, states, names, n);
-            IDSetSwitch(&FocuserSelectSP, nullptr);
+            FocuserSelectSP.setState(FocusMaxPosNP.s = FocusReverseSP.s = FocusAbsPosNP.s = IPS_BUSY);
+            FocuserSelectSP.update(states, names, n);
+            FocuserSelectSP.apply();
             IDSetSwitch(&FocusReverseSP, nullptr);
             IDSetNumber(&FocusMaxPosNP, nullptr);
             IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -443,7 +443,7 @@ bool IndiAstroLink4mini2::ISNewText(const char *dev, const char *name, char *tex
 
 bool IndiAstroLink4mini2::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigSwitch(fp, &FocuserSelectSP);
+    FocuserSelectSP.save(fp);
     FI::saveConfigItems(fp);
     INDI::DefaultDevice::saveConfigItems(fp);
     return true;
@@ -632,104 +632,104 @@ bool IndiAstroLink4mini2::readDevice()
 
             ParametersNP.apply();
 
-            if (Power1SP.s != IPS_OK || Power2SP.s != IPS_OK || Power3SP.s != IPS_OK)
+            if (Power1SP.getState() != IPS_OK || Power2SP.getState() != IPS_OK || Power3SP.getState() != IPS_OK)
             {
-                Power1S[0].s = (std::stod(result[Q_OUT1]) > 0) ? ISS_ON : ISS_OFF;
-                Power1S[1].s = (std::stod(result[Q_OUT1]) == 0) ? ISS_ON : ISS_OFF;
-                Power1SP.s = IPS_OK;
-                IDSetSwitch(&Power1SP, nullptr);
-                Power2S[0].s = (std::stod(result[Q_OUT2]) > 0) ? ISS_ON : ISS_OFF;
-                Power2S[1].s = (std::stod(result[Q_OUT2]) == 0) ? ISS_ON : ISS_OFF;
-                Power2SP.s = IPS_OK;
-                IDSetSwitch(&Power2SP, nullptr);
-                Power3S[0].s = (std::stod(result[Q_OUT3]) > 0) ? ISS_ON : ISS_OFF;
-                Power3S[1].s = (std::stod(result[Q_OUT3]) == 0) ? ISS_ON : ISS_OFF;
-                Power3SP.s = IPS_OK;
-                IDSetSwitch(&Power3SP, nullptr);
+                Power1SP[PWR1BTN_ON].setState((std::stod(result[Q_OUT1]) > 0) ? ISS_ON : ISS_OFF);
+                Power1SP[PWR1BTN_OFF].setState((std::stod(result[Q_OUT1]) == 0) ? ISS_ON : ISS_OFF);
+                Power1SP.setState(IPS_OK);
+                Power1SP.apply();
+                Power2SP[PWR2BTN_ON].setState((std::stod(result[Q_OUT2]) > 0) ? ISS_ON : ISS_OFF);
+                Power2SP[PWR2BTN_OFF].setState((std::stod(result[Q_OUT2]) == 0) ? ISS_ON : ISS_OFF);
+                Power2SP.setState(IPS_OK);
+                Power2SP.apply();
+                Power3SP[PWR3BTN_ON].setState((std::stod(result[Q_OUT3]) > 0) ? ISS_ON : ISS_OFF);
+                Power3SP[PWR3BTN_OFF].setState((std::stod(result[Q_OUT3]) == 0) ? ISS_ON : ISS_OFF);
+                Power3SP.setState(IPS_OK);
+                Power3SP.apply();
             }
 
-            PWMN[0].value = std::stod(result[Q_PWM1]);
-            PWMN[1].value = std::stod(result[Q_PWM2]);
-            PWMNP.s = IPS_OK;
-            IDSetNumber(&PWMNP, nullptr);
+            PWMNP[PWM1_VAL].setValue(std::stod(result[Q_PWM1]));
+            PWMNP[PWM2_VAL].setValue(std::stod(result[Q_PWM2]));
+            PWMNP.setState(IPS_OK);
+            PWMNP.apply();
 
-            PowerDataN[POW_ITOT].value = std::stod(result[Q_ITOT]);
-            PowerDataN[POW_REG].value = std::stod(result[Q_VREG]);
-            PowerDataN[POW_VIN].value = std::stod(result[Q_VIN]);
-            PowerDataN[POW_AH].value = std::stod(result[Q_AH]);
-            PowerDataN[POW_WH].value = std::stod(result[Q_WH]);
-            PowerDataNP.s = IPS_OK;
-            IDSetNumber(&PowerDataNP, nullptr);
+            PowerDataNP[POW_ITOT].setValue(std::stod(result[Q_ITOT]));
+            PowerDataNP[POW_REG].setValue(std::stod(result[Q_VREG]));
+            PowerDataNP[POW_VIN].setValue(std::stod(result[Q_VIN]));
+            PowerDataNP[POW_AH].setValue(std::stod(result[Q_AH]));
+            PowerDataNP[POW_WH].setValue(std::stod(result[Q_WH]));
+            PowerDataNP.setState(IPS_OK);
+            PowerDataNP.apply();
         }
     }
 
     // update settings data if was changed
-    if (PowerDefaultOnSP.s != IPS_OK || FocusMaxPosNP.s != IPS_OK || FocusReverseSP.s != IPS_OK || FocuserSelectSP.s != IPS_OK || Focuser1SettingsNP.s != IPS_OK || Focuser2SettingsNP.s != IPS_OK || Focuser1ModeSP.s != IPS_OK || Focuser2ModeSP.s != IPS_OK)
+    if (PowerDefaultOnSP.getState() != IPS_OK || FocusMaxPosNP.s != IPS_OK || FocusReverseSP.s != IPS_OK || FocuserSelectSP.getState() != IPS_OK || Focuser1SettingsNP.getState() != IPS_OK || Focuser2SettingsNP.getState() != IPS_OK || Focuser1ModeSP.getState() != IPS_OK || Focuser2ModeSP.getState() != IPS_OK)
     {
         if (sendCommand("u", res))
         {
             std::vector<std::string> result = split(res, ":");
 
-            if (PowerDefaultOnSP.s != IPS_OK)
+            if (PowerDefaultOnSP.getState() != IPS_OK)
             {
-                PowerDefaultOnS[0].s = (std::stod(result[U_OUT1_DEF]) > 0) ? ISS_ON : ISS_OFF;
-                PowerDefaultOnS[1].s = (std::stod(result[U_OUT2_DEF]) > 0) ? ISS_ON : ISS_OFF;
-                PowerDefaultOnS[2].s = (std::stod(result[U_OUT3_DEF]) > 0) ? ISS_ON : ISS_OFF;
-                PowerDefaultOnSP.s = IPS_OK;
-                IDSetSwitch(&PowerDefaultOnSP, nullptr);
+                PowerDefaultOnSP[POW_DEF_ON1].setState((std::stod(result[U_OUT1_DEF]) > 0) ? ISS_ON : ISS_OFF);
+                PowerDefaultOnSP[POW_DEF_ON2].setState((std::stod(result[U_OUT2_DEF]) > 0) ? ISS_ON : ISS_OFF);
+                PowerDefaultOnSP[POW_DEF_ON3].setState((std::stod(result[U_OUT3_DEF]) > 0) ? ISS_ON : ISS_OFF);
+                PowerDefaultOnSP.setState(IPS_OK);
+                PowerDefaultOnSP.apply();
             }
 
-            if (Focuser1SettingsNP.s != IPS_OK)
+            if (Focuser1SettingsNP.getState() != IPS_OK)
             {
 
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update settings, focuser 1, res %s", res);
-                Focuser1SettingsN[FS1_STEP_SIZE].value = std::stod(result[U_FOC1_STEP]) / 100.0;
-                Focuser1SettingsN[FS1_COMPENSATION].value = std::stod(result[U_FOC1_COMPSTEPS]) / 100.0;
-                Focuser1SettingsN[FS1_COMP_THRESHOLD].value = std::stod(result[U_FOC1_COMPTRIGGER]);
-                Focuser1SettingsN[FS1_SPEED].value = std::stod(result[U_FOC1_SPEED]);
-                Focuser1SettingsN[FS1_CURRENT].value = std::stod(result[U_FOC1_CUR]) * 10.0;
-                Focuser1SettingsN[FS1_HOLD].value = std::stod(result[U_FOC1_HOLD]);
-                Focuser1SettingsNP.s = IPS_OK;
-                IDSetNumber(&Focuser1SettingsNP, nullptr);
+                Focuser1SettingsNP[FS1_STEP_SIZE].setValue(std::stod(result[U_FOC1_STEP]) / 100.0);
+                Focuser1SettingsNP[FS1_COMPENSATION].setValue(std::stod(result[U_FOC1_COMPSTEPS]) / 100.0);
+                Focuser1SettingsNP[FS1_COMP_THRESHOLD].setValue(std::stod(result[U_FOC1_COMPTRIGGER]));
+                Focuser1SettingsNP[FS1_SPEED].setValue(std::stod(result[U_FOC1_SPEED]));
+                Focuser1SettingsNP[FS1_CURRENT].setValue(std::stod(result[U_FOC1_CUR]) * 10.0);
+                Focuser1SettingsNP[FS1_HOLD].setValue(std::stod(result[U_FOC1_HOLD]));
+                Focuser1SettingsNP.setState(IPS_OK);
+                Focuser1SettingsNP.apply();
             }
 
-            if (Focuser2SettingsNP.s != IPS_OK)
+            if (Focuser2SettingsNP.getState() != IPS_OK)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update settings, focuser 2, res %s", res);
-                Focuser2SettingsN[FS2_STEP_SIZE].value = std::stod(result[U_FOC2_STEP]) / 100.0;
-                Focuser2SettingsN[FS2_COMPENSATION].value = std::stod(result[U_FOC2_COMPSTEPS]) / 100.0;
-                Focuser2SettingsN[FS2_COMP_THRESHOLD].value = std::stod(result[U_FOC2_COMPTRIGGER]);
-                Focuser2SettingsN[FS2_SPEED].value = std::stod(result[U_FOC2_SPEED]);
-                Focuser2SettingsN[FS2_CURRENT].value = std::stod(result[U_FOC2_CUR]) * 10.0;
-                Focuser2SettingsN[FS2_HOLD].value = std::stod(result[U_FOC2_HOLD]);
-                Focuser2SettingsNP.s = IPS_OK;
-                IDSetNumber(&Focuser2SettingsNP, nullptr);
+                Focuser2SettingsNP[FS2_STEP_SIZE].setValue(std::stod(result[U_FOC2_STEP]) / 100.0);
+                Focuser2SettingsNP[FS2_COMPENSATION].setValue(std::stod(result[U_FOC2_COMPSTEPS]) / 100.0);
+                Focuser2SettingsNP[FS2_COMP_THRESHOLD].setValue(std::stod(result[U_FOC2_COMPTRIGGER]));
+                Focuser2SettingsNP[FS2_SPEED].setValue(std::stod(result[U_FOC2_SPEED]));
+                Focuser2SettingsNP[FS2_CURRENT].setValue(std::stod(result[U_FOC2_CUR]) * 10.0);
+                Focuser2SettingsNP[FS2_HOLD].setValue(std::stod(result[U_FOC2_HOLD]));
+                Focuser2SettingsNP.setState(IPS_OK);
+                Focuser2SettingsNP.apply();
             }
 
-            if (Focuser1ModeSP.s != IPS_OK)
+            if (Focuser1ModeSP.getState() != IPS_OK)
             {
-                Focuser1ModeS[FS1_MODE_UNI].s = Focuser1ModeS[FS1_MODE_MICRO_L].s = Focuser1ModeS[FS1_MODE_MICRO_H].s = ISS_OFF;
+                Focuser1ModeSP[FS1_MODE_UNI].setState(Focuser1ModeSP[FS1_MODE_MICRO_L].s = Focuser1ModeSP[FS1_MODE_MICRO_H].s = ISS_OFF);
                 if (!strcmp("0", result[U_FOC1_MODE].c_str()))
-                    Focuser1ModeS[FS1_MODE_UNI].s = ISS_ON;
+                    Focuser1ModeSP[FS1_MODE_UNI].setState(ISS_ON);
                 if (!strcmp("1", result[U_FOC1_MODE].c_str()))
-                    Focuser1ModeS[FS1_MODE_MICRO_L].s = ISS_ON;
+                    Focuser1ModeSP[FS1_MODE_MICRO_L].setState(ISS_ON);
                 if (!strcmp("2", result[U_FOC1_MODE].c_str()))
-                    Focuser1ModeS[FS1_MODE_MICRO_H].s = ISS_ON;
-                Focuser1ModeSP.s = IPS_OK;
-                IDSetSwitch(&Focuser1ModeSP, nullptr);
+                    Focuser1ModeSP[FS1_MODE_MICRO_H].setState(ISS_ON);
+                Focuser1ModeSP.setState(IPS_OK);
+                Focuser1ModeSP.apply();
             }
 
-            if (Focuser2ModeSP.s != IPS_OK)
+            if (Focuser2ModeSP.getState() != IPS_OK)
             {
-                Focuser2ModeS[FS2_MODE_UNI].s = Focuser2ModeS[FS2_MODE_MICRO_L].s = Focuser2ModeS[FS2_MODE_MICRO_H].s = ISS_OFF;
+                Focuser2ModeSP[FS2_MODE_UNI].setState(Focuser2ModeSP[FS2_MODE_MICRO_L].s = Focuser2ModeSP[FS2_MODE_MICRO_H].s = ISS_OFF);
                 if (!strcmp("0", result[U_FOC2_MODE].c_str()))
-                    Focuser2ModeS[FS2_MODE_UNI].s = ISS_ON;
+                    Focuser2ModeSP[FS2_MODE_UNI].setState(ISS_ON);
                 if (!strcmp("1", result[U_FOC2_MODE].c_str()))
-                    Focuser2ModeS[FS2_MODE_MICRO_L].s = ISS_ON;
+                    Focuser2ModeSP[FS2_MODE_MICRO_L].setState(ISS_ON);
                 if (!strcmp("2", result[U_FOC2_MODE].c_str()))
-                    Focuser2ModeS[FS2_MODE_MICRO_H].s = ISS_ON;
-                Focuser2ModeSP.s = IPS_OK;
-                IDSetSwitch(&Focuser2ModeSP, nullptr);
+                    Focuser2ModeSP[FS2_MODE_MICRO_H].setState(ISS_ON);
+                Focuser2ModeSP.setState(IPS_OK);
+                Focuser2ModeSP.apply();
             }
 
             if (FocusMaxPosNP.s != IPS_OK)
@@ -749,8 +749,8 @@ bool IndiAstroLink4mini2::readDevice()
                 FocusReverseSP.s = IPS_OK;
                 IDSetSwitch(&FocusReverseSP, nullptr);
             }
-            FocuserSelectSP.s = IPS_OK;
-            IDSetSwitch(&FocuserSelectSP, nullptr);
+            FocuserSelectSP.setState(IPS_OK);
+            FocuserSelectSP.apply();
         }
     }
 
