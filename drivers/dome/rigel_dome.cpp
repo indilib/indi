@@ -756,7 +756,7 @@ IPState RigelDome::Move(DomeDirection dir, DomeMotionCommand operation)
 
     if (operation == MOTION_START)
     {
-        target = DomeAbsPosN[0].getValue();
+        target = DomeAbsPosNP[0].getValue();
         if(dir == DOME_CW)
         {
             target += 5;
