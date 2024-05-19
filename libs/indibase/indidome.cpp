@@ -47,6 +47,9 @@
 namespace INDI
 {
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 {
     controller = new Controller(this);
@@ -68,6 +71,9 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
     m_MountUpdateTimer.callOnTimeout(std::bind(&Dome::UpdateMountCoords, this));
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Dome::~Dome()
 {
     delXMLEle(ParkdataXmlRoot);
@@ -77,6 +83,9 @@ Dome::~Dome()
     delete tcpConnection;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string Dome::GetHomeDirectory() const
 {
     // Check first the HOME environmental variable
@@ -90,6 +99,9 @@ std::string Dome::GetHomeDirectory() const
     return (HomeDir ? std::string(HomeDir) : "");
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::initProperties()
 {
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
@@ -233,6 +245,9 @@ bool Dome::initProperties()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
@@ -244,6 +259,9 @@ void Dome::ISGetProperties(const char * dev)
     return;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::updateProperties()
 {
     if (isConnected())
@@ -351,6 +369,9 @@ bool Dome::updateProperties()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
@@ -361,6 +382,7 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
             PresetNP.update(values, names, n);
             PresetNP.setState(IPS_OK);
             PresetNP.apply(nullptr);
+            saveConfig(PresetNP);
             return true;
         }
         // Dome Sync
@@ -386,6 +408,7 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
             DomeParamNP.update(values, names, n);
             DomeParamNP.setState(IPS_OK);
             DomeParamNP.apply();
+            saveConfig(DomeParamNP);
             return true;
         }
         else if (DomeSpeedNP.isNameMatch(name))
@@ -411,6 +434,7 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
             DomeMeasurementsNP.update(values, names, n);
             DomeMeasurementsNP.setState(IPS_OK);
             DomeMeasurementsNP.apply();
+            saveConfig(DomeMeasurementsNP);
             return true;
         }
         else if (ParkPositionNP.isNameMatch(name))
@@ -443,6 +467,7 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
                     DomeBacklashNP.setState(IPS_ALERT);
             }
             DomeBacklashNP.apply();
+            saveConfig(DomeBacklashNP);
             return true;
         }
     }
@@ -450,6 +475,9 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -539,6 +567,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             UpdateAutoSync();
             OTASideSP.apply();
+            saveConfig(OTASideSP);
             return true;
         }
         ////////////////////////////////////////////
@@ -701,6 +730,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             else
                 LOG_WARN("Mount Policy set to: Mount locks. This prevents the dome from parking when mount is unparked.");
             MountPolicySP.apply();
+            saveConfig(MountPolicySP);
             triggerSnoop(ActiveDeviceTP[0].getText(), "TELESCOPE_PARK");
             return true;
         }
@@ -712,6 +742,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             ShutterParkPolicySP.update(states, names, n);
             ShutterParkPolicySP.setState(IPS_OK);
             ShutterParkPolicySP.apply();
+            saveConfig(ShutterParkPolicySP);
             return true;
         }
         ////////////////////////////////////////////
@@ -738,6 +769,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             }
 
             DomeBacklashSP.apply();
+            saveConfig(DomeBacklashSP);
             return true;
         }
     }
@@ -748,6 +780,9 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -775,6 +810,9 @@ bool Dome::ISNewText(const char * dev, const char * name, char * texts[], char *
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::ISSnoopDevice(XMLEle * root)
 {
     XMLEle * ep           = nullptr;
@@ -979,6 +1017,9 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     return DefaultDevice::ISSnoopDevice(root);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::SetBacklash(int32_t steps)
 {
     INDI_UNUSED(steps);
@@ -986,6 +1027,9 @@ bool Dome::SetBacklash(int32_t steps)
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::SetBacklashEnabled(bool enabled)
 {
     // If disabled, set the Domeer backlash to zero.
@@ -995,6 +1039,9 @@ bool Dome::SetBacklashEnabled(bool enabled)
         return SetBacklash(0);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
@@ -1023,22 +1070,34 @@ bool Dome::saveConfigItems(FILE * fp)
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::triggerSnoop(const char * driverName, const char * snoopedProp)
 {
     LOGF_DEBUG("Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::isLocked()
 {
     return MountPolicySP[1].getState() == ISS_ON && IsLocked;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::buttonHelper(const char * button_n, ISState state, void * context)
 {
     static_cast<Dome *>(context)->processButton(button_n, state);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::processButton(const char * button_n, ISState state)
 {
     //ignore OFF
@@ -1066,11 +1125,17 @@ void Dome::processButton(const char * button_n, ISState state)
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState Dome::getMountState() const
 {
     return m_MountState;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::setShutterState(const Dome::ShutterState &value)
 {
     switch (value)
@@ -1108,6 +1173,9 @@ void Dome::setShutterState(const Dome::ShutterState &value)
     m_ShutterState = value;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Dome::setDomeState(const Dome::DomeState &value)
 {
     switch (value)
@@ -1215,16 +1283,17 @@ void Dome::setDomeState(const Dome::DomeState &value)
     m_DomeState = value;
 }
 
-/*
-The problem to get a dome azimuth given a telescope azimuth, altitude and geometry (telescope placement, mount geometry) can be seen as solve the intersection between the optical axis with the dome, that is, the intersection between a line and a sphere.
-To do that we need to calculate the optical axis line taking the centre of the dome as origin of coordinates.
-*/
-
-// Returns false if it can't solve it due bad geometry of the observatory
-// Returns:
-// Az : Azimuth required to the dome in order to center the shutter aperture with telescope
-// minAz: Minimum azimuth in order to avoid any dome interference to the full aperture of the telescope
-// maxAz: Maximum azimuth in order to avoid any dome interference to the full aperture of the telescope
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// The problem to get a dome azimuth given a telescope azimuth, altitude and geometry
+/// (telescope placement, mount geometry) can be seen as solve the intersection between the optical axis
+/// with the dome, that is, the intersection between a line and a sphere.
+/// To do that we need to calculate the optical axis line taking the centre of the dome as origin of coordinates.
+/// Returns false if it can't solve it due bad geometry of the observatory
+/// Returns:
+/// @param Az : Azimuth required to the dome in order to center the shutter aperture with telescope
+/// @param minAz: Minimum azimuth in order to avoid any dome interference to the full aperture of the telescope
+/// @param maxAz: Maximum azimuth in order to avoid any dome interference to the full aperture of the telescope
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 {
     point3D MountCenter, OptCenter, OptVector, DomeIntersect;
@@ -1250,11 +1319,11 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     LOGF_DEBUG("MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
-    hourAngle = rangeHA( MSD + observer.longitude / 15.0 - mountEquatorialCoords.rightascension);
-
+    hourAngle = get_local_hour_angle(get_local_sidereal_time(observer.longitude), mountEquatorialCoords.rightascension);
     LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.longitude, mountEquatorialCoords.rightascension);
 
-    int OTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
+    // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
+    int OTASide = 0;
 
     if (OTASideSP.getState() == IPS_OK)
     {
@@ -1305,7 +1374,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y );
         DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z );
 
-        if (fabs(DomeIntersect.x) > 0.00001)
+        if (std::abs(DomeIntersect.x) > 0.00001)
         {
             yx = DomeIntersect.y / DomeIntersect.x;
             Az = 90 - 180 * atan(yx) / M_PI;
@@ -1313,10 +1382,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
             {
                 Az = Az + 180;
             }
-            if (Az >= 360)
-                Az -= 360;
-            else if (Az < 0)
-                Az += 360;
+            Az = range360(Az);
         }
         else
         {
@@ -1327,11 +1393,8 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
                 Az = 270;
         }
 
-        if ((fabs(DomeIntersect.x) > 0.00001) || (fabs(DomeIntersect.y) > 0.00001))
-            Alt = 180 *
-                  atan(DomeIntersect.z /
-                       sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /
-                  M_PI;
+        if ((std::abs(DomeIntersect.x) > 0.00001) || (std::abs(DomeIntersect.y) > 0.00001))
+            Alt = 180 * atan(DomeIntersect.z / sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /  M_PI;
         else
             Alt = 90; // Dome Zenith
 
@@ -1398,7 +1461,8 @@ bool Dome::OpticalCenter(point3D MountCenter, double dOpticalAxis, double Lat, d
     cosq = cos(q);
     sinq = sin(q);
 
-    OP.x = (dOpticalAxis * cosf + MountCenter.x); // The sign of dOpticalAxis determines de side of the tube
+    // The sign of dOpticalAxis determines de side of the tube
+    OP.x = (dOpticalAxis * cosf + MountCenter.x);
     OP.y = (dOpticalAxis * sinf * cosq + MountCenter.y);
     OP.z = (dOpticalAxis * sinf * sinq + MountCenter.z);
 
