@@ -152,12 +152,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
         /// Reboot Device
-        ISwitch RebootS[1];
-        ISwitchVectorProperty RebootSP;
+        INDI::PropertySwitch RebootSP {1};
 
         // Power Sensors
-        INumber PowerSensorsN[3];
-        INumberVectorProperty PowerSensorsNP;
+        INDI::PropertyNumber PowerSensorsNP {3};
         enum
         {
             SENSOR_VOLTAGE,
@@ -166,8 +164,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         };
 
         // Power Consumption
-        INumber PowerConsumptionN[3];
-        INumberVectorProperty PowerConsumptionNP;
+        INDI::PropertyNumber PowerConsumptionNP {3};
         enum
         {
             CONSUMPTION_AVG_AMPS,
@@ -180,8 +177,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Cycle all power on/off
-        ISwitch PowerCycleAllS[2];
-        ISwitchVectorProperty PowerCycleAllSP;
+        INDI::PropertySwitch PowerCycleAllSP {2};
         enum
         {
             POWER_CYCLE_OFF,
@@ -189,28 +185,56 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         };
 
         // Turn on/off power
-        ISwitch PowerControlS[4];
-        ISwitchVectorProperty PowerControlSP;
+        INDI::PropertySwitch PowerControlSP {4};
+        enum
+        {
+          POWER_CONTROL_1,
+          POWER_CONTROL_2,
+          POWER_CONTROL_3,
+          POWER_CONTROL_4
+        };
 
         // Rename the power controls above
-        IText PowerControlsLabelsT[4] = {};
-        ITextVectorProperty PowerControlsLabelsTP;
+        INDI::PropertyText PowerControlsLabelsTP {4};
+        enum
+        {
+          POWER_LABEL_1,
+          POWER_LABEL_2,
+          POWER_LABEL_3,
+          POWER_LABEL_4
+        };
 
         // Current Draw
-        INumber PowerCurrentN[4];
-        INumberVectorProperty PowerCurrentNP;
+        INDI::PropertyNumber PowerCurrentNP {4};
+        enum
+        {
+            POWER_CURRENT_1,
+            POWER_CURRENT_2,
+            POWER_CURRENT_3,
+            POWER_CURRENT_4
+        };
 
         // Select which power is ON on bootup
-        ISwitch PowerOnBootS[4];
-        ISwitchVectorProperty PowerOnBootSP;
+        INDI::PropertySwitch PowerOnBootSP {4};
+        enum
+        {
+            POWER_PORT_1,
+            POWER_PORT_2,
+            POWER_PORT_3,
+            POWER_PORT_4
+        };
 
         // Overcurrent status
-        ILight OverCurrentL[7];
-        ILightVectorProperty OverCurrentLP;
+        INDI::PropertyLight OverCurrentLP {7};
+        enum
+        {
+            DEW_A,
+            DEW_B,
+            DEW_C
+        };
 
         // Power LED
-        ISwitch PowerLEDS[2];
-        ISwitchVectorProperty PowerLEDSP;
+        INDI::PropertySwitch PowerLEDSP {2};
         enum
         {
             POWER_LED_ON,
@@ -218,16 +242,14 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         };
 
         // Adjustable Output
-        INumber AdjustableOutputN[1];
-        INumberVectorProperty AdjustableOutputNP;
+        INDI::PropertyNumber AdjustableOutputNP {1};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Dew Group
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Auto Dew v1
-        ISwitch AutoDewS[2];
-        ISwitchVectorProperty AutoDewSP;
+        INDI::PropertySwitch AutoDewSP {2};
 
         enum
         {
@@ -241,8 +263,13 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ISwitchVectorProperty AutoDewV2SP;
 
         // Rename the power controls above
-        IText DewControlsLabelsT[3] = {};
-        ITextVectorProperty DewControlsLabelsTP;
+        INDI::PropertyText DewControlsLabelsTP {3};
+        enum
+        {
+            DEW_LABEL_1,
+            DEW_LABEL_2,
+            DEW_LABEL_3
+        };
 
         // Auto Dew v2 Aggressiveness
 
@@ -251,44 +278,54 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             AUTO_DEW_AGG,
         };
 
-        INumber AutoDewAggN[1];
-        INumberVectorProperty AutoDewAggNP;
+        INDI::PropertyNumber AutoDewAggNP {1};
 
         // Dew PWM
-        INumber DewPWMN[3];
-        INumberVectorProperty DewPWMNP;
+        INDI::PropertyNumber DewPWMNP {3};
 
         // Current Draw
-        INumber DewCurrentDrawN[3];
-        INumberVectorProperty DewCurrentDrawNP;
+        INDI::PropertyNumber DewCurrentDrawNP {3};
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Turn on/off usb ports 1-5 (v1)
-        ISwitch USBControlS[2];
-        ISwitchVectorProperty USBControlSP;
+        INDI::PropertySwitch USBControlSP{2};
 
         // Turn on/off usb ports 1-6 (v2)
-        ISwitch USBControlV2S[6];
-        ISwitchVectorProperty USBControlV2SP;
+        INDI::PropertySwitch USBControlV2SP {6};
+        enum
+        {
+            PORT_1,
+            PORT_2,
+            PORT_3,
+            PORT_4,
+            PORT_5,
+            PORT_6
+        };
 
         // USB Port Status (1-6)
-        ILight USBStatusL[6];
-        ILightVectorProperty USBStatusLP;
+        INDI::PropertyLight USBStatusLP {6};
 
         // Rename the USB controls above
-        IText USBControlsLabelsT[6] = {};
-        ITextVectorProperty USBControlsLabelsTP;
+        INDI::PropertyText USBControlsLabelsTP {6};
+        enum
+        {
+            USB_LABEL_1,
+            USB_LABEL_2,
+            USB_LABEL_3,
+            USB_LABEL_4,
+            USB_LABEL_5,
+            USB_LABEL_6
+        };
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Focuser speed
-        INumber FocuserSettingsN[1];
-        INumberVectorProperty FocuserSettingsNP;
+        INDI::PropertyNumber FocuserSettingsNP {1};
         enum
         {
             //SETTING_BACKLASH,
@@ -298,8 +335,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2] {};
+        INDI::PropertyText FirmwareTP {2};
         enum
         {
             FIRMWARE_VERSION,
