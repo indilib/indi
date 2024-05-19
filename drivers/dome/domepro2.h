@@ -137,7 +137,7 @@ class DomePro2 : public INDI::Dome
             VERSION_HARDWARE
         };
 
-        INDI::PropertySwitch HomeSP;
+        INDI::PropertySwitch HomeSP {2};
         enum
         {
             HOME_DISCOVER,

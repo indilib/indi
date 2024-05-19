@@ -103,7 +103,7 @@ class RigelDome : public INDI::Dome
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
-        INDI::PropertySwitch OperationSP;
+        INDI::PropertySwitch OperationSP {2};
         enum
         {
             OPERATION_FIND_HOME,
