@@ -77,11 +77,9 @@ class BaaderDome : public INDI::Dome
         double DomeAzToMountAz(unsigned short domeAz);
         bool SetupParms();
 
-        ISwitch CalibrateS[1];
-        ISwitchVectorProperty CalibrateSP;
+        INDI::PropertySwitch CalibrateSP {1};
 
-        ISwitch DomeFlapS[2];
-        ISwitchVectorProperty DomeFlapSP;
+        INDI::PropertySwitch DomeFlapSP {2};
 
         DomeStatus status { DOME_UNKNOWN };
         FlapStatus flapStatus { FLAP_OPENED };

@@ -524,69 +524,47 @@ class Dome : public DefaultDevice
         double Csc(double x);
         double Sec(double x);
 
-        INumberVectorProperty DomeSpeedNP;
-        INumber DomeSpeedN[1];
+        INDI::PropertyNumber DomeSpeedNP {1};
 
-        ISwitchVectorProperty DomeMotionSP;
-        ISwitch DomeMotionS[2];
+        INDI::PropertySwitch DomeMotionSP {2};
 
-        INumberVectorProperty DomeAbsPosNP;
-        INumber DomeAbsPosN[1];
+        INDI::PropertyNumber DomeAbsPosNP {1};
 
-        INumberVectorProperty DomeRelPosNP;
-        INumber DomeRelPosN[1];
+        INDI::PropertyNumber DomeRelPosNP {1};
 
-        ISwitchVectorProperty AbortSP;
-        ISwitch AbortS[1];
+        INDI::PropertySwitch AbortSP {1};
 
-        INumberVectorProperty DomeParamNP;
-        INumber DomeParamN[1];
+        INDI::PropertyNumber DomeParamNP {1};
 
-        INumberVectorProperty DomeSyncNP;
-        INumber DomeSyncN[1];
+        INDI::PropertyNumber DomeSyncNP {1};
 
-        ISwitchVectorProperty DomeShutterSP;
-        ISwitch DomeShutterS[2];
+        INDI::PropertySwitch DomeShutterSP {2};
 
-        ISwitchVectorProperty ParkSP;
-        ISwitch ParkS[2];
+        INDI::PropertySwitch ParkSP {2};
 
-        INumber ParkPositionN[1];
-        INumberVectorProperty ParkPositionNP;
+        INDI::PropertyNumber ParkPositionNP {1};
 
-        ISwitch ParkOptionS[3];
-        ISwitchVectorProperty ParkOptionSP;
-
-        //        ISwitch AutoParkS[2];
-        //        ISwitchVectorProperty AutoParkSP;
-
-        uint32_t capability;
-        DomeParkData parkDataType;
+        INDI::PropertySwitch ParkOptionSP {3};
 
         INDI::PropertyText ActiveDeviceTP {1};
 
         // Switch to lock id mount is unparked
-        ISwitchVectorProperty MountPolicySP;
-        ISwitch MountPolicyS[2];
+        INDI::PropertySwitch MountPolicySP {2};
 
         // Shutter control on Park/Unpark
-        ISwitchVectorProperty ShutterParkPolicySP;
-        ISwitch ShutterParkPolicyS[2];
+        INDI::PropertySwitch ShutterParkPolicySP {2};
         enum
         {
             SHUTTER_CLOSE_ON_PARK,
             SHUTTER_OPEN_ON_UNPARK,
         };
 
-        INumber PresetN[3];
-        INumberVectorProperty PresetNP;
-        ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP;
-        INumber DomeMeasurementsN[6];
-        INumberVectorProperty DomeMeasurementsNP;
+        INDI::PropertyNumber PresetNP {3};
+        INDI::PropertySwitch PresetGotoSP {3};
 
-        ISwitchVectorProperty OTASideSP;
-        ISwitch OTASideS[5];
+        INDI::PropertyNumber DomeMeasurementsNP {6};
+
+        INDI::PropertySwitch OTASideSP {5};
         // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle
         // 4 ignore pier side and perform as in a fork mount
         enum
@@ -599,16 +577,16 @@ class Dome : public DefaultDevice
         };
 
         int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
-        ISwitchVectorProperty DomeAutoSyncSP;
-        ISwitch DomeAutoSyncS[2];
+        INDI::PropertySwitch DomeAutoSyncSP {2};
 
         // Backlash toggle
-        ISwitchVectorProperty DomeBacklashSP;
-        ISwitch DomeBacklashS[2];
+        INDI::PropertySwitch DomeBacklashSP {2};
 
         // Backlash steps
-        INumberVectorProperty DomeBacklashNP;
-        INumber DomeBacklashN[1];
+        INDI::PropertyNumber DomeBacklashNP {1};
+
+        uint32_t capability;
+        DomeParkData parkDataType;
 
         double prev_az, prev_alt, prev_ra, prev_dec;
 

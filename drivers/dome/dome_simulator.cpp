@@ -58,13 +58,8 @@ bool DomeSim::SetupParms()
 {
     targetAz     = 0;
     shutterTimer = SHUTTER_TIMER;
-
-    DomeAbsPosN[0].value = 0;
-
-    DomeParamN[0].value = 5;
-
-    IDSetNumber(&DomeAbsPosNP, nullptr);
-    IDSetNumber(&DomeParamNP, nullptr);
+    DomeAbsPosNP[0].setValue(0);
+    DomeAbsPosNP.apply();
 
     if (InitPark())
     {
@@ -114,24 +109,22 @@ void DomeSim::TimerHit()
     int nexttimer = 1000;
 
     if (!isConnected())
-        return; //  No need to reset timer if we are not connected anymore
+        return;
 
-    if (DomeAbsPosNP.s == IPS_BUSY)
+    if (DomeAbsPosNP.getState() == IPS_BUSY)
     {
-        if (targetAz > DomeAbsPosN[0].value)
-        {
-            DomeAbsPosN[0].value += DOME_SPEED;
-        }
-        else if (targetAz < DomeAbsPosN[0].value)
-        {
-            DomeAbsPosN[0].value -= DOME_SPEED;
-        }
+        // Find shortest distance given target degree
+        double a = targetAz;
+        double b = DomeAbsPosNP[0].getValue();
+        int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
+        double diff = DOME_SPEED * sign;
+        b += diff;
+        DomeAbsPosNP[0].setValue(range360(b));
 
-        DomeAbsPosN[0].value = range360(DomeAbsPosN[0].value);
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_SPEED)
+        if (fabs(targetAz - DomeAbsPosNP[0].getValue()) <= DOME_SPEED)
         {
-            DomeAbsPosN[0].value = targetAz;
+            DomeAbsPosNP[0].setValue(targetAz);
             LOG_INFO("Dome reached requested azimuth angle.");
 
             if (getDomeState() == DOME_PARKING)
@@ -142,17 +135,17 @@ void DomeSim::TimerHit()
                 setDomeState(DOME_SYNCED);
         }
 
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
 
-    if (DomeShutterSP.s == IPS_BUSY)
+    if (DomeShutterSP.getState() == IPS_BUSY)
     {
         if (shutterTimer-- <= 0)
         {
-            shutterTimer    = 0;
-            DomeShutterSP.s = IPS_OK;
-            LOGF_INFO("Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
-            IDSetSwitch(&DomeShutterSP, nullptr);
+            shutterTimer = 0;
+            DomeShutterSP.setState(IPS_OK);
+            LOGF_INFO("Shutter is %s.", (DomeShutterSP[0].getState() == ISS_ON ? "open" : "closed"));
+            DomeShutterSP.apply();
 
             if (getDomeState() == DOME_UNPARKING)
                 SetParked(false);
@@ -165,16 +158,16 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
-        targetAz       = (dir == DOME_CW) ? 1e6 : -1e6;
-        DomeAbsPosNP.s = IPS_BUSY;
+        targetAz = (dir == DOME_CW) ? 1e6 : -1e6;
+        DomeAbsPosNP.setState(IPS_BUSY);
     }
     else
     {
-        targetAz       = 0;
-        DomeAbsPosNP.s = IPS_IDLE;
+        targetAz = 0;
+        DomeAbsPosNP.setState(IPS_IDLE);
     }
 
-    IDSetNumber(&DomeAbsPosNP, nullptr);
+    DomeAbsPosNP.apply();
     return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 }
 
@@ -183,7 +176,7 @@ IPState DomeSim::MoveAbs(double az)
     targetAz = az;
 
     // Requested position is within one cycle, let's declare it done
-    if (fabs(az - DomeAbsPosN[0].value) < DOME_SPEED)
+    if (std::abs(az - DomeAbsPosNP[0].getValue()) < DOME_SPEED)
         return IPS_OK;
 
     // It will take a few cycles to reach final position
@@ -192,16 +185,10 @@ IPState DomeSim::MoveAbs(double az)
 
 IPState DomeSim::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;
-    ;
-
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
+    targetAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
 
     // Requested position is within one cycle, let's declare it done
-    if (fabs(targetAz - DomeAbsPosN[0].value) < DOME_SPEED)
+    if (std::abs(targetAz - DomeAbsPosNP[0].value) < DOME_SPEED)
         return IPS_OK;
 
     // It will take a few cycles to reach final position
@@ -210,7 +197,7 @@ IPState DomeSim::MoveRel(double azDiff)
 
 IPState DomeSim::Park()
 {
-    targetAz = DomeParamN[0].value;
+    targetAz = DomeParamNP[0].getValue();
     Dome::ControlShutter(SHUTTER_CLOSE);
     Dome::MoveAbs(GetAxis1Park());
 
@@ -232,10 +219,11 @@ IPState DomeSim::ControlShutter(ShutterOperation operation)
 bool DomeSim::Abort()
 {
     // If we abort while in the middle of opening/closing shutter, alert.
-    if (DomeShutterSP.s == IPS_BUSY)
+    if (DomeShutterSP.getState() == IPS_BUSY)
     {
-        DomeShutterSP.s = IPS_ALERT;
-        IDSetSwitch(&DomeShutterSP, "Shutter operation aborted. Status: unknown.");
+        DomeShutterSP.setState(IPS_ALERT);
+        LOG_ERROR("Shutter operation aborted. Status: unknown.");
+        DomeShutterSP.apply();
         return false;
     }
 
@@ -244,7 +232,7 @@ bool DomeSim::Abort()
 
 bool DomeSim::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 

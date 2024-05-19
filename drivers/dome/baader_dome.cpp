@@ -62,13 +62,13 @@ bool BaaderDome::initProperties()
 {
     INDI::Dome::initProperties();
 
-    IUFillSwitch(&CalibrateS[0], "Start", "", ISS_OFF);
-    IUFillSwitchVector(&CalibrateSP, CalibrateS, 1, getDeviceName(), "Calibrate", "", MAIN_CONTROL_TAB, IP_RW,
+    CalibrateSP[0].fill("Start", "", ISS_OFF);
+    CalibrateSP.fill(getDeviceName(), "Calibrate", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&DomeFlapS[0], "FLAP_OPEN", "Open", ISS_OFF);
-    IUFillSwitch(&DomeFlapS[1], "FLAP_CLOSE", "Close", ISS_ON);
-    IUFillSwitchVector(&DomeFlapSP, DomeFlapS, 2, getDeviceName(), "DOME_FLAP", "Flap", MAIN_CONTROL_TAB, IP_RW,
+    DomeFlapSP[FLAP_OPEN].fill("FLAP_OPEN", "Open", ISS_OFF);
+    DomeFlapSP[FLAP_CLOSE].fill("FLAP_CLOSE", "Close", ISS_ON);
+    DomeFlapSP.fill(getDeviceName(), "DOME_FLAP", "Flap", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ);
@@ -86,13 +86,13 @@ bool BaaderDome::SetupParms()
     targetAz = 0;
 
     if (UpdatePosition())
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     if (UpdateShutterStatus())
-        IDSetSwitch(&DomeShutterSP, nullptr);
+        DomeShutterSP.apply();
 
     if (UpdateFlapStatus())
-        IDSetSwitch(&DomeFlapSP, nullptr);
+        DomeFlapSP.apply(nullptr);
 
     if (InitPark())
     {
@@ -134,15 +134,15 @@ bool BaaderDome::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&DomeFlapSP);
-        defineProperty(&CalibrateSP);
+        defineProperty(DomeFlapSP);
+        defineProperty(CalibrateSP);
 
         SetupParms();
     }
     else
     {
-        deleteProperty(DomeFlapSP.name);
-        deleteProperty(CalibrateSP.name);
+        deleteProperty(DomeFlapSP);
+        deleteProperty(CalibrateSP);
     }
 
     return true;
@@ -155,25 +155,25 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, CalibrateSP.name) == 0)
+        if (CalibrateSP.isNameMatch(name))
         {
-            IUResetSwitch(&CalibrateSP);
+            CalibrateSP.reset();
 
             if (status == DOME_READY)
             {
-                CalibrateSP.s = IPS_OK;
+                CalibrateSP.setState(IPS_OK);
                 LOG_INFO("Dome is already calibrated.");
-                IDSetSwitch(&CalibrateSP, nullptr);
+                CalibrateSP.apply();
                 return true;
             }
 
-            if (CalibrateSP.s == IPS_BUSY)
+            if (CalibrateSP.getState() == IPS_BUSY)
             {
                 Abort();
                 LOG_INFO("Calibration aborted.");
                 status        = DOME_UNKNOWN;
-                CalibrateSP.s = IPS_IDLE;
-                IDSetSwitch(&CalibrateSP, nullptr);
+                CalibrateSP.setState(IPS_IDLE);
+                CalibrateSP.apply();
                 return true;
             }
 
@@ -183,7 +183,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             calibrationStage = CALIBRATION_STAGE1;
 
-            calibrationStart = DomeAbsPosN[0].value;
+            calibrationStart = DomeAbsPosNP[0].getValue();
 
             // Goal of procedure is to reach south point to hit sensor
             calibrationTarget1 = calibrationStart + 179;
@@ -192,37 +192,37 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             if (MoveAbs(calibrationTarget1) == IPS_IDLE)
             {
-                CalibrateSP.s = IPS_ALERT;
+                CalibrateSP.setState(IPS_ALERT);
                 LOG_ERROR("Calibration failure due to dome motion failure.");
                 status = DOME_UNKNOWN;
-                IDSetSwitch(&CalibrateSP, nullptr);
+                CalibrateSP.apply();
                 return false;
             }
 
-            DomeAbsPosNP.s = IPS_BUSY;
-            CalibrateSP.s  = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
+            CalibrateSP.setState(IPS_BUSY);
             LOGF_INFO("Calibration is in progress. Moving to position %g.", calibrationTarget1);
-            IDSetSwitch(&CalibrateSP, nullptr);
+            CalibrateSP.apply();
             return true;
         }
 
-        if (strcmp(name, DomeFlapSP.name) == 0)
+        if (DomeFlapSP.isNameMatch(name))
         {
             int ret        = 0;
-            int prevStatus = IUFindOnSwitchIndex(&DomeFlapSP);
-            IUUpdateSwitch(&DomeFlapSP, states, names, n);
-            int FlapDome = IUFindOnSwitchIndex(&DomeFlapSP);
+            int prevStatus = DomeFlapSP.findOnSwitchIndex();
+            DomeFlapSP.update(states, names, n);
+            int FlapDome = DomeFlapSP.findOnSwitchIndex();
 
             // No change of status, let's return
             if (prevStatus == FlapDome)
             {
-                DomeFlapSP.s = IPS_OK;
-                IDSetSwitch(&DomeFlapSP, nullptr);
+                DomeFlapSP.setState(IPS_OK);
+                DomeFlapSP.apply();
             }
 
             // go back to prev status in case of failure
-            IUResetSwitch(&DomeFlapSP);
-            DomeFlapS[prevStatus].s = ISS_ON;
+            DomeFlapSP.reset();
+            DomeFlapSP[prevStatus].setState(ISS_ON);
 
             if (FlapDome == 0)
                 ret = ControlDomeFlap(FLAP_OPEN);
@@ -231,23 +231,26 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             if (ret == 0)
             {
-                DomeFlapSP.s = IPS_OK;
-                IUResetSwitch(&DomeFlapSP);
-                DomeFlapS[FlapDome].s = ISS_ON;
-                IDSetSwitch(&DomeFlapSP, "Flap is %s.", (FlapDome == 0 ? "open" : "closed"));
+                DomeFlapSP.setState(IPS_OK);
+                DomeFlapSP.reset();
+                DomeFlapSP[FlapDome].s = ISS_ON;
+                LOGF_INFO("Flap is %s", (FlapDome == 0 ? "open" : "closed"));
+                DomeFlapSP.apply();
                 return true;
             }
             else if (ret == 1)
             {
-                DomeFlapSP.s = IPS_BUSY;
-                IUResetSwitch(&DomeFlapSP);
-                DomeFlapS[FlapDome].s = ISS_ON;
-                IDSetSwitch(&DomeFlapSP, "Flap is %s...", (FlapDome == 0 ? "opening" : "closing"));
+                DomeFlapSP.setState(IPS_BUSY);
+                DomeFlapSP.reset();
+                DomeFlapSP[FlapDome].setState(ISS_ON);
+                LOGF_INFO("Flap is %s", (FlapDome == 0 ? "opening" : "closing"));
+                DomeFlapSP.apply();
                 return true;
             }
 
-            DomeFlapSP.s = IPS_ALERT;
-            IDSetSwitch(&DomeFlapSP, "Flap failed to %s.", (FlapDome == 0 ? "open" : "close"));
+            DomeFlapSP.setState(IPS_ALERT);
+            LOGF_INFO("Flap failed to %s", (FlapDome == 0 ? "open" : "close"));
+            DomeFlapSP.apply();
             return false;
         }
     }
@@ -348,8 +351,8 @@ bool BaaderDome::UpdateShutterStatus()
 
     if (rc > 0)
     {
-        DomeShutterSP.s = IPS_OK;
-        IUResetSwitch(&DomeShutterSP);
+        DomeShutterSP.setState(IPS_OK);
+        DomeShutterSP.reset();
 
         if (strcmp(status, "ope") == 0)
         {
@@ -357,7 +360,7 @@ bool BaaderDome::UpdateShutterStatus()
                 LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
 
             m_ShutterState                 = SHUTTER_OPENED;
-            DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+            DomeShutterSP[SHUTTER_OPEN].setState(ISS_ON);
         }
         else if (strcmp(status, "clo") == 0)
         {
@@ -365,17 +368,17 @@ bool BaaderDome::UpdateShutterStatus()
                 LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
 
             m_ShutterState                  = SHUTTER_CLOSED;
-            DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
+            DomeShutterSP[SHUTTER_CLOSE].setState(ISS_ON);
         }
         else if (strcmp(status, "run") == 0)
         {
-            m_ShutterState    = SHUTTER_MOVING;
-            DomeShutterSP.s = IPS_BUSY;
+            m_ShutterState = SHUTTER_MOVING;
+            DomeShutterSP.setState(IPS_BUSY);
         }
         else
         {
-            m_ShutterState    = SHUTTER_UNKNOWN;
-            DomeShutterSP.s = IPS_ALERT;
+            m_ShutterState = SHUTTER_UNKNOWN;
+            DomeShutterSP.setState(IPS_ALERT);
             LOGF_ERROR("Unknown Shutter status: %s.", resp);
         }
         return true;
@@ -407,9 +410,9 @@ bool BaaderDome::UpdatePosition()
     if (sim)
     {
         if (status == DOME_READY || calibrationStage == CALIBRATION_COMPLETE)
-            snprintf(resp, DOME_BUF, "d#azr%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
+            snprintf(resp, DOME_BUF, "d#azr%04d", MountAzToDomeAz(DomeAbsPosNP[0].getValue()));
         else
-            snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
+            snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosNP[0].getValue()));
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -432,19 +435,19 @@ bool BaaderDome::UpdatePosition()
             status           = DOME_READY;
             calibrationStage = CALIBRATION_COMPLETE;
             LOG_INFO("Dome is calibrated.");
-            CalibrateSP.s = IPS_OK;
-            IDSetSwitch(&CalibrateSP, nullptr);
+            CalibrateSP.setState(IPS_OK);
+            CalibrateSP.apply(nullptr);
         }
         else if (status == DOME_CALIBRATING)
         {
             status           = DOME_READY;
             calibrationStage = CALIBRATION_COMPLETE;
             LOG_INFO("Calibration complete.");
-            CalibrateSP.s = IPS_OK;
-            IDSetSwitch(&CalibrateSP, nullptr);
+            CalibrateSP.setState(IPS_OK);
+            CalibrateSP.apply();
         }
 
-        DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
+        DomeAbsPosNP[0].setValue(DomeAzToMountAz(domeAz));
         return true;
     }
     else
@@ -452,7 +455,7 @@ bool BaaderDome::UpdatePosition()
         rc = sscanf(resp, "d#azi%hu", &domeAz);
         if (rc > 0)
         {
-            DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
+            DomeAbsPosNP[0].setValue(DomeAzToMountAz(domeAz));
             return true;
         }
     }
@@ -509,46 +512,45 @@ void BaaderDome::TimerHit()
 
     UpdatePosition();
 
-    if (DomeAbsPosNP.s == IPS_BUSY)
+    if (DomeAbsPosNP.getState() == IPS_BUSY)
     {
         if (sim)
         {
             double speed = 0;
-            if (fabs(targetAz - DomeAbsPosN[0].value) > SIM_DOME_HI_SPEED)
+            auto currentPosition = DomeAbsPosNP[0].getValue();
+            if (fabs(targetAz - currentPosition) > SIM_DOME_HI_SPEED)
                 speed = SIM_DOME_HI_SPEED;
             else
                 speed = SIM_DOME_LO_SPEED;
 
-            if (DomeRelPosNP.s == IPS_BUSY)
+            if (DomeRelPosNP.getState() == IPS_BUSY)
             {
                 // CW
-                if (DomeMotionS[0].s == ISS_ON)
-                    DomeAbsPosN[0].value += speed;
+                if (DomeMotionSP[0].getState() == ISS_ON)
+                    currentPosition += speed;
                 // CCW
                 else
-                    DomeAbsPosN[0].value -= speed;
+                    currentPosition -= speed;
             }
             else
             {
-                if (targetAz > DomeAbsPosN[0].value)
+                if (targetAz > DomeAbsPosNP[0].getValue())
                 {
-                    DomeAbsPosN[0].value += speed;
+                    currentPosition += speed;
                 }
-                else if (targetAz < DomeAbsPosN[0].value)
+                else if (targetAz < DomeAbsPosNP[0].getValue())
                 {
-                    DomeAbsPosN[0].value -= speed;
+                    currentPosition -= speed;
                 }
             }
 
-            if (DomeAbsPosN[0].value < DomeAbsPosN[0].min)
-                DomeAbsPosN[0].value += DomeAbsPosN[0].max;
-            if (DomeAbsPosN[0].value > DomeAbsPosN[0].max)
-                DomeAbsPosN[0].value -= DomeAbsPosN[0].max;
+            currentPosition = range360(speed);
+            DomeAbsPosNP[0].setValue(currentPosition);
         }
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[0].value)
+        if (std::abs(targetAz - DomeAbsPosNP[0].getValue()) < DomeParamNP[0].getValue())
         {
-            DomeAbsPosN[0].value = targetAz;
+            DomeAbsPosNP[0].setValue(targetAz);
             LOG_INFO("Dome reached requested azimuth angle.");
 
             if (status != DOME_CALIBRATING)
@@ -566,18 +568,17 @@ void BaaderDome::TimerHit()
                 if (calibrationStage == CALIBRATION_STAGE1)
                 {
                     LOG_INFO("Calibration stage 1 complete. Starting stage 2...");
-                    calibrationTarget2 = DomeAbsPosN[0].value + 2;
+                    calibrationTarget2 = DomeAbsPosNP[0].getValue() + 2;
                     calibrationStage   = CALIBRATION_STAGE2;
                     MoveAbs(calibrationTarget2);
-                    DomeAbsPosNP.s = IPS_BUSY;
+                    DomeAbsPosNP.setState(IPS_BUSY);
                 }
                 else if (calibrationStage == CALIBRATION_STAGE2)
                 {
-                    DEBUGF(INDI::Logger::DBG_SESSION,
-                           "Calibration stage 2 complete. Returning to initial position %g...", calibrationStart);
+                    LOGF_INFO("Calibration stage 2 complete. Returning to initial position %g...", calibrationStart);
                     calibrationStage = CALIBRATION_STAGE3;
                     MoveAbs(calibrationStart);
-                    DomeAbsPosNP.s = IPS_BUSY;
+                    DomeAbsPosNP.setState(IPS_BUSY);
                 }
                 else if (calibrationStage == CALIBRATION_STAGE3)
                 {
@@ -587,14 +588,14 @@ void BaaderDome::TimerHit()
             }
         }
 
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
     else
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     UpdateShutterStatus();
 
-    if (sim && DomeShutterSP.s == IPS_BUSY)
+    if (sim && DomeShutterSP.getState() == IPS_BUSY)
     {
         if (simShutterTimer-- <= 0)
         {
@@ -603,11 +604,11 @@ void BaaderDome::TimerHit()
         }
     }
     else
-        IDSetSwitch(&DomeShutterSP, nullptr);
+        DomeShutterSP.apply();
 
     UpdateFlapStatus();
 
-    if (sim && DomeFlapSP.s == IPS_BUSY)
+    if (sim && DomeFlapSP.getState() == IPS_BUSY)
     {
         if (simFlapTimer-- <= 0)
         {
@@ -616,7 +617,7 @@ void BaaderDome::TimerHit()
         }
     }
     else
-        IDSetSwitch(&DomeFlapSP, nullptr);
+        DomeFlapSP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -679,14 +680,7 @@ IPState BaaderDome::MoveAbs(double az)
 * ***********************************************************************************/
 IPState BaaderDome::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;
-
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
-
-    // It will take a few cycles to reach final position
+    targetAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
     return MoveAbs(targetAz);
 }
 
@@ -696,7 +690,6 @@ IPState BaaderDome::MoveRel(double azDiff)
 IPState BaaderDome::Park()
 {
     targetAz = GetAxis1Park();
-
     return MoveAbs(targetAz);
 }
 
@@ -772,8 +765,8 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 * ***********************************************************************************/
 bool BaaderDome::Abort()
 {
-    LOGF_INFO("Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
-    MoveAbs(DomeAbsPosN[0].value);
+    LOGF_INFO("Attempting to abort dome motion by stopping at %g", DomeAbsPosNP[0].getValue());
+    MoveAbs(DomeAbsPosNP[0].getValue());
     return true;
 }
 
@@ -905,8 +898,8 @@ bool BaaderDome::UpdateFlapStatus()
 
     if (rc > 0)
     {
-        DomeFlapSP.s = IPS_OK;
-        IUResetSwitch(&DomeFlapSP);
+        DomeFlapSP.setState(IPS_OK);
+        DomeFlapSP.reset();
 
         if (strcmp(status, "ope") == 0)
         {
@@ -914,7 +907,7 @@ bool BaaderDome::UpdateFlapStatus()
                 LOGF_INFO("%s", GetFlapStatusString(FLAP_OPENED));
 
             flapStatus             = FLAP_OPENED;
-            DomeFlapS[FLAP_OPEN].s = ISS_ON;
+            DomeFlapSP[FLAP_OPEN].setState(ISS_ON);
         }
         else if (strcmp(status, "clo") == 0)
         {
@@ -922,17 +915,17 @@ bool BaaderDome::UpdateFlapStatus()
                 LOGF_INFO("%s", GetFlapStatusString(FLAP_CLOSED));
 
             flapStatus              = FLAP_CLOSED;
-            DomeFlapS[FLAP_CLOSE].s = ISS_ON;
+            DomeFlapSP[FLAP_CLOSE].setState(ISS_ON);
         }
         else if (strcmp(status, "run") == 0)
         {
             flapStatus   = FLAP_MOVING;
-            DomeFlapSP.s = IPS_BUSY;
+            DomeFlapSP.setState(IPS_BUSY);
         }
         else
         {
             flapStatus   = FLAP_UNKNOWN;
-            DomeFlapSP.s = IPS_ALERT;
+            DomeFlapSP.setState(IPS_ALERT);
             LOGF_ERROR("Unknown flap status: %s.", resp);
         }
         return true;
@@ -999,7 +992,7 @@ bool BaaderDome::saveConfigItems(FILE *fp)
 * ***********************************************************************************/
 bool BaaderDome::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 /************************************************************************************

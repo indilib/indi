@@ -130,32 +130,28 @@ class DomePro2 : public INDI::Dome
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
-        ITextVectorProperty VersionTP;
-        IText VersionT[2] {};
+        INDI::PropertyText VersionTP {2};
         enum
         {
             VERSION_FIRMWARE,
             VERSION_HARDWARE
         };
 
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[2] {};
+        INDI::PropertySwitch HomeSP {2};
         enum
         {
             HOME_DISCOVER,
             HOME_GOTO
         };
 
-        ITextVectorProperty StatusTP;
-        IText StatusT[2] {};
+        INDI::PropertyText StatusTP {2};
         enum
         {
             STATUS_DOME,
             STATUS_SHUTTER
         };
 
-        INumberVectorProperty SettingsNP;
-        INumber SettingsN[5];
+        INDI::PropertyNumber SettingsNP {5};
         enum
         {
             SETTINGS_AZ_CPR,
