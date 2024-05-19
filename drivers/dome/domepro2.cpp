@@ -25,7 +25,6 @@
 
 #include <cmath>
 #include <cstring>
-#include <inttypes.h>
 #include <memory>
 #include <regex>
 #include <termios.h>
@@ -63,7 +62,7 @@ bool DomePro2::initProperties()
     SettingsNP[SETTINGS_AZ_HOME].fill("SETTINGS_AZ_HOME", "Az Home (deg)", "%.2f", 0, 360, 0, 0);
     SettingsNP[SETTINGS_AZ_PARK].fill("SETTINGS_AZ_PARK", "Az Park (deg)", "%.2f", 0, 360, 0, 0);
     SettingsNP[SETTINGS_AZ_STALL_COUNT].fill("SETTINGS_AZ_STALL_COUNT", "Az Stall Count (steps)", "%.f", 0, 0x40000000,
-                 0, 0);
+            0, 0);
     SettingsNP.fill(getDeviceName(), "SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Home
@@ -165,7 +164,7 @@ bool DomePro2::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         if (HomeSP.isNameMatch(name))
         {
             HomeSP.reset();
-            for (int i = 0; i < HomeSP.count(); i++)
+            for (size_t i = 0; i < HomeSP.count(); i++)
             {
                 if (states[i] != ISS_ON)
                     continue;
@@ -221,7 +220,7 @@ bool DomePro2::ISNewNumber(const char *dev, const char *name, double values[], c
         if (SettingsNP.isNameMatch(name))
         {
             bool allSet = true;
-            for (int i = 0; i < SettingsNP.count(); i++)
+            for (size_t i = 0; i < SettingsNP.count(); i++)
             {
                 if (SettingsNP[SETTINGS_AZ_CPR].isNameMatch(names[i]))
                 {
@@ -300,7 +299,7 @@ void DomePro2::TimerHit()
     std::string domeStatus = StatusTP[STATUS_DOME].getText();
     std::string shutterStatus = StatusTP[STATUS_SHUTTER].getText();
     if(getDomeStatus() && getShutterStatus() && (strcmp(domeStatus.c_str(), StatusTP[STATUS_DOME].getText()) != 0 ||
-                                                  strcmp(shutterStatus.c_str(), StatusTP[STATUS_DOME].getText()) != 0))
+            strcmp(shutterStatus.c_str(), StatusTP[STATUS_DOME].getText()) != 0))
     {
         if (getDomeState() == DOME_MOVING || getDomeState() == DOME_PARKING)
         {
