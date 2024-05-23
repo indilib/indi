@@ -21,6 +21,9 @@
 #include <errno.h>
 #include <chrono>
 #include <algorithm>
+#if !defined(_WIN32) && !defined(__CYGWIN__)
+#include <netinet/in.h>
+#endif
 
 // SocketAddress
 const char *SocketAddress::unixDomainPrefix = "localhost:";

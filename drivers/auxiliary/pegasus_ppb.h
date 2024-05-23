@@ -111,12 +111,10 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
         /// Main Control
         ////////////////////////////////////////////////////////////////////////////////////
         /// Reboot Device
-        ISwitch RebootS[1];
-        ISwitchVectorProperty RebootSP;
+        INDI::PropertySwitch RebootSP {1};
 
         // Power Sensors
-        INumber PowerSensorsN[2];
-        INumberVectorProperty PowerSensorsNP;
+        INDI::PropertyNumber PowerSensorsNP {2};
         enum
         {
             SENSOR_VOLTAGE,
@@ -128,32 +126,34 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Cycle all power on/off
-        ISwitch PowerCycleAllS[2];
-        ISwitchVectorProperty PowerCycleAllSP;
+        INDI::PropertySwitch PowerCycleAllSP {2};
         enum
         {
             POWER_CYCLE_OFF,
             POWER_CYCLE_ON,
         };
 
-        ISwitch DSLRPowerS[2];
-        ISwitchVectorProperty DSLRPowerSP;
+        INDI::PropertySwitch DSLRPowerSP {2};
 
         // Select which power is ON on bootup
-        ISwitch PowerOnBootS[4];
-        ISwitchVectorProperty PowerOnBootSP;
+        INDI::PropertySwitch PowerOnBootSP {4};
+        enum
+        {
+          POWER_PORT_1,
+          POWER_PORT_2,
+          POWER_PORT_3,
+          POWER_PORT_4
+        };
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// Dew Group
         ////////////////////////////////////////////////////////////////////////////////////
 
         // Auto Dew
-        ISwitch AutoDewS[2];
-        ISwitchVectorProperty AutoDewSP;
+        INDI::PropertySwitch AutoDewSP {2};
 
         // Dew PWM
-        INumber DewPWMN[2];
-        INumberVectorProperty DewPWMNP;
+        INDI::PropertyNumber DewPWMNP {2};
         enum
         {
             DEW_PWM_A,

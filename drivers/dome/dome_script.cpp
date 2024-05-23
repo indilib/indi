@@ -285,7 +285,8 @@ void DomeScript::TimerHit()
         INDI_UNUSED(rc);
         fclose(file);
         unlink(tmpfile);
-        DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;
+        az = round(range360(az) * 10) / 10;
+        DomeAbsPosNP[0].setValue(az);
 
         if (parked != 0)
         {
@@ -308,12 +309,12 @@ void DomeScript::TimerHit()
         if (TypeSP[Dome].getState() == ISS_ON && std::round(az * 10) != std::round(TargetAz * 10))
         {
             LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10, std::round(TargetAz * 10) / 10, getDomeState());
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.apply();
         }
         else if (getDomeState() == DOME_MOVING)
         {
             setDomeState(DOME_SYNCED);
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.apply();
         }
 
         if (TypeSP[Dome].getState() == ISS_ON)
@@ -323,8 +324,8 @@ void DomeScript::TimerHit()
                 if (shutter == 0)
                 {
                     m_ShutterState    = SHUTTER_CLOSED;
-                    DomeShutterSP.s = IPS_OK;
-                    IDSetSwitch(&DomeShutterSP, nullptr);
+                    DomeShutterSP.setState(IPS_OK);
+                    DomeShutterSP.apply();
                     LOG_INFO("Shutter was successfully closed");
                 }
             }
@@ -332,9 +333,9 @@ void DomeScript::TimerHit()
             {
                 if (shutter == 1)
                 {
-                    m_ShutterState    = SHUTTER_OPENED;
-                    DomeShutterSP.s = IPS_OK;
-                    IDSetSwitch(&DomeShutterSP, nullptr);
+                    m_ShutterState = SHUTTER_OPENED;
+                    DomeShutterSP.setState(IPS_OK);
+                    DomeShutterSP.apply();
                     LOG_INFO("Shutter was successfully opened");
                 }
             }
@@ -474,8 +475,8 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation)
     auto state = commandOk ? (operation == MOTION_START ? IPS_BUSY : IPS_OK) : IPS_ALERT;
     if (TypeSP[Dome].getState())
     {
-        DomeAbsPosNP.s = state;
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.setState(state);
+        DomeAbsPosNP.apply();
     }
 
     return state;

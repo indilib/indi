@@ -196,10 +196,10 @@ bool ScopeDome::SetupParms()
     StepsPerRevolutionNP.apply();
 
     if (UpdatePosition())
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     if (UpdateShutterStatus())
-        IDSetSwitch(&DomeShutterSP, nullptr);
+        DomeShutterSP.apply();
 
     UpdateSensorStatus();
     UpdateRelayStatus();
@@ -376,7 +376,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             LOG_INFO("Finding home sensor");
             status = DOME_HOMING;
             FindHomeSP.reset();
-            DomeAbsPosNP.s = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
             FindHomeSP.setState(IPS_BUSY);
             FindHomeSP.apply();
             interface->findHome();
@@ -391,7 +391,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             LOG_INFO("De-rotating started");
             status = DOME_DEROTATING;
             DerotateSP.reset();
-            DomeAbsPosNP.s = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
             DerotateSP.setState(IPS_BUSY);
             DerotateSP.apply();
         }
@@ -405,7 +405,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             LOG_INFO("Calibration started");
             status = DOME_CALIBRATING;
             StartCalibrationSP.reset();
-            DomeAbsPosNP.s       = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
             StartCalibrationSP.setState(IPS_BUSY);
             StartCalibrationSP.apply();
             interface->calibrate();
@@ -470,7 +470,6 @@ bool ScopeDome::ISNewNumber(const char *dev, const char *name, double values[], 
     // ignore if not ours
     if (dev == nullptr || strcmp(dev, getDeviceName()))
         return false;
-
 
     if (DomeHomePositionNP.isNameMatch(name))
     {
@@ -537,7 +536,7 @@ bool ScopeDome::UpdateShutterStatus()
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
             interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
 
-            if (getDomeState() == DOME_PARKING && DomeAbsPosNP.s != IPS_BUSY)
+            if (getDomeState() == DOME_PARKING && DomeAbsPosNP.getState() != IPS_BUSY)
             {
                 SetParked(true);
             }
@@ -580,7 +579,7 @@ bool ScopeDome::UpdatePosition()
     {
         az += 360.0;
     }
-    DomeAbsPosN[0].value = az;
+    DomeAbsPosNP[0].setValue(az);
     LOGF_DEBUG("Dome position %f, step count %d", az, rotationCounter);
     return true;
 }
@@ -628,7 +627,7 @@ void ScopeDome::TimerHit()
 
     UpdatePosition();
     UpdateShutterStatus();
-    IDSetSwitch(&DomeShutterSP, nullptr);
+    DomeShutterSP.apply();
 
     UpdateRelayStatus();
 
@@ -636,7 +635,7 @@ void ScopeDome::TimerHit()
     {
         if ((currentStatus & (ScopeDomeCard::STATUS_HOMING | ScopeDomeCard::STATUS_MOVING)) == 0)
         {
-            double azDiff = DomeHomePositionNP[0].getValue() - DomeAbsPosN[0].value;
+            double azDiff = DomeHomePositionNP[0].getValue() - DomeAbsPosNP[0].getValue();
 
             if (azDiff > 180)
             {
@@ -647,7 +646,7 @@ void ScopeDome::TimerHit()
                 azDiff += 360;
             }
 
-            if (interface->getInputState(ScopeDomeCard::HOME) || fabs(azDiff) <= DomeParamN[0].value)
+            if (interface->getInputState(ScopeDomeCard::HOME) || fabs(azDiff) <= DomeParamNP[0].getValue())
             {
                 // Found home (or close enough)
                 LOG_INFO("Home sensor found");
@@ -667,7 +666,7 @@ void ScopeDome::TimerHit()
                 MoveAbs(DomeHomePositionNP[0].getValue());
             }
         }
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
     else if (status == DOME_DEROTATING)
     {
@@ -705,12 +704,12 @@ void ScopeDome::TimerHit()
             setDomeState(DOME_IDLE);
         }
     }
-    else if (DomeAbsPosNP.s == IPS_BUSY)
+    else if (DomeAbsPosNP.getState() == IPS_BUSY)
     {
         if ((currentStatus & ScopeDomeCard::STATUS_MOVING) == 0)
         {
             // Rotation idle, are we close enough?
-            double azDiff = targetAz - DomeAbsPosN[0].value;
+            double azDiff = targetAz - DomeAbsPosNP[0].getValue();
 
             if (azDiff > 180)
             {
@@ -720,19 +719,19 @@ void ScopeDome::TimerHit()
             {
                 azDiff += 360;
             }
-            if (!refineMove || fabs(azDiff) <= DomeParamN[0].value)
+            if (!refineMove || fabs(azDiff) <= DomeParamNP[0].getValue())
             {
                 if (refineMove)
                 {
-                    DomeAbsPosN[0].value = targetAz;
+                    DomeAbsPosNP[0].setValue(targetAz);
                 }
-                DomeAbsPosNP.s = IPS_OK;
+                DomeAbsPosNP.setState(IPS_OK);
                 LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
                 {
-                    if (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON &&
-                            interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_OFF)
+                    if (ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON
+                            && interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_OFF)
                     {
                         ControlShutter(SHUTTER_CLOSE);
                     }
@@ -756,11 +755,11 @@ void ScopeDome::TimerHit()
                 MoveAbs(targetAz);
             }
         }
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
     else
     {
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
     }
 
     // Read temperatures only every 10th time
@@ -781,7 +780,7 @@ IPState ScopeDome::MoveAbs(double az)
 {
     LOGF_DEBUG("MoveAbs (%f)", az);
     targetAz      = az;
-    double azDiff = az - DomeAbsPosN[0].value;
+    double azDiff = az - DomeAbsPosNP[0].getValue();
     LOGF_DEBUG("azDiff = %f", azDiff);
 
     // Make relative (-180 - 180) regardless if it passes az 0
@@ -883,7 +882,7 @@ IPState ScopeDome::Park()
     // First move to park position and then optionally close shutter
     targetAz  = GetAxis1Park();
     IPState s = MoveAbs(targetAz);
-    if (s == IPS_OK && ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
+    if (s == IPS_OK && ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON)
     {
         // Already at park position, just close if needed
         return ControlShutter(SHUTTER_CLOSE);
@@ -896,7 +895,7 @@ IPState ScopeDome::Park()
  * ***********************************************************************************/
 IPState ScopeDome::UnPark()
 {
-    if (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)
+    if (ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON)
     {
         return ControlShutter(SHUTTER_OPEN);
     }
@@ -964,7 +963,7 @@ bool ScopeDome::saveConfigItems(FILE *fp)
  * ***********************************************************************************/
 bool ScopeDome::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 /************************************************************************************

@@ -28,7 +28,7 @@ InMemoryDatabase::InMemoryDatabase() : DatabaseReferencePositionIsValid(false),
 bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
         double Tolerance) const
 {
-    return std::any_of(MySyncPoints.begin(), MySyncPoints.end(), [CandidateEntry, Tolerance](const auto & point)
+    return std::any_of(MySyncPoints.begin(), MySyncPoints.end(), [&CandidateEntry, Tolerance](const auto & point)
     {
         return (((std::abs(point.RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
                  (std::abs(point.Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
@@ -42,7 +42,7 @@ void InMemoryDatabase::RemoveSyncPoint(const AlignmentDatabaseEntry &CandidateEn
                                        double Tolerance)
 {
     MySyncPoints.erase(std::remove_if(MySyncPoints.begin(), MySyncPoints.end(),
-                                      [CandidateEntry, Tolerance](const auto & point)
+                                      [&CandidateEntry, Tolerance](const auto & point)
     {
         return (((std::abs(point.RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
                  (std::abs(point.Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||

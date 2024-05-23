@@ -1419,7 +1419,7 @@ static void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &
     (void) bind;
 
     // Using abstract socket path to avoid filesystem boilerplate
-    strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+    strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 2);
 
     int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
 

@@ -594,7 +594,7 @@ bool AllunaTCS2::AbortFocuser()
 
 void AllunaTCS2::TimerHit()
 {
-    //LOG_INFO("TimerHit");
+    LOG_INFO("TimerHit");
     if (!isConnected())
         return; // No need to reset timer if we are not connected anymore
 
@@ -739,7 +739,7 @@ bool AllunaTCS2::getTemperature()
     // d#{ambient-humidity}<CR><LF>
 
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
-    if ( !first_run && seconds.count() < 300 ) // update every 300 seconds
+    if ( !first_run && seconds.count() < 10 ) // update every 10 seconds
     {
         if (tcs.try_lock()) {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature
@@ -780,6 +780,7 @@ bool AllunaTCS2::getTemperature()
                 receiveDone();
                 isGetTemperature=false;
                 TemperatureNP.setState(IPS_OK);
+                TemperatureNP.apply(); // update clients
                 break;
             default: // unexpected output
                 LOGF_ERROR("GetTemperatures: unexpected response (%s)", res);
@@ -865,7 +866,7 @@ bool AllunaTCS2::setStepping(SteppingMode mode)
     char cmd[DRIVER_LEN] = {0};
     steppingMode=mode;
     value = (mode == SPEED) ? 0 : 1;
-    LOGF_INFO("Setting stepping mde to: %s", (mode==SPEED)?"SPEED":"micro");
+    LOGF_INFO("Setting stepping mode to: %s", (mode==SPEED)?"SPEED":"micro");
     LOGF_INFO("Setting stepping mode to: %d", value);
     snprintf(cmd, DRIVER_LEN, "SetFocuserMode %d\n", value);
     return sendCommand(cmd);
@@ -977,7 +978,7 @@ bool AllunaTCS2::getFanPower()
     char res[DRIVER_LEN] = {0};
 
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
-    if ( !first_run && seconds.count() < 3 ) // update every 3 seconds
+    if ( !first_run && seconds.count() < 30 ) // update every 30 seconds
     {
         if (tcs.try_lock()) {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature

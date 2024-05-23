@@ -225,7 +225,7 @@ void * IDSharedBlobRealloc(void * ptr, size_t size)
     int ret = ftruncate(sb->fd, reallocated);
     if (ret == -1) return NULL;
 
-#ifdef HAVE_MREMAP
+#ifdef MREMAP_MAYMOVE
     void * remaped = mremap(sb->mapstart, sb->allocated, reallocated, MREMAP_MAYMOVE);
     if (remaped == MAP_FAILED) return NULL;
 

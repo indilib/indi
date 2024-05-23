@@ -25,7 +25,6 @@
 
 #include <cmath>
 #include <cstring>
-#include <inttypes.h>
 #include <memory>
 #include <regex>
 #include <termios.h>
@@ -48,28 +47,28 @@ bool DomePro2::initProperties()
 {
     INDI::Dome::initProperties();
     // Firmware & Hardware versions
-    IUFillText(&VersionT[VERSION_FIRMWARE], "VERSION_FIRMWARE", "Firmware", "NA");
-    IUFillText(&VersionT[VERSION_HARDWARE], "VERSION_HARDWARE", "Hardware", "NA");
-    IUFillTextVector(&VersionTP, VersionT, 2, getDeviceName(), "VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    VersionTP[VERSION_FIRMWARE].fill("VERSION_FIRMWARE", "Firmware", "NA");
+    VersionTP[VERSION_HARDWARE].fill("VERSION_HARDWARE", "Hardware", "NA");
+    VersionTP.fill(getDeviceName(), "VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Dome & Shutter statuses
-    IUFillText(&StatusT[STATUS_DOME], "STATUS_DOME", "Dome", "NA");
-    IUFillText(&StatusT[STATUS_SHUTTER], "STATUS_SHUTTER", "Shutter", "NA");
-    IUFillTextVector(&StatusTP, StatusT, 2, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    StatusTP[STATUS_DOME].fill("STATUS_DOME", "Dome", "NA");
+    StatusTP[STATUS_SHUTTER].fill("STATUS_SHUTTER", "Shutter", "NA");
+    StatusTP.fill(getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Settings
-    IUFillNumber(&SettingsN[SETTINGS_AZ_CPR], "SETTINGS_AZ_CPR", "Az CPR (steps)", "%.f", 0x20, 0x40000000, 0, 0);
-    IUFillNumber(&SettingsN[SETTINGS_AZ_COAST], "SETTINGS_AZ_COAST", "Az Coast (deg)", "%.2f", 0, 15, 0, 0);
-    IUFillNumber(&SettingsN[SETTINGS_AZ_HOME], "SETTINGS_AZ_HOME", "Az Home (deg)", "%.2f", 0, 360, 0, 0);
-    IUFillNumber(&SettingsN[SETTINGS_AZ_PARK], "SETTINGS_AZ_PARK", "Az Park (deg)", "%.2f", 0, 360, 0, 0);
-    IUFillNumber(&SettingsN[SETTINGS_AZ_STALL_COUNT], "SETTINGS_AZ_STALL_COUNT", "Az Stall Count (steps)", "%.f", 0, 0x40000000,
-                 0, 0);
-    IUFillNumberVector(&SettingsNP, SettingsN, 5, getDeviceName(), "SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    SettingsNP[SETTINGS_AZ_CPR].fill("SETTINGS_AZ_CPR", "Az CPR (steps)", "%.f", 0x20, 0x40000000, 0, 0);
+    SettingsNP[SETTINGS_AZ_COAST].fill("SETTINGS_AZ_COAST", "Az Coast (deg)", "%.2f", 0, 15, 0, 0);
+    SettingsNP[SETTINGS_AZ_HOME].fill("SETTINGS_AZ_HOME", "Az Home (deg)", "%.2f", 0, 360, 0, 0);
+    SettingsNP[SETTINGS_AZ_PARK].fill("SETTINGS_AZ_PARK", "Az Park (deg)", "%.2f", 0, 360, 0, 0);
+    SettingsNP[SETTINGS_AZ_STALL_COUNT].fill("SETTINGS_AZ_STALL_COUNT", "Az Stall Count (steps)", "%.f", 0, 0x40000000,
+            0, 0);
+    SettingsNP.fill(getDeviceName(), "SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Home
-    IUFillSwitch(&HomeS[HOME_DISCOVER], "HOME_DISCOVER", "Discover", ISS_OFF);
-    IUFillSwitch(&HomeS[HOME_GOTO], "HOME_GOTO", "Goto", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 2, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
+    HomeSP[HOME_DISCOVER].fill("HOME_DISCOVER", "Discover", ISS_OFF);
+    HomeSP[HOME_GOTO].fill("HOME_GOTO", "Goto", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -97,16 +96,16 @@ bool DomePro2::setupInitialParameters()
     }
 
     if (getFirmwareVersion() && getHardwareConfig())
-        VersionTP.s = IPS_OK;
+        VersionTP.setState(IPS_OK);
 
     if (getDomeStatus() && getShutterStatus())
-        StatusTP.s = IPS_OK;
+        StatusTP.setState(IPS_OK);
 
     if (getDomeAzCPR() && getDomeAzCoast() && getDomeHomeAz() && getDomeParkAz() && getDomeAzStallCount())
-        SettingsNP.s = IPS_OK;
+        SettingsNP.setState(IPS_OK);
 
     if (getDomeAzPos())
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
     return true;
 }
@@ -138,17 +137,17 @@ bool DomePro2::updateProperties()
     {
         setupInitialParameters();
 
-        defineProperty(&VersionTP);
-        defineProperty(&StatusTP);
-        defineProperty(&SettingsNP);
-        defineProperty(&HomeSP);
+        defineProperty(VersionTP);
+        defineProperty(StatusTP);
+        defineProperty(SettingsNP);
+        defineProperty(HomeSP);
     }
     else
     {
-        deleteProperty(VersionTP.name);
-        deleteProperty(StatusTP.name);
-        deleteProperty(SettingsNP.name);
-        deleteProperty(HomeSP.name);
+        deleteProperty(VersionTP);
+        deleteProperty(StatusTP);
+        deleteProperty(SettingsNP);
+        deleteProperty(HomeSP);
     }
 
     return true;
@@ -162,43 +161,43 @@ bool DomePro2::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Home
-        if (!strcmp(name, HomeSP.name))
+        if (HomeSP.isNameMatch(name))
         {
-            IUResetSwitch(&HomeSP);
-            for (int i = 0; i < HomeSP.nsp; i++)
+            HomeSP.reset();
+            for (size_t i = 0; i < HomeSP.count(); i++)
             {
                 if (states[i] != ISS_ON)
                     continue;
 
-                if (!strcmp(HomeS[HOME_GOTO].name, names[i]))
+                if (HomeSP[HOME_GOTO].isNameMatch(names[i]))
                 {
                     if (!gotoHomeDomeAz())
                     {
-                        HomeSP.s = IPS_ALERT;
+                        HomeSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to go to Home Dome Az.");
                     }
                     else
                     {
-                        HomeS[HOME_GOTO].s = ISS_ON;
-                        HomeSP.s = IPS_BUSY;
+                        HomeSP[HOME_GOTO].setState(ISS_ON);
+                        HomeSP.setState(IPS_BUSY);
                     }
                 }
-                else if (!strcmp(HomeS[HOME_DISCOVER].name, names[i]))
+                else if (HomeSP[HOME_DISCOVER].isNameMatch(names[i]))
                 {
                     if (!discoverHomeDomeAz())
                     {
-                        HomeSP.s = IPS_ALERT;
+                        HomeSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to discover Home Dome Az.");
                     }
                     else
                     {
-                        HomeS[HOME_DISCOVER].s = ISS_ON;
-                        HomeSP.s = IPS_BUSY;
+                        HomeSP[HOME_DISCOVER].setState(ISS_ON);
+                        HomeSP.setState(IPS_BUSY);
                     }
                 }
             }
 
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             return true;
         }
 
@@ -218,55 +217,55 @@ bool DomePro2::ISNewNumber(const char *dev, const char *name, double values[], c
         ////////////////////////////////////////////////////////////
         // Settings
         ////////////////////////////////////////////////////////////
-        if (!strcmp(name, SettingsNP.name))
+        if (SettingsNP.isNameMatch(name))
         {
             bool allSet = true;
-            for (int i = 0; i < SettingsNP.nnp; i++)
+            for (size_t i = 0; i < SettingsNP.count(); i++)
             {
-                if (!strcmp(SettingsN[SETTINGS_AZ_CPR].name, names[i]))
+                if (SettingsNP[SETTINGS_AZ_CPR].isNameMatch(names[i]))
                 {
                     if (setDomeAzCPR(static_cast<uint32_t>(values[i])))
-                        SettingsN[SETTINGS_AZ_CPR].value = values[i];
+                        SettingsNP[SETTINGS_AZ_CPR].setValue(values[i]);
                     else
                     {
                         allSet = false;
                         LOG_ERROR("Failed to set Dome AZ CPR.");
                     }
                 }
-                else if (!strcmp(SettingsN[SETTINGS_AZ_COAST].name, names[i]))
+                else if (SettingsNP[SETTINGS_AZ_COAST].isNameMatch(names[i]))
                 {
                     if (setDomeAzCoast(static_cast<uint32_t>(values[i])))
-                        SettingsN[SETTINGS_AZ_COAST].value = values[i];
+                        SettingsNP[SETTINGS_AZ_COAST].setValue(values[i]);
                     else
                     {
                         allSet = false;
                         LOG_ERROR("Failed to set Dome AZ Coast.");
                     }
                 }
-                else if (!strcmp(SettingsN[SETTINGS_AZ_HOME].name, names[i]))
+                else if (SettingsNP[SETTINGS_AZ_HOME].isNameMatch(names[i]))
                 {
                     if (setDomeHomeAz(static_cast<uint32_t>(values[i])))
-                        SettingsN[SETTINGS_AZ_HOME].value = values[i];
+                        SettingsNP[SETTINGS_AZ_HOME].setValue(values[i]);
                     else
                     {
                         allSet = false;
                         LOG_ERROR("Failed to set Dome AZ Home.");
                     }
                 }
-                else if (!strcmp(SettingsN[SETTINGS_AZ_PARK].name, names[i]))
+                else if (SettingsNP[SETTINGS_AZ_PARK].isNameMatch(names[i]))
                 {
                     if (setDomeParkAz(static_cast<uint32_t>(values[i])))
-                        SettingsN[SETTINGS_AZ_PARK].value = values[i];
+                        SettingsNP[SETTINGS_AZ_PARK].setValue(values[i]);
                     else
                     {
                         allSet = false;
                         LOG_ERROR("Failed to set Dome AZ Park.");
                     }
                 }
-                else if (!strcmp(SettingsN[SETTINGS_AZ_STALL_COUNT].name, names[i]))
+                else if (SettingsNP[SETTINGS_AZ_STALL_COUNT].isNameMatch(names[i]))
                 {
                     if (setDomeAzStallCount(static_cast<uint32_t>(values[i])))
-                        SettingsN[SETTINGS_AZ_STALL_COUNT].value = values[i];
+                        SettingsNP[SETTINGS_AZ_STALL_COUNT].setValue(values[i]);
                     else
                     {
                         allSet = false;
@@ -276,8 +275,8 @@ bool DomePro2::ISNewNumber(const char *dev, const char *name, double values[], c
 
             }
 
-            SettingsNP.s = allSet ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&SettingsNP, nullptr);
+            SettingsNP.setState(allSet ? IPS_OK : IPS_ALERT);
+            SettingsNP.apply();
             return true;
         }
 
@@ -293,30 +292,30 @@ void DomePro2::TimerHit()
     if (!isConnected())
         return;
 
-    double currentAz = DomeAbsPosN[0].value;
-    if(getDomeAzPos() && std::abs(currentAz - DomeAbsPosN[0].value) > DOME_AZ_THRESHOLD)
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+    double currentAz = DomeAbsPosNP[0].getValue();
+    if(getDomeAzPos() && std::abs(currentAz - DomeAbsPosNP[0].getValue()) > DOME_AZ_THRESHOLD)
+        DomeAbsPosNP.apply();
 
-    std::string domeStatus = StatusT[STATUS_DOME].text;
-    std::string shutterStatus = StatusT[STATUS_SHUTTER].text;
-    if(getDomeStatus() && getShutterStatus() && (strcmp(domeStatus.c_str(), StatusT[STATUS_DOME].text) != 0 ||
-            strcmp(shutterStatus.c_str(), StatusT[STATUS_DOME].text) != 0))
+    std::string domeStatus = StatusTP[STATUS_DOME].getText();
+    std::string shutterStatus = StatusTP[STATUS_SHUTTER].getText();
+    if(getDomeStatus() && getShutterStatus() && (strcmp(domeStatus.c_str(), StatusTP[STATUS_DOME].getText()) != 0 ||
+            strcmp(shutterStatus.c_str(), StatusTP[STATUS_DOME].getText()) != 0))
     {
         if (getDomeState() == DOME_MOVING || getDomeState() == DOME_PARKING)
         {
 
-            if (!strcmp(StatusT[STATUS_DOME].text, "Idle"))
+            if (StatusTP[STATUS_DOME].isNameMatch("Idle"))
             {
                 if (getDomeState() == DOME_PARKING)
                     SetParked(true);
 
                 setDomeState(DOME_IDLE);
 
-                if (HomeSP.s == IPS_BUSY)
+                if (HomeSP.getState() == IPS_BUSY)
                 {
-                    IUResetSwitch(&HomeSP);
-                    HomeSP.s = IPS_IDLE;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_IDLE);
+                    HomeSP.apply();
                 }
             }
         }
@@ -334,7 +333,7 @@ void DomePro2::TimerHit()
                 setShutterState(SHUTTER_UNKNOWN);
         }
 
-        IDSetText(&StatusTP, nullptr);
+        StatusTP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -346,7 +345,7 @@ void DomePro2::TimerHit()
 IPState DomePro2::MoveAbs(double az)
 {
     INDI_UNUSED(az);
-    uint32_t steps = static_cast<uint32_t>(az * (SettingsN[SETTINGS_AZ_CPR].value / 360));
+    uint32_t steps = static_cast<uint32_t>(az * (SettingsNP[SETTINGS_AZ_CPR].getValue() / 360));
     if (gotoDomeAz(steps))
         return IPS_BUSY;
     return IPS_ALERT;
@@ -357,12 +356,12 @@ IPState DomePro2::MoveAbs(double az)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomePro2::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;
+    targetAz = DomeAbsPosNP[0].getValue() + azDiff;
 
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
+    if (targetAz < DomeAbsPosNP[0].getMin())
+        targetAz += DomeAbsPosNP[0].getMax();
+    if (targetAz > DomeAbsPosNP[0].getMax())
+        targetAz -= DomeAbsPosNP[0].getMax();
 
     // It will take a few cycles to reach final position
     return MoveAbs(targetAz);
@@ -454,16 +453,16 @@ bool DomePro2::Abort()
         setShutterState(SHUTTER_UNKNOWN);
     }
 
-    if (ParkSP.s == IPS_BUSY)
+    if (ParkSP.getState() == IPS_BUSY)
     {
         SetParked(false);
     }
 
-    if (HomeSP.s == IPS_BUSY)
+    if (HomeSP.getState() == IPS_BUSY)
     {
-        IUResetSwitch(&HomeSP);
-        HomeSP.s = IPS_IDLE;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP.reset();
+        HomeSP.setState(IPS_IDLE);
+        HomeSP.apply();
     }
 
     return true;
@@ -484,7 +483,7 @@ bool DomePro2::saveConfigItems(FILE *fp)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomePro2::SetCurrentPark()
 {
-    SetAxis1Park(DomeAbsPosN[0].value);
+    SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 
@@ -503,55 +502,55 @@ bool DomePro2::SetDefaultPark()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t DomePro2::processShutterStatus()
 {
-    if (!strcmp(StatusT[STATUS_SHUTTER].text, "Opened"))
+    if (StatusTP[STATUS_SHUTTER].isNameMatch("Opened"))
         return 0;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "Closed"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("Closed"))
         return 1;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "Opening"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("Opening"))
         return 2;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "Closing"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("Closing"))
         return 3;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "ShutterError"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("ShutterError"))
         return 4;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter module is not communicating to the azimuth module"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter module is not communicating to the azimuth module"))
         return 5;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 opposite direction timeout error on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 opposite direction timeout error on open occurred"))
         return 6;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 opposite direction timeout error on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 opposite direction timeout error on close occurred"))
         return 7;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 opposite direction timeout error on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 opposite direction timeout error on open occurred"))
         return 8;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 opposite direction timeout error on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 opposite direction timeout error on close occurred"))
         return 9;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 completion timeout error on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 completion timeout error on open occurred"))
         return 10;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 completion timeout error on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 completion timeout error on close occurred"))
         return 11;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 completion timeout error on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 completion timeout error on open occurred"))
         return 12;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 completion timeout error on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 completion timeout error on close occurred"))
         return 13;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 limit fault on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 limit fault on open occurred"))
         return 14;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 limit fault on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 limit fault on close occurred"))
         return 15;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 limit fault on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 limit fault on open occurred"))
         return 16;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 limit fault on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 limit fault on close occurred"))
         return 17;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "Shutter disabled (Shutter Enable input is not asserted)"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("Shutter disabled (Shutter Enable input is not asserted)"))
         return 18;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "Intermediate"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("Intermediate"))
         return 19;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "GoTo"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("GoTo"))
         return 20;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 OCP trip on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 OCP trip on open occurred"))
         return 21;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 1 OCP trip on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 1 OCP trip on close occurred"))
         return 22;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 OCP trip on open occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 OCP trip on open occurred"))
         return 23;
-    else if (!strcmp(StatusT[STATUS_SHUTTER].text, "shutter 2 OCP trip on close occurred"))
+    else if (StatusTP[STATUS_SHUTTER].isNameMatch("shutter 2 OCP trip on close occurred"))
         return 24;
     return 25;
 }
@@ -570,7 +569,7 @@ bool DomePro2::getFirmwareVersion()
     {
         char versionString[DRIVER_LEN] = {0};
         snprintf(versionString, DRIVER_LEN, "%d", version);
-        IUSaveText(&VersionT[VERSION_FIRMWARE], versionString);
+        VersionTP[VERSION_FIRMWARE].setText(versionString);
         return true;
     }
 
@@ -594,7 +593,7 @@ bool DomePro2::getHardwareConfig()
         if (DomeHardware.count(index))
         {
             snprintf(configString, DRIVER_LEN, "%s", DomeHardware.at(index).c_str());
-            IUSaveText(&VersionT[VERSION_HARDWARE], configString);
+            VersionTP[VERSION_HARDWARE].setText(configString);
 
         }
         else
@@ -619,7 +618,7 @@ bool DomePro2::getDomeStatus()
 
     if (DomeStatus.count(res))
     {
-        IUSaveText(&StatusT[STATUS_DOME], DomeStatus.at(res).c_str());
+        StatusTP[STATUS_DOME].setText(DomeStatus.at(res).c_str());
         return true;
     }
     else
@@ -646,7 +645,7 @@ bool DomePro2::getShutterStatus()
         if (ShutterStatus.count(index))
         {
             snprintf(statusString, DRIVER_LEN, "%s", ShutterStatus.at(index).c_str());
-            IUSaveText(&StatusT[STATUS_SHUTTER], statusString);
+            StatusTP[STATUS_SHUTTER].setText(statusString);
 
         }
         else
@@ -672,7 +671,7 @@ bool DomePro2::getDomeAzCPR()
     uint32_t cpr = 0;
     if (sscanf(res, "%X", &cpr) == 1)
     {
-        SettingsN[SETTINGS_AZ_CPR].value = cpr;
+        SettingsNP[SETTINGS_AZ_CPR].setValue(cpr);
         return true;
     }
 
@@ -713,7 +712,7 @@ bool DomePro2::getDomeAzCoast()
     uint32_t coast = 0;
     if (sscanf(res, "%X", &coast) == 1)
     {
-        SettingsN[SETTINGS_AZ_COAST].value = coast * (360 / SettingsN[SETTINGS_AZ_CPR].value);
+        SettingsNP[SETTINGS_AZ_COAST].setValue(coast * (360 / SettingsNP[SETTINGS_AZ_CPR].getValue()));
         return true;
     }
 
@@ -726,7 +725,7 @@ bool DomePro2::getDomeAzCoast()
 bool DomePro2::setDomeAzCoast(uint32_t az)
 {
     char cmd[DRIVER_LEN] = {0};
-    uint32_t steps = static_cast<uint32_t>(az * (SettingsN[SETTINGS_AZ_CPR].value / 360));
+    uint32_t steps = static_cast<uint32_t>(az * (SettingsNP[SETTINGS_AZ_CPR].getValue() / 360));
     //    if (coast > 0x4000)
     //    {
     //        LOG_ERROR("Coast value out of bounds (0 to 16,384)");
@@ -750,7 +749,7 @@ bool DomePro2::getDomeHomeAz()
     uint32_t home = 0;
     if (sscanf(res, "%X", &home) == 1)
     {
-        SettingsN[SETTINGS_AZ_HOME].value = home * (360 / SettingsN[SETTINGS_AZ_CPR].value);
+        SettingsNP[SETTINGS_AZ_HOME].setValue(home * (360 / SettingsNP[SETTINGS_AZ_CPR].getValue()));
         return true;
     }
 
@@ -763,7 +762,7 @@ bool DomePro2::getDomeHomeAz()
 bool DomePro2::setDomeHomeAz(uint32_t az)
 {
     char cmd[DRIVER_LEN] = {0};
-    uint32_t steps = static_cast<uint32_t>(az * (SettingsN[SETTINGS_AZ_CPR].value / 360));
+    uint32_t steps = static_cast<uint32_t>(az * (SettingsNP[SETTINGS_AZ_CPR].getValue() / 360));
     //    if (home >= SettingsN[SETTINGS_AZ_CPR].value)
     //    {
     //        char err[DRIVER_LEN] = {0};
@@ -790,7 +789,7 @@ bool DomePro2::getDomeParkAz()
     uint32_t park = 0;
     if (sscanf(res, "%X", &park) == 1)
     {
-        SettingsN[SETTINGS_AZ_PARK].value = park * (360 / SettingsN[SETTINGS_AZ_CPR].value);
+        SettingsNP[SETTINGS_AZ_PARK].setValue(park * (360 / SettingsNP[SETTINGS_AZ_CPR].getValue()));
         return true;
     }
 
@@ -803,7 +802,7 @@ bool DomePro2::getDomeParkAz()
 bool DomePro2::setDomeParkAz(uint32_t az)
 {
     char cmd[DRIVER_LEN] = {0};
-    uint32_t steps = static_cast<uint32_t>(az * (SettingsN[SETTINGS_AZ_CPR].value / 360));
+    uint32_t steps = static_cast<uint32_t>(az * (SettingsNP[SETTINGS_AZ_CPR].getValue() / 360));
     //    if (park >= SettingsN[SETTINGS_AZ_CPR].value)
     //    {
     //        char err[DRIVER_LEN] = {0};
@@ -824,7 +823,7 @@ bool DomePro2::setDomeParkAz(uint32_t az)
 bool DomePro2::calibrateDomeAz(double az)
 {
     char cmd[DRIVER_LEN] = {0};
-    uint32_t steps = static_cast<uint32_t>(az * (SettingsN[SETTINGS_AZ_CPR].value / 360));
+    uint32_t steps = static_cast<uint32_t>(az * (SettingsNP[SETTINGS_AZ_CPR].getValue() / 360));
     //    if (steps >= SettingsN[SETTINGS_AZ_CPR].value)
     //    {
     //        char err[DRIVER_LEN] = {0};
@@ -850,7 +849,7 @@ bool DomePro2::getDomeAzStallCount()
     uint32_t count = 0;
     if (sscanf(res, "%X", &count) == 1)
     {
-        SettingsN[SETTINGS_AZ_STALL_COUNT].value = count;
+        SettingsNP[SETTINGS_AZ_STALL_COUNT].setValue(count);
         return true;
     }
 
@@ -881,7 +880,7 @@ bool DomePro2::getDomeAzPos()
     uint32_t pos = 0;
     if (sscanf(res, "%X", &pos) == 1)
     {
-        DomeAbsPosN[0].value = pos * (360 / SettingsN[SETTINGS_AZ_CPR].value);
+        DomeAbsPosNP[0].setValue(pos * (360 / SettingsNP[SETTINGS_AZ_CPR].getValue()));
         return true;
     }
 
@@ -894,7 +893,7 @@ bool DomePro2::getDomeAzPos()
 bool DomePro2::gotoDomeAz(uint32_t az)
 {
     char cmd[DRIVER_LEN] = {0};
-    if (az >= SettingsN[SETTINGS_AZ_CPR].value)
+    if (az >= SettingsNP[SETTINGS_AZ_CPR].getValue())
         return false;
     snprintf(cmd, DRIVER_LEN, "DSgo0x%08X", az);
     if (sendCommand(cmd) == false)

@@ -93,9 +93,7 @@
  *
  */
 
-#if defined(_WIN32) || defined(__CYGWIN__)
 #include <stdarg.h>
-#endif
 #include "indiapi.h"
 #include "lilxml.h"
 
