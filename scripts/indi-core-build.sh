@@ -16,7 +16,7 @@ SRCS=$(dirname $(realpath $0))/..
 INSTALL_PREFIX=/usr
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-    export PATH="$(brew --prefix qt5)/bin:$PATH"
+    export PATH="$(brew --prefix qt@5)/bin:$PATH"
     INSTALL_PREFIX=/usr/local
 fi
 
