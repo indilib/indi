@@ -35,8 +35,13 @@ class Properties
     public:
         using iterator        = std::deque<INDI::Property>::iterator;
         using const_iterator  = std::deque<INDI::Property>::const_iterator;
-        using reference       = std::deque<INDI::Property>::reference;
-        using const_reference = std::deque<INDI::Property>::const_reference;
+
+        // #PS 2024: workaround; SWIG 4.2.0 - SwigSmartPointer, does not create a pointer, just an uninitialized reference.
+        // using reference       = std::deque<INDI::Property>::reference;
+        // using const_reference = std::deque<INDI::Property>::const_reference;
+        using reference       = INDI::Property &;
+        using const_reference = const INDI::Property &;
+        
         using size_type       = std::deque<INDI::Property>::size_type;
 
     public:

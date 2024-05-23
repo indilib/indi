@@ -51,7 +51,7 @@ jobs:
 
       - name: Install test deps
         run: |
-          cd pyindi-client && pip3 install -r requirements-test.txt
+          cd pyindi-client && pip3 install --break-system-packages -r requirements-test.txt
 
       - name: Test PyIndi
         run: |
