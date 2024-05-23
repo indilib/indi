@@ -696,14 +696,12 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             std::fill_n(rc, 6, true);
             ISState ports[6] = {ISS_ON};
 
-            // FixMe: Fix warning
-            for (int i = 0; i < USBControlV2SP.count(); i++)
+            for (size_t i = 0; i < USBControlV2SP.count(); i++)
                 ports[i] = USBControlV2SP[i].getState();
 
             USBControlV2SP.update(states, names, n);
 
-            // FixMe: Fix warning
-            for (int i = 0; i < USBControlV2SP.count(); i++)
+            for (size_t i = 0; i < USBControlV2SP.count(); i++)
             {
                 if (ports[i] != USBControlV2SP[i].getState())
                     rc[i] = setUSBPortEnabled(i, USBControlV2SP[i].getState() == ISS_ON);
@@ -717,8 +715,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             else
             {
                 USBControlV2SP.reset();
-                // FixMe: Fix warning
-                for (int i = 0; i < USBControlV2SP.count(); i++)
+                for (size_t i = 0; i < USBControlV2SP.count(); i++)
                     USBControlV2SP[i].setState(ports[i]);
                 USBControlV2SP.setState(IPS_ALERT);
             }
