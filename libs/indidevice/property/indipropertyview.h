@@ -358,20 +358,20 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         {
             memset(this, 0, sizeof(*this));
         }
-        WidgetView(const WidgetView &other): Type(other)
+        WidgetView(const WidgetView<Type> &other): Type(other)
         {
             this->text = nullptr;
             setText(other.text);
         }
-        WidgetView(WidgetView &&other): Type(other)
+        WidgetView(WidgetView<Type> &&other): Type(other)
         {
             memset(static_cast<Type*>(&other), 0, sizeof(other));
         }
-        WidgetView &operator=(const WidgetView &other)
+        WidgetView<Type> &operator=(const WidgetView<Type> &other)
         {
             return *this = WidgetView(other);
         }
-        WidgetView &operator=(WidgetView &&other)
+        WidgetView<Type> &operator=(WidgetView<Type> &&other)
         {
             std::swap(static_cast<Type &>(other), static_cast<Type &>(*this));
             return *this;
@@ -499,16 +499,16 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
         {
             memset(this, 0, sizeof(*this));
         }
-        WidgetView(const WidgetView &other): Type(other)       { }
-        WidgetView(WidgetView &&other): Type(other)
+        WidgetView(const WidgetView<Type> &other): Type(other)       { }
+        WidgetView(WidgetView<Type> &&other): Type(other)
         {
             memset(static_cast<Type*>(&other), 0, sizeof(other));
         }
-        WidgetView &operator=(const WidgetView &other)
+        WidgetView<Type> &operator=(const WidgetView<Type> &other)
         {
             return *this = WidgetView(other);
         }
-        WidgetView &operator=(WidgetView &&other)
+        WidgetView<Type> &operator=(WidgetView<Type> &&other)
         {
             std::swap(static_cast<Type &>(other), static_cast<Type &>(*this));
             return *this;
@@ -663,16 +663,16 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
         {
             memset(this, 0, sizeof(*this));
         }
-        WidgetView(const WidgetView &other): Type(other)       { }
-        WidgetView(WidgetView &&other): Type(other)
+        WidgetView(const WidgetView<Type> &other): Type(other)       { }
+        WidgetView(WidgetView<Type> &&other): Type(other)
         {
             memset(static_cast<Type*>(&other), 0, sizeof(other));
         }
-        WidgetView &operator=(const WidgetView &other)
+        WidgetView<Type> &operator=(const WidgetView<Type> &other)
         {
             return *this = WidgetView(other);
         }
-        WidgetView &operator=(WidgetView &&other)
+        WidgetView<Type> &operator=(WidgetView<Type> &&other)
         {
             std::swap(static_cast<Type &>(other), static_cast<Type &>(*this));
             return *this;
@@ -792,16 +792,16 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
         {
             memset(this, 0, sizeof(*this));
         }
-        WidgetView(const WidgetView &other): Type(other)       { }
-        WidgetView(WidgetView &&other): Type(other)
+        WidgetView(const WidgetView<Type> &other): Type(other)       { }
+        WidgetView(WidgetView<Type> &&other): Type(other)
         {
             memset(static_cast<Type*>(&other), 0, sizeof(other));
         }
-        WidgetView &operator=(const WidgetView &other)
+        WidgetView<Type> &operator=(const WidgetView<Type> &other)
         {
             return *this = WidgetView(other);
         }
-        WidgetView &operator=(WidgetView &&other)
+        WidgetView<Type> &operator=(WidgetView<Type> &&other)
         {
             std::swap(static_cast<Type &>(other), static_cast<Type &>(*this));
             return *this;
@@ -921,16 +921,16 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
         {
             memset(this, 0, sizeof(*this));
         }
-        WidgetView(const WidgetView &other): Type(other)       { }
-        WidgetView(WidgetView &&other): Type(other)
+        WidgetView(const WidgetView<Type> &other): Type(other)       { }
+        WidgetView(WidgetView<Type> &&other): Type(other)
         {
             memset(static_cast<Type*>(&other), 0, sizeof(other));
         }
-        WidgetView &operator=(const WidgetView &other)
+        WidgetView<Type> &operator=(const WidgetView<Type> &other)
         {
             return *this = WidgetView(other);
         }
-        WidgetView &operator=(WidgetView &&other)
+        WidgetView<Type> &operator=(WidgetView<Type> &&other)
         {
             std::swap(static_cast<Type &>(other), static_cast<Type &>(*this));
             return *this;
