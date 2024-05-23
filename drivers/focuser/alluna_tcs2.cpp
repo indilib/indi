@@ -32,7 +32,7 @@
 // create an instance of this driver
 static std::unique_ptr<AllunaTCS2> allunaTCS2(new AllunaTCS2 ());
 
-AllunaTCS2::AllunaTCS2() //: DustCapInterface()
+AllunaTCS2::AllunaTCS2() : DustCapInterface()
 {
     LOG_DEBUG("Init AllunaTCS2");
     // Let's specify the driver version
@@ -53,7 +53,8 @@ AllunaTCS2::AllunaTCS2() //: DustCapInterface()
 bool AllunaTCS2::initProperties()
 {
     INDI::Focuser::initProperties();
-    //INDI::DustCapInterface::initDustCapProperties(getDeviceName(), "groupname");
+    INDI::DustCapInterface::initDustCapProperties(getDeviceName(), DUSTCOVER_TAB);
+
 
     // Focuser temperature / ambient temperature, ekos uses first number of "FOCUS_TEMPERATURE" property
     TemperatureNP[0].fill("TEMPERATURE", "Focuser Temp [C]", "%6.2f", -100, 100, 0, 0);
@@ -97,13 +98,7 @@ bool AllunaTCS2::initProperties()
     FocusMaxPosN[0].value = FocusAbsPosN[0].max;
     FocusMaxPosNP.p = IP_RO;
 
-    // Dust Cover
-    CoverSP[OPEN].fill("COVER_OPEN", "Open", ISS_OFF);
-    CoverSP[CLOSED].fill("COVER_CLOSE", "Close", ISS_ON);
-    CoverSP.fill(getDeviceName(), "COVER_CONTROL", "Cover Control", DUSTCOVER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    setDriverInterface(FOCUSER_INTERFACE); //| DUSTCAP_INTERFACE);
-
+    setDriverInterface(FOCUSER_INTERFACE | DUSTCAP_INTERFACE);
     //addAuxControls();
     addDebugControl();
     addConfigurationControl();
@@ -157,7 +152,7 @@ bool AllunaTCS2::updateProperties()
         defineProperty(FanPowerNP);
 
         // Cover
-        defineProperty(CoverSP);
+        defineProperty(&ParkCapSP);
 
         LOG_INFO("AllunaTCS2 is ready.");
     }
@@ -173,7 +168,7 @@ bool AllunaTCS2::updateProperties()
         deleteProperty(SecondaryDewHeaterSP);
         deleteProperty(FanPowerNP);
 
-        deleteProperty(CoverSP);
+        deleteProperty(ParkCapSP.name);
     }
 
     return true;
@@ -269,7 +264,6 @@ bool AllunaTCS2::sendCommandNoLock(const char * cmd, char * res, int cmd_len, in
     LOG_DEBUG("sendCommand: Ende");
     return true;
 }
-
 
 bool AllunaTCS2::sendCommandOnly(const char * cmd, int cmd_len)
 {
@@ -409,33 +403,33 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
         }
 
         // Cover Switch?
-        if (CoverSP.isNameMatch(name))
+        if (!strcmp(name, ParkCapSP.name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // Do nothing, if state is already what it should be
-            int currentCoverIndex = CoverSP.findOnSwitchIndex();
-            if (CoverSP[currentCoverIndex].isNameMatch(actionName))
+            int currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
+            if (!strcmp(actionName, ParkCapS[currentCoverIndex].name))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", CoverSP[currentCoverIndex].label);
-               CoverSP.setState(IPS_IDLE);
-               CoverSP.apply();
+               DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", ParkCapS[currentCoverIndex].label);
+               ParkCapSP.s = IPS_IDLE;
+               IDSetSwitch(&ParkCapSP, NULL);
                return true;
             }
 
             // Otherwise, let us update the switch state
-            CoverSP.update(states, names, n);
-            currentCoverIndex = CoverSP.findOnSwitchIndex();
+            IUUpdateSwitch(&ParkCapSP, states, names, n);
+            currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
             if ( setDustCover() ) {
                 isCoverMoving = true;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", CoverSP[currentCoverIndex].label);
-                CoverSP.setState(IPS_OK);
-                CoverSP.apply();
+                DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", ParkCapS[currentCoverIndex].label);
+                ParkCapSP.s = IPS_OK;
+                IDSetSwitch(&ParkCapSP, NULL);
                 return true;
             } else {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                CoverSP.setState(IPS_ALERT);
-                CoverSP.apply();
+                ParkCapSP.s = IPS_ALERT;
+                IDSetSwitch(&ParkCapSP, NULL);
             }
         }
 
@@ -458,7 +452,7 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             ClimateControlSP.update(states, names, n);
             currentClimateControlIndex = ClimateControlSP.findOnSwitchIndex();
             if ( setClimateControl((currentClimateControlIndex==AUTO) ? MANUAL: AUTO) ) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ClimateControl is now %s", CoverSP[currentClimateControlIndex].label);
+                DEBUGF(INDI::Logger::DBG_SESSION, "ClimateControl is now %s", ClimateControlSP[currentClimateControlIndex].label);
                 ClimateControlSP.setState(IPS_OK);
                 ClimateControlSP.apply();
                 return true;
@@ -680,15 +674,15 @@ void AllunaTCS2::TimerHit()
                     break;
                 case 'O': // cover started moving
                     LOG_INFO("TimerHit: cover started moving");
-                    CoverSP.setState(IPS_BUSY);
-                    CoverSP.apply();
+                    ParkCapSP.s= IPS_BUSY;
+                    IDSetSwitch(&ParkCapSP, NULL);
                     break;
                 case 'H': // cover stopped moving
                     LOG_INFO("TimetHit: cover stopped moving");
                     isCoverMoving = false;
                     receiveDone();
-                    CoverSP.setState(IPS_OK);
-                    CoverSP.apply();
+                    ParkCapSP.s= IPS_OK;
+                    IDSetSwitch(&ParkCapSP, NULL);
                     break;
                 default: // unexpected output
                     LOGF_INFO("TimerHit: unexpected response (%s)", res);
@@ -828,12 +822,39 @@ bool AllunaTCS2::getDustCover()
         return false;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Cover status read to be %s (%d)", (value==1)?"open":"closed", value);
-    CoverSP[OPEN ].setState((value==1)?ISS_ON:ISS_OFF);
-    CoverSP[CLOSED].setState((value!=1)?ISS_ON:ISS_OFF);
-    CoverSP.setState(IPS_OK);
+    ParkCapS[CAP_UNPARK].s = (value==1)?ISS_ON:ISS_OFF;
+    ParkCapS[CAP_PARK  ].s = (value!=1)?ISS_ON:ISS_OFF;
+    ParkCapSP.s = IPS_OK;
 
     return true;
 }
+
+IPState AllunaTCS2::ParkCap()
+{
+    if (ParkCapS[CAP_PARK  ].s == ISS_OFF) {
+        if (setDustCover()) // toggle state of dust cover
+            return IPS_BUSY;
+        else
+            return IPS_ALERT;
+    } else {
+        // Cover already parked, nothing to do
+        return IPS_OK;
+    }
+}
+
+IPState AllunaTCS2::UnParkCap()
+{
+    if (ParkCapS[CAP_UNPARK].s == ISS_OFF) {
+        if (setDustCover()) // toggle state of dust cover
+            return IPS_BUSY;
+        else
+            return IPS_ALERT;
+    } else {
+        // Cover already unparked, nothing to do
+        return IPS_OK;
+    }
+}
+
 
 bool AllunaTCS2::getStepping()
 {

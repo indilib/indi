@@ -21,11 +21,12 @@
 
 #pragma once
 #include "indifocuser.h"
+#include "indidustcapinterface.h"
 #include <mutex>
 #include <chrono>
 #include <ctime>
 
-class AllunaTCS2 : public INDI::Focuser //, public INDI::DustCapInterface
+class AllunaTCS2 : public INDI::Focuser, public INDI::DustCapInterface
 {
     public:
         AllunaTCS2();
@@ -44,6 +45,10 @@ class AllunaTCS2 : public INDI::Focuser //, public INDI::DustCapInterface
         // From INDI::DefaultDevice
         void TimerHit() override;
         bool saveConfigItems(FILE *fp) override;
+
+        // From Dust Cap
+        virtual IPState ParkCap() override;
+        virtual IPState UnParkCap() override;
 
         // From INDI::Focuser
         IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
@@ -76,11 +81,6 @@ class AllunaTCS2 : public INDI::Focuser //, public INDI::DustCapInterface
 
         typedef enum { MICRO = 1, SPEED = 0 } SteppingMode;
         SteppingMode steppingMode=MICRO;
-
-        // Dust cover
-        INDI::PropertySwitch CoverSP{2};
-        typedef enum { OPEN, CLOSED } CoverMode;
-
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Read Data From Controller
