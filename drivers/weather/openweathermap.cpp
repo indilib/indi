@@ -253,15 +253,30 @@ IPState OpenWeatherMap::updateWeather()
         weatherReport["wind"]["speed"].get_to(wind);
         // Cloud
         weatherReport["clouds"]["all"].get_to(clouds);
-        try
+        // Rain (does not exist in all reports)
+        if (weatherReport.contains("rain"))
         {
-            // Rain
-            weatherReport["rain"]["h"].get_to(rain);
-            // Snow
-            weatherReport["snow"]["h"].get_to(snow);
+            if (weatherReport["rain"].contains("h"))
+            {
+                weatherReport["rain"]["h"].get_to(rain);
+            }
+            else if (weatherReport["rain"].contains("1h"))
+            {
+                weatherReport["rain"]["1h"].get_to(rain);
+            }
         }
-        // Ignore error since these values do not exist in all reports.
-        catch (json::exception &e) {}
+        // Snow (does not exist in all reports)
+        if (weatherReport.contains("snow"))
+        {
+            if (weatherReport["snow"].contains("h"))
+            {
+                weatherReport["snow"]["h"].get_to(snow);
+            }
+            else if (weatherReport["snow"].contains("1h"))
+            {
+                weatherReport["snow"]["1h"].get_to(snow);
+            }
+        }
 
     }
     catch (json::exception &e)
