@@ -173,7 +173,7 @@ class CCD : public DefaultDevice, GuiderInterface
         }
 
         /**
-         * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initialized.
+         * @brief SetCCDCapability Set the CCD capabilities. All fields must be initialized.
          * @param cap pointer to CCDCapability struct.
          */
         void SetCCDCapability(uint32_t cap);
