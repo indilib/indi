@@ -1,3 +1,47 @@
++ From 2.0.7 to 2.0.8
+
+      e62adc696 2024-05-31 Nicholas Fasching    Fix "Al" Typo in indiccd.h (#2069)                                                                                                                    
+      824f83f4f 2024-05-30 Peter Englmaier      Make openweathermap show rain and snow data (#2068)                                                                                                   
+      ab211786d 2024-05-29 Sonny Cavazos        Update ioptronv3driver.cpp - Add new mounts to driver (#2066)                                                                                         
+      963447646 2024-05-23 Paweł Soja           Fix build - SWIG 4.2.0 (#2063)                                                                                                                        
+      e4e90326d 2024-05-23 Peter Englmaier      Implement DustCapInterface (#2061)                                                                                                                    
+      f1eff6411 2024-05-23 Jasem Mutlaq         Update qt5 package name for MacOS                                                                                                                     
+      e0c9ab931 2024-05-23 naheedsa             use size_t (#2062)                                                                                                                                    
+      560a07219 2024-05-19 Thomas Klausner      NetBSD fixes (#2053)                                                                                                                                  
+      91950811c 2024-05-19 naheedsa             Migrate Pegasus Upb (#2047)                                                                                                                           
+      3b12a795e 2024-05-19 naheedsa             Migrate Pegasus PPBA driver (#2046)                                                                                                                   
+      a300b9ff3 2024-05-19 naheedsa             Migrate INDI Astrolink4mini2 (#2045)                                                                                                                  
+      42f5cece3 2024-05-19 naheedsa             Migrate Pegasus PPB (#2056)                                                                                                                           
+      c64a3330a 2024-05-19 Eric Dejouhanet      fix(indiserver): avoid strict warning failure on socket struct copy. (#2059)                                                                          
+      13180ac7b 2024-05-19 Jasem Mutlaq         Migrate INDI::Dome (#2060)                                                                                                                            
+      8ae038eef 2024-05-16 Jasem Mutlaq         Set focuser default baud rate to 115200                                                                                                               
+      c47313019 2024-05-12 Paweł Soja           Fix Build fails with LTO (#2057)                                                                                                                      
+      e3b60ee73 2024-05-12 Paweł Soja           Add debhelper package - fix package build (#2058)                                                                                                     
+      82b03bd8c 2024-05-10 Jasem Mutlaq         Introduce random delays in filter simulators to simulate equipment                                                                                    
+      a74f09b74 2024-05-04 Jim                  indi_2.0.7_spec: updated version (#2050)                                                                                                              
+      dc91b2131 2024-05-05 alpha-frank          Astrotrac 360 Driver Motion Control Issue (#2052)                                                                                                     
+      abb286a89 2024-05-05 Peter Englmaier      Bugfix: update focuser temperature in alluna tcs2 driver (#2055)                                                                                      
+      18f82d491 2024-05-05 alpha-frank          Enable Astrotrac 360 driver guide pulse (#2054)                                                                                                       
+      7091f020c 2024-05-04 Jasem Mutlaq         Fix compile error                                                                                                                                     
+      70debc348 2024-05-01 Jasem Mutlaq         Fix C20X compile warnings                                                                                                                             
+      48a49fa90 2024-04-30 Jasem Mutlaq         Add missing Integra 85 focusing rotator                                                                                                               
+      1dbdacff1 2024-04-24 Jasem Mutlaq         Simplify iOptron focuser driver                                                                                                                       
+      02eea929a 2024-04-24 Jasem Mutlaq         If parking AZ is 360 then wrap to 0                                                                                                                   
+      4fea15b45 2024-04-22 naheedsa             Migrate Gemini driver (#2040)                                                                                                                         
+      4cb49b639 2024-04-22 naheedsa             Migrate Night Crawler driver (#2041)                                                                                                                  
+      8d1da0803 2024-04-22 naheedsa             Migrate Wanderer rotator lite (#2042)                                                                                                                 
+      1f7b8757a 2024-04-22 naheedsa             Migrate DeepskyDad FR1 driver (#2043)                                                                                                                 
+      6e01bf699 2024-04-22 naheedsa             Migrate nFrame driver (#2044)                                                                                                                         
+      730f65259 2024-04-21 Jasem Mutlaq         Add Astrolink 4 Mini II driver by Astrojolo                                                                                                           
+      2800ce2e2 2024-04-14 Jasem Mutlaq         Fix max focus range to correct value of 20000                                                                                                         
+      d6c058d4c 2024-04-12 Jasem Mutlaq         Disable Merlin mount check since it causing issues for Merlin users who reported the 0.655 value was incorrect for them                               
+      1d9e7a464 2024-04-12 Mario Haustein       Link against httplib if using system libraries (#2039)                                                                                                
+      6735d0dfa 2024-04-12 Jasem Mutlaq         Fix typo that lead to broken guide simulator                                                                                                          
+      da3dabd38 2024-04-09 naheedsa             avoid using .getName() for new INDI properties (#2038)                                                                                                
+      b08dc19c2 2024-04-09 Jasem Mutlaq         No need to use getName with new properties                                                                                                            
+      0f47c2579 2024-04-09 Jasem Mutlaq         Fix bug in falcon rotator migration                                                                                                                   
+      56bb66c5f 2024-04-01 Sonny Cavazos        Update pegasus_focuscube.cpp (#2037)
+
 + From 2.0.6 to 2.0.7
 
       be4195ca2 2024-03-29 Jasem Mutlaq         Fix interface not reported correctly in driver and incorrect usage of the logging functions                                                           
