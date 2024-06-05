@@ -369,15 +369,12 @@ IPState iEAFFocus::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState iEAFFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t newPosition = 0;
-    bool rc = false;
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    uint32_t newPosition = FocusAbsPosN[0].value + relativeTicks;
+    newPosition = std::max(0u, std::min(static_cast<uint32_t>(FocusAbsPosN[0].max), newPosition));
 
-    if (dir == FOCUS_INWARD)
-        newPosition = uint32_t(FocusAbsPosN[0].value) - ticks;
-    else
-        newPosition = uint32_t(FocusAbsPosN[0].value) + ticks;
-
-    rc = MoveMyFocuser(newPosition);
+    auto rc = MoveMyFocuser(newPosition);
 
     if (rc == false)
         return IPS_ALERT;
