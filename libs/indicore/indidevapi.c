@@ -68,12 +68,12 @@ XMLEle *configRootFP(const char *device)
     struct stat st;
     FILE *fp = NULL;
 
-    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
+    snprintf(configDir, MAXRBUF-1, "%s/.indi/", getenv("HOME"));
 
         if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF-1);
         else
-            snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, device);
+            snprintf(configFileName, MAXRBUF-1, "%s%s_config.xml", configDir, device);
 
 
     if (stat(configDir, &st) != 0)
