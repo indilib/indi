@@ -213,7 +213,7 @@ int fp_get_param (int argc, char *argv[], fpstate *fpptr)
 		    if (++iarg >= argc) {
 			fp_usage (); exit (-1);
 		    } else
-			strncpy (tile, argv[iarg], SZ_STR); /* checked below */
+			strncpy (tile, argv[iarg], SZ_STR-1); /* checked below */
 
 		} else if (argv[iarg][1] == 'v') {
 		    fpptr->verbose = 1;
@@ -251,7 +251,7 @@ int fp_get_param (int argc, char *argv[], fpstate *fpptr)
 		    if (++iarg >= argc) {
 			fp_usage (); fp_hint (); exit (-1);
 		    } else
-			strncpy (fpptr->outfile, argv[iarg], SZ_STR);
+			strncpy (fpptr->outfile, argv[iarg], SZ_STR-1);
 
 		} else if (argv[iarg][1] == 'H') {
 		    fp_help (); exit (0);
@@ -305,7 +305,7 @@ int fp_get_param (int argc, char *argv[], fpstate *fpptr)
 
 		if (++ndim > MAX_COMPRESS_DIM) {
 		    fp_msg ("Error: too many dimensions for `-t', max=");
-		    snprintf (tmp, SZ_STR,"%d\n", MAX_COMPRESS_DIM); fp_msg (tmp);
+		    snprintf (tmp, SZ_STR-1,"%d\n", MAX_COMPRESS_DIM); fp_msg (tmp);
 		    exit (-1);
 		}
 	    }
