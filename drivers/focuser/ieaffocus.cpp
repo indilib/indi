@@ -205,7 +205,7 @@ bool iEAFFocus::updateInfo()
 
     m_isMoving = ieafmove == 1;
     auto temperature = ieaftemp / 100.0 - 273.15;
-    auto reversed = (ieafdir == 0);
+    m_Reversed = (ieafdir == 0);
     auto currentlyReversed = FocusReverseS[INDI_ENABLED].s == ISS_ON;
 
     // Only update if there is change
@@ -216,10 +216,10 @@ bool iEAFFocus::updateInfo()
     }
 
     // Only update if there is change
-    if (reversed != currentlyReversed)
+    if (m_Reversed != currentlyReversed)
     {
-        FocusReverseS[INDI_ENABLED].s = reversed ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = reversed ? ISS_OFF : ISS_ON;
+        FocusReverseS[INDI_ENABLED].s = m_Reversed ? ISS_ON : ISS_OFF;
+        FocusReverseS[INDI_DISABLED].s = m_Reversed ? ISS_OFF : ISS_ON;
         FocusReverseSP.s = IPS_OK;
         IDSetSwitch(&FocusReverseSP, nullptr);
     }
@@ -287,7 +287,7 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
     int nbytes_written = 0, rc = -1;
 
     // If there is no change, return.
-    if ((enabled && FocusReverseS[INDI_ENABLED].s == ISS_ON) || (!enabled && FocusReverseS[INDI_DISABLED].s == ISS_ON))
+    if (enabled == m_Reversed)
         return true;
 
     // Change Direction
@@ -369,8 +369,7 @@ IPState iEAFFocus::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState iEAFFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
-    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * (m_Reversed ? -1 : 1);
     uint32_t newPosition = FocusAbsPosN[0].value + relativeTicks;
     newPosition = std::max(0u, std::min(static_cast<uint32_t>(FocusAbsPosN[0].max), newPosition));
 

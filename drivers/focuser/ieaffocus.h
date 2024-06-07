@@ -44,6 +44,7 @@ class iEAFFocus : public INDI::Focuser
 
     private:
         bool m_isMoving {false};
+        bool m_Reversed {false};
 
         void GetFocusParams();
         void setZero();
