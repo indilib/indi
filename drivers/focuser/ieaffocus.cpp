@@ -205,7 +205,7 @@ bool iEAFFocus::updateInfo()
 
     m_isMoving = ieafmove == 1;
     auto temperature = ieaftemp / 100.0 - 273.15;
-    auto reversed = (ieafdir == 1);
+    auto reversed = (ieafdir == 0);
     auto currentlyReversed = FocusReverseS[INDI_ENABLED].s == ISS_ON;
 
     // Only update if there is change
