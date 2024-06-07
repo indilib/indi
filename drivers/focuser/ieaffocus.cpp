@@ -269,6 +269,7 @@ bool iEAFFocus::MoveMyFocuser(uint32_t position)
     snprintf(cmd, 12, ":FM%7u#", position);
 
     // Set Position
+    tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         char errstr[MAXRBUF];
@@ -291,6 +292,7 @@ bool iEAFFocus::ReverseFocuser(bool enabled)
         return true;
 
     // Change Direction
+    tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":FR#", 4, &nbytes_written)) != TTY_OK)
     {
         char errstr[MAXRBUF];
@@ -308,6 +310,7 @@ void iEAFFocus::setZero()
 {
     int nbytes_written = 0, rc = -1;
     // Set Zero
+    tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":FZ#", 4, &nbytes_written)) != TTY_OK)
     {
         char errstr[MAXRBUF];
@@ -402,6 +405,7 @@ void iEAFFocus::TimerHit()
 bool iEAFFocus::AbortFocuser()
 {
     int nbytes_written;
+    tcflush(PortFD, TCIOFLUSH);
     if (tty_write(PortFD, ":FQ#", 4, &nbytes_written) == TTY_OK)
     {
         FocusAbsPosNP.s = IPS_IDLE;
