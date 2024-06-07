@@ -25,28 +25,31 @@
 #include "wanderer_cover_v4_ec.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
-#include <cerrno>
 #include <cstring>
 #include <string>
 #include <memory>
 #include <termios.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to WandererCoverV4EC.
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
-
-
-WandererCoverV4EC::WandererCoverV4EC()
+WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(), INDI::LightBoxInterface(this, true)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::initProperties()
 {
     INDI::DefaultDevice::initProperties();
+
+    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
+
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
     addAuxControls();
 
@@ -62,9 +65,7 @@ bool WandererCoverV4EC::initProperties()
     OCcontrolSP[Close].fill( "Close", "Close", ISS_ON);
     OCcontrolSP.fill(getDeviceName(), "Move Cover", "Move Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    // Light
-    SetLightNP[Light].fill( "Flat_Light", "PWM", "%.2f", 0, 255, 5, 0);
-    SetLightNP.fill(getDeviceName(), "Flat_Light", "Flat Light", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    LightIntensityNP.np[0].max = 255;
 
     // Heater
     SetHeaterNP[Heat].fill( "Heater", "PWM", "%.2f", 0, 150, 50, 0);
@@ -91,6 +92,9 @@ bool WandererCoverV4EC::initProperties()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::getData()
 {
     try
@@ -172,6 +176,9 @@ bool WandererCoverV4EC::getData()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WandererCoverV4EC::updateData(double closesetread, double opensetread, double positionread, double voltageread)
 {
     DataNP[closeset_read].setValue(closesetread);
@@ -188,6 +195,9 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     OCcontrolSP.apply();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
@@ -204,8 +214,8 @@ bool WandererCoverV4EC::updateProperties()
             LOG_INFO("New firmware available!");
         }
 
+        defineProperty(&ParkCapSP);
         defineProperty(DataNP);
-        defineProperty(SetLightNP);
         defineProperty(SetHeaterNP);
 
         defineProperty(CloseSetNP);
@@ -216,8 +226,8 @@ bool WandererCoverV4EC::updateProperties()
     else
     {
 
+        deleteProperty(ParkCapSP.name);
         deleteProperty(DataNP);
-        deleteProperty(SetLightNP);
         deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
@@ -227,8 +237,25 @@ bool WandererCoverV4EC::updateProperties()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererCoverV4EC::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (processLightBoxText(dev, name, texts, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    if (processLightBoxSwitch(dev, name, states, names, n))
+        return true;
+
     // Open&Close
     if (OCcontrolSP.isNameMatch(name))
     {
@@ -239,42 +266,47 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
             return false;
         }
         OCcontrolSP.update(states, names, n);
-        OCcontrolSP.setState(IPS_ALERT);
-        char cmd[128] = {0};
-        snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
-        sendCommand(cmd);
-        LOG_INFO("Moving...");
-        OCcontrolSP.apply();
-        Ismoving = true;
+        toggleCover(OCcontrolSP[Open].getState() == ISS_ON);
         return true;
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererCoverV4EC::toggleCover(bool open)
+{
+    OCcontrolSP[Open].setState(open ? ISS_ON : ISS_OFF);
+    OCcontrolSP[Close].setState(open ? ISS_OFF : ISS_ON);
+
+    char cmd[128] = {0};
+    snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
+    if (sendCommand(cmd))
+    {
+        OCcontrolSP.setState(IPS_BUSY);
+        LOG_INFO("Moving...");
+        Ismoving = true;
+        OCcontrolSP.apply();
+        return true;
+    }
+
+    OCcontrolSP.setState(IPS_ALERT);
+    OCcontrolSP.apply();
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
+    if (processLightBoxNumber(dev, name, values, names, n))
+        return true;
 
     if (dev && !strcmp(dev, getDeviceName()))
     {
-        // Light
-        if (SetLightNP.isNameMatch(name))
-        {
-            bool rc1 = false;
-            for (int i = 0; i < n; i++)
-            {
-                if(static_cast<int>(values[i]) > 0)
-                    rc1 = sendCommand(std::to_string(static_cast<int>(values[i])));
-                else
-                    rc1 = sendCommand("9999");
-            }
-
-            SetLightNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
-            if (SetLightNP.getState() == IPS_OK)
-                SetLightNP.update(values, names, n);
-            SetLightNP.apply();
-            return true;
-        }
         // Heater
         if (SetHeaterNP.isNameMatch(name))
         {
@@ -338,12 +370,71 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 const char *WandererCoverV4EC::getDefaultName()
 {
     return "WandererCover V4-EC";
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+IPState WandererCoverV4EC::ParkCap()
+{
+    if (toggleCover(false))
+    {
+        return IPS_BUSY;
+    }
+
+    return IPS_ALERT;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+IPState WandererCoverV4EC::UnParkCap()
+{
+    if (toggleCover(true))
+    {
+        return IPS_BUSY;
+    }
+
+    return IPS_ALERT;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
+{
+    auto rc = false;
+    if(value > 0)
+        rc = sendCommand(std::to_string(value));
+    else
+        rc = sendCommand("9999");
+
+    return rc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererCoverV4EC::EnableLightBox(bool enable)
+{
+    auto rc = false;
+    if(!enable)
+        rc = sendCommand("9999");
+    else
+        rc = sendCommand(std::to_string(static_cast<int>(LightIntensityN[0].value)));
+
+    return rc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::sendCommand(std::string command)
 {
     int nbytes_written = 0, rc = -1;
@@ -359,6 +450,9 @@ bool WandererCoverV4EC::sendCommand(std::string command)
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setDewPWM(int id, int value)
 {
     char cmd[64] = {0};
@@ -371,6 +465,9 @@ bool WandererCoverV4EC::setDewPWM(int id, int value)
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setClose(double value)
 {
     char cmd[64] = {0};
@@ -383,6 +480,9 @@ bool WandererCoverV4EC::setClose(double value)
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setOpen(double value)
 {
     char cmd[64] = {0};
@@ -395,6 +495,9 @@ bool WandererCoverV4EC::setOpen(double value)
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WandererCoverV4EC::TimerHit()
 {
     if (!isConnected())
@@ -407,12 +510,14 @@ void WandererCoverV4EC::TimerHit()
     SetTimer(getPollingPeriod());
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
     SetHeaterNP.save(fp);
-    SetLightNP.save(fp);
     CloseSetNP.save(fp);
     OpenSetNP.save(fp);
     return true;
