@@ -254,9 +254,19 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     DataNP.setState(IPS_OK);
     DataNP.apply();
 
+    auto prevParked = ParkCapS[CAP_PARK].s == ISS_ON;
+    auto prevState = ParkCapSP.s;
+
     ParkCapS[CAP_PARK].s = (positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF;
     ParkCapS[CAP_UNPARK].s = (positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF;
     ParkCapSP.s = (ParkCapS[CAP_PARK].s == ISS_ON || ParkCapS[CAP_UNPARK].s == ISS_ON) ? IPS_OK : IPS_IDLE;
+
+    auto currentParked = ParkCapS[CAP_PARK].s == ISS_ON;
+    auto currentState = ParkCapSP.s;
+
+    // Only update on state changes
+    if ((prevParked != currentParked) || (prevState != currentState))
+        IDSetSwitch(&ParkCapSP, nullptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -416,7 +426,7 @@ bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
     {
         EnableLightBox(false);
         LightS[INDI_ENABLED].s = ISS_OFF;
-        LightS[INDI_DISABLED].s = ISS_OFF;
+        LightS[INDI_DISABLED].s = ISS_ON;
         LightSP.s = IPS_IDLE;
         IDSetSwitch(&LightSP, nullptr);
     }
