@@ -277,6 +277,9 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
     if (processLightBoxSwitch(dev, name, states, names, n))
         return true;
 
+    if (processDustCapSwitch(dev, name, states, names, n))
+        return true;
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
