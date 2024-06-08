@@ -45,6 +45,7 @@ public:
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     virtual bool updateProperties() override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
 protected:
 
