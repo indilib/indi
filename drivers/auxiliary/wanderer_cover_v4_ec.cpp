@@ -43,6 +43,14 @@ WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(), INDI::LightBoxInter
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+const char *WandererCoverV4EC::getDefaultName()
+{
+    return "WandererCover V4-EC";
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::initProperties()
 {
     INDI::DefaultDevice::initProperties();
@@ -90,6 +98,67 @@ bool WandererCoverV4EC::initProperties()
     registerConnection(serialConnection);
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WandererCoverV4EC::updateProperties()
+{
+    INDI::DefaultDevice::updateProperties();
+
+    if (isConnected())
+    {
+        if(firmware >= 20240101)
+        {
+            LOGF_INFO("Firmware version: %d", firmware);
+        }
+        else
+        {
+            LOGF_INFO("Firmware version: %d", firmware);
+            LOG_INFO("New firmware available!");
+        }
+
+        defineProperty(&LightSP);
+        defineProperty(&LightIntensityNP);
+
+        defineProperty(&ParkCapSP);
+        defineProperty(DataNP);
+        defineProperty(SetHeaterNP);
+
+        defineProperty(CloseSetNP);
+        defineProperty(OpenSetNP);
+
+        defineProperty(OCcontrolSP);
+    }
+    else
+    {
+
+        deleteProperty(LightSP.name);
+        deleteProperty(LightIntensityNP.name);
+
+        deleteProperty(ParkCapSP.name);
+        deleteProperty(DataNP);
+        deleteProperty(SetHeaterNP);
+        deleteProperty(OpenSetNP);
+        deleteProperty(CloseSetNP);
+        deleteProperty(OCcontrolSP);
+
+    }
+
+    updateLightBoxProperties();
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void WandererCoverV4EC::ISGetProperties(const char *dev)
+{
+    INDI::DefaultDevice::ISGetProperties(dev);
+
+    // Get Light box properties
+    isGetLightBoxProperties(dev);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -195,47 +264,6 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     OCcontrolSP.apply();
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::updateProperties()
-{
-    INDI::DefaultDevice::updateProperties();
-
-    if (isConnected())
-    {
-        if(firmware >= 20240101)
-        {
-            LOGF_INFO("Firmware version: %d", firmware);
-        }
-        else
-        {
-            LOGF_INFO("Firmware version: %d", firmware);
-            LOG_INFO("New firmware available!");
-        }
-
-        defineProperty(&ParkCapSP);
-        defineProperty(DataNP);
-        defineProperty(SetHeaterNP);
-
-        defineProperty(CloseSetNP);
-        defineProperty(OpenSetNP);
-
-        defineProperty(OCcontrolSP);
-    }
-    else
-    {
-
-        deleteProperty(ParkCapSP.name);
-        deleteProperty(DataNP);
-        deleteProperty(SetHeaterNP);
-        deleteProperty(OpenSetNP);
-        deleteProperty(CloseSetNP);
-        deleteProperty(OCcontrolSP);
-
-    }
-    return true;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -271,30 +299,6 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::toggleCover(bool open)
-{
-    OCcontrolSP[Open].setState(open ? ISS_ON : ISS_OFF);
-    OCcontrolSP[Close].setState(open ? ISS_OFF : ISS_ON);
-
-    char cmd[128] = {0};
-    snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
-    if (sendCommand(cmd))
-    {
-        OCcontrolSP.setState(IPS_BUSY);
-        LOG_INFO("Moving...");
-        Ismoving = true;
-        OCcontrolSP.apply();
-        return true;
-    }
-
-    OCcontrolSP.setState(IPS_ALERT);
-    OCcontrolSP.apply();
-    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -373,10 +377,27 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char *WandererCoverV4EC::getDefaultName()
+bool WandererCoverV4EC::toggleCover(bool open)
 {
-    return "WandererCover V4-EC";
+    OCcontrolSP[Open].setState(open ? ISS_ON : ISS_OFF);
+    OCcontrolSP[Close].setState(open ? ISS_OFF : ISS_ON);
+
+    char cmd[128] = {0};
+    snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
+    if (sendCommand(cmd))
+    {
+        OCcontrolSP.setState(IPS_BUSY);
+        LOG_INFO("Moving...");
+        Ismoving = true;
+        OCcontrolSP.apply();
+        return true;
+    }
+
+    OCcontrolSP.setState(IPS_ALERT);
+    OCcontrolSP.apply();
+    return false;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
