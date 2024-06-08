@@ -242,11 +242,12 @@ protected:
 
     INDI::PropertySwitch CrashSP {1};
 
-    INDI::PropertySwitch ResolutionSP {2};
+    INDI::PropertySwitch ResolutionSP {3};
     inline static const std::vector<std::pair<uint32_t, uint32_t>> Resolutions =
         {
             {1280, 1024},
-            {6000, 4000}
+            {6000, 4000},
+            {0, 0} // Custom
         };
 
     static const constexpr char* SIMULATOR_TAB = "Simulator Config";
