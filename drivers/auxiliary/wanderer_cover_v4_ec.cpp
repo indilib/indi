@@ -68,6 +68,7 @@ bool WandererCoverV4EC::initProperties()
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     LightIntensityNP.np[0].max = 255;
+    LightIntensityNP.np[0].value = 100;
 
     // Heater
     SetHeaterNP[Heat].fill( "Heater", "PWM", "%.2f", 0, 150, 50, 0);
@@ -404,11 +405,21 @@ IPState WandererCoverV4EC::UnParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
 {
-    auto rc = false;
+    auto rc = true;
     if(value > 0)
-        rc = sendCommand(std::to_string(value));
+    {
+        // Only change if already enabled.
+        if (LightS[INDI_ENABLED].s == ISS_ON)
+            rc = sendCommand(std::to_string(value));
+    }
     else
-        rc = sendCommand("9999");
+    {
+        EnableLightBox(false);
+        LightS[INDI_ENABLED].s = ISS_OFF;
+        LightS[INDI_DISABLED].s = ISS_OFF;
+        LightSP.s = IPS_IDLE;
+        IDSetSwitch(&LightSP, nullptr);
+    }
 
     return rc;
 }
