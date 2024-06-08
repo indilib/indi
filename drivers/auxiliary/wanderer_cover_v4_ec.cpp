@@ -32,12 +32,11 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-// We declare an auto pointer to WandererCoverV4EC.
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
 WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(), INDI::LightBoxInterface(this, true)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,11 +66,6 @@ bool WandererCoverV4EC::initProperties()
     DataNP[position_read].fill( "Current_Position", "Current Position(°)", "%4.2f", 0, 999, 100, 0);
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
-
-    // Open&Close Control
-    OCcontrolSP[Open].fill( "Open", "Open", ISS_OFF);
-    OCcontrolSP[Close].fill( "Close", "Close", ISS_ON);
-    OCcontrolSP.fill(getDeviceName(), "Move Cover", "Move Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     LightIntensityNP.np[0].max = 255;
 
@@ -121,29 +115,22 @@ bool WandererCoverV4EC::updateProperties()
 
         defineProperty(&LightSP);
         defineProperty(&LightIntensityNP);
-
         defineProperty(&ParkCapSP);
         defineProperty(DataNP);
         defineProperty(SetHeaterNP);
-
         defineProperty(CloseSetNP);
         defineProperty(OpenSetNP);
-
-        defineProperty(OCcontrolSP);
     }
     else
     {
 
         deleteProperty(LightSP.name);
         deleteProperty(LightIntensityNP.name);
-
         deleteProperty(ParkCapSP.name);
         deleteProperty(DataNP);
         deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
-        deleteProperty(OCcontrolSP);
-
     }
 
     updateLightBoxProperties();
@@ -236,7 +223,6 @@ bool WandererCoverV4EC::getData()
         }
 
         Ismoving = false;
-        OCcontrolSP.setState( IPS_OK);
     }
     catch(std::exception &e)
     {
@@ -257,13 +243,10 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     DataNP.setState(IPS_OK);
     DataNP.apply();
 
-    OCcontrolSP[Open].setState( (positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF);
-    OCcontrolSP[Close].setState( (positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF);
-    OCcontrolSP.setState((OCcontrolSP[Open].getState() == ISS_ON
-                          || OCcontrolSP[Close].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
-    OCcontrolSP.apply();
+    ParkCapS[CAP_PARK].s = (positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF;
+    ParkCapS[CAP_UNPARK].s = (positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF;
+    ParkCapSP.s = (ParkCapS[CAP_PARK].s == ISS_ON || ParkCapS[CAP_UNPARK].s == ISS_ON) ? IPS_OK : IPS_IDLE;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -283,20 +266,6 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
 {
     if (processLightBoxSwitch(dev, name, states, names, n))
         return true;
-
-    // Open&Close
-    if (OCcontrolSP.isNameMatch(name))
-    {
-        if(DataNP[voltage_read].value <= 7)
-        {
-            LOG_ERROR("No power input!");
-            OCcontrolSP.setState(IPS_ALERT);
-            return false;
-        }
-        OCcontrolSP.update(states, names, n);
-        toggleCover(OCcontrolSP[Open].getState() == ISS_ON);
-        return true;
-    }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -379,22 +348,14 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::toggleCover(bool open)
 {
-    OCcontrolSP[Open].setState(open ? ISS_ON : ISS_OFF);
-    OCcontrolSP[Close].setState(open ? ISS_OFF : ISS_ON);
-
     char cmd[128] = {0};
-    snprintf(cmd, 128, "100%d", (OCcontrolSP[Open].getState() == ISS_ON) ? 1 : 0);
+    snprintf(cmd, 128, "100%d", open ? 1 : 0);
     if (sendCommand(cmd))
     {
-        OCcontrolSP.setState(IPS_BUSY);
-        LOG_INFO("Moving...");
         Ismoving = true;
-        OCcontrolSP.apply();
         return true;
     }
 
-    OCcontrolSP.setState(IPS_ALERT);
-    OCcontrolSP.apply();
     return false;
 }
 

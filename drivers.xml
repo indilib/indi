@@ -779,7 +779,7 @@
         </device>
         <device label="WandererCover V4-EC" manufacturer="Wanderer Astro">
             <driver name="WandererCover V4-EC">indi_wanderercover_v4_ec</driver>
-            <version>1.0</version>
+            <version>1.2</version>
         </device>
         <device label="DragonLIGHT" manufacturer="Dark Dragons Astro">
             <driver name="DragonLIGHT">indi_dragon_light</driver>

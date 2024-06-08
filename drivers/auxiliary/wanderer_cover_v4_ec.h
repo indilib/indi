@@ -78,13 +78,6 @@ private:
     bool setOpen(double value);
     void updateData(double closesetread,double opensetread,double positionread,double voltageread);
 
-    INDI::PropertySwitch OCcontrolSP{2};
-    enum
-        {
-            Open,
-            Close,
-        };
-
     INDI::PropertyNumber DataNP{4};
     enum
     {
