@@ -82,104 +82,104 @@ bool WeatherWatcher::createProperties()
             minOK = -1;
             maxOK = 0;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_1", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_1", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_1", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_1",  labelTP[0].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_RAIN_HOUR",  labelTP[0].text, minOK, maxOK, percWarn);
             if (criticalSP[0].getState())
-                setCriticalParameter("PARAMETER_1");
+                setCriticalParameter("WEATHER_RAIN_HOUR");
         }
         else if (x.first == keywordTP[1].getText())
         {
             minOK = -10;
             maxOK = 30;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_2", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_2", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_2", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_2", labelTP[1].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_TEMPERATURE", labelTP[1].text, minOK, maxOK, percWarn);
             if (criticalSP[1].getState())
-                setCriticalParameter("PARAMETER_2");
+                setCriticalParameter("WEATHER_TEMPERATURE");
         }
         else if (x.first == keywordTP[2].getText())
         {
             minOK = 0;
             maxOK = 20;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_3", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_3", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_3", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_3", labelTP[2].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_WIND_SPEED", labelTP[2].text, minOK, maxOK, percWarn);
             if (criticalSP[2].getState())
-                setCriticalParameter("PARAMETER_3");
+                setCriticalParameter("WEATHER_WIND_SPEED");
         }
         else if (x.first == keywordTP[3].getText())
         {
             minOK = 0;
             maxOK = 20;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_4", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_4", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_4", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_4", labelTP[3].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_WIND_GUST", labelTP[3].text, minOK, maxOK, percWarn);
             if (criticalSP[3].getState())
-               setCriticalParameter("PARAMETER_4");
+               setCriticalParameter("WEATHER_WIND_GUST");
         }
         else if (x.first == keywordTP[4].getText())
         {
             minOK = 0;
             maxOK = 20;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_5", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_5", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_5", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_5",  labelTP[4].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_CLOUDS",  labelTP[4].text, minOK, maxOK, percWarn);
             if (criticalSP[4].getState())
-              setCriticalParameter("PARAMETER_5");
+              setCriticalParameter("WEATHER_CLOUDS");
         }
         else if (x.first == keywordTP[5].getText())
         {
             minOK = 0;
             maxOK = 100;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_6", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_6", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_6", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_6", labelTP[5].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_HUMIDITY", labelTP[5].text, minOK, maxOK, percWarn);
             if (criticalSP[5].getState())
-                setCriticalParameter("PARAMETER_6");
+                setCriticalParameter("WEATHER_HUMIDITY");
         }
         else if (x.first == keywordTP[6].getText())
         {
             minOK = 983;
             maxOK = 1043;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_7", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_7", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_7", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_7", labelTP[6].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_PRESSURE", labelTP[6].text, minOK, maxOK, percWarn);
             if (criticalSP[6].getState())
-              setCriticalParameter("PARAMETER_7");
+              setCriticalParameter("WEATHER_PRESSURE");
         }
         else if (x.first == keywordTP[7].getText())
         {
             minOK = -1;
             maxOK = 0;
             percWarn = 15;
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_8", "MIN_OK", &minOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_8", "MAX_OK", &maxOK);
-            IUGetConfigNumber(getDeviceName(), "PARAMETER_8", "PERC_WARN", &percWarn);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "PERC_WARN", &percWarn);
 
-            addParameter("PARAMETER_8", labelTP[7].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_FORECAST", labelTP[7].text, minOK, maxOK, percWarn);
             if (criticalSP[7].getState())
-              setCriticalParameter("PARAMETER_8");
+              setCriticalParameter("WEATHER_FORECAST");
         }
     }
     return true;
@@ -224,15 +224,15 @@ bool WeatherWatcher::updateProperties()
 bool WeatherWatcher::getProperties()
 {
     // Labels for Parameters-------------------------------------------------------------------------------------
-    labelTP[0].fill("LABEL_1", "Measure 1", "Rain");
-    labelTP[1].fill("LABEL_2", "Measure 2", "Temperature");
-    labelTP[2].fill("LABEL_3", "Measure 3", "Wind");
-    labelTP[3].fill("LABEL_4", "Measure 4", "Gust");
-    labelTP[4].fill("LABEL_5", "Measure 5", "Clouds");
-    labelTP[5].fill("LABEL_6", "Measure 6", "Humidity");
-    labelTP[6].fill("lABEL_7", "Measure 7", "Pressure");
-    labelTP[7].fill("LABEL_8", "Measure 8", "Forecast");
-    labelTP.fill(getDeviceName(), "LABELS", "Labels", LABELS_TAB, IP_RW, 60, IPS_IDLE);
+    labelTP[0].fill("LABEL_1", "WEATHER_RAIN_HOUR", "Rain");
+    labelTP[1].fill("LABEL_2", "WEATHER_TEMPERATURE", "Temperature");
+    labelTP[2].fill("LABEL_3", "WEATHER_WIND_SPEED", "Wind");
+    labelTP[3].fill("LABEL_4", "WEATHER_WIND_GUST", "Gust");
+    labelTP[4].fill("LABEL_5", "WEATHER_CLOUDS", "Clouds");
+    labelTP[5].fill("LABEL_6", "WEATHER_HUMIDITY", "Humidity");
+    labelTP[6].fill("lABEL_7", "WEATHER_PRESSURE", "Pressure");
+    labelTP[7].fill("LABEL_8", "WEATHER_FORECAST", "Forecast");
+    labelTP.fill(getDeviceName(), "LABELS", "Property Label", LABELS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(labelTP);
     loadConfig(true, "LABELS");
 
@@ -344,35 +344,35 @@ IPState WeatherWatcher::updateWeather()
     {
         if (x.first == keywordTP[0].getText())
         {
-            setParameterValue("PARAMETER_1", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_RAIN_HOUR", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[1].getText())
         {
-            setParameterValue("PARAMETER_2", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_TEMPERATURE", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[2].getText())
         {
-            setParameterValue("PARAMETER_3", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_WIND_SPEED", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[3].getText())
         {
-            setParameterValue("PARAMETER_4", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_WIND_GUST", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[4].getText())
         {
-            setParameterValue("PARAMETER_5", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_CLOUDS", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[5].getText())
         {
-            setParameterValue("PARAMETER_6", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_HUMIDITY", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[6].getText())
         {
-            setParameterValue("PARAMETER_7", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_PRESSURE", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordTP[8].getText())
         {
-            setParameterValue("PARAMETER_8", std::strtod(x.second.c_str(), nullptr));
+            setParameterValue("WEATHER_FORECAST", std::strtod(x.second.c_str(), nullptr));
         }
     }
     return IPS_OK;
