@@ -536,6 +536,7 @@ bool WandererCoverV4EC::saveConfigItems(FILE * fp)
     SetHeaterNP.save(fp);
     CloseSetNP.save(fp);
     OpenSetNP.save(fp);
-    return true;
+
+    return saveLightBoxConfigItems(fp);
 }
 
