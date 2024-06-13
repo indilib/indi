@@ -248,10 +248,10 @@ IPState WeatherInterface::updateWeather()
 ////////////////////////////////////////////////////////////////////////////////////
 void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
 {
-    LOGF_DEBUG("Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk, numMaxOk, percWarning);
+    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f) ", name.c_str(), numMinOk, numMaxOk, percWarning);
 
     INDI::WidgetNumber oneParameter;
-    oneParameter.fill(name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
+    oneParameter.fill(name.c_str(), label.c_str(), "%.2f", numMinOk, numMaxOk, 0, 0);
     ParametersNP.push(std::move(oneParameter));
 
     if (numMinOk != numMaxOk)
@@ -286,7 +286,6 @@ bool WeatherInterface::setCriticalParameter(std::string name)
     return true;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////
@@ -297,21 +296,23 @@ IPState WeatherInterface::checkParameterState(const std::string &name) const
         return oneElement.isNameMatch(name);
     });
 
-    // Not
-    if (oneRange == ParametersRangeNP.end())
+    auto oneParameter = ParametersNP.findWidgetByName(name.c_str());
+    if (!oneParameter)
         return IPS_IDLE;
+
+    // If parameter is found but not in range, then it is a critical parameter
+    if (oneRange == ParametersRangeNP.end())
+    {
+        if (oneParameter->getMin() == 0 && oneParameter->getMax() == 0 && oneParameter->getValue() != 0)
+            return IPS_ALERT;
+        else
+            return IPS_IDLE;
+    }
 
     auto minLimit = (*oneRange)[MIN_OK].getValue();
     auto maxLimit = (*oneRange)[MAX_OK].getValue();
     auto percentageWarning = (*oneRange)[PERCENT_WARNING].getValue();
     auto rangeWarn = (maxLimit - minLimit) * (percentageWarning / 100);
-
-    if (minLimit == 0 && maxLimit == 0)
-        return IPS_IDLE;
-
-    auto oneParameter = ParametersNP.findWidgetByName(name.c_str());
-    if (!oneParameter)
-        return IPS_IDLE;
 
     auto value = oneParameter->getValue();
 
