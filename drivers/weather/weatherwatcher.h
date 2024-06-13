@@ -39,32 +39,25 @@ class WeatherWatcher : public INDI::Weather
         const char *getDefaultName() override;
 
         virtual bool initProperties() override;
+        virtual bool updateProperties() override;
         virtual void ISGetProperties(const char *dev) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual IPState updateWeather() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
         INDI::PropertyText keywordTP {8};
-        enum
-        {
-            RAIN,
-            TEMP,
-            WIND,
-            GUST,
-            CLOUDS,
-            HUMIDITY,
-            PRESSURE,
-            FORECAST
-        };
-
         INDI::PropertyText separatorTP {1};
+        INDI::PropertyText labelTP {8};
+        INDI::PropertySwitch criticalSP {8};
 
     private:
         std::map<std::string, std::string> createMap(std::string const &s);
         bool readWatchFile();
-        bool createPropertiesFromMap();
+        bool createProperties();
+        bool getProperties();
 
         INDI::PropertyText watchFileTP {1};
 
