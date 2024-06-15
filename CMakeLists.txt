@@ -298,7 +298,7 @@ if(INDI_BUILD_DRIVERS)
         find_package(GSL REQUIRED)
         find_package(JPEG REQUIRED)
         find_library(M_LIB m)
-        if(CYGWIN)
+        if(CYGWIN OR UNIX)
             find_package(Iconv REQUIRED)
         endif()
 
