@@ -24,14 +24,13 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${JPEG_LIBRARY}
     ${FFTW3_LIBRARIES}
     ${M_LIB}
-    $<$<PLATFORM_ID:CYGWIN>:${ICONV_LIBRARIES}>
+    ${CURL}
 )
 
-# Add Iconv
-if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-    # FreeBSD needs to find the correct GNU iconv library.
+# Add Iconv - FreeBSD needs to find the correct GNU iconv library.
+if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD"))
     find_package(Iconv REQUIRED)
-    list(APPEND ${PROJECT_NAME}_LIBS ${ICONV_LIBRARIES})
+    list(APPEND ${PROJECT_NAME}_LIBS ${Iconv_LIBRARIES})
 endif()
 
 # Add WebSocket

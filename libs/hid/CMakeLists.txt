@@ -43,8 +43,8 @@ install(FILES
 # ########## HID Test ##############
 if(APPLE)
     set(LIBS "-framework IOKit -framework CoreFoundation")
-elseif(CYGWIN)
-    set(LIBS ${ICONV_LIBRARIES})
+elseif(CYGWIN OR UNIX)
+    set(LIBS ${Iconv_LIBRARIES})
 endif()
 
 add_executable(indi_hid_test hidtest.cpp)
