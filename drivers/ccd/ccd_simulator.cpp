@@ -196,7 +196,10 @@ bool CCDSim::initProperties()
     for (uint8_t i = 0; i < Resolutions.size(); i++)
     {
         std::ostringstream ss;
-        ss << Resolutions[i].first << " x " << Resolutions[i].second;
+        if (Resolutions[i].first > 0)
+            ss << Resolutions[i].first << " x " << Resolutions[i].second;
+        else
+            ss << "Custom";
         ResolutionSP[i].fill(ss.str().c_str(), ss.str().c_str(), i == 0 ? ISS_ON : ISS_OFF);
     }
     ResolutionSP.fill(getDeviceName(), "CCD_RESOLUTION", "Resolution", SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -1220,7 +1223,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             ResolutionSP.apply();
 
             int index = ResolutionSP.findOnSwitchIndex();
-            if (index >= 0 && index < static_cast<int>(Resolutions.size()))
+            if (index >= 0 && index < static_cast<int>(Resolutions.size() - 1))
             {
                 SimulatorSettingsNP[SIM_XRES].setValue(Resolutions[index].first);
                 SimulatorSettingsNP[SIM_YRES].setValue(Resolutions[index].second);
