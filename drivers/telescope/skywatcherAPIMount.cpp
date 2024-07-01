@@ -943,6 +943,7 @@ bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
     AxisOffsetNP.save(fp);
     Axis1TrackRateNP.save(fp);
     Axis2TrackRateNP.save(fp);
+    AUXEncoderSP.save(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }
