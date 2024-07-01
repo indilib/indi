@@ -218,6 +218,7 @@ bool SkywatcherAPIMount::initProperties()
     AUXEncoderSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     AUXEncoderSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     AUXEncoderSP.fill(getDeviceName(), "AUX_ENCODERS", "AUX Encoders", TRACKING_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    AUXEncoderSP.load();
 
     // Snap port
     SnapPortSP[INDI_ENABLED].fill("INDI_ENABLED", "On", ISS_OFF);
@@ -459,7 +460,7 @@ bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState 
             auto enabled = AUXEncoderSP.findOnSwitchIndex() == INDI_ENABLED;
             TurnRAEncoder(enabled);
             TurnDEEncoder(enabled);
-            saveConfig(true, AUXEncoderSP.getName());
+            saveConfig(AUXEncoderSP);
             return true;
         }
 
@@ -1369,9 +1370,12 @@ bool SkywatcherAPIMount::updateProperties()
 
         if (HasAuxEncoders())
         {
-            LOG_INFO("AUX encoders detected. Turning on...");
-            TurnRAEncoder(true);
-            TurnDEEncoder(true);
+            // Since config is loaded, let's use this as starting point.
+            // We should not force AUX encoders if the user explicitly turned them off.
+            auto enabled = AUXEncoderSP[INDI_ENABLED].getState() == ISS_ON;
+            LOGF_INFO("AUX encoders detected. Turning %s...", enabled ? "on" : "off");
+            TurnRAEncoder(enabled);
+            TurnDEEncoder(enabled);
             defineProperty(AUXEncoderSP);
         }
 
@@ -1424,7 +1428,7 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(Axis2TrackRateNP);
 
         if (HasAuxEncoders())
-            deleteProperty(AUXEncoderSP.getName());
+            deleteProperty(AUXEncoderSP);
 
         return true;
     }
