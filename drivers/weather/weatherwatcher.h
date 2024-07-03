@@ -61,8 +61,5 @@ class WeatherWatcher : public INDI::Weather
 
         INDI::PropertyText watchFileTP {1};
 
-        bool initialParse { false };
-        std::string readBuffer;
-
         std::map<std::string, std::string> weatherMap;
 };

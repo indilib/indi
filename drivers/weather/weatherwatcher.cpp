@@ -127,7 +127,7 @@ bool WeatherWatcher::createProperties()
 
             addParameter("WEATHER_WIND_GUST", labelTP[3].text, minOK, maxOK, percWarn);
             if (criticalSP[3].getState())
-               setCriticalParameter("WEATHER_WIND_GUST");
+                setCriticalParameter("WEATHER_WIND_GUST");
         }
         else if (x.first == keywordTP[4].getText())
         {
@@ -140,7 +140,7 @@ bool WeatherWatcher::createProperties()
 
             addParameter("WEATHER_CLOUDS",  labelTP[4].text, minOK, maxOK, percWarn);
             if (criticalSP[4].getState())
-              setCriticalParameter("WEATHER_CLOUDS");
+                setCriticalParameter("WEATHER_CLOUDS");
         }
         else if (x.first == keywordTP[5].getText())
         {
@@ -166,7 +166,7 @@ bool WeatherWatcher::createProperties()
 
             addParameter("WEATHER_PRESSURE", labelTP[6].text, minOK, maxOK, percWarn);
             if (criticalSP[6].getState())
-              setCriticalParameter("WEATHER_PRESSURE");
+                setCriticalParameter("WEATHER_PRESSURE");
         }
         else if (x.first == keywordTP[7].getText())
         {
@@ -179,7 +179,7 @@ bool WeatherWatcher::createProperties()
 
             addParameter("WEATHER_FORECAST", labelTP[7].text, minOK, maxOK, percWarn);
             if (criticalSP[7].getState())
-              setCriticalParameter("WEATHER_FORECAST");
+                setCriticalParameter("WEATHER_FORECAST");
         }
     }
     return true;
@@ -396,6 +396,7 @@ bool WeatherWatcher::readWatchFile()
 
     if (curl)
     {
+        std::string readBuffer;
         curl_easy_setopt(curl, CURLOPT_URL, requestURL);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
