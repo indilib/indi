@@ -437,6 +437,10 @@
             <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="Pegasus FalconV2" manufacturer="Pegasus Astro">
+            <driver name="Pegasus FalconV2">indi_falconv2_rotator</driver>
+            <version>1.0</version>
+        </device>
         <device label="Integra 85" manufacturer="Gemini Telescope">
             <driver name="Integra85">indi_integra_focus</driver>
             <version>1.1</version>
