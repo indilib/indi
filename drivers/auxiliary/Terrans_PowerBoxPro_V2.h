@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "libindi/defaultdevice.h"
+#include "defaultdevice.h"
 #include "indiweatherinterface.h"
 
 #include <vector>
