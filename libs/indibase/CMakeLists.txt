@@ -152,6 +152,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     indiguiderinterface.cpp
     indifilterinterface.cpp
     indirotatorinterface.cpp
+    indirelayinterface.cpp
     indidome.cpp
     indigps.cpp
     indiweather.cpp
@@ -194,6 +195,7 @@ list(APPEND ${PROJECT_NAME}_HEADERS
     indiguiderinterface.h
     indifilterinterface.h
     indirotatorinterface.h
+    indirelayinterface.h
     timer/inditimer.h
     timer/indielapsedtimer.h
     thread/indisinglethreadpool.h

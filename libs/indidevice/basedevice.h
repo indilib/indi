@@ -99,6 +99,8 @@ class BaseDevice
             SPECTROGRAPH_INTERFACE  = (1 << 13), /**< Spectrograph interface */
             CORRELATOR_INTERFACE    = (1 << 14), /**< Correlators (interferometers) interface */
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
+            RELAY_INTERFACE         = (1 << 16), /**< Relay interface */
+            POWER_INTERFACE         = (1 << 17), /**< Auxiliary interface */
 
             SENSOR_INTERFACE        = SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE
         };

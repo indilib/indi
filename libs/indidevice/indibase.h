@@ -32,6 +32,8 @@
  *    <li>RotatorInterface: Basic interface for Rotator functions.</li>
  *    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
  *    <li>LightBoxInterface: Basic interface for remotely controlled light boxes/switches.</li>
+ *    <li>RelayInterface: Basic interface for remotely controller relays.</li>
+ *    <li>PowerInterface: Basic interface for generic power boxes.</li>
  *    <li>CCD: Base class for CCD drivers. Provides basic support for single chip CCD and CCDs with a guide head as well.</li>
  *    <li>Telescope: Base class for telescope drivers.</li>
  *    <li>FilterWheel: Base class for Filter Wheels. It implements the FilterInterface.</li>
@@ -65,6 +67,8 @@ class SensorInterface;
 class DomeInterface;
 class DustCapInterface;
 class LightBoxInterface;
+class RelayInterface;
+class PowerInterface;
 class CCD;
 class Spectrograph;
 class Detector;
