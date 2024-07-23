@@ -44,7 +44,7 @@ static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 7);
+    setVersion(1, 8);
 
     driver.reset(new Driver(getDeviceName()));
 
@@ -227,16 +227,27 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
+        getStartupData();
+
         defineProperty(&HomeSP);
 
-        /* v3.0 Create PEC switches */
-        defineProperty(&PECTrainingSP);
-        defineProperty(&PECInfoTP);
-        // End Mod */
+        if (m_MountType != Azimuth)
+        {
+            /* v3.0 Create PEC switches */
+            defineProperty(&PECTrainingSP);
+            defineProperty(&PECInfoTP);
+            // End Mod */
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+            defineProperty(&GuideNSNP);
+            defineProperty(&GuideWENP);
+            defineProperty(&GuideRateNP);
+        }
+        else
+        {
+            // Undefine Guider Interface for Azimuth mounts.
+            setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
+            syncDriverInfo();
+        }
 
         defineProperty(&FirmwareTP);
         defineProperty(&GPSStatusSP);
@@ -244,25 +255,29 @@ bool IOptronV3::updateProperties()
         defineProperty(&HemisphereSP);
         defineProperty(&SlewModeSP);
         defineProperty(&DaylightSP);
-        defineProperty(&CWStateSP);
 
-        defineProperty(MeridianActionSP);
-        defineProperty(MeridianLimitNP);
-
-        getStartupData();
+        if (m_MountType != Azimuth)
+        {
+            defineProperty(&CWStateSP);
+            defineProperty(MeridianActionSP);
+            defineProperty(MeridianLimitNP);
+        }
     }
     else
     {
         deleteProperty(HomeSP.name);
 
-        /* v3.0 Delete PEC switches */
-        deleteProperty(PECTrainingSP.name);
-        deleteProperty(PECInfoTP.name);
-        // End Mod*/
+        if (m_MountType != Azimuth)
+        {
+            /* v3.0 Delete PEC switches */
+            deleteProperty(PECTrainingSP.name);
+            deleteProperty(PECInfoTP.name);
+            // End Mod*/
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+            deleteProperty(GuideNSNP.name);
+            deleteProperty(GuideWENP.name);
+            deleteProperty(GuideRateNP.name);
+        }
 
         deleteProperty(FirmwareTP.name);
         deleteProperty(GPSStatusSP.name);
@@ -270,10 +285,13 @@ bool IOptronV3::updateProperties()
         deleteProperty(HemisphereSP.name);
         deleteProperty(SlewModeSP.name);
         deleteProperty(DaylightSP.name);
-        deleteProperty(CWStateSP.name);
 
-        deleteProperty(MeridianActionSP);
-        deleteProperty(MeridianLimitNP);
+        if (m_MountType != Azimuth)
+        {
+            deleteProperty(CWStateSP.name);
+            deleteProperty(MeridianActionSP);
+            deleteProperty(MeridianLimitNP);
+        }
     }
 
     return true;
@@ -291,16 +309,26 @@ void IOptronV3::getStartupData()
         IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
 
         FirmwareTP.s = IPS_OK;
-        IDSetText(&FirmwareTP, nullptr);
+        //IDSetText(&FirmwareTP, nullptr);
+
+        if (firmwareInfo.Model.find("AZ") != std::string::npos || firmwareInfo.Model.find("AA") != std::string::npos)
+            m_MountType = Azimuth;
+        else if (firmwareInfo.Model.find("-EC") != std::string::npos)
+            m_MountType = EquatorialEncoders;
+        else
+            m_MountType = EquatorialNoEncoders;
     }
 
-    LOG_DEBUG("Getting guiding rate...");
-    double RARate = 0, DERate = 0;
-    if (driver->getGuideRate(&RARate, &DERate))
+    if (m_MountType != Azimuth)
     {
-        GuideRateN[RA_AXIS].value = RARate;
-        GuideRateN[DEC_AXIS].value = DERate;
-        IDSetNumber(&GuideRateNP, nullptr);
+        LOG_DEBUG("Getting guiding rate...");
+        double RARate = 0, DERate = 0;
+        if (driver->getGuideRate(&RARate, &DERate))
+        {
+            GuideRateN[RA_AXIS].value = RARate;
+            GuideRateN[DEC_AXIS].value = DERate;
+            //IDSetNumber(&GuideRateNP, nullptr);
+        }
     }
 
     int utcOffsetMinutes = 0;
@@ -336,7 +364,7 @@ void IOptronV3::getStartupData()
         DaylightS[0].s = dayLightSavings ? ISS_ON : ISS_OFF;
         DaylightS[1].s = !dayLightSavings ? ISS_ON : ISS_OFF;
         DaylightSP.s = IPS_OK;
-        IDSetSwitch(&DaylightSP, nullptr);
+        //IDSetSwitch(&DaylightSP, nullptr);
     }
 
     // Get Longitude and Latitude from mount
@@ -370,15 +398,18 @@ void IOptronV3::getStartupData()
 
     IOP_MB_STATE action;
     uint8_t degrees = 0;
-    if (driver->getMeridianBehavior(action, degrees))
+    if (m_MountType != Azimuth)
     {
-        MeridianActionSP.reset();
-        MeridianActionSP[action].setState(ISS_ON);
-        MeridianActionSP.setState(IPS_OK);
-        MeridianLimitNP[0].setValue(degrees);
+        if (driver->getMeridianBehavior(action, degrees))
+        {
+            MeridianActionSP.reset();
+            MeridianActionSP[action].setState(ISS_ON);
+            MeridianActionSP.setState(IPS_OK);
+            MeridianLimitNP[0].setValue(degrees);
 
-        LOGF_INFO("Reading mount meridian behavior: When mount reaches %.f degrees past meridian, it will %s.",
-                  MeridianLimitNP[0].getValue(), MeridianActionSP[IOP_MB_STOP].getState() == ISS_ON ? "stop" : "flip");
+            LOGF_INFO("Reading mount meridian behavior: When mount reaches %.f degrees past meridian, it will %s.",
+                      MeridianLimitNP[0].getValue(), MeridianActionSP[IOP_MB_STOP].getState() == ISS_ON ? "stop" : "flip");
+        }
     }
 
     double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
@@ -850,16 +881,21 @@ bool IOptronV3::ReadScopeStatus()
                 }
             }
         }
-        if (pierState == IOP_PIER_UNKNOWN)
-            setPierSide(PIER_UNKNOWN);
-        else
-            setPierSide(pierState == IOP_PIER_EAST ? PIER_EAST : PIER_WEST);
 
-        if (IUFindOnSwitchIndex(&CWStateSP) != cwState)
+        if (m_MountType != Azimuth)
         {
-            IUResetSwitch(&CWStateSP);
-            CWStateS[cwState].s = ISS_ON;
-            IDSetSwitch(&CWStateSP, nullptr);
+            if (pierState == IOP_PIER_UNKNOWN)
+                setPierSide(PIER_UNKNOWN);
+            else
+                setPierSide(pierState == IOP_PIER_EAST ? PIER_EAST : PIER_WEST);
+
+
+            if (IUFindOnSwitchIndex(&CWStateSP) != cwState)
+            {
+                IUResetSwitch(&CWStateSP);
+                CWStateS[cwState].s = ISS_ON;
+                IDSetSwitch(&CWStateSP, nullptr);
+            }
         }
 
         NewRaDec(currentRA, currentDEC);

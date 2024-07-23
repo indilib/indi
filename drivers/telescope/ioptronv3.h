@@ -103,6 +103,17 @@ class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
             */
         bool GetPECDataStatus(bool enabled);
 
+        typedef enum
+        {
+            Azimuth,
+            EquatorialEncoders,
+            EquatorialNoEncoders,
+            Unknown
+        } MountType;
+
+
+        MountType m_MountType {Unknown};
+
         /* Mod v3.0 Adding PEC Recording Switches  */
         ISwitch PECTrainingS[2];
         ISwitchVectorProperty PECTrainingSP;
