@@ -309,7 +309,7 @@ class DefaultDevice : public ParentDevice
         /**
          * @return getInterface Return the interface declared by the driver.
          */
-        uint16_t getDriverInterface() const;
+        uint32_t getDriverInterface() const;
 
         /**
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
@@ -318,7 +318,7 @@ class DefaultDevice : public ParentDevice
          * @warning This only updates the internal driver interface property and does not send it to the
          * client. To synchronize the client, use syncDriverInfo function.
          */
-        void setDriverInterface(uint16_t value);
+        void setDriverInterface(uint32_t value);
 
     public:
         /** @brief Add a device to the watch list.

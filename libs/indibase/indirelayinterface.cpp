@@ -63,7 +63,7 @@ void RelayInterface::initProperties(const char *groupName, uint8_t relays)
 
     RelaysSP.reserve(relays);
     // Initialize switches, use labels if loaded.
-    for (auto i = 0; i < relays; i++)
+    for (size_t i = 0; i < relays; i++)
     {
         auto name = "RELAY_" + std::to_string(i);
         auto label = "Relay #" + std::to_string(i);
@@ -108,7 +108,7 @@ bool RelayInterface::processSwitch(const char *dev, const char *name, ISState st
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        for (auto i = 0; i < RelaysSP.size(); i++)
+        for (size_t i = 0; i < RelaysSP.size(); i++)
         {
             if (RelaysSP[i].isNameMatch(name))
             {
