@@ -49,8 +49,8 @@ void RelayInterface::initProperties(const char *groupName, uint8_t relays)
     // Initialize labels
     for (auto i = 0; i < relays; i++)
     {
-        auto name = "RELAY_" + std::to_string(i);
-        auto label = "Relay #" + std::to_string(i);
+        auto name = "RELAY_" + std::to_string(i + 1);
+        auto label = "Relay #" + std::to_string(i + 1);
 
         INDI::WidgetText oneLabel;
         oneLabel.fill(name, label, label);
@@ -65,8 +65,8 @@ void RelayInterface::initProperties(const char *groupName, uint8_t relays)
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < relays; i++)
     {
-        auto name = "RELAY_" + std::to_string(i);
-        auto label = "Relay #" + std::to_string(i);
+        auto name = "RELAY_" + std::to_string(i + 1);
+        auto label = "Relay #" + std::to_string(i + 1);
 
         INDI::PropertySwitch oneRelay {3};
         oneRelay[Open].fill("OPEN", "Open", ISS_OFF);
