@@ -792,7 +792,11 @@
         <device label="Terrans PowerBoxPro V2" manufacturer="Terrans Industry">
             <driver name="Terrans PowerBoxPro V2">indi_terrans_powerboxpro_v2</driver>
             <version>1.0</version>
-        </device>   
+        </device>
+        <device label="Waveshare Relay" manufacturer="Waveshare">
+            <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">

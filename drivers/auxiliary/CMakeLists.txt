@@ -333,3 +333,13 @@ SET(dragonlight_SRC
 add_executable(indi_dragon_light ${dragonlight_SRC})
 target_link_libraries(indi_dragon_light indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
+
+# ########## Waveshare Relay ###############
+SET(wavesharerelay_SRC
+    waveshare_modbus_relay.cpp
+    ../../libs/modbus/nanomodbus.c
+    )
+
+add_executable(indi_wavesharemodbus_relay ${wavesharerelay_SRC})
+target_link_libraries(indi_wavesharemodbus_relay indidriver)
+install(TARGETS indi_wavesharemodbus_relay RUNTIME DESTINATION bin)
