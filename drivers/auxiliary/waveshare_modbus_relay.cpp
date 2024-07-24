@@ -181,7 +181,7 @@ bool WaveshareRelay::QueryRelay(uint32_t index, Status &status)
     }
     else
     {
-        status = static_cast<Status>(nmbs_bitfield_read(coils, index));
+        status = (nmbs_bitfield_read(coils, index) == 0) ? Closed : Opened;
         return true;
     }
 }
