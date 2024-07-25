@@ -1,5 +1,5 @@
 /*
-    Output Interface
+    Input Interface
     Copyright (C) 2024 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -27,12 +27,12 @@
 #include "indipropertytext.h"
 
 /**
- * \class OutputInterface
-   \brief Provides interface to implement Digital Boolean Output (On/Off) functionality.
+ * \class InputInterface
+   \brief Provides interface to implement Digital/Analog input functionality.
 
-   Example implemenations are web-enabled Outputs and GPIOs.
+   Example implemenations are web-enabled observatory controllers and GPIOs.
 
-   A web controlled Output is a simple device that can open, close, or flip a Output switch.
+   A typical observatory controll usually support both InputInterface and OutputInterface
 
    \e IMPORTANT: initFilterProperties() must be called before any other function to initialize the filter properties.
 
@@ -41,66 +41,53 @@
 namespace INDI
 {
 
-class OutputInterface
+class InputInterface
 {
     public:
-        /*! Output switch status. This is regardless on whether switch is normally closed or normally opened. */
+        /*! Input boolean status. This is regardless on whether Input is Active low or high. */
         typedef enum
         {
-            Opened,     /*!< Switch is open circuit. */
-            Closed,     /*!< Switch is close circuit. */
-            Unknown     /*!< Could not determined switch status. */
+            On,     /*!< Input is on. */
+            Off,    /*!< Input is off. */
+            Unknown /*!< Could not determined switch status. */
         } Status;
 
-        /*! Output switch Command. */
-        typedef enum
-        {
-            Open,
-            Close,
-            Flip
-        } Command;
-
         /**
-         * \brief Update all digital outputs
-         * \return True if operation is successful, false otherwise
-         * \note UpdateDigitalOutputs should either be called periodically in the child's TimerHit or custom timer function or when an
-         * interrupt or trigger warrants updating the digital outputs. Only updated properties that had a change in status since the last
-         * time this function was called should be sent to the clients to reduce unnecessary updates.
-         * Polling or Event driven implemetation depends on the concrete class hardware capabilities.
-         */
-        virtual bool UpdateDigitalOutputs() = 0;
-
-        /**
-         * \brief Send command to output
+         * \brief Update all digital inputs
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandOutput(uint32_t index, Command command) = 0;
+        virtual bool UpdateDigitalInputs() = 0;
+
+        /**
+         * \brief Update all analog inputs
+         * \return True if operation is successful, false otherwise
+         */
+        virtual bool UpdateAnalogInputs() = 0;
 
     protected:
         /**
-         * @brief OutputInterface Initiailize Output Interface
+         * @brief InputInterface Initiailize Input Interface
          * @param defaultDevice default device that owns the interface
          */
-        explicit OutputInterface(DefaultDevice *defaultDevice);
-        ~OutputInterface();
+        explicit InputInterface(DefaultDevice *defaultDevice);
+        ~InputInterface();
 
         /**
          * \brief Initialize filter wheel properties. It is recommended to call this function within
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define filter wheel properties.
-         * \param outputs Number of Outputs
-         * \param prefix Prefix used to label outputs. By default, Output #1, Output #2..etc
+         * \param digital Number of digital Inputs
+         * \param analog Number of analog Inputs
+         * \param digitalPrefix Prefix used to label digital Inputs. By default, Digital #1, Digital #2..etc
+         * \param analogPrefix Prefix used to label analog Inputs. By default, Analog #1, Analog #2..etc
          */
-        void initProperties(const char *groupName, uint8_t outputs, const std::string &prefix = "Output");
+        void initProperties(const char *groupName, uint8_t digital, uint8_t analog, const std::string &digitalPrefix = "Digital", const std::string &analogPrefix = "Analog");
 
         /**
          * @brief updateProperties Defines or Delete properties based on default device connection status
          * @return True if all is OK, false otherwise.
          */
         bool updateProperties();
-
-        /** \brief Process switch properties */
-        bool processSwitch(const char *dev, const char *name, ISState states[], char *names[], int n);
 
         /** \brief Process text properties */
         bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
@@ -112,10 +99,14 @@ class OutputInterface
          */
         bool saveConfigItems(FILE *fp);
 
-        // Output Toggle
-        std::vector<INDI::PropertySwitch> DigitalOutputsSP;
-        // Output Labels
-        INDI::PropertyText DigitalOutputLabelsTP {0};
+        // Digital Input
+        std::vector<INDI::PropertySwitch> DigitalInputsSP;
+        // Analog Input
+        std::vector<INDI::PropertyNumber> AnalogInputsNP;
+        // Digital Input Labels
+        INDI::PropertyText DigitalInputLabelsTP {0};
+        // Analog Input Labels
+        INDI::PropertyText AnalogInputLabelsTP {0};
 
         DefaultDevice *m_defaultDevice { nullptr };
 };

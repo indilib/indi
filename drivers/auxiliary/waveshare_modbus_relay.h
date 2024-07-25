@@ -39,12 +39,14 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
         // Relay
 
         /**
-         * \brief Query single relay status
-         * \param index Relay index
-         * \param status Store relay status in this variable.
+         * \brief Update all digital outputs
          * \return True if operation is successful, false otherwise
+         * \note UpdateDigitalOutputs should either be called periodically in the child's TimerHit or custom timer function or when an
+         * interrupt or trigger warrants updating the digital outputs. Only updated properties that had a change in status since the last
+         * time this function was called should be sent to the clients to reduce unnecessary updates.
+         * Polling or Event driven implemetation depends on the concrete class hardware capabilities.
          */
-        virtual bool ReadOutput(uint32_t index, Status &status) override;
+        virtual bool UpdateDigitalOutputs() override;
 
         /**
          * \brief Send command to relay
@@ -57,6 +59,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
 
     private:
         Connection::TCP *tcpConnection {nullptr};
+        INDI::PropertyText FirmwareVersionTP {1};
         int PortFD{-1};
         nmbs_t nmbs;
 };

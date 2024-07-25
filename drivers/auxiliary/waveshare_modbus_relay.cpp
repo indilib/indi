@@ -52,6 +52,9 @@ bool WaveshareRelay::initProperties()
 
     registerConnection(tcpConnection);
 
+    FirmwareVersionTP[0].fill("VERSION", "Version", "1.00");
+    FirmwareVersionTP.fill(getDeviceName(), "FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
     return true;
 }
 
@@ -65,7 +68,12 @@ bool WaveshareRelay::updateProperties()
 
     if (isConnected())
     {
+        defineProperty(FirmwareVersionTP);
         SetTimer(getPollingPeriod());
+    }
+    else
+    {
+        deleteProperty(FirmwareVersionTP);
     }
 
     return true;
@@ -96,8 +104,18 @@ bool WaveshareRelay::Handshake()
     // Set only the response timeout. Byte timeout will be handled by the TCP connection
     nmbs_set_read_timeout(&nmbs, 1000);
 
-    INDI::OutputInterface::Status status;
-    return ReadOutput(0, status);
+    uint16_t output;
+    err = nmbs_read_holding_registers(&nmbs, 0x8000, 1, &output);
+    if (err == NMBS_ERROR_NONE)
+    {
+        auto version = std::to_string(output / 100.0);
+        FirmwareVersionTP[0].setText(version);
+        FirmwareVersionTP.setState(IPS_OK);
+        return true;
+    }
+
+    LOGF_ERROR("Failed to query device firmware version: %d", err);
+    return false;
 }
 
 
@@ -149,17 +167,7 @@ void WaveshareRelay::TimerHit()
     if (!isConnected())
         return;
 
-    for (int i = 0; i < 8; i++)
-    {
-        INDI::OutputInterface::Status status;
-        if (ReadOutput(i, status))
-        {
-            OutputsSP[i].reset();
-            OutputsSP[i][status].setState(ISS_ON);
-            OutputsSP[i].setState(IPS_OK);
-            OutputsSP[i].apply();
-        }
-    }
+    UpdateDigitalOutputs();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -167,7 +175,7 @@ void WaveshareRelay::TimerHit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WaveshareRelay::ReadOutput(uint32_t index, Status &status)
+bool WaveshareRelay::UpdateDigitalOutputs()
 {
     nmbs_bitfield coils = {0};
     auto err = nmbs_read_coils(&nmbs, 0, 8, coils);
@@ -178,7 +186,19 @@ bool WaveshareRelay::ReadOutput(uint32_t index, Status &status)
     }
     else
     {
-        status = (nmbs_bitfield_read(coils, index) == 0) ? Closed : Opened;
+        for (size_t i = 0; i < DigitalOutputsSP.size(); i++)
+        {
+            auto oldState = DigitalOutputsSP[i].findOnSwitchIndex() == 0 ? Opened : Closed;
+            auto newState = (nmbs_bitfield_read(coils, i) == 0) ? Closed : Opened;
+            if (oldState != newState)
+            {
+                auto index = newState == Opened ? 0 : 1;
+                DigitalOutputsSP[i].reset();
+                DigitalOutputsSP[i][index].setState(ISS_ON);
+                DigitalOutputsSP[i].setState(IPS_OK);
+                DigitalOutputsSP[i].apply();
+            }
+        }
         return true;
     }
 }

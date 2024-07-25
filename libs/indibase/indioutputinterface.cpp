@@ -44,28 +44,28 @@ OutputInterface::~OutputInterface()
 /////////////////////////////////////////////////////////////////////////////////////////////
 void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, const std::string &prefix)
 {
-    OutputLabelsTP.reserve(Outputs);
+    DigitalOutputLabelsTP.reserve(Outputs);
 
     // Initialize labels
     for (auto i = 0; i < Outputs; i++)
     {
-        auto name = "OUTPUT_" + std::to_string(i + 1);
+        auto name = "DIGITAL_OUTPUT_" + std::to_string(i + 1);
         auto label = prefix + " #" + std::to_string(i + 1);
 
         INDI::WidgetText oneLabel;
         oneLabel.fill(name, label, label);
-        OutputLabelsTP.push(std::move(oneLabel));
+        DigitalOutputLabelsTP.push(std::move(oneLabel));
     }
 
-    OutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "OUTPUT_LABELS", "Labels", groupName, IP_RW, 60, IPS_IDLE);
-    OutputLabelsTP.shrink_to_fit();
-    OutputLabelsTP.load();
+    DigitalOutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_OUTPUT_LABELS", "Labels", groupName, IP_RW, 60, IPS_IDLE);
+    DigitalOutputLabelsTP.shrink_to_fit();
+    DigitalOutputLabelsTP.load();
 
-    OutputsSP.reserve(Outputs);
+    DigitalOutputsSP.reserve(Outputs);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < Outputs; i++)
     {
-        auto name = "OUTPUT_" + std::to_string(i + 1);
+        auto name = "DIGITAL_OUTPUT_" + std::to_string(i + 1);
         auto label = prefix + " #" + std::to_string(i + 1);
 
         INDI::PropertySwitch oneOutput {3};
@@ -73,10 +73,10 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
         oneOutput[Close].fill("CLOSE", "Close", ISS_OFF);
         oneOutput[Flip].fill("FLIP", "Flip", ISS_OFF);
 
-        if (i < OutputLabelsTP.count())
-            label = OutputLabelsTP[i].getText();
+        if (i < DigitalOutputLabelsTP.count())
+            label = DigitalOutputLabelsTP[i].getText();
         oneOutput.fill(m_defaultDevice->getDeviceName(), name.c_str(), label.c_str(), groupName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-        OutputsSP.push_back(std::move(oneOutput));
+        DigitalOutputsSP.push_back(std::move(oneOutput));
     }
 }
 
@@ -87,15 +87,15 @@ bool OutputInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
-        for (auto &oneOutput : OutputsSP)
+        for (auto &oneOutput : DigitalOutputsSP)
             m_defaultDevice->defineProperty(oneOutput);
-        m_defaultDevice->defineProperty(OutputLabelsTP);
+        m_defaultDevice->defineProperty(DigitalOutputLabelsTP);
     }
     else
     {
-        for (auto &oneOutput : OutputsSP)
+        for (auto &oneOutput : DigitalOutputsSP)
             m_defaultDevice->deleteProperty(oneOutput);
-        m_defaultDevice->deleteProperty(OutputLabelsTP);
+        m_defaultDevice->deleteProperty(DigitalOutputLabelsTP);
     }
 
     return true;
@@ -108,36 +108,36 @@ bool OutputInterface::processSwitch(const char *dev, const char *name, ISState s
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        for (size_t i = 0; i < OutputsSP.size(); i++)
+        for (size_t i = 0; i < DigitalOutputsSP.size(); i++)
         {
-            if (OutputsSP[i].isNameMatch(name))
+            if (DigitalOutputsSP[i].isNameMatch(name))
             {
-                auto oldState = OutputsSP[i].findOnSwitchIndex();
-                OutputsSP[i].update(states, names, n);
-                auto newState = OutputsSP[i].findOnSwitchIndex();
+                auto oldState = DigitalOutputsSP[i].findOnSwitchIndex();
+                DigitalOutputsSP[i].update(states, names, n);
+                auto newState = DigitalOutputsSP[i].findOnSwitchIndex();
                 if (oldState != newState)
                 {
                     // Cast to Command and send
                     if (CommandOutput(i, static_cast<Command>(newState)))
                     {
-                        OutputsSP[i].setState(IPS_OK);
+                        DigitalOutputsSP[i].setState(IPS_OK);
                     }
                     else
                     {
-                        OutputsSP[i].setState(IPS_ALERT);
-                        OutputsSP[i].reset();
-                        OutputsSP[i][oldState].setState(ISS_ON);
+                        DigitalOutputsSP[i].setState(IPS_ALERT);
+                        DigitalOutputsSP[i].reset();
+                        DigitalOutputsSP[i][oldState].setState(ISS_ON);
                     }
 
                     // Apply and return
-                    OutputsSP[i].apply();
+                    DigitalOutputsSP[i].apply();
                     return true;
                 }
                 // No state change
                 else
                 {
-                    OutputsSP[i].setState(IPS_OK);
-                    OutputsSP[i].apply();
+                    DigitalOutputsSP[i].setState(IPS_OK);
+                    DigitalOutputsSP[i].apply();
                     return true;
                 }
             }
@@ -156,12 +156,12 @@ bool OutputInterface::processText(const char *dev, const char *name, char *texts
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
         // If this call due to config loading, let's delete existing dummy property and define the full one
-        if (OutputLabelsTP.isNameMatch(name))
+        if (DigitalOutputLabelsTP.isNameMatch(name))
         {
-            OutputLabelsTP.update(texts, names, n);
-            OutputLabelsTP.setState(IPS_OK);
-            OutputLabelsTP.apply();
-            m_defaultDevice->saveConfig(OutputLabelsTP);
+            DigitalOutputLabelsTP.update(texts, names, n);
+            DigitalOutputLabelsTP.setState(IPS_OK);
+            DigitalOutputLabelsTP.apply();
+            m_defaultDevice->saveConfig(DigitalOutputLabelsTP);
             return true;
         }
     }
@@ -174,7 +174,7 @@ bool OutputInterface::processText(const char *dev, const char *name, char *texts
 /////////////////////////////////////////////////////////////////////////////////////////////
 bool OutputInterface::saveConfigItems(FILE *fp)
 {
-    OutputLabelsTP.save(fp);
+    DigitalOutputLabelsTP.save(fp);
     return true;
 }
 

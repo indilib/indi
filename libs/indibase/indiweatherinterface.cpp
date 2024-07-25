@@ -239,7 +239,7 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
 
 IPState WeatherInterface::updateWeather()
 {
-    LOG_ERROR("updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
+    LOG_ERROR("updateWeather() must be implemented in Weather device child class to update weather properties.");
     return IPS_ALERT;
 }
 
