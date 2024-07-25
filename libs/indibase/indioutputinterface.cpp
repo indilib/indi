@@ -1,5 +1,5 @@
 /*
-    Relay Interface
+    Output Interface
     Copyright (C) 2024 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@
 
 */
 
-#include "indirelayinterface.h"
+#include "indioutputinterface.h"
 #include <cstring>
 #include "indilogger.h"
 
@@ -28,74 +28,74 @@ namespace INDI
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-RelayInterface::RelayInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
+OutputInterface::OutputInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-RelayInterface::~RelayInterface()
+OutputInterface::~OutputInterface()
 {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-void RelayInterface::initProperties(const char *groupName, uint8_t relays)
+void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, const std::string &prefix)
 {
-    RelayLabelsTP.reserve(relays);
+    OutputLabelsTP.reserve(Outputs);
 
     // Initialize labels
-    for (auto i = 0; i < relays; i++)
+    for (auto i = 0; i < Outputs; i++)
     {
-        auto name = "RELAY_" + std::to_string(i + 1);
-        auto label = "Relay #" + std::to_string(i + 1);
+        auto name = "OUTPUT_" + std::to_string(i + 1);
+        auto label = prefix + " #" + std::to_string(i + 1);
 
         INDI::WidgetText oneLabel;
         oneLabel.fill(name, label, label);
-        RelayLabelsTP.push(std::move(oneLabel));
+        OutputLabelsTP.push(std::move(oneLabel));
     }
 
-    RelayLabelsTP.fill(m_defaultDevice->getDeviceName(), "RELAY_LABELS", "Labels", groupName, IP_RW, 60, IPS_IDLE);
-    RelayLabelsTP.shrink_to_fit();
-    RelayLabelsTP.load();
+    OutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "OUTPUT_LABELS", "Labels", groupName, IP_RW, 60, IPS_IDLE);
+    OutputLabelsTP.shrink_to_fit();
+    OutputLabelsTP.load();
 
-    RelaysSP.reserve(relays);
+    OutputsSP.reserve(Outputs);
     // Initialize switches, use labels if loaded.
-    for (size_t i = 0; i < relays; i++)
+    for (size_t i = 0; i < Outputs; i++)
     {
-        auto name = "RELAY_" + std::to_string(i + 1);
-        auto label = "Relay #" + std::to_string(i + 1);
+        auto name = "OUTPUT_" + std::to_string(i + 1);
+        auto label = prefix + " #" + std::to_string(i + 1);
 
-        INDI::PropertySwitch oneRelay {3};
-        oneRelay[Open].fill("OPEN", "Open", ISS_OFF);
-        oneRelay[Close].fill("CLOSE", "Close", ISS_OFF);
-        oneRelay[Flip].fill("FLIP", "Flip", ISS_OFF);
+        INDI::PropertySwitch oneOutput {3};
+        oneOutput[Open].fill("OPEN", "Open", ISS_OFF);
+        oneOutput[Close].fill("CLOSE", "Close", ISS_OFF);
+        oneOutput[Flip].fill("FLIP", "Flip", ISS_OFF);
 
-        if (i < RelayLabelsTP.count())
-            label = RelayLabelsTP[i].getText();
-        oneRelay.fill(m_defaultDevice->getDeviceName(), name.c_str(), label.c_str(), groupName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-        RelaysSP.push_back(std::move(oneRelay));
+        if (i < OutputLabelsTP.count())
+            label = OutputLabelsTP[i].getText();
+        oneOutput.fill(m_defaultDevice->getDeviceName(), name.c_str(), label.c_str(), groupName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        OutputsSP.push_back(std::move(oneOutput));
     }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-bool RelayInterface::updateProperties()
+bool OutputInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
-        for (auto &oneRelay : RelaysSP)
-            m_defaultDevice->defineProperty(oneRelay);
-        m_defaultDevice->defineProperty(RelayLabelsTP);
+        for (auto &oneOutput : OutputsSP)
+            m_defaultDevice->defineProperty(oneOutput);
+        m_defaultDevice->defineProperty(OutputLabelsTP);
     }
     else
     {
-        for (auto &oneRelay : RelaysSP)
-            m_defaultDevice->deleteProperty(oneRelay);
-        m_defaultDevice->deleteProperty(RelayLabelsTP);
+        for (auto &oneOutput : OutputsSP)
+            m_defaultDevice->deleteProperty(oneOutput);
+        m_defaultDevice->deleteProperty(OutputLabelsTP);
     }
 
     return true;
@@ -104,40 +104,40 @@ bool RelayInterface::updateProperties()
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-bool RelayInterface::processSwitch(const char *dev, const char *name, ISState states[], char *names[], int n)
+bool OutputInterface::processSwitch(const char *dev, const char *name, ISState states[], char *names[], int n)
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        for (size_t i = 0; i < RelaysSP.size(); i++)
+        for (size_t i = 0; i < OutputsSP.size(); i++)
         {
-            if (RelaysSP[i].isNameMatch(name))
+            if (OutputsSP[i].isNameMatch(name))
             {
-                auto oldState = RelaysSP[i].findOnSwitchIndex();
-                RelaysSP[i].update(states, names, n);
-                auto newState = RelaysSP[i].findOnSwitchIndex();
+                auto oldState = OutputsSP[i].findOnSwitchIndex();
+                OutputsSP[i].update(states, names, n);
+                auto newState = OutputsSP[i].findOnSwitchIndex();
                 if (oldState != newState)
                 {
                     // Cast to Command and send
-                    if (CommandRelay(i, static_cast<Command>(newState)))
+                    if (CommandOutput(i, static_cast<Command>(newState)))
                     {
-                        RelaysSP[i].setState(IPS_OK);
+                        OutputsSP[i].setState(IPS_OK);
                     }
                     else
                     {
-                        RelaysSP[i].setState(IPS_ALERT);
-                        RelaysSP[i].reset();
-                        RelaysSP[i][oldState].setState(ISS_ON);
+                        OutputsSP[i].setState(IPS_ALERT);
+                        OutputsSP[i].reset();
+                        OutputsSP[i][oldState].setState(ISS_ON);
                     }
 
                     // Apply and return
-                    RelaysSP[i].apply();
+                    OutputsSP[i].apply();
                     return true;
                 }
                 // No state change
                 else
                 {
-                    RelaysSP[i].setState(IPS_OK);
-                    RelaysSP[i].apply();
+                    OutputsSP[i].setState(IPS_OK);
+                    OutputsSP[i].apply();
                     return true;
                 }
             }
@@ -151,17 +151,17 @@ bool RelayInterface::processSwitch(const char *dev, const char *name, ISState st
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-bool RelayInterface::processText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool OutputInterface::processText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
         // If this call due to config loading, let's delete existing dummy property and define the full one
-        if (RelayLabelsTP.isNameMatch(name))
+        if (OutputLabelsTP.isNameMatch(name))
         {
-            RelayLabelsTP.update(texts, names, n);
-            RelayLabelsTP.setState(IPS_OK);
-            RelayLabelsTP.apply();
-            m_defaultDevice->saveConfig(RelayLabelsTP);
+            OutputLabelsTP.update(texts, names, n);
+            OutputLabelsTP.setState(IPS_OK);
+            OutputLabelsTP.apply();
+            m_defaultDevice->saveConfig(OutputLabelsTP);
             return true;
         }
     }
@@ -172,9 +172,9 @@ bool RelayInterface::processText(const char *dev, const char *name, char *texts[
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-bool RelayInterface::saveConfigItems(FILE *fp)
+bool OutputInterface::saveConfigItems(FILE *fp)
 {
-    RelayLabelsTP.save(fp);
+    OutputLabelsTP.save(fp);
     return true;
 }
 

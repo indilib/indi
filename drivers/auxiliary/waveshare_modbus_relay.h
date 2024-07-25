@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include "indirelayinterface.h"
+#include "indioutputinterface.h"
 #include "defaultdevice.h"
 #include "../../libs/modbus/nanomodbus.h"
 
-class WaveshareRelay : public INDI::DefaultDevice, public INDI::RelayInterface
+class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
 {
     public:
         WaveshareRelay();
@@ -44,13 +44,13 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::RelayInterface
          * \param status Store relay status in this variable.
          * \return True if operation is successful, false otherwise
          */
-        virtual bool QueryRelay(uint32_t index, Status &status);
+        virtual bool ReadOutput(uint32_t index, Status &status) override;
 
         /**
          * \brief Send command to relay
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandRelay(uint32_t index, Command command);
+        virtual bool CommandOutput(uint32_t index, Command command) override;
 
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;

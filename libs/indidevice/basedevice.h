@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2011-2025 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -99,8 +99,9 @@ class BaseDevice
             SPECTROGRAPH_INTERFACE  = (1 << 13), /**< Spectrograph interface */
             CORRELATOR_INTERFACE    = (1 << 14), /**< Correlators (interferometers) interface */
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
-            RELAY_INTERFACE         = (1 << 16), /**< Relay interface */
-            POWER_INTERFACE         = (1 << 17), /**< Auxiliary interface */
+            OUTPUT_INTERFACE        = (1 << 16), /**< Digital Output (e.g. Relay) interface */
+            INPUT_INTERFACE         = (1 << 17), /**< Digital/Analog Input (e.g. GPIO) interface */
+            POWER_INTERFACE         = (1 << 18), /**< Auxiliary interface */
 
             SENSOR_INTERFACE        = SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE
         };

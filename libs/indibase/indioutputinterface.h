@@ -1,5 +1,5 @@
 /*
-    Relay Interface
+    Output Interface
     Copyright (C) 2024 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -27,10 +27,12 @@
 #include "indipropertytext.h"
 
 /**
- * \class RelayInterface
-   \brief Provides interface to implement Remote Relay functionality.
+ * \class OutputInterface
+   \brief Provides interface to implement Digital Boolean Output (On/Off) functionality.
 
-   A web controlled relay is a simple device that can open, close, or flip a relay switch.
+   Example implemenations are web-enabled Outputs and GPIOs.
+
+   A web controlled Output is a simple device that can open, close, or flip a Output switch.
 
    \e IMPORTANT: initFilterProperties() must be called before any other function to initialize the filter properties.
 
@@ -39,10 +41,10 @@
 namespace INDI
 {
 
-class RelayInterface
+class OutputInterface
 {
     public:
-        /*! Relay switch status. This is regardless on whether switch is normally closed or normally opened. */
+        /*! Output switch status. This is regardless on whether switch is normally closed or normally opened. */
         typedef enum
         {
             Opened,     /*!< Switch is open circuit. */
@@ -50,7 +52,7 @@ class RelayInterface
             Unknown     /*!< Could not determined switch status. */
         } Status;
 
-        /*! Relay switch Command. */
+        /*! Output switch Command. */
         typedef enum
         {
             Open,
@@ -59,34 +61,35 @@ class RelayInterface
         } Command;
 
         /**
-         * \brief Query single relay status
-         * \param index Relay index
-         * \param status Store relay status in this variable.
+         * \brief Query single output status
+         * \param index Output index
+         * \param status Store Output status in this variable.
          * \return True if operation is successful, false otherwise
          */
-        virtual bool QueryRelay(uint32_t index, Status &status) = 0;
+        virtual bool ReadOutput(uint32_t index, Status &status) = 0;
 
         /**
-         * \brief Send command to relay
+         * \brief Send command to output
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandRelay(uint32_t index, Command command) = 0;
+        virtual bool CommandOutput(uint32_t index, Command command) = 0;
 
     protected:
         /**
-         * @brief RelayInterface Initiailize Relay Interface
+         * @brief OutputInterface Initiailize Output Interface
          * @param defaultDevice default device that owns the interface
          */
-        explicit RelayInterface(DefaultDevice *defaultDevice);
-        ~RelayInterface();
+        explicit OutputInterface(DefaultDevice *defaultDevice);
+        ~OutputInterface();
 
         /**
          * \brief Initialize filter wheel properties. It is recommended to call this function within
          * initProperties() of your primary device
          * \param groupName Group or tab name to be used to define filter wheel properties.
-         * \param relays Number of relays
+         * \param outputs Number of Outputs
+         * \param prefix Prefix used to label outputs. By default, Output #1, Output #2..etc
          */
-        void initProperties(const char *groupName, uint8_t relays);
+        void initProperties(const char *groupName, uint8_t outputs, const std::string &prefix = "Output");
 
         /**
          * @brief updateProperties Defines or Delete properties based on default device connection status
@@ -107,10 +110,10 @@ class RelayInterface
          */
         bool saveConfigItems(FILE *fp);
 
-        // Relay Toggle
-        std::vector<INDI::PropertySwitch> RelaysSP;
-        // Relay Labels
-        INDI::PropertyText RelayLabelsTP {0};
+        // Output Toggle
+        std::vector<INDI::PropertySwitch> OutputsSP;
+        // Output Labels
+        INDI::PropertyText OutputLabelsTP {0};
 
         DefaultDevice *m_defaultDevice { nullptr };
 };

@@ -1,5 +1,5 @@
 /*
-    Waveshare ModBUS POE Relay
+    Waveshare ModBUS POE Output
     Copyright (C) 2024 Jasem Mutlaq
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
 
 static std::unique_ptr<WaveshareRelay> sesto(new WaveshareRelay());
 
-WaveshareRelay::WaveshareRelay() : RelayInterface(this)
+WaveshareRelay::WaveshareRelay() : OutputInterface(this)
 {
     setVersion(1, 0);
 }
@@ -35,9 +35,9 @@ bool WaveshareRelay::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    INDI::RelayInterface::initProperties(MAIN_CONTROL_TAB, 8);
+    INDI::OutputInterface::initProperties(MAIN_CONTROL_TAB, 8, "Output");
 
-    setDriverInterface(AUX_INTERFACE | RELAY_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE);
 
     addAuxControls();
 
@@ -61,14 +61,11 @@ bool WaveshareRelay::initProperties()
 bool WaveshareRelay::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
-    INDI::RelayInterface::updateProperties();
+    INDI::OutputInterface::updateProperties();
 
     if (isConnected())
     {
         SetTimer(getPollingPeriod());
-    }
-    else
-    {
     }
 
     return true;
@@ -99,8 +96,8 @@ bool WaveshareRelay::Handshake()
     // Set only the response timeout. Byte timeout will be handled by the TCP connection
     nmbs_set_read_timeout(&nmbs, 1000);
 
-    INDI::RelayInterface::Status status;
-    return QueryRelay(0, status);
+    INDI::OutputInterface::Status status;
+    return ReadOutput(0, status);
 }
 
 
@@ -109,7 +106,7 @@ bool WaveshareRelay::Handshake()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 const char *WaveshareRelay::getDefaultName()
 {
-    return "Waveshare Relay";
+    return "Waveshare Output";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,8 +114,8 @@ const char *WaveshareRelay::getDefaultName()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WaveshareRelay::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    // Check Relay Properties
-    if (INDI::RelayInterface::processText(dev, name, texts, names, n))
+    // Check Output Properties
+    if (INDI::OutputInterface::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -129,7 +126,7 @@ bool WaveshareRelay::ISNewText(const char *dev, const char *name, char *texts[],
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WaveshareRelay::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (INDI::RelayInterface::processSwitch(dev, name, states, names, n))
+    if (INDI::OutputInterface::processSwitch(dev, name, states, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -140,7 +137,7 @@ bool WaveshareRelay::ISNewSwitch(const char *dev, const char *name, ISState *sta
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WaveshareRelay::saveConfigItems(FILE * fp)
 {
-    INDI::RelayInterface::saveConfigItems(fp);
+    INDI::OutputInterface::saveConfigItems(fp);
     return INDI::DefaultDevice::saveConfigItems(fp);
 }
 
@@ -154,13 +151,13 @@ void WaveshareRelay::TimerHit()
 
     for (int i = 0; i < 8; i++)
     {
-        INDI::RelayInterface::Status status;
-        if (QueryRelay(i, status))
+        INDI::OutputInterface::Status status;
+        if (ReadOutput(i, status))
         {
-            RelaysSP[i].reset();
-            RelaysSP[i][status].setState(ISS_ON);
-            RelaysSP[i].setState(IPS_OK);
-            RelaysSP[i].apply();
+            OutputsSP[i].reset();
+            OutputsSP[i][status].setState(ISS_ON);
+            OutputsSP[i].setState(IPS_OK);
+            OutputsSP[i].apply();
         }
     }
 
@@ -170,7 +167,7 @@ void WaveshareRelay::TimerHit()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WaveshareRelay::QueryRelay(uint32_t index, Status &status)
+bool WaveshareRelay::ReadOutput(uint32_t index, Status &status)
 {
     nmbs_bitfield coils = {0};
     auto err = nmbs_read_coils(&nmbs, 0, 8, coils);
@@ -189,7 +186,7 @@ bool WaveshareRelay::QueryRelay(uint32_t index, Status &status)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WaveshareRelay::CommandRelay(uint32_t index, Command command)
+bool WaveshareRelay::CommandOutput(uint32_t index, Command command)
 {
     uint16_t value = 0;
     if (command == Open)
