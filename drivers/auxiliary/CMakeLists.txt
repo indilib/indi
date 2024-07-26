@@ -1,6 +1,14 @@
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES 99-indi_auxiliary.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
+# ########## Terrans PowerBoxGo V2 ###############
+SET(terranspowerboxgov2_SRC
+    Terrans_PowerBoxGo_V2.cpp)
+
+add_executable(indi_terrans_powerboxgo_v2 ${terranspowerboxgov2_SRC})
+target_link_libraries(indi_terrans_powerboxgo_v2 indidriver)
+install(TARGETS indi_terrans_powerboxgo_v2 RUNTIME DESTINATION bin)
+
 # ########## Terrans PowerBoxPro V2 ###############
 SET(terranspowerboxprov2_SRC
     Terrans_PowerBoxPro_V2.cpp)
