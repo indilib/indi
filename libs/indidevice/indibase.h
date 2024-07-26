@@ -32,7 +32,8 @@
  *    <li>RotatorInterface: Basic interface for Rotator functions.</li>
  *    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
  *    <li>LightBoxInterface: Basic interface for remotely controlled light boxes/switches.</li>
- *    <li>OutputInterface: Basic interface for remotely controller relays.</li>
+ *    <li>InputInterface: Basic interface for generic digital & analog inputs.</li>
+ *    <li>OutputInterface: Basic interface for generic digital outputs.</li>
  *    <li>PowerInterface: Basic interface for generic power boxes.</li>
  *    <li>CCD: Base class for CCD drivers. Provides basic support for single chip CCD and CCDs with a guide head as well.</li>
  *    <li>Telescope: Base class for telescope drivers.</li>
