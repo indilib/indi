@@ -110,6 +110,10 @@ class InputInterface
         // Analog Input Labels
         INDI::PropertyText AnalogInputLabelsTP {0};
 
+        // Indicates whether we loaded the labels from configuration file successfully.
+        // If loaded from config file, then we do not need to overwrite.
+        bool m_DigitalLabelConfig {false}, m_AnalogLabelConfig {false};
+
         DefaultDevice *m_defaultDevice { nullptr };
 };
 }

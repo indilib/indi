@@ -45,6 +45,8 @@ InputInterface::~InputInterface()
 void InputInterface::initProperties(const char *groupName, uint8_t digital, uint8_t analog,
                                     const std::string &digitalPrefix, const std::string &analogPrefix)
 {
+    m_DigitalLabelConfig = false;
+    m_AnalogLabelConfig = false;
     DigitalInputLabelsTP.reserve(digital);
     // Digital labels
     for (size_t i = 0; i < digital; i++)
@@ -62,7 +64,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         DigitalInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_INPUT_LABELS", "Digital Labels", groupName, IP_RW, 60,
                                   IPS_IDLE);
         DigitalInputLabelsTP.shrink_to_fit();
-        DigitalInputLabelsTP.load();
+        m_DigitalLabelConfig = DigitalInputLabelsTP.load();
     }
 
     // Analog labels
@@ -82,7 +84,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         AnalogInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "ANALOG_INPUT_LABELS", "Analog Labels", groupName, IP_RW, 60,
                                  IPS_IDLE);
         AnalogInputLabelsTP.shrink_to_fit();
-        AnalogInputLabelsTP.load();
+        m_AnalogLabelConfig = AnalogInputLabelsTP.load();
     }
 
     // Analog inputs
