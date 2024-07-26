@@ -118,7 +118,7 @@ bool OutputInterface::processSwitch(const char *dev, const char *name, ISState s
                 if (oldState != newState)
                 {
                     // Cast to Command and send
-                    if (CommandOutput(i, static_cast<Status>(newState)))
+                    if (CommandOutput(i, static_cast<OutputState>(newState)))
                     {
                         DigitalOutputsSP[i].setState(IPS_OK);
                     }

@@ -50,7 +50,7 @@ class OutputInterface
         {
             Off,     /*!< Output is off. For Relays, it is open circuit. */
             On,      /*!< Output is on. For Relays, it is closed circuit. */
-        } Status;
+        } OutputState;
 
         /**
          * \brief Update all digital outputs
@@ -66,7 +66,7 @@ class OutputInterface
          * \brief Send command to output
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandOutput(uint32_t index, Status command) = 0;
+        virtual bool CommandOutput(uint32_t index, OutputState command) = 0;
 
     protected:
         /**

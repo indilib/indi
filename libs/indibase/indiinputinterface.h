@@ -51,8 +51,7 @@ class InputInterface
         {
             Off,     /*!< Input is off. */
             On,      /*!< Input is on. */
-            Unknown /*!< Could not determined input status. */
-        } Status;
+        } InputState;
 
         /**
          * \brief Update all digital inputs
