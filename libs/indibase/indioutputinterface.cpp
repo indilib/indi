@@ -57,7 +57,8 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
         DigitalOutputLabelsTP.push(std::move(oneLabel));
     }
 
-    DigitalOutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_OUTPUT_LABELS", "Labels", groupName, IP_RW, 60, IPS_IDLE);
+    DigitalOutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_OUTPUT_LABELS", "Labels", groupName, IP_RW, 60,
+                               IPS_IDLE);
     DigitalOutputLabelsTP.shrink_to_fit();
     DigitalOutputLabelsTP.load();
 
@@ -68,10 +69,9 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
         auto name = "DIGITAL_OUTPUT_" + std::to_string(i + 1);
         auto label = prefix + " #" + std::to_string(i + 1);
 
-        INDI::PropertySwitch oneOutput {3};
-        oneOutput[Open].fill("OPEN", "Open", ISS_OFF);
-        oneOutput[Close].fill("CLOSE", "Close", ISS_OFF);
-        oneOutput[Flip].fill("FLIP", "Flip", ISS_OFF);
+        INDI::PropertySwitch oneOutput {2};
+        oneOutput[Off].fill("OFF", "Off", ISS_OFF);
+        oneOutput[On].fill("ON", "On", ISS_OFF);
 
         if (i < DigitalOutputLabelsTP.count())
             label = DigitalOutputLabelsTP[i].getText();
@@ -118,7 +118,7 @@ bool OutputInterface::processSwitch(const char *dev, const char *name, ISState s
                 if (oldState != newState)
                 {
                     // Cast to Command and send
-                    if (CommandOutput(i, static_cast<Command>(newState)))
+                    if (CommandOutput(i, static_cast<Status>(newState)))
                     {
                         DigitalOutputsSP[i].setState(IPS_OK);
                     }

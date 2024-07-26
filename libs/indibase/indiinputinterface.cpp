@@ -42,7 +42,8 @@ InputInterface::~InputInterface()
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////
-void InputInterface::initProperties(const char *groupName, uint8_t digital, uint8_t analog, const std::string &digitalPrefix, const std::string &analogPrefix)
+void InputInterface::initProperties(const char *groupName, uint8_t digital, uint8_t analog,
+                                    const std::string &digitalPrefix, const std::string &analogPrefix)
 {
     DigitalInputLabelsTP.reserve(digital);
     // Digital labels
@@ -58,7 +59,8 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
 
     if (digital > 0)
     {
-        DigitalInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_INPUT_LABELS", "Digital Labels", groupName, IP_RW, 60, IPS_IDLE);
+        DigitalInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_INPUT_LABELS", "Digital Labels", groupName, IP_RW, 60,
+                                  IPS_IDLE);
         DigitalInputLabelsTP.shrink_to_fit();
         DigitalInputLabelsTP.load();
     }
@@ -77,7 +79,8 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
 
     if (analog > 0)
     {
-        AnalogInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "ANALOG_INPUT_LABELS", "Analog Labels", groupName, IP_RW, 60, IPS_IDLE);
+        AnalogInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "ANALOG_INPUT_LABELS", "Analog Labels", groupName, IP_RW, 60,
+                                 IPS_IDLE);
         AnalogInputLabelsTP.shrink_to_fit();
         AnalogInputLabelsTP.load();
     }
@@ -106,8 +109,8 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         auto label = digitalPrefix + " #" + std::to_string(i + 1);
 
         INDI::PropertySwitch oneInput {2};
-        oneInput[On].fill("ON", "ON", ISS_OFF);
-        oneInput[Off].fill("OFF", "OFF", ISS_OFF);
+        oneInput[Off].fill("OFF", "Off", ISS_OFF);
+        oneInput[On].fill("ON", "On", ISS_OFF);
 
         if (i < DigitalInputLabelsTP.count())
             label = DigitalInputLabelsTP[i].getText();

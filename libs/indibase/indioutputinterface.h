@@ -44,21 +44,13 @@ namespace INDI
 class OutputInterface
 {
     public:
-        /*! Output switch status. This is regardless on whether switch is normally closed or normally opened. */
+        /*! Digital Output status.
+         */
         typedef enum
         {
-            Opened,     /*!< Switch is open circuit. */
-            Closed,     /*!< Switch is close circuit. */
-            Unknown     /*!< Could not determined switch status. */
+            Off,     /*!< Output is off. For Relays, it is open circuit. */
+            On,      /*!< Output is on. For Relays, it is closed circuit. */
         } Status;
-
-        /*! Output switch Command. */
-        typedef enum
-        {
-            Open,
-            Close,
-            Flip
-        } Command;
 
         /**
          * \brief Update all digital outputs
@@ -74,7 +66,7 @@ class OutputInterface
          * \brief Send command to output
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandOutput(uint32_t index, Command command) = 0;
+        virtual bool CommandOutput(uint32_t index, Status command) = 0;
 
     protected:
         /**

@@ -44,12 +44,14 @@ namespace INDI
 class InputInterface
 {
     public:
-        /*! Input boolean status. This is regardless on whether Input is Active low or high. */
+        /*! Input boolean status. This is regardless on whether Input is Active low or high.
+        For relay, Off = Open Circuit. On = Closed Circuit
+        */
         typedef enum
         {
-            On,     /*!< Input is on. */
-            Off,    /*!< Input is off. */
-            Unknown /*!< Could not determined switch status. */
+            Off,     /*!< Input is off. */
+            On,      /*!< Input is on. */
+            Unknown /*!< Could not determined input status. */
         } Status;
 
         /**
@@ -81,7 +83,8 @@ class InputInterface
          * \param digitalPrefix Prefix used to label digital Inputs. By default, Digital #1, Digital #2..etc
          * \param analogPrefix Prefix used to label analog Inputs. By default, Analog #1, Analog #2..etc
          */
-        void initProperties(const char *groupName, uint8_t digital, uint8_t analog, const std::string &digitalPrefix = "Digital", const std::string &analogPrefix = "Analog");
+        void initProperties(const char *groupName, uint8_t digital, uint8_t analog, const std::string &digitalPrefix = "Digital",
+                            const std::string &analogPrefix = "Analog");
 
         /**
          * @brief updateProperties Defines or Delete properties based on default device connection status

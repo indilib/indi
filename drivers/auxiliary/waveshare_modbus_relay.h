@@ -52,7 +52,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
          * \brief Send command to relay
          * \return True if operation is successful, false otherwise
          */
-        virtual bool CommandOutput(uint32_t index, Command command) override;
+        virtual bool CommandOutput(uint32_t index, Status command) override;
 
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;

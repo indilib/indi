@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <unistd.h>
+#include <iomanip>
 #include <connectionplugins/connectiontcp.h>
 
 static std::unique_ptr<WaveshareRelay> sesto(new WaveshareRelay());
@@ -108,8 +109,9 @@ bool WaveshareRelay::Handshake()
     err = nmbs_read_holding_registers(&nmbs, 0x8000, 1, &output);
     if (err == NMBS_ERROR_NONE)
     {
-        auto version = std::to_string(output / 100.0);
-        FirmwareVersionTP[0].setText(version);
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << output / 100.0;
+        FirmwareVersionTP[0].setText(ss.str().c_str());
         FirmwareVersionTP.setState(IPS_OK);
         return true;
     }
@@ -124,7 +126,7 @@ bool WaveshareRelay::Handshake()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 const char *WaveshareRelay::getDefaultName()
 {
-    return "Waveshare Output";
+    return "Waveshare Relay";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,13 +190,12 @@ bool WaveshareRelay::UpdateDigitalOutputs()
     {
         for (size_t i = 0; i < DigitalOutputsSP.size(); i++)
         {
-            auto oldState = DigitalOutputsSP[i].findOnSwitchIndex() == 0 ? Opened : Closed;
-            auto newState = (nmbs_bitfield_read(coils, i) == 0) ? Closed : Opened;
+            auto oldState = DigitalOutputsSP[i].findOnSwitchIndex();
+            auto newState = nmbs_bitfield_read(coils, i);
             if (oldState != newState)
             {
-                auto index = newState == Opened ? 0 : 1;
                 DigitalOutputsSP[i].reset();
-                DigitalOutputsSP[i][index].setState(ISS_ON);
+                DigitalOutputsSP[i][newState].setState(ISS_ON);
                 DigitalOutputsSP[i].setState(IPS_OK);
                 DigitalOutputsSP[i].apply();
             }
@@ -206,13 +207,9 @@ bool WaveshareRelay::UpdateDigitalOutputs()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WaveshareRelay::CommandOutput(uint32_t index, Command command)
+bool WaveshareRelay::CommandOutput(uint32_t index, Status command)
 {
-    uint16_t value = 0;
-    if (command == Open)
-        value = 0xFF00;
-    else if (command == Flip)
-        value = 0x5500;
+    uint16_t value = (command == On) ? 0xFF00 : 0;
 
     auto err = nmbs_write_single_coil(&nmbs, index, value);
     if (err != NMBS_ERROR_NONE)
