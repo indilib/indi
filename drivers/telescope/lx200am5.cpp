@@ -353,7 +353,7 @@ bool LX200AM5::getTrackMode()
 bool LX200AM5::setBuzzer(int value)
 {
     char command[DRIVER_LEN] = {0};
-    snprintf(command, DRIVER_LEN, ":SBu%d", value);
+    snprintf(command, DRIVER_LEN, ":SBu%d#", value);
     return sendCommand(command);
 }
 
