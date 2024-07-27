@@ -106,6 +106,17 @@ bool LX200AM5::initProperties()
     BuzzerSP[Low].fill("LOW", "Low", ISS_OFF);
     BuzzerSP[High].fill("HIGH", "High", ISS_ON);
     BuzzerSP.fill(getDeviceName(), "BUZZER", "Buzzer", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    BuzzerSP.onUpdate([this]{
+        if (setBuzzer(BuzzerSP.findOnSwitchIndex()))
+        {
+            BuzzerSP.setState(IPState::IPS_OK);
+        }
+        else
+        {
+            BuzzerSP.setState(IPState::IPS_ALERT);
+        }
+        BuzzerSP.apply();
+    });
 
     return true;
 }
