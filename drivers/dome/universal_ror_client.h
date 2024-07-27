@@ -79,8 +79,12 @@ class UniversalRORClient : public INDI::BaseClient
             m_FullyClosedCallback = callback;
         }
 
+        void syncFullyOpenedState();
+        void syncFullyClosedState();
+
     protected:
         virtual void newDevice(INDI::BaseDevice dp) override;
+        virtual void newProperty(INDI::Property property) override;
         virtual void updateProperty(INDI::Property property) override;
 
     private:
@@ -89,6 +93,4 @@ class UniversalRORClient : public INDI::BaseClient
         std::vector<uint8_t> m_OutputOpenRoof, m_OutputCloseRoof;
         std::vector<uint8_t> m_InputFullyOpened, m_InputFullyClosed;
         std::function<void(bool)> m_FullyOpenedCallback, m_FullyClosedCallback;
-        void syncFullyOpenedState();
-        void syncFullyClosedState();
 };

@@ -68,21 +68,16 @@ bool UniversalROR::ISSnoopDevice(XMLEle *root)
 bool UniversalROR::setupParms()
 {
     // If we have parking data
-    if (InitPark())
+    InitPark();
+
+    // If limit switches are not identical then we have a known
+    // parking state that we should set.
+    if (m_FullClosedLimitSwitch != m_FullOpenLimitSwitch)
     {
-        if (isParked())
-        {
-
-        }
-        else
-        {
-
-        }
-    }
-    // If we don't have parking data
-    else
-    {
-
+        if (m_FullClosedLimitSwitch && !isParked())
+            SetParked(true);
+        else if (m_FullOpenLimitSwitch && isParked())
+            SetParked(false);
     }
 
     return true;
@@ -172,6 +167,14 @@ bool UniversalROR::updateProperties()
     if (isConnected())
     {
         setupParms();
+
+        defineProperty(InputTP);
+        defineProperty(OutputTP);
+    }
+    else
+    {
+        deleteProperty(InputTP);
+        deleteProperty(OutputTP);
     }
 
     return true;
@@ -387,6 +390,9 @@ bool UniversalROR::syncIndexes()
         m_OutputCloseRoof = closeRoofList;
         m_Client->setOutputCloseRoof(m_OutputCloseRoof);
     }
+
+    m_Client->syncFullyOpenedState();
+    m_Client->syncFullyClosedState();
 
     return true;
 }
