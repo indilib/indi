@@ -119,10 +119,12 @@ bool Dome::initProperties()
     PresetGotoSP.fill(getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Active Devices
-    ActiveDeviceTP[0].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    //IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER", "Weather", "WunderGround");
+    ActiveDeviceTP[ACTIVE_MOUNT].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP[ACTIVE_INPUT].fill("ACTIVE_INPUT", "Input", "");
+    ActiveDeviceTP[ACTIVE_OUTPUT].fill("ACTIVE_OUTPUT", "Output", "");
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-    ActiveDeviceTP.load();
+    if (ActiveDeviceTP.load())
+        ActiveDevicesUpdated();
 
     // Use locking if telescope is unparked
     MountPolicySP[MOUNT_IGNORED].fill("MOUNT_IGNORED", "Mount ignored", ISS_ON);
@@ -793,14 +795,16 @@ bool Dome::ISNewText(const char * dev, const char * name, char * texts[], char *
             ActiveDeviceTP.update(texts, names, n);
             ActiveDeviceTP.apply();
 
-            const auto scope = ActiveDeviceTP[0].getText();
-            IDSnoopDevice(scope, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(scope, "TARGET_EOD_COORD");
-            IDSnoopDevice(scope, "GEOGRAPHIC_COORD");
-            IDSnoopDevice(scope, "TELESCOPE_PARK");
+            auto mount = ActiveDeviceTP[ACTIVE_MOUNT].getText();
+            IDSnoopDevice(mount, "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(mount, "TARGET_EOD_COORD");
+            IDSnoopDevice(mount, "GEOGRAPHIC_COORD");
+            IDSnoopDevice(mount, "TELESCOPE_PARK");
             if (CanAbsMove())
-                IDSnoopDevice(scope, "TELESCOPE_PIER_SIDE");
+                IDSnoopDevice(mount, "TELESCOPE_PIER_SIDE");
+
             saveConfig(ActiveDeviceTP);
+            ActiveDevicesUpdated();
             return true;
         }
     }

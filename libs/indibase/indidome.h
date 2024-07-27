@@ -521,6 +521,11 @@ class Dome : public DefaultDevice
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
+        /**
+         * Signal to concrete driver when Active Devices are updated.
+         */
+        virtual void ActiveDevicesUpdated() {};
+
         double Csc(double x);
         double Sec(double x);
 
@@ -546,7 +551,13 @@ class Dome : public DefaultDevice
 
         INDI::PropertySwitch ParkOptionSP {3};
 
-        INDI::PropertyText ActiveDeviceTP {1};
+        INDI::PropertyText ActiveDeviceTP {3};
+        enum
+        {
+            ACTIVE_MOUNT,
+            ACTIVE_INPUT,
+            ACTIVE_OUTPUT
+        };
 
         // Switch to lock id mount is unparked
         INDI::PropertySwitch MountPolicySP {2};
