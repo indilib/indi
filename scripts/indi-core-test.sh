@@ -3,7 +3,7 @@
 set -e
 
 pushd build/indi-core/integs
-ctest -v --output-on-failure
+ctest -V --output-on-failure
 popd
 
 pushd build/indi-core/test
