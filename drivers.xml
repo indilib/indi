@@ -33,11 +33,11 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.22</version>
+            <version>1.23</version>
         </device>
         <device label="WARPDRIVE" manufacturer="WarpAstron">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.22</version>
+            <version>1.23</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
@@ -77,7 +77,7 @@
         </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
-            <version>2.1</version>
+            <version>2.2</version>
         </device>
         <device label="ZWO AM5 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>

@@ -48,7 +48,9 @@ LX200ZEQ25::LX200ZEQ25()
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_HAS_PIER_SIDE,
-                           9);
+                           9,
+                           HOME_GO
+                          );
 }
 
 bool LX200ZEQ25::initProperties()
@@ -72,10 +74,6 @@ bool LX200ZEQ25::initProperties()
     // 64x is the default
     SlewRateS[4].s = ISS_ON;
 
-    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
-
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
@@ -90,13 +88,10 @@ bool LX200ZEQ25::updateProperties()
 
     if (isConnected())
     {
-
-        defineProperty(&HomeSP);
         defineProperty(&GuideRateNP);
     }
     else
     {
-        deleteProperty(HomeSP.name);
         deleteProperty(GuideRateNP.name);
     }
 
@@ -154,42 +149,6 @@ bool LX200ZEQ25::checkConnection()
     }
 
     return false;
-}
-
-bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(HomeSP.name, name) == 0)
-        {
-            // If already home, nothing to be done
-            //if (HomeS[0].s == ISS_ON)
-            if (isZEQ25Home())
-            {
-                LOG_WARN("Telescope is already homed.");
-                HomeS[0].s = ISS_ON;
-                HomeSP.s   = IPS_OK;
-                IDSetSwitch(&HomeSP, nullptr);
-                return true;
-            }
-
-            if (gotoZEQ25Home() < 0)
-            {
-                HomeSP.s = IPS_ALERT;
-                LOG_ERROR("Error slewing to home position.");
-            }
-            else
-            {
-                HomeSP.s = IPS_BUSY;
-                LOG_INFO("Slewing to home position.");
-            }
-
-            IDSetSwitch(&HomeSP, nullptr);
-            return true;
-        }
-    }
-
-    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool LX200ZEQ25::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -385,9 +344,9 @@ void LX200ZEQ25::getBasicData()
     LOG_DEBUG("Checking if mount is at home position...");
     if (isZEQ25Home())
     {
-        HomeS[0].s = ISS_ON;
-        HomeSP.s   = IPS_OK;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP.reset();
+        HomeSP.setState(IPS_OK);
+        HomeSP.apply();
     }
 
     LOG_DEBUG("Getting guiding rate...");
@@ -1027,8 +986,8 @@ bool LX200ZEQ25::Park()
     }
     else
     {
-        HomeSP.s = IPS_BUSY;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP.setState(IPS_BUSY);
+        HomeSP.apply();
     }
 
     TrackState = SCOPE_PARKING;
@@ -1156,14 +1115,14 @@ bool LX200ZEQ25::ReadScopeStatus()
     //if (check_lx200_connection(PortFD))
     //return false;
 
-    if (HomeSP.s == IPS_BUSY)
+    if (HomeSP.getState() == IPS_BUSY)
     {
         if (isZEQ25Home())
         {
-            HomeS[0].s = ISS_ON;
-            HomeSP.s   = IPS_OK;
+            HomeSP.reset();
+            HomeSP.setState(IPS_OK);
             LOG_INFO("Telescope arrived at home position.");
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
         }
     }
 
@@ -1178,14 +1137,7 @@ bool LX200ZEQ25::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        // JM 2019-12-16: Parking is not working correctly, so we just use home
-        //        if (isSlewComplete())
-        //        {
-        //            setZEQ25Park();
-        //            SetParked(true);
-        //        }
-
-        if (HomeSP.s  == IPS_OK && HomeS[0].s == ISS_ON)
+        if (HomeSP.getState() == IPS_OK)
         {
             SetParked(true);
         }
@@ -1481,4 +1433,38 @@ bool LX200ZEQ25::setUTCOffset(double offset)
 
     snprintf(command, 64, ":SG %c%02d:%02d#", offset >= 0 ? '+' : '-', h, m);
     return setZEQ25StandardProcedure(PortFD, command);
+}
+
+// Home
+IPState LX200ZEQ25::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_GO:
+
+            // If already home, nothing to be done
+            //if (HomeS[0].s == ISS_ON)
+            if (isZEQ25Home())
+            {
+                LOG_WARN("Telescope is already homed.");
+                return IPS_OK;
+            }
+
+            if (gotoZEQ25Home() < 0)
+            {
+                LOG_ERROR("Error slewing to home position.");
+                return IPS_ALERT;
+            }
+            else
+            {
+                LOG_INFO("Slewing to home position.");
+                return IPS_BUSY;
+            }
+
+        default:
+            return IPS_ALERT;
+
+    }
+
+    return IPS_ALERT;
 }

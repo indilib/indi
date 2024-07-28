@@ -41,130 +41,126 @@
  */
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
-public:
-    ScopeSim();
-    virtual ~ScopeSim() = default;
+    public:
+        ScopeSim();
+        virtual ~ScopeSim() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
+        virtual const char *getDefaultName() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-protected:
-    // Slew Rate
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    virtual bool Abort() override;
+    protected:
+        // Slew Rate
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool Abort() override;
 
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    virtual bool Goto(double, double) override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool Sync(double ra, double dec) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool Sync(double ra, double dec) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        // Home
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
-private:
-    double currentRA { 0 };
-    double currentDEC { 90 };
-    double targetRA { 0 };
-    double targetDEC { 0 };
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    /// used by GoTo and Park
-    void StartSlew(double ra, double dec, TelescopeStatus status);
+    private:
+        double currentRA { 0 };
+        double currentDEC { 90 };
+        double targetRA { 0 };
+        double targetDEC { 0 };
 
-    // bool forceMeridianFlip { false }; // #PS: unused
-    unsigned int DBG_SCOPE { 0 };
+        /// used by GoTo and Park
+        void StartSlew(double ra, double dec, TelescopeStatus status);
 
-    int mcRate = 0;
+        // bool forceMeridianFlip { false }; // #PS: unused
+        unsigned int DBG_SCOPE { 0 };
 
-    //    double guiderEWTarget[2];
-    //    double guiderNSTarget[2];
+        int mcRate = 0;
 
-    bool guidingNS = false;
-    bool guidingEW = false;
+        //    double guiderEWTarget[2];
+        //    double guiderNSTarget[2];
 
-    INDI::PropertyNumber GuideRateNP {2};
-    enum
-    {
-        GUIDE_RATE_WE,
-        GUIDE_RATE_NS
-    };
+        bool guidingNS = false;
+        bool guidingEW = false;
 
-    INDI::PropertySwitch HomeSP {3};
-    enum
-    {
-        Find,
-        Set,
-        Go
-    };
-    double m_Home[2] = {0, 0};
+        INDI::PropertyNumber GuideRateNP {2};
+        enum
+        {
+            GUIDE_RATE_WE,
+            GUIDE_RATE_NS
+        };
 
-    Axis axisPrimary { "HaAxis" };         // hour angle mount axis
-    Axis axisSecondary { "DecAxis" };       // declination mount axis
+        double m_Home[2] = {0, 0};
 
-    int m_PierSide {-1};
-    int m_MountType {-1};
+        Axis axisPrimary { "HaAxis" };         // hour angle mount axis
+        Axis axisSecondary { "DecAxis" };       // declination mount axis
 
-    Alignment alignment;
-    bool updateMountAndPierSide();
+        int m_PierSide {-1};
+        int m_MountType {-1};
+
+        Alignment alignment;
+        bool updateMountAndPierSide();
 
 #ifdef USE_SIM_TAB
-    // Simulator Tab properties
-    // Scope type and alignment
-    INDI::PropertySwitch mountTypeSP {3};
-    enum
-    {
-        ALTAZ,
-        EQ_FORK,
-        EQ_GEM
-    };
+        // Simulator Tab properties
+        // Scope type and alignment
+        INDI::PropertySwitch mountTypeSP {3};
+        enum
+        {
+            ALTAZ,
+            EQ_FORK,
+            EQ_GEM
+        };
 
-    INDI::PropertySwitch simPierSideSP {2};
-    enum
-    {
-        PS_OFF,
-        PS_ON
-    };
+        INDI::PropertySwitch simPierSideSP {2};
+        enum
+        {
+            PS_OFF,
+            PS_ON
+        };
 
-    INDI::PropertyNumber mountModelNP {6};
-    enum
-    {
-        MM_IH,
-        MM_ID,
-        MM_CH,
-        MM_NP,
-        MM_MA,
-        MM_ME
-    };
+        INDI::PropertyNumber mountModelNP {6};
+        enum
+        {
+            MM_IH,
+            MM_ID,
+            MM_CH,
+            MM_NP,
+            MM_MA,
+            MM_ME
+        };
 
-    INDI::PropertyNumber mountAxisNP {2};
-    enum
-    {
-        PRIMARY,
-        SECONDARY
-    };
+        INDI::PropertyNumber mountAxisNP {2};
+        enum
+        {
+            PRIMARY,
+            SECONDARY
+        };
 
-    INDI::PropertyNumber flipHourAngleNP {1};
+        INDI::PropertyNumber flipHourAngleNP {1};
 
 #endif
 

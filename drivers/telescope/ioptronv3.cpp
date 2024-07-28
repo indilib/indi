@@ -68,7 +68,9 @@ IOptronV3::IOptronV3()
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TRACK_RATE |
                            TELESCOPE_HAS_PIER_SIDE,
-                           9);
+                           9,
+                           HOME_FIND | HOME_SET | HOME_GO
+                          );
 }
 
 const char *IOptronV3::getDefaultName()
@@ -129,13 +131,6 @@ bool IOptronV3::initProperties()
     IUFillSwitch(&HemisphereS[HEMI_NORTH], "North", "", ISS_ON);
     IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
-
-    /* Home */
-    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FIND", "Find", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_SET_HOME], "SET", "Set As Current", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GO", "Go", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
 
     /* v3.0 Create PEC Training switches */
     // PEC Training
@@ -227,8 +222,6 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&HomeSP);
-
         /* v3.0 Create PEC switches */
         defineProperty(&PECTrainingSP);
         defineProperty(&PECInfoTP);
@@ -253,8 +246,6 @@ bool IOptronV3::updateProperties()
     }
     else
     {
-        deleteProperty(HomeSP.name);
-
         /* v3.0 Delete PEC switches */
         deleteProperty(PECTrainingSP.name);
         deleteProperty(PECInfoTP.name);
@@ -495,74 +486,6 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        /*******************************************************
-         * Home Operations
-        *******************************************************/
-        if (!strcmp(name, HomeSP.name))
-        {
-            IUUpdateSwitch(&HomeSP, states, names, n);
-
-            IOP_HOME_OPERATION operation = (IOP_HOME_OPERATION)IUFindOnSwitchIndex(&HomeSP);
-
-            IUResetSwitch(&HomeSP);
-
-            switch (operation)
-            {
-                case IOP_FIND_HOME:
-                    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-                            firmwareInfo.Model.find("GEM45") == std::string::npos &&
-                            firmwareInfo.Model.find("HAE") == std::string::npos &&
-                            firmwareInfo.Model.find("HAZ") == std::string::npos &&
-                            firmwareInfo.Model.find("HEM") == std::string::npos)
-                    {
-                        HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        LOG_WARN("Home search is not supported in this model.");
-                        return true;
-                    }
-
-                    if (driver->findHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Searching for home position...");
-                    return true;
-
-                case IOP_SET_HOME:
-                    if (driver->setCurrentHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Home position set to current coordinates.");
-                    return true;
-
-                case IOP_GOTO_HOME:
-                    if (driver->gotoHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Slewing to home position...");
-                    return true;
-            }
-
-            return true;
-        }
-
         /*******************************************************
          * Slew Mode Operations
         *******************************************************/
@@ -1335,4 +1258,52 @@ bool IOptronV3::GetPECDataStatus(bool enabled)
         }
     }
     return false;
+}
+
+IPState IOptronV3::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_FIND:
+            if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+                    firmwareInfo.Model.find("GEM45") == std::string::npos &&
+                    firmwareInfo.Model.find("HAE") == std::string::npos &&
+                    firmwareInfo.Model.find("HAZ") == std::string::npos &&
+                    firmwareInfo.Model.find("HEM") == std::string::npos)
+            {
+                LOG_WARN("Home search is not supported in this model.");
+                return IPS_ALERT;
+            }
+
+            if (driver->findHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Searching for home position...");
+            return IPS_BUSY;
+
+        case HOME_SET:
+            if (driver->setCurrentHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Home position set to current coordinates.");
+            return IPS_OK;
+
+        case HOME_GO:
+            if (driver->gotoHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Slewing to home position...");
+            return IPS_BUSY;
+
+        default:
+            return IPS_ALERT;
+    }
+
+    return IPS_ALERT;
 }

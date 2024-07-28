@@ -321,7 +321,7 @@ bool Telescope::updateProperties()
             defineProperty(&TrackStateSP);
         if (HasTrackRate())
             defineProperty(&TrackRateNP);
-        if (CanHome() && m_HomeCapability > 0)
+        if (m_HomeCapability > 0)
             defineProperty(HomeSP);
 
         if (CanGOTO())
@@ -382,7 +382,7 @@ bool Telescope::updateProperties()
             deleteProperty(TrackRateNP.name);
         if (CanControlTrack())
             deleteProperty(TrackStateSP.name);
-        if (CanHome() && m_HomeCapability > 0)
+        if (m_HomeCapability > 0)
             deleteProperty(HomeSP);
 
         if (CanGOTO())
@@ -1251,6 +1251,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             auto state = ExecuteHomeAction(action);
             HomeSP.setState(state);
+            if (state == IPS_BUSY)
+                HomeSP.update(states, names, n);
             HomeSP.apply();
             return true;
         }
@@ -1768,6 +1770,12 @@ bool Telescope::updateLocation(double latitude, double longitude, double elevati
     INDI_UNUSED(longitude);
     INDI_UNUSED(elevation);
     return true;
+}
+
+IPState Telescope::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    INDI_UNUSED(action);
+    return IPS_ALERT;
 }
 
 void Telescope::updateObserverLocation(double latitude, double longitude, double elevation)

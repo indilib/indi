@@ -40,7 +40,7 @@ const char *STATUS_TAB = "Status";
 
 LX200NYX101::LX200NYX101()
 {
-    setVersion(1, 0);
+    setVersion(2, 2);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -52,7 +52,9 @@ LX200NYX101::LX200NYX101()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE,
-                           SLEW_MODES);
+                           SLEW_MODES,
+                           HOME_GO | HOME_SET
+                          );
 }
 
 bool LX200NYX101::initProperties()
@@ -110,12 +112,12 @@ bool LX200NYX101::initProperties()
     GuideRateSP.fill(getDeviceName(), "GUIDE_RATE", "Guide Rate", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     //Go Home
-    HomeSP[0].fill("GO", "Go", ISS_OFF);
-    HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home go", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    // HomeSP[0].fill("GO", "Go", ISS_OFF);
+    // HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home go", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    //Reset Home
-    ResetHomeSP[0].fill("Home", "Reset", ISS_OFF);
-    ResetHomeSP.fill(getDeviceName(), "HOME_RESET", "Home Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // //Reset Home
+    // ResetHomeSP[0].fill("Home", "Reset", ISS_OFF);
+    // ResetHomeSP.fill(getDeviceName(), "HOME_RESET", "Home Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     verboseReport = false;
     VerboseReportSP[0].fill("On", "On",  ISS_OFF);
@@ -252,8 +254,8 @@ bool LX200NYX101::updateProperties()
 
         defineProperty(MountTypeSP);
         defineProperty(GuideRateSP);
-        defineProperty(HomeSP);
-        defineProperty(ResetHomeSP);
+        // defineProperty(HomeSP);
+        // defineProperty(ResetHomeSP);
         defineProperty(Report);
         defineProperty(FlipSP);
         defineProperty(MeridianLimitNP);
@@ -285,12 +287,12 @@ bool LX200NYX101::updateProperties()
     {
         deleteProperty(MountTypeSP);
         deleteProperty(GuideRateSP);
-        deleteProperty(HomeSP);
+        //deleteProperty(HomeSP);
         deleteProperty(MeridianLimitNP);
         deleteProperty(FlipSP);
         deleteProperty(ElevationLimitNP);
         deleteProperty(SafetyLimitSP);
-        deleteProperty(ResetHomeSP);
+        //deleteProperty(ResetHomeSP);
         deleteProperty(Report);
 #ifdef DEBUG_NYX
         deleteProperty(DebugCommandTP);
@@ -656,19 +658,6 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             GuideRateSP.apply();
             return true;
         }
-        else if(HomeSP.isNameMatch(name))
-        {
-            HomeSP.update(states, names, n);
-            IPState state = IPS_OK;
-            if (isConnected())
-            {
-                HomeSP[0].setState(ISS_OFF);
-                sendCommand(":hC#");
-            }
-            HomeSP.setState(state);
-            HomeSP.apply();
-            return true;
-        }
         else if(FlipSP.isNameMatch(name))
         {
             FlipSP.update(states, names, n);
@@ -693,19 +682,6 @@ bool LX200NYX101::ISNewSwitch(const char *dev, const char *name, ISState *states
             }
             RebootSP.setState(state);
             RebootSP.apply();
-            return true;
-        }
-        else if(ResetHomeSP.isNameMatch(name))
-        {
-            ResetHomeSP.update(states, names, n);
-            IPState state = IPS_OK;
-            if (isConnected())
-            {
-                ResetHomeSP[0].setState(ISS_OFF);
-                sendCommand(":hF#");
-            }
-            ResetHomeSP.setState(state);
-            ResetHomeSP.apply();
             return true;
         }
         else if(SafetyLimitSP.isNameMatch(name))
@@ -1040,6 +1016,26 @@ void LX200NYX101::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
+}
+
+// Homing
+IPState LX200NYX101::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_GO:
+            sendCommand(":hC#");
+            return IPS_BUSY;
+
+        case HOME_SET:
+            sendCommand(":hF#");
+            return IPS_OK;
+
+        default:
+            return IPS_ALERT;
+    }
+
+    return IPS_ALERT;
 }
 
 std::vector<std::string> LX200NYX101::split(const std::string &input, const std::string &regex)

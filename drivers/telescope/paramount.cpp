@@ -70,14 +70,16 @@ const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 25
 
 Paramount::Paramount()
 {
-    setVersion(1, 4);
+    setVersion(1, 5);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
                            TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
-                           9);
+                           9,
+                           HOME_GO
+                          );
     setTelescopeConnection(CONNECTION_TCP);
 
     m_NSTimer.setSingleShot(true);
@@ -131,9 +133,10 @@ bool Paramount::initProperties()
                        IPS_IDLE);
 
     // Homing
-    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
-                       IPS_IDLE);
+    // IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    // IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+    //                    IPS_IDLE);
+
     // Tracking Mode
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -199,8 +202,6 @@ bool Paramount::updateProperties()
         }
 
         SetParked(isTheSkyParked());
-
-        defineProperty(&HomeSP);
     }
     else
     {
@@ -212,7 +213,6 @@ bool Paramount::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
-        deleteProperty(HomeSP.name);
     }
 
     return true;
@@ -362,11 +362,12 @@ bool Paramount::ReadScopeStatus()
         {
             TrackState = SCOPE_TRACKING;
 
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
-                IUResetSwitch(&HomeSP);
-                HomeSP.s = IPS_OK;
+                HomeSP.reset();
+                HomeSP.setState(IPS_OK);
                 LOG_INFO("Finding home completed.");
+                HomeSP.apply();
             }
             else
                 LOG_INFO("Slew is complete. Tracking...");
@@ -620,35 +621,6 @@ bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], 
 
     //  if we didn't process it, continue up the chain, let somebody else give it a shot
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
-}
-
-bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (!strcmp(HomeSP.name, name))
-        {
-            LOG_INFO("Moving to home position. Please stand by...");
-            if (findHome())
-            {
-                HomeS[0].s = ISS_OFF;
-                TrackState = SCOPE_IDLE;
-                HomeSP.s = IPS_OK;
-                LOG_INFO("Mount arrived at home position.");
-            }
-            else
-            {
-                HomeS[0].s = ISS_OFF;
-                HomeSP.s = IPS_ALERT;
-                LOG_ERROR("Failed to go to home position");
-            }
-
-            IDSetSwitch(&HomeSP, nullptr);
-            return true;
-        }
-    }
-
-    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool Paramount::Abort()
@@ -1098,4 +1070,17 @@ bool Paramount::SetTrackEnabled(bool enabled)
     else
         // Otherwise, simply switch everything off
         return setTheSkyTracking(0, 0, 0., 0.);
+}
+
+IPState Paramount::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_GO:
+            LOG_INFO("Moving to home position. Please stand by...");
+            return findHome() ? IPS_BUSY : IPS_ALERT;
+
+        default:
+            return IPS_ALERT;
+    }
 }

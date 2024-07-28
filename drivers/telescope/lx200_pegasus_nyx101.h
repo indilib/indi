@@ -29,104 +29,107 @@
 
 class LX200NYX101 : public LX200Generic
 {
-public:
-    LX200NYX101();
-    virtual bool updateProperties() override;
-    virtual bool initProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    public:
+        LX200NYX101();
+        virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 #ifdef DEBUG_NYX
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    INDI::PropertyText DebugCommandTP {1};
+        INDI::PropertyText DebugCommandTP {1};
 #endif
-    
-protected:
-    virtual bool ReadScopeStatus() override;
-    virtual const char *getDefaultName() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool setUTCOffset(double offset) override;
-    virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetSlewRate(int index) override;
 
-private:
-     static constexpr const uint8_t SLEW_MODES {10};
-     static constexpr const uint8_t DRIVER_LEN {64};
-     static const char DRIVER_STOP_CHAR { 0x23 };
-     static constexpr const uint8_t DRIVER_TIMEOUT {3};
+    protected:
+        virtual bool ReadScopeStatus() override;
+        virtual const char *getDefaultName() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool setUTCOffset(double offset) override;
+        virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetSlewRate(int index) override;
 
-    enum RefractionState
-    {
-        REFRACT_ON,
-        REFRACT_OFF
-    };
+        // Homing
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
-    enum SafetyLimits
-    {
-        SET_SAFETY_LIMIT,
-        CLEAR_SAFETY_LIMIT
-    };
+    private:
+        static constexpr const uint8_t SLEW_MODES {10};
+        static constexpr const uint8_t DRIVER_LEN {64};
+        static const char DRIVER_STOP_CHAR { 0x23 };
+        static constexpr const uint8_t DRIVER_TIMEOUT {3};
 
-    enum NYXTelescopeTrackMode
-    {
-        TRACK_SIDEREAL,
-        TRACK_SOLAR,
-        TRACK_LUNAR,
-        TRACK_KING
-    };
-    
-    INDI::PropertySwitch MountTypeSP {2};
-    enum MountType
-    {
-        AltAz,
-        Equatorial
-    };
+        enum RefractionState
+        {
+            REFRACT_ON,
+            REFRACT_OFF
+        };
 
-    enum ElevationNumber
-    {
-        OVERHEAD,
-        HORIZON
-    };
+        enum SafetyLimits
+        {
+            SET_SAFETY_LIMIT,
+            CLEAR_SAFETY_LIMIT
+        };
 
-    INDI::PropertySwitch GuideRateSP {3};
-    INDI::PropertySwitch HomeSP {1};
-    INDI::PropertySwitch ResetHomeSP {1};
-    INDI::PropertyText Report {1};
-    INDI::PropertySwitch VerboseReportSP {2};
-    INDI::PropertyText IsTracking {1};
-    INDI::PropertyText IsSlewCompleted {1};
-    INDI::PropertyText IsParked {1};
-    INDI::PropertyText IsParkginInProgress {1};
-    INDI::PropertyText IsAtHomePosition {1};
-    INDI::PropertyText MountAltAz {1};
-    INDI::PropertyText MountEquatorial {1};
-    INDI::PropertyText PierNone {1};
-    INDI::PropertyText PierEast {1};
-    INDI::PropertyText PierWest {1};
-    INDI::PropertyText DoesRefractionComp {1};
-    INDI::PropertyText WaitingAtHome {1};
-    INDI::PropertyText IsHomePaused {1};
-    INDI::PropertyText ParkFailed {1};
-    INDI::PropertyText SlewingHome {1};
-    INDI::PropertySwitch FlipSP {1};
-    INDI::PropertySwitch RebootSP {1};
-    INDI::PropertySwitch RefractSP {2};
-    INDI::PropertyNumber ElevationLimitNP {2};
-    INDI::PropertyNumber MeridianLimitNP {1};
-    INDI::PropertySwitch SafetyLimitSP {2};
- 
+        enum NYXTelescopeTrackMode
+        {
+            TRACK_SIDEREAL,
+            TRACK_SOLAR,
+            TRACK_LUNAR,
+            TRACK_KING
+        };
 
-     bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-     void hexDump(char * buf, const char * data, int size);
-     std::vector<std::string> split(const std::string &input, const std::string &regex);
-     bool goToPark();
-     bool goToUnPark();
-     bool setMountType(int type);
-     bool setGuideRate(int rate);
-     bool verboseReport = false;
-     void SetPropertyText(INDI::PropertyText propertyTxt, IPState state);
+        INDI::PropertySwitch MountTypeSP {2};
+        enum MountType
+        {
+            AltAz,
+            Equatorial
+        };
+
+        enum ElevationNumber
+        {
+            OVERHEAD,
+            HORIZON
+        };
+
+        INDI::PropertySwitch GuideRateSP {3};
+        // INDI::PropertySwitch HomeSP {1};
+        // INDI::PropertySwitch ResetHomeSP {1};
+        INDI::PropertyText Report {1};
+        INDI::PropertySwitch VerboseReportSP {2};
+        INDI::PropertyText IsTracking {1};
+        INDI::PropertyText IsSlewCompleted {1};
+        INDI::PropertyText IsParked {1};
+        INDI::PropertyText IsParkginInProgress {1};
+        INDI::PropertyText IsAtHomePosition {1};
+        INDI::PropertyText MountAltAz {1};
+        INDI::PropertyText MountEquatorial {1};
+        INDI::PropertyText PierNone {1};
+        INDI::PropertyText PierEast {1};
+        INDI::PropertyText PierWest {1};
+        INDI::PropertyText DoesRefractionComp {1};
+        INDI::PropertyText WaitingAtHome {1};
+        INDI::PropertyText IsHomePaused {1};
+        INDI::PropertyText ParkFailed {1};
+        INDI::PropertyText SlewingHome {1};
+        INDI::PropertySwitch FlipSP {1};
+        INDI::PropertySwitch RebootSP {1};
+        INDI::PropertySwitch RefractSP {2};
+        INDI::PropertyNumber ElevationLimitNP {2};
+        INDI::PropertyNumber MeridianLimitNP {1};
+        INDI::PropertySwitch SafetyLimitSP {2};
+
+
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        void hexDump(char * buf, const char * data, int size);
+        std::vector<std::string> split(const std::string &input, const std::string &regex);
+        bool goToPark();
+        bool goToUnPark();
+        bool setMountType(int type);
+        bool setGuideRate(int rate);
+        bool verboseReport = false;
+        void SetPropertyText(INDI::PropertyText propertyTxt, IPState state);
 };

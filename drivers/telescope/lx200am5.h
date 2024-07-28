@@ -34,7 +34,7 @@ class LX200AM5 : public LX200Generic
         virtual bool initProperties() override;
 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;        
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
         virtual const char *getDefaultName() override;
@@ -46,7 +46,7 @@ class LX200AM5 : public LX200Generic
         virtual bool ReadScopeStatus() override;
         virtual bool SetSlewRate(int index) override;
 
-        // Tracking        
+        // Tracking
         virtual bool SetTrackEnabled(bool enabled) override;
 
         // Time & Location
@@ -57,6 +57,9 @@ class LX200AM5 : public LX200Generic
         // Parking
         virtual bool Park() override;
         virtual bool UnPark() override;
+
+        // Home
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
     private:
 
@@ -82,14 +85,14 @@ class LX200AM5 : public LX200Generic
         /// Properties
         //////////////////////////////////////////////////////////////////////////////////
         // Go Home
-        INDI::PropertySwitch HomeSP {1};
+        //INDI::PropertySwitch HomeSP {1};
         // Mount Type
         INDI::PropertySwitch MountTypeSP {2};
         enum
         {
             Azimuth,
             Equatorial
-        };        
+        };
         // Guide Rate
         INDI::PropertyNumber GuideRateNP {1};
         // Buzzer control

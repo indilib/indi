@@ -60,6 +60,13 @@
  * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropriate TrackMode and TrackRate
  *               properties before or after engaging tracking as governed by the mount protocol.
  *
+ * Home position is the default starting position of the mount where both axis indexes are in the zero or home position. This can be different from the parking
+ * position which can be set to avoid obstacles (e.g. roof) while in the parked state. For many mounts, the parking and home positions are identical. If homing is supported,
+ * the following operations may be supported:
+ * 1. Find: Search for the home indexes.
+ * 2. Set: Use current position as the home position
+ * 3. Go: Go to the stored home position.
+ *
  * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
  * after checking the return values of such functions.
  * \author Jasem Mutlaq, Gerry Rozema
@@ -180,7 +187,6 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
             TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
             TELESCOPE_CAN_FLIP                    = 1 << 13, /** Does the telescope have a command for flipping? */
-            TELESCOPE_CAN_HOME                    = 1 << 14, /** Does the telescope support setting and going to home index position? */
         } TelescopeCapability;
 
         Telescope();
@@ -319,14 +325,6 @@ class Telescope : public DefaultDevice
         bool HasTrackRate()
         {
             return capability & TELESCOPE_HAS_TRACK_RATE;
-        }
-
-        /**
-         * @return True if telescope supports homing.
-         */
-        bool CanHome()
-        {
-            return capability & TELESCOPE_CAN_HOME;
         }
 
         /** \brief Called to initialize basic properties required all the time */

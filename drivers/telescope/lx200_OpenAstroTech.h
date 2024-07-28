@@ -27,66 +27,68 @@
 
 class LX200_OpenAstroTech : public LX200GPS
 {
-  public:
-    LX200_OpenAstroTech(void);
+    public:
+        LX200_OpenAstroTech(void);
 
-    virtual bool Handshake() override;
-    virtual const char *getDefaultName(void) override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool Handshake() override;
+        virtual const char *getDefaultName(void) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-  protected:
-//    virtual void getBasicData(void) override;
-    //FocuserInterface
+    protected:
+        //    virtual void getBasicData(void) override;
+        //FocuserInterface
 
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    IPState MoveAbsFocuser (uint32_t targetTicks) override;
-    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
-    virtual bool SetFocuserBacklash(int32_t steps) override;
-    virtual bool AbortFocuser () override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool SyncFocuser(uint32_t ticks) override;
+        IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        IPState MoveAbsFocuser (uint32_t targetTicks) override;
+        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool AbortFocuser () override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
 
-    //End FocuserInterface
+        // Home
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
-  private:
-    virtual char getCommandChar(int fd, const char *cmd);
-    virtual int executeMeadeCommand(const char *cmd, char *data);
-    virtual bool executeMeadeCommandBlind(const char *cmd);
-    //virtual int executeMeadeCommandNumber(const char *cmd);
-    virtual int flushIO(int fd);
-    int OATUpdateProperties();
-    int OATUpdateFocuser();
-    void initFocuserProperties(const char *);
+        //End FocuserInterface
 
-  private:
-    IText MeadeCommandT;
-    ITextVectorProperty MeadeCommandTP;
+    private:
+        virtual char getCommandChar(int fd, const char *cmd);
+        virtual int executeMeadeCommand(const char *cmd, char *data);
+        virtual bool executeMeadeCommandBlind(const char *cmd);
+        //virtual int executeMeadeCommandNumber(const char *cmd);
+        virtual int flushIO(int fd);
+        int OATUpdateProperties();
+        int OATUpdateFocuser();
+        void initFocuserProperties(const char *);
 
-    INumber PolarAlignAltN;
-    INumberVectorProperty PolarAlignAltNP;
+    private:
+        IText MeadeCommandT;
+        ITextVectorProperty MeadeCommandTP;
 
-    INumber PolarAlignAzN;
-    INumberVectorProperty PolarAlignAzNP;
+        INumber PolarAlignAltN;
+        INumberVectorProperty PolarAlignAltNP;
 
-    INumber RAHomeN;
-    INumberVectorProperty RAHomeNP;
+        INumber PolarAlignAzN;
+        INumberVectorProperty PolarAlignAzNP;
 
-    INumber RAHomeOffsetN;
-    INumberVectorProperty RAHomeOffsetNP;
+        INumber RAHomeN;
+        INumberVectorProperty RAHomeNP;
 
-    INumber DecLimitsN[2];
-    INumberVectorProperty DecLimitsNP;
+        INumber RAHomeOffsetN;
+        INumberVectorProperty RAHomeOffsetNP;
 
-    ISwitchVectorProperty HomeSP;
-    ISwitch HomeS;
+        INumber DecLimitsN[2];
+        INumberVectorProperty DecLimitsNP;
 
-    char MeadeCommandResult[1024];
-    int32_t FocuserBacklash;
-    bool PolarActive;
-    INDI::FocuserInterface::FocusDirection FocuserDirectionLast;    
+        // ISwitchVectorProperty HomeSP;
+        // ISwitch HomeS;
+
+        char MeadeCommandResult[1024];
+        int32_t FocuserBacklash;
+        bool PolarActive;
+        INDI::FocuserInterface::FocusDirection FocuserDirectionLast;
 };
 
