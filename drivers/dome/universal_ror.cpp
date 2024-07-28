@@ -197,6 +197,9 @@ void UniversalROR::TimerHit()
             {
                 LOG_INFO("Roof is open.");
                 SetParked(false);
+                // Make sure the relays are off
+                if (m_Client)
+                    m_Client->stop();
                 return;
             }
         }
@@ -207,6 +210,9 @@ void UniversalROR::TimerHit()
             {
                 LOG_INFO("Roof is closed.");
                 SetParked(true);
+                // Make sure the relays are off
+                if (m_Client)
+                    m_Client->stop();
                 return;
             }
         }
