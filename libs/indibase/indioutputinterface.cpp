@@ -89,13 +89,15 @@ bool OutputInterface::updateProperties()
     {
         for (auto &oneOutput : DigitalOutputsSP)
             m_defaultDevice->defineProperty(oneOutput);
-        m_defaultDevice->defineProperty(DigitalOutputLabelsTP);
+        if (DigitalOutputsSP.size() > 0)
+            m_defaultDevice->defineProperty(DigitalOutputLabelsTP);
     }
     else
     {
         for (auto &oneOutput : DigitalOutputsSP)
             m_defaultDevice->deleteProperty(oneOutput);
-        m_defaultDevice->deleteProperty(DigitalOutputLabelsTP);
+        if (DigitalOutputsSP.size() > 0)
+            m_defaultDevice->deleteProperty(DigitalOutputLabelsTP);
     }
 
     return true;
