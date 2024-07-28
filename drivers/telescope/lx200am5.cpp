@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -106,6 +106,17 @@ bool LX200AM5::initProperties()
     BuzzerSP[Low].fill("LOW", "Low", ISS_OFF);
     BuzzerSP[High].fill("HIGH", "High", ISS_ON);
     BuzzerSP.fill(getDeviceName(), "BUZZER", "Buzzer", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    BuzzerSP.onUpdate([this]{
+        if (setBuzzer(BuzzerSP.findOnSwitchIndex()))
+        {
+            BuzzerSP.setState(IPState::IPS_OK);
+        }
+        else
+        {
+            BuzzerSP.setState(IPState::IPS_ALERT);
+        }
+        BuzzerSP.apply();
+    });
 
     return true;
 }
@@ -342,7 +353,7 @@ bool LX200AM5::getTrackMode()
 bool LX200AM5::setBuzzer(int value)
 {
     char command[DRIVER_LEN] = {0};
-    snprintf(command, DRIVER_LEN, ":SBu%d", value);
+    snprintf(command, DRIVER_LEN, ":SBu%d#", value);
     return sendCommand(command);
 }
 
