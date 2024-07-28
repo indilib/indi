@@ -233,6 +233,7 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                         HomeSP.setState(IPS_ALERT);
                         LOG_WARN("Failed to write current home position in the mount. It is possible that the position is too far from the factory position.");
                     }
+                    HomeSP[SaveHome].setState(ISS_OFF);
                     break;
                 }
             }
