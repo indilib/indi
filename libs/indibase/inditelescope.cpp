@@ -321,7 +321,8 @@ bool Telescope::updateProperties()
             defineProperty(&TrackStateSP);
         if (HasTrackRate())
             defineProperty(&TrackRateNP);
-
+        if (CanHome() && m_HomeCapability > 0)
+            defineProperty(HomeSP);
 
         if (CanGOTO())
         {
@@ -381,6 +382,8 @@ bool Telescope::updateProperties()
             deleteProperty(TrackRateNP.name);
         if (CanControlTrack())
             deleteProperty(TrackStateSP.name);
+        if (CanHome() && m_HomeCapability > 0)
+            deleteProperty(HomeSP);
 
         if (CanGOTO())
         {
@@ -1224,6 +1227,35 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         ///////////////////////////////////
+        // Homing
+        ///////////////////////////////////
+        if (HomeSP.isNameMatch(name))
+        {
+            auto onSwitchName = IUFindOnSwitchName(states, names, n);
+            TelescopeHomeAction action = HOME_NONE;
+            if (!strcmp(onSwitchName, HomeSP[HOME_FIND].getName()))
+                action = HOME_FIND;
+            else if (!strcmp(onSwitchName, HomeSP[HOME_SET].getName()))
+                action = HOME_SET;
+            else
+                action = HOME_GO;
+
+            if (isParked())
+            {
+                HomeSP.setState(IPS_ALERT);
+                HomeSP.reset();
+                HomeSP.apply();
+                LOG_ERROR("Cannot home while parked.");
+                return true;
+            }
+
+            auto state = ExecuteHomeAction(action);
+            HomeSP.setState(state);
+            HomeSP.apply();
+            return true;
+        }
+
+        ///////////////////////////////////
         // Abort Motion
         ///////////////////////////////////
         if (!strcmp(name, AbortSP.name))
@@ -1789,10 +1821,11 @@ void Telescope::generateCoordSet()
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
 
-void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
+void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount, uint8_t homeCapability)
 {
     capability = cap;
     nSlewRate  = slewRateCount;
+    m_HomeCapability = homeCapability;
 
     generateCoordSet();
 
@@ -1827,6 +1860,34 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    }
+
+    if (m_HomeCapability > 0)
+    {
+        HomeSP.resize(0);
+        if (m_HomeCapability & HOME_FIND)
+        {
+            INDI::WidgetSwitch node;
+            node.fill("FIND", "Find", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        if (m_HomeCapability & HOME_SET)
+        {
+            INDI::WidgetSwitch node;
+            node.fill("SET", "Set", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        if (m_HomeCapability & HOME_GO)
+        {
+            INDI::WidgetSwitch node;
+            node.fill("GO", "Go", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        HomeSP.shrink_to_fit();
+        HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 }
 

@@ -127,6 +127,14 @@ class Telescope : public DefaultDevice
             PIER_EAST    = 1
         };
 
+        enum TelescopeHomeAction
+        {
+            HOME_NONE = 1 << 0,     /*!< Mount does not support any form of homing */
+            HOME_FIND = 1 << 1,     /*!< Mount can search for home position  */
+            HOME_SET  = 1 << 2,     /*!< Mount can use current-position as home position */
+            HOME_GO   = 1 << 3,     /*!< Mount can slew to home position */
+        };
+
         enum TelescopePECState
         {
             PEC_UNKNOWN = -1,
@@ -172,6 +180,7 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
             TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
             TELESCOPE_CAN_FLIP                    = 1 << 13, /** Does the telescope have a command for flipping? */
+            TELESCOPE_CAN_HOME                    = 1 << 14, /** Does the telescope support setting and going to home index position? */
         } TelescopeCapability;
 
         Telescope();
@@ -198,8 +207,9 @@ class Telescope : public DefaultDevice
          * no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX
          * members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
+         * @param homeCapability An ORed value of supported home actions (Find, Set, Go) if any. By default, no home actions are supported.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount, uint8_t homeCapability = 0);
 
         /**
          * @return True if telescope support goto operations
@@ -309,6 +319,14 @@ class Telescope : public DefaultDevice
         bool HasTrackRate()
         {
             return capability & TELESCOPE_HAS_TRACK_RATE;
+        }
+
+        /**
+         * @return True if telescope supports homing.
+         */
+        bool CanHome()
+        {
+            return capability & TELESCOPE_CAN_HOME;
         }
 
         /** \brief Called to initialize basic properties required all the time */
@@ -610,6 +628,14 @@ class Telescope : public DefaultDevice
         virtual bool SetParkPosition(double Axis1Value, double Axis2Value);
 
         /**
+         * \brief Execute a homing action
+         * \param action Depending on the telescope supported homing capabilities, this could be either
+         * FIND, SET, or GO.
+         * \return State of executed action. IPS_OK if action is completed successfully, IPS_BUSY if in progress, IPS_ALERT if failed.
+         */
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action);
+
+        /**
          * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
          * @return True if current mount coordinates are set as parking position, false on error.
          * \note If not implemented by the child class, this function by default returns false with a
@@ -874,6 +900,9 @@ class Telescope : public DefaultDevice
         INumberVectorProperty TrackRateNP;
         INumber TrackRateN[2];
 
+        // Home Position
+        INDI::PropertySwitch HomeSP {0};
+
         /**@}*/
 
         // PEC State
@@ -926,6 +955,8 @@ class Telescope : public DefaultDevice
 
         float motionDirNSValue {0};
         float motionDirWEValue {0};
+
+        uint8_t m_HomeCapability {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 
