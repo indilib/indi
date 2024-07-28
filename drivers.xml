@@ -81,11 +81,11 @@
         </device>
         <device label="ZWO AM5 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="ZWO AM5 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>

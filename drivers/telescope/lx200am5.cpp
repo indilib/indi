@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
