@@ -82,7 +82,12 @@ class LX200AM5 : public LX200Generic
         /// Properties
         //////////////////////////////////////////////////////////////////////////////////
         // Go Home
-        INDI::PropertySwitch HomeSP {1};
+        enum
+        {
+            GoHome,
+            SaveHome
+        };
+        INDI::PropertySwitch HomeSP {2};
         // Mount Type
         INDI::PropertySwitch MountTypeSP {2};
         enum
@@ -109,6 +114,7 @@ class LX200AM5 : public LX200Generic
 
         // Homing
         bool goHome();
+        bool saveHome();
 
         // Guide Rate
         bool setGuideRate(double value);

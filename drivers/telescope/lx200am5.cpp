@@ -94,7 +94,8 @@ bool LX200AM5::initProperties()
     SlewRateS[9].s = ISS_ON;
 
     // Home/Zero position
-    HomeSP[0].fill("GO", "Go", ISS_OFF);
+    HomeSP[GoHome].fill("GO", "Go", ISS_OFF);
+    HomeSP[SaveHome].fill("SAVE", "Save", ISS_OFF);
     HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Guide Rate
@@ -213,9 +214,27 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         {
             if (HomeSP.getState() != IPS_BUSY)
             {
-                HomeSP[0].setState(ISS_ON);
-                HomeSP.setState(goHome() ? IPS_BUSY : IPS_ALERT);
-                LOG_INFO("Homing in progress...");
+                HomeSP.update(states, names, n);
+                switch (HomeSP.findOnSwitchIndex())
+                {
+                case GoHome:
+                    LOG_INFO("Homing in progress...");
+                    HomeSP[GoHome].setState(ISS_ON);
+                    HomeSP.setState(goHome() ? IPS_BUSY : IPS_ALERT);
+                    break;
+                case SaveHome:
+                    if (saveHome())
+                    {
+                        HomeSP.setState(IPS_OK);
+                        LOG_INFO("Current position written as home position in the mount.");
+                    }
+                    else
+                    {
+                        HomeSP.setState(IPS_ALERT);
+                        LOG_WARN("Failed to write current home position in the mount. It is possible that the position is too far from the factory position.");
+                    }
+                    break;
+                }
             }
             HomeSP.apply();
             return true;
@@ -414,6 +433,16 @@ bool LX200AM5::isTracking()
 bool LX200AM5::goHome()
 {
     return sendCommand(":hC#");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::saveHome()
+{
+    const char cmd[] = ":SOa#";
+    char status ='0';
+    return sendCommand(cmd, &status, strlen(cmd), sizeof(status)) && status == '1';
 }
 
 /////////////////////////////////////////////////////////////////////////////
