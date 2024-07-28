@@ -7,7 +7,7 @@
 
 #ifdef SWIG
 // api version for swig
-% include "indiapi.h"
+%include "indiapi.h"
 #endif
 
 #define MAXRBUF 2048
