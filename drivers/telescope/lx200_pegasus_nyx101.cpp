@@ -51,9 +51,10 @@ LX200NYX101::LX200NYX101()
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
-                           TELESCOPE_HAS_TRACK_MODE,
-                           SLEW_MODES,
-                           HOME_GO | HOME_SET
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_CAN_HOME_SET |
+                           TELESCOPE_CAN_HOME_GO,
+                           SLEW_MODES
                           );
 }
 

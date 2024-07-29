@@ -187,6 +187,9 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
             TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
             TELESCOPE_CAN_FLIP                    = 1 << 13, /** Does the telescope have a command for flipping? */
+            TELESCOPE_CAN_HOME_FIND               = 1 << 14, /** Can the telescope find home position? */
+            TELESCOPE_CAN_HOME_SET                = 1 << 15, /** Can the telescope set the current position as the new home position? */
+            TELESCOPE_CAN_HOME_GO                 = 1 << 16, /** Can the telescope slew to home position? */
         } TelescopeCapability;
 
         Telescope();
@@ -213,9 +216,8 @@ class Telescope : public DefaultDevice
          * no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX
          * members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
-         * @param homeCapability An ORed value of supported home actions (Find, Set, Go) if any. By default, no home actions are supported.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount, uint8_t homeCapability = 0);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount);
 
         /**
          * @return True if telescope support goto operations
@@ -325,6 +327,30 @@ class Telescope : public DefaultDevice
         bool HasTrackRate()
         {
             return capability & TELESCOPE_HAS_TRACK_RATE;
+        }
+
+        /**
+         * @return True if telescope can search for home position.
+         */
+        bool CanHomeFind()
+        {
+            return capability & TELESCOPE_CAN_HOME_FIND;
+        }
+
+        /**
+         * @return True if telescope can set current position as the home position.
+         */
+        bool CanHomeSet()
+        {
+            return capability & TELESCOPE_CAN_HOME_SET;
+        }
+
+        /**
+         * @return True if telescope can go to the home position.
+         */
+        bool CanHomeGo()
+        {
+            return capability & TELESCOPE_CAN_HOME_GO;
         }
 
         /** \brief Called to initialize basic properties required all the time */
@@ -953,8 +979,6 @@ class Telescope : public DefaultDevice
 
         float motionDirNSValue {0};
         float motionDirWEValue {0};
-
-        uint8_t m_HomeCapability {0};
 
         bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 

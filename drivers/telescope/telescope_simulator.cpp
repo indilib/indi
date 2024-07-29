@@ -41,9 +41,8 @@ ScopeSim::ScopeSim()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
-                           TELESCOPE_HAS_TRACK_RATE,
-                           4,
-                           HOME_FIND | HOME_GO | HOME_SET
+                           TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_HOME_FIND | TELESCOPE_CAN_HOME_SET | TELESCOPE_CAN_HOME_GO,
+                           4
                           );
 
     /* initialize random seed: */
@@ -676,7 +675,7 @@ bool ScopeSim::updateMountAndPierSide()
     {
         cap &= ~static_cast<uint32_t>(TELESCOPE_HAS_PIER_SIDE);
     }
-    SetTelescopeCapability(cap, 4, HOME_FIND | HOME_SET | HOME_GO);
+    SetTelescopeCapability(cap, 4);
 
     return true;
 }

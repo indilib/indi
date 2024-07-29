@@ -47,9 +47,9 @@ LX200ZEQ25::LX200ZEQ25()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
-                           TELESCOPE_HAS_PIER_SIDE,
-                           9,
-                           HOME_GO
+                           TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_CAN_HOME_GO,
+                           9
                           );
 }
 

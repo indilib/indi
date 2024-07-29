@@ -67,9 +67,11 @@ IOptronV3::IOptronV3()
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_HAS_PIER_SIDE,
-                           9,
-                           HOME_FIND | HOME_SET | HOME_GO
+                           TELESCOPE_HAS_PIER_SIDE |
+                           TELESCOPE_CAN_HOME_FIND |
+                           TELESCOPE_CAN_HOME_SET |
+                           TELESCOPE_CAN_HOME_GO,
+                           9
                           );
 }
 

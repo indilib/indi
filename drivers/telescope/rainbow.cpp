@@ -43,8 +43,9 @@ Rainbow::Rainbow() : INDI::Telescope ()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_PIER_SIDE |
-                           TELESCOPE_HAS_TRACK_MODE, 4,
-                           HOME_GO
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_CAN_HOME_GO,
+                           4
                           );
 }
 

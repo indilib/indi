@@ -39,7 +39,7 @@ LX200_OpenAstroTech::LX200_OpenAstroTech(void) : LX200GPS()
 {
     setVersion(MAJOR_VERSION, MINOR_VERSION);
 
-    SetTelescopeCapability(GetTelescopeCapability(), 4, HOME_GO);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_HOME_GO, 4);
 }
 
 bool LX200_OpenAstroTech::Handshake()

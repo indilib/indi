@@ -321,7 +321,7 @@ bool Telescope::updateProperties()
             defineProperty(&TrackStateSP);
         if (HasTrackRate())
             defineProperty(&TrackRateNP);
-        if (m_HomeCapability > 0)
+        if (CanHomeFind() || CanHomeSet() || CanHomeGo())
             defineProperty(HomeSP);
 
         if (CanGOTO())
@@ -382,7 +382,7 @@ bool Telescope::updateProperties()
             deleteProperty(TrackRateNP.name);
         if (CanControlTrack())
             deleteProperty(TrackStateSP.name);
-        if (m_HomeCapability > 0)
+        if (CanHomeFind() || CanHomeSet() || CanHomeGo())
             deleteProperty(HomeSP);
 
         if (CanGOTO())
@@ -1233,9 +1233,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             auto onSwitchName = IUFindOnSwitchName(states, names, n);
             TelescopeHomeAction action = HOME_NONE;
-            if (!strcmp(onSwitchName, HomeSP[HOME_FIND].getName()))
+            if (HomeSP[HOME_FIND].isNameMatch(onSwitchName))
                 action = HOME_FIND;
-            else if (!strcmp(onSwitchName, HomeSP[HOME_SET].getName()))
+            else if (HomeSP[HOME_SET].isNameMatch(onSwitchName))
                 action = HOME_SET;
             else
                 action = HOME_GO;
@@ -1829,11 +1829,10 @@ void Telescope::generateCoordSet()
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
 
-void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount, uint8_t homeCapability)
+void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 {
     capability = cap;
     nSlewRate  = slewRateCount;
-    m_HomeCapability = homeCapability;
 
     generateCoordSet();
 
@@ -1870,24 +1869,24 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount, uint
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     }
 
-    if (m_HomeCapability > 0)
+    if (CanHomeFind() || CanHomeSet() || CanHomeGo())
     {
         HomeSP.resize(0);
-        if (m_HomeCapability & HOME_FIND)
+        if (CanHomeFind())
         {
             INDI::WidgetSwitch node;
             node.fill("FIND", "Find", ISS_OFF);
             HomeSP.push(std::move(node));
         }
 
-        if (m_HomeCapability & HOME_SET)
+        if (CanHomeSet())
         {
             INDI::WidgetSwitch node;
             node.fill("SET", "Set", ISS_OFF);
             HomeSP.push(std::move(node));
         }
 
-        if (m_HomeCapability & HOME_GO)
+        if (CanHomeGo())
         {
             INDI::WidgetSwitch node;
             node.fill("GO", "Go", ISS_OFF);
