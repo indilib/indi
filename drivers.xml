@@ -843,6 +843,10 @@
             <driver name="DragonLAIR">indi_dragonlair_dome</driver>
             <version>1.0</version>
         </device>
+        <device label="Universal ROR" manufacturer="Others">
+            <driver name="Universal ROR">indi_universalror_dome</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Weather">
         <device label="Weather Simulator" manufacturer="Simulator">

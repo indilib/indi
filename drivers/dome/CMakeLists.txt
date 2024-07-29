@@ -82,3 +82,13 @@ SET(dragonlair_SRC
 add_executable(indi_dragonlair_dome ${dragonlair_SRC})
 target_link_libraries(indi_dragonlair_dome indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragonlair_dome RUNTIME DESTINATION bin)
+
+# ############### Universal ROR ################
+SET(universalror_SRC
+    universal_ror.cpp
+    universal_ror_client.cpp
+    )
+
+add_executable(indi_universalror_dome ${universalror_SRC})
+target_link_libraries(indi_universalror_dome indidriver indiclient)
+install(TARGETS indi_universalror_dome RUNTIME DESTINATION bin)
