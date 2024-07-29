@@ -1231,7 +1231,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         if (HomeSP.isNameMatch(name))
         {
-            auto onSwitchName = IUFindOnSwitchName(states, names, n);
+            auto onSwitchName = std::string(IUFindOnSwitchName(states, names, n));
             auto action = HOME_FIND;
             if (onSwitchName == "SET")
                 action = HOME_SET;
