@@ -41,7 +41,7 @@
     - fixed minutes passed meridian not showing actual values
     - fixed missing slewrates defineProperty and deleteProperty causing redefinitions of overrides
     - todo focuser stops working after some time ??? could not yet reproduce
-    - fixed poll and update slew rates 
+    - fixed poll and update slew rates
     - todo poll and update maximum slew speed SmartWebServer=>Settings
     Version 1.18
     - implemented Focuser T° compensation in FOCUSER TAB
@@ -227,12 +227,13 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         //RotatorInterface
 
         IPState MoveRotator(double angle) override;
-        //         bool SyncRotator(double angle) override;
         IPState HomeRotator() override;
-        //         bool ReverseRotator(bool enabled) override;
         bool AbortRotator() override;
         bool SetRotatorBacklash (int32_t steps) override;
         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+        // Homing
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
         //End RotatorInterface
 
@@ -332,11 +333,11 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         bool OSFocuser1 = false;
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
-        
+
         // Focus T° Compensation
         INumberVectorProperty FocusTemperatureNP;
         INumber FocusTemperatureN[2];
-        
+
         ISwitchVectorProperty TFCCompensationSP;
         ISwitch TFCCompensationS[2];
         INumberVectorProperty TFCCoefficientNP;
@@ -394,8 +395,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         ISwitchVectorProperty HomePauseSP;
         ISwitch HomePauseS[3];
 
-        ISwitchVectorProperty SetHomeSP;
-        ISwitch SetHomeS[2];
+        // ISwitchVectorProperty SetHomeSP;
+        // ISwitch SetHomeS[2];
 
         ISwitchVectorProperty PreferredPierSideSP;
         ISwitch PreferredPierSideS[3];

@@ -60,6 +60,13 @@
  * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropriate TrackMode and TrackRate
  *               properties before or after engaging tracking as governed by the mount protocol.
  *
+ * Home position is the default starting position of the mount where both axis indexes are in the zero or home position. This can be different from the parking
+ * position which can be set to avoid obstacles (e.g. roof) while in the parked state. For many mounts, the parking and home positions are identical. If homing is supported,
+ * the following operations may be supported:
+ * 1. Find: Search for the home indexes.
+ * 2. Set: Use current position as the home position
+ * 3. Go: Go to the stored home position.
+ *
  * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
  * after checking the return values of such functions.
  * \author Jasem Mutlaq, Gerry Rozema
@@ -127,6 +134,13 @@ class Telescope : public DefaultDevice
             PIER_EAST    = 1
         };
 
+        enum TelescopeHomeAction
+        {
+            HOME_FIND,              /*!< Command mount to search for home position.  */
+            HOME_SET,               /*!< Command mount to accept current position as the home position. */
+            HOME_GO,                /*!< Command mount to slew to home position. */
+        };
+
         enum TelescopePECState
         {
             PEC_UNKNOWN = -1,
@@ -172,6 +186,9 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
             TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
             TELESCOPE_CAN_FLIP                    = 1 << 13, /** Does the telescope have a command for flipping? */
+            TELESCOPE_CAN_HOME_FIND               = 1 << 14, /** Can the telescope find home position? */
+            TELESCOPE_CAN_HOME_SET                = 1 << 15, /** Can the telescope set the current position as the new home position? */
+            TELESCOPE_CAN_HOME_GO                 = 1 << 16, /** Can the telescope slew to home position? */
         } TelescopeCapability;
 
         Telescope();
@@ -309,6 +326,30 @@ class Telescope : public DefaultDevice
         bool HasTrackRate()
         {
             return capability & TELESCOPE_HAS_TRACK_RATE;
+        }
+
+        /**
+         * @return True if telescope can search for home position.
+         */
+        bool CanHomeFind()
+        {
+            return capability & TELESCOPE_CAN_HOME_FIND;
+        }
+
+        /**
+         * @return True if telescope can set current position as the home position.
+         */
+        bool CanHomeSet()
+        {
+            return capability & TELESCOPE_CAN_HOME_SET;
+        }
+
+        /**
+         * @return True if telescope can go to the home position.
+         */
+        bool CanHomeGo()
+        {
+            return capability & TELESCOPE_CAN_HOME_GO;
         }
 
         /** \brief Called to initialize basic properties required all the time */
@@ -610,6 +651,14 @@ class Telescope : public DefaultDevice
         virtual bool SetParkPosition(double Axis1Value, double Axis2Value);
 
         /**
+         * \brief Execute a homing action
+         * \param action Depending on the telescope supported homing capabilities, this could be either
+         * FIND, SET, or GO.
+         * \return State of executed action. IPS_OK if action is completed successfully, IPS_BUSY if in progress, IPS_ALERT if failed.
+         */
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action);
+
+        /**
          * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
          * @return True if current mount coordinates are set as parking position, false on error.
          * \note If not implemented by the child class, this function by default returns false with a
@@ -873,6 +922,9 @@ class Telescope : public DefaultDevice
         // Track Rate
         INumberVectorProperty TrackRateNP;
         INumber TrackRateN[2];
+
+        // Home Position
+        INDI::PropertySwitch HomeSP {0};
 
         /**@}*/
 

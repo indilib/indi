@@ -43,7 +43,10 @@ Rainbow::Rainbow() : INDI::Telescope ()
                            TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_PIER_SIDE |
-                           TELESCOPE_HAS_TRACK_MODE, 4);
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_CAN_HOME_GO,
+                           4
+                          );
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -66,9 +69,9 @@ bool Rainbow::initProperties()
     SetParkDataType(PARK_AZ_ALT);
 
     // Homing
-    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
-                       IPS_IDLE);
+    // IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    // IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+    //                    IPS_IDLE);
 
     // Star Alignment on Sync
     IUFillSwitch(&SaveAlignBeforeSyncS[STAR_ALIGNMENT_ENABLED], "STAR_ALIGNMENT_ENABLED", "Enabled", ISS_OFF);
@@ -144,7 +147,7 @@ bool Rainbow::updateProperties()
     if (isConnected())
     {
         defineProperty(&HorizontalCoordsNP);
-        defineProperty(&HomeSP);
+        //defineProperty(&HomeSP);
 
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
@@ -162,7 +165,7 @@ bool Rainbow::updateProperties()
     else
     {
         deleteProperty(HorizontalCoordsNP.name);
-        deleteProperty(HomeSP.name);
+        //deleteProperty(HomeSP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -280,29 +283,8 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Homing
-        if (!strcmp(HomeSP.name, name))
-        {
-            if (HomeSP.s == IPS_BUSY)
-            {
-                LOG_WARN("Homing is already in progress.");
-                return true;
-            }
-
-            HomeSP.s = findHome() ? IPS_BUSY : IPS_ALERT;
-            if (HomeSP.s == IPS_BUSY)
-            {
-                TrackState = SCOPE_SLEWING;
-                HomeS[0].s = ISS_ON;
-                LOG_INFO("Mount is moving to home position...");
-            }
-            else
-                LOG_ERROR("Mount failed to move to home position.");
-
-            IDSetSwitch(&HomeSP, nullptr);
-            return true;
-        }
         // Star Align
-        else if (!strcmp(SaveAlignBeforeSyncSP.name, name))
+        if (!strcmp(SaveAlignBeforeSyncSP.name, name))
         {
 
             IUUpdateSwitch(&SaveAlignBeforeSyncSP, states, names, n);
@@ -677,12 +659,12 @@ bool Rainbow::ReadScopeStatus()
             HorizontalCoordsNP.s = IPS_OK;
             IDSetNumber(&HorizontalCoordsNP, nullptr);
 
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 LOG_INFO("Homing completed successfully.");
-                HomeSP.s = IPS_OK;
-                HomeS[0].s = ISS_OFF;
-                IDSetSwitch(&HomeSP, nullptr);
+                HomeSP.reset();
+                HomeSP.setState(IPS_OK);
+                HomeSP.apply();
                 TrackState = SCOPE_IDLE;
             }
             else
@@ -701,12 +683,12 @@ bool Rainbow::ReadScopeStatus()
 
             EqNP.s = IPS_ALERT;
 
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 TrackState = SCOPE_IDLE;
-                HomeSP.s = IPS_ALERT;
-                HomeS[0].s = ISS_OFF;
-                IDSetSwitch(&HomeSP, nullptr);
+                HomeSP.reset();
+                HomeSP.setState(IPS_ALERT);
+                HomeSP.apply();
                 LOGF_ERROR("Homing error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
             }
             else
@@ -1778,4 +1760,21 @@ std::vector<std::string> Rainbow::split(const std::string &input, const std::str
     first{input.begin(), input.end(), re, -1},
           last;
     return {first, last};
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+// Home
+IPState Rainbow::ExecuteHomeAction(TelescopeHomeAction action)
+{
+
+    switch (action)
+    {
+        case HOME_GO:
+            return findHome() ? IPS_BUSY : IPS_ALERT;
+
+        default:
+            return IPS_ALERT;
+    }
 }

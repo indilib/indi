@@ -39,7 +39,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool updateProperties() override;
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
@@ -71,6 +70,9 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         // these all call these two functions
         IPState GuideNS(int32_t ms);
         IPState GuideWE(int32_t ms);
+
+        // Home
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
     private:
         void mountSim();
@@ -106,10 +108,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         // Tracking Mode
         ISwitch TrackModeS[4];
         ISwitchVectorProperty TrackModeSP;
-
-        // Homing
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
 
         // Timers
         INDI::Timer m_NSTimer;

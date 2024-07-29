@@ -63,6 +63,8 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool SetSlewRate(int index) override;
         // Syncing
         virtual bool Sync(double ra, double dec) override;
+        // Home
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
 
         // RA/DE
         bool getRA();
@@ -157,9 +159,6 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
-
         ISwitchVectorProperty SaveAlignBeforeSyncSP;
         ISwitch SaveAlignBeforeSyncS[2];
         enum { STAR_ALIGNMENT_DISABLED, STAR_ALIGNMENT_ENABLED};

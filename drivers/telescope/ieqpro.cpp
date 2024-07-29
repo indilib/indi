@@ -58,8 +58,9 @@ IEQPro::IEQPro()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
-                           TELESCOPE_HAS_TRACK_RATE,
-                           9);
+                           TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_HOME_FIND | TELESCOPE_CAN_HOME_SET | TELESCOPE_CAN_HOME_GO,
+                           9
+                          );
 }
 
 const char *IEQPro::getDefaultName()
@@ -127,13 +128,6 @@ bool IEQPro::initProperties()
     IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* Home */
-    IUFillSwitch(&HomeS[IEQ_SET_HOME], "IEQ_SET_HOME", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "IEQ_GOTO_HOME", "Go to Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "IEQ_FIND_HOME", "Find Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
-
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "RA", "%.2f", 0.01, 0.9, 0.1, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "DE_GUIDE_RATE", "DE", "%.2f", 0.1, 0.99, 0.1, 0.5);
@@ -170,12 +164,6 @@ bool IEQPro::updateProperties()
 
         INDI::Telescope::updateProperties();
 
-        // Remove find home if we do not support it.
-        if (!canFindHome)
-            HomeSP.nsp = 2;
-
-        defineProperty(&HomeSP);
-
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
 
@@ -190,9 +178,6 @@ bool IEQPro::updateProperties()
     else
     {
         INDI::Telescope::updateProperties();
-
-        HomeSP.nsp = 3;
-        deleteProperty(HomeSP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -347,79 +332,9 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (!strcmp(getDeviceName(), dev))
-    {
-        if (!strcmp(name, HomeSP.name))
-        {
-            IUUpdateSwitch(&HomeSP, states, names, n);
-
-            HomeOperation operation = static_cast<HomeOperation>(IUFindOnSwitchIndex(&HomeSP));
-
-            IUResetSwitch(&HomeSP);
-
-            switch (operation)
-            {
-                case IEQ_SET_HOME:
-                    if (driver->setCurrentHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Home position set to current coordinates.");
-                    return true;
-
-                case IEQ_GOTO_HOME:
-                    if (TrackState == SCOPE_PARKED)
-                    {
-                        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
-                        return false;
-                    }
-
-                    if (driver->gotoHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Slewing to home position...");
-                    return true;
-
-                case IEQ_FIND_HOME:
-                    if (driver->findHome() == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Searching for home position...");
-                    return true;
-            }
-
-            return true;
-        }
-    }
-
-    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
-}
-
 bool IEQPro::ReadScopeStatus()
 {
     iEQ::Base::Info newInfo;
-
-    //    if (isSimulation())
-    //        mountSim();
 
     bool rc = driver->getStatus(&newInfo);
 
@@ -1070,4 +985,52 @@ bool IEQPro::SetTrackEnabled(bool enabled)
     }
 
     return driver->setTrackEnabled(enabled);
+}
+
+IPState IEQPro::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    switch (action)
+    {
+        case HOME_FIND:
+            if (!canFindHome && (firmwareInfo.Model.find("CEM") == std::string::npos &&
+                                 firmwareInfo.Model.find("GEM45") == std::string::npos &&
+                                 firmwareInfo.Model.find("HAE") == std::string::npos &&
+                                 firmwareInfo.Model.find("HAZ") == std::string::npos &&
+                                 firmwareInfo.Model.find("HEM") == std::string::npos))
+            {
+                LOG_WARN("Home search is not supported in this model.");
+                return IPS_ALERT;
+            }
+
+            if (driver->findHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Searching for home position...");
+            return IPS_BUSY;
+
+        case HOME_SET:
+            if (driver->setCurrentHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Home position set to current coordinates.");
+            return IPS_OK;
+
+        case HOME_GO:
+            if (driver->gotoHome() == false)
+            {
+                return IPS_ALERT;
+            }
+
+            LOG_INFO("Slewing to home position...");
+            return IPS_BUSY;
+
+        default:
+            return IPS_ALERT;
+    }
+
+    return IPS_ALERT;
 }

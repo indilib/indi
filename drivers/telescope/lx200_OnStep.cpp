@@ -50,13 +50,16 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 22);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 23);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
                        LX200_HAS_PRECISE_TRACKING_FREQ);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK                         |
-                           TELESCOPE_HAS_TRACK_RATE, 10 );
+    SetTelescopeCapability(GetTelescopeCapability() |
+                           TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_HAS_TRACK_RATE |
+                           TELESCOPE_CAN_HOME_GO |
+                           TELESCOPE_CAN_HOME_SET, 10);
 
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODE Already inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
@@ -210,10 +213,10 @@ bool LX200_OnStep::initProperties()
     // ============== DATETIME_TAB
 
     // ============== SITE_TAB
-    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
-    IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
-                       IPS_IDLE);
+    // IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
+    // IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
+    // IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
+    //                    IPS_IDLE);
 
     // ============== GUIDE_TAB
 
@@ -503,7 +506,7 @@ bool LX200_OnStep::updateProperties()
 
         // Site Management
         defineProperty(ParkOptionSP);
-        defineProperty(&SetHomeSP);
+        //defineProperty(&SetHomeSP);
 
         // Guide
 
@@ -733,7 +736,7 @@ bool LX200_OnStep::updateProperties()
 
         // Site Management
         deleteProperty(ParkOptionSP);
-        deleteProperty(SetHomeSP.name);
+        //deleteProperty(SetHomeSP.name);
         // Guide
 
         // Focuser
@@ -1364,31 +1367,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             SlewRateS[index].s = ISS_ON;
             SlewRateSP.s = IPS_OK;
             IDSetSwitch(&SlewRateSP, nullptr);
-            return true;
-        }
-        // Homing, Cold and Warm Init
-        if (!strcmp(name, SetHomeSP.name))
-        {
-            IUUpdateSwitch(&SetHomeSP, states, names, n);
-            SetHomeSP.s = IPS_OK;
-
-            if (SetHomeS[0].s == ISS_ON)
-            {
-                if(!sendOnStepCommandBlind(":hC#"))
-                    return false;
-                IDSetSwitch(&SetHomeSP, "Return Home");
-                SetHomeS[0].s = ISS_OFF;
-            }
-            else
-            {
-                if(!sendOnStepCommandBlind(":hF#"))
-                    return false;
-                IDSetSwitch(&SetHomeSP, "At Home (Reset)");
-                SetHomeS[1].s = ISS_OFF;
-            }
-            IUResetSwitch(&ReticSP);
-            SetHomeSP.s = IPS_IDLE;
-            IDSetSwitch(&SetHomeSP, nullptr);
             return true;
         }
 
@@ -5458,3 +5436,24 @@ bool LX200_OnStep::setUTCOffset(double offset)
     return result;
 }
 
+IPState LX200_OnStep::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    // Homing, Cold and Warm Init
+    switch (action)
+    {
+        case HOME_GO:
+            if(!sendOnStepCommandBlind(":hC#"))
+                return IPS_ALERT;
+            return IPS_BUSY;
+
+        case HOME_SET:
+            if(!sendOnStepCommandBlind(":hF#"))
+                return IPS_ALERT;
+            return IPS_OK;
+
+        default:
+            return IPS_ALERT;
+    }
+
+    return IPS_ALERT;
+}

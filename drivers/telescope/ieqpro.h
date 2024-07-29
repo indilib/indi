@@ -32,7 +32,6 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         IEQPro();
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual const char *getDefaultName() override;
@@ -78,6 +77,9 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         // Slew Rate
         virtual bool SetSlewRate(int index) override;
 
+        // Homing
+        virtual IPState ExecuteHomeAction(TelescopeHomeAction action) override;
+
         // Sim
         //void mountSim();
 
@@ -118,8 +120,8 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty HemisphereSP;
 
         /* Home Control */
-        ISwitch HomeS[3];
-        ISwitchVectorProperty HomeSP;
+        // ISwitch HomeS[3];
+        // ISwitchVectorProperty HomeSP;
 
         /* Guide Rate */
         INumber GuideRateN[2];

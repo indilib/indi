@@ -321,7 +321,8 @@ bool Telescope::updateProperties()
             defineProperty(&TrackStateSP);
         if (HasTrackRate())
             defineProperty(&TrackRateNP);
-
+        if (CanHomeFind() || CanHomeSet() || CanHomeGo())
+            defineProperty(HomeSP);
 
         if (CanGOTO())
         {
@@ -381,6 +382,8 @@ bool Telescope::updateProperties()
             deleteProperty(TrackRateNP.name);
         if (CanControlTrack())
             deleteProperty(TrackStateSP.name);
+        if (CanHomeFind() || CanHomeSet() || CanHomeGo())
+            deleteProperty(HomeSP);
 
         if (CanGOTO())
         {
@@ -1224,6 +1227,35 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         ///////////////////////////////////
+        // Homing
+        ///////////////////////////////////
+        if (HomeSP.isNameMatch(name))
+        {
+            auto onSwitchName = std::string(IUFindOnSwitchName(states, names, n));
+            auto action = HOME_FIND;
+            if (onSwitchName == "SET")
+                action = HOME_SET;
+            else if (onSwitchName == "GO")
+                action = HOME_GO;
+
+            if (isParked())
+            {
+                HomeSP.setState(IPS_ALERT);
+                HomeSP.reset();
+                HomeSP.apply();
+                LOG_ERROR("Cannot home while parked.");
+                return true;
+            }
+
+            auto state = ExecuteHomeAction(action);
+            HomeSP.setState(state);
+            if (state == IPS_BUSY)
+                HomeSP.update(states, names, n);
+            HomeSP.apply();
+            return true;
+        }
+
+        ///////////////////////////////////
         // Abort Motion
         ///////////////////////////////////
         if (!strcmp(name, AbortSP.name))
@@ -1738,6 +1770,12 @@ bool Telescope::updateLocation(double latitude, double longitude, double elevati
     return true;
 }
 
+IPState Telescope::ExecuteHomeAction(TelescopeHomeAction action)
+{
+    INDI_UNUSED(action);
+    return IPS_ALERT;
+}
+
 void Telescope::updateObserverLocation(double latitude, double longitude, double elevation)
 {
     m_Location.longitude = longitude;
@@ -1827,6 +1865,34 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    }
+
+    if (CanHomeFind() || CanHomeSet() || CanHomeGo())
+    {
+        HomeSP.resize(0);
+        if (CanHomeFind())
+        {
+            INDI::WidgetSwitch node;
+            node.fill("FIND", "Find", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        if (CanHomeSet())
+        {
+            INDI::WidgetSwitch node;
+            node.fill("SET", "Set", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        if (CanHomeGo())
+        {
+            INDI::WidgetSwitch node;
+            node.fill("GO", "Go", ISS_OFF);
+            HomeSP.push(std::move(node));
+        }
+
+        HomeSP.shrink_to_fit();
+        HomeSP.fill(getDeviceName(), "TELESCOPE_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 }
 
