@@ -112,6 +112,7 @@ class LX200AM5 : public LX200Generic
 
         // Homing
         bool goHome();
+        bool setHome();
 
         // Guide Rate
         bool setGuideRate(double value);

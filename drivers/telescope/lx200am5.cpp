@@ -420,6 +420,16 @@ bool LX200AM5::goHome()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setHome()
+{
+    const char cmd[] = ":SOa#";
+    char status ='0';
+    return sendCommand(cmd, &status, strlen(cmd), sizeof(status)) && status == '1';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -648,6 +658,12 @@ IPState LX200AM5::ExecuteHomeAction(TelescopeHomeAction action)
         case HOME_GO:
             if (goHome())
                 return IPS_BUSY;
+            else
+                return IPS_ALERT;
+
+        case HOME_SET:
+            if (setHome())
+                return IPS_OK;
             else
                 return IPS_ALERT;
 
