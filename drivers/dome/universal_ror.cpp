@@ -200,7 +200,6 @@ void UniversalROR::TimerHit()
                 // Make sure the relays are off
                 if (m_Client)
                     m_Client->stop();
-                return;
             }
         }
         // Roll Off is closing
@@ -213,10 +212,12 @@ void UniversalROR::TimerHit()
                 // Make sure the relays are off
                 if (m_Client)
                     m_Client->stop();
-                return;
             }
         }
     }
+    // If state is not known and park is set, unpark.
+    else if (isParked() && m_FullClosedLimitSwitch == false && m_FullOpenLimitSwitch == false)
+        SetParked(false);
 
     SetTimer(getPollingPeriod());
 }
