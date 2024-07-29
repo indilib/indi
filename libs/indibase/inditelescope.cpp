@@ -1232,12 +1232,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         if (HomeSP.isNameMatch(name))
         {
             auto onSwitchName = IUFindOnSwitchName(states, names, n);
-            TelescopeHomeAction action = HOME_NONE;
-            if (HomeSP[HOME_FIND].isNameMatch(onSwitchName))
-                action = HOME_FIND;
-            else if (HomeSP[HOME_SET].isNameMatch(onSwitchName))
+            auto action = HOME_FIND;
+            if (onSwitchName == "SET")
                 action = HOME_SET;
-            else
+            else if (onSwitchName == "GO")
                 action = HOME_GO;
 
             if (isParked())

@@ -136,10 +136,9 @@ class Telescope : public DefaultDevice
 
         enum TelescopeHomeAction
         {
-            HOME_NONE = 1 << 0,     /*!< Mount does not support any form of homing */
-            HOME_FIND = 1 << 1,     /*!< Mount can search for home position  */
-            HOME_SET  = 1 << 2,     /*!< Mount can use current-position as home position */
-            HOME_GO   = 1 << 3,     /*!< Mount can slew to home position */
+            HOME_FIND,              /*!< Command mount to search for home position.  */
+            HOME_SET,               /*!< Command mount to accept current position as the home position. */
+            HOME_GO,                /*!< Command mount to slew to home position. */
         };
 
         enum TelescopePECState
