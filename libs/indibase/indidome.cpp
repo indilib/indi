@@ -821,9 +821,10 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 {
     XMLEle * ep           = nullptr;
     const char * propName = findXMLAttValu(root, "name");
+    auto deviceName = std::string(findXMLAttValu(root, "device"));
 
     // Check TARGET
-    if (!strcmp("TARGET_EOD_COORD", propName))
+    if (!strcmp("TARGET_EOD_COORD", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         int rc_ra = -1, rc_de = -1;
         double ra = 0, de = 0;

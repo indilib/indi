@@ -470,10 +470,11 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
     XMLEle *ep           = nullptr;
     const char *propName = findXMLAttValu(root, "name");
+    auto deviceName = std::string(findXMLAttValu(root, "device"));
 
     if (isConnected())
     {
-        if (HasLocation() && !strcmp(propName, "GEOGRAPHIC_COORD"))
+        if (HasLocation() && !strcmp(propName, "GEOGRAPHIC_COORD") && deviceName == ActiveDeviceTP[ACTIVE_GPS].getText())
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -495,7 +496,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
             return processLocationInfo(latitude, longitude, elevation);
         }
-        else if (HasTime() && !strcmp(propName, "TIME_UTC"))
+        else if (HasTime() && !strcmp(propName, "TIME_UTC") && deviceName == ActiveDeviceTP[ACTIVE_GPS].getText())
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -515,7 +516,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
             return processTimeInfo(utc, offset);
         }
-        else if (!strcmp(propName, "DOME_PARK")/* || !strcmp(propName, "DOME_SHUTTER")*/)
+        else if (!strcmp(propName, "DOME_PARK") && deviceName == ActiveDeviceTP[ACTIVE_DOME].getText())
         {
             // This is handled by Watchdog driver.
             // Mount shouldn't park due to dome closing in INDI::Telescope

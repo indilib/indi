@@ -728,7 +728,8 @@ bool CCD::updateProperties()
 bool CCD::ISSnoopDevice(XMLEle * root)
 {
     XMLEle * ep           = nullptr;
-    const char * propName = findXMLAttValu(root, "name");
+    auto propName = findXMLAttValu(root, "name");
+    auto deviceName = std::string(findXMLAttValu(root, "device"));
 
     if (IUSnoopNumber(root, &EqNP) == 0)
     {
@@ -755,7 +756,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         }
         J2000Valid = true;
     }
-    else if (!strcmp("TELESCOPE_PIER_SIDE", propName))
+    else if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
     {
         // set default to say we have no valid information from mount
         pierSide = -1;
@@ -770,7 +771,8 @@ bool CCD::ISSnoopDevice(XMLEle * root)
                 pierSide = 0;
         }
     }
-    else if (!strcmp(propName, "TELESCOPE_INFO"))
+    // Deprecated
+    else if (!strcmp(propName, "TELESCOPE_INFO") && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -786,7 +788,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             }
         }
     }
-    else if (!strcmp(propName, "FILTER_NAME"))
+    else if (!strcmp(propName, "FILTER_NAME") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
         LOG_DEBUG("SNOOP: FILTER_NAME update...");
         FilterNames.clear();
@@ -795,7 +797,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
 
     }
-    else if (!strcmp(propName, "FILTER_SLOT"))
+    else if (!strcmp(propName, "FILTER_SLOT") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
         LOG_DEBUG("SNOOP: FILTER_SLOT update...");
         CurrentFilterSlot = -1;
@@ -803,7 +805,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             CurrentFilterSlot = atoi(pcdataXMLEle(ep));
         LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
     }
-    else if (!strcmp(propName, "SKY_QUALITY"))
+    else if (!strcmp(propName, "SKY_QUALITY") && deviceName == ActiveDeviceTP[ACTIVE_SKYQUALITY].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -816,7 +818,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             }
         }
     }
-    else if (!strcmp(propName, "ABS_ROTATOR_ANGLE"))
+    else if (!strcmp(propName, "ABS_ROTATOR_ANGLE") && deviceName == ActiveDeviceTP[ACTIVE_ROTATOR].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -831,7 +833,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
 
     // JJ ed 2019-12-10
-    else if (!strcmp(propName, "ABS_FOCUS_POSITION"))
+    else if (!strcmp(propName, "ABS_FOCUS_POSITION") && deviceName == ActiveDeviceTP[ACTIVE_FOCUSER].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -844,7 +846,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             }
         }
     }
-    else if (!strcmp(propName, "FOCUS_TEMPERATURE"))
+    else if (!strcmp(propName, "FOCUS_TEMPERATURE") && deviceName == ActiveDeviceTP[ACTIVE_FOCUSER].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -859,7 +861,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
     //
 
-    else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
+    else if (!strcmp(propName, "GEOGRAPHIC_COORD") && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
