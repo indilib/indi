@@ -863,7 +863,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         return true;
     }
     // Check EOD
-    if (!strcmp("EQUATORIAL_EOD_COORD", propName))
+    if (!strcmp("EQUATORIAL_EOD_COORD", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         int rc_ra = -1, rc_de = -1;
         double ra = 0, de = 0;
@@ -918,7 +918,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     }
 
     // Check Geographic coords
-    if (!strcmp("GEOGRAPHIC_COORD", propName))
+    if (!strcmp("GEOGRAPHIC_COORD", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -944,7 +944,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     }
 
     // Check Telescope Park status
-    if (!strcmp("TELESCOPE_PARK", propName))
+    if (!strcmp("TELESCOPE_PARK", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
         {
@@ -1001,7 +1001,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         }
     }
 #endif
-    if (!strcmp("TELESCOPE_PIER_SIDE", propName))
+    if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         //  crack the message
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
