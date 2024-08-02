@@ -1,25 +1,68 @@
++From 2.0.8 to 2.0.9
+      aec9b2d50 2024-07-31 Jasem Mutlaq         Limit dome snooping to active mount                                                                                                                   
+      de01a6e64 2024-07-31 Jasem Mutlaq         Ensure that we only update snooped properties for the devices defined in ACTIVE_DEVICES.                                                              
+      bbe6a2155 2024-07-29 Jasem Mutlaq         Remove unnecessary return and set to unparked if limit switch status is unknown                                                                       
+      1d1a8ae55 2024-07-29 Paweł Soja           ZWO AM5 Save home position in the mount (#2093)                                                                                                       
+      70722a0c3 2024-07-29 Jasem Mutlaq         Universal Roll off roof driver (#2092)                                                                                                                
+      65b92708a 2024-07-29 Jasem Mutlaq         Adding Home support to base class (#2090)                                                                                                             
+      ca644e85a 2024-07-28 Jasem Mutlaq         Do not define digital output labels unless we have members                                                                                            
+      3fffb7958 2024-07-28 Paweł Soja           Feature - ZWO AM5 Buzzer setup (#2087)                                                                                                                
+      ad1175385 2024-07-28 Paweł Soja           Fix "Unknown argument: -v" and %include for swig (#2088)                                                                                              
+      cc0f30cb8 2024-07-27 iTerrans Add New Driver Terrans PowerBoxGo V2 (#2086)                                                                                                          
+      49ad18992 2024-07-26 Jasem Mutlaq         Add flags loading configuration for inputs
+      572f76cf9 2024-07-26 Jasem Mutlaq         Fix conflict                                                                                                                                          
+      34867c929 2024-07-26 Jasem Mutlaq         Simpliy interfaces and fix formatting issue
+      fda517885 2024-07-26 Jasem Mutlaq         AZ Mount Pro is using V2 of the protocol, not V3                                                                                                      
+      7d3cbaa11 2024-07-25 Jasem Mutlaq         Add input interface
+      4fa62b02f 2024-07-25 Jasem Mutlaq         Using a more generic input and output interfaces.                                                                                                     
+      7d7115d1b 2024-07-25 Jasem Mutlaq         Adopt a more generic approach and use OutputInterface instead of just RelayInterface                                                                  
+      2ebf57090 2024-07-24 Jasem Mutlaq         Waveshare Modbus Relay Driver (#2085)                                                                                                                 
+      da0fe394d 2024-07-22 Jasem Mutlaq         Add preliminary relay interface
+      07557fa2e 2024-07-11 iTerrans             Add Terrans PowerBoxPro V2 Driver (#2078)                                                                                                             
+      716f3661a 2024-07-07 Efstathios Chrysikos PegasusAstro FalconV2 Driver (#2079)                                                                                                                  
+      a26743090 2024-07-03 Jasem Mutlaq         Fix warning                                                                                                                                           
+      6623f3556 2024-07-03 escribana            Add button for custom resolution in simulator CCD (#2074)                                                                                             
+      e32eb246e 2024-07-01 Jasem Mutlaq         Add missing AUX encoder save config                                                                                                                   
+      aba764e7a 2024-07-01 Jasem Mutlaq         Do not force AUX encoders if user explicitly turned them off                                                                                          
+      81f39f1f7 2024-06-17 Eric Dejouhanet      fix(drivers): fix curl and iconv dependencies. (#2075)                                                                                                
+      aa1cb9a78 2024-06-13 Jasem Mutlaq         Fix bug with critical parameters                                                                                                                      
+      0f2243f0a 2024-06-13 Jasem Mutlaq         Save lightbox properties in configuration                                                                                                             
+      2a7be959f 2024-06-13 escribana            Weather watcher dynamic labels (#2072)                                                                                                                
+      0905b87df 2024-06-08 Jasem Mutlaq         Only update on state changes                                                                                                                          
+      c23d117bb 2024-06-08 Jasem Mutlaq         WHen changing brightness, only set value if enabled already. For zero, disable it                                                                     
+      179ef3e4c 2024-06-08 Jasem Mutlaq         Add mssing process dust cap switch                                                                                                                    
+      162b79c62 2024-06-08 Jasem Mutlaq         Add missing snoop                                                                                                                                     
+      0f4a82b65 2024-06-08 Jasem Mutlaq         Update version to 1.2                                                                                                                                 
+      925900114 2024-06-08 Jasem Mutlaq         Add missing light properties                                                                                                                          
+      c42d32e34 2024-06-07 Jasem Mutlaq         Add flush before dispatching commands                                                                                                                 
+      a8334a084 2024-06-07 Jasem Mutlaq         Use m_Reversed flag to check the actual reverse status                                                                                                
+      2ac538385 2024-06-07 Jasem Mutlaq         Fix reversed direction value                                                                                                                          
+      35a6b42ef 2024-06-07 Jasem Mutlaq         Migrate driver to correctly use INDI LightBox and DustCap interfaces                                                                                  
+      4865238d7 2024-06-06 Eric Dejouhanet      Minor buffer boundary fixes (#2071)                                                                                                                   
+      00057ffa0 2024-06-05 Jasem Mutlaq         Account for focus reverse
+
 + From 2.0.7 to 2.0.8
 
       e62adc696 2024-05-31 Nicholas Fasching    Fix "Al" Typo in indiccd.h (#2069)                                                                                                                    
       824f83f4f 2024-05-30 Peter Englmaier      Make openweathermap show rain and snow data (#2068)                                                                                                   
-      ab211786d 2024-05-29 Sonny Cavazos        Update ioptronv3driver.cpp - Add new mounts to driver (#2066)                                                                                         
-      963447646 2024-05-23 Paweł Soja           Fix build - SWIG 4.2.0 (#2063)                                                                                                                        
-      e4e90326d 2024-05-23 Peter Englmaier      Implement DustCapInterface (#2061)                                                                                                                    
-      f1eff6411 2024-05-23 Jasem Mutlaq         Update qt5 package name for MacOS                                                                                                                     
-      e0c9ab931 2024-05-23 naheedsa             use size_t (#2062)                                                                                                                                    
-      560a07219 2024-05-19 Thomas Klausner      NetBSD fixes (#2053)                                                                                                                                  
-      91950811c 2024-05-19 naheedsa             Migrate Pegasus Upb (#2047)                                                                                                                           
-      3b12a795e 2024-05-19 naheedsa             Migrate Pegasus PPBA driver (#2046)                                                                                                                   
-      a300b9ff3 2024-05-19 naheedsa             Migrate INDI Astrolink4mini2 (#2045)                                                                                                                  
-      42f5cece3 2024-05-19 naheedsa             Migrate Pegasus PPB (#2056)                                                                                                                           
-      c64a3330a 2024-05-19 Eric Dejouhanet      fix(indiserver): avoid strict warning failure on socket struct copy. (#2059)                                                                          
+      ab211786d 2024-05-29 Sonny Cavazos        Update ioptronv3driver.cpp - Add new mounts to driver(#2066)                                                                                         
+      963447646 2024 - 05 - 23 Paweł Soja           Fix build - SWIG 4.2.0(#2063)                                                                                                                        
+      e4e90326d 2024 - 05 - 23 Peter Englmaier      Implement DustCapInterface(#2061)                                                                                                                    
+      f1eff6411 2024 - 05 - 23 Jasem Mutlaq         Update qt5 package name for MacOS
+      e0c9ab931 2024 - 05 - 23 naheedsa             use size_t(#2062)                                                                                                                                    
+      560a07219 2024 - 05 - 19 Thomas Klausner      NetBSD fixes(#2053)                                                                                                                                  
+      91950811c 2024 - 05 - 19 naheedsa             Migrate Pegasus Upb(#2047)                                                                                                                           
+      3b12a795e 2024 - 05 - 19 naheedsa             Migrate Pegasus PPBA driver(#2046)                                                                                                                   
+      a300b9ff3 2024 - 05 - 19 naheedsa             Migrate INDI Astrolink4mini2(#2045)                                                                                                                  
+      42f5cece3 2024 - 05 - 19 naheedsa             Migrate Pegasus PPB(#2056)                                                                                                                           
+      c64a3330a 2024 - 05 - 19 Eric Dejouhanet      fix(indiserver): avoid strict warning failure on socket struct copy. (#2059)                                                                          
       13180ac7b 2024-05-19 Jasem Mutlaq         Migrate INDI::Dome (#2060)                                                                                                                            
       8ae038eef 2024-05-16 Jasem Mutlaq         Set focuser default baud rate to 115200                                                                                                               
       c47313019 2024-05-12 Paweł Soja           Fix Build fails with LTO (#2057)                                                                                                                      
       e3b60ee73 2024-05-12 Paweł Soja           Add debhelper package - fix package build (#2058)                                                                                                     
       82b03bd8c 2024-05-10 Jasem Mutlaq         Introduce random delays in filter simulators to simulate equipment                                                                                    
-      a74f09b74 2024-05-04 Jim                  indi_2.0.7_spec: updated version (#2050)                                                                                                              
-      dc91b2131 2024-05-05 alpha-frank          Astrotrac 360 Driver Motion Control Issue (#2052)                                                                                                     
+      a74f09b74 2024-05-04 Jim                  indi_2.0.7_spec: updated version(#2050)                                                                                                              
+      dc91b2131 2024-05-05 alpha-frank Astrotrac 360 Driver Motion Control Issue (#2052)                                                                                                     
       abb286a89 2024-05-05 Peter Englmaier      Bugfix: update focuser temperature in alluna tcs2 driver (#2055)                                                                                      
       18f82d491 2024-05-05 alpha-frank          Enable Astrotrac 360 driver guide pulse (#2054)                                                                                                       
       7091f020c 2024-05-04 Jasem Mutlaq         Fix compile error                                                                                                                                     
@@ -36,30 +79,30 @@
       2800ce2e2 2024-04-14 Jasem Mutlaq         Fix max focus range to correct value of 20000                                                                                                         
       d6c058d4c 2024-04-12 Jasem Mutlaq         Disable Merlin mount check since it causing issues for Merlin users who reported the 0.655 value was incorrect for them                               
       1d9e7a464 2024-04-12 Mario Haustein       Link against httplib if using system libraries (#2039)                                                                                                
-      6735d0dfa 2024-04-12 Jasem Mutlaq         Fix typo that lead to broken guide simulator                                                                                                          
-      da3dabd38 2024-04-09 naheedsa             avoid using .getName() for new INDI properties (#2038)                                                                                                
-      b08dc19c2 2024-04-09 Jasem Mutlaq         No need to use getName with new properties                                                                                                            
-      0f47c2579 2024-04-09 Jasem Mutlaq         Fix bug in falcon rotator migration                                                                                                                   
-      56bb66c5f 2024-04-01 Sonny Cavazos        Update pegasus_focuscube.cpp (#2037)
+      6735d0dfa 2024 - 04 - 12 Jasem Mutlaq         Fix typo that lead to broken guide simulator
+      da3dabd38 2024 - 04 - 09 naheedsa             avoid using .getName() for new INDI properties(#2038)                                                                                                
+      b08dc19c2 2024 - 04 - 09 Jasem Mutlaq         No need to use getName with new properties
+      0f47c2579 2024 - 04 - 09 Jasem Mutlaq         Fix bug in falcon rotator migration
+      56bb66c5f 2024 - 04 - 01 Sonny Cavazos        Update pegasus_focuscube.cpp(#2037)
 
-+ From 2.0.6 to 2.0.7
++From 2.0.6 to 2.0.7
 
-      be4195ca2 2024-03-29 Jasem Mutlaq         Fix interface not reported correctly in driver and incorrect usage of the logging functions                                                           
-      ebf5a12a3 2024-03-28 Eric Dejouhanet      fix(cmake): rework static/shared/object build. (#2036)                                                                                                
-      16142e015 2024-03-28 Eric Dejouhanet      fix(actions): fix stale issue management. (#2035)                                                                                                     
-      b53b71eb7 2024-03-27 Jasem Mutlaq         Fix name conflict                                                                                                                                     
-      223db9d19 2024-03-27 Jasem Mutlaq         Migrate ActiveDeviceTP to new property standard                                                                                                       
-      d494b3e16 2024-03-27 Jasem Mutlaq         Fix active device issue with config update                                                                                                            
-      c5f64f5ea 2024-03-23 hcomet               Driver for new DIY Dew Controller - CheapoDC (#2024)                                                                                                  
-      372d2939d 2024-03-23 Thomas Stibor        Fix setting ScopeInfo property (#2032)                                                                                                                
-      4c1f01887 2024-03-23 Efstathios Chrysikos Pegasus FocusCube3 (#2034)                                                                                                                            
-      dcaa4ce8e 2024-03-20 Ian Jessen           SCT focuser interface compliance (#2026) (#2031)                                                                                                      
+      be4195ca2 2024 - 03 - 29 Jasem Mutlaq         Fix interface not reported correctly in driver and incorrect usage of the logging functions                                                           
+      ebf5a12a3 2024-03-28 Eric Dejouhanet      fix(cmake): rework static/ shared / object build. (#2036)                                                                                                
+      16142e015 2024 - 03 - 28 Eric Dejouhanet      fix(actions): fix stale issue management. (#2035)                                                                                                     
+      b53b71eb7 2024 - 03 - 27 Jasem Mutlaq         Fix name conflict
+      223db9d19 2024 - 03 - 27 Jasem Mutlaq         Migrate ActiveDeviceTP to new property standard
+      d494b3e16 2024 - 03 - 27 Jasem Mutlaq         Fix active device issue with config update
+      c5f64f5ea 2024 - 03 - 23 hcomet               Driver for new DIY Dew Controller - CheapoDC(#2024)                                                                                                  
+      372d2939d 2024 - 03 - 23 Thomas Stibor        Fix setting ScopeInfo property(#2032)                                                                                                                
+      4c1f01887 2024 - 03 - 23 Efstathios Chrysikos Pegasus FocusCube3(#2034)                                                                                                                            
+      dcaa4ce8e 2024 - 03 - 20 Ian Jessen           SCT focuser interface compliance(#2026) (#2031)                                                                                                      
       24bc01946 2024-03-17 Jasem Mutlaq         Add a stale workflow                                                                                                                                  
       624a463bd 2024-03-15 Rick Bassham         feat: Dark Dragons Astro Devices (#2029)                                                                                                              
       ae2651209 2024-03-13 Jasem Mutlaq         Weather Interface Refactor (#2025)                                                                                                                    
       f5b4ea40b 2024-03-07 Jasem Mutlaq         Fix issues with iPolar capture                                                                                                                        
       6409e2351 2024-03-07 Jasem Mutlaq         Add missing iPolar label                                                                                                                              
-      315deea40 2024-03-07 Jasem Mutlaq         Add additional iPolar model                                                                                                                           
+      315deea40 2024-03-07 Jasem Mutlaq         Add additional iPolar model
       c36010556 2024-03-08 Ben Galvin           Fix iguider issues (#2012)                                                                                                                            
       bd07f295f 2024-03-06 naheedsa             Migrate Pegasus falcon (#2021)                                                                                                                        
       ad344f506 2024-03-06 naheedsa             Migrate Integra (#2022)                                                                                                                               
@@ -67,10 +110,10 @@
       ca39f81cf 2024-03-04 naheedsa             Migrate Weather watcher (#2018)                                                                                                                       
       7062907e4 2024-03-04 naheedsa             Migrate Weather Meta (#2019)                                                                                                                          
       6cb22894e 2024-03-03 naheedsa             Migrate mBox (#2017)                                                                                                                                  
-      303ead679 2024-03-03 naheedsa             Migrate Agent Imager driver and avoid using a single ENUM (#2014)                                                                                     
-      e18938b4c 2024-03-03 naheedsa             Migrate Safety proxy (#2016)                                                                                                                          
-      27e59c3b2 2024-03-03 naheedsa             Migrate Agent group (#2015)                                                                                                                           
-      e76b3c568 2024-03-03 Jasem Mutlaq         Check if we are already loading config, in this case we should not re-save to config again                                                            
+      303ead679 2024-03-03 naheedsa             Migrate Agent Imager driver and avoid using a single ENUM(#2014)                                                                                     
+      e18938b4c 2024 - 03 - 03 naheedsa             Migrate Safety proxy(#2016)                                                                                                                          
+      27e59c3b2 2024 - 03 - 03 naheedsa             Migrate Agent group(#2015)                                                                                                                           
+      e76b3c568 2024 - 03 - 03 Jasem Mutlaq         Check if we are already loading config, in this case we should not re-save to config again                                                            
       563b4e97a 2024-03-01 naheedsa             Migrate Weather Simulator (#2011)                                                                                                                     
       77efa953d 2024-03-01 naheedsa             Migrate CCD simulator (#2008)                                                                                                                         
       97b1ebf59 2024-02-29 naheedsa             Migrate Focus Simulator (#2010)                                                                                                                       
@@ -87,9 +130,9 @@
       6b5119817 2024-02-21 Jasem Mutlaq         Some minor improvements to iGuider + iPolar                                                                                                           
       782473156 2024-02-21 Frank Wang           Driver for WandererRotator Mini V1&V2 added (#2000)                                                                                                   
       c472ba735 2024-02-21 Edoardo Zanoni       Sesto Senso 2 changing state before changing position (#2001)                                                                                         
-      edad9f064 2024-02-19 Jasem Mutlaq         Set Auxiliary interface                                                                                                                               
-      2d988f249 2024-02-18 Jasem Mutlaq         Add and get device name for basic property                                                                                                            
-      7d7bc273b 2024-02-18 Jasem Mutlaq         Must update driver interface when rotator is detected                                                                                                 
+      edad9f064 2024-02-19 Jasem Mutlaq         Set Auxiliary interface
+      2d988f249 2024 - 02 - 18 Jasem Mutlaq         Add and get device name for basic property                                                                                                            
+      7d7bc273b 2024-02-18 Jasem Mutlaq         Must update driver interface when rotator is detected
       5354d4a47 2024-02-18 Frank Wang           Driver for WandererCover V4-EC added (#1998)                                                                                                          
       0a634259e 2024-02-17 Frank Wang           Driver For WandererBox Plus V3 added (#1997)                                                                                                          
       398a89104 2024-02-17 Frank Wang           Driver for WandererBox Pro V3 added (#1996)                                                                                                           
@@ -117,12 +160,12 @@
       d8dfba3e9 2024-01-09 Jasem Mutlaq         Need to reset sky tracking target after a manual slew is done                                                                                         
       9de334357 2024-01-07 Timothy Ellsworth Bowers Fix version reporting on older Celestron NexStar mounts (#1988)                                                                                       
       93ef452e9 2024-01-05 John Wells           Flip-flat: Allow handshake without ioctl on virtual serial connection (#1987)                                                                         
-      cf03e9194 2024-01-02 dependabot[bot]      Bump tj-actions/changed-files from 35 to 41 in /.github/workflows (#1986)                                                                             
-      5718ec732 2023-12-26 Mattia Verga         Allow using system provided json library (#1970)                                                                                                      
-      bacfa89f1 2023-12-25 Jasem Mutlaq         Must set parked to false in unpark                                                                                                                    
-      c83b11d72 2023-12-25 Jasem Mutlaq         Standardize Mount Homing                                                                                                                              
+      cf03e9194 2024-01-02 dependabot[bot] Bump tj-actions/changed-files from 35 to 41 in /.github/workflows (#1986)                                                                             
+      5718ec732 2023-12-26 Mattia Verga         Allow using system provided json library(#1970)                                                                                                      
+      bacfa89f1 2023-12-25 Jasem Mutlaq         Must set parked to false in unpark
+      c83b11d72 2023-12-25 Jasem Mutlaq         Standardize Mount Homing
       452b37c75 2023-12-23 Jasem Mutlaq         Fix bookworm compile error                                                                                                                            
-      474ad449f 2023-12-21 Jasem Mutlaq         Move rotator to focuser section. We need to create a new group dedicated to rotators                                                                  
+      474ad449f 2023-12-21 Jasem Mutlaq         Move rotator to focuser section.We need to create a new group dedicated to rotators                                                                  
       63c7d48da 2023-12-19 Jasem Mutlaq         Add ability to change resolution                                                                                                                      
       99a1a3df8 2023-12-19 Jasem Mutlaq         Move updateLightBox outside so that it is call on both connect and disconnect                                                                         
       fdf1b7551 2023-12-18 Joe13905179063       iOptron iEAF indi driver (#1962)                                                                                                                      
@@ -131,8 +174,8 @@
       2be49d518 2023-12-03 luzpaz               Fix various typos throughout the codebase (#1969)                                                                                                     
       796e86257 2023-12-04 Eric Dejouhanet      fix(actions): upgrade actions versions. (#1972)                                                                                                       
       0d5beb7fe 2023-12-02 Mario Haustein       Link against httplib if using system libraries (#1968)                                                                                                
-      d11ac07a0 2023-12-01 Jasem Mutlaq         Add reverse support to starlight EFS focuser. Not tested on hardware                                                                                  
-      fc28d1742 2023-12-01 Eric Dejouhanet      fix(docker): add zmq dependency, output OS info (#1967)                                                                                               
+      d11ac07a0 2023 - 12 - 01 Jasem Mutlaq         Add reverse support to starlight EFS focuser.Not tested on hardware
+      fc28d1742 2023 - 12 - 01 Eric Dejouhanet      fix(docker): add zmq dependency, output OS info (#1967)                                                                                               
       856ac85b9 2023-12-01 Jasem Mutlaq         INDI Library v2.0.5 release                                                                                                                           
       c58d13f76 2023-12-01 Jasem Mutlaq         Fix compile on Windows                                                                                                                                
       bc7fea519 2023-12-01 Jasem Mutlaq         Add missing header                                                                                                                                    
@@ -207,7 +250,7 @@
     4224155e8 2023-07-28 Paweł Soja           Fix leaks last blob on driver restart (#1909)
     6aabc0849 2023-07-26 Sonny Cavazos        Update ioptronv3driver.cpp (#1915)
     e5f18af6f 2023-07-26 Sonny Cavazos        Update ioptronv3.cpp (#1916)
-    2e95bc3a8 2023-07-26 Sam James            drivers: auxiliary: use stdint.h types (fix musl build) (#1914)
+    2e95bc3a8 2023-07-26 Sam James            drivers: auxiliary: use stdint.h types(fix musl build) (#1914)
     745b13b35 2023-07-23 Jasem Mutlaq         Fix FS2 GOTO issue by adding space. Fixes #1829
     871af434c 2023-07-20 Jasem Mutlaq         Refresh directory on text change as well
     2a5632026 2023-07-14 Jasem Mutlaq         Save directory by default
@@ -249,7 +292,7 @@
       252152241 2023-04-19 Jasem Mutlaq         Add function to remove duplicate point within a tolerance                                                                                             
       3a646f296 2023-04-18 panicgh              Enable testing from the top-level build directory (#1889)                                                                                             
       7469230d3 2023-04-17 James Amendolagine   Add Flip functionality (#1880)                                                                                                                        
-      0aa3c6275 2023-04-11 Jasem Mutlaq         Disable :GH for base LX200 class                                                                                                                      
+      0aa3c6275 2023-04-11 Jasem Mutlaq         Disable :GH for base LX200 class
       341bba073 2023-04-09 Jasem Mutlaq         Try to get daylight savings from mount. Needs testing                                                                                                 
       7fab8bf31 2023-04-09 Jasem Mutlaq         INDI 2.0.2 development cycle                                                                                                                          
       2a6b6d9e6 2023-04-07 Alain                Minor Fixes discrepancies Indi / SmartwebServer (#1887)                                                                                               
@@ -284,7 +327,7 @@
     88f8f7718 2022-08-20 Jasem Mutlaq         Make it mandotary to set slew rate to avoid setting them to zero by omission
     97f5bd091 2022-08-20 Jasem Mutlaq         Initial support for ZWO AM5 mount
     4ed6ad8ef 2022-08-15 escribana            Corrections for Pegasus Falcon Rotator: (#1721)
-    aabf47cf7 2022-08-15 pludov               Don't tell cfitsio about preallocated buffers (#1720)
+    aabf47cf7 2022 - 08 - 15 pludov Don't tell cfitsio about preallocated buffers (#1720)
     ed0a81afb 2022-08-15 Jasem Mutlaq         Add a signal to notify cameras that an upload is complete
     5d48be760 2022-08-15 Jasem Mutlaq         Add missing newline
     c0dce42ad 2022-08-14 Jasem Mutlaq         Add more convenience functions for loadConfig and saveConfig
@@ -342,7 +385,7 @@
       d653dc0ec 2022-07-11 Jasem Mutlaq         Send GET_FEATURES_CMD params                                                                                                                          
       6ce511ef3 2022-07-10 Jasem Mutlaq         Detect if mount has aux encoders and turn them off on startup. User can override and turn them back on                                                
       58718736c 2022-07-10 Jasem Mutlaq         skywatcher Alt Az simple is not maintained so moving to obsolete                                                                                      
-      ec6936f7a 2022-07-10 Jasem Mutlaq         realloc Binned frame and if sealed then allocate new memory region                                                                                    
+      ec6936f7a 2022-07-10 Jasem Mutlaq         realloc Binned frame and if sealed then allocate new memory region
       e83fe374e 2022-07-09 murveit              Fix issue in AstroPhysics getApMountFeatures (#1692)                                                                                                  
       f1153a844 2022-07-09 Jasem Mutlaq         Simplify driver by allowing negative values as permitted by the API                                                                                   
       1b62c8e08 2022-07-08 James Amendolagine   Added RA/DEC guide speed  (#1686)                                                                                                                     
@@ -386,8 +429,8 @@
       87e699491 2022-06-12 sonny486             Update dmfc.cpp (#1665)                                                                                                                               
       f615e084b 2022-06-12 sonny486             Update drivers.xml (#1667)                                                                                                                            
       f8e1a316f 2022-06-09 Jasem Mutlaq         Add more protection to code when parsing strings and fix various warnings. Fixes #1664                                                                
-      9d707bbc1 2022-06-07 Jasem Mutlaq         Make Pegasus FlatMaster compatible with LightBox interface pattern                                                                                    
-      6e9d4e55f 2022-06-07 Jasem Mutlaq         Light should be OFF by default                                                                                                                        
+      9d707bbc1 2022-06-07 Jasem Mutlaq         Make Pegasus FlatMaster compatible with LightBox interface pattern
+      6e9d4e55f 2022 - 06 - 07 Jasem Mutlaq         Light should be OFF by default                                                                                                                        
       511044d99 2022-06-04 Jasem Mutlaq         Immediately correct rotator out of bound values                                                                                                       
       758240d31 2022-05-29 Jasem Mutlaq         INDI v1.9.7 development cycle                                                                                                                         
       37860f05c 2022-05-28 Will Gauvin          Ensure defensive check of UBP previous data to fix crash - fixes #1662 (#1663)                                                                        
@@ -411,7 +454,7 @@
     1d453be5 2022-03-26 Jasem Mutlaq         Flush IO before sending command
     e04bf987 2022-03-24 Jasem Mutlaq         use capture format
     e0158b46 2022-03-21 Jasem Mutlaq         INDI v1.9.6 development cycle
-    fd391d51 2022-03-21 Alain                Fixing UTC Offset format allowing :SGHH:MM# where MM can be 00, 30 and 45 (#1644)
+    fd391d51 2022-03-21 Alain                Fixing UTC Offset format allowing :SGHH: MM# where MM can be 00, 30 and 45 (#1644)
     658ed77c 2022-03-13 murveit              Change driver name. Allow ParkTo & UnparkFrom to be visible before co… (#1642)
     78196d41 2022-03-13 Jasem Mutlaq         Bump version
     3f66b577 2022-03-12 murveit              add lastparked logic (#1639)
@@ -445,16 +488,16 @@
     505ba932 2022-02-03 naheedsa             Add Pier Side Status for lx200zeq25 (#1612)
     5fc82166 2022-02-03 d33psky              Add and apply Meade Protocol spec definitions (#1609)
     29056dfe 2022-01-30 rlancasteAstro       Fixing a build error on Older MacOS (#1611)
-    c5b45c7a 2022-01-30 Sifan                Adding new NexDome Beaver INDI driver (#1607)
-    18689217 2022-01-30 Alain                Allow Minutes Past Meridia +/- 180° (#1606)
-    f11f4a5d 2022-01-26 d33psky              Fix setObjectRA and setObjectDEC for short and long format and longer format for issue #1604 (#1605)
+    c5b45c7a 2022-01-30 Sifan                Adding new NexDome Beaver INDI driver(#1607)
+    18689217 2022-01-30 Alain Allow Minutes Past Meridia +/- 180° (#1606)
+    f11f4a5d 2022-01-26 d33psky Fix setObjectRA and setObjectDEC for short and long format and longer format for issue #1604 (#1605)
     72b9b6a7 2022-01-25 Jasem Mutlaq         libindi v1.9.5 cycle
     7bfb6b4b 2022-01-25 Jasem Mutlaq         Increase range for temperature settings
     ae510cc4 2022-01-23 Jasem Mutlaq         Do not use focuser in guide simulator
     de4f4b6e 2022-01-23 Michal Jamry         Pyindi - run actual tests (#1602)
     ecdfb6b7 2022-01-22 Jasem Mutlaq         Use INDI functions to parse the coordinate set
     d15412cd 2022-01-21 Jasem Mutlaq         Using network connection, setting default hostname and port should not override config values
-    41f3306b 2022-01-19 Jim                  spec-195: update the spec file for 1.9.5 builds (#1601)
+    41f3306b 2022-01-19 Jim spec-195: update the spec file for 1.9.5 builds (#1601)
     4afd3c7c 2022-01-18 Paolo Stivanin       Add missing find_package for Qt5Core (#1599)
     1d4deda0 2022-01-17 Jasem Mutlaq         Make INDI compile on 18.04
     a7649451 2022-01-17 François Desvallées  Fixed updating of slew rate (#1598)
@@ -650,7 +693,7 @@
     03a78b5e 2021-07-04 Jasem Mutlaq         Add simulation mode
     49e88a36 2021-07-04 Jasem Mutlaq         Do not use rotation for zero sync points
     8e175cdd 2021-07-04 Jasem Mutlaq         When we have zero sync points for equatorial mounts, simply transform the telescope direction vector back to equatorial coordinates instead of using..
-    47d23904 2021-07-03 Jasem Mutlaq         Add TCIO flush before sending commands
+    47d23904 2021 - 07 - 03 Jasem Mutlaq         Add TCIO flush before sending commands
     9045b593 2021-06-30 Jasem Mutlaq         Revert "Replace gethostbyname with getaddrinfo (#1462)"
     63346a7e 2021-06-30 Jasem Mutlaq         Revert getaddrinfo in baseclient as it caused a regression
     8ba2c726 2021-06-30 Jasem Mutlaq         Fix INDI compile on Windows after latest update
@@ -671,9 +714,9 @@
     9c5c95c8 2021-06-25 Jarno Paananen       Add object azimuth and altitude to FITS headers (#1497)
     7b81c821 2021-06-22 Jasem Mutlaq         Fix lunar and solar order. Fixes #1494
     a761417a 2021-06-22 Jasem Mutlaq         Add function to get current switch label from config
-    d7af9d63 2021-06-23 Efstathios Chrysikos Pegasus Add new Device  USB Control HUB (#1496)
+    d7af9d63 2021-06-23 Efstathios Chrysikos Pegasus Add new Device USB Control HUB(#1496)
     15fb4e1b 2021-06-23 Karl Rees            PMC8 Driver v0.4 (Improved manual slewing, guiding, and other features) (#1495)
-    c754c63f 2021-06-21 murveit              Update Rainbow Focuser API Comments, Follow Updated API (#1493)
+    c754c63f 2021 - 06 - 21 murveit Update Rainbow Focuser API Comments, Follow Updated API (#1493)
     83eef2d5 2021-06-21 Jasem Mutlaq         Add Asynchrnous to true when calling the guide method as pointed out by @interplanetarychris
     2e089560 2021-06-20 Jasem Mutlaq         Try to send the guide pulses asynchronously to TheSkyX
     441c6976 2021-06-20 Jarno Paananen       Fix OTA azimuth calculation for dome slaving (#1492)
@@ -735,22 +778,22 @@
     bc8c5e04 2021-06-05 jimmy-ck             Fixing location accuracy and date&time for RST-135 (#1481)
     69137dd7 2021-06-03 james-lan            OnStep: Be more explicit about Park status and Focusers & Detection (#1477)
     a59f2f57 2021-06-02 Jasem Mutlaq         Possible fix for rainbow location send issue
-    1caa3cb0 2021-05-30 james-lan            OnStep: Detection for Rotator and hiding interface if not detected (Also resolves a slowdown) (#1475)
-    3b4d0fe8 2021-05-30 Eric Dejouhanet      Fix EQ500X driver and tests after refactoring. (#1476)
-    b0e07b81 2021-05-29 Jasem Mutlaq         Disable LX200 drivers test until Eric can fix the issue
-    846655a0 2021-05-29 Jim                  use only the devel package in the spec file (#1474)
-    1e930b96 2021-05-28 azwing               Manage OnStep Features Names (#1473)
-    891f8f0e 2021-05-27 james-lan            OnStep: Fix for issue mentioned on forums (#1472)
-    8f220b69 2021-05-27 Paolo Stivanin       Replace gethostbyname with getaddrinfo (#1462)
-    0572e75a 2021-05-27 Ilia Platone         Remove getFrequency() from indispectrograph.h (#1469)
-    1e81da32 2021-05-27 james-lan            OnStep: V1.10, high precision location, rotator/derotator, swap primary focuser, weather support, misc (#1465)
-    5a1bceaa 2021-05-26 Jasem Mutlaq         Check m_Location instead of reading it again from config file since parent is already doing this
-    abc5254d 2021-05-26 Jasem Mutlaq         Simplify local sidereal time. This still does not resolve eq500x test failure
-    4b6aeefd 2021-05-25 Jim                  add dependency for rtl-sdr to spec (#1467)
-    56e1b798 2021-05-25 Jasem Mutlaq         Add more parsing safety checks
-    52345fd4 2021-05-25 Jasem Mutlaq         Make RTLSDR optional after it was added as REQUIRED dependency in ls. However, make debian package builds with it.
-    3afd8393 2021-05-24 Jasem Mutlaq         Default value for slope should be zero as it must be enabled by the user explicitly
-    1e0a2210 2021-05-24 Jasem Mutlaq         Save config if there is change in ramp
+    1caa3cb0 2021-05-30 james-lan OnStep: Detection for Rotator and hiding interface if not detected(Also resolves a slowdown)(#1475)
+    3b4d0fe8 2021 - 05 - 30 Eric Dejouhanet      Fix EQ500X driver and tests after refactoring. (#1476)
+    b0e07b81 2021 - 05 - 29 Jasem Mutlaq         Disable LX200 drivers test until Eric can fix the issue
+    846655a0 2021 - 05 - 29 Jim                  use only the devel package in the spec file(#1474)
+    1e930b96 2021 - 05 - 28 azwing               Manage OnStep Features Names(#1473)
+    891f8f0e 2021 - 05 - 27 james - lan            OnStep: Fix for issue mentioned on forums(#1472)
+    8f220b69 2021 - 05 - 27 Paolo Stivanin       Replace gethostbyname with getaddrinfo(#1462)
+    0572e75a 2021 - 05 - 27 Ilia Platone         Remove getFrequency() from indispectrograph.h (#1469)
+    1e81da32 2021 - 05 - 27 james - lan            OnStep: V1.10, high precision location, rotator / derotator, swap primary focuser, weather support, misc(#1465)
+    5a1bceaa 2021 - 05 - 26 Jasem Mutlaq         Check m_Location instead of reading it again from config file since parent is already doing this
+    abc5254d 2021 - 05 - 26 Jasem Mutlaq         Simplify local sidereal time.This still does not resolve eq500x test failure
+    4b6aeefd 2021 - 05 - 25 Jim                  add dependency for rtl - sdr to spec(#1467)
+    56e1b798 2021 - 05 - 25 Jasem Mutlaq         Add more parsing safety checks
+    52345fd4 2021 - 05 - 25 Jasem Mutlaq         Make RTLSDR optional after it was added as REQUIRED dependency in ls.However, make debian package builds with it.
+    3afd8393 2021 - 05 - 24 Jasem Mutlaq         Default value for slope should be zero as it must be enabled by the user explicitly
+    1e0a2210 2021 - 05 - 24 Jasem Mutlaq         Save config if there is change in ramp
     6cf3eeae 2021-05-24 Jasem Mutlaq         Merge branch 'libastro_refactor'
     9e7af7e9 2021-05-24 Jasem Mutlaq         Introduce temperature ramp for gradual cooling and warming of cameras equipped with a TEC cooler
     13274d64 2021-05-24 Ilia Platone         Split spectrograph into receiver and spectrograph classes (#1463)
@@ -772,57 +815,57 @@
     ec904256 2021-05-19 interplanetarychris  Fix link to developer docs (#1461)
     37e786e2 2021-05-18 interplanetarychris  Correct typos (#1459)
     44ceb95c 2021-05-18 interplanetarychris  TheSky Server TCP read fixes (#1458)
-    e1b49a2e 2021-05-17 Efstathios Chrysikos Added new device Pegasus FlatMaster (#1457)
-    a1fa1df0 2021-05-17 Pawel Soja           Add Qt metatype.
-    ac21f13a 2021-05-15 Jasem Mutlaq         Nightcrawler should use FOCUS_TEMPERATURE to reports its temperature since it is standard property
-    22706194 2021-05-14 Jasem Mutlaq         Remove unused focuser temperature
-    e37dcf4f 2021-05-14 Jasem Mutlaq         Disable the old thread delete property hack
-    6e73b0fb 2021-05-14 Jasem Mutlaq         Update version for rest of iOptronv3 drivers
-    723ae455 2021-05-14 Paweł Soja           BaseDevice::getProperty as non-pointer result (#1453)
-    3a7ea5f6 2021-05-14 Pawel Soja           Fix 'quit' call in user function.
-    a142cbcc 2021-05-14 Jasem Mutlaq         Display the DeltaT response before the checksum check
-    73f61d93 2021-05-14 Jasem Mutlaq         Fix login check when comparing responses for focuser
-    85d200d1 2021-05-13 Jasem Mutlaq         iOptron DST fix. Bump iOptron version to 1.4
-    9fb32b5d 2021-05-12 Efstathios Chrysikos Pegasus SMFC Ack fix on polling. (#1455)
-    c0520324 2021-05-12 Jasem Mutlaq         Set NAXIS for RGB images
-    26df6df3 2021-05-12 Efstathios Chrysikos Pegasus DMFC fix driver to support SMFC (#1454)
-    07e51770 2021-05-10 Pawel Soja           blobModes as std::list
-    13c1fd9f 2021-05-10 Pawel Soja           cDeviceNames as std:set
-    e5850dca 2021-05-10 Pawel Soja           Simplify code, use INDI::WidgetView.
-    ab89655e 2021-05-10 Paweł Soja           INDI::BaseClient - Implement D-Pointer. (#1452)
-    9f57ed6b 2021-05-10 Pawel Soja           Format document.
-    b64c5453 2021-05-10 Pawel Soja           Add getStateAsString method.
-    f51d3b3b 2021-05-10 Pawel Soja           Set widgets parent.
-    1ae5fbe3 2021-05-10 Pawel Soja           Add operator bool, isValid method.
-    946b958c 2021-05-10 Pawel Soja           Format document.
-    55f84368 2021-05-10 Pawel Soja           Add isDeviceNameMatch method.
-    fa13f5cc 2021-05-08 Pawel Soja           Add missing include.
-    dcad945e 2021-05-08 Pawel Soja           Format document.
-    33840f1a 2021-05-08 Pawel Soja           Move implementation to source file.
-    86d32f2a 2021-05-09 Jasem Mutlaq         Fixes for FocusBoss II
-    28757cf8 2021-05-09 Jasem Mutlaq         Remove focuser udev rules install
-    6d3e310c 2021-05-09 Jasem Mutlaq         Consolidate rules into auxiliary file
-    4b1d1076 2021-05-09 Jasem Mutlaq         Make rule applicable to more FTDI chips
-    8bfdd28b 2021-05-09 Jasem Mutlaq         Simplify code
-    1a4b61c2 2021-05-08 Jasem Mutlaq         Be consistent with INDI Focuser interface
+    e1b49a2e 2021-05-17 Efstathios Chrysikos Added new device Pegasus FlatMaster(#1457)
+    a1fa1df0 2021 - 05 - 17 Pawel Soja           Add Qt metatype.
+    ac21f13a 2021 - 05 - 15 Jasem Mutlaq         Nightcrawler should use FOCUS_TEMPERATURE to reports its temperature since it is standard property
+    22706194 2021 - 05 - 14 Jasem Mutlaq         Remove unused focuser temperature
+    e37dcf4f 2021 - 05 - 14 Jasem Mutlaq         Disable the old thread delete property hack
+    6e73b0fb 2021 - 05 - 14 Jasem Mutlaq         Update version for rest of iOptronv3 drivers
+    723ae455 2021 - 05 - 14 Paweł Soja           BaseDevice::getProperty as non - pointer result(#1453)
+    3a7ea5f6 2021 - 05 - 14 Pawel Soja           Fix 'quit' call in user function.
+    a142cbcc 2021 - 05 - 14 Jasem Mutlaq         Display the DeltaT response before the checksum check
+    73f61d93 2021 - 05 - 14 Jasem Mutlaq         Fix login check when comparing responses for focuser
+    85d200d1 2021 - 05 - 13 Jasem Mutlaq         iOptron DST fix.Bump iOptron version to 1.4
+    9fb32b5d 2021 - 05 - 12 Efstathios Chrysikos Pegasus SMFC Ack fix on polling. (#1455)
+    c0520324 2021 - 05 - 12 Jasem Mutlaq         Set NAXIS for RGB images
+    26df6df3 2021 - 05 - 12 Efstathios Chrysikos Pegasus DMFC fix driver to support SMFC(#1454)
+    07e51770 2021 - 05 - 10 Pawel Soja           blobModes as std::list
+    13c1fd9f 2021 - 05 - 10 Pawel Soja           cDeviceNames as std:set
+    e5850dca 2021 - 05 - 10 Pawel Soja           Simplify code, use INDI::WidgetView.
+    ab89655e 2021 - 05 - 10 Paweł Soja           INDI::BaseClient - Implement D - Pointer. (#1452)
+    9f57ed6b 2021 - 05 - 10 Pawel Soja           Format document.
+    b64c5453 2021 - 05 - 10 Pawel Soja           Add getStateAsString method.
+    f51d3b3b 2021 - 05 - 10 Pawel Soja           Set widgets parent.
+    1ae5fbe3 2021 - 05 - 10 Pawel Soja           Add operator bool, isValid method.
+    946b958c 2021 - 05 - 10 Pawel Soja           Format document.
+    55f84368 2021 - 05 - 10 Pawel Soja           Add isDeviceNameMatch method.
+    fa13f5cc 2021 - 05 - 08 Pawel Soja           Add missing include.
+    dcad945e 2021 - 05 - 08 Pawel Soja           Format document.
+    33840f1a 2021 - 05 - 08 Pawel Soja           Move implementation to source file.
+    86d32f2a 2021 - 05 - 09 Jasem Mutlaq         Fixes for FocusBoss II
+    28757cf8 2021 - 05 - 09 Jasem Mutlaq         Remove focuser udev rules install
+    6d3e310c 2021 - 05 - 09 Jasem Mutlaq         Consolidate rules into auxiliary file
+    4b1d1076 2021 - 05 - 09 Jasem Mutlaq         Make rule applicable to more FTDI chips
+    8bfdd28b 2021 - 05 - 09 Jasem Mutlaq         Simplify code
+    1a4b61c2 2021 - 05 - 08 Jasem Mutlaq         Be consistent with INDI Focuser interface
     0df1c04c 2021-05-07 Jasem Mutlaq         Perform case-insensitive comparisions and correct iGuider reported name
     079ab23a 2021-05-06 Jasem Mutlaq         Using the new improved INDI::Timer instead of legacy timers. For some reason the older timers stopped working, so this needs to be investigated furt..
     a730e32c 2021-05-06 Jarno Paananen       ScopeDome driver update (#1447)
-    818d32f5 2021-05-06 Jasem Mutlaq         Looks like 100ms threshold is adequate. Still need to get rid of this arbitrary delay and implement shared_ptr while deprecating the INDI::Property ..
-    157de474 2021-05-01 Cliff                Changed E-W direction in driver as (#1441) (#1442)
+    818d32f5 2021-05-06 Jasem Mutlaq         Looks like 100ms threshold is adequate.Still need to get rid of this arbitrary delay and implement shared_ptr while deprecating the INDI::Property..
+    157de474 2021-05-01 Cliff Changed E-W direction in driver as (#1441) (#1442)
     a5f2e451 2021-04-30 Jasem Mutlaq         Style fixes. Check configConnectionMode to avoid saving config when not required
     baab283d 2021-04-30 Jasem Mutlaq         Limit dew aggressiveness to v2
     c5e0de78 2021-04-30 Paweł Soja           Remove all 'IS' Functions. (#1440)
     8abfd6c2 2021-04-29 Pawel Soja           Add indi-core-deb.sh
     192a119c 2021-04-29 Jasem Mutlaq         Temporary hack for some sitautions where a driver may define, delete, and then re-define a property in rapid succession. This might cause the INDI::..
-    b0fc9dca 2021-04-27 d6p                  fix null pointer dereference (#1437)
+    b0fc9dca 2021-04-27 d6p fix null pointer dereference (#1437)
     972832da 2021-04-27 Jasem Mutlaq         Separate to from Bridge controller
     0e0681ba 2021-04-27 Jasem Mutlaq         Add more common keys to remove
     e43904de 2021-04-27 Jasem Mutlaq         Read up to max buffer length
     b1360971 2021-04-27 Jasem Mutlaq         Fix bug when loading up config port name and it gets truncated
     538ab217 2021-04-26 Jasem Mutlaq         Simplify checking system port
     e78ae47e 2021-04-25 Jasem Mutlaq         Starting INDI v1.9.1 development cycle
-    8cb8dd5c 2021-04-23 Jasem Mutlaq         Only save config when necessary. Fix MacOS error. Simplify labels
+    8cb8dd5c 2021-04-23 Jasem Mutlaq         Only save config when necessary.Fix MacOS error.Simplify labels
     4247b6f4 2021-04-23 Jasem Mutlaq         Simplify the names since they can exceed the property 64 character limit
     85925505 2021-04-23 Jasem Mutlaq         Simplify code and search for bluetooth on Linux as well
     8d997ab2 2021-04-23 Jasem Mutlaq         Use Serail by ID on Linux
@@ -847,20 +890,20 @@
     d1607a9c 2021-04-12 Jasem Mutlaq         PEC state should also include resumption of tracking. Fixes #1421
     605180db 2021-04-10 Jasem Mutlaq         Fix major bug with INDI longitude correction that was removed in a previous commit
     e36839a1 2021-04-06 Paweł Soja           Fix XML Escape (#1414)
-    106c546d 2021-04-06 Efstathios Chrysikos separate focuscube and scopsoag behavior to new drivers (#1415)
-    bd9110b4 2021-04-01 Pawel Soja           Add rasbian as debian/ubuntu to requisites-install.sh.
-    b2f34193 2021-04-01 Pawel Soja           Remove CircleCI badge status.
-    198d9472 2021-03-31 Pawel Soja           Add PyIndi badge status.
-    44f8c962 2021-03-31 Pawel Soja           Add swig package.
-    51902470 2021-03-31 Paweł Soja           Feature GitHub actions - PyIndi (#1411)
-    aaf60de4 2021-03-31 Paweł Soja           Merge pull request #1410
-    e4b2886a 2021-03-31 Pawel Soja           Add PropertyBasic<T>::at(size_t index).
-    32654a8b 2021-03-31 Pawel Soja           Add rule support.
-    21983dd0 2021-03-31 Pawel Soja           Fix, updateMinMax only driver side.
-    58babc59 2021-03-31 Pawel Soja           Remove unused 'isNull' functions.
-    be0736af 2021-03-31 Pawel Soja           Fix, avoid calling pure virtual method.
-    09471760 2021-03-31 Pawel Soja           Fix struct in C++.
-    a1de8659 2021-03-31 Pawel Soja           Remove duplicate MAXRBUF.
+    106c546d 2021-04-06 Efstathios Chrysikos separate focuscube and scopsoag behavior to new drivers(#1415)
+    bd9110b4 2021 - 04 - 01 Pawel Soja           Add rasbian as debian / ubuntu to requisites - install.sh.
+    b2f34193 2021 - 04 - 01 Pawel Soja           Remove CircleCI badge status.
+    198d9472 2021 - 03 - 31 Pawel Soja           Add PyIndi badge status.
+    44f8c962 2021 - 03 - 31 Pawel Soja           Add swig package.
+    51902470 2021 - 03 - 31 Paweł Soja           Feature GitHub actions - PyIndi(#1411)
+    aaf60de4 2021 - 03 - 31 Paweł Soja           Merge pull request #1410
+    e4b2886a 2021 - 03 - 31 Pawel Soja           Add PropertyBasic < T >::at(size_t index).
+    32654a8b 2021 - 03 - 31 Pawel Soja           Add rule support.
+    21983dd0 2021 - 03 - 31 Pawel Soja           Fix, updateMinMax only driver side.
+    58babc59 2021 - 03 - 31 Pawel Soja           Remove unused 'isNull' functions.
+    be0736af 2021 - 03 - 31 Pawel Soja           Fix, avoid calling pure virtual method.
+    09471760 2021 - 03 - 31 Pawel Soja           Fix struct in C++.
+    a1de8659 2021 - 03 - 31 Pawel Soja           Remove duplicate MAXRBUF.
     90233c0e 2021-03-30 Pawel Soja           Use sh commands.
     7aea1e12 2021-03-30 Paweł Soja           Merge pull request #1409 from indilib/feature-github-actions-nproc
     f5047a9e 2021-03-30 Pawel Soja           Add workflow_dispatch, types completed.
@@ -899,163 +942,163 @@
     8768ce79 2021-03-26 Jasem Mutlaq         Set focuser capabilities
     faf333fb 2021-03-25 Jasem Mutlaq         Add External Motor Control support to PPBA
     dc3ed6a3 2021-03-25 Jasem Mutlaq         Init string buffers to zero
-    0ecb1f1f 2021-03-25 Efstathios Chrysikos Added PegasusAstro new devices (#1398)
-    a9d3182e 2021-03-25 Jasem Mutlaq         Fix warning
-    8273084f 2021-03-24 rlancasteAstro       Need to fix build error on OS X (#1396)
-    b6d40949 2021-03-22 Markus Noga          Added support for TeenAstro focuser (#1392)
-    5c1b4fb7 2021-03-22 Jasem Mutlaq         Add general rule for all cameras as proposed by @openastroproject
-    de478d75 2021-03-22 Paweł Soja           Bugfix - INDI::SingleThreadPool - self quit/start deadlock. (#1394)
-    d3897d7e 2021-03-21 camielseverijns      Update lx200pulsar2.cpp (#1393)
-    8734b723 2021-03-20 Paweł Soja           StreamManager - thread pool for uploadStream (#1391)
-    492019bc 2021-03-19 Paweł Soja           Add STL-style iterators to INDI::PropertyBasic (#1389)
-    f6d8ecd9 2021-03-18 Paweł Soja           Implement real periodic timer. (#1387)
-    6550c8b0 2021-03-18 fcasarramona         Improving Dome slave to telescope regarding telescope pier side (#1373)
-    175f38cd 2021-03-16 Paweł Soja           EventLoop - List implementation for timers (#1385)
-    34c99fa9 2021-03-16 Paweł Soja           Implementation of high-level timers (#1386)
-    db9772d4 2021-03-15 Paweł Soja           StreamManager - Bugfix - D-Pointer implementation (#1383)
-    743006fe 2021-03-13 Paweł Soja           Bugfix - Use const qualifier for const string (#1380)
-    217a2d4c 2021-03-13 Paweł Soja           Cleaning up the examples - Remove global 'IS' functions. (#1381)
-    5d040ddc 2021-03-13 Jasem Mutlaq         Add Pegasus OAG alias
-    a2d939bf 2021-03-12 Jasem Mutlaq         Set 115000 as default rate for everything other than iOptron 120
-    3fdd324e 2021-03-12 Paweł Soja           Bugfix - test_ccd_simulator with incorrect library, missing override (#1379)
-    01cc8da1 2021-03-12 TallFurryMan         Updated flux calculation for CCD Simulator (#1356)
-    d9a5e309 2021-03-11 Paweł Soja           Add global ISGetProperties/ISNewXXX/ISSnoopDevice propagation functions for drivers (#1375)
-    e681724b 2021-03-11 Jasem Mutlaq         Update Celestron version to 3.6 post the guide fixes
-    9cb023ee 2021-03-11 Paweł Soja           INDI::PropertyXXX - push widgets, get size - implementation (#1374)
-    f12c8952 2021-03-11 Paweł Soja           add missing override specifier (#1377)
-    7e934e47 2021-03-10 interplanetarychris  Fix typo in CCD simulator GUI (#1378)
-    7ce91b24 2021-03-10 nrackwit             CelestronGPS reporting wrong rates to telescope during pulse guiding #1368 (#1369)
-    856dfc78 2021-03-10 Jasem Mutlaq         Fix style to astyle
-    23bfc208 2021-03-10 Paweł Soja           Code quality improvement - Preparation for future refactoring. (#1372)
-    3913ba39 2021-03-10 Jasem Mutlaq         Revert "Delete gps_simulator.cpp"
-    ec9811a3 2021-03-10 Jasem Mutlaq         Merge pull request #1371 from seventi71/master
-    5471b264 2021-03-10 Jasem Mutlaq         Delete gps_simulator.cpp
-    de5b1cfc 2021-03-08 seventi71            Merge branch 'master' of https://github.com/seventi71/indi
-    f85735c7 2021-03-08 Christopher          Merge pull request #2 from indilib/master
-    774f8854 2021-03-06 Paweł Soja           Refactoring - Typed property (#1366)
-    71b49c82 2021-03-06 Paweł Soja           Fix warnings, use strcpy/strcat for string literal (#1367)
-    b3048a5b 2021-03-04 Jasem Mutlaq         Starting INDI 1.9.0 develpment cycle
-    95aa471e 2021-03-04 seventi71            GPS Update
-    155ca727 2021-03-02 Paweł Soja           PropertyView - client/server side + refactor (#1361)
-    4c3f1c60 2021-02-28 Paweł Soja           PropertyView - implementation of subsequent methods (#1360)
+    0ecb1f1f 2021-03-25 Efstathios Chrysikos Added PegasusAstro new devices(#1398)
+    a9d3182e 2021 - 03 - 25 Jasem Mutlaq         Fix warning
+    8273084f 2021 - 03 - 24 rlancasteAstro       Need to fix build error on OS X(#1396)
+    b6d40949 2021 - 03 - 22 Markus Noga          Added support for TeenAstro focuser(#1392)
+    5c1b4fb7 2021 - 03 - 22 Jasem Mutlaq         Add general rule for all cameras as proposed by @openastroproject
+    de478d75 2021 - 03 - 22 Paweł Soja           Bugfix - INDI::SingleThreadPool - self quit / start deadlock. (#1394)
+    d3897d7e 2021 - 03 - 21 camielseverijns      Update lx200pulsar2.cpp(#1393)
+    8734b723 2021 - 03 - 20 Paweł Soja           StreamManager - thread pool for uploadStream(#1391)
+    492019bc 2021 - 03 - 19 Paweł Soja           Add STL - style iterators to INDI::PropertyBasic(#1389)
+    f6d8ecd9 2021 - 03 - 18 Paweł Soja           Implement real periodic timer. (#1387)
+    6550c8b0 2021 - 03 - 18 fcasarramona         Improving Dome slave to telescope regarding telescope pier side(#1373)
+    175f38cd 2021 - 03 - 16 Paweł Soja           EventLoop - List implementation for timers(#1385)
+    34c99fa9 2021 - 03 - 16 Paweł Soja           Implementation of high - level timers(#1386)
+    db9772d4 2021 - 03 - 15 Paweł Soja           StreamManager - Bugfix - D - Pointer implementation(#1383)
+    743006fe 2021 - 03 - 13 Paweł Soja           Bugfix - Use const qualifier for const string(#1380)
+    217a2d4c 2021 - 03 - 13 Paweł Soja           Cleaning up the examples - Remove global 'IS' functions. (#1381)
+    5d040ddc 2021 - 03 - 13 Jasem Mutlaq         Add Pegasus OAG alias
+    a2d939bf 2021 - 03 - 12 Jasem Mutlaq         Set 115000 as default rate for everything other than iOptron 120
+    3fdd324e 2021 - 03 - 12 Paweł Soja           Bugfix - test_ccd_simulator with incorrect library, missing override (#1379)
+    01cc8da1 2021 - 03 - 12 TallFurryMan         Updated flux calculation for CCD Simulator(#1356)
+    d9a5e309 2021 - 03 - 11 Paweł Soja           Add global ISGetProperties / ISNewXXX / ISSnoopDevice propagation functions for drivers(#1375)
+    e681724b 2021 - 03 - 11 Jasem Mutlaq         Update Celestron version to 3.6 post the guide fixes
+    9cb023ee 2021 - 03 - 11 Paweł Soja           INDI::PropertyXXX - push widgets, get size - implementation(#1374)
+    f12c8952 2021 - 03 - 11 Paweł Soja           add missing override specifier(#1377)
+    7e934e47 2021 - 03 - 10 interplanetarychris  Fix typo in CCD simulator GUI(#1378)
+    7ce91b24 2021 - 03 - 10 nrackwit             CelestronGPS reporting wrong rates to telescope during pulse guiding #1368 (#1369)
+    856dfc78 2021 - 03 - 10 Jasem Mutlaq         Fix style to astyle
+    23bfc208 2021 - 03 - 10 Paweł Soja           Code quality improvement - Preparation for future refactoring. (#1372)
+    3913ba39 2021 - 03 - 10 Jasem Mutlaq         Revert "Delete gps_simulator.cpp"
+    ec9811a3 2021 - 03 - 10 Jasem Mutlaq         Merge pull request #1371 from seventi71/master
+    5471b264 2021 - 03 - 10 Jasem Mutlaq         Delete gps_simulator.cpp
+    de5b1cfc 2021 - 03 - 08 seventi71            Merge branch 'master' of https://github.com/seventi71/indi
+    f85735c7 2021 - 03 - 08 Christopher          Merge pull request #2 from indilib/master
+    774f8854 2021 - 03 - 06 Paweł Soja           Refactoring - Typed property(#1366)
+    71b49c82 2021 - 03 - 06 Paweł Soja           Fix warnings, use strcpy / strcat for string literal(#1367)
+    b3048a5b 2021 - 03 - 04 Jasem Mutlaq         Starting INDI 1.9.0 develpment cycle
+    95aa471e 2021 - 03 - 04 seventi71            GPS Update
+    155ca727 2021 - 03 - 02 Paweł Soja           PropertyView - client / server side + refactor(#1361)
+    4c3f1c60 2021 - 02 - 28 Paweł Soja           PropertyView - implementation of subsequent methods(#1360)
 
-+ From 1.8.8 to 1.8.9
++From 1.8.8 to 1.8.9
 
-    + 91bcd531 2021-02-24 Jasem Mutlaq         Add missing exec                                                                                                                                      
-    + ab630cbd 2021-02-16 Jasem Mutlaq         Add more helpful messages for home position                                                                                                           
-    + 26983606 2021-02-16 Jasem Mutlaq         Fix paramount home and sidereal rate                                                                                                                  
-    + 13420224 2021-02-14 rishi-garrod         Added labels for USB and Dew (#1355)                                                                                                                  
-    + 71b4dbf6 2021-02-13 Jasem Mutlaq         Add entry for star adventurer                                                                                                                         
-    + 3acd0f1c 2021-02-13 Jasem Mutlaq         Add motor rate and current to the config save                                                                                                         
-    + 162bd940 2021-02-13 Jasem Mutlaq         Add CEM26 and GEM28. Migrate CEM40 and GEM45 drivers to iOptronv3 commands and remove parking restrictions. Fixes #1354                               
-    + 186e45f7 2021-02-13 interplanetarychris  Final fixes for Celestrongps guider scale (#1353)                                                                                                     
-    + ace5d9ef 2021-02-09 Jarno Paananen       DDW state change fix part 2 (#1351)                                                                                                                   
-    + 0b670b1b 2021-02-07 Jasem Mutlaq         Add preliminary support to inquire pier side for Paramount. Not tested yet                                                                            
-    + ef4e73f8 2021-02-06 Jarno Paananen       DDW shutter state fix (#1349)                                                                                                                         
-    + 351095ac 2021-02-06 Paweł Soja           Separate useful macros to indimacros.h (#1348)                                                                                                        
-    + 4974cf20 2021-02-06 Jasem Mutlaq         Add support to Pegasus Micro as well                                                                                                                  
-    + 205f72f8 2021-02-05 Jarno Paananen       Fixes to handling of state changes in DDW driver (#1346)                                                                                              
-    + aae54d9c 2021-02-05 Paweł Soja           Fix - PyIndi fails over missing symbol (#1347)                                                                                                        
-    + 0fe8fe1c 2021-02-04 Jarno Paananen       Updates to DDW driver (#1344)                                                                                                                         
-    + 81e0b01e 2021-02-02 Jarno Paananen       Avoid DDW communication watchdog (#1342)                                                                                                              
-    + bb72af43 2021-02-01 Jarno Paananen       Driver for Digital Dome Works (DDW) from Technical Innovations (#1341)                                                                                
-    + 47ed55fc 2021-02-01 Jasem Mutlaq         Increment version for SkyWAtcher Alt-Az                                                                                                               
-    + 3c222a50 2021-02-01 Jasem Mutlaq         Add support for AZEQ6 as proposed by Dirk on INDI forums                                                                                              
-    + fc26c012 2021-02-01 rishi-garrod         Fixed Auto Dew for V2 and added Aggessiveness for V2. Fixed a few lit… (#1340)                                                                        
-    + 077d2a4e 2021-01-30 Rick Bassham         fix: add null pointer check to serial connect (#1335)                                                                                                 
-    + 45ae8e4c 2021-01-23 Jasem Mutlaq         Add saveConfigItems to WeatherInterface and utilize that in classes that inherit it                                                                   
-    + d523ba6b 2021-01-23 Jasem Mutlaq         Simplify code and use better variable names                                                                                                           
-    + 09420ebb 2021-01-21 d33psky              Integra85 driver sanity checks and improved user messages. (#1334)                                                                                    
-    + fa59b727 2021-01-21 interplanetarychris  Fix celestrongps guide rate scaling (#1331)                                                                                                           
-    + d6e9d74a 2021-01-19 Paweł Soja           DefaultDevice - D-Pointer implementation (#1327)                                                                                                      
-    + f01ad1fc 2021-01-19 Lesage Franck        Tracking can now be switched on/off (#1326)                                                                                                           
-    + 3e75b36c 2021-01-19 Paweł Soja           Refactoring - Widget decorators (#1324)                                                                                                               
-    + 022406e2 2021-01-19 Ilia Platone         indicom.c update for delay calculation (#1328)                                                                                                        
-    + 09a1e461 2021-01-18 pmneo                Frame Based V4L Stacking and lazy stop capture for better loop perf (#1325)                                                                           
-    + 5b13bbf7 2021-01-15 Rick Bassham         Add snoop device to joystick controller (#1323)                                                                                                       
-    + ec3836bd 2021-01-15 avarakin             Fix for issue with manipulating output ports (#1322)                                                                                                  
-    + 77128112 2021-01-13 Jasem Mutlaq         Temporary measure to prevent deadlock with some clients. Still requires long term solution                                                            
-    + 4baca66f 2021-01-13 Paweł Soja           Refactoring - less dependencies between files / less mallocs (#1318)                                                                                  
-    + ab26ac5e 2021-01-12 Paweł Soja           Refactoring/INDI::BaseDevice - D-Pointer implemented (#1320)                                                                                          
-    + de9b0461 2021-01-12 lantictac            Sesto Senso 2: Workaround apply motor preset issue (#1319)                                                                                            
-    + 428e0fe9 2021-01-12 Jasem Mutlaq         Starting libindi v1.8.9 development cycle                                                                                                             
-    + 74615e6c 2021-01-11 Jasem Mutlaq         Protect properties and messages when used in multiple threads. While this used to work fine, some conditions may led to corrupted data                
-    + c714f9c5 2021-01-11 pawel-soja           Indidriver/refactoring (#1313)                                                                                                                        
-    + 978290d5 2021-01-11 lantictac            Sesto Senso 2: Motor settings (#1315)
+    + 91bcd531 2021 - 02 - 24 Jasem Mutlaq         Add missing exec
+    + ab630cbd 2021 - 02 - 16 Jasem Mutlaq         Add more helpful messages for home position
+    + 26983606 2021 - 02 - 16 Jasem Mutlaq         Fix paramount home and sidereal rate
+    + 13420224 2021 - 02 - 14 rishi - garrod         Added labels for USB and Dew(#1355)                                                                                                                  
+    +71b4dbf6 2021 - 02 - 13 Jasem Mutlaq         Add entry for star adventurer
+    + 3acd0f1c 2021 - 02 - 13 Jasem Mutlaq         Add motor rate and current to the config save
+    + 162bd940 2021 - 02 - 13 Jasem Mutlaq         Add CEM26 and GEM28.Migrate CEM40 and GEM45 drivers to iOptronv3 commands and remove parking restrictions.Fixes #1354                               
+    + 186e45f7 2021 - 02 - 13 interplanetarychris  Final fixes for Celestrongps guider scale(#1353)                                                                                                     
+    +ace5d9ef 2021 - 02 - 09 Jarno Paananen       DDW state change fix part 2(#1351)                                                                                                                   
+    +0b670b1b 2021 - 02 - 07 Jasem Mutlaq         Add preliminary support to inquire pier side for Paramount.Not tested yet
+    + ef4e73f8 2021 - 02 - 06 Jarno Paananen       DDW shutter state fix(#1349)                                                                                                                         
+    +351095ac 2021 - 02 - 06 Paweł Soja           Separate useful macros to indimacros.h(#1348)                                                                                                        
+    +4974cf20 2021 - 02 - 06 Jasem Mutlaq         Add support to Pegasus Micro as well
+    + 205f72f8 2021 - 02 - 05 Jarno Paananen       Fixes to handling of state changes in DDW driver(#1346)                                                                                              
+    +aae54d9c 2021 - 02 - 05 Paweł Soja           Fix - PyIndi fails over missing symbol(#1347)                                                                                                        
+    +0fe8fe1c 2021 - 02 - 04 Jarno Paananen       Updates to DDW driver(#1344)                                                                                                                         
+    +81e0b01e 2021 - 02 - 02 Jarno Paananen       Avoid DDW communication watchdog(#1342)                                                                                                              
+    +bb72af43 2021 - 02 - 01 Jarno Paananen       Driver for Digital Dome Works(DDW) from Technical Innovations (#1341)                                                                                
+    +47ed55fc 2021 - 02 - 01 Jasem Mutlaq         Increment version for SkyWAtcher Alt - Az
+    + 3c222a50 2021 - 02 - 01 Jasem Mutlaq         Add support for AZEQ6 as proposed by Dirk on INDI forums
+    + fc26c012 2021 - 02 - 01 rishi - garrod         Fixed Auto Dew for V2 and added Aggessiveness for V2.Fixed a few lit… (#1340)                                                                        
+    +077d2a4e 2021 - 01 - 30 Rick Bassham         fix: add null pointer check to serial connect(#1335)                                                                                                 
+    +45ae8e4c 2021 - 01 - 23 Jasem Mutlaq         Add saveConfigItems to WeatherInterface and utilize that in classes that inherit it
+    + d523ba6b 2021 - 01 - 23 Jasem Mutlaq         Simplify code and use better variable names
+    + 09420ebb 2021 - 01 - 21 d33psky              Integra85 driver sanity checks and improved user messages. (#1334)                                                                                    
+    +fa59b727 2021 - 01 - 21 interplanetarychris  Fix celestrongps guide rate scaling(#1331)                                                                                                           
+    +d6e9d74a 2021 - 01 - 19 Paweł Soja           DefaultDevice - D - Pointer implementation(#1327)                                                                                                      
+    +f01ad1fc 2021 - 01 - 19 Lesage Franck        Tracking can now be switched on / off(#1326)                                                                                                           
+    +3e75b36c 2021 - 01 - 19 Paweł Soja           Refactoring - Widget decorators(#1324)                                                                                                               
+    +022406e2 2021 - 01 - 19 Ilia Platone         indicom.c update for delay calculation(#1328)                                                                                                        
+    +09a1e461 2021 - 01 - 18 pmneo                Frame Based V4L Stacking and lazy stop capture for better loop perf(#1325)                                                                           
+    +5b13bbf7 2021 - 01 - 15 Rick Bassham         Add snoop device to joystick controller(#1323)                                                                                                       
+    +ec3836bd 2021 - 01 - 15 avarakin             Fix for issue with manipulating output ports(#1322)                                                                                                  
+    +77128112 2021 - 01 - 13 Jasem Mutlaq         Temporary measure to prevent deadlock with some clients.Still requires long term solution
+    + 4baca66f 2021 - 01 - 13 Paweł Soja           Refactoring - less dependencies between files / less mallocs(#1318)                                                                                  
+    +ab26ac5e 2021 - 01 - 12 Paweł Soja           Refactoring / INDI::BaseDevice - D - Pointer implemented(#1320)                                                                                          
+    +de9b0461 2021 - 01 - 12 lantictac            Sesto Senso 2: Workaround apply motor preset issue(#1319)                                                                                            
+    +428e0fe9 2021 - 01 - 12 Jasem Mutlaq         Starting libindi v1.8.9 development cycle
+    + 74615e6c 2021 - 01 - 11 Jasem Mutlaq         Protect properties and messages when used in multiple threads.While this used to work fine, some conditions may led to corrupted data
+    + c714f9c5 2021 - 01 - 11 pawel - soja           Indidriver / refactoring(#1313)                                                                                                                        
+    +978290d5 2021 - 01 - 11 lantictac            Sesto Senso 2: Motor settings(#1315)
       
 From 1.8.7 to 1.8.8
 
-      + New HOBYM Crux telescope driver (#1295)
-      + New Rainbow focuser driver (#1304)
-      + New ActiveFocuser driver release (#1301)
-      + 10Micron: UnattendedFlip handling, implements #1276 (#1298)
-      + Bugfix/sat track lx200 julian day (#1305)
-      + Improved serial port auto-search.
-      + Refactor/satellite tracking properties -> Moving properties to a higher abstraction layer (#1300)
-      + SkyWatcher Alt-Az driver improvements.
-      + Indibase/refactoring - update INDI::Property (#1302)
-      + Update of SmartFocus driver (#1275)
-      + Add new helper methods to the AlignmentSubsystemForDrivers (Alt/Az) (#1308)
-      + Streammanager/chrono - Fix the 24h time limit. (#1278)
-      + Fix remote driver not sending properties to upstream server
-      + Delay calculation in indicommon and indicorrelator (#1277)
-      + Indidriver/refactoring - fix memory leak, increase performance (#1281)
-      + Streammanager/refactoring (#1280)
-      + Move absolute position bugfix (#1285)
-      + Use of the common mkpath function (#1288)
-      + Sesto Senso 2: Support for displaying 12V input voltage. (#1289)
-      + Add Microsoft LifeCam Cinema to pixelSizeInfo (#1314)
-      + Sesto Senso 2: Log & display firmware version (#1292)
-      + fix: inline methods that use unlinked functions (#1312)
+      + New HOBYM Crux telescope driver(#1295)
+      +New Rainbow focuser driver(#1304)
+      +New ActiveFocuser driver release(#1301)
+      +10Micron: UnattendedFlip handling, implements #1276 (#1298)
+      + Bugfix / sat track lx200 julian day(#1305)
+      +Improved serial port auto - search.
+      + Refactor / satellite tracking properties->Moving properties to a higher abstraction layer(#1300)
+      +SkyWatcher Alt - Az driver improvements.
+      + Indibase / refactoring - update INDI::Property(#1302)
+      +Update of SmartFocus driver(#1275)
+      +Add new helper methods to the AlignmentSubsystemForDrivers(Alt / Az)(#1308)
+      +Streammanager / chrono - Fix the 24h time limit. (#1278)
+      +Fix remote driver not sending properties to upstream server
+      + Delay calculation in indicommon and indicorrelator(#1277)
+      +Indidriver / refactoring - fix memory leak, increase performance(#1281)
+      +Streammanager / refactoring(#1280)
+      +Move absolute position bugfix(#1285)
+      +Use of the common mkpath function(#1288)
+      +Sesto Senso 2: Support for displaying 12V input voltage. (#1289)
+      +Add Microsoft LifeCam Cinema to pixelSizeInfo(#1314)
+      +Sesto Senso 2: Log & display firmware version(#1292)
+      +fix: inline methods that use unlinked functions(#1312)
 
 From 1.8.6 to 1.8.7
 
       + New Esatto focuser support.
       + New Pegasus Falcon Rotator.
-      + Fix QHYCFW3 driver handshake (#1229)
-      + Support for AZ-GTi in Alt-Az mode.
-      + Improve on deadlocks and integrity (#1243)
-      + Rework/streammanager - fix recording subframe issue, add processing qeue, configurable limits memory/fps (#1254)
-      + Baader SteelDrive II - feature, Adjustable holding and move current for stepper drive (#1257)
-      + Do not block the stream thread when sending FPS status, fix frames discarding. (#1258)
-      + Many bug fixes and additions supporting advanced Pulsar2 features (#1261)
-      + Add support to connecting to all remote drivers without specifying an explicit driver.
-      + Added Humidity, Pressure and Clouds to the WeatherWatcher driver (#1247)
-      + Fixed Losmandy Gemini failed to complete park issue (#1239).
-      + Set Eq Coords property state to OK & IDLE as needed (#1240).
-      + 1st fix for CEM25p Slewing to home position while parked (#1245)
-      + DSP Improvements (#1251)
-      + Compatibility fixed for SteelDriver II. New firmware has more arguments. (#1253)
-      + Full support for Fedora builds.
+      + Fix QHYCFW3 driver handshake(#1229)
+      +Support for AZ - GTi in Alt - Az mode.
+      + Improve on deadlocks and integrity(#1243)
+      +Rework / streammanager - fix recording subframe issue, add processing qeue, configurable limits memory / fps(#1254)
+      +Baader SteelDrive II - feature, Adjustable holding and move current for stepper drive(#1257)
+      +Do not block the stream thread when sending FPS status, fix frames discarding. (#1258)
+      +Many bug fixes and additions supporting advanced Pulsar2 features(#1261)
+      +Add support to connecting to all remote drivers without specifying an explicit driver.
+      + Added Humidity, Pressure and Clouds to the WeatherWatcher driver(#1247)
+      +Fixed Losmandy Gemini failed to complete park issue(#1239).
+      +Set Eq Coords property state to OK & IDLE as needed (#1240).
+      +1st fix for CEM25p Slewing to home position while parked(#1245)
+      +DSP Improvements(#1251)
+      +Compatibility fixed for SteelDriver II.New firmware has more arguments. (#1253)
+      +Full support for Fedora builds.
 
 From 1.8.5 to 1.8.6
 
       + New Raspberry Pi HQ Camera driver.
       + New Pegasus PPBA driver.
       + New DomePro2 driver.
-      + Add PierSide to indi_ioptron_telescope (#1120)
-      + Fix Pier Side problem on Gemini mounts (#1122)
-      + Goto mode selectable for Alt/Az mounts via an UI Switch. (#1136)
-      + OnStep: Weather sensor (READ) support (#1142)
-      + OnStep: Support for setting temperatures for dew heaters/focusers
-      + Fix skywatcher altaz crash (#1151)
-      + Add the focus temperature property to the focus simulator (#1152)
-      + Logitech HD C270 webcam data added to v4l2_ccd driver (#1154)
-      + Astrophysics park3 support (#1167)
-      + Implement Parking for LX200 classic (#1164)
-      + UDP support for skywatcherAPI (#1172)
-      + LX200 FS-2 Park (#1165)
-      + Telescope Simulator Parking to HA/Dec frame (#1174)
-      + Update Pointing State determination. (#1179)
-      + Feature Satellite tracking with TLE for 10Micron mounts (#1208)
-      + Add focuser temperature to FITS header (#1209)
-      + myFocuserPro2 Fix coil power command (#1195)
-      + Updated TeenAstro INDI driver for firmware 1.2.0 (#1196)
+      + Add PierSide to indi_ioptron_telescope(#1120)
+      +Fix Pier Side problem on Gemini mounts(#1122)
+      +Goto mode selectable for Alt / Az mounts via an UI Switch. (#1136)
+      +OnStep: Weather sensor(READ) support(#1142)
+      +OnStep: Support for setting temperatures for dew heaters / focusers
+      + Fix skywatcher altaz crash(#1151)
+      +Add the focus temperature property to the focus simulator(#1152)
+      +Logitech HD C270 webcam data added to v4l2_ccd driver(#1154)
+      +Astrophysics park3 support(#1167)
+      +Implement Parking for LX200 classic(#1164)
+      +UDP support for skywatcherAPI(#1172)
+      +LX200 FS - 2 Park(#1165)
+      +Telescope Simulator Parking to HA / Dec frame(#1174)
+      +Update Pointing State determination. (#1179)
+      +Feature Satellite tracking with TLE for 10Micron mounts(#1208)
+      +Add focuser temperature to FITS header(#1209)
+      +myFocuserPro2 Fix coil power command(#1195)
+      +Updated TeenAstro INDI driver for firmware 1.2.0(#1196)
 
 From 1.8.4 to 1.8.5
 
       + New PlaneWave EFA Driver.
-      + New PlaneWave Delta-T driver.
+      + New PlaneWave Delta - T driver.
       + New SestoSenso2 driver.
       + New Radio Astronomy Interferometer Driver.
       + Fixed parking in Temma driver.
@@ -1077,7 +1120,7 @@ From 1.8.3 to 1.8.4
       + New DSP plugin for Signal Processing.
       + New INDI interface for correlators.
       + Draft for Pulse Detectors (revealers, dosimeters, cosmic ray).
-      + Created SensorInterface and Spectrograph, Detector subclasses.
+      +Created SensorInterface and Spectrograph, Detector subclasses.
       + Celestron PEC control is added that provides seek index, stop, playback and record commands.
       + Celestron negative UTC fix.
       + Fixed iOptron mount firmware parsing.
@@ -1091,14 +1134,14 @@ From 1.8.2 to 1.8.3
 
       + New RainbowAstro Mount driver.
       + New Simulated Pier Side option for all mounts.
-      + Added iOptron GEM45 support. (#1041)
-      + Added *preliminary* support for iOptron iPolar. (#1043)
-      + Update Celestron GPS Guide (#1048)
-      + Bug fix: meridian flip working for longer polling intervals (#1042)
-      + Update Celestron GPS Guide (#1048)
-      + Added recording the absolute position of the focuser to the FITS header (#1052)
-      + Fix enabling/disabling DMFC properties and remove dead code (#1050)
-      + Enable saving/loading backlash steps and fix motor type select (#1055)
+      +Added iOptron GEM45 support. (#1041)
+      +Added * preliminary * support for iOptron iPolar. (#1043)
+      +Update Celestron GPS Guide(#1048)
+      +Bug fix: meridian flip working for longer polling intervals(#1042)
+      +Update Celestron GPS Guide(#1048)
+      +Added recording the absolute position of the focuser to the FITS header(#1052)
+      +Fix enabling / disabling DMFC properties and remove dead code(#1050)
+      +Enable saving / loading backlash steps and fix motor type select(#1055)
 
 
 From 1.8.1 to 1.8.2
@@ -1112,7 +1155,7 @@ From 1.8.1 to 1.8.2
       + Fixed weather override functionality in INDI::Weather.
       + Fixed INDI Dome tracking.
       + Updated PCM8 driver to automatically detect mount types.
-      + Serial communication polling period is configurable 1-30 secs.
+      + Serial communication polling period is configurable 1 - 30 secs.
       + Added ISGetConfigSwitch to read switch information directly from config.
 
 From 1.8.0 to 1.8.1
@@ -1239,7 +1282,7 @@ From 1.7.5 to 1.7.6
       + Fixed TCFS position and temperature.
       + Fixed race condition when using multiple devices that can park.
       + Fixes to INDI::Weather interface.
-      + Initialize backlash on eqmod connect.
+      +Initialize backlash on eqmod connect.
       + Focuser Interface should now natively support Focus Max Limit, Sync, and Reverse Direction.
       + Preliminary support for Websockets in INDI::CCD. It is off by default.
       + MacOS build fixes.
@@ -1302,7 +1345,7 @@ From 1.7.2 to 1.7.4
       + Fixed EQMod DEC Inversion which caused issues with PHD2.
       + Fixex checksum error in maxdomeii. Implement dome motion buttons.
       + Fixed tracking issue in EQMod when using a joystick.
-      + Fixex pier side reporting for 10Micron mounts.
+      +Fixex pier side reporting for 10Micron mounts.
       + Fixed protocol issue with ethernet connection to AP GTOCP4.
       + Fixed Celestron Pulse guiding.
       + Fixed occasional filter loading issues.
@@ -1472,7 +1515,7 @@ From 1.3.1 to 1.4.0
       + New CCD_TRANSFER_FORMAT property.
       + libindi can now be compiled under MacOS and Cygwin. Non-Linux specific 3rd party drivers are also supported under MacOS and Cygwin.
       + When a request for snooped is sent, it is echoed to drivers so that they send the snopped value immediately if it exists.
-      + libindi shared library is dropped. libindi now offsers indidriver (shared), indiclient (static), and indiclientqt5 (static) libraries.
+      + libindi shared library is dropped. libindi now offsers indidriver (shared), indiclient (static), and indiclientqt5(static) libraries.
       + Legacy drivers removed: SkyCommander, Intelliscope, MagellanI, TruTech, SBIG STV
 
 From 1.3.0 to 1.3.1
@@ -1612,7 +1655,7 @@ From 0.9.8 to 0.9.9
       + Joystick support for focuser and filter wheel devices.
       + Added option to enable local & remote save for FITS images in all CCD drivers.
       + Older V4L driver is deprecated (indi_v4l_legacy) and is replaced by indi_v4l2_ccd
-      + V4L2: added recording (SER files) for use with Registax
+      + V4L2: added recording(SER files) for use with Registax
       + V4L2: added RGGB & UYVY pixel format support to V4L2 drivers.
       + V4L2: fixed LX long exposure times.
       + Updated and improved tutorials.
@@ -1742,7 +1785,7 @@ From 0.4 to 0.5
         # Features:
              + Added INDI Observer pattern to enable flexible inter-driver communication.
              + getINDI now supports BLOBs.
-             + LX200 Drivers use client timestamp to update the telescope internal clock. The old behavior was to use to system's time.
+             + LX200 Drivers use client timestamp to update the telescope internal clock.The old behavior was to use to system's time.
              + Added a new INDI Standard Property: UTC_OFFSET.
              + Dropping threaded INDI server in favor of the slightly better non-threaded version due to performance considerations.
 
@@ -1760,7 +1803,7 @@ From v0.3 to v0.4:
 
         # Devices:
 
-                + SBIG CCD
+                +SBIG CCD
                 + SBIG CFW
                 + RoboFocus
                 + FLI Precision Focuser
@@ -1778,7 +1821,7 @@ From v0.3 to v0.4:
 From v0.2 to v0.3:
 
         # Devices:
-                + Apogee CCD (Experimental)
+                +Apogee CCD(Experimental)
                 + SkyCommander
                 + Temma Takahashi
                 + FLI Filter Wheel
@@ -1792,4 +1835,4 @@ From v0.2 to v0.3:
                 + INDI scripting tools
                 + Various bug fixing
 
-INDI Library v1.9.7 conforms to INDI wire protocol v1.7 with FAST BLOB extension.
+INDI Library v2.0.9 conforms to INDI wire protocol v1.7 with FAST BLOB extension.
