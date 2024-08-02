@@ -32,7 +32,7 @@ namespace INDI
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
-GPS::GPS() : GI(this)
+GPS::GPS() : GPSI(this)
 {
 
 }
@@ -44,7 +44,7 @@ bool GPS::initProperties()
 {
     DefaultDevice::initProperties();
 
-    GI::initProperties("Main Control");
+    GPSI::initProperties("Main Control");
 
     setDefaultPollingPeriod(2000);
 
@@ -60,7 +60,7 @@ bool GPS::initProperties()
 bool GPS::updateProperties()
 {
     DefaultDevice::updateProperties();
-    GI::updateProperties();
+    GPSI::updateProperties();
     return true;
 }
 
@@ -71,7 +71,7 @@ bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (GI::processSwitch(dev, name, states, names, n))
+        if (GPSI::processSwitch(dev, name, states, names, n))
         {
             if (SystemTimeUpdateSP.isNameMatch(name))
                 saveConfig(true, SystemTimeUpdateSP.getName());
@@ -89,7 +89,7 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (GI::processNumber(dev, name, values, names, n))
+        if (GPSI::processNumber(dev, name, values, names, n))
             return true;
     }
 
@@ -102,7 +102,7 @@ bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *
 bool GPS::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
-    GI::saveConfigItems(fp);
+    GPSI::saveConfigItems(fp);
     return true;
 }
 }

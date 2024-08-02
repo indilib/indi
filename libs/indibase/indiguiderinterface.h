@@ -1,6 +1,6 @@
 /*
     Guider Interface
-    Copyright (C) 2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2011-2024 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,16 +34,21 @@
  * case, the child class must call GuideComplete() once the guiding pulse is complete.
  * IPS_ALERT if the guide operation failed.
  *
- * \e IMPORTANT: initGuiderProperties() must be called before any other function to initialize
+ * \e IMPORTANT: initProperties() must be called before any other function to initialize
  * the guider properties.
- * \e IMPORATNT: processGuiderProperties() must be called in your driver's ISNewNumber(..)
- * function. processGuiderProperties() will call the guide functions
- * GuideXXXX functions according to the driver.
+ * \e IMPORATNT: processNumber() must be called in your driver's ISNewNumber(..)
+ * function. processNumber() will call the guide functions
+ * GuideXXXX functions according to the driver. If there are no guide functions to process, the function will return
+ * false so you can continue processing the properties down the chain.
  *
  * @author Jasem Mutlaq
  */
 
 #include <stdint.h>
+#include "defaultdevice.h"
+
+// Alias
+using GI = INDI::GuiderInterface;
 
 namespace INDI
 {
@@ -86,31 +91,39 @@ class GuiderInterface
         virtual void GuideComplete(INDI_EQ_AXIS axis);
 
     protected:
-        GuiderInterface();
+        GuiderInterface(DefaultDevice *defaultDevice);
         ~GuiderInterface();
 
         /**
          * @brief Initialize guider properties. It is recommended to call this function within
          * initProperties() of your primary device
-         * @param deviceName Name of the primary device
          * @param groupName Group or tab name to be used to define guider properties.
          */
-        void initGuiderProperties(const char *deviceName, const char *groupName);
+        void initProperties(const char *groupName);
+
+        /**
+         * @brief updateProperties Define or Delete Rotator properties based on the connection status of the base device
+         * @return True if successful, false otherwise.
+         */
+        bool updateProperties();
 
         /**
          * @brief Call this function whenever client updates GuideNSNP or GuideWSP properties in the
          * primary device. This function then takes care of issuing the corresponding GuideXXXX
          * function accordingly.
-         * @param name device name
+         * @param dev device name
+         * @param name property name
          * @param values value as passed by the client
          * @param names names as passed by the client
          * @param n number of values and names pair to process.
+         * @return True if the Guide properties are processed, false otherwise.
          */
-        void processGuiderProperties(const char *name, double values[], char *names[], int n);
+        bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        INumber GuideNSN[2];
-        INumberVectorProperty GuideNSNP;
-        INumber GuideWEN[2];
-        INumberVectorProperty GuideWENP;
+        INDI::PropertyNumber GuideNSNP {2};
+        INDI::PropertyNumber GuideWENP {2};
+
+    private:
+        DefaultDevice *m_defaultDevice { nullptr };
 };
 }

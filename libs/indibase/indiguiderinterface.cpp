@@ -25,62 +25,96 @@
 namespace INDI
 {
 
-GuiderInterface::GuiderInterface()
+/////////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////////
+GuiderInterface::GuiderInterface(DefaultDevice *device) : m_defaultDevice(device)
 {
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////////
 GuiderInterface::~GuiderInterface()
 {
 }
 
-void GuiderInterface::initGuiderProperties(const char *deviceName, const char *groupName)
+/////////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////////
+void GuiderInterface::initProperties(const char *groupName)
 {
-    IUFillNumber(&GuideNSN[DIRECTION_NORTH], "TIMED_GUIDE_N", "North (ms)", "%.f", 0, 60000, 100, 0);
-    IUFillNumber(&GuideNSN[DIRECTION_SOUTH], "TIMED_GUIDE_S", "South (ms)", "%.f", 0, 60000, 100, 0);
-    IUFillNumberVector(&GuideNSNP, GuideNSN, 2, deviceName, "TELESCOPE_TIMED_GUIDE_NS", "Guide N/S", groupName, IP_RW,
-                       60, IPS_IDLE);
+    GuideNSNP[DIRECTION_NORTH].fill("TIMED_GUIDE_N", "North (ms)", "%.f", 0, 60000, 100, 0);
+    GuideNSNP[DIRECTION_SOUTH].fill("TIMED_GUIDE_S", "South (ms)", "%.f", 0, 60000, 100, 0);
+    GuideNSNP.fill(m_defaultDevice->getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide N/S", groupName, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&GuideWEN[DIRECTION_WEST], "TIMED_GUIDE_W", "West (ms)", "%.f", 0, 60000, 100, 0);
-    IUFillNumber(&GuideWEN[DIRECTION_EAST], "TIMED_GUIDE_E", "East (ms)", "%.f", 0, 60000, 100, 0);
-    IUFillNumberVector(&GuideWENP, GuideWEN, 2, deviceName, "TELESCOPE_TIMED_GUIDE_WE", "Guide E/W", groupName, IP_RW,
-                       60, IPS_IDLE);
+    GuideWENP[DIRECTION_WEST].fill("TIMED_GUIDE_W", "West (ms)", "%.f", 0, 60000, 100, 0);
+    GuideWENP[DIRECTION_EAST].fill("TIMED_GUIDE_E", "East (ms)", "%.f", 0, 60000, 100, 0);
+    GuideWENP.fill(m_defaultDevice->getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide E/W", groupName, IP_RW, 60, IPS_IDLE);
 }
 
-void GuiderInterface::processGuiderProperties(const char *name, double values[], char *names[], int n)
+/////////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////////
+bool GuiderInterface::updateProperties()
 {
-    if (strcmp(name, GuideNSNP.name) == 0)
+    if (m_defaultDevice->isConnected())
     {
-        //  We are being asked to send a guide pulse north/south on the st4 port
-        IUUpdateNumber(&GuideNSNP, values, names, n);
-
-        if (GuideNSN[DIRECTION_NORTH].value != 0)
-        {
-            GuideNSN[DIRECTION_SOUTH].value = 0;
-            GuideNSNP.s                     = GuideNorth(GuideNSN[DIRECTION_NORTH].value);
-        }
-        else if (GuideNSN[DIRECTION_SOUTH].value != 0)
-            GuideNSNP.s = GuideSouth(GuideNSN[DIRECTION_SOUTH].value);
-
-        IDSetNumber(&GuideNSNP, nullptr);
-        return;
+        m_defaultDevice->defineProperty(GuideNSNP);
+        m_defaultDevice->defineProperty(GuideWENP);
+    }
+    else
+    {
+        m_defaultDevice->deleteProperty(GuideNSNP);
+        m_defaultDevice->deleteProperty(GuideWENP);
     }
 
-    if (strcmp(name, GuideWENP.name) == 0)
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////////
+bool GuiderInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        //  We are being asked to send a guide pulse north/south on the st4 port
-        IUUpdateNumber(&GuideWENP, values, names, n);
-
-        if (GuideWEN[DIRECTION_WEST].value != 0)
+        if (GuideNSNP.isNameMatch(name))
         {
-            GuideWEN[DIRECTION_EAST].value = 0;
-            GuideWENP.s                    = GuideWest(GuideWEN[DIRECTION_WEST].value);
-        }
-        else if (GuideWEN[DIRECTION_EAST].value != 0)
-            GuideWENP.s = GuideEast(GuideWEN[DIRECTION_EAST].value);
+            //  We are being asked to send a guide pulse north/south on the st4 port
+            GuideNSNP.update(values, names, n);
 
-        IDSetNumber(&GuideWENP, nullptr);
-        return;
+            if (GuideNSNP[DIRECTION_NORTH].getValue() != 0)
+            {
+                GuideNSNP[DIRECTION_SOUTH].setValue(0);
+                GuideNSNP.setState(GuideNorth(GuideNSNP[DIRECTION_NORTH].getValue()));
+            }
+            else if (GuideNSNP[DIRECTION_SOUTH].getValue() != 0)
+                GuideNSNP.setState(GuideSouth(GuideNSNP[DIRECTION_SOUTH].getValue()));
+
+            GuideNSNP.apply();
+            return true;
+        }
+
+        if (GuideWENP.isNameMatch(name))
+        {
+            //  We are being asked to send a guide pulse north/south on the st4 port
+            GuideWENP.update(values, names, n);
+
+            if (GuideWENP[DIRECTION_WEST].getValue() != 0)
+            {
+                GuideWENP[DIRECTION_EAST].setValue(0);
+                GuideWENP.setState(GuideWest(GuideWENP[DIRECTION_WEST].getValue()));
+            }
+            else if (GuideWENP[DIRECTION_EAST].getValue() != 0)
+                GuideWENP.setState(GuideEast(GuideWENP[DIRECTION_EAST].getValue()));
+
+            GuideWENP.apply();
+            return true;
+        }
     }
+
+    return false;
 }
 
 void GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
@@ -88,13 +122,13 @@ void GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
     switch (axis)
     {
         case AXIS_DE:
-            GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, nullptr);
+            GuideNSNP.setState(IPS_IDLE);
+            GuideNSNP.apply();
             break;
 
         case AXIS_RA:
-            GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideWENP.setState(IPS_IDLE);
+            GuideWENP.apply();
             break;
     }
 }

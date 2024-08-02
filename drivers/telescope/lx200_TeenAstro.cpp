@@ -1423,18 +1423,18 @@ void LX200_TeenAstro::guideTimeoutHelperWE(void * p)
 
 void LX200_TeenAstro::guideTimeoutNS()
 {
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    GuideNSNP.s           = IPS_IDLE;
-    GuideNSTID            = 0;
-    IDSetNumber(&GuideNSNP, nullptr);
+    GuideNSNP[0].setValue(0);
+    GuideNSNP[1].setValue(0);
+    GuideNSNP.setState(IPS_IDLE);
+    GuideNSTID = 0;
+    GuideNSNP.apply();
 }
 
 void LX200_TeenAstro::guideTimeoutWE()
 {
-    GuideWENP.np[0].value = 0;
-    GuideWENP.np[1].value = 0;
-    GuideWENP.s           = IPS_IDLE;
-    GuideWETID            = 0;
-    IDSetNumber(&GuideWENP, nullptr);
+    GuideWENP[0].setValue(0);
+    GuideWENP[1].setValue(0);
+    GuideWENP.setState(IPS_IDLE);
+    GuideWETID = 0;
+    GuideWENP.apply();
 }

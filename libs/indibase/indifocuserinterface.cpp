@@ -167,245 +167,248 @@ bool FocuserInterface::updateProperties()
 
 bool FocuserInterface::processNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
-    // Move focuser based on requested timeout
-    if (!strcmp(name, FocusTimerNP.name))
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        FocusDirection dir;
-        int speed;
-        int t;
-
-        //  first we get all the numbers just sent to us
-        IUUpdateNumber(&FocusTimerNP, values, names, n);
-
-        //  Now lets find what we need for this move
-        speed = FocusSpeedN[0].value;
-
-        if (FocusMotionS[0].s == ISS_ON)
-            dir = FOCUS_INWARD;
-        else
-            dir = FOCUS_OUTWARD;
-
-        t              = FocusTimerN[0].value;
-        lastTimerValue = t;
-
-        FocusTimerNP.s = MoveFocuser(dir, speed, t);
-        IDSetNumber(&FocusTimerNP, nullptr);
-        return true;
-    }
-
-    // Set variable focus speed
-    if (!strcmp(name, FocusSpeedNP.name))
-    {
-        FocusSpeedNP.s    = IPS_OK;
-        int current_speed = FocusSpeedN[0].value;
-        IUUpdateNumber(&FocusSpeedNP, values, names, n);
-
-        if (SetFocuserSpeed(FocusSpeedN[0].value) == false)
+        // Move focuser based on requested timeout
+        if (!strcmp(name, FocusTimerNP.name))
         {
-            FocusSpeedN[0].value = current_speed;
-            FocusSpeedNP.s       = IPS_ALERT;
-            m_defaultDevice->saveConfig(true, FocusSpeedNP.name);
-        }
+            FocusDirection dir;
+            int speed;
+            int t;
 
-        //  Update client display
-        IDSetNumber(&FocusSpeedNP, nullptr);
-        return true;
-    }
+            //  first we get all the numbers just sent to us
+            IUUpdateNumber(&FocusTimerNP, values, names, n);
 
-    // Update Maximum Position allowed
-    if (!strcmp(name, FocusMaxPosNP.name))
-    {
-        uint32_t maxTravel = rint(values[0]);
-        if (SetFocuserMaxPosition(maxTravel))
-        {
-            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+            //  Now lets find what we need for this move
+            speed = FocusSpeedN[0].value;
 
-            FocusAbsPosN[0].max = FocusMaxPosN[0].value;
-            FocusSyncN[0].max = FocusMaxPosN[0].value;
-
-            FocusAbsPosN[0].step = FocusMaxPosN[0].value / 50.0;
-            FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
-
-            FocusAbsPosN[0].min = 0;
-            FocusSyncN[0].min = 0;
-
-            FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
-            FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
-            FocusRelPosN[0].min  = 0;
-
-            IUUpdateMinMax(&FocusAbsPosNP);
-            IUUpdateMinMax(&FocusRelPosNP);
-            IUUpdateMinMax(&FocusSyncNP);
-
-            m_defaultDevice->saveConfig(true, FocusMaxPosNP.name);
-
-            FocusMaxPosNP.s = IPS_OK;
-        }
-        else
-            FocusMaxPosNP.s = IPS_ALERT;
-
-        IDSetNumber(&FocusMaxPosNP, nullptr);
-        return true;
-    }
-
-    // Sync
-    if (!strcmp(name, FocusSyncNP.name))
-    {
-        if (SyncFocuser(rint(values[0])))
-        {
-            FocusSyncN[0].value = rint(values[0]);
-            FocusAbsPosN[0].value = rint(values[0]);
-            FocusSyncNP.s = IPS_OK;
-            IDSetNumber(&FocusSyncNP, nullptr);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        }
-        else
-        {
-            FocusSyncNP.s = IPS_ALERT;
-            IDSetNumber(&FocusSyncNP, nullptr);
-        }
-        return true;
-    }
-
-    // Set backlash value
-    if (!strcmp(name, FocusBacklashNP.name))
-    {
-        if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
-        {
-            FocusBacklashNP.s = IPS_IDLE;
-
-            // Only warn if there is non-zero backlash value.
-            if (values[0] > 0)
-                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
-        }
-        else
-        {
-            uint32_t steps = static_cast<uint32_t>(values[0]);
-            if (SetFocuserBacklash(steps))
-            {
-                FocusBacklashN[0].value = values[0];
-                FocusBacklashNP.s = IPS_OK;
-                m_defaultDevice->saveConfig(true, FocusBacklashNP.name);
-            }
-            else
-                FocusBacklashNP.s = IPS_ALERT;
-        }
-        IDSetNumber(&FocusBacklashNP, nullptr);
-        return true;
-    }
-
-    // Update Absolute Focuser Position
-    if (!strcmp(name, FocusAbsPosNP.name))
-    {
-        int newPos = rint(values[0]);
-
-        if (newPos < FocusAbsPosN[0].min)
-        {
-            FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g",
-                         FocusAbsPosN[0].min);
-            return false;
-        }
-        else if (newPos > FocusAbsPosN[0].max)
-        {
-            FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g",
-                         FocusAbsPosN[0].max);
-            return false;
-        }
-
-        IPState ret;
-
-        if ((ret = MoveAbsFocuser(newPos)) == IPS_OK)
-        {
-            FocusAbsPosNP.s = IPS_OK;
-            IUUpdateNumber(&FocusAbsPosNP, values, names, n);
-            DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser moved to position %d", newPos);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            return true;
-        }
-        else if (ret == IPS_BUSY)
-        {
-            FocusAbsPosNP.s = IPS_BUSY;
-            DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser is moving to position %d", newPos);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            return true;
-        }
-
-        FocusAbsPosNP.s = IPS_ALERT;
-        DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        return false;
-    }
-
-    // Update Relative focuser steps. This moves the focuser CW/CCW by this number of steps.
-    if (!strcmp(name, FocusRelPosNP.name))
-    {
-        int newPos = rint(values[0]);
-
-        if (newPos <= 0)
-        {
-            DEBUGDEVICE(dev, Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
-            FocusRelPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            return false;
-        }
-
-        IPState ret;
-
-        if (CanAbsMove())
-        {
             if (FocusMotionS[0].s == ISS_ON)
+                dir = FOCUS_INWARD;
+            else
+                dir = FOCUS_OUTWARD;
+
+            t              = FocusTimerN[0].value;
+            lastTimerValue = t;
+
+            FocusTimerNP.s = MoveFocuser(dir, speed, t);
+            IDSetNumber(&FocusTimerNP, nullptr);
+            return true;
+        }
+
+        // Set variable focus speed
+        if (!strcmp(name, FocusSpeedNP.name))
+        {
+            FocusSpeedNP.s    = IPS_OK;
+            int current_speed = FocusSpeedN[0].value;
+            IUUpdateNumber(&FocusSpeedNP, values, names, n);
+
+            if (SetFocuserSpeed(FocusSpeedN[0].value) == false)
             {
-                if (FocusAbsPosN[0].value - newPos < FocusAbsPosN[0].min)
-                {
-                    FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, nullptr);
-                    DEBUGFDEVICE(dev, Logger::DBG_ERROR,
-                                 "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
-                    return false;
-                }
+                FocusSpeedN[0].value = current_speed;
+                FocusSpeedNP.s       = IPS_ALERT;
+                m_defaultDevice->saveConfig(true, FocusSpeedNP.name);
+            }
+
+            //  Update client display
+            IDSetNumber(&FocusSpeedNP, nullptr);
+            return true;
+        }
+
+        // Update Maximum Position allowed
+        if (!strcmp(name, FocusMaxPosNP.name))
+        {
+            uint32_t maxTravel = rint(values[0]);
+            if (SetFocuserMaxPosition(maxTravel))
+            {
+                IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+
+                FocusAbsPosN[0].max = FocusMaxPosN[0].value;
+                FocusSyncN[0].max = FocusMaxPosN[0].value;
+
+                FocusAbsPosN[0].step = FocusMaxPosN[0].value / 50.0;
+                FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
+
+                FocusAbsPosN[0].min = 0;
+                FocusSyncN[0].min = 0;
+
+                FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
+                FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
+                FocusRelPosN[0].min  = 0;
+
+                IUUpdateMinMax(&FocusAbsPosNP);
+                IUUpdateMinMax(&FocusRelPosNP);
+                IUUpdateMinMax(&FocusSyncNP);
+
+                m_defaultDevice->saveConfig(true, FocusMaxPosNP.name);
+
+                FocusMaxPosNP.s = IPS_OK;
+            }
+            else
+                FocusMaxPosNP.s = IPS_ALERT;
+
+            IDSetNumber(&FocusMaxPosNP, nullptr);
+            return true;
+        }
+
+        // Sync
+        if (!strcmp(name, FocusSyncNP.name))
+        {
+            if (SyncFocuser(rint(values[0])))
+            {
+                FocusSyncN[0].value = rint(values[0]);
+                FocusAbsPosN[0].value = rint(values[0]);
+                FocusSyncNP.s = IPS_OK;
+                IDSetNumber(&FocusSyncNP, nullptr);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             else
             {
-                if (FocusAbsPosN[0].value + newPos > FocusAbsPosN[0].max)
+                FocusSyncNP.s = IPS_ALERT;
+                IDSetNumber(&FocusSyncNP, nullptr);
+            }
+            return true;
+        }
+
+        // Set backlash value
+        if (!strcmp(name, FocusBacklashNP.name))
+        {
+            if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
+            {
+                FocusBacklashNP.s = IPS_IDLE;
+
+                // Only warn if there is non-zero backlash value.
+                if (values[0] > 0)
+                    DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
+            }
+            else
+            {
+                uint32_t steps = static_cast<uint32_t>(values[0]);
+                if (SetFocuserBacklash(steps))
                 {
-                    FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, nullptr);
-                    DEBUGFDEVICE(dev, Logger::DBG_ERROR,
-                                 "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
-                    return false;
+                    FocusBacklashN[0].value = values[0];
+                    FocusBacklashNP.s = IPS_OK;
+                    m_defaultDevice->saveConfig(true, FocusBacklashNP.name);
+                }
+                else
+                    FocusBacklashNP.s = IPS_ALERT;
+            }
+            IDSetNumber(&FocusBacklashNP, nullptr);
+            return true;
+        }
+
+        // Update Absolute Focuser Position
+        if (!strcmp(name, FocusAbsPosNP.name))
+        {
+            int newPos = rint(values[0]);
+
+            if (newPos < FocusAbsPosN[0].min)
+            {
+                FocusAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g",
+                             FocusAbsPosN[0].min);
+                return true;
+            }
+            else if (newPos > FocusAbsPosN[0].max)
+            {
+                FocusAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g",
+                             FocusAbsPosN[0].max);
+                return true;
+            }
+
+            IPState ret;
+
+            if ((ret = MoveAbsFocuser(newPos)) == IPS_OK)
+            {
+                FocusAbsPosNP.s = IPS_OK;
+                IUUpdateNumber(&FocusAbsPosNP, values, names, n);
+                DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser moved to position %d", newPos);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                return true;
+            }
+            else if (ret == IPS_BUSY)
+            {
+                FocusAbsPosNP.s = IPS_BUSY;
+                DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser is moving to position %d", newPos);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                return true;
+            }
+
+            FocusAbsPosNP.s = IPS_ALERT;
+            DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            return true;
+        }
+
+        // Update Relative focuser steps. This moves the focuser CW/CCW by this number of steps.
+        if (!strcmp(name, FocusRelPosNP.name))
+        {
+            int newPos = rint(values[0]);
+
+            if (newPos <= 0)
+            {
+                DEBUGDEVICE(dev, Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
+                FocusRelPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                return true;
+            }
+
+            IPState ret;
+
+            if (CanAbsMove())
+            {
+                if (FocusMotionS[0].s == ISS_ON)
+                {
+                    if (FocusAbsPosN[0].value - newPos < FocusAbsPosN[0].min)
+                    {
+                        FocusRelPosNP.s = IPS_ALERT;
+                        IDSetNumber(&FocusRelPosNP, nullptr);
+                        DEBUGFDEVICE(dev, Logger::DBG_ERROR,
+                                     "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (FocusAbsPosN[0].value + newPos > FocusAbsPosN[0].max)
+                    {
+                        FocusRelPosNP.s = IPS_ALERT;
+                        IDSetNumber(&FocusRelPosNP, nullptr);
+                        DEBUGFDEVICE(dev, Logger::DBG_ERROR,
+                                     "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
+                        return true;
+                    }
                 }
             }
-        }
 
-        if ((ret = MoveRelFocuser((FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
-        {
-            FocusRelPosNP.s = IPS_OK;
-            FocusAbsPosNP.s = IPS_OK;
-            IUUpdateNumber(&FocusRelPosNP, values, names, n);
-            IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos,
-                        FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            if ((ret = MoveRelFocuser((FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
+            {
+                FocusRelPosNP.s = IPS_OK;
+                FocusAbsPosNP.s = IPS_OK;
+                IUUpdateNumber(&FocusRelPosNP, values, names, n);
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos,
+                            FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                return true;
+            }
+            else if (ret == IPS_BUSY)
+            {
+                IUUpdateNumber(&FocusRelPosNP, values, names, n);
+                FocusRelPosNP.s = IPS_BUSY;
+                FocusAbsPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos,
+                            FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                return true;
+            }
+
+            FocusRelPosNP.s = IPS_ALERT;
+            DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+            IDSetNumber(&FocusRelPosNP, nullptr);
             return true;
         }
-        else if (ret == IPS_BUSY)
-        {
-            IUUpdateNumber(&FocusRelPosNP, values, names, n);
-            FocusRelPosNP.s = IPS_BUSY;
-            FocusAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos,
-                        FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            return true;
-        }
-
-        FocusRelPosNP.s = IPS_ALERT;
-        DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        return false;
     }
 
     return false;
@@ -413,106 +416,108 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
 
 bool FocuserInterface::processSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    INDI_UNUSED(dev);
-    //  This one is for focus motion
-    if (!strcmp(name, FocusMotionSP.name))
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
     {
-        // Record last direction and state.
-        FocusDirection prevDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
-        IPState prevState = FocusMotionSP.s;
-
-        IUUpdateSwitch(&FocusMotionSP, states, names, n);
-
-        FocusDirection targetDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
-
-        if (CanRelMove() || CanAbsMove() || HasVariableSpeed())
+        //  This one is for focus motion
+        if (!strcmp(name, FocusMotionSP.name))
         {
-            FocusMotionSP.s = IPS_OK;
+            // Record last direction and state.
+            FocusDirection prevDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+            IPState prevState = FocusMotionSP.s;
+
+            IUUpdateSwitch(&FocusMotionSP, states, names, n);
+
+            FocusDirection targetDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+
+            if (CanRelMove() || CanAbsMove() || HasVariableSpeed())
+            {
+                FocusMotionSP.s = IPS_OK;
+            }
+            // If we are dealing with a simple dumb DC focuser, we move in a specific direction in an open-loop fashion until stopped.
+            else
+            {
+                // If we are reversing direction let's issue abort first.
+                if (prevDirection != targetDirection && prevState == IPS_BUSY)
+                    AbortFocuser();
+
+                FocusMotionSP.s = MoveFocuser(targetDirection, 0, 0);
+            }
+
+            IDSetSwitch(&FocusMotionSP, nullptr);
+
+            return true;
         }
-        // If we are dealing with a simple dumb DC focuser, we move in a specific direction in an open-loop fashion until stopped.
-        else
+
+        // Backlash compensation
+        else if (!strcmp(name, FocusBacklashSP.name))
         {
-            // If we are reversing direction let's issue abort first.
-            if (prevDirection != targetDirection && prevState == IPS_BUSY)
-                AbortFocuser();
-
-            FocusMotionSP.s = MoveFocuser(targetDirection, 0, 0);
-        }
-
-        IDSetSwitch(&FocusMotionSP, nullptr);
-
-        return true;
-    }
-
-    // Backlash compensation
-    else if (!strcmp(name, FocusBacklashSP.name))
-    {
-        int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
-        IUUpdateSwitch(&FocusBacklashSP, states, names, n);
-
-        if (SetFocuserBacklashEnabled(IUFindOnSwitchIndex(&FocusBacklashSP) == DefaultDevice::INDI_ENABLED))
-        {
+            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
             IUUpdateSwitch(&FocusBacklashSP, states, names, n);
-            FocusBacklashSP.s = IPS_OK;
-            m_defaultDevice->saveConfig(true, FocusBacklashSP.name);
-        }
-        else
-        {
-            IUResetSwitch(&FocusBacklashSP);
-            FocusBacklashS[prevIndex].s = ISS_ON;
-            FocusBacklashSP.s = IPS_ALERT;
-        }
 
-        IDSetSwitch(&FocusBacklashSP, nullptr);
-        return true;
-    }
-
-    // Abort Focuser
-    else if (!strcmp(name, FocusAbortSP.name))
-    {
-        IUResetSwitch(&FocusAbortSP);
-
-        if (AbortFocuser())
-        {
-            FocusAbortSP.s = IPS_OK;
-            if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
+            if (SetFocuserBacklashEnabled(IUFindOnSwitchIndex(&FocusBacklashSP) == DefaultDevice::INDI_ENABLED))
             {
-                FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IUUpdateSwitch(&FocusBacklashSP, states, names, n);
+                FocusBacklashSP.s = IPS_OK;
+                m_defaultDevice->saveConfig(true, FocusBacklashSP.name);
             }
-            if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
+            else
             {
-                FocusRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                IUResetSwitch(&FocusBacklashSP);
+                FocusBacklashS[prevIndex].s = ISS_ON;
+                FocusBacklashSP.s = IPS_ALERT;
             }
+
+            IDSetSwitch(&FocusBacklashSP, nullptr);
+            return true;
         }
-        else
-            FocusAbortSP.s = IPS_ALERT;
 
-        IDSetSwitch(&FocusAbortSP, nullptr);
-        return true;
-    }
-
-    // Reverse Motion
-    else if (!strcmp(name, FocusReverseSP.name))
-    {
-        int prevIndex = IUFindOnSwitchIndex(&FocusReverseSP);
-        IUUpdateSwitch(&FocusReverseSP, states, names, n);
-
-        if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
+        // Abort Focuser
+        else if (!strcmp(name, FocusAbortSP.name))
         {
-            FocusReverseSP.s = IPS_OK;
-            m_defaultDevice->saveConfig(true, FocusReverseSP.name);
-        }
-        else
-        {
-            IUResetSwitch(&FocusReverseSP);
-            FocusReverseS[prevIndex].s = ISS_ON;
-            FocusReverseSP.s = IPS_ALERT;
+            IUResetSwitch(&FocusAbortSP);
+
+            if (AbortFocuser())
+            {
+                FocusAbortSP.s = IPS_OK;
+                if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
+                {
+                    FocusAbsPosNP.s = IPS_IDLE;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                }
+                if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
+                {
+                    FocusRelPosNP.s = IPS_IDLE;
+                    IDSetNumber(&FocusRelPosNP, nullptr);
+                }
+            }
+            else
+                FocusAbortSP.s = IPS_ALERT;
+
+            IDSetSwitch(&FocusAbortSP, nullptr);
+            return true;
         }
 
-        IDSetSwitch(&FocusReverseSP, nullptr);
-        return true;
+        // Reverse Motion
+        else if (!strcmp(name, FocusReverseSP.name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FocusReverseSP);
+            IUUpdateSwitch(&FocusReverseSP, states, names, n);
+
+            if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
+            {
+                FocusReverseSP.s = IPS_OK;
+                m_defaultDevice->saveConfig(true, FocusReverseSP.name);
+            }
+            else
+            {
+                IUResetSwitch(&FocusReverseSP);
+                FocusReverseS[prevIndex].s = ISS_ON;
+                FocusReverseSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&FocusReverseSP, nullptr);
+            return true;
+        }
     }
 
     return false;

@@ -79,7 +79,7 @@ std::string join(std::vector<std::string> const &strings, std::string delim)
 namespace INDI
 {
 
-CCD::CCD()
+CCD::CCD() : GI(this)
 {
     //ctor
     capability = 0;
