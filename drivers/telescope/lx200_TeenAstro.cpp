@@ -56,7 +56,7 @@ extern std::mutex lx200CommsLock;
 /*
  * LX200 TeenAstro constructor
  */
-LX200_TeenAstro::LX200_TeenAstro()
+LX200_TeenAstro::LX200_TeenAstro() : GI(this)
 {
     setVersion(1, 4);           // don't forget to update drivers.xml
 
@@ -121,7 +121,7 @@ bool LX200_TeenAstro::initProperties()
     IUFillNumber(&GuideRateN[0], "Guide Rate", "value", "%.2f", 0.0, 1.0, 0.1, INITIAL_GUIDE_RATE);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate",
                        GUIDE_TAB, IP_RW, 0, IPS_IDLE);
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
 
     // ============== OPTIONS_TAB
     // Slew threshold
@@ -188,10 +188,6 @@ bool LX200_TeenAstro::updateProperties()
         defineProperty(&SiteSP);
         defineProperty(&SiteNameTP);
 
-        // Guide
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-
         // Firmware Data
         defineProperty(&VersionTP);
         getBasicData();
@@ -212,12 +208,12 @@ bool LX200_TeenAstro::updateProperties()
         // Site Management
         deleteProperty(ParkOptionSP);
         deleteProperty(SetHomeSP.name);
-        // Guide
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         // Firmware Data
         deleteProperty(VersionTP.name);
     }
+
+    GI::updateProperties();
+
     return true;
 }
 
@@ -708,6 +704,10 @@ void LX200_TeenAstro::getBasicData()
  */
 bool LX200_TeenAstro::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
@@ -731,15 +731,10 @@ bool LX200_TeenAstro::ISNewNumber(const char *dev, const char *name, double valu
             float guideRate = GuideRateN[0].value;
             SetGuideRate(guideRate);
         }
-
-        // GUIDE process Guider properties.
-        processGuiderProperties(name, values, names, n);
     }
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
-
-
 
 /*
  * ISNewSwitch: callback from user interface
@@ -749,7 +744,6 @@ bool LX200_TeenAstro::ISNewNumber(const char *dev, const char *name, double valu
  */
 bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Slew button speed

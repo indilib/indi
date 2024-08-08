@@ -54,7 +54,7 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-CelestronGPS::CelestronGPS() : FI(this)
+CelestronGPS::CelestronGPS() : FI(this), GI(this)
 {
     setVersion(3, 6); // update libindi/drivers.xml as well
 
@@ -160,7 +160,7 @@ bool CelestronGPS::initProperties()
     SetParkDataType(PARK_AZ_ALT);
 
     //GUIDE Initialize guiding properties.
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Guide Rate; units and min/max as specified in the INDI Standard Properties SLEW_GUIDE
@@ -415,8 +415,7 @@ bool CelestronGPS::updateProperties()
             else
                 LOG_DEBUG("Unable to get guide rates from mount.");
 
-            defineProperty(&GuideNSNP);
-            defineProperty(&GuideWENP);
+            GI::updateProperties();
 
             LOG_INFO("Mount supports guiding.");
         }
@@ -525,8 +524,7 @@ bool CelestronGPS::updateProperties()
         //deleteProperty(FocusMinPosNP.name);
 
         //GUIDE Delete properties.
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
+        GI::updateProperties();
 
         deleteProperty(GuideRateNP.name);
 
@@ -1007,11 +1005,14 @@ bool CelestronGPS::Abort()
     driver.stop_motion(CELESTRON_E);
 
     //GUIDE Abort guide operations.
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
 
         if (GuideNSTID)
         {
@@ -1026,8 +1027,8 @@ bool CelestronGPS::Abort()
         }
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
 
         return true;
     }
@@ -1224,6 +1225,13 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
 bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check focuser interface
+    if (FI::processNumber(dev, name, values, names, n))
+        return true;
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev && std::string(dev) == getDeviceName())
     {
         // Guide Rate
@@ -1241,14 +1249,6 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
             LOG_WARN("Changing guide rates may require recalibration of guiding.");
             return true;
-        }
-
-        //GUIDE process Guider properties.
-        processGuiderProperties(name, values, names, n);
-
-        if (strstr(name, "FOCUS_"))
-        {
-            return FI::processNumber(dev, name, values, names, n);
         }
     }
 
@@ -1644,7 +1644,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &CelestronTrackModeSP);
     IUSaveConfigSwitch(fp, &DSTSettingSP);
 
-   //  IUSaveConfigNumber(fp, &FocusMinPosNP);
+    //  IUSaveConfigNumber(fp, &FocusMinPosNP);
 
     return true;
 }
@@ -1886,21 +1886,21 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
         case CELESTRON_S:
             IUResetSwitch(&MovementNSSP);
             IDSetSwitch(&MovementNSSP, nullptr);
-            GuideNSNP.np[0].value = 0;
-            GuideNSNP.np[1].value = 0;
-            GuideNSNP.s           = IPS_IDLE;
-            GuideNSTID            = 0;
-            IDSetNumber(&GuideNSNP, nullptr);
+            GuideNSNP[0].setValue(0);
+            GuideNSNP[1].setValue(0);
+            GuideNSNP.setState(IPS_IDLE);
+            GuideNSTID = 0;
+            GuideNSNP.apply();
             break;
         case CELESTRON_E:
         case CELESTRON_W:
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementWESP, nullptr);
-            GuideWENP.np[0].value = 0;
-            GuideWENP.np[1].value = 0;
-            GuideWENP.s           = IPS_IDLE;
-            GuideWETID            = 0;
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideWENP[0].setValue(0);
+            GuideWENP[1].setValue(0);
+            GuideWENP.setState(IPS_IDLE);
+            GuideWETID = 0;
+            GuideWENP.apply();
             break;
     }
     LOGF_DEBUG("Guide %c finished", "NSWE"[dirn]);

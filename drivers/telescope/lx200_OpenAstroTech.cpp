@@ -69,34 +69,34 @@ bool LX200_OpenAstroTech::initProperties()
 
     // Polar Align Alt
     IUFillNumber(&PolarAlignAltN, "OAT_POLAR_ALT", "Arcmin", "%.f", -140.0, 140.0, 1.0, 0);
-    IUFillNumberVector(&PolarAlignAltNP, &PolarAlignAltN, 1, m_defaultDevice->getDeviceName(), "POLAR_ALT",
+    IUFillNumberVector(&PolarAlignAltNP, &PolarAlignAltN, 1, getDeviceName(), "POLAR_ALT",
                        "Polar Align Alt",
                        MOTION_TAB, IP_RW, 60, IPS_OK);
     // Polar Align Az
     IUFillNumber(&PolarAlignAzN, "OAT_POLAR_AZ", "Arcmin", "%.f", -320.0, 320.0, 1.0, 0);
-    IUFillNumberVector(&PolarAlignAzNP, &PolarAlignAzN, 1, m_defaultDevice->getDeviceName(), "POLAR_AZ",
+    IUFillNumberVector(&PolarAlignAzNP, &PolarAlignAzN, 1, getDeviceName(), "POLAR_AZ",
                        "Polar Align Azimuth",
                        MOTION_TAB, IP_RW, 60, IPS_OK);
 
     // Home
     // IUFillSwitch(&HomeS, "OAT_HOME", "Home", ISS_OFF);
-    // IUFillSwitchVector(&HomeSP, &HomeS, 1, m_defaultDevice->getDeviceName(),
+    // IUFillSwitchVector(&HomeSP, &HomeS, 1, getDeviceName(),
     //                    "OAT_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // RA Home
     IUFillNumber(&RAHomeN, "RA_HOME", "Hours", "%d", 1.0, 7.0, 1.0, 2);
-    IUFillNumberVector(&RAHomeNP, &RAHomeN, 1, m_defaultDevice->getDeviceName(),
+    IUFillNumberVector(&RAHomeNP, &RAHomeN, 1, getDeviceName(),
                        "OAT_RA_HOME", "RA Home", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // RA Home
     IUFillNumber(&RAHomeOffsetN, "OAT_RA_HOME_OFFSET", "Steps", "%d", -10000.0, 10000.0, 100.0, 0);
-    IUFillNumberVector(&RAHomeOffsetNP, &RAHomeOffsetN, 1, m_defaultDevice->getDeviceName(),
+    IUFillNumberVector(&RAHomeOffsetNP, &RAHomeOffsetN, 1, getDeviceName(),
                        "OAT_RA_HOME", "RA Home Offset", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // DEC Limits
     IUFillNumber(&DecLimitsN[0], "OAT_DEC_LIMIT_LOWER", "Lower", "%.f", 0.0, -50.0, 0.0, 0);
     IUFillNumber(&DecLimitsN[1], "OAT_DEC_LIMIT_UPPER", "Upper", "%.f", 0.0, 180.0, 120.0, 0);
-    IUFillNumberVector(&DecLimitsNP, DecLimitsN, 2, m_defaultDevice->getDeviceName(), "OAT_DEC_LIMITS",
+    IUFillNumberVector(&DecLimitsNP, DecLimitsN, 2, getDeviceName(), "OAT_DEC_LIMITS",
                        "DEC Limits", MOTION_TAB, IP_RW, 60, IPS_OK);
     // SetParkDataType(PARK_RA_DEC);
     return true;
@@ -540,59 +540,59 @@ bool LX200_OpenAstroTech::SyncFocuser(uint32_t ticks)
 void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
 {
     IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 4.0, 1.0, 2.0);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName,
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", groupName,
                        IP_RW, 60, IPS_OK);
 
     IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, m_defaultDevice->getDeviceName(), "FOCUS_TIMER", "Timer", groupName,
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Timer", groupName,
                        IP_RW, 60, IPS_OK);
     lastTimerValue = 1000.0;
 
     // Absolute Position
     IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Steps", "%.f", 0.0, 100000.0, 100.0, 0);
-    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, m_defaultDevice->getDeviceName(), "ABS_FOCUS_POSITION",
+    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, getDeviceName(), "ABS_FOCUS_POSITION",
                        "Absolute Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Relative Position
     IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Steps", "%.f", 0.0, 100000.0, 100.0, 0);
-    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, m_defaultDevice->getDeviceName(), "REL_FOCUS_POSITION",
+    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, getDeviceName(), "REL_FOCUS_POSITION",
                        "Relative Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Sync
     IUFillNumber(&FocusSyncN[0], "FOCUS_SYNC_VALUE", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SYNC", "Sync",
+    IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Maximum Position
     IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1000.0, 100000.0, 10000.0, 50000.0);
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Max. Position",
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Abort
     IUFillSwitch(&FocusAbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, m_defaultDevice->getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion",
+    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion",
                        groupName, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     // Revese
     IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION",
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, getDeviceName(), "FOCUS_REVERSE_MOTION",
                        "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation
     IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_TOGGLE",
+    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUS_BACKLASH_TOGGLE",
                        "Backlash", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
     IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 5000.0, 100, 0);
-    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS",
+    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH_STEPS",
                        "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
 }

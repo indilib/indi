@@ -35,9 +35,14 @@
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
+STAR2000::STAR2000() : GI(this)
+{
+
+}
+
 const char *STAR2000::getDefaultName()
 {
-    return (const char *)"STAR2000";
+    return "STAR2000";
 }
 
 bool STAR2000::Connect()
@@ -92,7 +97,7 @@ bool STAR2000::initProperties()
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
     IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    GI::initProperties(MAIN_CONTROL_TAB);
     addDebugControl();
 
     setDriverInterface(TELESCOPE_INTERFACE);
@@ -106,17 +111,7 @@ bool STAR2000::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
-    if (isConnected())
-    {
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-    }
-    else
-    {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-    }
-
+    GI::updateProperties();
     return true;
 }
 
@@ -129,14 +124,9 @@ void STAR2000::ISGetProperties(const char *dev)
 
 bool STAR2000::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            processGuiderProperties(name, values, names, n);
-            return true;
-        }
-    }
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }

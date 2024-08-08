@@ -87,16 +87,18 @@ Paramount::Paramount()
     // Called when timer is up
     m_NSTimer.callOnTimeout([this]()
     {
-        GuideNSNP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideNSNP.apply();
     });
 
     m_WETimer.callOnTimeout([this]()
     {
-        GuideWENP.s = IPS_IDLE;
-        GuideWEN[0].value = GuideWEN[1].value = 0;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
+        GuideWENP.apply();
     });
 }
 
@@ -146,7 +148,7 @@ bool Paramount::initProperties()
 
     SetParkDataType(PARK_HA_DEC);
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -180,8 +182,6 @@ bool Paramount::updateProperties()
 
         defineProperty(&JogRateNP);
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
 
         // Initial HA to 0 and currentDEC (+90 or -90)
@@ -209,10 +209,10 @@ bool Paramount::updateProperties()
 
         deleteProperty(JogRateNP.name);
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -591,6 +591,10 @@ bool Paramount::UnPark()
 
 bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -608,12 +612,6 @@ bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], 
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
-            return true;
-        }
-
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
     }

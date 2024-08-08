@@ -1402,11 +1402,11 @@ void LX200AstroPhysicsV2::AstroPhysicsGuideTimeoutWE(bool simul)
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideWENP.np[DIRECTION_WEST].value = 0;
-    GuideWENP.np[DIRECTION_EAST].value = 0;
-    GuideWENP.s           = IPS_IDLE;
-    GuideWETID            = 0;
-    IDSetNumber(&GuideWENP, nullptr);
+    GuideWENP[DIRECTION_WEST].setValue(0);
+    GuideWENP[DIRECTION_EAST].setValue(0);
+    GuideWENP.setState(IPS_IDLE);
+    GuideWETID = 0;
+    GuideWENP.apply();
 }
 
 void LX200AstroPhysicsV2::AstroPhysicsGuideTimeoutNS(bool simul)
@@ -1420,11 +1420,11 @@ void LX200AstroPhysicsV2::AstroPhysicsGuideTimeoutNS(bool simul)
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    GuideNSNP.s           = IPS_IDLE;
+    GuideNSNP[0].setValue(0);
+    GuideNSNP[1].setValue(0);
+    GuideNSNP.setState(IPS_IDLE);
     GuideNSTID            = 0;
-    IDSetNumber(&GuideNSNP, nullptr);
+    GuideNSNP.apply();
 }
 
 int LX200AstroPhysicsV2::SendPulseCmd(int8_t direction, uint32_t duration_msec)

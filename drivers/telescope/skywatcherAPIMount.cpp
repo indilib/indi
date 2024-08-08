@@ -770,13 +770,16 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         SlowStop(AXIS2);
         TrackState = SCOPE_IDLE;
 
-        if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
         {
-            GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-            GuideNSN[0].value = GuideNSN[1].value = 0.0;
-            GuideWEN[0].value = GuideWEN[1].value = 0.0;
-            IDSetNumber(&GuideNSNP, nullptr);
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideNSNP.setState(IPS_IDLE);
+            GuideWENP.setState(IPS_IDLE);
+            GuideNSNP[0].setValue(0);
+            GuideNSNP[1].setValue(0);
+            GuideWENP[0].setValue(0);
+            GuideWENP[1].setValue(0);
+            GuideNSNP.apply();
+            GuideWENP.apply();
         }
     }
 
@@ -1040,15 +1043,18 @@ bool SkywatcherAPIMount::Abort()
     SlowStop(AXIS2);
     TrackState = SCOPE_IDLE;
 
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
 
         return true;
     }

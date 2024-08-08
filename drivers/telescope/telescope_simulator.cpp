@@ -276,16 +276,16 @@ bool ScopeSim::ReadScopeStatus()
 
     if (guidingEW && !axisPrimary.IsGuiding())
     {
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
         GuideComplete(INDI_EQ_AXIS::AXIS_RA);
         guidingEW = false;
     }
 
     if (guidingNS && !axisSecondary.IsGuiding())
     {
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
         GuideComplete(INDI_EQ_AXIS::AXIS_DE);
         guidingNS = false;
     }

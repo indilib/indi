@@ -40,7 +40,7 @@
 #define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
-LX200Telescope::LX200Telescope() : FI(this), GI(this)
+LX200Telescope::LX200Telescope() : GI(this), FI(this)
 {
 }
 
@@ -1538,11 +1538,11 @@ void LX200Telescope::guideTimeoutWE()
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideWENP.np[DIRECTION_WEST].value = 0;
-    GuideWENP.np[DIRECTION_EAST].value = 0;
-    GuideWENP.s           = IPS_IDLE;
-    GuideWETID            = 0;
-    IDSetNumber(&GuideWENP, nullptr);
+    GuideWENP[DIRECTION_WEST].setValue(0);
+    GuideWENP[DIRECTION_EAST].setValue(0);
+    GuideWENP.setState(IPS_IDLE);
+    GuideWETID = 0;
+    GuideWENP.apply();
 }
 
 void LX200Telescope::guideTimeoutNS()
@@ -1554,11 +1554,11 @@ void LX200Telescope::guideTimeoutNS()
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    GuideNSNP.s           = IPS_IDLE;
+    GuideNSNP[0].setValue(0);
+    GuideNSNP[1].setValue(0);
+    GuideNSNP.setState(IPS_IDLE);
     GuideNSTID            = 0;
-    IDSetNumber(&GuideNSNP, nullptr);
+    GuideNSNP.apply();
 
 }
 

@@ -1067,11 +1067,14 @@ bool Rainbow::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::Abort()
 {
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
 
         if (m_GuideNSTID)
         {
@@ -1086,8 +1089,8 @@ bool Rainbow::Abort()
         }
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
 
         return true;
     }
@@ -1357,22 +1360,22 @@ void Rainbow::guideTimeout(Direction direction)
         case South:
             IUResetSwitch(&MovementNSSP);
             IDSetSwitch(&MovementNSSP, nullptr);
-            GuideNSNP.np[0].value = 0;
-            GuideNSNP.np[1].value = 0;
-            GuideNSNP.s           = IPS_IDLE;
+            GuideNSNP[0].setValue(0);
+            GuideNSNP[1].setValue(0);
+            GuideNSNP.setState(IPS_IDLE);
             m_GuideNSTID            = 0;
-            IDSetNumber(&GuideNSNP, nullptr);
+            GuideNSNP.apply();
             snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == North ? 'n' : 's');
             break;
         case East:
         case West:
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementWESP, nullptr);
-            GuideWENP.np[0].value = 0;
-            GuideWENP.np[1].value = 0;
-            GuideWENP.s           = IPS_IDLE;
+            GuideWENP[0].setValue(0);
+            GuideWENP[1].setValue(0);
+            GuideWENP.setState(IPS_IDLE);
             m_GuideWETID            = 0;
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideWENP.apply();
             snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == East ? 'e' : 'w');
             break;
     }

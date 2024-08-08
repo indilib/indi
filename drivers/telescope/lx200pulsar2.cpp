@@ -2508,11 +2508,14 @@ bool LX200Pulsar2::Abort()
     const bool success = (isSimulation() || Pulsar2Commands::abortSlew(PortFD));
     if (success)
     {
-        if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
         {
-            GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-            GuideNSN[0].value = GuideNSN[1].value = 0.0;
-            GuideWEN[0].value = GuideWEN[1].value = 0.0;
+            GuideNSNP.setState(IPS_IDLE);
+            GuideWENP.setState(IPS_IDLE);
+            GuideNSNP[0].setValue(0);
+            GuideNSNP[1].setValue(0);
+            GuideWENP[0].setValue(0);
+            GuideWENP[1].setValue(0);
             if (GuideNSTID)
             {
                 IERmTimer(GuideNSTID);
@@ -2524,8 +2527,8 @@ bool LX200Pulsar2::Abort()
                 GuideNSTID = 0;
             }
             IDMessage(getDeviceName(), "Guide aborted.");
-            IDSetNumber(&GuideNSNP, nullptr);
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideNSNP.apply();
+            GuideWENP.apply();
         }
     }
     else
