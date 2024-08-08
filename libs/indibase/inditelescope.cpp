@@ -66,6 +66,10 @@ bool Telescope::initProperties()
 {
     DefaultDevice::initProperties();
 
+    // Since this property was created in setTelescopeCapability before a device name is defined.
+    // Then we need to set the device name here
+    HomeSP.setDeviceName(getDeviceName());
+
     // Active Devices
     ActiveDeviceTP[ACTIVE_GPS].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
     ActiveDeviceTP[ACTIVE_DOME].fill("ACTIVE_DOME", "DOME", "Dome Simulator");
@@ -1846,11 +1850,6 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
             snprintf(name, 4, "%dx", i + 1);
             IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
         }
-
-        //        strncpy((SlewRateS + (step * 0))->name, "SLEW_GUIDE", MAXINDINAME);
-        //        strncpy((SlewRateS + (step * 1))->name, "SLEW_CENTERING", MAXINDINAME);
-        //        strncpy((SlewRateS + (step * 2))->name, "SLEW_FIND", MAXINDINAME);
-        //        strncpy((SlewRateS + (nSlewRate - 1))->name, "SLEW_MAX", MAXINDINAME);
 
         // If number of slew rate is EXACTLY 4, then let's use common labels
         if (nSlewRate == 4)
