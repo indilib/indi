@@ -88,7 +88,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
     }
 
     // Analog inputs
-    AnalogInputsNP.resize(0);
+    AnalogInputsNP.reserve(analog);
     for (size_t i = 0; i < analog; i++)
     {
         auto name = "ANALOG_INPUT_" + std::to_string(i + 1);
@@ -103,7 +103,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         AnalogInputsNP.push_back(std::move(oneNumber));
     }
 
-    DigitalInputsSP.resize(0);
+    DigitalInputsSP.reserve(digital);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < digital; i++)
     {

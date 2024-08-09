@@ -62,7 +62,7 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
     DigitalOutputLabelsTP.shrink_to_fit();
     DigitalOutputLabelsTP.load();
 
-    DigitalOutputsSP.resize(0);
+    DigitalOutputsSP.reserve(Outputs);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < Outputs; i++)
     {
