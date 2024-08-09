@@ -44,7 +44,7 @@ OutputInterface::~OutputInterface()
 /////////////////////////////////////////////////////////////////////////////////////////////
 void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, const std::string &prefix)
 {
-    DigitalOutputLabelsTP.reserve(Outputs);
+    DigitalOutputLabelsTP.resize(0);
 
     // Initialize labels
     for (auto i = 0; i < Outputs; i++)
@@ -62,7 +62,7 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
     DigitalOutputLabelsTP.shrink_to_fit();
     DigitalOutputLabelsTP.load();
 
-    DigitalOutputsSP.reserve(Outputs);
+    DigitalOutputsSP.resize(0);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < Outputs; i++)
     {
