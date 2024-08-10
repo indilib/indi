@@ -188,6 +188,13 @@ void UniversalROR::TimerHit()
     if (!isConnected())
         return;
 
+    // In case the limit switch status is unknown, try to sync them up from client.
+    if (m_FullClosedLimitSwitch == m_FullOpenLimitSwitch && m_Client && m_Client->isConnected())
+    {
+        m_Client->syncFullyOpenedState();
+        m_Client->syncFullyClosedState();
+    }
+
     if (DomeMotionSP.getState() == IPS_BUSY)
     {
         // Roll off is opening
