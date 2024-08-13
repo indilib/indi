@@ -40,7 +40,7 @@ std::unique_ptr<ArduinoST4> arduinoST4(new ArduinoST4());
 
 #define FLAT_TIMEOUT 3
 
-ArduinoST4::ArduinoST4() : INDI::GuiderInterface()
+ArduinoST4::ArduinoST4() : GI(this)
 {
     setVersion(1, 0);
 }
@@ -49,7 +49,7 @@ bool ArduinoST4::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(AUX_INTERFACE | GUIDER_INTERFACE);
 
@@ -71,17 +71,7 @@ bool ArduinoST4::initProperties()
 bool ArduinoST4::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
-
-    if (isConnected())
-    {
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-    }
-    else
-    {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-    }
+    GI::updateProperties();
 
     return true;
 }
@@ -113,11 +103,9 @@ bool ArduinoST4::Disconnect()
 
 bool ArduinoST4::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-    {
-        processGuiderProperties(name, values, names, n);
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
         return true;
-    }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }

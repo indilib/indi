@@ -68,7 +68,7 @@ std::unique_ptr<Paramount> paramount_mount(new Paramount());
 #define SLEWMODES 9
 const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 256.0, 512.0 };
 
-Paramount::Paramount()
+Paramount::Paramount(): GI(this)
 {
     setVersion(1, 5);
 

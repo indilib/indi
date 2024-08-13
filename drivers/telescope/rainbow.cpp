@@ -31,7 +31,7 @@
 
 static std::unique_ptr<Rainbow> scope(new Rainbow());
 
-Rainbow::Rainbow() : INDI::Telescope ()
+Rainbow::Rainbow() : INDI::Telescope (), GI(this)
 {
     setVersion(1, 3);
 
@@ -130,7 +130,7 @@ bool Rainbow::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     addDebugControl();
 
@@ -149,8 +149,6 @@ bool Rainbow::updateProperties()
         defineProperty(&HorizontalCoordsNP);
         //defineProperty(&HomeSP);
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
         defineProperty(&SlewSpeedsNP);
 
@@ -167,8 +165,6 @@ bool Rainbow::updateProperties()
         deleteProperty(HorizontalCoordsNP.name);
         //deleteProperty(HomeSP.name);
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
         deleteProperty(SlewSpeedsNP.name);
 
@@ -179,6 +175,8 @@ bool Rainbow::updateProperties()
         deleteProperty(RSTMotorPowNP.name);
     }
 
+    GI::updateProperties();
+
     return true;
 }
 
@@ -187,6 +185,10 @@ bool Rainbow::updateProperties()
 /////////////////////////////////////////////////////////////////////////////////////
 bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Horizontal Coordinates
@@ -267,8 +269,6 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
             IDSetNumber(&SlewSpeedsNP, nullptr);
             return true;
         }
-        else
-            processGuiderProperties(name, values, names, n);
     }
 
 

@@ -504,7 +504,7 @@ bool CCD::initProperties()
     IDSnoopDevice(ActiveDeviceTP[ACTIVE_SKYQUALITY].getText(), "SKY_QUALITY");
 
     // Guider Interface
-    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
+    GI::initProperties(GUIDE_CONTROL_TAB);
 
     addPollPeriodControl();
 
@@ -581,8 +581,7 @@ bool CCD::updateProperties()
         }
         if (HasST4Port())
         {
-            defineProperty(&GuideNSNP);
-            defineProperty(&GuideWENP);
+            GI::updateProperties();
         }
         defineProperty(&PrimaryCCD.FrameTypeSP);
 
@@ -687,8 +686,7 @@ bool CCD::updateProperties()
         }
         if (HasST4Port())
         {
-            deleteProperty(GuideNSNP.name);
-            deleteProperty(GuideWENP.name);
+            GI::updateProperties();
         }
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
         if (HasBayer())
@@ -1076,6 +1074,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
 bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     //  first check if it's for our device
     //IDLog("CCD::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -1321,13 +1323,6 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             return true;
         }
 #endif
-
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-        {
-            processGuiderProperties(name, values, names, n);
-            return true;
-        }
-
         // Fast Exposure Count
         if (!strcmp(name, FastExposureCountNP.name))
         {
