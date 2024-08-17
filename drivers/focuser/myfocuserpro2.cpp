@@ -737,6 +737,8 @@ bool MyFocuserPro2::isMoving()
 {
     char res[ML_RES] = {0};
 
+    readPosition(); // Fix for Ekos autofocus
+ 
     if (sendCommand(":01#", res) == false)
     {
         return false;
