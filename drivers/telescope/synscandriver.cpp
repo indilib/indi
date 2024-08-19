@@ -37,7 +37,7 @@
 
 constexpr uint16_t SynscanDriver::SIM_SLEW_RATE[];
 
-SynscanDriver::SynscanDriver()
+SynscanDriver::SynscanDriver(): GI(this)
 {
     setVersion(2, 0);
 
@@ -124,7 +124,7 @@ bool SynscanDriver::initProperties()
     SetParkDataType(PARK_AZ_ALT);
 
     // Initialize guiding properties.
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
 
     addAuxControls();
 
@@ -145,8 +145,6 @@ bool SynscanDriver::updateProperties()
         defineProperty(&HorizontalCoordsNP);
         defineProperty(&StatusTP);
         defineProperty(&CustomSlewRateNP);
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
 
         if (m_isAltAz)
@@ -172,14 +170,14 @@ bool SynscanDriver::updateProperties()
         deleteProperty(HorizontalCoordsNP.name);
         deleteProperty(StatusTP.name);
         deleteProperty(CustomSlewRateNP.name);
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
         if (m_isAltAz)
         {
             deleteProperty(GotoModeSP.name);
         }
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -238,6 +236,10 @@ bool SynscanDriver::Handshake()
 
 bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Guide Rate
@@ -300,13 +302,6 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
             HorizontalCoordsNP.s = IPS_ALERT;
             IDSetNumber(&HorizontalCoordsNP, "Altitude or Azimuth missing or invalid.");
             return false;
-        }
-
-        // Guiding
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            processGuiderProperties(name, values, names, n);
-            return true;
         }
     }
 

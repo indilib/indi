@@ -34,7 +34,7 @@
 
 static std::unique_ptr<TitanTCS> titanTCS(new TitanTCS());
 
-TitanTCS::TitanTCS()
+TitanTCS::TitanTCS() : GI(this)
 {
     setVersion(1, 0);
 
@@ -97,7 +97,7 @@ bool TitanTCS::initProperties()
     //
     INDI::Telescope::initProperties();
 
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     AddTrackMode("TRACK_SIDEREAL", "Sidereal");
@@ -144,9 +144,6 @@ bool TitanTCS::updateProperties()
 #endif
         defineProperty(&MountInfoTP);
         //
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-        //
         IUResetSwitch(&TrackModeSP);
         TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
         TrackState = SCOPE_TRACKING;
@@ -161,38 +158,18 @@ bool TitanTCS::updateProperties()
 #endif
         deleteProperty(MountInfoTP.name);
         //
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
     }
+
+    GI::updateProperties();
 
     return true;
 }
 
 bool TitanTCS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        /*
-        if (strcmp(name, "JOG_RATE") == 0) {
-            IUUpdateNumber(&JogRateNP, values, names, n);
-            JogRateNP.s = IPS_OK;
-            IDSetNumber(&JogRateNP, nullptr);
-            return true;
-        }
-        if (strcmp(name, GuideRateNP.name) == 0) {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
-            return true;
-        }
-        */
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            LOGF_DEBUG("%s = %g", name, values[0]);
-            processGuiderProperties(name, values, names, n);
-            return true;
-        }
-    }
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
@@ -998,20 +975,20 @@ bool TitanTCS::SetTarget(double ra, double dec)
 
 void TitanTCS::guideTimeoutNS()
 {
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    GuideNSNP.s           = IPS_IDLE;
+    GuideNSNP[0].setValue(0);
+    GuideNSNP[1].setValue(0);
+    GuideNSNP.setState(IPS_IDLE);
     GuideNSTID            = 0;
-    IDSetNumber(&GuideNSNP, nullptr);
+    GuideNSNP.apply();
 }
 
 void TitanTCS::guideTimeoutWE()
 {
-    GuideWENP.np[0].value = 0;
-    GuideWENP.np[1].value = 0;
-    GuideWENP.s           = IPS_IDLE;
+    GuideWENP[0].setValue(0);
+    GuideWENP[1].setValue(0);
+    GuideWENP.setState(IPS_IDLE);
     GuideWETID            = 0;
-    IDSetNumber(&GuideWENP, nullptr);
+    GuideWENP.apply();
 }
 
 void TitanTCS::guideTimeoutHelperNS(void * p)

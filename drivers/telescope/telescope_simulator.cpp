@@ -35,7 +35,7 @@ static std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 #define GUIDE_WEST  0
 #define GUIDE_EAST  1
 
-ScopeSim::ScopeSim()
+ScopeSim::ScopeSim(): GI(this)
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
@@ -117,7 +117,7 @@ bool ScopeSim::initProperties()
     // RA is a rotating frame, while HA or Alt/Az is not
     SetParkDataType(PARK_HA_DEC);
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
@@ -155,8 +155,6 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(GuideRateNP);
         GuideRateNP.load();
         //defineProperty(HomeSP);
@@ -192,11 +190,11 @@ bool ScopeSim::updateProperties()
     }
     else
     {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP);
         //deleteProperty(HomeSP);
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -276,16 +274,16 @@ bool ScopeSim::ReadScopeStatus()
 
     if (guidingEW && !axisPrimary.IsGuiding())
     {
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
         GuideComplete(INDI_EQ_AXIS::AXIS_RA);
         guidingEW = false;
     }
 
     if (guidingNS && !axisSecondary.IsGuiding())
     {
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
         GuideComplete(INDI_EQ_AXIS::AXIS_DE);
         guidingNS = false;
     }
@@ -394,7 +392,9 @@ bool ScopeSim::UnPark()
 
 bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    //  first check if it's for our device
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -403,12 +403,6 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             GuideRateNP.update(values, names, n);
             GuideRateNP.setState(IPS_OK);
             GuideRateNP.apply();
-            return true;
-        }
-
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
 

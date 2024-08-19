@@ -55,7 +55,7 @@
 static std::unique_ptr<PMC8> scope(new PMC8());
 
 /* Constructor */
-PMC8::PMC8()
+PMC8::PMC8() : GI(this)
 {
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     if (LocationN[LOCATION_LATITUDE].value < 0)
@@ -148,7 +148,7 @@ bool PMC8::initProperties()
     IUFillNumberVector(&LegacyGuideRateNP, LegacyGuideRateN, 1, getDeviceName(), "LEGACY_GUIDE_RATE", "Guide Rate", GUIDE_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
 
     TrackState = SCOPE_IDLE;
 
@@ -190,9 +190,6 @@ bool PMC8::updateProperties()
             defineProperty(&LegacyGuideRateNP);
         }
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-
         defineProperty(&FirmwareTP);
 
         // do not support park position
@@ -202,9 +199,6 @@ bool PMC8::updateProperties()
     else
     {
         deleteProperty(PostGotoSP.name);
-
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
 
         if (firmwareInfo.IsRev2Compliant)
         {
@@ -219,6 +213,8 @@ bool PMC8::updateProperties()
 
         deleteProperty(RampNP.name);
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -348,6 +344,10 @@ void PMC8::getStartupData()
 
 bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (!strcmp(dev, getDeviceName()))
     {
         // Guiding Rate
@@ -384,11 +384,6 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 
             IDSetNumber(&GuideRateNP, nullptr);
 
-            return true;
-        }
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
         // Track Rate - auto change to custom track rate when setting
@@ -721,11 +716,14 @@ void PMC8::AbortGotoTimeoutHelper(void *p)
 bool PMC8::Abort()
 {
     //GUIDE Abort guide operations.
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
 
         if (GuideNSTID)
         {
@@ -740,8 +738,8 @@ bool PMC8::Abort()
         }
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
         return true;
     }
 
@@ -1314,20 +1312,20 @@ void PMC8::guideTimeout(PMC8_DIRECTION calldir)
     if (calldir == PMC8_N || calldir == PMC8_S)
     {
         isPulsingNS = false;
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
-        GuideNSNP.s           = IPS_IDLE;
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideNSNP.setState(IPS_IDLE);
         GuideNSTID            = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP.apply();
     }
     if (calldir == PMC8_W || calldir == PMC8_E)
     {
         isPulsingWE = false;
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
-        GuideWENP.s           = IPS_IDLE;
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
+        GuideWENP.setState(IPS_IDLE);
         GuideWETID            = 0;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP.apply();
     }
 
     LOG_DEBUG("GUIDE CMD COMPLETED");

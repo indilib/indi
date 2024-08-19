@@ -38,7 +38,7 @@
 static std::unique_ptr<IEQProLegacy> scope(new IEQProLegacy());
 
 /* Constructor */
-IEQProLegacy::IEQProLegacy()
+IEQProLegacy::IEQProLegacy(): GI(this)
 {
     setVersion(1, 7);
 
@@ -137,7 +137,7 @@ bool IEQProLegacy::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -164,8 +164,6 @@ bool IEQProLegacy::updateProperties()
     {
         defineProperty(&HomeSP);
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
 
         defineProperty(&FirmwareTP);
@@ -179,8 +177,6 @@ bool IEQProLegacy::updateProperties()
     {
         deleteProperty(HomeSP.name);
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
 
         deleteProperty(FirmwareTP.name);
@@ -188,6 +184,8 @@ bool IEQProLegacy::updateProperties()
         deleteProperty(TimeSourceSP.name);
         deleteProperty(HemisphereSP.name);
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -289,6 +287,10 @@ void IEQProLegacy::getStartupData()
 
 bool IEQProLegacy::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
@@ -303,12 +305,6 @@ bool IEQProLegacy::ISNewNumber(const char *dev, const char *name, double values[
 
             IDSetNumber(&GuideRateNP, nullptr);
 
-            return true;
-        }
-
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
     }

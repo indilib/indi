@@ -40,7 +40,7 @@
 #define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
-LX200Telescope::LX200Telescope() : FI(this)
+LX200Telescope::LX200Telescope() : GI(this), FI(this)
 {
 }
 
@@ -145,7 +145,7 @@ bool LX200Telescope::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
 
     /* Add debug/simulation/config controls so we may debug driver if necessary */
     addAuxControls();
@@ -218,8 +218,8 @@ bool LX200Telescope::updateProperties()
             defineProperty(&SiteNameTP);
         }
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
+        GI::updateProperties();
+
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
@@ -246,8 +246,7 @@ bool LX200Telescope::updateProperties()
             deleteProperty(SiteNameTP.name);
         }
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
+        GI::updateProperties();
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
@@ -557,11 +556,14 @@ bool LX200Telescope::Abort()
         return false;
     }
 
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideWENP[AXIS_RA].setValue(0);
+        GuideWENP[AXIS_DE].setValue(0);
+        GuideNSNP[AXIS_RA].setValue(0);
+        GuideNSNP[AXIS_DE].setValue(0);
 
         if (GuideNSTID)
         {
@@ -576,8 +578,8 @@ bool LX200Telescope::Abort()
         }
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
 
         return true;
     }
@@ -699,13 +701,16 @@ bool LX200Telescope::ISNewText(const char *dev, const char *name, char *texts[],
 
 bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check focuser interface
+    if (FI::processNumber(dev, name, values, names, n))
+        return true;
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
+    // Check rest of LX200Telescope properties
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strstr(name, "FOCUS_"))
-        {
-            return FI::processNumber(dev, name, values, names, n);
-        }
-
         // Update Frequency
         if (!strcmp(name, TrackFreqNP.name))
         {
@@ -761,25 +766,6 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 
             return true;
         }
-
-        //        if (!strcmp(name, FocusTimerNP.name))
-        //        {
-        //            // Don't update if busy
-        //            if (FocusTimerNP.s == IPS_BUSY)
-        //                return true;
-
-        //            IUUpdateNumber(&FocusTimerNP, values, names, n);
-
-        //            FocusTimerNP.s = IPS_OK;
-
-        //            IDSetNumber(&FocusTimerNP, nullptr);
-
-        //            LOGF_DEBUG("Setting focus timer to %.2f", FocusTimerN[0].value);
-
-        //            return true;
-        //        }
-
-        processGuiderProperties(name, values, names, n);
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -789,14 +775,12 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 
 bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    // Focuser Interface
+    if (FI::processSwitch(dev, name, states, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Focuser
-        if (strstr(name, "FOCUS"))
-        {
-            return FI::processSwitch(dev, name, states, names, n);
-        }
-
         // Alignment
         if (!strcmp(name, AlignmentSP.name))
         {
@@ -852,79 +836,6 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
             return false;
         }
-
-        //        // Focus Motion
-        //        if (!strcmp(name, FocusMotionSP.name))
-        //        {
-        //            // If mode is "halt"
-        //            if (FocusModeS[0].s == ISS_ON)
-        //            {
-        //                FocusMotionSP.s = IPS_IDLE;
-        //                IDSetSwitch(&FocusMotionSP, "Focus mode is halt. Select slow or fast mode");
-        //                return true;
-        //            }
-
-        //            int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
-
-        //            if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
-        //                return false;
-
-        //            index = IUFindOnSwitchIndex(&FocusMotionSP);
-
-        //            // If same direction and we're busy, stop
-        //            if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
-        //            {
-        //                IUResetSwitch(&FocusMotionSP);
-        //                FocusMotionSP.s = IPS_IDLE;
-        //                setFocuserSpeedMode(PortFD, 0);
-        //                IDSetSwitch(&FocusMotionSP, nullptr);
-        //                return true;
-        //            }
-
-        //            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
-        //            {
-        //                FocusMotionSP.s = IPS_ALERT;
-        //                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
-        //                return false;
-        //            }
-
-        //            // with a timer
-        //            if (FocusTimerN[0].value > 0)
-        //            {
-        //                FocusTimerNP.s  = IPS_BUSY;
-        //                FocusMotionSP.s = IPS_BUSY;
-        //                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
-        //            }
-
-        //            FocusMotionSP.s = IPS_OK;
-        //            IDSetSwitch(&FocusMotionSP, nullptr);
-        //            return true;
-        //        }
-
-        //        // Focus speed
-        //        if (!strcmp(name, FocusModeSP.name))
-        //        {
-        //            IUResetSwitch(&FocusModeSP);
-        //            IUUpdateSwitch(&FocusModeSP, states, names, n);
-
-        //            index = IUFindOnSwitchIndex(&FocusModeSP);
-
-        //            /* disable timer and motion */
-        //            if (index == 0)
-        //            {
-        //                IUResetSwitch(&FocusMotionSP);
-        //                FocusMotionSP.s = IPS_IDLE;
-        //                FocusTimerNP.s  = IPS_IDLE;
-        //                IDSetSwitch(&FocusMotionSP, nullptr);
-        //                IDSetNumber(&FocusTimerNP, nullptr);
-        //            }
-
-        //            if (!isSimulation())
-        //                setFocuserSpeedMode(PortFD, index);
-        //            FocusModeSP.s = IPS_OK;
-        //            IDSetSwitch(&FocusModeSP, nullptr);
-        //            return true;
-        //        }
 
         // Pulse-Guide command support
         if (!strcmp(name, UsePulseCmdSP.name))
@@ -1627,11 +1538,11 @@ void LX200Telescope::guideTimeoutWE()
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideWENP.np[DIRECTION_WEST].value = 0;
-    GuideWENP.np[DIRECTION_EAST].value = 0;
-    GuideWENP.s           = IPS_IDLE;
-    GuideWETID            = 0;
-    IDSetNumber(&GuideWENP, nullptr);
+    GuideWENP[DIRECTION_WEST].setValue(0);
+    GuideWENP[DIRECTION_EAST].setValue(0);
+    GuideWENP.setState(IPS_IDLE);
+    GuideWETID = 0;
+    GuideWENP.apply();
 }
 
 void LX200Telescope::guideTimeoutNS()
@@ -1643,11 +1554,11 @@ void LX200Telescope::guideTimeoutNS()
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
     }
 
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    GuideNSNP.s           = IPS_IDLE;
+    GuideNSNP[0].setValue(0);
+    GuideNSNP[1].setValue(0);
+    GuideNSNP.setState(IPS_IDLE);
     GuideNSTID            = 0;
-    IDSetNumber(&GuideNSNP, nullptr);
+    GuideNSNP.apply();
 
 }
 

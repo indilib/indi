@@ -40,7 +40,7 @@ std::unique_ptr<ArduinoST4> arduinoST4(new ArduinoST4());
 
 #define FLAT_TIMEOUT 3
 
-ArduinoST4::ArduinoST4() : INDI::GuiderInterface()
+ArduinoST4::ArduinoST4() : GI(this)
 {
     setVersion(1, 0);
 }
@@ -49,7 +49,7 @@ bool ArduinoST4::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(AUX_INTERFACE | GUIDER_INTERFACE);
 
@@ -71,17 +71,7 @@ bool ArduinoST4::initProperties()
 bool ArduinoST4::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
-
-    if (isConnected())
-    {
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-    }
-    else
-    {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-    }
+    GI::updateProperties();
 
     return true;
 }
@@ -113,11 +103,9 @@ bool ArduinoST4::Disconnect()
 
 bool ArduinoST4::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-    {
-        processGuiderProperties(name, values, names, n);
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
         return true;
-    }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -218,38 +206,38 @@ void ArduinoST4::guideTimeout(ARDUINO_DIRECTION direction)
     {
         if (sendCommand("DEC0#"))
         {
-            GuideNSNP.s = IPS_IDLE;
+            GuideNSNP.setState(IPS_IDLE);
             LOG_DEBUG("Guiding: DEC axis stopped.");
         }
         else
         {
-            GuideNSNP.s = IPS_ALERT;
+            GuideNSNP.setState(IPS_ALERT);
             LOG_ERROR("Failed to stop DEC axis.");
         }
 
         GuideNSTID            = 0;
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideNSNP.apply();
     }
 
     if (direction == ARD_W || direction == ARD_E)
     {
         if (sendCommand("RA0#"))
         {
-            GuideWENP.s = IPS_IDLE;
+            GuideNSNP.setState(IPS_IDLE);
             LOG_DEBUG("Guiding: RA axis stopped.");
         }
         else
         {
             LOG_ERROR("Failed to stop RA axis.");
-            GuideWENP.s = IPS_ALERT;
+            GuideNSNP.setState(IPS_ALERT);
         }
 
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
         GuideWETID            = 0;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP.apply();
     }
 }
 

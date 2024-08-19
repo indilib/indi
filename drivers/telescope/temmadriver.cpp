@@ -41,7 +41,7 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to temma.
 static std::unique_ptr<TemmaMount> temma(new TemmaMount());
 
-TemmaMount::TemmaMount()
+TemmaMount::TemmaMount(): GI(this)
 {
     SetTelescopeCapability(TELESCOPE_CAN_PARK |
                            TELESCOPE_CAN_ABORT |
@@ -71,7 +71,7 @@ bool TemmaMount::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     //  Temma runs at 19200 8 e 1
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -117,17 +117,10 @@ void TemmaMount::ISGetProperties(const char *dev)
 
 bool TemmaMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
-        {
-            processGuiderProperties(name, values, names, n);
-            return true;
-        }
 
-        // Check alignment properties
-        //ProcessAlignmentNumberProperties(this, name, values, names, n);
-    }
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
@@ -190,18 +183,12 @@ bool TemmaMount::updateProperties()
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-
         // Load location so that it could trigger mount initialization
         loadConfig(true, "GEOGRAPHIC_COORD");
 
     }
-    else
-    {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-    }
+
+    GI::updateProperties();
 
     return true;
 }

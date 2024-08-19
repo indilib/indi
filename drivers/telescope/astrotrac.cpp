@@ -40,7 +40,7 @@ const std::array<uint32_t, AstroTrac::SLEW_MODES> AstroTrac::SLEW_SPEEDS = {{1, 
 
 using namespace INDI::AlignmentSubsystem;
 
-AstroTrac::AstroTrac()
+AstroTrac::AstroTrac(): GI(this)
 {
     setVersion(1, 0);
 
@@ -107,7 +107,7 @@ bool AstroTrac::initProperties()
 
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     tcpConnection->setDefaultHost("192.168.1.1");
     tcpConnection->setDefaultPort(23);
@@ -155,8 +155,6 @@ bool AstroTrac::updateProperties()
         defineProperty(FirmwareTP);
         defineProperty(AccelerationNP);
         defineProperty(EncoderNP);
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(GuideRateNP);
 
         // Initial AZ/AL parking position.
@@ -180,10 +178,11 @@ bool AstroTrac::updateProperties()
         deleteProperty(FirmwareTP);
         deleteProperty(AccelerationNP);
         deleteProperty(EncoderNP);
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP);
     }
+
+    GI::updateProperties();
+
 
     return true;
 }
@@ -759,6 +758,10 @@ bool AstroTrac::ISNewText(const char *dev, const char *name, char *texts[], char
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guide Rate
@@ -799,8 +802,6 @@ bool AstroTrac::ISNewNumber(const char *dev, const char *name, double values[], 
             EncoderNP.apply();
             return true;
         }
-
-        processGuiderProperties(name, values, names, n);
 
         // Process alignment properties
         ProcessAlignmentNumberProperties(this, name, values, names, n);
@@ -963,9 +964,10 @@ IPState AstroTrac::GuideNorth(uint32_t ms)
     // do nothing if idle
     if (TrackState != SCOPE_TRACKING)
     {
-        GuideNSN[AXIS_RA].value = GuideNSN[AXIS_DE].value = 0;
-        GuideNSNP.s = IPS_OK;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP[AXIS_RA].setValue(0);
+        GuideNSNP[AXIS_DE].setValue(0);
+        GuideNSNP.setState(IPS_OK);
+        GuideNSNP.apply();
 
         LOG_INFO("Please start tracking to set guide pulse");
 
@@ -990,9 +992,10 @@ IPState AstroTrac::GuideNorth(uint32_t ms)
     {
         // reset tracking
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
-        GuideNSN[AXIS_RA].value = GuideNSN[AXIS_DE].value = 0;
-        GuideNSNP.s = IPS_OK;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP[AXIS_RA].setValue(0);
+        GuideNSNP[AXIS_DE].setValue(0);
+        GuideNSNP.setState(IPS_OK);
+        GuideNSNP.apply();
     });
     return IPS_BUSY;
 }
@@ -1005,9 +1008,10 @@ IPState AstroTrac::GuideSouth(uint32_t ms)
     // do nothing if idle
     if (TrackState != SCOPE_TRACKING)
     {
-        GuideNSN[AXIS_RA].value = GuideNSN[AXIS_DE].value = 0;
-        GuideNSNP.s = IPS_OK;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP[AXIS_RA].setValue(0);
+        GuideNSNP[AXIS_DE].setValue(0);
+        GuideNSNP.setState(IPS_OK);
+        GuideNSNP.apply();
 
         LOG_INFO("Please start tracking to set guide pulse");
 
@@ -1032,9 +1036,10 @@ IPState AstroTrac::GuideSouth(uint32_t ms)
     {
         // reset tracking
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
-        GuideNSN[AXIS_RA].value = GuideNSN[AXIS_DE].value = 0;
-        GuideNSNP.s = IPS_OK;
-        IDSetNumber(&GuideNSNP, nullptr);
+        GuideNSNP[AXIS_RA].setValue(0);
+        GuideNSNP[AXIS_DE].setValue(0);
+        GuideNSNP.setState(IPS_OK);
+        GuideNSNP.apply();
     });
     return IPS_BUSY;
 }
@@ -1047,9 +1052,10 @@ IPState AstroTrac::GuideEast(uint32_t ms)
     // do nothing if idle
     if (TrackState != SCOPE_TRACKING)
     {
-        GuideWEN[AXIS_RA].value = GuideWEN[AXIS_DE].value = 0;
-        GuideWENP.s = IPS_OK;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP[AXIS_RA].setValue(0);
+        GuideWENP[AXIS_DE].setValue(0);
+        GuideWENP.setState(IPS_OK);
+        GuideWENP.apply();
 
         LOG_INFO("Please start tracking to set guide pulse");
 
@@ -1082,9 +1088,10 @@ IPState AstroTrac::GuideEast(uint32_t ms)
     {
         // reset the tracking mode
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
-        GuideWEN[AXIS_RA].value = GuideWEN[AXIS_DE].value = 0;
-        GuideWENP.s = IPS_OK;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP[AXIS_RA].setValue(0);
+        GuideWENP[AXIS_DE].setValue(0);
+        GuideWENP.setState(IPS_OK);
+        GuideWENP.apply();
     });
 
     return IPS_BUSY;
@@ -1098,9 +1105,10 @@ IPState AstroTrac::GuideWest(uint32_t ms)
     // do nothing if idle
     if (TrackState != SCOPE_TRACKING)
     {
-        GuideWEN[AXIS_RA].value = GuideWEN[AXIS_DE].value = 0;
-        GuideWENP.s = IPS_OK;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP[AXIS_RA].setValue(0);
+        GuideWENP[AXIS_DE].setValue(0);
+        GuideWENP.setState(IPS_OK);
+        GuideWENP.apply();
 
         LOG_INFO("Please start tracking to set guide pulse");
 
@@ -1133,9 +1141,10 @@ IPState AstroTrac::GuideWest(uint32_t ms)
     {
         // reset the tracking mode
         SetTrackEnabled(TrackState == SCOPE_TRACKING);
-        GuideWEN[AXIS_RA].value = GuideWEN[AXIS_DE].value = 0;
-        GuideWENP.s = IPS_OK;
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideWENP[AXIS_RA].setValue(0);
+        GuideWENP[AXIS_DE].setValue(0);
+        GuideWENP.setState(IPS_OK);
+        GuideWENP.apply();
     });
     return IPS_BUSY;
 }

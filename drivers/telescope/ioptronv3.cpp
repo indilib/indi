@@ -42,7 +42,7 @@ using namespace IOPv3;
 static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 
 /* Constructor */
-IOptronV3::IOptronV3()
+IOptronV3::IOptronV3(): GI(this)
 {
     setVersion(1, 7);
 
@@ -202,7 +202,7 @@ bool IOptronV3::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -229,8 +229,6 @@ bool IOptronV3::updateProperties()
         defineProperty(&PECInfoTP);
         // End Mod */
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(&GuideRateNP);
 
         defineProperty(&FirmwareTP);
@@ -253,8 +251,6 @@ bool IOptronV3::updateProperties()
         deleteProperty(PECInfoTP.name);
         // End Mod*/
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
 
         deleteProperty(FirmwareTP.name);
@@ -431,6 +427,10 @@ void IOptronV3::getStartupData()
 
 bool IOptronV3::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
@@ -471,12 +471,6 @@ bool IOptronV3::ISNewNumber(const char *dev, const char *name, double values[], 
 
             MeridianLimitNP.apply();
             saveConfig(MeridianLimitNP);
-            return true;
-        }
-
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
     }

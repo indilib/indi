@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 // Alias
-using GI = INDI::GPSInterface;
+using GPSI = INDI::GPSInterface;
 
 namespace INDI
 {

@@ -47,7 +47,7 @@ static double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 12
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-SkywatcherAPIMount::SkywatcherAPIMount()
+SkywatcherAPIMount::SkywatcherAPIMount() : GI(this)
 {
     // Set up the logging pointer in SkyWatcherAPI
     pChildTelescope  = this;
@@ -281,7 +281,7 @@ bool SkywatcherAPIMount::initProperties()
     SetParkDataType(PARK_AZ_ALT_ENCODER);
 
     // Guiding support
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    GI::initProperties(GUIDE_TAB);
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
@@ -307,6 +307,10 @@ bool SkywatcherAPIMount::ISNewBLOB(const char *dev, const char *name, int sizes[
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         ProcessAlignmentNumberProperties(this, name, values, names, n);
@@ -437,8 +441,6 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
                 }
             }
         }
-
-        processGuiderProperties(name, values, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -647,8 +649,8 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         defineProperty(&SoftPECModesSP);
         defineProperty(&SoftPecNP);
         defineProperty(&GuidingRatesNP);
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
+        defineProperty(GuideNSNP);
+        defineProperty(GuideWENP);
     }
 }
 
@@ -770,13 +772,16 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
         SlowStop(AXIS2);
         TrackState = SCOPE_IDLE;
 
-        if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
         {
-            GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-            GuideNSN[0].value = GuideNSN[1].value = 0.0;
-            GuideWEN[0].value = GuideWEN[1].value = 0.0;
-            IDSetNumber(&GuideNSNP, nullptr);
-            IDSetNumber(&GuideWENP, nullptr);
+            GuideNSNP.setState(IPS_IDLE);
+            GuideWENP.setState(IPS_IDLE);
+            GuideNSNP[0].setValue(0);
+            GuideNSNP[1].setValue(0);
+            GuideWENP[0].setValue(0);
+            GuideWENP[1].setValue(0);
+            GuideNSNP.apply();
+            GuideWENP.apply();
         }
     }
 
@@ -1040,15 +1045,18 @@ bool SkywatcherAPIMount::Abort()
     SlowStop(AXIS2);
     TrackState = SCOPE_IDLE;
 
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    if (GuideNSNP.getState() == IPS_BUSY || GuideWENP.getState() == IPS_BUSY)
     {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+        GuideNSNP.setState(IPS_IDLE);
+        GuideWENP.setState(IPS_IDLE);
+        GuideNSNP[0].setValue(0);
+        GuideNSNP[1].setValue(0);
+        GuideWENP[0].setValue(0);
+        GuideWENP[1].setValue(0);
 
         LOG_INFO("Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
+        GuideNSNP.apply();
+        GuideWENP.apply();
 
         return true;
     }
@@ -1359,8 +1367,6 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&SoftPECModesSP);
         defineProperty(&SoftPecNP);
         defineProperty(&GuidingRatesNP);
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
         defineProperty(Axis1PIDNP);
         defineProperty(Axis2PIDNP);
         defineProperty(AxisDeadZoneNP);
@@ -1418,8 +1424,6 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(SoftPECModesSP.name);
         deleteProperty(SoftPecNP.name);
         deleteProperty(GuidingRatesNP.name);
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
         deleteProperty(Axis1PIDNP);
         deleteProperty(Axis2PIDNP);
         deleteProperty(AxisDeadZoneNP);
@@ -1433,6 +1437,8 @@ bool SkywatcherAPIMount::updateProperties()
 
         return true;
     }
+
+    GI::updateProperties();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

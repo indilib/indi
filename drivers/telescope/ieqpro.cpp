@@ -41,7 +41,7 @@ using namespace iEQ;
 // We declare an auto pointer to IEQPro.
 static std::unique_ptr<IEQPro> scope(new IEQPro());
 
-IEQPro::IEQPro()
+IEQPro::IEQPro(): GI(this)
 {
     setVersion(1, 9);
 
@@ -136,7 +136,7 @@ bool IEQPro::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    initGuiderProperties(getDeviceName(), MOTION_TAB);
+    GI::initProperties(MOTION_TAB);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -164,9 +164,6 @@ bool IEQPro::updateProperties()
 
         INDI::Telescope::updateProperties();
 
-        defineProperty(&GuideNSNP);
-        defineProperty(&GuideWENP);
-
         if (canGuideRate)
             defineProperty(&GuideRateNP);
 
@@ -179,9 +176,6 @@ bool IEQPro::updateProperties()
     {
         INDI::Telescope::updateProperties();
 
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-
         if (canGuideRate)
             deleteProperty(GuideRateNP.name);
 
@@ -190,6 +184,8 @@ bool IEQPro::updateProperties()
         deleteProperty(TimeSourceSP.name);
         deleteProperty(HemisphereSP.name);
     }
+
+    GI::updateProperties();
 
     return true;
 }
@@ -305,6 +301,10 @@ void IEQPro::getStartupData()
 
 bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    // Check guider interface
+    if (GI::processNumber(dev, name, values, names, n))
+        return true;
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
@@ -319,12 +319,6 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
 
             IDSetNumber(&GuideRateNP, nullptr);
 
-            return true;
-        }
-
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
-        {
-            processGuiderProperties(name, values, names, n);
             return true;
         }
     }

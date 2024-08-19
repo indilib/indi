@@ -29,10 +29,10 @@
 
 #include <ctime>
 
-class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
+class STAR2000 : public INDI::DefaultDevice, public INDI::GuiderInterface
 {
     public:
-        STAR2000() = default;
+        STAR2000();
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
