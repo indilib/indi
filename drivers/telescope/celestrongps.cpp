@@ -54,7 +54,7 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-CelestronGPS::CelestronGPS() : FI(this), GI(this)
+CelestronGPS::CelestronGPS() : GI(this), FI(this)
 {
     setVersion(3, 6); // update libindi/drivers.xml as well
 
