@@ -71,40 +71,45 @@ bool Telescope::initProperties()
     HomeSP.setDeviceName(getDeviceName());
 
     // Active Devices
+    // @INDI_STANDARD_PROPERTY@
     ActiveDeviceTP[ACTIVE_GPS].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
     ActiveDeviceTP[ACTIVE_DOME].fill("ACTIVE_DOME", "DOME", "Dome Simulator");
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     ActiveDeviceTP.load();
 
     // Use locking if dome is closed (and or) park scope if dome is closing
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&DomePolicyS[DOME_IGNORED], "DOME_IGNORED", "Dome ignored", ISS_ON);
     IUFillSwitch(&DomePolicyS[DOME_LOCKS], "DOME_LOCKS", "Dome locks", ISS_OFF);
-    //    IUFillSwitch(&DomeClosedLockT[2], "FORCE_CLOSE", "Dome parks", ISS_OFF);
-    //    IUFillSwitch(&DomeClosedLockT[3], "LOCK_AND_FORCE", "Both", ISS_OFF);
     IUFillSwitchVector(&DomePolicySP, DomePolicyS, 2, getDeviceName(), "DOME_POLICY", "Dome Policy",  OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&EqN[AXIS_RA], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[AXIS_DE], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumberVector(&EqNP, EqN, 2, getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
     lastEqState = IPS_IDLE;
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&TargetN[AXIS_RA], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&TargetN[AXIS_DE], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumberVector(&TargetNP, TargetN, 2, getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
                        IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     ParkOptionSP[PARK_CURRENT].fill("PARK_CURRENT", "Current", ISS_OFF);
     ParkOptionSP[PARK_DEFAULT].fill("PARK_DEFAULT", "Default", ISS_OFF);
     ParkOptionSP[PARK_WRITE_DATA].fill("PARK_WRITE_DATA", "Write Data", ISS_OFF);
     ParkOptionSP[PARK_PURGE_DATA].fill("PARK_PURGE_DATA", "Purge Data", ISS_OFF);
     ParkOptionSP.fill(getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
     IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
     IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss.s)", "%012.8m", -90, 90, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss.s)", "%012.8m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
@@ -112,11 +117,14 @@ bool Telescope::initProperties()
                        IP_RW, 60, IPS_IDLE);
 
     // Pier Side
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&PierSideS[PIER_WEST], "PIER_WEST", "West (pointing east)", ISS_OFF);
     IUFillSwitch(&PierSideS[PIER_EAST], "PIER_EAST", "East (pointing west)", ISS_OFF);
     IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
                        IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
+
     // Pier Side Simulation
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&SimulatePierSideS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulatePierSideS[1], "SIMULATE_NO", "No", ISS_ON);
     IUFillSwitchVector(&SimulatePierSideSP, SimulatePierSideS, 2, getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side",
@@ -124,16 +132,19 @@ bool Telescope::initProperties()
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PEC State
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_ON);
     IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_OFF);
     IUFillSwitchVector(&PECStateSP, PECStateS, 2, getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Mode. Child class must call AddTrackMode to add members
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitchVector(&TrackModeSP, TrackModeS, 0, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Track State
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&TrackStateS[TRACK_ON], "TRACK_ON", "On", ISS_OFF);
     IUFillSwitch(&TrackStateS[TRACK_OFF], "TRACK_OFF", "Off", ISS_ON);
     IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB,
@@ -141,6 +152,7 @@ bool Telescope::initProperties()
                        IPS_IDLE);
 
     // Track Rate
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&TrackRateN[AXIS_RA], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001,
                  TRACKRATE_SIDEREAL);
     IUFillNumber(&TrackRateN[AXIS_DE], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
@@ -149,12 +161,14 @@ bool Telescope::initProperties()
 
     generateCoordSet();
 
+    // @INDI_STANDARD_PROPERTY@
     if (nSlewRate >= 4)
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     if (CanTrackSatellite())
     {
+        // @INDI_STANDARD_PROPERTY@
         IUFillText(&TLEtoTrackT[0], "TLE", "TLE", "");
         IUFillTextVector(&TLEtoTrackTP, TLEtoTrackT, 1, getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB,
                          IP_RW, 60, IPS_IDLE);
@@ -164,37 +178,44 @@ bool Telescope::initProperties()
         struct std::tm *utctimeinfo = std::gmtime(&t);
         strftime(curTime, sizeof(curTime), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
 
+        // @INDI_STANDARD_PROPERTY@
         IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_END], "SAT_PASS_WINDOW_END", "End UTC", curTime);
         IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_START], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
         IUFillTextVector(&SatPassWindowTP, SatPassWindowT, SAT_PASS_WINDOW_COUNT, getDeviceName(),
                          "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
+        // @INDI_STANDARD_PROPERTY@
         IUFillSwitch(&TrackSatS[SAT_TRACK], "SAT_TRACK", "Track", ISS_OFF);
         IUFillSwitch(&TrackSatS[SAT_HALT], "SAT_HALT", "Halt", ISS_ON);
         IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
                            "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     }
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
     IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&AbortSP, AbortS, 1, getDeviceName(), "TELESCOPE_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&MovementNSS[DIRECTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[DIRECTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
     IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(), "TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&MovementWES[DIRECTION_WEST], "MOTION_WEST", "West", ISS_OFF);
     IUFillSwitch(&MovementWES[DIRECTION_EAST], "MOTION_EAST", "East", ISS_OFF);
     IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(), "TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reverse NS or WE
+    // @INDI_STANDARD_PROPERTY@
     ReverseMovementSP[REVERSE_NS].fill("REVERSE_NS", "North/South", ISS_OFF);
     ReverseMovementSP[REVERSE_WE].fill("REVERSE_WE", "West/East", ISS_OFF);
     ReverseMovementSP.fill(getDeviceName(), "TELESCOPE_REVERSE_MOTION", "Reverse", MOTION_TAB, IP_RW, ISR_NOFMANY, 60,
@@ -203,12 +224,14 @@ bool Telescope::initProperties()
     controller->initProperties();
 
     // Joystick motion control
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&MotionControlModeT[0], "MOTION_CONTROL_MODE_JOYSTICK", "4-Way Joystick", ISS_ON);
     IUFillSwitch(&MotionControlModeT[1], "MOTION_CONTROL_MODE_AXES", "Two Separate Axes", ISS_OFF);
     IUFillSwitchVector(&MotionControlModeTP, MotionControlModeT, 2, getDeviceName(), "MOTION_CONTROL_MODE", "Motion Control",
                        "Joystick", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Lock Axis
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&LockAxisS[0], "LOCK_AXIS_1", "West/East", ISS_OFF);
     IUFillSwitch(&LockAxisS[1], "LOCK_AXIS_2", "North/South", ISS_OFF);
     IUFillSwitchVector(&LockAxisSP, LockAxisS, 2, getDeviceName(), "JOYSTICK_LOCK_AXIS", "Lock Axis", "Joystick", IP_RW,
