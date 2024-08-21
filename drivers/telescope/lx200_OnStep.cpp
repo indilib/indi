@@ -822,16 +822,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
             for (int x = 0; x < n; x++)
             {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
+                if (EqNP[AXIS_RA].isNameMatch(names[x]))
                     ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
+                else if (EqNP[AXIS_DE].isNameMatch(names[x]))
                     dec = values[x];
-                }
             }
+
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
                 // Check if it is already parked.
@@ -2105,7 +2101,7 @@ bool LX200_OnStep::Park()
     if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
-        if (EqNP.s == IPS_BUSY)
+        if (EqNP.getState() == IPS_BUSY)
         {
             if (!isSimulation() && abortSlew(PortFD) < 0)
             {
@@ -2114,15 +2110,15 @@ bool LX200_OnStep::Park()
                 return false;
             }
             Telescope::AbortSP.s = IPS_OK;
-            EqNP.s    = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.apply();
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
                 MovementNSSP.s = IPS_IDLE;
                 MovementWESP.s = IPS_IDLE;
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -2190,8 +2186,9 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
             {
-                EqNP.s = IPS_ALERT;
-                IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                EqNP.setState(IPS_ALERT);
+                LOG_ERROR("Error reading RA/DEC.");
+                EqNP.apply();
                 LOG_INFO("RA/DEC could not be read, possible solution if using (wireless) ethernet: Use port 9998");
                 LOG_WARN("This update aborted, will try again...");
                 return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
@@ -2350,9 +2347,9 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 case SCOPE_PARKED:
                 case SCOPE_IDLE:
-                    if (EqNP.s != IPS_IDLE)
+                    if (EqNP.getState() != IPS_IDLE)
                     {
-                        EqNP.s = IPS_IDLE;
+                        EqNP.setState(IPS_IDLE);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_IDLE");
@@ -2362,9 +2359,9 @@ bool LX200_OnStep::ReadScopeStatus()
 
                 case SCOPE_SLEWING:
                 case SCOPE_PARKING:
-                    if (EqNP.s != IPS_BUSY)
+                    if (EqNP.getState() != IPS_BUSY)
                     {
-                        EqNP.s = IPS_BUSY;
+                        EqNP.setState(IPS_BUSY);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_BUSY");
@@ -2373,9 +2370,9 @@ bool LX200_OnStep::ReadScopeStatus()
                     break;
 
                 case SCOPE_TRACKING:
-                    if (EqNP.s != IPS_OK)
+                    if (EqNP.getState() != IPS_OK)
                     {
-                        EqNP.s = IPS_OK;
+                        EqNP.setState(IPS_OK);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_OK");
@@ -2383,7 +2380,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     }
                     break;
             }
-            if (EqN[AXIS_RA].value != currentRA || EqN[AXIS_DE].value != currentDEC)
+                if (EqNP[AXIS_RA].getValue() != currentRA || EqNP[AXIS_DE].getValue() != currentDEC)
             {
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("EqNP coordinates updated");
@@ -2395,9 +2392,9 @@ bool LX200_OnStep::ReadScopeStatus()
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("EqNP changed state");
 #endif
-                EqN[AXIS_RA].value = currentRA;
-                EqN[AXIS_DE].value = currentDEC;
-                IDSetNumber(&EqNP, nullptr);
+                EqNP[AXIS_RA].setValue(currentRA);
+                EqNP[AXIS_DE].setValue(currentDEC);
+                EqNP.apply();
 #ifdef DEBUG_TRACKSTATE
                 if (EqNP.s == IPS_BUSY)
                 {
@@ -4983,8 +4980,8 @@ void LX200_OnStep::slewError(int slewCode)
         default:
             LOG_ERROR("OnStep slew/syncError: Not in range of values that should be returned! INVALID, Something went wrong!");
     }
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_ALERT);
+    EqNP.apply();
 }
 
 
@@ -4999,8 +4996,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
     {
         if (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+            EqNP.apply();
             return false;
         }
         LOG_DEBUG("CMD <:CM#>");
@@ -5016,8 +5014,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
                     int error_code = read_buffer[1] - '0';
                     LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
                     slewError(error_code);
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Synchronization failed.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Synchronization failed.");
+                    EqNP.apply();
                     return false;
                 }
                 else
@@ -5304,7 +5303,7 @@ bool LX200_OnStep::Goto(double ra, double dec)
     fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
@@ -5314,15 +5313,15 @@ bool LX200_OnStep::Goto(double ra, double dec)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -5337,8 +5336,9 @@ bool LX200_OnStep::Goto(double ra, double dec)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 

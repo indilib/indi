@@ -754,8 +754,7 @@ class Telescope : public DefaultDevice
         */
 
         // All telescopes should produce equatorial co-ordinates
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+        INDI::PropertyNumber EqNP {2};
 
         // When a goto is issued, domes will snoop the target property
         // to start moving the dome when a telescope moves
@@ -836,8 +835,7 @@ class Telescope : public DefaultDevice
         };
 
         // Switch to lock if dome is closed.
-        ISwitchVectorProperty DomePolicySP;
-        ISwitch DomePolicyS[2];
+        INDI::PropertySwitch DomePolicySP {2};
 
         // Switch for choosing between motion control by 4-way joystick or two separate axes
         ISwitchVectorProperty MotionControlModeTP;

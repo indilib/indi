@@ -1596,8 +1596,8 @@ bool LX200Gemini::ReadScopeStatus()
     {
         updateMovementState();
 
-        EqNP.s = IPS_BUSY;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_BUSY);
+        EqNP.apply();
 
         // Check if LX200 is done slewing
         if (isSlewComplete())
@@ -1607,8 +1607,8 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
 
-            EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.setState(IPS_OK);
+            EqNP.apply();
 
             if (TrackState == SCOPE_IDLE) {
                 SetTrackEnabled(true);
@@ -1628,8 +1628,8 @@ bool LX200Gemini::ReadScopeStatus()
             SetParked(true);
             sleepMount();
 
-            EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.setState(IPS_IDLE);
+            EqNP.apply();
 
             return true;
         }
@@ -2136,7 +2136,7 @@ bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
     fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
@@ -2146,15 +2146,15 @@ bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -2169,8 +2169,9 @@ bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 

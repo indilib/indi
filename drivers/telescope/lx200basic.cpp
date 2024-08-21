@@ -159,8 +159,9 @@ bool LX200Basic::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 
@@ -192,7 +193,7 @@ bool LX200Basic::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
@@ -202,9 +203,9 @@ bool LX200Basic::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         // sleep for 100 mseconds
         usleep(100000);
@@ -214,8 +215,9 @@ bool LX200Basic::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 
@@ -224,8 +226,9 @@ bool LX200Basic::Goto(double r, double d)
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            EqNP.apply();
             slewError(err);
             return false;
         }
@@ -247,15 +250,17 @@ bool LX200Basic::Sync(double ra, double dec)
 
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+        EqNP.apply();
         return false;
     }
 
     if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Synchronization failed.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Synchronization failed.");
+        EqNP.apply();
         return false;
     }
 
@@ -264,7 +269,7 @@ bool LX200Basic::Sync(double ra, double dec)
 
     LOG_INFO("Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -307,9 +312,9 @@ bool LX200Basic::Abort()
         return false;
     }
 
-    EqNP.s     = IPS_IDLE;
+    EqNP.setState(IPS_IDLE);
     TrackState = SCOPE_IDLE;
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.apply();
 
     LOG_INFO("Slew aborted.");
     return true;
@@ -327,7 +332,7 @@ void LX200Basic::getBasicData()
     getLX200RA(PortFD, &currentRA);
     getLX200DEC(PortFD, &currentDEC);
 
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.apply();
 }
 
 /**************************************************************************************
@@ -404,14 +409,23 @@ void LX200Basic::mountSim()
 ***************************************************************************************/
 void LX200Basic::slewError(int slewCode)
 {
-    EqNP.s = IPS_ALERT;
+    EqNP.setState(IPS_ALERT);
 
     if (slewCode == 1)
-        IDSetNumber(&EqNP, "Object below horizon.");
+    {
+        LOG_INFO("Object below horizon");
+        EqNP.apply();
+    }
     else if (slewCode == 2)
-        IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
+    {
+        LOG_INFO("Object below the minimum elevation limit.");
+        EqNP.apply();
+    }
     else
-        IDSetNumber(&EqNP, "Slew failed.");
+    {
+        LOG_INFO("Slew failed.");
+        EqNP.apply();
+    }
 }
 
 /**************************************************************************************

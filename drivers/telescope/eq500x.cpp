@@ -302,8 +302,9 @@ bool EQ500X::ReadScopeStatus()
 
     if (getCurrentMechanicalPosition(currentMechPosition))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 
@@ -338,7 +339,7 @@ bool EQ500X::ReadScopeStatus()
     // If we are using the goto feature, check state
     if (TrackState == SCOPE_SLEWING && _gotoEngaged)
     {
-        if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+        if (EqNP[AXIS_RA].getValue() == currentRA && EqNP[AXIS_DE].getValue() == currentDEC)
         {
             _gotoEngaged = false;
 
@@ -566,8 +567,9 @@ bool EQ500X::ReadScopeStatus()
             adjustment = nullptr;
             setCurrentPollingPeriod(1000);
             TrackState = SCOPE_TRACKING;
-            EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, "Mount is tracking");
+            EqNP.setState(IPS_OK);
+            LOG_INFO("Mount is tracking");
+            EqNP.apply();
         }
     }
     else
@@ -614,7 +616,7 @@ bool EQ500X::Goto(double ra, double dec)
     targetMechPosition.DECsky(dec);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!Abort())
         {
@@ -624,15 +626,15 @@ bool EQ500X::Goto(double ra, double dec)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -653,8 +655,9 @@ bool EQ500X::Goto(double ra, double dec)
     // Set target position and adjust
     if (setTargetMechanicalPosition(targetMechPosition))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting RA/DEC.");
+        EqNP.apply();
         return false;
     }
     else
@@ -725,8 +728,9 @@ bool EQ500X::Sync(double ra, double dec)
     }
 
 sync_error:
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, "Synchronization failed.");
+    EqNP.setState(IPS_ALERT);
+    LOG_ERROR("Synchronization failed.");
+    EqNP.apply();
     LOGF_ERROR("Mount sync to target RA '%lf' DEC '%lf' failed", ra, dec);
     return false;
 }

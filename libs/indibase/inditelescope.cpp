@@ -79,15 +79,15 @@ bool Telescope::initProperties()
 
     // Use locking if dome is closed (and or) park scope if dome is closing
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&DomePolicyS[DOME_IGNORED], "DOME_IGNORED", "Dome ignored", ISS_ON);
-    IUFillSwitch(&DomePolicyS[DOME_LOCKS], "DOME_LOCKS", "Dome locks", ISS_OFF);
-    IUFillSwitchVector(&DomePolicySP, DomePolicyS, 2, getDeviceName(), "DOME_POLICY", "Dome Policy",  OPTIONS_TAB, IP_RW,
+    DomePolicySP[DOME_IGNORED].fill("DOME_IGNORED", "Dome ignored", ISS_ON);
+    DomePolicySP[DOME_LOCKS].fill("DOME_LOCKS", "Dome locks", ISS_OFF);
+    DomePolicySP.fill(getDeviceName(), "DOME_POLICY", "Dome Policy",  OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillNumber(&EqN[AXIS_RA], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqN[AXIS_DE], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
+    EqNP[AXIS_RA].fill("RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqNP[AXIS_DE].fill("DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqNP.fill(getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
     lastEqState = IPS_IDLE;
 
@@ -300,12 +300,12 @@ void Telescope::ISGetProperties(const char *dev)
         defineProperty(ActiveDeviceTP);
 
         ISState isDomeIgnored = ISS_OFF;
-        if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.name, DomePolicyS[DOME_IGNORED].name, &isDomeIgnored) == 0)
+        if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.getName(), DomePolicySP[DOME_IGNORED].getName(), &isDomeIgnored) == 0)
         {
-            DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
-            DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+            DomePolicySP[DOME_IGNORED].setState(isDomeIgnored);
+            DomePolicySP[DOME_LOCKS].setState((isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON);
         }
-        defineProperty(&DomePolicySP);
+        defineProperty(DomePolicySP);
     }
 
     if (CanGOTO())
@@ -338,7 +338,7 @@ bool Telescope::updateProperties()
         //  Now we add our telescope specific stuff
         if (CanGOTO() || CanSync())
             defineProperty(&CoordSP);
-        defineProperty(&EqNP);
+        defineProperty(EqNP);
         if (CanAbort())
             defineProperty(&AbortSP);
 
@@ -400,7 +400,7 @@ bool Telescope::updateProperties()
     {
         if (CanGOTO() || CanSync())
             deleteProperty(CoordSP.name);
-        deleteProperty(EqNP.name);
+        deleteProperty(EqNP);
         if (CanAbort())
             deleteProperty(AbortSP.name);
         if (HasTrackMode() && TrackModeS != nullptr)
@@ -580,7 +580,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                         else if (IsLocked && (!strcmp(elemName, "UNPARK")) && !strcmp(pcdataXMLEle(ep), "On"))
                             IsLocked = false;
                     }
-                    if (prevState != IsLocked && (DomePolicyS[DOME_LOCKS].s == ISS_ON))
+                    if (prevState != IsLocked && (DomePolicySP[DOME_LOCKS].getState() == ISS_ON))
                         LOGF_INFO("Dome status changed. Lock is set to: %s", IsLocked ? "locked" : "unlock");
                 }
             return true;
@@ -619,7 +619,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
 
     ActiveDeviceTP.save(fp);
-    IUSaveConfigSwitch(fp, &DomePolicySP);
+    DomePolicySP.save(fp);
 
     // Ensure that we only save valid locations
     if (HasLocation() && (LocationN[LOCATION_LONGITUDE].value != 0 || LocationN[LOCATION_LATITUDE].value != 0))
@@ -651,16 +651,16 @@ void Telescope::NewRaDec(double ra, double dec)
     {
         case SCOPE_PARKED:
         case SCOPE_IDLE:
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             break;
 
         case SCOPE_SLEWING:
         case SCOPE_PARKING:
-            EqNP.s = IPS_BUSY;
+            EqNP.setState(IPS_BUSY);
             break;
 
         case SCOPE_TRACKING:
-            EqNP.s = IPS_OK;
+            EqNP.setState(IPS_OK);
             break;
     }
 
@@ -679,14 +679,14 @@ void Telescope::NewRaDec(double ra, double dec)
         IDSetSwitch(&TrackStateSP, nullptr);
     }
 
-    if (std::abs(EqN[AXIS_RA].value - ra) > EQ_NOTIFY_THRESHOLD ||
-            std::abs(EqN[AXIS_DE].value - dec) > EQ_NOTIFY_THRESHOLD ||
-            EqNP.s != lastEqState)
+    if (std::abs(EqNP[AXIS_RA].getValue() - ra) > EQ_NOTIFY_THRESHOLD ||
+        std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
+        EqNP.getState() != lastEqState)
     {
-        EqN[AXIS_RA].value = ra;
-        EqN[AXIS_DE].value = dec;
-        lastEqState        = EqNP.s;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP[AXIS_RA].setValue(ra);
+        EqNP[AXIS_DE].setValue(dec);
+        lastEqState        = EqNP.getState();
+        EqNP.apply();
     }
 }
 
@@ -780,15 +780,10 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
             for (int x = 0; x < n; x++)
             {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
+                if (EqNP[AXIS_RA].isNameMatch(names[x]))
                     ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
+                else if (EqNP[AXIS_DE].isNameMatch(names[x]))
                     dec = values[x];
-                }
             }
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
@@ -799,8 +794,8 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                     {
                         DEBUG(Logger::DBG_WARNING,
                               "Please unpark the mount before issuing any motion/sync commands.");
-                        EqNP.s = lastEqState = IPS_IDLE;
-                        IDSetNumber(&EqNP, nullptr);
+                        EqNP.setState(lastEqState = IPS_IDLE);
+                        EqNP.apply();
                         return false;
                     }
                 }
@@ -814,10 +809,10 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                     {
                         rc = Sync(ra, dec);
                         if (rc)
-                            EqNP.s = lastEqState = IPS_OK;
+                            EqNP.setState(lastEqState = IPS_OK);
                         else
-                            EqNP.s = lastEqState = IPS_ALERT;
-                        IDSetNumber(&EqNP, nullptr);
+                            EqNP.setState(lastEqState = IPS_ALERT);
+                        EqNP.apply();
                         return rc;
                     }
                 }
@@ -846,7 +841,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
                 if (rc)
                 {
-                    EqNP.s = lastEqState = IPS_BUSY;
+                    EqNP.setState(lastEqState = IPS_BUSY);
                     //  Now fill in target co-ords, so domes can start turning
                     TargetN[AXIS_RA].value = ra;
                     TargetN[AXIS_DE].value = dec;
@@ -854,9 +849,9 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
                 else
                 {
-                    EqNP.s = lastEqState = IPS_ALERT;
+                    EqNP.setState(lastEqState = IPS_ALERT);
                 }
-                IDSetNumber(&EqNP, nullptr);
+                EqNP.apply();
             }
             return rc;
         }
@@ -1136,8 +1131,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     MovementNSSP.s = IPS_IDLE;
                     last_ns_motion = -1;
                     // Update Target when stopped so that domes can track
-                    TargetN[AXIS_RA].value = EqN[AXIS_RA].value;
-                    TargetN[AXIS_DE].value = EqN[AXIS_DE].value;
+                    TargetN[AXIS_RA].value = EqNP[AXIS_RA].getValue();
+                    TargetN[AXIS_DE].value = EqNP[AXIS_DE].getValue();
                     IDSetNumber(&TargetNP, nullptr);
                 }
                 else
@@ -1208,8 +1203,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     MovementWESP.s = IPS_IDLE;
                     last_we_motion = -1;
                     // Update Target when stopped so that domes can track
-                    TargetN[AXIS_RA].value = EqN[AXIS_RA].value;
-                    TargetN[AXIS_DE].value = EqN[AXIS_DE].value;
+                    TargetN[AXIS_RA].value = EqNP[AXIS_RA].getValue();
+                    TargetN[AXIS_DE].value = EqNP[AXIS_DE].getValue();
                     IDSetNumber(&TargetNP, nullptr);
                 }
                 else
@@ -1302,10 +1297,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     LOG_INFO("Parking aborted.");
                 }
-                if (EqNP.s == IPS_BUSY)
+                if (EqNP.getState() == IPS_BUSY)
                 {
-                    EqNP.s = lastEqState = IPS_IDLE;
-                    IDSetNumber(&EqNP, nullptr);
+                    EqNP.setState(lastEqState = IPS_IDLE);
+                    EqNP.apply();
                     LOG_INFO("Slew/Track aborted.");
                 }
                 if (MovementWESP.s == IPS_BUSY)
@@ -1474,10 +1469,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Parking Dome Policy
         ///////////////////////////////////
-        if (!strcmp(name, DomePolicySP.name))
+        if (DomePolicySP.isNameMatch(name))
         {
-            IUUpdateSwitch(&DomePolicySP, states, names, n);
-            if (DomePolicyS[DOME_IGNORED].s == ISS_ON)
+            DomePolicySP.update(states, names, n);
+            if (DomePolicySP[DOME_IGNORED].getState() == ISS_ON)
                 LOG_INFO("Dome Policy set to: Dome ignored. Mount can park or unpark regardless of dome parking state.");
             else
                 LOG_WARN("Dome Policy set to: Dome locks. This prevents the mount from unparking when dome is parked.");
@@ -1492,8 +1487,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                          "park if dome is parking. This will disable the locking for dome "
                          "parking, EVEN IF MOUNT PARKING FAILS.");
 #endif
-            DomePolicySP.s = IPS_OK;
-            IDSetSwitch(&DomePolicySP, nullptr);
+            DomePolicySP.setState(IPS_OK);
+            DomePolicySP.apply( );
             triggerSnoop(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
             return true;
         }
@@ -1523,7 +1518,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 // set the pier side from the current Ra
                 // assumes we haven't tracked across the meridian
-                setPierSide(expectedPierSide(EqN[AXIS_RA].value));
+                setPierSide(expectedPierSide(EqNP[AXIS_RA].getValue()));
             }
             return true;
         }
@@ -1614,8 +1609,8 @@ void Telescope::TimerHit()
         if (!rc)
         {
             //  read was not good
-            EqNP.s = lastEqState = IPS_ALERT;
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.setState(lastEqState = IPS_ALERT);
+            EqNP.apply();
         }
 
         SetTimer(getCurrentPollingPeriod());
@@ -2365,7 +2360,7 @@ void Telescope::SetAxis2ParkDefault(double value)
 
 bool Telescope::isLocked() const
 {
-    return DomePolicyS[DOME_LOCKS].s == ISS_ON && IsLocked;
+    return DomePolicySP[DOME_LOCKS].getState() == ISS_ON && IsLocked;
 }
 
 bool Telescope::SetSlewRate(int index)
@@ -2384,7 +2379,7 @@ void Telescope::processButton(const char *button_n, ISState state)
     {
         auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
-        if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY ||
+        if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
                 (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check

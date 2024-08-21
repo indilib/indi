@@ -681,7 +681,7 @@ bool Rainbow::ReadScopeStatus()
             HorizontalCoordsNP.s = IPS_ALERT;
             IDSetNumber(&HorizontalCoordsNP, nullptr);
 
-            EqNP.s = IPS_ALERT;
+            EqNP.setState(IPS_ALERT);
 
             if (HomeSP.getState() == IPS_BUSY)
             {
@@ -710,7 +710,7 @@ bool Rainbow::ReadScopeStatus()
         else if (m_SlewErrorCode > 0)
         {
             HorizontalCoordsNP.s = IPS_ALERT;
-            EqNP.s = IPS_ALERT;
+            EqNP.setState(IPS_ALERT);
             // JM TODO CHECK: Does the mount RESUME tracking after slew failure or it completely stops idle?
             TrackState = m_GotoType == Horizontal ? SCOPE_IDLE : SCOPE_TRACKING;
             LOGF_ERROR("Parking error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
@@ -721,8 +721,9 @@ bool Rainbow::ReadScopeStatus()
     // Equatorial Coords
     if (!getRA() || !getDE())
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 
@@ -788,7 +789,7 @@ bool Rainbow::Goto(double ra, double dec)
     fs_sexa(DecStr, dec, 2, 36000);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && Abort() == false)
         {
@@ -798,15 +799,15 @@ bool Rainbow::Goto(double ra, double dec)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);

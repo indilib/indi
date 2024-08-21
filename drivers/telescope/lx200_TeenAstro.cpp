@@ -251,7 +251,7 @@ bool LX200_TeenAstro::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
+        EqNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -399,7 +399,7 @@ bool LX200_TeenAstro::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
@@ -409,9 +409,9 @@ bool LX200_TeenAstro::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         // sleep for 100 mseconds
         const struct timespec ms100_delay = {.tv_sec = 0, .tv_nsec = 100000000};
@@ -422,8 +422,9 @@ bool LX200_TeenAstro::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)  // standard LX200 command
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 
@@ -432,15 +433,16 @@ bool LX200_TeenAstro::Goto(double r, double d)
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.apply();
             slewError(err);
             return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -473,16 +475,18 @@ bool LX200_TeenAstro::Sync(double ra, double dec)
     // goto target
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+        EqNP.apply();
         return false;
     }
 
     // Use the parent Sync() function (lx200driver.cpp)
     if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Synchronization failed.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Synchronization failed");
+        EqNP.apply();
         return false;
     }
 
@@ -490,7 +494,7 @@ bool LX200_TeenAstro::Sync(double ra, double dec)
     currentDEC = dec;
 
     LOG_INFO("Synchronization successful.");
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -528,7 +532,7 @@ bool LX200_TeenAstro::UnPark()
     {
         LOG_DEBUG("UnPark: CMD <:hR>");
         TrackState = SCOPE_IDLE;
-        EqNP.s    = IPS_OK;
+        EqNP.setState(IPS_OK);
         return true;
     }
     if (getCommandString(PortFD, response, ":hR#") < 0)
@@ -546,12 +550,12 @@ bool LX200_TeenAstro::Park()
     {
         LOG_DEBUG("SlewToPark: CMD <:hP>");
         TrackState = SCOPE_PARKED;
-        EqNP.s    = IPS_OK;
+        EqNP.setState(IPS_OK);
         return true;
     }
 
     // If scope is moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (abortSlew(PortFD) < 0)
         {
@@ -560,15 +564,15 @@ bool LX200_TeenAstro::Park()
             return false;
         }
         Telescope::AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
@@ -1224,9 +1228,9 @@ bool LX200_TeenAstro::Abort()
         return false;
     }
 
-    EqNP.s     = IPS_IDLE;
+    EqNP.setState(IPS_IDLE);
     TrackState = SCOPE_IDLE;
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.apply();
 
     LOG_INFO("Slew aborted.");
     return true;
@@ -1350,14 +1354,23 @@ void LX200_TeenAstro::mountSim()
 
 void LX200_TeenAstro::slewError(int slewCode)
 {
-    EqNP.s = IPS_ALERT;
+    EqNP.setState(IPS_ALERT);
 
     if (slewCode == 1)
-        IDSetNumber(&EqNP, "Object below horizon.");
+    {
+        LOG_INFO("Object below horizon");
+        EqNP.apply();
+    }
     else if (slewCode == 2)
-        IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
+    {
+        LOG_INFO("Object below the minimum elevation limit.");
+        EqNP.apply();
+    }
     else
-        IDSetNumber(&EqNP, "Slew failed.");
+    {
+        LOG_ERROR("Slew failed.");
+        EqNP.apply();
+    }
 }
 /*
  *  Enable or disable sidereal tracking (events handled by inditelescope)

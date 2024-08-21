@@ -1381,8 +1381,9 @@ bool LX200Pulsar2::ReadScopeStatus()
                     NewRaDec(currentRA, currentDEC);
                 else
                 {
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Error reading RA/DEC.");
+                    EqNP.apply();
                 }
 
                 // check side of pier -- note that this is done only every other polling cycle
@@ -2760,7 +2761,7 @@ bool LX200Pulsar2::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC = d, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
@@ -2770,15 +2771,15 @@ bool LX200Pulsar2::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -2791,14 +2792,16 @@ bool LX200Pulsar2::Goto(double r, double d)
     {
         if (!Pulsar2Commands::setObjectRADec(PortFD, targetRA, targetDEC))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
         if (!Pulsar2Commands::startSlew(PortFD))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.apply();
             slewError(3);
             return false;
         }
@@ -2832,7 +2835,7 @@ bool LX200Pulsar2::Park()
     }
 
     // If scope is moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
@@ -2842,15 +2845,15 @@ bool LX200Pulsar2::Park()
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
@@ -2886,8 +2889,9 @@ bool LX200Pulsar2::Sync(double ra, double dec)
             nanosleep(&timeout, nullptr); // This seems to be necessary (why?)
             if (!success)
             {
-                EqNP.s = IPS_ALERT;
-                IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+                EqNP.setState(IPS_ALERT);
+                LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+                EqNP.apply();
             }
             else
             {
@@ -2903,15 +2907,15 @@ bool LX200Pulsar2::Sync(double ra, double dec)
                     LOGF_DEBUG("Sync RAresponse: %s, DECresponse: %s", RAresponse, DECresponse);
                     currentRA  = ra;
                     currentDEC = dec;
-                    EqNP.s     = IPS_OK;
+                    EqNP.setState(IPS_OK);
                     NewRaDec(currentRA, currentDEC);
                     LOG_INFO("Synchronization successful.");
                 }
                 else
                 {
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Synchronization failed.");
-                    LOG_INFO("Synchronization failed.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Synchronization failed.");
+                    EqNP.apply();
                 }
             }
         }

@@ -549,7 +549,7 @@ bool CelestronGPS::Goto(double ra, double dec)
     targetRA  = ra;
     targetDEC = dec;
 
-    if (EqNP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
         driver.abort();
         // sleep for 500 mseconds
