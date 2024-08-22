@@ -853,8 +853,7 @@ class Telescope : public DefaultDevice
         ISwitchVectorProperty LockAxisSP;
 
         // Pier Side
-        ISwitch PierSideS[2];
-        ISwitchVectorProperty PierSideSP;
+        INDI::PropertySwitch PierSideSP {2};
 
         // Pier Side Simulation
         ISwitchVectorProperty SimulatePierSideSP;

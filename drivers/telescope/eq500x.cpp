@@ -745,8 +745,9 @@ bool EQ500X::Abort()
 void EQ500X::setPierSide(TelescopePierSide side)
 {
     INDI_UNUSED(side);
-    PierSideSP.s = IPS_ALERT;
-    IDSetSwitch(&PierSideSP, "Not supported");
+    PierSideSP.setState(IPS_ALERT);
+    LOG_ERROR("Not supported");
+    PierSideSP.apply();
 }
 
 bool EQ500X::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)

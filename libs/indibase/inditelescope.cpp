@@ -118,9 +118,9 @@ bool Telescope::initProperties()
 
     // Pier Side
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&PierSideS[PIER_WEST], "PIER_WEST", "West (pointing east)", ISS_OFF);
-    IUFillSwitch(&PierSideS[PIER_EAST], "PIER_EAST", "East (pointing west)", ISS_OFF);
-    IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
+    PierSideSP[PIER_WEST].fill("PIER_WEST", "West (pointing east)", ISS_OFF);
+    PierSideSP[PIER_EAST].fill("PIER_EAST", "East (pointing west)", ISS_OFF);
+    PierSideSP.fill(getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
                        IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Pier Side Simulation
@@ -376,7 +376,7 @@ bool Telescope::updateProperties()
         }
 
         if (HasPierSide())
-            defineProperty(&PierSideSP);
+            defineProperty(PierSideSP);
 
         if (HasPierSideSimulation())
         {
@@ -438,13 +438,13 @@ bool Telescope::updateProperties()
         }
 
         if (HasPierSide())
-            deleteProperty(PierSideSP.name);
+            deleteProperty(PierSideSP);
 
         if (HasPierSideSimulation())
         {
             deleteProperty(SimulatePierSideSP.name);
             if (getSimulatePierSide() == true)
-                deleteProperty(PierSideSP.name);
+                deleteProperty(PierSideSP);
         }
 
         if (CanTrackSatellite())
@@ -2678,10 +2678,10 @@ void Telescope::setPierSide(TelescopePierSide side)
 
     if (currentPierSide != lastPierSide)
     {
-        PierSideS[PIER_WEST].s = (side == PIER_WEST) ? ISS_ON : ISS_OFF;
-        PierSideS[PIER_EAST].s = (side == PIER_EAST) ? ISS_ON : ISS_OFF;
-        PierSideSP.s           = IPS_OK;
-        IDSetSwitch(&PierSideSP, nullptr);
+        PierSideSP[PIER_WEST].setState((side == PIER_WEST) ? ISS_ON : ISS_OFF);
+        PierSideSP[PIER_EAST].setState((side == PIER_EAST) ? ISS_ON : ISS_OFF);
+        PierSideSP.setState(IPS_OK);
+        PierSideSP.apply();
 
         lastPierSide = currentPierSide;
     }
@@ -2795,12 +2795,12 @@ void Telescope::setSimulatePierSide(bool simulate)
     if (simulate)
     {
         capability |= TELESCOPE_HAS_PIER_SIDE;
-        defineProperty(&PierSideSP);
+        defineProperty(PierSideSP);
     }
     else
     {
         capability &= static_cast<uint32_t>(~TELESCOPE_HAS_PIER_SIDE);
-        deleteProperty(PierSideSP.name);
+        deleteProperty(PierSideSP);
     }
 
     m_simulatePierSide = simulate;
