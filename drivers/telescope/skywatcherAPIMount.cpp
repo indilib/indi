@@ -421,15 +421,10 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
 
             for (int x = 0; x < n; x++)
             {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
+                if (EqNP[AXIS_RA].isNameMatch(names[x]))
                     ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
+                else if (EqNP[AXIS_DE].isNameMatch(names[x]))
                     dec = values[x];
-                }
             }
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
@@ -762,8 +757,8 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
     {
         TrackState = SCOPE_TRACKING;
         resetTracking();
-        m_SkyTrackingTarget.rightascension = EqN[AXIS_RA].value;
-        m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
+        m_SkyTrackingTarget.rightascension = EqNP[AXIS_RA].getValue();
+        m_SkyTrackingTarget.declination = EqNP[AXIS_DE].getValue();
     }
     else
     {
@@ -1088,8 +1083,8 @@ void SkywatcherAPIMount::TimerHit()
             {
                 m_ManualMotionActive = false;
                 resetTracking();
-                m_SkyTrackingTarget.rightascension = EqN[AXIS_RA].value;
-                m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
+                m_SkyTrackingTarget.rightascension = EqNP[AXIS_RA].getValue();
+                m_SkyTrackingTarget.declination = EqNP[AXIS_DE].getValue();
             }
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
