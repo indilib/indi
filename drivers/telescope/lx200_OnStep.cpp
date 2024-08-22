@@ -5457,3 +5457,28 @@ IPState LX200_OnStep::ExecuteHomeAction(TelescopeHomeAction action)
 
     return IPS_ALERT;
 }
+
+bool LX200_OnStep::Handshake()
+{
+    if (checkConnection())
+    {
+        return true;
+    }
+
+    /* OnStepX has a tendency to start up in an unresponsive state
+     * due to grabage in the serial buffer. Try to reset it by sending
+     * the :GVP# command repeatedly.
+     *
+     * First sending should result in a '0' response, the second in
+     * 'OnStep' so the 2nd sending should return with a failure.
+     */
+    if(sendOnStepCommand(":GVP#"))
+    {
+        if(!sendOnStepCommand(":GVP#"))
+        {
+            return checkConnection();
+        }
+    }
+
+    return false;
+}
