@@ -239,7 +239,7 @@ bool ScopeSim::ReadScopeStatus()
             if (!slewing)
             {
                 SetParked(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
                 LOG_INFO("Telescope slew is complete. Parked");
             }
             break;
@@ -250,7 +250,7 @@ bool ScopeSim::ReadScopeStatus()
                 // if the mount was not tracking before the slew should it remain not tracking?
                 TrackState = SCOPE_TRACKING;
                 SetTrackEnabled(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
 
                 if (HomeSP.getState() == IPS_BUSY)
                 {
@@ -337,7 +337,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     LOG_INFO("Sync is successful.");
 
-    EqNP.s = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -687,8 +687,8 @@ IPState ScopeSim::ExecuteHomeAction(TelescopeHomeAction action)
             return IPS_BUSY;
 
         case HOME_SET:
-            m_Home[AXIS_RA] = (alignment.lst() - Angle(EqN[AXIS_RA].value, Angle::HOURS)).HoursHa();
-            m_Home[AXIS_DE] = EqN[AXIS_DE].value;
+            m_Home[AXIS_RA] = (alignment.lst() - Angle(EqNP[AXIS_RA].getValue(), Angle::HOURS)).HoursHa();
+            m_Home[AXIS_DE] = EqNP[AXIS_DE].getValue();
             LOG_INFO("Setting home position to current position.");
             return IPS_OK;
 

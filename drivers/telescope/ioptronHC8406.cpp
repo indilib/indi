@@ -380,7 +380,7 @@ bool ioptronHC8406::Goto(double r, double d)
     LOGF_DEBUG("<GOTO RA/DEC> %s/%s", RAStr, DecStr);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
@@ -390,15 +390,15 @@ bool ioptronHC8406::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
+        EqNP.setState(IPS_IDLE);
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.apply();
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
             MovementNSSP.s = IPS_IDLE;
             MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
+            EqNP.setState(IPS_IDLE);
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -413,15 +413,17 @@ bool ioptronHC8406::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC");
+            EqNP.apply();
             return false;
         }
 
         if (slewioptronHC8406() == 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.apply();
             slewError(1);
             return false;
         }
@@ -441,8 +443,9 @@ bool ioptronHC8406::Sync(double ra, double dec)
     {
         if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+            EqNP.apply();
             return false;
         }
 
@@ -466,8 +469,9 @@ bool ioptronHC8406::Sync(double ra, double dec)
 
         if (syncOK == false)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Synchronization failed.");
+            EqNP.apply();
             return false;
         }
 
@@ -899,8 +903,9 @@ bool ioptronHC8406::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 

@@ -522,7 +522,7 @@ bool IEQProLegacy::Sync(double ra, double dec)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = dec;

@@ -544,8 +544,9 @@ bool LX200NYX101::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading Ra - Dec");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading Ra - Dec");
+        EqNP.apply();
         return false;
     }
 

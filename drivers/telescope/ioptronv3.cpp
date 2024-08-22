@@ -833,7 +833,7 @@ bool IOptronV3::Sync(double ra, double de)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = de;

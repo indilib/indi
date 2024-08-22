@@ -43,10 +43,10 @@ bool ScopeSim::Abort()
         IDSetSwitch(&MovementWESP, nullptr);
     }
 
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
-        EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_IDLE);
+        EqNP.apply();
     }
 
     TrackState = SCOPE_IDLE;
