@@ -352,7 +352,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
         {
             EqNP.setState(IPS_ALERT);
             LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
-            EqNP.apply("");
+            EqNP.apply();
             return false;
         }
 
