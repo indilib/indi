@@ -1170,10 +1170,10 @@ bool ioptronHC8406::sendScopeTime()
     {
         snprintf(cdate, 32, "%d-%02d-%02dT%02d:%02d:%02d", 1979, 6, 25, 3, 30, 30);
         IDLog("Telescope ISO date and time: %s\n", cdate);
-        IUSaveText(&TimeT[0], cdate);
-        IUSaveText(&TimeT[1], "3");
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText(cdate);
+        TimeTP[OFFSET].setText("3");
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
 
@@ -1191,7 +1191,7 @@ bool ioptronHC8406::sendScopeTime()
     LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g", utc_h, utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
     LOGF_DEBUG("<VAL> UTC offset str: %s", utc_offset_res);
-    IUSaveText(&TimeT[1], utc_offset_res);
+    TimeTP[OFFSET].setText(utc_offset_res);
     //IUSaveText(&TimeT[1], lx200_utc_offset);
 
     getLocalTime24(PortFD, &ctime);
@@ -1226,14 +1226,14 @@ bool ioptronHC8406::sendScopeTime()
 
     /* Format it into ISO 8601 */
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
-    IUSaveText(&TimeT[0], cdate);
+    TimeTP[UTC].setText(cdate);
 
     LOGF_DEBUG("Mount controller Local Time: %02d:%02d:%02d", h, m, s);
-    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeTP[UTC].getText());
 
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
     return true;
 }
 

@@ -305,7 +305,7 @@ void IOptronV3::getStartupData()
         struct tm *utc;
         utc = gmtime(&utc_time);
         strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-        IUSaveText(&TimeT[0], ts);
+        TimeTP[UTC].setText(ts);
         LOGF_INFO("Mount UTC: %s", ts);
 
         // UTC Offset
@@ -315,11 +315,11 @@ void IOptronV3::getStartupData()
             utcOffsetMinutes += 60;
 
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[1], offset);
+        TimeTP[OFFSET].setText(offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
 
         LOGF_INFO("Mount Daylight Savings: %s", dayLightSavings ? "ON" : "OFF");
         DaylightS[0].s = dayLightSavings ? ISS_ON : ISS_OFF;

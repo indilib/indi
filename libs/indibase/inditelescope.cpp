@@ -92,9 +92,9 @@ bool Telescope::initProperties()
     lastEqState = IPS_IDLE;
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillNumber(&TargetN[AXIS_RA], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&TargetN[AXIS_DE], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&TargetNP, TargetN, 2, getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
+    TargetNP[AXIS_RA].fill("RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    TargetNP[AXIS_DE].fill("DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    TargetNP.fill(getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
                        IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
@@ -105,9 +105,9 @@ bool Telescope::initProperties()
     ParkOptionSP.fill(getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
-    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
-    IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
+    TimeTP[UTC].fill("UTC", "UTC Time", nullptr);
+    TimeTP[OFFSET].fill("OFFSET", "UTC Offset", nullptr);
+    TimeTP.fill(getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss.s)", "%012.8m", -90, 90, 0, 0.0);
@@ -358,11 +358,11 @@ bool Telescope::updateProperties()
             defineProperty(ReverseMovementSP);
             if (nSlewRate >= 4)
                 defineProperty(&SlewRateSP);
-            defineProperty(&TargetNP);
+            defineProperty(TargetNP);
         }
 
         if (HasTime())
-            defineProperty(&TimeTP);
+            defineProperty(TimeTP);
         if (HasLocation())
             defineProperty(&LocationNP);
         if (CanPark())
@@ -419,11 +419,11 @@ bool Telescope::updateProperties()
             deleteProperty(ReverseMovementSP.getName());
             if (nSlewRate >= 4)
                 deleteProperty(SlewRateSP.name);
-            deleteProperty(TargetNP.name);
+            deleteProperty(TargetNP);
         }
 
         if (HasTime())
-            deleteProperty(TimeTP.name);
+            deleteProperty(TimeTP);
         if (HasLocation())
             deleteProperty(LocationNP.name);
 
@@ -729,7 +729,7 @@ bool Telescope::ISNewText(const char *dev, const char *name, char *texts[], char
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, TimeTP.name))
+        if (TimeTP.isNameMatch(name))
         {
             int utcindex    = IUFindIndex("UTC", names, n);
             int offsetindex = IUFindIndex("OFFSET", names, n);
@@ -843,9 +843,9 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 {
                     EqNP.setState(lastEqState = IPS_BUSY);
                     //  Now fill in target co-ords, so domes can start turning
-                    TargetN[AXIS_RA].value = ra;
-                    TargetN[AXIS_DE].value = dec;
-                    IDSetNumber(&TargetNP, nullptr);
+                    TargetNP[AXIS_RA].setValue(ra);
+                    TargetNP[AXIS_DE].setValue(dec);
+                    TargetNP.apply();
                 }
                 else
                 {
@@ -1131,9 +1131,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     MovementNSSP.s = IPS_IDLE;
                     last_ns_motion = -1;
                     // Update Target when stopped so that domes can track
-                    TargetN[AXIS_RA].value = EqNP[AXIS_RA].getValue();
-                    TargetN[AXIS_DE].value = EqNP[AXIS_DE].getValue();
-                    IDSetNumber(&TargetNP, nullptr);
+                    TargetNP[AXIS_RA].setValue(EqNP[AXIS_RA].getValue());
+                    TargetNP[AXIS_DE].setValue(EqNP[AXIS_DE].getValue());
+                    TargetNP.apply();
                 }
                 else
                     MovementNSSP.s = IPS_ALERT;
@@ -1203,9 +1203,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     MovementWESP.s = IPS_IDLE;
                     last_we_motion = -1;
                     // Update Target when stopped so that domes can track
-                    TargetN[AXIS_RA].value = EqNP[AXIS_RA].getValue();
-                    TargetN[AXIS_DE].value = EqNP[AXIS_DE].getValue();
-                    IDSetNumber(&TargetNP, nullptr);
+                    TargetNP[AXIS_RA].setValue(EqNP[AXIS_RA].getValue());
+                    TargetNP[AXIS_DE].setValue(EqNP[AXIS_DE].getValue());
+                    TargetNP.apply();
                 }
                 else
                     MovementWESP.s = IPS_ALERT;
@@ -1707,8 +1707,9 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
 
     if (extractISOTime(utc, &utc_date) == -1)
     {
-        TimeTP.s = IPS_ALERT;
-        IDSetText(&TimeTP, "Date/Time is invalid: %s.", utc);
+        TimeTP.setState(IPS_ALERT);
+        LOGF_ERROR("Date/Time is invalid: %s.", utc);
+        TimeTP.apply();
         return false;
     }
 
@@ -1716,16 +1717,16 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
 
     if (updateTime(&utc_date, utc_offset))
     {
-        IUSaveText(&TimeT[0], utc);
-        IUSaveText(&TimeT[1], offset);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText(utc);
+        TimeTP[OFFSET].setText(offset);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
     else
     {
-        TimeTP.s = IPS_ALERT;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_ALERT);
+        TimeTP.apply();
         return false;
     }
 }
@@ -2753,15 +2754,15 @@ void Telescope::sendTimeFromSystem()
     struct std::tm *utctimeinfo = std::gmtime(&t);
 
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
-    IUSaveText(&TimeT[0], ts);
+    TimeTP[UTC].setText(ts);
 
     struct std::tm *localtimeinfo = std::localtime(&t);
     snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
-    IUSaveText(&TimeT[1], ts);
+    TimeTP[OFFSET].setText(ts);
 
-    TimeTP.s = IPS_OK;
+    TimeTP.setState(IPS_OK);
 
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.apply();
 }
 
 bool Telescope::getSimulatePierSide() const

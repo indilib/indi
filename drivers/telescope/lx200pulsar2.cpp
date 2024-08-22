@@ -3440,17 +3440,17 @@ bool LX200Pulsar2::sendScopeTime()
     char cdate[32];
     strftime(cdate, sizeof(cdate), "%Y-%m-%dT%H:%M:%S", &utm);
 
-    IUSaveText(&TimeT[0], cdate);
-    IUSaveText(&TimeT[1], "0"); // Pulsar maintains time in UTC only
+    TimeTP[UTC].setText(cdate);
+    TimeTP[OFFSET].setText("0"); // Pulsar maintains time in UTC only
     if (isDebug())
     {
         IDLog("Telescope Local Time: %02d:%02d:%02d\n", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
-        IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
-        IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
+        IDLog("Telescope TimeT Offset: %s\n", TimeTP[OFFSET].getText());
+        IDLog("Telescope UTC Time: %s\n", TimeTP[UTC].getText());
     }
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
 
     return true;
 }

@@ -758,8 +758,7 @@ class Telescope : public DefaultDevice
 
         // When a goto is issued, domes will snoop the target property
         // to start moving the dome when a telescope moves
-        INumberVectorProperty TargetNP;
-        INumber TargetN[2];
+        INDI::PropertyNumber TargetNP {2};
 
         // Abort motion
         ISwitchVectorProperty AbortSP;
@@ -822,8 +821,12 @@ class Telescope : public DefaultDevice
         ISwitch *SlewRateS {nullptr};
 
         // UTC and UTC Offset
-        IText TimeT[2] {};
-        ITextVectorProperty TimeTP;
+        INDI::PropertyText TimeTP {2};
+        enum
+        {
+          UTC,
+          OFFSET
+        };
         void sendTimeFromSystem();
 
         // Active GPS/Dome device to snoop

@@ -1058,10 +1058,10 @@ bool SynscanLegacyDriver::ReadTime()
         char timeString[MAXINDINAME] = {0};
         time_t now = time (nullptr);
         strftime(timeString, MAXINDINAME, "%T", gmtime(&now));
-        IUSaveText(&TimeT[0], "3");
-        IUSaveText(&TimeT[1], timeString);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText("3");
+        TimeTP[OFFSET].setText(timeString);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
 
@@ -1111,10 +1111,10 @@ bool SynscanLegacyDriver::ReadTime()
             offset = offset + 1;
         sprintf(ofs, "%d", offset);
 
-        IUSaveText(&TimeT[0], utc);
-        IUSaveText(&TimeT[1], ofs);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText(utc);
+        TimeTP[OFFSET].setText(ofs);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply(nullptr);
 
         LOGF_INFO("Mount UTC Time %s Offset %d", utc, offset);
 
