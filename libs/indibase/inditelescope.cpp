@@ -110,10 +110,10 @@ bool Telescope::initProperties()
     TimeTP.fill(getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss.s)", "%012.8m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss.s)", "%012.8m", 0, 360, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
+    LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss.s)", "%012.8m", -90, 90, 0, 0.0);
+    LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss.s)", "%012.8m", 0, 360, 0, 0.0);
+    LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     // Pier Side
@@ -272,19 +272,19 @@ bool Telescope::initProperties()
 
     double longitude = 0, latitude = 0, elevation = 0;
     // Get value from config file if it exists.
-    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LONGITUDE].name, &longitude) == 0)
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.getName(), LocationNP[LOCATION_LONGITUDE].getName(), &longitude) == 0)
     {
-        LocationN[LOCATION_LONGITUDE].value = longitude;
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
         m_Location.longitude = longitude;
     }
-    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LATITUDE].name, &latitude) == 0)
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.getName(), LocationNP[LOCATION_LATITUDE].getName(), &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value = latitude;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
         m_Location.latitude = latitude;
     }
-    if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_ELEVATION].name, &elevation) == 0)
+    if (IUGetConfigNumber(getDeviceName(), LocationNP.getName(), LocationNP[LOCATION_ELEVATION].getName(), &elevation) == 0)
     {
-        LocationN[LOCATION_ELEVATION].value = elevation;
+        LocationNP[LOCATION_ELEVATION].setValue(elevation);
         m_Location.elevation = elevation;
     }
 
@@ -364,7 +364,7 @@ bool Telescope::updateProperties()
         if (HasTime())
             defineProperty(TimeTP);
         if (HasLocation())
-            defineProperty(&LocationNP);
+            defineProperty(LocationNP);
         if (CanPark())
         {
             defineProperty(&ParkSP);
@@ -425,7 +425,7 @@ bool Telescope::updateProperties()
         if (HasTime())
             deleteProperty(TimeTP);
         if (HasLocation())
-            deleteProperty(LocationNP.name);
+            deleteProperty(LocationNP);
 
         if (CanPark())
         {
@@ -622,8 +622,8 @@ bool Telescope::saveConfigItems(FILE *fp)
     DomePolicySP.save(fp);
 
     // Ensure that we only save valid locations
-    if (HasLocation() && (LocationN[LOCATION_LONGITUDE].value != 0 || LocationN[LOCATION_LATITUDE].value != 0))
-        IUSaveConfigNumber(fp, &LocationNP);
+    if (HasLocation() && (LocationNP[LOCATION_LONGITUDE].getValue() != 0 || LocationNP[LOCATION_LATITUDE].getValue() != 0))
+        LocationNP.save(fp);
 
     if (CanGOTO())
         ReverseMovementSP.save(fp);
@@ -867,8 +867,9 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
             if (latindex == -1 || longindex == -1 || elevationindex == -1)
             {
-                LocationNP.s = IPS_ALERT;
-                IDSetNumber(&LocationNP, "Location data missing or corrupted.");
+                LocationNP.setState(IPS_ALERT);
+                LOG_ERROR("Location data missing or corrupted.");
+                LocationNP.apply();
             }
 
             double targetLat  = values[latindex];
@@ -1748,19 +1749,19 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         if (latitude == 0 && longitude == 0)
         {
             LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
-            LocationNP.s = IPS_IDLE;
-            IDSetNumber(&LocationNP, nullptr);
+            LocationNP.setState(IPS_IDLE);
+            LocationNP.apply();
             return false;
         }
 
     if (updateLocation(latitude, longitude, elevation))
     {
-        LocationNP.s                        = IPS_OK;
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationN[LOCATION_ELEVATION].value = elevation;
+        LocationNP.setState(IPS_OK);
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP[LOCATION_ELEVATION].setValue(elevation);
         //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         // Always save geographic coord config immediately.
         saveConfig(true, "GEOGRAPHIC_COORD");
@@ -1771,9 +1772,9 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
     }
     else
     {
-        LocationNP.s = IPS_ALERT;
+        LocationNP.setState(IPS_ALERT);
         //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         return false;
     }

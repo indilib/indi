@@ -1312,11 +1312,11 @@ bool LX200Telescope::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply( );
         return true;
     }
 
@@ -1327,8 +1327,10 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
+        double value = 0;
         snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        f_scansexa(lat_sexagesimal, &value);
+        LocationNP[LOCATION_LATITUDE].setValue(value);
     }
 
     if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
@@ -1338,24 +1340,28 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
+        double value = 0;
         snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        f_scansexa(lng_sexagesimal, &value);
+        LocationNP[LOCATION_LONGITUDE].setValue(value);
+
         // JM 2024.02.05: INDI Longitude MUST be 0 to +360 eastward
         // We cannot use cartographic format in the INDI drivers!
-        if (LocationNP.np[LOCATION_LONGITUDE].value < 0)
+        if (LocationNP[LOCATION_LONGITUDE].getValue() < 0)
         {
-            LocationNP.np[LOCATION_LONGITUDE].value += 360;
-            fs_sexa(lng_sexagesimal, LocationNP.np[LOCATION_LONGITUDE].value, 2, 36000);
+
+            LocationNP[LOCATION_LONGITUDE].setValue(360);
+            fs_sexa(lng_sexagesimal, LocationNP[LOCATION_LONGITUDE].getValue(), 2, 36000);
         }
     }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude (0 to +360 Eastwards) %s (%g)",
               lat_sexagesimal,
-              LocationN[LOCATION_LATITUDE].value,
+              LocationNP[LOCATION_LATITUDE].getValue(),
               lng_sexagesimal,
-              LocationN[LOCATION_LONGITUDE].value);
+              LocationNP[LOCATION_LONGITUDE].getValue());
 
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 

@@ -978,11 +978,11 @@ bool LX200_TeenAstro::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;  // Kuwait - Jasem's home!
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(9.5);  // Kuwait - Jasem's home!
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
         return true;
     }
 
@@ -994,9 +994,9 @@ bool LX200_TeenAstro::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0;
+            LocationNP[LOCATION_LATITUDE].setValue(dd + mm / 60.0);
         else
-            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
+            LocationNP[LOCATION_LATITUDE].setValue(dd - mm / 60.0);
     }
     if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
@@ -1006,22 +1006,22 @@ bool LX200_TeenAstro::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0);
+            LocationNP[LOCATION_LONGITUDE].setValue(360.0 - (dd + mm / 60.0));
         else
-            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0) * -1.0;
+            LocationNP[LOCATION_LONGITUDE].setValue((dd - mm / 60.0) * -1.0);
     }
-    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationNP[LOCATION_LATITUDE].getValue(),
+               LocationNP[LOCATION_LONGITUDE].getValue());
 
     if (getSiteElevation(&elev))
     {
-        LocationNP.np[LOCATION_ELEVATION].value = elev;
+        LocationNP[LOCATION_ELEVATION].setValue(elev);
     }
     else
     {
         LOG_ERROR("Error getting site elevation");
     }
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
     saveConfig(true, "GEOGRAPHIC_COORD");
 
     return true;
@@ -1100,9 +1100,9 @@ bool LX200_TeenAstro::getLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0;
+            LocationNP[LOCATION_LATITUDE].setValue(dd + mm / 60.0);
         else
-            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
+            LocationNP[LOCATION_LATITUDE].setValue(dd - mm / 60.0);
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
@@ -1113,20 +1113,20 @@ bool LX200_TeenAstro::getLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0);
+            LocationNP[LOCATION_LONGITUDE].setValue(360.0 - (dd + mm / 60.0));
         else
-            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0) * -1.0;
+            LocationNP[LOCATION_LONGITUDE].setValue((dd - mm / 60.0) * -1.0);
     }
     if (getSiteElevation(&elev))
     {
-        LocationNP.np[LOCATION_ELEVATION].value = elev;
+        LocationNP[LOCATION_ELEVATION].setValue(elev);
     }
     else
     {
         LOG_ERROR("Error getting site elevation");
     }
 
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
     return true;
 }
 

@@ -3351,26 +3351,26 @@ void LX200Pulsar2::getBasicData()
 
 bool LX200Pulsar2::storeScopeLocation()
 {
-    LocationNP.s = IPS_OK;
+    LocationNP.setState(IPS_OK);
     double lat = 29.5; // simulation default
     double lon = 48.0; // simulation default
 
     if (isSimulation() || Pulsar2Commands::getSiteLatitudeLongitude(PortFD, &lat, &lon))
     {
-        LocationNP.np[0].value = lat;
+        LocationNP[LOCATION_LATITUDE].setValue(lat);
         double stdLon = (lon < 0 ? 360.0 + lon : lon);
-        LocationNP.np[1].value = stdLon;
+        LocationNP[LOCATION_LONGITUDE].setValue(stdLon);
 
-        LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
-                   LocationN[LOCATION_LONGITUDE].value);
+        LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationNP[LOCATION_LATITUDE].getValue(),
+                   LocationNP[LOCATION_LONGITUDE].getValue());
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
         saveConfig(true, "GEOGRAPHIC_COORD");
         if (LX200Pulsar2::verboseLogging) LOGF_INFO("Controller location read and stored; lat: %+f, lon: %+f", lat, stdLon);
     }
     else
     {
-        LocationNP.s = IPS_ALERT;
+        LocationNP.setState(IPS_ALERT);
         IDMessage(getDeviceName(), "Failed to get site lat/lon from Pulsar controller.");
         return false;
     }

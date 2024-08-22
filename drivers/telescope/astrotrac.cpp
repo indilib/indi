@@ -435,7 +435,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         deEncoder = 0;
 
     // Northern Hemisphere
-    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (East, looking West)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
@@ -466,7 +466,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         }
     }
 
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     ra = range24(lst - ha);
 
     char RAStr[32] = {0}, DecStr[32] = {0};
@@ -484,10 +484,10 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, double &deEncoder)
 {
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     double dHA = rangeHA(lst - ra);
     // Northern Hemisphere
-    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (East, looking West)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
@@ -678,7 +678,7 @@ bool AstroTrac::ReadScopeStatus()
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
-        double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
         double dHA = rangeHA(lst - skyRA);
         setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
 

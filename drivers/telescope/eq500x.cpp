@@ -131,7 +131,7 @@ const char *EQ500X::getDefautName()
 
 double EQ500X::getLST()
 {
-    return get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    return get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
 }
 
 void EQ500X::resetSimulation()
@@ -233,14 +233,14 @@ bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
     if (isConnected() && !getCurrentMechanicalPosition(currentMechPosition) && currentMechPosition.atParkingPosition())
     {
         // HACK: Longitude used by getLST is updated after this function returns, so hack a new longitude first
-        double const prevLongitude = LocationN[LOCATION_LONGITUDE].value;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
+        double const prevLongitude = LocationNP[LOCATION_LONGITUDE].getValue();
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
 
         double const LST = getLST();
         Sync(LST - 6, currentMechPosition.DECsky());
         LOGF_INFO("Location updated: mount considered parked, synced to LST %gh.", LST);
 
-        LocationN[LOCATION_LONGITUDE].value = prevLongitude;
+        LocationNP[LOCATION_LONGITUDE].setValue(prevLongitude);
     }
 
     return true;

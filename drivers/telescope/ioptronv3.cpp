@@ -210,10 +210,10 @@ bool IOptronV3::initProperties()
 
     addAuxControls();
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
-    driver->setSimLongLat(LocationN[LOCATION_LONGITUDE].value > 180 ? LocationN[LOCATION_LONGITUDE].value - 360 :
-                          LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value);
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
+    driver->setSimLongLat(LocationNP[LOCATION_LONGITUDE].getValue() > 180 ? LocationNP[LOCATION_LONGITUDE].getValue() - 360 :
+                              LocationNP[LOCATION_LONGITUDE].getValue(), LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -332,16 +332,16 @@ void IOptronV3::getStartupData()
     double longitude = 0, latitude = 0;
     if (driver->getStatus(&scopeInfo))
     {
-        LocationN[LOCATION_LATITUDE].value  = scopeInfo.latitude;
+        LocationNP[LOCATION_LATITUDE].setValue(scopeInfo.latitude);
         // Convert to INDI standard longitude (0 to 360 Eastward)
-        LocationN[LOCATION_LONGITUDE].value = (scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LONGITUDE].setValue((scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         char l[32] = {0}, L[32] = {0};
-        fs_sexa(l, LocationN[LOCATION_LATITUDE].value, 3, 3600);
-        fs_sexa(L, LocationN[LOCATION_LONGITUDE].value, 4, 3600);
+        fs_sexa(l, LocationNP[LOCATION_LATITUDE].getValue(), 3, 3600);
+        fs_sexa(L, LocationNP[LOCATION_LONGITUDE].getValue(), 4, 3600);
 
         LOGF_INFO("Mount Location: Lat %.32s - Long %.32s", l, L);
 
@@ -350,11 +350,11 @@ void IOptronV3::getStartupData()
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
     IOP_MB_STATE action;
@@ -370,8 +370,8 @@ void IOptronV3::getStartupData()
                   MeridianLimitNP[0].getValue(), MeridianActionSP[IOP_MB_STOP].getState() == ISS_ON ? "stop" : "flip");
     }
 
-    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
-    double parkAL = LocationN[LOCATION_LATITUDE].value;
+    double parkAZ = LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180;
+    double parkAL = LocationNP[LOCATION_LATITUDE].getValue();
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
@@ -1181,9 +1181,9 @@ bool IOptronV3::SetDefaultPark()
     // By default azimuth 0
     SetAxis1Park(0);
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
     driver->setParkAz(0);
-    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
+    driver->setParkAlt(LocationNP[LOCATION_LATITUDE].getValue());
     return true;
 }
 

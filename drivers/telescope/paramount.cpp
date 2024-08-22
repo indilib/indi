@@ -154,8 +154,8 @@ bool Paramount::initProperties()
 
     addAuxControls();
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
     return true;
 }
 
@@ -556,7 +556,7 @@ bool Paramount::Sync(double ra, double dec)
 bool Paramount::Park()
 {
     double targetHA = GetAxis1Park();
-    targetRA  = range24(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - targetHA);
+    targetRA  = range24(get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue()) - targetHA);
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
@@ -748,7 +748,7 @@ bool Paramount::SetCurrentPark()
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
         return false;
 
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     double ha  = get_local_hour_angle(lst, currentRA);
 
     SetAxis1Park(ha);
@@ -763,7 +763,7 @@ bool Paramount::SetDefaultPark()
     SetAxis1Park(0);
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    SetAxis2Park((LocationNP[LOCATION_LATITUDE].getValue() > 0) ? 90 : -90);
 
     return true;
 }

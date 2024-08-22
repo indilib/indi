@@ -579,7 +579,7 @@ bool LX200AstroPhysicsV2::ISNewNumber(const char *dev, const char *name, double 
         if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
             return false;
 
-        double lng = LocationN[LOCATION_LONGITUDE].value;
+        double lng = LocationNP[LOCATION_LONGITUDE].getValue();
         double lst = get_local_sidereal_time(lng);
         double ra = lst - HourangleCoordsN[0].value;
         double dec = HourangleCoordsN[1].value;
@@ -997,7 +997,7 @@ bool LX200AstroPhysicsV2::ReadScopeStatus()
         // hope this return doesn't delay the time & location. If it does return true?
         return false;
     }
-    double lng = LocationN[LOCATION_LONGITUDE].value;
+    double lng = LocationNP[LOCATION_LONGITUDE].getValue();
     double lst = get_local_sidereal_time(lng);
     double val = lst;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0))
@@ -1857,7 +1857,7 @@ bool LX200AstroPhysicsV2::calcParkPosition(ParkPosition pos, double * parkAlt, d
         case PARK_PARK1:
             LOG_INFO("Computing PARK1 position...");
             *parkAlt = 0;
-            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 359.1 : 180.1;
+            *parkAz = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 359.1 : 180.1;
             break;
 
         // Park 2
@@ -1875,8 +1875,8 @@ bool LX200AstroPhysicsV2::calcParkPosition(ParkPosition pos, double * parkAlt, d
         // wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 to Az sets PARK3
         //        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case PARK_PARK3:
-            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
-            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0.1 : 179.9;
+            *parkAlt = fabs(LocationNP[LOCATION_LATITUDE].getValue());
+            *parkAz = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 0.1 : 179.9;
             LOG_INFO("Computing PARK3 position");
             break;
 
@@ -1886,7 +1886,7 @@ bool LX200AstroPhysicsV2::calcParkPosition(ParkPosition pos, double * parkAlt, d
         case PARK_PARK4:
             LOG_INFO("Computing PARK4 position...");
             *parkAlt = 0;
-            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 180.1 : 359.1;
+            *parkAz = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 180.1 : 359.1;
             break;
 
         default:

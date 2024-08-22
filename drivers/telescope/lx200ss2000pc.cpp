@@ -431,10 +431,10 @@ bool LX200SS2000PC::SetCurrentPark()
 bool LX200SS2000PC::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+    SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 0 : 180);
 
     // Alt = Latitude
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }

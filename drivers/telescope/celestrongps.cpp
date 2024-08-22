@@ -368,16 +368,16 @@ bool CelestronGPS::updateProperties()
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
 
         // InitPark sets TrackState to IDLE or PARKED so this is the earliest we can
@@ -459,10 +459,10 @@ bool CelestronGPS::updateProperties()
             double longitude, latitude;
             if (driver.get_location(&longitude, &latitude))
             {
-                LocationNP.np[LOCATION_LATITUDE].value = latitude;
-                LocationNP.np[LOCATION_LONGITUDE].value = longitude;
-                LocationNP.np[LOCATION_ELEVATION].value = 0;
-                LocationNP.s = IPS_OK;
+                LocationNP[LOCATION_LATITUDE].setValue(latitude);
+                LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+                LocationNP[LOCATION_ELEVATION].setValue(0);
+                LocationNP.setState(IPS_OK);
                 LOGF_DEBUG("Mount latitude %8.4f longitude %8.4f", latitude, longitude);
             }
         }
@@ -734,7 +734,7 @@ bool CelestronGPS::ReadScopeStatus()
             // manage version and hemisphere nonsense
             // HC versions less than 5.24 reverse the side of pier if the mount
             // is in the Southern hemisphere.  StarSense doesn't
-            if (LocationN[LOCATION_LATITUDE].value < 0)
+            if (LocationNP[LOCATION_LATITUDE].getValue() < 0)
             {
                 if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
                 {
@@ -765,7 +765,7 @@ bool CelestronGPS::ReadScopeStatus()
         }
 
         LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
-                   LocationN[LOCATION_LATITUDE].value,
+                   LocationNP[LOCATION_LATITUDE].getValue(),
                    sop, psc);
     }
 

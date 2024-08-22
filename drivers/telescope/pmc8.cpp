@@ -58,7 +58,7 @@ static std::unique_ptr<PMC8> scope(new PMC8());
 PMC8::PMC8() : GI(this)
 {
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    if (LocationN[LOCATION_LATITUDE].value < 0)
+    if (LocationNP[LOCATION_LATITUDE].getValue() < 0)
         currentDEC = -90;
     else
         currentDEC = 90;
@@ -293,8 +293,8 @@ void PMC8::getStartupData()
 
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
-    double longitude = LocationN[LOCATION_LONGITUDE].value;
-    double latitude = LocationN[LOCATION_LATITUDE].value;
+    double longitude = LocationNP[LOCATION_LONGITUDE].getValue();
+    double latitude = LocationNP[LOCATION_LATITUDE].getValue();
     if (latitude < 0)
         currentDEC = -90;
     else

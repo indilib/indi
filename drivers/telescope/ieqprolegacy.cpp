@@ -151,8 +151,8 @@ bool IEQProLegacy::initProperties()
     if (strstr(getDeviceName(), "CEM40") || strstr(getDeviceName(), "GEM45"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
     return true;
 }
 
@@ -243,37 +243,37 @@ void IEQProLegacy::getStartupData()
 
         LOGF_INFO("Mount Longitude %g Latitude %g", longitude, latitude);
 
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply(nullptr);
 
         saveConfig(true, "GEOGRAPHIC_COORD");
     }
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
     }
 
     if (isSimulation())
@@ -911,7 +911,7 @@ bool IEQProLegacy::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }

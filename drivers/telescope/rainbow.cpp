@@ -1585,11 +1585,11 @@ bool Rainbow::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
         return true;
     }
 
@@ -1630,15 +1630,15 @@ bool Rainbow::sendScopeLocation()
 
     // Only update if different from current values
     // and then immediately save to config.
-    if (std::abs(LocationN[LOCATION_LONGITUDE].value - longitude) > 0.001 ||
-            std::abs(LocationN[LOCATION_LATITUDE].value - latitude) > 0.001)
+    if (std::abs(LocationNP[LOCATION_LONGITUDE].getValue() - longitude) > 0.001 ||
+        std::abs(LocationNP[LOCATION_LATITUDE].getValue() - latitude) > 0.001)
     {
-        LocationN[LOCATION_LATITUDE].value = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
-                   LocationN[LOCATION_LONGITUDE].value);
-        IDSetNumber(&LocationNP, nullptr);
-        saveConfig(true, LocationNP.name);
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationNP[LOCATION_LATITUDE].getValue(),
+                   LocationNP[LOCATION_LONGITUDE].getValue());
+        LocationNP.apply();
+        saveConfig(true, LocationNP.getName());
     }
 
     return true;

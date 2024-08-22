@@ -119,17 +119,17 @@ bool LX200Classic::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             // Default values are poinitng to North or South Pole in AltAz coordinates.
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
 
         return true;
@@ -486,10 +486,10 @@ bool LX200Classic::SetCurrentPark()
 bool LX200Classic::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+    SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 0 : 180);
 
     // Alt = Latitude
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }

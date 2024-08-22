@@ -769,8 +769,7 @@ class Telescope : public DefaultDevice
         ISwitch CoordS[4];
 
         // A number vector that stores latitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        INDI::PropertyNumber LocationNP {3};
 
         // A Switch in the client interface to park the scope
         ISwitchVectorProperty ParkSP;

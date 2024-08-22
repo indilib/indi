@@ -677,17 +677,17 @@ bool LX200_OnStep::updateProperties()
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
 
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
 
         double longitude = -1000, latitude = -1000;
@@ -5179,11 +5179,11 @@ bool LX200_OnStep::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
         return true;
     }
     if (OSHighPrecision)
@@ -5199,16 +5199,20 @@ bool LX200_OnStep::sendScopeLocation()
             }
             else
             {
+                double value = 0;
                 OSHighPrecision = false; //Don't check using :GtH again
                 snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-                f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+                f_scansexa(lat_sexagesimal, &value);
+                LocationNP[LOCATION_LATITUDE].setValue(value);
             }
         }
         else
         {
+            double value = 0;
             //Got High precision coordinates
             snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            f_scansexa(lat_sexagesimal, &value);
+            LocationNP[LOCATION_LATITUDE].setValue(value);
         }
     }
     if (!OSHighPrecision) //Bypass check
@@ -5220,8 +5224,10 @@ bool LX200_OnStep::sendScopeLocation()
         }
         else
         {
+            double value = 0;
             snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            f_scansexa(lat_sexagesimal, &value);
+            LocationNP[LOCATION_LATITUDE].setValue(value);
         }
     }
 
@@ -5238,16 +5244,20 @@ bool LX200_OnStep::sendScopeLocation()
             }
             else
             {
+                double value = 0;
                 OSHighPrecision = false;
                 snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-                f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+                f_scansexa(lng_sexagesimal, &value);
+                LocationNP[LOCATION_LONGITUDE].setValue(value);
             }
         }
         else
         {
+            double value = 0;
             //Got High precision coordinates
             snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+            f_scansexa(lng_sexagesimal, &value);
+            LocationNP[LOCATION_LONGITUDE].setValue(value);
         }
     }
     if(!OSHighPrecision) //Not using high precision
@@ -5259,18 +5269,21 @@ bool LX200_OnStep::sendScopeLocation()
         }
         else
         {
+            double value = 0;
             snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+
+            f_scansexa(lng_sexagesimal, &value);
+            LocationNP[LOCATION_LONGITUDE].setValue(value);
         }
     }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
               lat_sexagesimal,
-              LocationN[LOCATION_LATITUDE].value,
+              LocationNP[LOCATION_LATITUDE].getValue(),
               lng_sexagesimal,
-              LocationN[LOCATION_LONGITUDE].value);
+              LocationNP[LOCATION_LONGITUDE].getValue());
 
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 

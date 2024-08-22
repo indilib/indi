@@ -155,14 +155,14 @@ bool SynscanDriver::updateProperties()
         if (InitPark())
         {
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             SetAxis1Park(359);
-            SetAxis2Park(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
         }
     }
     else
@@ -764,7 +764,7 @@ bool SynscanDriver::SetDefaultPark()
     // By default az to north, and alt to pole
     LOG_DEBUG("Setting Park Data to Default.");
     SetAxis1Park(359);
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -1011,9 +1011,9 @@ bool SynscanDriver::sendLocation()
 
     if (isSimulation())
     {
-        LocationN[LOCATION_LATITUDE].value  = 29.5;
-        LocationN[LOCATION_LONGITUDE].value = 48;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48);
+        LocationNP.apply();
         return true;
     }
 
@@ -1052,9 +1052,9 @@ bool SynscanDriver::sendLocation()
         lat = lat * -1;
     if (h == 1)
         lon = 360 - lon;
-    LocationN[LOCATION_LATITUDE].value  = lat;
-    LocationN[LOCATION_LONGITUDE].value = lon;
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP[LOCATION_LATITUDE].setValue(lat);
+    LocationNP[LOCATION_LONGITUDE].setValue(lon);
+    LocationNP.apply();
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 
@@ -1110,9 +1110,9 @@ bool SynscanDriver::updateLocation(double latitude, double longitude, double ele
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
 
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP[LOCATION_LATITUDE].setValue(latitude);
+    LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+    LocationNP.apply();
 
     if (isSimulation())
     {

@@ -67,7 +67,7 @@ bool LX200FS2::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
 
             if (isParked())
             {
@@ -80,9 +80,9 @@ bool LX200FS2::updateProperties()
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
     }
     else
@@ -363,7 +363,7 @@ bool LX200FS2::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }

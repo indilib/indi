@@ -1686,7 +1686,7 @@ void LX200Gemini::syncSideOfPier()
     // see https://www.indilib.org/forum/general/6785-side-of-pier-problem-bug.html?start=12#52492
     // for a description of the problem and the proposed fix
     //
-    auto lst = get_local_sidereal_time(this->LocationN[LOCATION_LONGITUDE].value);
+    auto lst = get_local_sidereal_time(this->LocationNP[LOCATION_LONGITUDE].getValue());
     auto ha = rangeHA(lst - currentRA);
     auto pointingState = PIER_UNKNOWN;
 

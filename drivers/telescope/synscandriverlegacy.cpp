@@ -1129,9 +1129,9 @@ bool SynscanLegacyDriver::ReadLocation()
 
     if (isSimulation())
     {
-        LocationN[LOCATION_LATITUDE].value  = 29.5;
-        LocationN[LOCATION_LONGITUDE].value = 48;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48);
+        LocationNP.apply();
         ReadLatLong = false;
         return true;
     }
@@ -1196,9 +1196,9 @@ bool SynscanLegacyDriver::ReadLocation()
                 lat = lat * -1;
             if (h == 1)
                 lon = 360 - lon;
-            LocationN[LOCATION_LATITUDE].value  = lat;
-            LocationN[LOCATION_LONGITUDE].value = lon;
-            IDSetNumber(&LocationNP, nullptr);
+            LocationNP[LOCATION_LATITUDE].setValue(lat);
+            LocationNP[LOCATION_LONGITUDE].setValue(lon);
+            LocationNP.apply();
 
             saveConfig(true, "GEOGRAPHIC_COORD");
 

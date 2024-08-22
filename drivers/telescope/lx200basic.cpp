@@ -88,8 +88,8 @@ bool LX200Basic::initProperties()
 
     addAuxControls();
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
 
     return true;
 }

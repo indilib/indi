@@ -166,8 +166,8 @@ bool ScopeSim::updateProperties()
             {
                 // at this point there is a valid ParkData.xml available
 
-                alignment.latitude = Angle(LocationN[LOCATION_LATITUDE].value);
-                alignment.longitude = Angle(LocationN[LOCATION_LONGITUDE].value);
+                alignment.latitude = Angle(LocationNP[LOCATION_LATITUDE].getValue());
+                alignment.longitude = Angle(LocationNP[LOCATION_LONGITUDE].getValue());
                 currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
                 currentDEC = ParkPositionN[AXIS_DE].value;
                 Sync(currentRA, currentDEC);
@@ -682,7 +682,7 @@ IPState ScopeSim::ExecuteHomeAction(TelescopeHomeAction action)
         case HOME_FIND:
             LOG_INFO("Finding home position...");
             m_Home[AXIS_RA] = alignment.lst().Hours();
-            m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+            m_Home[AXIS_DE] = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
             Goto(m_Home[AXIS_RA], m_Home[AXIS_DE]);
             return IPS_BUSY;
 
@@ -698,7 +698,7 @@ IPState ScopeSim::ExecuteHomeAction(TelescopeHomeAction action)
             if (m_Home[AXIS_RA] == 0)
             {
                 m_Home[AXIS_RA] = 0;
-                m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+                m_Home[AXIS_DE] = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
             }
 
             // Home HA to home RA

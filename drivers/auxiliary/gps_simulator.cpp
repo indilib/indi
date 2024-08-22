@@ -71,9 +71,9 @@ IPState GPSSimulator::updateGPS()
 
     TimeTP.setState(IPS_OK);
 
-    LocationNP[LOCATION_LATITUDE].value  = 51.0;
-    LocationNP[LOCATION_LONGITUDE].value = 357.7;
-    LocationNP[LOCATION_ELEVATION].value = 72;
+    LocationNP[LOCATION_LATITUDE].setValue(51.0);
+    LocationNP[LOCATION_LONGITUDE].setValue(357.7);
+    LocationNP[LOCATION_ELEVATION].setValue(72);
 
     LocationNP.setState(IPS_OK);
 
