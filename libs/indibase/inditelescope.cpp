@@ -225,9 +225,9 @@ bool Telescope::initProperties()
 
     // Joystick motion control
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&MotionControlModeT[0], "MOTION_CONTROL_MODE_JOYSTICK", "4-Way Joystick", ISS_ON);
-    IUFillSwitch(&MotionControlModeT[1], "MOTION_CONTROL_MODE_AXES", "Two Separate Axes", ISS_OFF);
-    IUFillSwitchVector(&MotionControlModeTP, MotionControlModeT, 2, getDeviceName(), "MOTION_CONTROL_MODE", "Motion Control",
+    MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].fill("MOTION_CONTROL_MODE_JOYSTICK", "4-Way Joystick", ISS_ON);
+    MotionControlModeTP[MOTION_CONTROL_MODE_AXES].fill("MOTION_CONTROL_MODE_AXES", "Two Separate Axes", ISS_OFF);
+    MotionControlModeTP.fill(getDeviceName(), "MOTION_CONTROL_MODE", "Motion Control",
                        "Joystick", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Lock Axis
@@ -469,20 +469,20 @@ bool Telescope::updateProperties()
             {
                 if (useJoystick[0].getState() == ISS_ON)
                 {
-                    defineProperty(&MotionControlModeTP);
+                    defineProperty(MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
                     defineProperty(LockAxisSP);
                     loadConfig(true, "LOCK_AXIS");
                 }
                 else
                 {
-                    deleteProperty(MotionControlModeTP.name);
+                    deleteProperty(MotionControlModeTP);
                     deleteProperty(LockAxisSP);
                 }
             }
             else
             {
-                deleteProperty(MotionControlModeTP.name);
+                deleteProperty(MotionControlModeTP);
                 deleteProperty(LockAxisSP);
             }
         }
@@ -638,7 +638,7 @@ bool Telescope::saveConfigItems(FILE *fp)
         TrackRateNP.save(fp);
 
     controller->saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &MotionControlModeTP);
+    MotionControlModeTP.save(fp);
     LockAxisSP.save(fp);
     SimulatePierSideSP.save(fp);
 
@@ -1527,14 +1527,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Joystick Motion Control Mode
         ///////////////////////////////////
-        if (!strcmp(name, MotionControlModeTP.name))
+        if (MotionControlModeTP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MotionControlModeTP, states, names, n);
-            MotionControlModeTP.s = IPS_OK;
-            IDSetSwitch(&MotionControlModeTP, nullptr);
-            if (MotionControlModeT[MOTION_CONTROL_JOYSTICK].s == ISS_ON)
+            MotionControlModeTP.update(states, names, n);
+            MotionControlModeTP.setState(IPS_OK);
+            MotionControlModeTP.apply();
+            if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 4-way joystick.");
-            else if (MotionControlModeT[MOTION_CONTROL_AXES].s == ISS_ON)
+            else if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 2 separate axes.");
             else
                 DEBUGF(Logger::DBG_WARNING, "Motion control is set to unknown value %d!", n);
@@ -1565,12 +1565,12 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         auto useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick && useJoystick[0].getState() == ISS_ON)
         {
-            defineProperty(&MotionControlModeTP);
+            defineProperty(MotionControlModeTP);
             defineProperty(LockAxisSP);
         }
         else
         {
-            deleteProperty(MotionControlModeTP.name);
+            deleteProperty(MotionControlModeTP);
             deleteProperty(LockAxisSP);
         }
 
@@ -2414,7 +2414,7 @@ void Telescope::processButton(const char *button_n, ISState state)
 
 void Telescope::processJoystick(const char *joystick_n, double mag, double angle)
 {
-    if (MotionControlModeTP.sp[MOTION_CONTROL_JOYSTICK].s == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
+    if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
     {
         if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
         {
@@ -2430,7 +2430,7 @@ void Telescope::processJoystick(const char *joystick_n, double mag, double angle
 
 void Telescope::processAxis(const char *axis_n, double value)
 {
-    if (MotionControlModeTP.sp[MOTION_CONTROL_AXES].s == ISS_ON)
+    if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
     {
         if (!strcmp(axis_n, "MOTIONDIRNS") || !strcmp(axis_n, "MOTIONDIRWE"))
         {

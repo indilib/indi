@@ -840,10 +840,12 @@ class Telescope : public DefaultDevice
         INDI::PropertySwitch DomePolicySP {2};
 
         // Switch for choosing between motion control by 4-way joystick or two separate axes
-        ISwitchVectorProperty MotionControlModeTP;
-        ISwitch MotionControlModeT[2];
+        INDI::PropertySwitch MotionControlModeTP {2};
+        // ISwitch /*MotionControlModeT*/[2];
         enum
         {
+            MOTION_CONTROL_MODE_JOYSTICK,
+            MOTION_CONTROL_MODE_AXES,
             MOTION_CONTROL_JOYSTICK,
             MOTION_CONTROL_AXES
         };
