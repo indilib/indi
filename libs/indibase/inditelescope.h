@@ -849,9 +849,12 @@ class Telescope : public DefaultDevice
         };
 
         // Lock Joystick Axis to one direction only
-        ISwitch LockAxisS[2];
-        ISwitchVectorProperty LockAxisSP;
-
+        INDI::PropertySwitch LockAxisSP {2};
+        enum
+        {
+            LOCK_AXIS_1,
+            LOCK_AXIS_2
+        };
         // Pier Side
         INDI::PropertySwitch PierSideSP {2};
 

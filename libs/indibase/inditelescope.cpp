@@ -232,9 +232,9 @@ bool Telescope::initProperties()
 
     // Lock Axis
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&LockAxisS[0], "LOCK_AXIS_1", "West/East", ISS_OFF);
-    IUFillSwitch(&LockAxisS[1], "LOCK_AXIS_2", "North/South", ISS_OFF);
-    IUFillSwitchVector(&LockAxisSP, LockAxisS, 2, getDeviceName(), "JOYSTICK_LOCK_AXIS", "Lock Axis", "Joystick", IP_RW,
+    LockAxisSP[LOCK_AXIS_1].fill("LOCK_AXIS_1", "West/East", ISS_OFF);
+    LockAxisSP[LOCK_AXIS_2].fill("LOCK_AXIS_2", "North/South", ISS_OFF);
+    LockAxisSP.fill(getDeviceName(), "JOYSTICK_LOCK_AXIS", "Lock Axis", "Joystick", IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
@@ -471,19 +471,19 @@ bool Telescope::updateProperties()
                 {
                     defineProperty(&MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
-                    defineProperty(&LockAxisSP);
+                    defineProperty(LockAxisSP);
                     loadConfig(true, "LOCK_AXIS");
                 }
                 else
                 {
                     deleteProperty(MotionControlModeTP.name);
-                    deleteProperty(LockAxisSP.name);
+                    deleteProperty(LockAxisSP);
                 }
             }
             else
             {
                 deleteProperty(MotionControlModeTP.name);
-                deleteProperty(LockAxisSP.name);
+                deleteProperty(LockAxisSP);
             }
         }
     }
@@ -639,7 +639,7 @@ bool Telescope::saveConfigItems(FILE *fp)
 
     controller->saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MotionControlModeTP);
-    IUSaveConfigSwitch(fp, &LockAxisSP);
+    LockAxisSP.save(fp);
     SimulatePierSideSP.save(fp);
 
     return true;
@@ -1544,14 +1544,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Joystick Lock Axis
         ///////////////////////////////////
-        if (!strcmp(name, LockAxisSP.name))
+        if (LockAxisSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&LockAxisSP, states, names, n);
-            LockAxisSP.s = IPS_OK;
-            IDSetSwitch(&LockAxisSP, nullptr);
-            if (LockAxisS[AXIS_RA].s == ISS_ON)
+            LockAxisSP.update(states, names, n);
+            LockAxisSP.setState(IPS_OK);
+            LockAxisSP.apply();
+            if (LockAxisSP[AXIS_RA].getState() == ISS_ON)
                 LOG_INFO("Joystick motion is locked to West/East axis only.");
-            else if (LockAxisS[AXIS_DE].s == ISS_ON)
+            else if (LockAxisSP[AXIS_DE].getState() == ISS_ON)
                 LOG_INFO("Joystick motion is locked to North/South axis only.");
             else
                 LOG_INFO("Joystick motion is unlocked.");
@@ -1566,12 +1566,12 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         if (useJoystick && useJoystick[0].getState() == ISS_ON)
         {
             defineProperty(&MotionControlModeTP);
-            defineProperty(&LockAxisSP);
+            defineProperty(LockAxisSP);
         }
         else
         {
             deleteProperty(MotionControlModeTP.name);
-            deleteProperty(LockAxisSP.name);
+            deleteProperty(LockAxisSP);
         }
 
     }
@@ -2532,7 +2532,7 @@ void Telescope::processNSWE(double mag, double angle)
     else if (mag > 0.9)
     {
         // Only one axis can move at a time
-        if (LockAxisS[AXIS_RA].s == ISS_ON)
+        if (LockAxisSP[AXIS_RA].getState() == ISS_ON)
         {
             // West
             if (angle >= 90 && angle <= 270)
@@ -2541,7 +2541,7 @@ void Telescope::processNSWE(double mag, double angle)
             else
                 angle = 0;
         }
-        else if (LockAxisS[AXIS_DE].s == ISS_ON)
+        else if (LockAxisSP[AXIS_DE].getState() == ISS_ON)
         {
             // North
             if (angle >= 0 && angle <= 180)
