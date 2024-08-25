@@ -1928,22 +1928,24 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
     offsetAngle[AXIS_ALT] = (targetMountAxisCoordinates.altitude - currentAltAz.altitude) * 3600;
 
     int32_t targetSteps[2] = {0, 0};
+    int32_t offsetSteps[2] = {0, 0};
     double trackRates[2] = {0, 0};
 
+    offsetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS1, offsetAngle[AXIS_AZ]);
+    offsetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS2, offsetAngle[AXIS_AZ]);
     // Only apply tracking IF we're still on the same side of the curve
     // If we switch over, let's settle for a bit
     // This seems to not be required. To be removed after extensive testing
     // if (m_LastOffset[AXIS_AZ] * offsetSteps[AXIS_AZ] >= 0 || m_OffsetSwitchSettle[AXIS_AZ]++ > 3)
     {
         m_OffsetSwitchSettle[AXIS_AZ] = 0;
-        m_LastOffset[AXIS_AZ] = offsetAngle[AXIS_AZ];
+        m_LastOffset[AXIS_AZ] = offsetSteps[AXIS_AZ];
         targetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS1, AzimuthToDegrees(targetMountAxisCoordinates.azimuth));
         // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
         trackRates[AXIS_AZ] = predRate[AXIS_AZ] + m_Controllers[AXIS_AZ]->calculate(0, -offsetAngle[AXIS_AZ]);
 
-        LOGF_DEBUG("Predicted AZ Rate: %8.2f", predRate[AXIS_AZ]);
         LOGF_DEBUG("Tracking AZ Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis1Steps, targetSteps[AXIS_AZ],
-                   offsetAngle[AXIS_AZ], trackRates[AXIS_AZ]);
+                   offsetSteps[AXIS_AZ], trackRates[AXIS_AZ]);
 #ifdef DEBUG_PID
         LOGF_DEBUG("Tracking AZ P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
                    m_Controllers[AXIS_AZ]->propotionalTerm(),
@@ -1967,10 +1969,9 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
         // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
         trackRates[AXIS_ALT] = predRate[AXIS_ALT] + m_Controllers[AXIS_ALT]->calculate(0, -offsetAngle[AXIS_ALT]);
 
-        LOGF_DEBUG("Predicted AL Rate: %8.2f", predRate[AXIS_ALT]);
         LOGF_DEBUG("Tracking AL Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis2Steps,
                    targetSteps[AXIS_ALT],
-                   offsetAngle[AXIS_ALT], trackRates[AXIS_ALT]);
+                   offsetSteps[AXIS_ALT], trackRates[AXIS_ALT]);
 #ifdef DEBUG_PID
         LOGF_DEBUG("Tracking AL P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
                    m_Controllers[AXIS_ALT]->propotionalTerm(),
@@ -1990,7 +1991,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
 double SkywatcherAPIMount::AzimuthToDegrees(double degree)
 {
     if (isNorthHemisphere())
-        return degree;
+        return range360(degree);
     else
         return range360(degree + 180);
 }
@@ -2001,7 +2002,7 @@ double SkywatcherAPIMount::AzimuthToDegrees(double degree)
 double SkywatcherAPIMount::DegreesToAzimuth(double degree)
 {
     if (isNorthHemisphere())
-        return degree;
+        return range360(degree);
     else
         return range360(degree + 180);
 }
