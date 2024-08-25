@@ -1602,9 +1602,15 @@ bool SkywatcherAPIMount::trackByRate(AXISID axis, double rate)
 
     m_LastTrackRate[axis] = rate;
 
-    if (rate == 0)
+    // If we are already stopped and rate is zero, we immediately return
+    if (AxesStatus[axis].FullStop && rate == 0)
+        return true;
+    // If rate is zero, or direction changed then we should stop.
+    else if (!AxesStatus[axis].FullStop && (rate == 0 || (AxesStatus[AXIS1].SlewingForward && rate < 0)
+                                            || (!AxesStatus[AXIS1].SlewingForward && rate > 0)))
     {
         SlowStop(axis);
+        LOGF_DEBUG("Tracking -> %s direction change.", (axis == AXIS1 ? "Axis 1" : "Axis 2"));
         return true;
     }
 
