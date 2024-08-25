@@ -226,14 +226,14 @@ bool SkywatcherAPIMount::initProperties()
     SnapPortSP.fill(getDeviceName(), "SNAP_PORT", "Snap Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PID Control
-    Axis1PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 1.1);
-    Axis1PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 500, 10, 0.01);
-    Axis1PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 500, 10, 0.65);
+    Axis1PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0);
+    Axis1PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 500, 10, 0);
+    Axis1PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 500, 10, 0);
     Axis1PIDNP.fill(getDeviceName(), "AXIS1_PID", "Axis1 PID", TRACKING_TAB, IP_RW, 60, IPS_IDLE);
 
-    Axis2PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0.75);
-    Axis2PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 100, 10, 0.01);
-    Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 0.13);
+    Axis2PIDNP[Propotional].fill("Propotional", "Propotional", "%.2f", 0.1, 100, 1, 0);
+    Axis2PIDNP[Derivative].fill("Derivative", "Derivative", "%.2f", 0, 100, 10, 0);
+    Axis2PIDNP[Integral].fill("Integral", "Integral", "%.2f", 0, 100, 10, 0);
     Axis2PIDNP.fill(getDeviceName(), "AXIS2_PID", "Axis2 PID", TRACKING_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dead Zone
@@ -1098,219 +1098,9 @@ void SkywatcherAPIMount::TimerHit()
             }
             else
             {
-                // Continue or start tracking
-                // Calculate where the mount needs to be in POLLMS time
-                // TODO may need to make this longer to get a meaningful result
-                //double JulianOffset = (getCurrentPollingPeriod() / 1000) / (24.0 * 60 * 60);
-                TelescopeDirectionVector TDV;
-                INDI::IHorizontalCoordinates AltAz { 0, 0 };
-
-                // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
-                // FIXME: This was not tested.
-                if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
-                {
-                    // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
-                    // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
-                    double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-                    m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
-                    m_TrackingRateTimer.restart();
-                }
-                else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
-                {
-                    double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
-                    m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
-                    m_TrackingRateTimer.restart();
-                }
-
-                auto ra = m_SkyTrackingTarget.rightascension + AxisOffsetNP[RAOffset].getValue() / 15.0;
-                auto de = m_SkyTrackingTarget.declination + AxisOffsetNP[DEOffset].getValue();
-                auto JDOffset = AxisOffsetNP[JulianOffset].getValue() / 86400.0;
-
-                if (TransformCelestialToTelescope(ra, de, JDOffset, TDV))
-                {
-                    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
-                    AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-                }
-                else
-                {
-                    INDI::IEquatorialCoordinates EquatorialCoordinates { ra, de };
-                    INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys() + JDOffset, &AltAz);
-                }
-
-                DEBUGF(DBG_SCOPE,
-                       "New Tracking Target AZ %lf° (%ld microsteps) AL %lf° (%ld microsteps) ",
-                       AltAz.azimuth,
-                       DegreesToMicrosteps(AXIS1, AltAz.azimuth),
-                       AltAz.altitude,
-                       DegreesToMicrosteps(AXIS2, AltAz.altitude));
-
-                // Calculate the auto-guiding delta degrees
-                double DeltaAlt = 0;
-                double DeltaAz = 0;
-
-                for (auto Iter = GuidingPulses.begin(); Iter != GuidingPulses.end(); )
-                {
-                    // We treat the guide calibration specially
-                    if (Iter->OriginalDuration == 1000)
-                    {
-                        DeltaAlt += Iter->DeltaAlt;
-                        DeltaAz += Iter->DeltaAz;
-                    }
-                    else
-                    {
-                        DeltaAlt += Iter->DeltaAlt / 2;
-                        DeltaAz += Iter->DeltaAz / 2;
-                    }
-                    Iter->Duration -= getCurrentPollingPeriod();
-
-                    if (Iter->Duration < static_cast<int>(getCurrentPollingPeriod()))
-                    {
-                        Iter = GuidingPulses.erase(Iter);
-                        if (Iter == GuidingPulses.end())
-                        {
-                            break;
-                        }
-                        continue;
-                    }
-                    ++Iter;
-                }
-
-                GuideDeltaAlt += DeltaAlt;
-                GuideDeltaAz += DeltaAz;
-
-                long SetPoint[2] = {0, 0}, Measurement[2] = {0, 0}, Error[2] = {0, 0};
-                double TrackingRate[2] = {0, 0};
-
-                SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz);
-                Measurement[AXIS1] = CurrentEncoders[AXIS1] - AxisOffsetNP[AZSteps].getValue() - ZeroPositionEncoders[AXIS1];
-
-                SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt);
-                Measurement[AXIS2] = CurrentEncoders[AXIS2] - AxisOffsetNP[ALSteps].getValue() - ZeroPositionEncoders[AXIS2];
-
-                // Going the long way round - send it the other way
-                while (SetPoint[AXIS1] > MicrostepsPerRevolution[AXIS1] / 2)
-                    SetPoint[AXIS1] -= MicrostepsPerRevolution[AXIS1];
-
-                while (SetPoint[AXIS2] > MicrostepsPerRevolution[AXIS2] / 2)
-                    SetPoint[AXIS2] -= MicrostepsPerRevolution[AXIS2];
-
-                Error[AXIS1] = SetPoint[AXIS1] - Measurement[AXIS1];
-                Error[AXIS2] = SetPoint[AXIS2] - Measurement[AXIS2];
-
-                auto Axis1CustomClockRate = Axis1TrackRateNP[TrackClockRate].getValue();
-
-
-                if (!AxesStatus[AXIS1].FullStop && (
-                            (Axis1CustomClockRate == 0 && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
-                                    (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > AxisDeadZoneNP[AXIS1].getValue())))) ||
-                            (Axis1CustomClockRate > 0 && Axis1TrackRateNP[TrackDirection].getValue() != m_LastCustomDirection[AXIS1])))
-                {
-                    m_LastCustomDirection[AXIS1] = Axis1TrackRateNP[TrackDirection].getValue();
-                    // Direction change whilst axis running
-                    // Abandon tracking for this clock tick
-                    LOG_DEBUG("Tracking -> AXIS1 direction change.");
-                    LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f",
-                               SetPoint[AXIS1],
-                               Measurement[AXIS1],
-                               Error[AXIS1],
-                               TrackingRate[AXIS1]);
-                    SlowStop(AXIS1);
-                }
-                else
-                {
-                    TrackingRate[AXIS1] = m_Controllers[AXIS1]->calculate(SetPoint[AXIS1], Measurement[AXIS1]);
-                    char Direction = TrackingRate[AXIS1] > 0 ? '0' : '1';
-                    TrackingRate[AXIS1] = std::fabs(TrackingRate[AXIS1]);
-                    if (TrackingRate[AXIS1] != 0)
-                    {
-                        auto clockRate = (StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]) * (AxisClockNP[AXIS1].getValue() / 100.0);
-
-                        if (Axis1CustomClockRate > 0)
-                        {
-                            clockRate = Axis1CustomClockRate;
-                            Direction = Axis1TrackRateNP[TrackDirection].getValue() == 0 ? '0' : '1';
-                        }
-
-                        LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
-                                   SetPoint[AXIS1],
-                                   Measurement[AXIS1],
-                                   Error[AXIS1],
-                                   TrackingRate[AXIS1],
-                                   clockRate,
-                                   Direction == '0' ? "Forward" : "Backward");
-#ifdef DEBUG_PID
-                        LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
-                                   m_Controllers[AXIS1]->propotionalTerm(),
-                                   m_Controllers[AXIS1]->integralTerm(),
-                                   m_Controllers[AXIS1]->derivativeTerm());
-#endif
-
-                        SetClockTicksPerMicrostep(AXIS1, clockRate);
-                        if (AxesStatus[AXIS1].FullStop)
-                        {
-                            LOG_DEBUG("Tracking -> AXIS1 restart.");
-                            SetAxisMotionMode(AXIS1, '1', Direction);
-                            StartAxisMotion(AXIS1);
-                        }
-                    }
-                }
-
-
-                auto Axis2CustomClockRate = Axis2TrackRateNP[TrackClockRate].getValue();
-
-                if (!AxesStatus[AXIS2].FullStop && (
-                            (Axis2CustomClockRate == 0 && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -AxisDeadZoneNP[AXIS2].getValue())) ||
-                                    (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > AxisDeadZoneNP[AXIS2].getValue())))) ||
-                            (Axis2CustomClockRate > 0 && Axis2TrackRateNP[TrackDirection].getValue() != m_LastCustomDirection[AXIS2])))
-                {
-                    m_LastCustomDirection[AXIS2] = Axis2TrackRateNP[TrackDirection].getValue();
-
-                    LOG_DEBUG("Tracking -> AXIS2 direction change.");
-                    LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f",
-                               SetPoint[AXIS2],
-                               Measurement[AXIS2],
-                               Error[AXIS2],
-                               TrackingRate[AXIS2]);
-                    SlowStop(AXIS2);
-                }
-                else
-                {
-                    TrackingRate[AXIS2] = m_Controllers[AXIS2]->calculate(SetPoint[AXIS2], Measurement[AXIS2]);
-                    char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
-                    TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
-                    if (TrackingRate[AXIS2] != 0)
-                    {
-                        auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2] * (AxisClockNP[AXIS2].getValue() / 100.0);
-
-                        if (Axis2CustomClockRate > 0)
-                        {
-                            clockRate = Axis2CustomClockRate;
-                            Direction = Axis2TrackRateNP[TrackDirection].getValue() == 0 ? '0' : '1';
-                        }
-
-                        LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
-                                   SetPoint[AXIS2],
-                                   Measurement[AXIS2],
-                                   Error[AXIS2],
-                                   TrackingRate[AXIS2],
-                                   clockRate,
-                                   Error[AXIS2] > 0 ? "Forward" : "Backward");
-#ifdef DEBUG_PID
-                        LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
-                                   m_Controllers[AXIS2]->propotionalTerm(),
-                                   m_Controllers[AXIS2]->integralTerm(),
-                                   m_Controllers[AXIS2]->derivativeTerm());
-#endif
-
-                        SetClockTicksPerMicrostep(AXIS2, clockRate);
-                        if (AxesStatus[AXIS2].FullStop)
-                        {
-                            LOG_DEBUG("Tracking -> AXIS2 restart.");
-                            SetAxisMotionMode(AXIS2, '1', Direction);
-                            StartAxisMotion(AXIS2);
-                        }
-                    }
-                }
+                // TODO add switch to select between them
+                //trackUsingPID();
+                trackUsingPredictiveRates();
             }
 
             break;
@@ -1789,15 +1579,464 @@ void SkywatcherAPIMount::resetTracking()
     m_TrackingRateTimer.restart();
     GuideDeltaAlt = 0;
     GuideDeltaAz = 0;
-    m_Controllers[AXIS_AZ].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 50, -50,
+    m_Controllers[AXIS_AZ].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 1000, -1000,
                                          Axis1PIDNP[Propotional].getValue(),
                                          Axis1PIDNP[Derivative].getValue(),
                                          Axis1PIDNP[Integral].getValue()));
-    m_Controllers[AXIS_AZ]->setIntegratorLimits(-100, 100);
-    m_Controllers[AXIS_ALT].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 50, -50,
+    m_Controllers[AXIS_AZ]->setIntegratorLimits(-1000, 1000);
+    m_Controllers[AXIS_ALT].reset(new PID(std::max(0.001, getPollingPeriod() / 1000.), 1000, -1000,
                                           Axis2PIDNP[Propotional].getValue(),
                                           Axis2PIDNP[Derivative].getValue(),
                                           Axis2PIDNP[Integral].getValue()));
-    m_Controllers[AXIS_ALT]->setIntegratorLimits(-100, 100);
+    m_Controllers[AXIS_ALT]->setIntegratorLimits(-1000, 1000);
     ResetGuidePulses();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+/// Calculate and set T1 Preset from Clock Frequency and rate in arcsecs/s
+/////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::trackByRate(AXISID axis, double rate)
+{
+    if (std::abs(rate) > 0 && rate == m_LastTrackRate[axis])
+        return true;
+
+    m_LastTrackRate[axis] = rate;
+
+    if (rate == 0)
+    {
+        SlowStop(axis);
+        return true;
+    }
+
+    char Direction = rate > 0 ? '0' : '1';
+    auto stepsPerSecond = static_cast<uint32_t>(std::abs(rate * (axis == AXIS1 ?
+                          AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value : AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value)));
+    auto clockRate = (StepperClockFrequency[axis] / std::max(1u, stepsPerSecond));
+
+    SetClockTicksPerMicrostep(axis, clockRate);
+    if (AxesStatus[axis].FullStop)
+    {
+        LOGF_DEBUG("Tracking -> %s restart.", (axis == AXIS1 ? "Axis 1" : "Axis 2"));
+        SetAxisMotionMode(axis, '1', Direction);
+        StartAxisMotion(axis);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::trackUsingPID()
+{
+    // Continue or start tracking
+    // Calculate where the mount needs to be in POLLMS time
+    // TODO may need to make this longer to get a meaningful result
+    //double JulianOffset = (getCurrentPollingPeriod() / 1000) / (24.0 * 60 * 60);
+    TelescopeDirectionVector TDV;
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
+
+    // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
+    // FIXME: This was not tested.
+    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    {
+        // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
+        // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
+        double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_TrackingRateTimer.restart();
+    }
+    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    {
+        double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_TrackingRateTimer.restart();
+    }
+
+    auto ra = m_SkyTrackingTarget.rightascension + AxisOffsetNP[RAOffset].getValue() / 15.0;
+    auto de = m_SkyTrackingTarget.declination + AxisOffsetNP[DEOffset].getValue();
+    auto JDOffset = AxisOffsetNP[JulianOffset].getValue() / 86400.0;
+
+    if (TransformCelestialToTelescope(ra, de, JDOffset, TDV))
+    {
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
+        AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+    }
+    else
+    {
+        INDI::IEquatorialCoordinates EquatorialCoordinates { ra, de };
+        INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys() + JDOffset, &AltAz);
+    }
+
+    DEBUGF(DBG_SCOPE,
+           "New Tracking Target AZ %lf° (%ld microsteps) AL %lf° (%ld microsteps) ",
+           AltAz.azimuth,
+           DegreesToMicrosteps(AXIS1, AltAz.azimuth),
+           AltAz.altitude,
+           DegreesToMicrosteps(AXIS2, AltAz.altitude));
+
+    // Calculate the auto-guiding delta degrees
+    double DeltaAlt = 0;
+    double DeltaAz = 0;
+
+    getGuidePulses(DeltaAz, DeltaAlt);
+
+    long SetPoint[2] = {0, 0}, Measurement[2] = {0, 0}, Error[2] = {0, 0};
+    double TrackingRate[2] = {0, 0};
+
+    SetPoint[AXIS1] = DegreesToMicrosteps(AXIS1,  AltAz.azimuth + GuideDeltaAz);
+    Measurement[AXIS1] = CurrentEncoders[AXIS1] - AxisOffsetNP[AZSteps].getValue() - ZeroPositionEncoders[AXIS1];
+
+    SetPoint[AXIS2] = DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt);
+    Measurement[AXIS2] = CurrentEncoders[AXIS2] - AxisOffsetNP[ALSteps].getValue() - ZeroPositionEncoders[AXIS2];
+
+    // Going the long way round - send it the other way
+    while (SetPoint[AXIS1] > MicrostepsPerRevolution[AXIS1] / 2)
+        SetPoint[AXIS1] -= MicrostepsPerRevolution[AXIS1];
+
+    while (SetPoint[AXIS2] > MicrostepsPerRevolution[AXIS2] / 2)
+        SetPoint[AXIS2] -= MicrostepsPerRevolution[AXIS2];
+
+    Error[AXIS1] = SetPoint[AXIS1] - Measurement[AXIS1];
+    Error[AXIS2] = SetPoint[AXIS2] - Measurement[AXIS2];
+
+    auto Axis1CustomClockRate = Axis1TrackRateNP[TrackClockRate].getValue();
+
+
+    if (!AxesStatus[AXIS1].FullStop && (
+                (Axis1CustomClockRate == 0 && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
+                        (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > AxisDeadZoneNP[AXIS1].getValue())))) ||
+                (Axis1CustomClockRate > 0 && Axis1TrackRateNP[TrackDirection].getValue() != m_LastCustomDirection[AXIS1])))
+    {
+        m_LastCustomDirection[AXIS1] = Axis1TrackRateNP[TrackDirection].getValue();
+        // Direction change whilst axis running
+        // Abandon tracking for this clock tick
+        LOG_DEBUG("Tracking -> AXIS1 direction change.");
+        LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f",
+                   SetPoint[AXIS1],
+                   Measurement[AXIS1],
+                   Error[AXIS1],
+                   TrackingRate[AXIS1]);
+        SlowStop(AXIS1);
+    }
+    else
+    {
+        TrackingRate[AXIS1] = m_Controllers[AXIS1]->calculate(SetPoint[AXIS1], Measurement[AXIS1]);
+        char Direction = TrackingRate[AXIS1] > 0 ? '0' : '1';
+        TrackingRate[AXIS1] = std::fabs(TrackingRate[AXIS1]);
+        if (TrackingRate[AXIS1] != 0)
+        {
+            auto clockRate = (StepperClockFrequency[AXIS1] / TrackingRate[AXIS1]) * (AxisClockNP[AXIS1].getValue() / 100.0);
+
+            if (Axis1CustomClockRate > 0)
+            {
+                clockRate = Axis1CustomClockRate;
+                Direction = Axis1TrackRateNP[TrackDirection].getValue() == 0 ? '0' : '1';
+            }
+
+            LOGF_DEBUG("AXIS1 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
+                       SetPoint[AXIS1],
+                       Measurement[AXIS1],
+                       Error[AXIS1],
+                       TrackingRate[AXIS1],
+                       clockRate,
+                       Direction == '0' ? "Forward" : "Backward");
+#ifdef DEBUG_PID
+            LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
+                       m_Controllers[AXIS1]->propotionalTerm(),
+                       m_Controllers[AXIS1]->integralTerm(),
+                       m_Controllers[AXIS1]->derivativeTerm());
+#endif
+
+            SetClockTicksPerMicrostep(AXIS1, clockRate);
+            if (AxesStatus[AXIS1].FullStop)
+            {
+                LOG_DEBUG("Tracking -> AXIS1 restart.");
+                SetAxisMotionMode(AXIS1, '1', Direction);
+                StartAxisMotion(AXIS1);
+            }
+        }
+    }
+
+
+    auto Axis2CustomClockRate = Axis2TrackRateNP[TrackClockRate].getValue();
+
+    if (!AxesStatus[AXIS2].FullStop && (
+                (Axis2CustomClockRate == 0 && ((AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] < -AxisDeadZoneNP[AXIS2].getValue())) ||
+                        (!AxesStatus[AXIS2].SlewingForward && (Error[AXIS2] > AxisDeadZoneNP[AXIS2].getValue())))) ||
+                (Axis2CustomClockRate > 0 && Axis2TrackRateNP[TrackDirection].getValue() != m_LastCustomDirection[AXIS2])))
+    {
+        m_LastCustomDirection[AXIS2] = Axis2TrackRateNP[TrackDirection].getValue();
+
+        LOG_DEBUG("Tracking -> AXIS2 direction change.");
+        LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f",
+                   SetPoint[AXIS2],
+                   Measurement[AXIS2],
+                   Error[AXIS2],
+                   TrackingRate[AXIS2]);
+        SlowStop(AXIS2);
+    }
+    else
+    {
+        TrackingRate[AXIS2] = m_Controllers[AXIS2]->calculate(SetPoint[AXIS2], Measurement[AXIS2]);
+        char Direction = TrackingRate[AXIS2] > 0 ? '0' : '1';
+        TrackingRate[AXIS2] = std::fabs(TrackingRate[AXIS2]);
+        if (TrackingRate[AXIS2] != 0)
+        {
+            auto clockRate = StepperClockFrequency[AXIS2] / TrackingRate[AXIS2] * (AxisClockNP[AXIS2].getValue() / 100.0);
+
+            if (Axis2CustomClockRate > 0)
+            {
+                clockRate = Axis2CustomClockRate;
+                Direction = Axis2TrackRateNP[TrackDirection].getValue() == 0 ? '0' : '1';
+            }
+
+            LOGF_DEBUG("AXIS2 Setpoint %d Measurement %d Error %d Rate %f Freq %f Dir %s",
+                       SetPoint[AXIS2],
+                       Measurement[AXIS2],
+                       Error[AXIS2],
+                       TrackingRate[AXIS2],
+                       clockRate,
+                       Error[AXIS2] > 0 ? "Forward" : "Backward");
+#ifdef DEBUG_PID
+            LOGF_DEBUG("Tracking AZ P: %f I: %f D: %f",
+                       m_Controllers[AXIS2]->propotionalTerm(),
+                       m_Controllers[AXIS2]->integralTerm(),
+                       m_Controllers[AXIS2]->derivativeTerm());
+#endif
+
+            SetClockTicksPerMicrostep(AXIS2, clockRate);
+            if (AxesStatus[AXIS2].FullStop)
+            {
+                LOG_DEBUG("Tracking -> AXIS2 restart.");
+                SetAxisMotionMode(AXIS2, '1', Direction);
+                StartAxisMotion(AXIS2);
+            }
+        }
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::trackUsingPredictiveRates()
+{
+    TelescopeDirectionVector TDV;
+    TelescopeDirectionVector futureTDV;
+    TelescopeDirectionVector pastTDV;
+    INDI::IHorizontalCoordinates targetMountAxisCoordinates { 0, 0 };
+    INDI::IHorizontalCoordinates pastMountAxisCoordinates { 0, 0 };
+    INDI::IHorizontalCoordinates futureMountAxisCoordinates { 0, 0 };
+    // time step for tracking rate estimation in seconds
+    double timeStep { 5.0 };
+    // The same in days
+    double JDoffset { timeStep / (60 * 60 * 24) } ;
+
+    // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
+    // FIXME: This was not tested.
+    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    {
+        // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
+        // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
+        double dRA = (TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_TrackingRateTimer.restart();
+    }
+    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    {
+        double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
+        m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
+        m_TrackingRateTimer.restart();
+    }
+
+    // Start by transforming tracking target celestial coordinates to telescope coordinates.
+    if (TransformCelestialToTelescope(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination,
+                                      0, TDV))
+    {
+        // If mount is Alt-Az then that's all we need to do
+        AltitudeAzimuthFromTelescopeDirectionVector(TDV, targetMountAxisCoordinates);
+        TransformCelestialToTelescope(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination,
+                                      JDoffset, futureTDV);
+        AltitudeAzimuthFromTelescopeDirectionVector(futureTDV, futureMountAxisCoordinates);
+        TransformCelestialToTelescope(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination,
+                                      -JDoffset, pastTDV);
+        AltitudeAzimuthFromTelescopeDirectionVector(pastTDV, pastMountAxisCoordinates);
+
+    }
+    // If transformation failed.
+    else
+    {
+        double JDnow {ln_get_julian_from_sys()};
+        INDI::IEquatorialCoordinates EquatorialCoordinates { 0, 0 };
+        EquatorialCoordinates.rightascension  = m_SkyTrackingTarget.rightascension;
+        EquatorialCoordinates.declination = m_SkyTrackingTarget.declination;
+        INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, JDnow, &targetMountAxisCoordinates);
+        INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, JDnow + JDoffset, &futureMountAxisCoordinates);
+        INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, JDnow - JDoffset, &pastMountAxisCoordinates);
+    }
+
+    double azGuideOffset = 0, altGuideOffset = 0;
+    getGuidePulses(azGuideOffset, altGuideOffset);
+
+    // Now add the guiding offsets, if any.
+    targetMountAxisCoordinates.azimuth += azGuideOffset;
+    pastMountAxisCoordinates.azimuth += azGuideOffset;
+    futureMountAxisCoordinates.azimuth += azGuideOffset;
+
+    targetMountAxisCoordinates.altitude += altGuideOffset;
+    pastMountAxisCoordinates.altitude += altGuideOffset;
+    futureMountAxisCoordinates.altitude += altGuideOffset;
+
+    // Calculate expected tracking rates
+    double predRate[2] = {0, 0};
+    // Central difference, error quadratic in timestep
+    // Rates in deg/s
+    predRate[AXIS_AZ] = range180(AzimuthToDegrees(futureMountAxisCoordinates.azimuth - pastMountAxisCoordinates.azimuth)) /
+                        timeStep / 2;
+    predRate[AXIS_ALT] = (futureMountAxisCoordinates.altitude - pastMountAxisCoordinates.altitude) / timeStep / 2;
+
+    LOGF_DEBUG("Predicted positions (AZ):  %9.4f  %9.4f (now, future, degs)",
+               AzimuthToDegrees(targetMountAxisCoordinates.azimuth),
+               AzimuthToDegrees(futureMountAxisCoordinates.azimuth)) ;
+    LOGF_DEBUG("Predicted positions (AL):  %9.4f  %9.4f (now, future, degs)", targetMountAxisCoordinates.altitude,
+               futureMountAxisCoordinates.altitude);
+    LOGF_DEBUG("Predicted Rates (AZ, ALT): %9.4f  %9.4f (arcsec/s)", 3600 * predRate[AXIS_AZ], 3600 * predRate[AXIS_ALT]);
+
+    // Rates arcsec/s
+    predRate[AXIS_AZ] = 3600 * predRate[AXIS_AZ];
+    predRate[AXIS_ALT] = 3600 * predRate[AXIS_ALT];
+
+    // If we had guiding pulses active, mark them as complete
+    if (GuideWENP.getState() == IPS_BUSY)
+        GuideComplete(AXIS_RA);
+    if (GuideNSNP.getState() == IPS_BUSY)
+        GuideComplete(AXIS_DE);
+
+    // Next get current alt-az
+    INDI::IHorizontalCoordinates currentAltAz { 0, 0 };
+    auto Axis1Steps = CurrentEncoders[AXIS1] - AxisOffsetNP[AZSteps].getValue() - ZeroPositionEncoders[AXIS1];
+    currentAltAz.azimuth = DegreesToAzimuth(MicrostepsToDegrees(AXIS1, Axis1Steps));
+
+    auto Axis2Steps = CurrentEncoders[AXIS2] - AxisOffsetNP[ALSteps].getValue() - ZeroPositionEncoders[AXIS2];
+    currentAltAz.altitude = MicrostepsToDegrees(AXIS2, Axis2Steps);
+
+    // Offset in arcsecs
+    double offsetAngle[2] = {0, 0};
+    offsetAngle[AXIS_AZ] = range180(targetMountAxisCoordinates.azimuth - currentAltAz.azimuth) * 3600;
+    offsetAngle[AXIS_ALT] = (targetMountAxisCoordinates.altitude - currentAltAz.altitude) * 3600;
+
+    int32_t targetSteps[2] = {0, 0};
+    double trackRates[2] = {0, 0};
+
+    // Only apply tracking IF we're still on the same side of the curve
+    // If we switch over, let's settle for a bit
+    // This seems to not be required. To be removed after extensive testing
+    // if (m_LastOffset[AXIS_AZ] * offsetSteps[AXIS_AZ] >= 0 || m_OffsetSwitchSettle[AXIS_AZ]++ > 3)
+    {
+        m_OffsetSwitchSettle[AXIS_AZ] = 0;
+        m_LastOffset[AXIS_AZ] = offsetAngle[AXIS_AZ];
+        targetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS1, AzimuthToDegrees(targetMountAxisCoordinates.azimuth));
+        // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
+        trackRates[AXIS_AZ] = predRate[AXIS_AZ] + m_Controllers[AXIS_AZ]->calculate(0, -offsetAngle[AXIS_AZ]);
+
+        LOGF_DEBUG("Predicted AZ Rate: %8.2f", predRate[AXIS_AZ]);
+        LOGF_DEBUG("Tracking AZ Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis1Steps, targetSteps[AXIS_AZ],
+                   offsetAngle[AXIS_AZ], trackRates[AXIS_AZ]);
+#ifdef DEBUG_PID
+        LOGF_DEBUG("Tracking AZ P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
+                   m_Controllers[AXIS_AZ]->propotionalTerm(),
+                   m_Controllers[AXIS_AZ]->integralTerm(),
+                   m_Controllers[AXIS_AZ]->derivativeTerm(),
+                   trackRates[AXIS_AZ] - predRate[AXIS_AZ]);
+#endif
+
+        // Set the tracking rate
+        trackByRate(AXIS1, trackRates[AXIS_AZ]);
+    }
+
+    // Only apply tracking IF we're still on the same side of the curve
+    // If we switch over, let's settle for a bit
+    // This seems to not be required. To be removed after extensive testing
+    // if (m_LastOffset[AXIS_ALT] * offsetSteps[AXIS_ALT] >= 0 || m_OffsetSwitchSettle[AXIS_ALT]++ > 3)
+    {
+        m_OffsetSwitchSettle[AXIS_ALT] = 0;
+        m_LastOffset[AXIS_ALT] = offsetAngle[AXIS_ALT];
+        targetSteps[AXIS_ALT]  = DegreesToMicrosteps(AXIS2, targetMountAxisCoordinates.altitude);
+        // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
+        trackRates[AXIS_ALT] = predRate[AXIS_ALT] + m_Controllers[AXIS_ALT]->calculate(0, -offsetAngle[AXIS_ALT]);
+
+        LOGF_DEBUG("Predicted AL Rate: %8.2f", predRate[AXIS_ALT]);
+        LOGF_DEBUG("Tracking AL Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis2Steps,
+                   targetSteps[AXIS_ALT],
+                   offsetAngle[AXIS_ALT], trackRates[AXIS_ALT]);
+#ifdef DEBUG_PID
+        LOGF_DEBUG("Tracking AL P: %8.1f I: %8.1f D: %8.1f O: %8.1f",
+                   m_Controllers[AXIS_ALT]->propotionalTerm(),
+                   m_Controllers[AXIS_ALT]->integralTerm(),
+                   m_Controllers[AXIS_ALT]->derivativeTerm(),
+                   trackRates[AXIS_ALT] - predRate[AXIS_ALT]);
+#endif
+        trackByRate(AXIS2, trackRates[AXIS_ALT]);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+double SkywatcherAPIMount::AzimuthToDegrees(double degree)
+{
+    if (isNorthHemisphere())
+        return degree;
+    else
+        return range360(degree + 180);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+double SkywatcherAPIMount::DegreesToAzimuth(double degree)
+{
+    if (isNorthHemisphere())
+        return degree;
+    else
+        return range360(degree + 180);
+}
+
+void SkywatcherAPIMount::getGuidePulses(double &az, double &alt)
+{
+    double DeltaAz = 0, DeltaAlt = 0;
+
+    for (auto Iter = GuidingPulses.begin(); Iter != GuidingPulses.end(); )
+    {
+        // We treat the guide calibration specially
+        if (Iter->OriginalDuration == 1000)
+        {
+            DeltaAlt += Iter->DeltaAlt;
+            DeltaAz += Iter->DeltaAz;
+        }
+        else
+        {
+            DeltaAlt += Iter->DeltaAlt / 2;
+            DeltaAz += Iter->DeltaAz / 2;
+        }
+        Iter->Duration -= getCurrentPollingPeriod();
+
+        if (Iter->Duration < static_cast<int>(getCurrentPollingPeriod()))
+        {
+            Iter = GuidingPulses.erase(Iter);
+            if (Iter == GuidingPulses.end())
+            {
+                break;
+            }
+            continue;
+        }
+        ++Iter;
+    }
+
+    az = DeltaAlt;
+    alt = DeltaAz;
 }
