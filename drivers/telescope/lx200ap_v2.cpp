@@ -120,10 +120,10 @@ bool LX200AstroPhysicsV2::initProperties()
 
     // Max rate is 999.99999X for the GTOCP4.
     // Using :RR998.9999#  just to be safe. 15.041067*998.99999 = 15026.02578
-    TrackRateN[AXIS_RA].min = -15026.0258;
-    TrackRateN[AXIS_RA].max = 15026.0258;
-    TrackRateN[AXIS_DE].min = -998.9999;
-    TrackRateN[AXIS_DE].max = 998.9999;
+    TrackRateNP[AXIS_RA].setMin(-15026.0258);
+    TrackRateNP[AXIS_RA].setMax(15026.0258);
+    TrackRateNP[AXIS_DE].setMin(-998.9999);
+    TrackRateNP[AXIS_DE].setMax(998.9999);
 
     // Rates populated in a different routine since they can change after connect:
     initRateLabels();
@@ -675,7 +675,7 @@ bool LX200AstroPhysicsV2::ApInitialize()
 
     }
     // Make sure that the mount is setup according to the properties
-    int switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
+    int switch_nr = TrackModeSP.findOnSwitchIndex();
 
     int err = 0;
     if ( (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
@@ -2111,7 +2111,7 @@ bool LX200AstroPhysicsV2::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &APGuideSpeedSP);
     IUSaveConfigSwitch(fp, &ParkToSP);
     IUSaveConfigSwitch(fp, &UnparkFromSP);
-    IUSaveConfigSwitch(fp, &TrackStateSP);
+    TrackStateSP.save(fp);
 
     return true;
 }
@@ -2130,7 +2130,7 @@ bool LX200AstroPhysicsV2::SetTrackMode(uint8_t mode)
             return false;
         }
 
-        return SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        return SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
     }
 
     if (!isSimulation() && (err = selectAPTrackingMode(PortFD, mode)) < 0)
@@ -2148,7 +2148,7 @@ bool LX200AstroPhysicsV2::SetTrackEnabled(bool enabled)
 
     LOGF_DEBUG("LX200AstroPhysicsV2::SetTrackEnabled(%d)", enabled);
 
-    rc = SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+    rc = SetTrackMode(enabled ? TrackModeSP.findOnSwitchIndex() : AP_TRACKING_OFF);
 
     LOGF_DEBUG("LX200AstroPhysicsV2::SetTrackMode() returned %d", rc);
 

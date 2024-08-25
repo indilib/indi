@@ -103,10 +103,10 @@ bool IEQPro::initProperties()
     SlewRateS[4].s = ISS_ON;
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-    TrackRateN[AXIS_DE].min = -0.01;
-    TrackRateN[AXIS_DE].max = 0.01;
+    TrackRateNP[AXIS_RA].setMin(TRACKRATE_SIDEREAL - 0.01);
+    TrackRateNP[AXIS_RA].setMax(TRACKRATE_SIDEREAL + 0.01);
+    TrackRateNP[AXIS_DE].setMin(-0.01);
+    TrackRateNP[AXIS_DE].setMax(0.01);
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -371,7 +371,7 @@ bool IEQPro::ReadScopeStatus()
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 // If we cannot park natively and we already parked
                 // scope, we do not want its state to change to IDLE
                 // For scopes that can park natively, ST_PARKED would be
@@ -380,13 +380,13 @@ bool IEQPro::ReadScopeStatus()
                     TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
                 break;
             case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_SLEWING:
@@ -403,7 +403,7 @@ bool IEQPro::ReadScopeStatus()
                     if (slewDirty)
                     {
                         LOG_INFO("Manual parking complete. Shut the mount down.");
-                        TrackModeSP.s = IPS_IDLE;
+                        TrackModeSP.setState(IPS_IDLE);
                         TrackState    = SCOPE_PARKED;
                         SetTrackEnabled(false);
                         SetParked(true);
@@ -412,7 +412,7 @@ bool IEQPro::ReadScopeStatus()
                 }
                 else
                 {
-                    TrackModeSP.s = IPS_BUSY;
+                    TrackModeSP.setState(IPS_BUSY);
                     TrackState    = SCOPE_TRACKING;
                     if (scopeInfo.systemStatus == ST_SLEWING)
                         LOG_INFO("Slew complete, tracking...");
@@ -422,9 +422,9 @@ bool IEQPro::ReadScopeStatus()
                 break;
         }
 
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[newInfo.trackRate].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, nullptr);
+        TrackModeSP.reset();
+        TrackModeSP[newInfo.trackRate].setState(ISS_ON);
+        TrackModeSP.apply();
 
         scopeInfo = newInfo;
     }
@@ -973,9 +973,9 @@ bool IEQPro::SetTrackEnabled(bool enabled)
     {
         // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
-        SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        SetTrackMode(TrackModeSP.findOnSwitchIndex());
+        if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);

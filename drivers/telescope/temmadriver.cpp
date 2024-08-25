@@ -1253,7 +1253,7 @@ bool TemmaMount::SetTrackEnabled(bool enabled)
     if (enabled)
     {
         setMotorsEnabled(true);
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+        return SetTrackMode(TrackModeSP.findOnSwitchIndex());
     }
     else
     {
@@ -1288,7 +1288,7 @@ void TemmaMount::mountSim()
             break;
 
         case SCOPE_TRACKING:
-            switch (IUFindOnSwitchIndex(&TrackModeSP))
+            switch (TrackModeSP.findOnSwitchIndex())
             {
                 case TRACK_SIDEREAL:
                     da = 0;
@@ -1306,8 +1306,8 @@ void TemmaMount::mountSim()
                     break;
 
                 case TRACK_CUSTOM:
-                    da = ((TrackRateN[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
-                    dx = (TrackRateN[AXIS_DE].value / 3600.0 * dt);
+                    da = ((TrackRateNP[AXIS_RA].getValue() - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = (TrackRateNP[AXIS_DE].getValue() / 3600.0 * dt);
                     break;
 
             }

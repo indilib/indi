@@ -378,11 +378,11 @@ bool SynscanDriver::readTracking()
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if (((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP)) && (m_TrackingFlag))
+        if (((m_TrackingFlag - 1) != TrackModeSP.findOnSwitchIndex()) && (m_TrackingFlag))
         {
-            IUResetSwitch(&TrackModeSP);
-            TrackModeS[m_TrackingFlag - 1].s = ISS_ON;
-            IDSetSwitch(&TrackModeSP, nullptr);
+            TrackModeSP.reset();
+            TrackModeSP[m_TrackingFlag - 1].setState(ISS_ON);
+            TrackModeSP.apply();
         }
 
         switch(res[0])
@@ -569,7 +569,7 @@ bool SynscanDriver::SetTrackEnabled(bool enabled)
         return true;
 
     cmd[0] = 'T';
-    cmd[1] = enabled ? (IUFindOnSwitchIndex(&TrackModeSP) + 1) : 0;
+    cmd[1] = enabled ? (TrackModeSP.findOnSwitchIndex() + 1) : 0;
     return sendCommand(cmd, res, 2);
 }
 
@@ -1297,7 +1297,7 @@ void SynscanDriver::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+        CurrentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 

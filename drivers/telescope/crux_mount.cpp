@@ -144,8 +144,8 @@ bool TitanTCS::updateProperties()
 #endif
         defineProperty(&MountInfoTP);
         //
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
+        TrackModeSP.reset();
+        TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
         TrackState = SCOPE_TRACKING;
         //
         GetMountParams();
@@ -249,12 +249,12 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
 #endif
         //
-        if (!strcmp(name, TrackStateSP.name))
+        if (TrackStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&TrackStateSP);
+            TrackStateSP.update(states, names, n);
+            int nowIndex = TrackStateSP.findOnSwitchIndex();
 
-            IDSetSwitch(&TrackStateSP, nullptr);
+            TrackStateSP.apply();
 
             if(nowIndex == 0)
             {
@@ -267,12 +267,12 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
         //
-        if (!strcmp(name, TrackModeSP.name))
+        if (TrackModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TrackModeSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&TrackModeSP);
+            TrackModeSP.update(states, names, n);
+            int nowIndex = TrackModeSP.findOnSwitchIndex();
 
-            IDSetSwitch(&TrackModeSP, nullptr);
+            TrackModeSP.apply();
 
             SetTrackMode(nowIndex);
 
@@ -1095,10 +1095,10 @@ bool TitanTCS::GetMountParams(bool bAll)
     // Tracking On / Off
     if((TrackState == SCOPE_SLEWING) || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
     {
-        TrackStateS[TRACK_ON].s = ISS_OFF;
-        TrackStateS[TRACK_OFF].s = ISS_ON;
-        TrackStateSP.s = IPS_IDLE;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP[TRACK_ON].setState(ISS_OFF);
+        TrackStateSP[TRACK_OFF].setState(ISS_ON);
+        TrackStateSP.setState(IPS_IDLE);
+        TrackStateSP.apply();
 
         if(TrackState == SCOPE_PARKING)
             IUSaveText(&MountInfoT[1], "Parking");
@@ -1115,19 +1115,19 @@ bool TitanTCS::GetMountParams(bool bAll)
 
             if((TrackState == SCOPE_TRACKING) && (info.Landscape == 0))
             {
-                TrackStateS[TRACK_ON].s = ISS_ON;
-                TrackStateS[TRACK_OFF].s = ISS_OFF;
-                TrackStateSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP[TRACK_ON].setState(ISS_ON);
+                TrackStateSP[TRACK_OFF].setState(ISS_OFF);
+                TrackStateSP.setState(IPS_IDLE);
+                TrackStateSP.apply();
 
                 IUSaveText(&MountInfoT[1], "Tracking ON / Skyview");
             }
             else
             {
-                TrackStateS[TRACK_ON].s = ISS_OFF;
-                TrackStateS[TRACK_OFF].s = ISS_ON;
-                TrackStateSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP[TRACK_ON].setState(ISS_OFF);
+                TrackStateSP[TRACK_OFF].setState(ISS_ON);
+                TrackStateSP.setState(IPS_IDLE);
+                TrackStateSP.apply( nullptr);
 
                 if(info.Landscape == 1)
                     IUSaveText(&MountInfoT[1], "Tracking OFF / Landscape");
@@ -1144,10 +1144,10 @@ bool TitanTCS::GetMountParams(bool bAll)
     {
         LOGF_DEBUG("Tracking rate %d", info.TrackingRate);
 
-        TrackModeS[0].s = info.TrackingRate == 0 ? ISS_ON : ISS_OFF;
-        TrackModeS[1].s = info.TrackingRate == 1 ? ISS_ON : ISS_OFF;
-        TrackModeS[2].s = info.TrackingRate == 2 ? ISS_ON : ISS_OFF;
-        IDSetSwitch(&TrackModeSP, nullptr);
+        TrackModeSP[0].setState(info.TrackingRate == 0 ? ISS_ON : ISS_OFF);
+        TrackModeSP[1].setState(info.TrackingRate == 1 ? ISS_ON : ISS_OFF);
+        TrackModeSP[2].setState(info.TrackingRate == 2 ? ISS_ON : ISS_OFF);
+        TrackModeSP.apply();
     }
     //
     static int prev_TrackState = -1;

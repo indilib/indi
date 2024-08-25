@@ -759,13 +759,13 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
             if (trackingMode != LX200_TRACK_MANUAL)
             {
                 trackingMode    = LX200_TRACK_MANUAL;
-                TrackModeS[0].s = ISS_OFF;
-                TrackModeS[1].s = ISS_OFF;
-                TrackModeS[2].s = ISS_OFF;
-                TrackModeS[3].s = ISS_ON;
-                TrackModeSP.s   = IPS_OK;
+                TrackModeSP[0].setState(ISS_OFF);
+                TrackModeSP[1].setState(ISS_OFF);
+                TrackModeSP[2].setState(ISS_OFF);
+                TrackModeSP[3].setState(ISS_ON);
+                TrackModeSP.setState(IPS_OK);
                 selectTrackingMode(PortFD, trackingMode);
-                IDSetSwitch(&TrackModeSP, nullptr);
+                TrackModeSP.apply();
             }
 
             return true;
@@ -1000,7 +1000,7 @@ void LX200Telescope::mountSim()
             break;
 
         case SCOPE_TRACKING:
-            switch (IUFindOnSwitchIndex(&TrackModeSP))
+            switch (TrackModeSP.findOnSwitchIndex())
             {
                 case TRACK_SIDEREAL:
                     da = 0;
@@ -1018,8 +1018,8 @@ void LX200Telescope::mountSim()
                     break;
 
                 case TRACK_CUSTOM:
-                    da = ((TrackRateN[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
-                    dx = (TrackRateN[AXIS_DE].value / 3600.0 * dt);
+                    da = ((TrackRateNP[AXIS_RA].getValue() - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = (TrackRateNP[AXIS_DE].getValue() / 3600.0 * dt);
                     break;
 
             }

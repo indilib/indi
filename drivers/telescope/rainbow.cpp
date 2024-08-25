@@ -335,7 +335,7 @@ void Rainbow::getStartupStatus()
     LOGF_INFO("Detected firmware %s", m_Version.c_str());
 
     if (getTrackingState())
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP.apply();
     if (getGuideRate())
         IDSetNumber(&GuideRateNP, nullptr);
     if (getSlewSpeedVal(SLEW_SPEED_MAX) && (getSlewSpeedVal(SLEW_SPEED_FIND) && getSlewSpeedVal(SLEW_SPEED_CENTERING)))
@@ -465,9 +465,9 @@ bool Rainbow::getTrackingState()
     if (sendCommand(":AT#", res) == false)
         return false;
 
-    TrackStateS[TRACK_ON].s = (res[3] == '1') ? ISS_ON : ISS_OFF;
-    TrackStateS[TRACK_OFF].s = (res[3] == '0') ? ISS_ON : ISS_OFF;
-    TrackStateSP.s = (TrackStateS[TRACK_ON].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+    TrackStateSP[TRACK_ON].setState((res[3] == '1') ? ISS_ON : ISS_OFF);
+    TrackStateSP[TRACK_OFF].setState((res[3] == '0') ? ISS_ON : ISS_OFF);
+    TrackStateSP.setState((TrackStateSP[TRACK_ON].getState() == ISS_ON) ? IPS_BUSY : IPS_IDLE);
 
     return true;
 }
@@ -590,10 +590,10 @@ bool Rainbow::UnPark()
 {
     if (SetTrackEnabled(true))
     {
-        TrackStateS[TRACK_ON].s = ISS_ON;
-        TrackStateS[TRACK_OFF].s = ISS_OFF;
-        TrackStateSP.s = IPS_BUSY;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP[TRACK_ON].setState(ISS_ON);
+        TrackStateSP[TRACK_OFF].setState(ISS_OFF);
+        TrackStateSP.setState(IPS_BUSY);
+        TrackStateSP.apply();
 
         SetParked(false);
         return true;
@@ -1283,12 +1283,12 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     }
 
     // Make sure TRACKING is set to Guide
-    if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
+    if (TrackModeSP.findOnSwitchIndex() != TRACK_CUSTOM)
     {
         SetTrackMode(TRACK_CUSTOM);
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[TRACK_CUSTOM].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, nullptr);
+        TrackModeSP.reset();
+        TrackModeSP[TRACK_CUSTOM].setState(ISS_ON);
+        TrackModeSP.apply();
         LOG_INFO("Tracking mode switched to guide.");
     }
 

@@ -149,7 +149,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&CenterRateSP, CenterRateS, 4, getDeviceName(),
                        "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    TrackModeSP.nsp = 3;
+    TrackModeSP = 3;
 
     return true;
 }

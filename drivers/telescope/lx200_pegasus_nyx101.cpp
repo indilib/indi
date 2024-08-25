@@ -77,7 +77,7 @@ bool LX200NYX101::initProperties()
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Overwrite TRACK_CUSTOM, with TRACK_KING
-    IUFillSwitch(&TrackModeS[TRACK_KING], "TRACK_KING", "King", ISS_OFF);
+    TrackModeSP[TRACK_KING].fill("TRACK_KING", "King", ISS_OFF);
 
     // Elevation Limits
     ElevationLimitNP[OVERHEAD].fill("ELEVATION_OVERHEAD", "Overhead", "%g", 60, 90,   1, 90);
@@ -494,13 +494,13 @@ bool LX200NYX101::ReadScopeStatus()
         RefractSP.setState(IPS_OK);
         RefractSP.apply();
     }
-    TrackModeS[TRACK_SIDEREAL].s = ISS_OFF;
-    TrackModeS[TRACK_LUNAR].s = ISS_OFF;
-    TrackModeS[TRACK_SOLAR].s = ISS_OFF;
-    TrackModeS[TRACK_KING].s = ISS_OFF;
-    TrackModeS[_TrackingMode].s = ISS_ON;
-    TrackModeSP.s   = IPS_OK;
-    IDSetSwitch(&TrackModeSP, nullptr);
+    TrackModeSP[TRACK_SIDEREAL].setState(ISS_OFF);
+    TrackModeSP[TRACK_LUNAR].setState(ISS_OFF);
+    TrackModeSP[TRACK_SOLAR].setState(ISS_OFF);
+    TrackModeSP[TRACK_KING].setState(ISS_OFF);
+    TrackModeSP[_TrackingMode].setState(ISS_ON);
+    TrackModeSP.setState(IPS_OK);
+    TrackModeSP.apply();
 
     switch(_PierSide)
     {
@@ -536,7 +536,7 @@ bool LX200NYX101::ReadScopeStatus()
     }
     else
     {
-        auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
+        auto wasTracking = TrackStateSP[INDI_ENABLED].getState() == ISS_ON;
         if (wasTracking != _IsTracking)
             TrackState = _IsTracking ? SCOPE_TRACKING : SCOPE_IDLE;
     }

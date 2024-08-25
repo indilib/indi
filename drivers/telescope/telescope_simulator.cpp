@@ -586,7 +586,7 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
             axisSecondary.TrackRate(Axis::OFF);
             return true;
         case TRACK_CUSTOM:
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
             return true;
     }
     return false;

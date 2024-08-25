@@ -326,13 +326,13 @@ bool LX200AM5::getTrackMode()
     char response[DRIVER_LEN] = {0};
     if (sendCommand(":GT#", response))
     {
-        IUResetSwitch(&TrackModeSP);
+        TrackModeSP.reset();
         auto onIndex = response[0] - 0x30;
-        TrackModeS[onIndex].s = ISS_ON;
+        TrackModeSP[onIndex].setState(ISS_ON);
         return true;
     }
 
-    TrackModeSP.s = IPS_ALERT;
+    TrackModeSP.setState(IPS_ALERT);
     return false;
 
 }
@@ -526,7 +526,7 @@ bool LX200AM5::ReadScopeStatus()
     else
     {
         // Tracking changed?
-        auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
+        auto wasTracking = TrackStateSP[INDI_ENABLED].getState() == ISS_ON;
         auto nowTracking = isTracking();
         if (wasTracking != nowTracking)
             TrackState = nowTracking ? SCOPE_TRACKING : SCOPE_IDLE;

@@ -914,16 +914,14 @@ class Telescope : public DefaultDevice
         INDI::PropertySwitch PECStateSP {2};
 
         // Track Mode
-        ISwitchVectorProperty TrackModeSP;
-        ISwitch *TrackModeS { nullptr };
+        INDI::PropertySwitch TrackModeSP {0};
 
         // Track State
-        ISwitchVectorProperty TrackStateSP;
-        ISwitch TrackStateS[2];
+        INDI::PropertySwitch TrackStateSP {2};
+        // ISwitch TrackStateS[2];
 
         // Track Rate
-        INumberVectorProperty TrackRateNP;
-        INumber TrackRateN[2];
+        INDI::PropertyNumber TrackRateNP {2};
 
         // Home Position
         INDI::PropertySwitch HomeSP {0};

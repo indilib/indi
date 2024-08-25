@@ -140,23 +140,23 @@ bool Telescope::initProperties()
 
     // Track Mode. Child class must call AddTrackMode to add members
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 0, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
+    TrackModeSP.fill(getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Track State
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&TrackStateS[TRACK_ON], "TRACK_ON", "On", ISS_OFF);
-    IUFillSwitch(&TrackStateS[TRACK_OFF], "TRACK_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB,
+    TrackStateSP[TRACK_ON].fill("TRACK_ON", "On", ISS_OFF);
+    TrackStateSP[TRACK_OFF].fill("TRACK_OFF", "Off", ISS_ON);
+    TrackStateSP.fill(getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Rate
     // @INDI_STANDARD_PROPERTY@
-    IUFillNumber(&TrackRateN[AXIS_RA], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001,
+    TrackRateNP[AXIS_RA].fill("TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001,
                  TRACKRATE_SIDEREAL);
-    IUFillNumber(&TrackRateN[AXIS_DE], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
-    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
+    TrackRateNP[AXIS_DE].fill("TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
+    TrackRateNP.fill(getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     generateCoordSet();
@@ -342,12 +342,12 @@ bool Telescope::updateProperties()
         if (CanAbort())
             defineProperty(&AbortSP);
 
-        if (HasTrackMode() && TrackModeS != nullptr)
-            defineProperty(&TrackModeSP);
+        if (HasTrackMode() && TrackModeSP)
+            defineProperty(TrackModeSP);
         if (CanControlTrack())
-            defineProperty(&TrackStateSP);
+            defineProperty(TrackStateSP);
         if (HasTrackRate())
-            defineProperty(&TrackRateNP);
+            defineProperty(TrackRateNP);
         if (CanHomeFind() || CanHomeSet() || CanHomeGo())
             defineProperty(HomeSP);
 
@@ -403,12 +403,12 @@ bool Telescope::updateProperties()
         deleteProperty(EqNP);
         if (CanAbort())
             deleteProperty(AbortSP.name);
-        if (HasTrackMode() && TrackModeS != nullptr)
-            deleteProperty(TrackModeSP.name);
+        if (HasTrackMode() && TrackModeSP)
+            deleteProperty(TrackModeSP);
         if (HasTrackRate())
-            deleteProperty(TrackRateNP.name);
+            deleteProperty(TrackRateNP);
         if (CanControlTrack())
-            deleteProperty(TrackStateSP.name);
+            deleteProperty(TrackStateSP);
         if (CanHomeFind() || CanHomeSet() || CanHomeGo())
             deleteProperty(HomeSP);
 
@@ -633,9 +633,9 @@ bool Telescope::saveConfigItems(FILE *fp)
     if (HasPECState())
         PECStateSP.save(fp);
     if (HasTrackMode())
-        IUSaveConfigSwitch(fp, &TrackModeSP);
+        TrackModeSP.save(fp);
     if (HasTrackRate())
-        IUSaveConfigNumber(fp, &TrackRateNP);
+        TrackRateNP.save(fp);
 
     controller->saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MotionControlModeTP);
@@ -664,19 +664,19 @@ void Telescope::NewRaDec(double ra, double dec)
             break;
     }
 
-    if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
+        if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateSP[TRACK_ON].getState() == ISS_ON)
     {
-        TrackStateSP.s = IPS_IDLE;
-        TrackStateS[TRACK_ON].s = ISS_OFF;
-        TrackStateS[TRACK_OFF].s = ISS_ON;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP.setState(IPS_IDLE);
+        TrackStateSP[TRACK_ON].setState(ISS_OFF);
+        TrackStateSP[TRACK_OFF].setState(ISS_ON);
+        TrackStateSP.apply();
     }
-    else if (TrackState == SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_OFF].s == ISS_ON)
+    else if (TrackState == SCOPE_TRACKING && CanControlTrack() && TrackStateSP[TRACK_OFF].getState() == ISS_ON)
     {
-        TrackStateSP.s = IPS_BUSY;
-        TrackStateS[TRACK_ON].s = ISS_ON;
-        TrackStateS[TRACK_OFF].s = ISS_OFF;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP.setState(IPS_BUSY);
+        TrackStateSP[TRACK_ON].setState(ISS_ON);
+        TrackStateSP[TRACK_OFF].setState(ISS_OFF);
+        TrackStateSP.apply();
     }
 
     if (std::abs(EqNP[AXIS_RA].getValue() - ra) > EQ_NOTIFY_THRESHOLD ||
@@ -923,50 +923,50 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         ///////////////////////////////////
         // Track Rate
         ///////////////////////////////////
-        if (strcmp(name, TrackRateNP.name) == 0)
+        if (TrackRateNP.isNameMatch(name))
         {
-            double preAxis1 = TrackRateN[AXIS_RA].value, preAxis2 = TrackRateN[AXIS_DE].value;
-            bool rc = (IUUpdateNumber(&TrackRateNP, values, names, n) == 0);
+            double preAxis1 = TrackRateNP[AXIS_RA].getValue(), preAxis2 = TrackRateNP[AXIS_DE].getValue();
+            bool rc = (TrackRateNP.update(values, names, n) == 0);
 
             if (!rc)
             {
-                TrackRateNP.s = IPS_ALERT;
-                IDSetNumber(&TrackRateNP, nullptr);
+                TrackRateNP.setState(IPS_ALERT);
+                TrackRateNP.apply();
                 return false;
             }
 
-            if (TrackState == SCOPE_TRACKING && !strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
             {
                 // Check that we do not abruptly change positive tracking rates to negative ones.
                 // tracking must be stopped first.
                 // Give warning is tracking sign would cause a reverse in direction
-                if ( (preAxis1 * TrackRateN[AXIS_RA].value < 0) || (preAxis2 * TrackRateN[AXIS_DE].value < 0) )
+                if ( (preAxis1 * TrackRateNP[AXIS_RA].getValue() < 0) || (preAxis2 * TrackRateNP[AXIS_DE].getValue() < 0) )
                 {
                     LOG_ERROR("Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
                     return false;
                 }
 
                 // All is fine, ask mount to change tracking rate
-                rc = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+                rc = SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
 
                 if (!rc)
                 {
-                    TrackRateN[AXIS_RA].value = preAxis1;
-                    TrackRateN[AXIS_DE].value = preAxis2;
+                    TrackRateNP[AXIS_RA].setValue(preAxis1);
+                    TrackRateNP[AXIS_DE].setValue(preAxis2);
                 }
             }
 
             // If we are already tracking but tracking mode is NOT custom
             // We just inform the user that it must be set to custom for these values to take
             // effect.
-            if (TrackState == SCOPE_TRACKING && strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
             {
                 LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
 
             // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
-            TrackRateNP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&TrackRateNP, nullptr);
+            TrackRateNP.setState(rc ? IPS_OK : IPS_ALERT);
+            TrackRateNP.apply();
             return true;
         }
     }
@@ -1340,16 +1340,16 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Track Mode
         ///////////////////////////////////
-        if (!strcmp(name, TrackModeSP.name))
+        if (TrackModeSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&TrackModeSP);
-            IUUpdateSwitch(&TrackModeSP, states, names, n);
-            int currIndex = IUFindOnSwitchIndex(&TrackModeSP);
+            int prevIndex = TrackModeSP.findOnSwitchIndex();
+            TrackModeSP.update(states, names, n);
+            int currIndex = TrackModeSP.findOnSwitchIndex();
             // If same as previous index, or if scope is already idle, then just update switch and return. No commands are sent to the mount.
             if (prevIndex == currIndex || TrackState == SCOPE_IDLE)
             {
-                TrackModeSP.s = IPS_OK;
-                IDSetSwitch(&TrackModeSP, nullptr);
+                TrackModeSP.setState(IPS_OK);
+                TrackModeSP.apply(nullptr);
                 return true;
             }
 
@@ -1361,29 +1361,29 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             bool rc = SetTrackMode(currIndex);
             if (rc)
-                TrackModeSP.s = IPS_OK;
+                TrackModeSP.setState(IPS_OK);
             else
             {
-                IUResetSwitch(&TrackModeSP);
-                TrackModeS[prevIndex].s = ISS_ON;
-                TrackModeSP.s = IPS_ALERT;
+                TrackModeSP.reset();
+                TrackModeSP[prevIndex].setState(ISS_ON);
+                TrackModeSP.setState(IPS_ALERT);
             }
-            IDSetSwitch(&TrackModeSP, nullptr);
+            TrackModeSP.apply();
             return false;
         }
 
         ///////////////////////////////////
         // Track State
         ///////////////////////////////////
-        if (!strcmp(name, TrackStateSP.name))
+        if (TrackStateSP.isNameMatch(name))
         {
-            int previousState = IUFindOnSwitchIndex(&TrackStateSP);
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            int previousState = TrackStateSP.findOnSwitchIndex();
+            TrackStateSP.update(states, names, n);
+            int targetState = TrackStateSP.findOnSwitchIndex();
 
             if (previousState == targetState)
             {
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP.apply();
                 return true;
             }
 
@@ -1399,19 +1399,19 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 TrackState = (targetState == TRACK_ON) ? SCOPE_TRACKING : SCOPE_IDLE;
 
-                TrackStateSP.s = (targetState == TRACK_ON) ? IPS_BUSY : IPS_IDLE;
+                TrackStateSP.setState((targetState == TRACK_ON) ? IPS_BUSY : IPS_IDLE);
 
-                TrackStateS[TRACK_ON].s = (targetState == TRACK_ON) ? ISS_ON : ISS_OFF;
-                TrackStateS[TRACK_OFF].s = (targetState == TRACK_ON) ? ISS_OFF : ISS_ON;
+                TrackStateSP[TRACK_ON].setState((targetState == TRACK_ON) ? ISS_ON : ISS_OFF);
+                TrackStateSP[TRACK_OFF].setState((targetState == TRACK_ON) ? ISS_OFF : ISS_ON);
             }
             else
             {
-                TrackStateSP.s = IPS_ALERT;
-                IUResetSwitch(&TrackStateSP);
-                TrackStateS[previousState].s = ISS_ON;
+                TrackStateSP.setState(IPS_ALERT);
+                TrackStateSP.reset();
+                TrackStateSP[previousState].setState(ISS_ON);
             }
 
-            IDSetSwitch(&TrackStateSP, nullptr);
+            TrackStateSP.reset();
             return true;
         }
 
@@ -1678,15 +1678,15 @@ bool Telescope::SetTrackEnabled(bool enabled)
 
 int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeS = (TrackModeS == nullptr) ? static_cast<ISwitch *>(malloc(sizeof(ISwitch))) :
-                 static_cast<ISwitch *>(realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch)));
+    TrackModeSP.resize(0);
+    INDI::WidgetSwitch node;
+    node.fill(name, label, isDefault ? ISS_ON : ISS_OFF);
+    TrackModeSP.push(std::move(node));
 
-    IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
+    TrackModeSP.shrink_to_fit();
+    TrackModeSP.fill(getDeviceName(), name,label, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    TrackModeSP.sp = TrackModeS;
-    TrackModeSP.nsp++;
-
-    return (TrackModeSP.nsp - 1);
+    return (TrackModeSP.count() - 1);
 }
 
 bool Telescope::SetCurrentPark()

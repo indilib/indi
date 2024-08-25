@@ -672,17 +672,17 @@ bool IOptronV3::ReadScopeStatus()
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
+            TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
                 break;
             case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_SLEWING:
@@ -695,7 +695,7 @@ bool IOptronV3::ReadScopeStatus()
             case ST_GUIDING:
                 if (newInfo.systemStatus == ST_TRACKING_PEC_OFF || newInfo.systemStatus == ST_TRACKING_PEC_ON)
                     setPECState(newInfo.systemStatus == ST_TRACKING_PEC_ON ? PEC_ON : PEC_OFF);
-                TrackModeSP.s = IPS_BUSY;
+                TrackModeSP.setState(IPS_BUSY);
                 TrackState    = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
                     LOG_INFO("Slew complete, tracking...");
@@ -704,11 +704,11 @@ bool IOptronV3::ReadScopeStatus()
                 break;
         }
 
-        if (IUFindOnSwitchIndex(&TrackModeSP) != newInfo.trackRate)
+        if (TrackModeSP.findOnSwitchIndex() != newInfo.trackRate)
         {
-            IUResetSwitch(&TrackModeSP);
-            TrackModeS[newInfo.trackRate].s = ISS_ON;
-            IDSetSwitch(&TrackModeSP, nullptr);
+            TrackModeSP.reset();
+            TrackModeSP[newInfo.trackRate].setState(ISS_ON);
+            TrackModeSP.apply();
         }
 
         scopeInfo = newInfo;
@@ -1088,15 +1088,15 @@ void IOptronV3::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+        currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 
         case SCOPE_TRACKING:
-            if (TrackModeS[TR_CUSTOM].s == ISS_ON)
+            if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
             {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateNP[AXIS_RA].getValue() / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateNP[AXIS_DE].getValue() / 3600.0) * dt);
             }
             break;
 
@@ -1223,9 +1223,9 @@ bool IOptronV3::SetTrackEnabled(bool enabled)
     {
         // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
-        SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        SetTrackMode(TrackModeSP.findOnSwitchIndex());
+        if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);

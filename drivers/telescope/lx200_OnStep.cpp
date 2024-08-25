@@ -1271,11 +1271,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
     {
         //Intercept Before inditelescope base can set TrackState
         //Next one modification of inditelescope.cpp function
-        if (!strcmp(name, TrackStateSP.name))
+        if (TrackStateSP.isNameMatch(name))
         {
             //             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            TrackStateSP.update(states, names, n);
+            int targetState = TrackStateSP.findOnSwitchIndex();
             //             LOG_DEBUG("OnStep driver TrackStateSP override called");
             //             if (previousState == targetState)
             //             {
@@ -1299,8 +1299,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             else
             {
                 //This is the case for an error on sending the command, so change TrackStateSP
-                TrackStateSP.s = IPS_ALERT;
-                IUResetSwitch(&TrackStateSP);
+                TrackStateSP.setState(IPS_ALERT);
+                TrackStateSP.reset();
                 return false;
             }
 
@@ -2302,29 +2302,29 @@ bool LX200_OnStep::ReadScopeStatus()
             bool trackStateUpdateNeded = false;
             if (TrackState == SCOPE_TRACKING)
             {
-                if (TrackStateSP.s != IPS_BUSY)
+                if (TrackStateSP.getState() != IPS_BUSY)
                 {
-                    TrackStateSP.s = IPS_BUSY;
+                    TrackStateSP.setState(IPS_BUSY);
                     trackStateUpdateNeded = true;
                 }
-                if (TrackStateS[TRACK_ON].s != ISS_ON || TrackStateS[TRACK_OFF].s != ISS_OFF)
+                if (TrackStateSP[TRACK_ON].getState() != ISS_ON || TrackStateSP[TRACK_OFF].getState() != ISS_OFF)
                 {
-                    TrackStateS[TRACK_ON].s = ISS_ON;
-                    TrackStateS[TRACK_OFF].s = ISS_OFF;
+                    TrackStateSP[TRACK_ON].setState(ISS_ON);
+                    TrackStateSP[TRACK_OFF].setState(ISS_OFF);
                     trackStateUpdateNeded = true;
                 }
             }
             else
             {
-                if (TrackStateSP.s != IPS_IDLE)
+                if (TrackStateSP.getState() != IPS_IDLE)
                 {
-                    TrackStateSP.s = IPS_IDLE;
+                    TrackStateSP.setState(IPS_IDLE);
                     trackStateUpdateNeded = true;
                 }
-                if (TrackStateS[TRACK_ON].s != ISS_OFF || TrackStateS[TRACK_OFF].s != ISS_ON)
+                if (TrackStateSP[TRACK_ON].getState() != ISS_OFF || TrackStateSP[TRACK_OFF].getState() != ISS_ON)
                 {
-                    TrackStateS[TRACK_ON].s = ISS_OFF;
-                    TrackStateS[TRACK_OFF].s = ISS_ON;
+                    TrackStateSP[TRACK_ON].setState(ISS_OFF);
+                    TrackStateSP[TRACK_OFF].setState(ISS_ON);
                     trackStateUpdateNeded = true;
                 }
             }
@@ -2333,7 +2333,7 @@ bool LX200_OnStep::ReadScopeStatus()
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("TRACKSTATE CHANGED");
 #endif
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP.apply();
             }
             else
             {

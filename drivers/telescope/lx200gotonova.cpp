@@ -83,7 +83,7 @@ bool LX200GotoNova::initProperties()
                        IPS_IDLE);
 
     // Track Mode -- We do not support Custom so let's just define the first 3 properties
-    TrackModeSP.nsp = 3;
+    TrackModeSP = 3;
 
     return true;
 }

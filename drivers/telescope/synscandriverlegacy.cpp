@@ -1534,7 +1534,7 @@ void SynscanLegacyDriver::MountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+        CurrentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 

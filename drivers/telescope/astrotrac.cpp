@@ -289,7 +289,7 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
     double velocity(0);
     if (getVelocity(axis, velocity))
     {
-        TrackRateN[axis].value = velocity;
+        TrackRateNP[axis].setValue(velocity);
         return true;
     }
     return false;
@@ -1171,8 +1171,8 @@ bool AstroTrac::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[AXIS_RA].value;
-        dDE = TrackRateN[AXIS_DE].value;
+        dRA = TrackRateNP[AXIS_RA].getValue();
+        dDE = TrackRateNP[AXIS_DE].getValue();
     }
 
     return setVelocity(AXIS_RA, dRA) && setVelocity(AXIS_DE, dDE);
@@ -1185,7 +1185,7 @@ bool AstroTrac::SetTrackEnabled(bool enabled)
 {
     // On engaging track, we simply set the current track mode and it will take care of the rest including custom track rates.
     if (enabled)
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+        return SetTrackMode(TrackModeSP.findOnSwitchIndex());
     // Disable tracking
     else
     {
@@ -1285,7 +1285,7 @@ void AstroTrac::simulateMount()
             case SCOPE_TRACKING:
             {
                 // Increase HA axis at selected tracking rate (arcsec/s).
-                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateNP[AXIS_RA].getValue()) / 3600.0;
                 if (SimData.currentMechanicalHA > 180)
                     SimData.currentMechanicalHA = 180;
                 else if (SimData.currentMechanicalHA < -180)

@@ -354,7 +354,7 @@ bool CelestronGPS::updateProperties()
             cap |= TELESCOPE_HAS_TRACK_MODE;
         else
         {
-            TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
+            TrackModeSP[TRACK_SIDEREAL].setState(ISS_ON);
             LOG_WARN("Mount firmware does not support track mode.");
         }
 
@@ -1576,12 +1576,12 @@ bool CelestronGPS::UnPark()
 
     //loadConfig(true, "TELESCOPE_TRACK_MODE");
     // Read Saved Track State from config file
-    for (int i = 0; i < TrackStateSP.nsp; i++)
-        IUGetConfigSwitch(getDeviceName(), TrackStateSP.name, TrackStateS[i].name, &(TrackStateS[i].s));
+    for (size_t i = 0; i < TrackStateSP.count(); i++)
+        IUGetConfigSwitch(getDeviceName(), TrackStateSP.getName(), TrackStateSP[i].getName(), &(TrackStateSP[i].s));
 
     // set the mount tracking state
-    LOGF_DEBUG("track state %s", IUFindOnSwitch(&TrackStateSP)->label);
-    SetTrackEnabled(IUFindOnSwitchIndex(&TrackStateSP) == TRACK_ON);
+    LOGF_DEBUG("track state %s", TrackStateSP.getLabel());
+    SetTrackEnabled(TrackStateSP.findOnSwitchIndex() == TRACK_ON);
 
     // reinit PEC
     if (driver.pecState >= PEC_STATE::PEC_AVAILABLE)

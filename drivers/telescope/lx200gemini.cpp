@@ -166,10 +166,10 @@ bool LX200Gemini::initProperties()
     IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED",
                        "Center Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_SIDEREAL].fill("TRACK_SIDEREAL", "Sidereal", ISS_ON);
+    TrackModeSP[GEMINI_TRACK_KING].fill("TRACK_CUSTOM", "King", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_LUNAR].fill("TRACK_LUNAR", "Lunar", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_SOLAR].fill("TRACK_SOLAR", "Solar", ISS_OFF);
 
     //PEC
     IUFillSwitch(&PECControlS[PEC_START_TRAINING], "PEC_START_TRAINING", "Start Training", ISS_OFF);
@@ -2263,7 +2263,7 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
 bool LX200Gemini::SetTrackEnabled(bool enabled)
 {
-    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : GEMINI_TRACK_TERRESTRIAL);
+    return SetTrackMode(enabled ? TrackModeSP.findOnSwitchIndex() : GEMINI_TRACK_TERRESTRIAL);
 }
 
 uint8_t LX200Gemini::calculateChecksum(char *cmd)

@@ -1053,8 +1053,8 @@ bool Paramount::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[RA_AXIS].value;
-        dDE = TrackRateN[DEC_AXIS].value;
+        dRA = TrackRateNP[RA_AXIS].getValue();
+        dDE = TrackRateNP[DEC_AXIS].getValue();
     }
     return setTheSkyTracking(true, isSidereal, dRA, dDE);
 }
