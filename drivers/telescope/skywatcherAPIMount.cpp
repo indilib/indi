@@ -1702,7 +1702,6 @@ bool SkywatcherAPIMount::trackUsingPID()
 
     auto Axis1CustomClockRate = Axis1TrackRateNP[TrackClockRate].getValue();
 
-
     if (!AxesStatus[AXIS1].FullStop && (
                 (Axis1CustomClockRate == 0 && ((AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] < -AxisDeadZoneNP[AXIS1].getValue())) ||
                         (!AxesStatus[AXIS1].SlewingForward && (Error[AXIS1] > AxisDeadZoneNP[AXIS1].getValue())))) ||
@@ -1897,16 +1896,16 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
                         timeStep / 2;
     predRate[AXIS_ALT] = (futureMountAxisCoordinates.altitude - pastMountAxisCoordinates.altitude) / timeStep / 2;
 
+    // Rates arcsec/s
+    predRate[AXIS_AZ] = 3600 * predRate[AXIS_AZ];
+    predRate[AXIS_ALT] = 3600 * predRate[AXIS_ALT];
+
     LOGF_DEBUG("Predicted positions (AZ):  %9.4f  %9.4f (now, future, degs)",
                AzimuthToDegrees(targetMountAxisCoordinates.azimuth),
                AzimuthToDegrees(futureMountAxisCoordinates.azimuth)) ;
     LOGF_DEBUG("Predicted positions (AL):  %9.4f  %9.4f (now, future, degs)", targetMountAxisCoordinates.altitude,
                futureMountAxisCoordinates.altitude);
-    LOGF_DEBUG("Predicted Rates (AZ, ALT): %9.4f  %9.4f (arcsec/s)", 3600 * predRate[AXIS_AZ], 3600 * predRate[AXIS_ALT]);
-
-    // Rates arcsec/s
-    predRate[AXIS_AZ] = 3600 * predRate[AXIS_AZ];
-    predRate[AXIS_ALT] = 3600 * predRate[AXIS_ALT];
+    LOGF_DEBUG("Predicted Rates (AZ, ALT): %9.4f  %9.4f (arcsec/s)", predRate[AXIS_AZ], predRate[AXIS_ALT]);
 
     // If we had guiding pulses active, mark them as complete
     if (GuideWENP.getState() == IPS_BUSY)
@@ -1916,13 +1915,15 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
 
     // Next get current alt-az
     INDI::IHorizontalCoordinates currentAltAz { 0, 0 };
+
+    // Current Azimuth
     auto Axis1Steps = CurrentEncoders[AXIS1] - AxisOffsetNP[AZSteps].getValue() - ZeroPositionEncoders[AXIS1];
     currentAltAz.azimuth = DegreesToAzimuth(MicrostepsToDegrees(AXIS1, Axis1Steps));
-
+    // Current Altitude
     auto Axis2Steps = CurrentEncoders[AXIS2] - AxisOffsetNP[ALSteps].getValue() - ZeroPositionEncoders[AXIS2];
     currentAltAz.altitude = MicrostepsToDegrees(AXIS2, Axis2Steps);
 
-    // Offset in arcsecs
+    // Offset between target and current horizontal coordinates in arcsecs
     double offsetAngle[2] = {0, 0};
     offsetAngle[AXIS_AZ] = range180(targetMountAxisCoordinates.azimuth - currentAltAz.azimuth) * 3600;
     offsetAngle[AXIS_ALT] = (targetMountAxisCoordinates.altitude - currentAltAz.altitude) * 3600;
@@ -1931,8 +1932,9 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
     int32_t offsetSteps[2] = {0, 0};
     double trackRates[2] = {0, 0};
 
-    offsetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS1, offsetAngle[AXIS_AZ]);
-    offsetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS2, offsetAngle[AXIS_AZ]);
+    // Convert offsets from arcsecs to steps
+    offsetSteps[AXIS_AZ] = offsetAngle[AXIS_AZ] * AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
+    offsetSteps[AXIS_ALT] = offsetAngle[AXIS_ALT] * AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
     // Only apply tracking IF we're still on the same side of the curve
     // If we switch over, let's settle for a bit
     // This seems to not be required. To be removed after extensive testing
