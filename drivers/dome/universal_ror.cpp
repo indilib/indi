@@ -88,10 +88,22 @@ bool UniversalROR::setupParms()
 ////////////////////////////////////////////////////////////////////////////////
 bool UniversalROR::Connect()
 {
+    // Check if client is initialized and connected
     if (!m_Client || !m_Client->isConnected())
     {
-        LOG_ERROR("ROR Client is not connected. Specify the input and output drivers in Options tab.");
-        return false;
+        // If the client is already initialized, let's connect server again
+        if (m_Client)
+            m_Client->connectServer();
+        // Otherwise need to initialize the client again completely
+        else
+            ActiveDevicesUpdated();
+
+        // Check again if that worked.
+        if (!m_Client || !m_Client->isConnected())
+        {
+            LOG_ERROR("ROR Client is not connected. Specify the input and output drivers in Options tab.");
+            return false;
+        }
 
     }
 

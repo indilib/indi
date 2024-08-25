@@ -86,6 +86,7 @@ class UniversalRORClient : public INDI::BaseClient
         virtual void newDevice(INDI::BaseDevice dp) override;
         virtual void newProperty(INDI::Property property) override;
         virtual void updateProperty(INDI::Property property) override;
+        virtual void serverDisconnected(int exitCode) override;
 
     private:
         std::string m_Input, m_Output;
