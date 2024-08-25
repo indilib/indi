@@ -169,8 +169,8 @@ bool Telescope::initProperties()
     if (CanTrackSatellite())
     {
         // @INDI_STANDARD_PROPERTY@
-        IUFillText(&TLEtoTrackT[0], "TLE", "TLE", "");
-        IUFillTextVector(&TLEtoTrackTP, TLEtoTrackT, 1, getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB,
+        TLEtoTrackTP[0].fill("TLE", "TLE", "");
+        TLEtoTrackTP.fill(getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB,
                          IP_RW, 60, IPS_IDLE);
 
         char curTime[32] = {0};
@@ -388,7 +388,7 @@ bool Telescope::updateProperties()
 
         if (CanTrackSatellite())
         {
-            defineProperty(&TLEtoTrackTP);
+            defineProperty(TLEtoTrackTP);
             defineProperty(&SatPassWindowTP);
             defineProperty(&TrackSatSP);
         }
@@ -449,7 +449,7 @@ bool Telescope::updateProperties()
 
         if (CanTrackSatellite())
         {
-            deleteProperty(TLEtoTrackTP.name);
+            deleteProperty(TLEtoTrackTP);
             deleteProperty(SatPassWindowTP.name);
             deleteProperty(TrackSatSP.name);
         }

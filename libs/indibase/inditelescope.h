@@ -875,8 +875,7 @@ class Telescope : public DefaultDevice
          * \brief Text Vector property defining the orbital elements of an artificial satellite (TLE).
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ITextVectorProperty TLEtoTrackTP;
-        IText TLEtoTrackT[1] {};
+        INDI::PropertyText TLEtoTrackTP{1};
         /**
          * \struct SatelliteWindow
          * \brief Satellite pass: window start and end.

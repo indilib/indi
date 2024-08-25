@@ -1120,8 +1120,8 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
             TLEfromDatabaseNP.s = IPS_OK;
-            TLEtoTrackTP.s = IPS_IDLE;
-            IDSetText(&TLEtoTrackTP, nullptr);
+            TLEtoTrackTP.setState(IPS_IDLE);
+            TLEtoTrackTP.apply();
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
             LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
 
@@ -1307,21 +1307,21 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
 
-            IUUpdateText(&TLEtoTrackTP, texts, names, n);
-            if (0 == SetTLEtoFollow(TLEtoTrackT[0].text))
+            TLEtoTrackTP.update(texts, names, n);
+            if (0 == SetTLEtoFollow(TLEtoTrackTP[0].getText()))
             {
-                TLEtoTrackTP.s = IPS_OK;
+                TLEtoTrackTP.setState(IPS_OK);
                 TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
+                TLEtoTrackTP.apply();
                 IDSetNumber(&TLEfromDatabaseNP, nullptr);
-                LOGF_INFO("Selected TLE %s", TLEtoTrackT[0].text);
+                LOGF_INFO("Selected TLE %s", TLEtoTrackTP[0].getText());
                 return true;
             }
             else
             {
-                TLEtoTrackTP.s = IPS_ALERT;
+                TLEtoTrackTP.setState(IPS_ALERT);
                 TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
+                TLEtoTrackTP.apply();
                 IDSetNumber(&TLEfromDatabaseNP, nullptr);
                 LOG_ERROR("TLE was not correctly uploaded");
                 return false;
