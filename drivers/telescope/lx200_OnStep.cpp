@@ -1763,24 +1763,24 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             IDSetSwitch(&OSPECReadSP, nullptr);
         }
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            index = IUFindOnSwitchIndex(&PECStateSP);
+            index = PECStateSP.findOnSwitchIndex();
             if (index == 0)
             {
                 OSPECEnabled = true;
                 StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
-                PECStateS[0].s = ISS_ON;
-                PECStateS[1].s = ISS_OFF;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[PEC_OFF].setState(ISS_ON);
+                PECStateSP[PEC_ON].setState(ISS_OFF);
+                PECStateSP.apply();
             }
             else if (index == 1)
             {
                 OSPECEnabled = true;
                 StartPECPlayback(0);
-                PECStateS[0].s = ISS_OFF;
-                PECStateS[1].s = ISS_ON;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
+                PECStateSP.apply();
             }
 
         }

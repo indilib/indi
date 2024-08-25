@@ -798,13 +798,13 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
     // =======================================
     // Choose the PEC playback mode
     // =======================================
-    if (!strcmp(name, PECStateSP.name))
+    if (PECStateSP.isNameMatch(name))
     {
-        IUResetSwitch(&PECStateSP);
-        IUUpdateSwitch(&PECStateSP, states, names, n);
-        IUFindOnSwitchIndex(&PECStateSP);
+        PECStateSP.reset();
+        PECStateSP.update(states, names, n);
+        PECStateSP.findOnSwitchIndex();
 
-        int pecstate = IUFindOnSwitchIndex(&PECStateSP);
+        int pecstate = PECStateSP.findOnSwitchIndex();
 
         if (!isSimulation() && (err = selectAPPECState(PortFD, pecstate) < 0))
         {
@@ -812,8 +812,8 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
             return false;
         }
 
-        PECStateSP.s = IPS_OK;
-        IDSetSwitch(&PECStateSP, nullptr);
+        PECStateSP.setState(IPS_OK);
+        PECStateSP.apply();
 
         return true;
     }
@@ -837,7 +837,7 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
             }
             LOG_INFO("Recording PEC");
             APPECRecordSP.s = IPS_OK;
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.apply();
         }
         return true;
     }

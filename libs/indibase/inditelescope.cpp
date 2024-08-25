@@ -125,17 +125,17 @@ bool Telescope::initProperties()
 
     // Pier Side Simulation
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&SimulatePierSideS[0], "SIMULATE_YES", "Yes", ISS_OFF);
-    IUFillSwitch(&SimulatePierSideS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulatePierSideSP, SimulatePierSideS, 2, getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side",
+    SimulatePierSideSP[SIMULATE_YES].fill("SIMULATE_YES", "Yes", ISS_OFF);
+    SimulatePierSideSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
+    SimulatePierSideSP.fill(getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side",
                        MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PEC State
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_ON);
-    IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_OFF);
-    IUFillSwitchVector(&PECStateSP, PECStateS, 2, getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    PECStateSP[PEC_OFF].fill("PEC OFF", "PEC OFF", ISS_ON);
+    PECStateSP[PEC_ON].fill("PEC ON", "PEC ON", ISS_OFF);
+    PECStateSP.fill(getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Mode. Child class must call AddTrackMode to add members
@@ -380,7 +380,7 @@ bool Telescope::updateProperties()
 
         if (HasPierSideSimulation())
         {
-            defineProperty(&SimulatePierSideSP);
+            defineProperty(SimulatePierSideSP);
             ISState value;
             if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
                 setSimulatePierSide(value == ISS_ON);
@@ -394,7 +394,7 @@ bool Telescope::updateProperties()
         }
 
         if (HasPECState())
-            defineProperty(&PECStateSP);
+            defineProperty(PECStateSP);
     }
     else
     {
@@ -442,7 +442,7 @@ bool Telescope::updateProperties()
 
         if (HasPierSideSimulation())
         {
-            deleteProperty(SimulatePierSideSP.name);
+            deleteProperty(SimulatePierSideSP);
             if (getSimulatePierSide() == true)
                 deleteProperty(PierSideSP);
         }
@@ -455,7 +455,7 @@ bool Telescope::updateProperties()
         }
 
         if (HasPECState())
-            deleteProperty(PECStateSP.name);
+            deleteProperty(PECStateSP);
     }
 
     if (CanGOTO())
@@ -631,7 +631,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
     if (HasPECState())
-        IUSaveConfigSwitch(fp, &PECStateSP);
+        PECStateSP.save(fp);
     if (HasTrackMode())
         IUSaveConfigSwitch(fp, &TrackModeSP);
     if (HasTrackRate())
@@ -640,7 +640,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MotionControlModeTP);
     IUSaveConfigSwitch(fp, &LockAxisSP);
-    IUSaveConfigSwitch(fp, &SimulatePierSideSP);
+    SimulatePierSideSP.save(fp);
 
     return true;
 }
@@ -1498,15 +1498,15 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         // Simulate Pier Side
         // This ia a major change to the design of the simulated scope, it might not handle changes on the fly
         ///////////////////////////////////
-        if (!strcmp(name, SimulatePierSideSP.name))
+        if (SimulatePierSideSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SimulatePierSideSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
+            SimulatePierSideSP.update(states, names, n);
+            int index = SimulatePierSideSP.findOnSwitchIndex();
             if (index == -1)
             {
-                SimulatePierSideSP.s = IPS_ALERT;
+                SimulatePierSideSP.setState(IPS_ALERT);
                 LOG_INFO("Cannot determine whether pier side simulation should be switched on or off.");
-                IDSetSwitch(&SimulatePierSideSP, nullptr);
+                SimulatePierSideSP.apply();
                 return false;
             }
 
@@ -2713,10 +2713,10 @@ void Telescope::setPECState(TelescopePECState state)
     if (currentPECState != lastPECState)
     {
 
-        PECStateS[PEC_OFF].s = (state == PEC_ON) ? ISS_OFF : ISS_ON;
-        PECStateS[PEC_ON].s  = (state == PEC_ON) ? ISS_ON  : ISS_OFF;
-        PECStateSP.s         = IPS_OK;
-        IDSetSwitch(&PECStateSP, nullptr);
+        PECStateSP[PEC_OFF].setState((state == PEC_ON) ? ISS_OFF : ISS_ON);
+        PECStateSP[PEC_ON].setState((state == PEC_ON) ? ISS_ON  : ISS_OFF);
+        PECStateSP.setState(IPS_OK);
+        PECStateSP.apply();
 
         lastPECState = currentPECState;
     }
@@ -2786,11 +2786,11 @@ const char * Telescope::getPierSideStr(TelescopePierSide ps)
 
 void Telescope::setSimulatePierSide(bool simulate)
 {
-    IUResetSwitch(&SimulatePierSideSP);
-    SimulatePierSideS[0].s = simulate ? ISS_ON : ISS_OFF;
-    SimulatePierSideS[1].s = simulate ? ISS_OFF : ISS_ON;
-    SimulatePierSideSP.s = IPS_OK;
-    IDSetSwitch(&SimulatePierSideSP, nullptr);
+    SimulatePierSideSP.reset();
+    SimulatePierSideSP[SIMULATE_YES].setState(simulate ? ISS_ON : ISS_OFF);
+    SimulatePierSideSP[SIMULATE_NO].setState(simulate ? ISS_OFF : ISS_ON);
+    SimulatePierSideSP.setState(IPS_OK);
+    SimulatePierSideSP.apply();
 
     if (simulate)
     {

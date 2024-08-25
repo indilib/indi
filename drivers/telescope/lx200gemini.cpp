@@ -612,7 +612,7 @@ bool LX200Gemini::updateProperties()
 
         if (gemini_software_level_ < 5.0)
         {
-            deleteProperty(PECStateSP.name);
+            deleteProperty(PECStateSP);
         }
         if (gemini_software_level_ >= 5.2)
         {
@@ -1003,21 +1003,22 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             return true;
         }
 
-        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECStateSP.name))
+        if (gemini_software_level_ >= 5.0 && PECStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PECStateSP, states, names, n);
+            PECStateSP.update(states, names, n);
             for(int i = 0; i<n; ++i)
             {
-                if (!strcmp(names[i], PECStateS[PEC_ON].name))
+                // if (!strcmp(names[i], PECStateS[PEC_ON].name))
+                if (PECStateSP[PEC_ON].isNameMatch(name))
                 {
-                    if(PECStateS[PEC_ON].s == ISS_ON)
+                    if(PECStateSP[PEC_ON].getState() == ISS_ON)
                     {
                         LOG_INFO("PEC State.s ON.");
                         char valueString[16] = {0};
                         if(!setGeminiProperty(PEC_REPLAY_ON_ID, valueString))
                         {
-                            PECStateSP.s = IPS_ALERT;
-                            IDSetSwitch(&PECStateSP, nullptr);
+                            PECStateSP.setState(IPS_ALERT);
+                            PECStateSP.apply();
                             return false;
                         } else {
                             return true;
@@ -1025,24 +1026,24 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 
                     }
                 }
-                if (!strcmp(names[i], PECStateS[PEC_OFF].name))
+                if (PECStateSP[PEC_OFF].isNameMatch(name))
                 {
-                    if(PECStateS[PEC_OFF].s == ISS_ON)
+                    if(PECStateSP[PEC_OFF].getState() == ISS_ON)
                     {
                         LOG_INFO("PEC State.s ON.");
                         char valueString[16] = {0};
                         if(!setGeminiProperty(PEC_REPLAY_OFF_ID, valueString))
                         {
-                            PECStateSP.s = IPS_ALERT;
-                            IDSetSwitch(&PECStateSP, nullptr);
+                            PECStateSP.setState(IPS_ALERT);
+                            PECStateSP.apply();
                             return false;
                         }
                         return true;
                     }
                 }
             }
-            PECStateSP.s = IPS_OK;
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.setState(IPS_OK);
+            PECStateSP.apply();
             return true;
         }
 

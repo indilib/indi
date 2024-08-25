@@ -856,8 +856,12 @@ class Telescope : public DefaultDevice
         INDI::PropertySwitch PierSideSP {2};
 
         // Pier Side Simulation
-        ISwitchVectorProperty SimulatePierSideSP;
-        ISwitch SimulatePierSideS[2];
+        INDI::PropertySwitch SimulatePierSideSP {2};
+        enum
+        {
+          SIMULATE_YES,
+          SIMULATE_NO
+        };
         bool getSimulatePierSide() const;
         void setSimulatePierSide(bool value);
 
@@ -907,8 +911,7 @@ class Telescope : public DefaultDevice
         ISwitch TrackSatS[SAT_TRACK_COUNT];
 
         // PEC State
-        ISwitch PECStateS[2];
-        ISwitchVectorProperty PECStateSP;
+        INDI::PropertySwitch PECStateSP {2};
 
         // Track Mode
         ISwitchVectorProperty TrackModeSP;

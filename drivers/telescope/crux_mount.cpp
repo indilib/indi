@@ -210,13 +210,13 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
         //
 #if USE_PEC
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
             //int preIndex = IUFindOnSwitchIndex(&PECStateSP);
-            IUUpdateSwitch(&PECStateSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&PECStateSP);
+            PECStateSP.update(states, names, n);
+            int nowIndex = PECStateSP.findOnSwitchIndex();
 
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.apply();
 
             if(nowIndex == 0)
             {
@@ -1213,26 +1213,26 @@ void TitanTCS::_setPECState(int pec_status)
             // Valid
             if(pec_status & 1)
             {
-                PECStateS[PEC_OFF].s = ISS_OFF;
-                PECStateS[PEC_ON].s  = ISS_ON;
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
 
                 IUSaveText(&PECInfoT[0], "PEC is running.");
             }
             else
             {
-                PECStateS[PEC_OFF].s = ISS_OFF;
-                PECStateS[PEC_ON].s  = ISS_ON;
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
 
                 IUSaveText(&PECInfoT[0], "PEC is available.");
             }
-            PECStateSP.s = IPS_OK;
+            PECStateSP.setState(IPS_OK);
         }
         else
         {
             // Invalid
-            PECStateS[PEC_OFF].s = ISS_OFF;
-            PECStateS[PEC_ON].s  = ISS_OFF;
-            PECStateSP.s = IPS_ALERT;
+            PECStateSP[PEC_OFF].setState(ISS_OFF);
+            PECStateSP[PEC_ON].setState(ISS_OFF);
+            PECStateSP.setState(IPS_ALERT);
 
             if(pec_status & 0x30)
                 IUSaveText(&PECInfoT[0], "");
@@ -1240,8 +1240,8 @@ void TitanTCS::_setPECState(int pec_status)
                 IUSaveText(&PECInfoT[0], "PEC training is required.");
         }
 
-        PECStateSP.s = IPS_OK;
-        IDSetSwitch(&PECStateSP, nullptr);
+        PECStateSP.setState(IPS_OK);
+        PECStateSP.apply();
 
         PECTrainingSP.s = IPS_OK;
         IDSetSwitch(&PECTrainingSP, nullptr);

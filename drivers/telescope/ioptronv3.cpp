@@ -535,11 +535,11 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         /* v3.0 PEC add controls and calls to the driver */
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PECStateSP, states, names, n);
+            PECStateSP.update(states, names, n);
 
-            if(PECStateS[PEC_OFF].s == ISS_ON)
+            if(PECStateSP[PEC_OFF].getState() == ISS_ON)
             {
                 // PEC OFF
                 if(isTraining)
@@ -550,7 +550,7 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 else
                 {
                     driver->setPECEnabled(false);
-                    PECStateSP.s = IPS_OK;
+                    PECStateSP.setState(IPS_OK);
                     LOG_INFO("Disabling PEC Chip");
                 }
             }
@@ -561,11 +561,11 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 {
                     // Data Check
                     driver->setPECEnabled(true);
-                    PECStateSP.s = IPS_BUSY;
+                    PECStateSP.setState(IPS_BUSY);
                     LOG_INFO("Enabling PEC Chip");
                 }
             }
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.apply();
             return true;
         }
 
