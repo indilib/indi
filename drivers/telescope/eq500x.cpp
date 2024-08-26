@@ -620,14 +620,16 @@ bool EQ500X::Goto(double ra, double dec)
     {
         if (!Abort())
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            Telescope::AbortSP.apply();
             return false;
         }
 
-        AbortSP.s = IPS_OK;
+        AbortSP.setState(IPS_OK);
         EqNP.setState(IPS_IDLE);
-        IDSetSwitch(&AbortSP, "Slew aborted.");
+        LOG_ERROR("Slew aborted.");
+        Telescope::AbortSP.apply();
         EqNP.apply();
 
         if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)

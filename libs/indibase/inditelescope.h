@@ -761,8 +761,7 @@ class Telescope : public DefaultDevice
         INDI::PropertyNumber TargetNP {2};
 
         // Abort motion
-        ISwitchVectorProperty AbortSP;
-        ISwitch AbortS[1];
+        INDI::PropertySwitch AbortSP {1};
 
         // On a coord_set message, sync, or slew
         ISwitchVectorProperty CoordSP;

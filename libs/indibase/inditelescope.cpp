@@ -198,8 +198,8 @@ bool Telescope::initProperties()
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortSP, AbortS, 1, getDeviceName(), "TELESCOPE_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
+    AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
+    AbortSP.fill(getDeviceName(), "TELESCOPE_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
@@ -340,7 +340,7 @@ bool Telescope::updateProperties()
             defineProperty(&CoordSP);
         defineProperty(EqNP);
         if (CanAbort())
-            defineProperty(&AbortSP);
+            defineProperty(AbortSP);
 
         if (HasTrackMode() && TrackModeSP)
             defineProperty(TrackModeSP);
@@ -402,7 +402,7 @@ bool Telescope::updateProperties()
             deleteProperty(CoordSP.name);
         deleteProperty(EqNP);
         if (CanAbort())
-            deleteProperty(AbortSP.name);
+            deleteProperty(AbortSP);
         if (HasTrackMode() && TrackModeSP)
             deleteProperty(TrackModeSP);
         if (HasTrackRate())
@@ -1282,13 +1282,13 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Abort Motion
         ///////////////////////////////////
-        if (!strcmp(name, AbortSP.name))
+        if (AbortSP.isNameMatch(name))
         {
-            IUResetSwitch(&AbortSP);
+            AbortSP.reset();
 
             if (Abort())
             {
-                AbortSP.s = IPS_OK;
+                AbortSP.setState(IPS_OK);
 
                 if (ParkSP.s == IPS_BUSY)
                 {
@@ -1330,9 +1330,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 }
             }
             else
-                AbortSP.s = IPS_ALERT;
+                AbortSP.setState(IPS_ALERT);
 
-            IDSetSwitch(&AbortSP, nullptr);
+            AbortSP.apply();
 
             return true;
         }
@@ -2386,8 +2386,8 @@ void Telescope::processButton(const char *button_n, ISState state)
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };
-            const char *names[1]    = { AbortS[0].name };
-            ISNewSwitch(getDeviceName(), AbortSP.name, states, const_cast<char **>(names), 1);
+            const char *names[1]    = { AbortSP[0].getName() };
+            ISNewSwitch(getDeviceName(), AbortSP.getName(), states, const_cast<char **>(names), 1);
         }
     }
     else if (!strcmp(button_n, "PARKBUTTON"))

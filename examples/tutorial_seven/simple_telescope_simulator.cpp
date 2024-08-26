@@ -53,9 +53,9 @@ bool ScopeSim::Abort()
 
     AxisStatusRA = AxisStatusDEC = STOPPED; // This marvelous inertia free scope can be stopped instantly!
 
-    AbortSP.s = IPS_OK;
-    IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, nullptr);
+    AbortSP.setState(IPS_OK);
+    AbortSP.reset();
+    AbortSP.apply();
     LOG_INFO("Telescope aborted.");
 
     return true;
