@@ -815,9 +815,9 @@ void Paramount::mountSim()
 
     double motionRate = 0;
 
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
         motionRate = JogRateN[0].value;
-    else if (MovementWESP.s == IPS_BUSY)
+    else if (MovementWESP.getState() == IPS_BUSY)
         motionRate = JogRateN[1].value;
 
     if (motionRate != 0)
@@ -825,12 +825,12 @@ void Paramount::mountSim()
         da_ra  = motionRate * dt * 0.05;
         da_dec = motionRate * dt * 0.05;
 
-        switch (MovementNSSP.s)
+        switch (MovementNSSP.getState())
         {
             case IPS_BUSY:
-                if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
+            if (MovementNSSP[DIRECTION_NORTH].getState() == ISS_ON)
                     currentDEC += da_dec;
-                else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
+            else if (MovementNSSP[DIRECTION_SOUTH].getState() == ISS_ON)
                     currentDEC -= da_dec;
                 break;
 
@@ -838,12 +838,12 @@ void Paramount::mountSim()
                 break;
         }
 
-        switch (MovementWESP.s)
+            switch (MovementWESP.getState())
         {
             case IPS_BUSY:
-                if (MovementWES[DIRECTION_WEST].s == ISS_ON)
+                if (MovementWESP[DIRECTION_WEST].getState() == ISS_ON)
                     currentRA += da_ra / 15.;
-                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                else if (MovementWESP[DIRECTION_EAST].getState() == ISS_ON)
                     currentRA -= da_ra / 15.;
                 break;
 

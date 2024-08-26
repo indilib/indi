@@ -1475,7 +1475,7 @@ void SynscanDriver::guideTimeoutHelperWE(void * context)
 
 void SynscanDriver::guideTimeoutCallbackNS()
 {
-    INDI_DIR_NS direction = static_cast<INDI_DIR_NS>(IUFindOnSwitchIndex(&MovementNSSP));
+    INDI_DIR_NS direction = static_cast<INDI_DIR_NS>(MovementNSSP.findOnSwitchIndex());
     MoveNS(direction, MOTION_STOP);
     GuideComplete(AXIS_DE);
     m_CustomGuideDE = m_GuideNSTID = 0;
@@ -1483,7 +1483,7 @@ void SynscanDriver::guideTimeoutCallbackNS()
 
 void SynscanDriver::guideTimeoutCallbackWE()
 {
-    INDI_DIR_WE direction = static_cast<INDI_DIR_WE>(IUFindOnSwitchIndex(&MovementWESP));
+    INDI_DIR_WE direction = static_cast<INDI_DIR_WE>(MovementWESP.findOnSwitchIndex());
     MoveWE(direction, MOTION_STOP);
     GuideComplete(AXIS_RA);
     m_CustomGuideRA = m_GuideWETID = 0;

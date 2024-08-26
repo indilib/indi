@@ -549,7 +549,7 @@ bool CelestronGPS::Goto(double ra, double dec)
     targetRA  = ra;
     targetDEC = dec;
 
-    if (EqNP.getState() == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
         driver.abort();
         // sleep for 500 mseconds
@@ -1331,7 +1331,7 @@ void CelestronGPS::mountSim()
     else
         da_dec = FINE_SLEW_RATE * dt;
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
         int rate = IUFindOnSwitchIndex(&SlewRateSP);
 
@@ -1358,12 +1358,12 @@ void CelestronGPS::mountSim()
                 break;
         }
 
-        switch (MovementNSSP.s)
+            switch (MovementNSSP.getState())
         {
             case IPS_BUSY:
-                if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
+                if (MovementNSSP[DIRECTION_NORTH].getState() == ISS_ON)
                     currentDEC += da_dec;
-                else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
+                else if (MovementNSSP[DIRECTION_SOUTH].getState() == ISS_ON)
                     currentDEC -= da_dec;
                 break;
 
@@ -1371,12 +1371,12 @@ void CelestronGPS::mountSim()
                 break;
         }
 
-        switch (MovementWESP.s)
+            switch (MovementWESP.getState())
         {
             case IPS_BUSY:
-                if (MovementWES[DIRECTION_WEST].s == ISS_ON)
+                if (MovementWESP[DIRECTION_WEST].getState() == ISS_ON)
                     currentRA += da_ra / 15.;
-                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                else if (MovementWESP[DIRECTION_EAST].getState() == ISS_ON)
                     currentRA -= da_ra / 15.;
                 break;
 
@@ -1699,19 +1699,16 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
 {
     // set up direction properties
     char dc = 'x';
-    ISwitchVectorProperty *moveSP = &MovementNSSP;
-    ISwitch moveS = MovementNSS[0];
     int* guideTID = &GuideNSTID;
     int* ticks = &ticksNS;
     uint8_t rate = 50;
+    int index = 0;
 
     // set up pointers to the various things needed
     switch (dirn)
     {
         case CELESTRON_N:
             dc = 'N';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[0];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
             /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
@@ -1719,17 +1716,14 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             break;
         case CELESTRON_S:
             dc = 'S';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[1];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
+            index = 1;
             /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_E:
             dc = 'E';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[1];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
             /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
@@ -1737,10 +1731,9 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             break;
         case CELESTRON_W:
             dc = 'W';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[0];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
+            index = 1;
             /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
@@ -1748,14 +1741,16 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
 
     LOGF_DEBUG("GUIDE CMD: %c %u ms, %s guide", dc, ms, canAuxGuide ? "Aux" : "Time");
 
-    if (!canAuxGuide && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!canAuxGuide && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
+    auto directionProperty = dirn > CELESTRON_S ? MovementWESP : MovementNSSP;
+
     // If already moving (no pulse command), then stop movement
-    if (moveSP->s == IPS_BUSY)
+    if (directionProperty.getState() == IPS_BUSY)
     {
         LOG_DEBUG("Already moving - stop");
         driver.stop_motion(dirn);
@@ -1785,7 +1780,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     }
     else
     {
-        moveS.s = ISS_ON;
+        directionProperty[index].setState(ISS_ON);
         // start movement at HC button rate 1
         if (!driver.start_motion(dirn, CELESTRON_SLEW_RATE::SR_1))
         {
@@ -1884,8 +1879,8 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
     {
         case CELESTRON_N:
         case CELESTRON_S:
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.reset();
+            MovementNSSP.apply();
             GuideNSNP[0].setValue(0);
             GuideNSNP[1].setValue(0);
             GuideNSNP.setState(IPS_IDLE);
@@ -1894,8 +1889,8 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
             break;
         case CELESTRON_E:
         case CELESTRON_W:
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.reset();
+            MovementWESP.apply();
             GuideWENP[0].setValue(0);
             GuideWENP[1].setValue(0);
             GuideWENP.setState(IPS_IDLE);

@@ -1197,15 +1197,15 @@ bool LX200AstroPhysicsV2::Goto(double r, double d)
         IDSetSwitch(&AbortSP, "Slew aborted.");
         EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
             EqNP.setState(IPS_IDLE);
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -1253,7 +1253,7 @@ IPState LX200AstroPhysicsV2::GuideNorth(uint32_t ms)
         return IPS_ALERT;
 
     // If we're using pulse command, then MovementXXX should NOT be active at all.
-    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot pulse guide while manually in motion. Stop first.");
         return IPS_ALERT;
@@ -1285,7 +1285,7 @@ IPState LX200AstroPhysicsV2::GuideSouth(uint32_t ms)
         return IPS_ALERT;
 
     // If we're using pulse command, then MovementXXX should NOT be active at all.
-    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot pulse guide while manually in motion. Stop first.");
         return IPS_ALERT;
@@ -1317,7 +1317,7 @@ IPState LX200AstroPhysicsV2::GuideEast(uint32_t ms)
         return IPS_ALERT;
 
     // If we're using pulse command, then MovementXXX should NOT be active at all.
-    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot pulse guide while manually in motion. Stop first.");
         return IPS_ALERT;
@@ -1349,7 +1349,7 @@ IPState LX200AstroPhysicsV2::GuideWest(uint32_t ms)
         return IPS_ALERT;
 
     // If we're using pulse command, then MovementXXX should NOT be active at all.
-    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot pulse guide while manually in motion. Stop first.");
         return IPS_ALERT;
@@ -1402,8 +1402,8 @@ void LX200AstroPhysicsV2::AstroPhysicsGuideTimeoutWE(bool simul)
     if (simul == true)
     {
         ISState states[] = { ISS_OFF, ISS_OFF };
-        const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
-        ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+        const char *names[] = { MovementWESP[DIRECTION_WEST].getName(), MovementWESP[DIRECTION_EAST].getName()};
+        ISNewSwitch(MovementWESP.getDeviceName(), MovementWESP.getName(), states, const_cast<char **>(names), 2);
     }
 
     GuideWENP[DIRECTION_WEST].setValue(0);
@@ -1420,8 +1420,8 @@ void LX200AstroPhysicsV2::AstroPhysicsGuideTimeoutNS(bool simul)
     if (simul == true)
     {
         ISState states[] = { ISS_OFF, ISS_OFF };
-        const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
-        ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+        const char *names[] = { MovementNSSP[DIRECTION_NORTH].getName(), MovementNSSP[DIRECTION_SOUTH].getName()};
+        ISNewSwitch(MovementNSSP.getDeviceName(), MovementNSSP.getName(), states, const_cast<char **>(names), 2);
     }
 
     GuideNSNP[0].setValue(0);
@@ -2010,15 +2010,15 @@ bool LX200AstroPhysicsV2::UnPark()
         }
     }
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
-        MovementNSSP.s = IPS_IDLE;
-        MovementWESP.s = IPS_IDLE;
+        MovementNSSP.setState(IPS_IDLE);
+        MovementWESP.setState(IPS_IDLE);
         EqNP.setState(IPS_IDLE);
-        IUResetSwitch(&MovementNSSP);
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, nullptr);
-        IDSetSwitch(&MovementWESP, nullptr);
+        MovementNSSP.reset();
+        MovementWESP.reset();
+        MovementNSSP.apply();
+        MovementWESP.apply();
     }
 
     UnparkFromSP.s = IPS_OK;

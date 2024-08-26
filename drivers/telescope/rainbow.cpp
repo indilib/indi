@@ -803,15 +803,15 @@ bool Rainbow::Goto(double ra, double dec)
         IDSetSwitch(&AbortSP, "Slew aborted.");
         EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
             EqNP.setState(IPS_IDLE);
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -1229,47 +1229,47 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     // set up direction properties
     char dc = 'x';
     char cmd[DRIVER_LEN] = {0};
-    ISwitchVectorProperty *moveSP = &MovementNSSP;
-    ISwitch moveS = MovementNSS[0];
+    // ISwitchVectorProperty *moveSP = &MovementNSSP;
+    // ISwitch moveS = MovementNSSP[0];
+    // int* guideTID = &m_GuideNSTID;
     int* guideTID = &m_GuideNSTID;
+    uint8_t rate = 50;
+    int index = 0;
+
 
     // set up pointers to the various things needed
     switch (direction)
     {
         case North:
             dc = 'N';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[0];
             guideTID = &m_GuideNSTID;
             break;
         case South:
             dc = 'S';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[1];
             guideTID = &m_GuideNSTID;
+            index = 1;
             break;
         case East:
             dc = 'E';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[1];
             guideTID = &m_GuideWETID;
             break;
         case West:
             dc = 'W';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[0];
             guideTID = &m_GuideWETID;
+            index = 1;
             break;
     }
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
+      auto directionProperty = direction > North ? MovementWESP : MovementNSSP;
+
     // If already moving (no pulse command), then stop movement
-    if (moveSP->s == IPS_BUSY)
+    if (directionProperty.getState() == IPS_BUSY)
     {
         LOG_DEBUG("Already moving - stop");
         sendCommand(":Q#");
@@ -1302,7 +1302,7 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
         IDSetSwitch(&SlewRateSP, nullptr);
     }
 
-    moveS.s = ISS_ON;
+    directionProperty[index].setState(ISS_ON);
     snprintf(cmd, DRIVER_LEN, ":M%c#", std::tolower(dc));
 
     // start movement at HC button rate 1
@@ -1359,8 +1359,8 @@ void Rainbow::guideTimeout(Direction direction)
     {
         case North:
         case South:
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.reset();
+            MovementNSSP.apply();
             GuideNSNP[0].setValue(0);
             GuideNSNP[1].setValue(0);
             GuideNSNP.setState(IPS_IDLE);
@@ -1370,8 +1370,8 @@ void Rainbow::guideTimeout(Direction direction)
             break;
         case East:
         case West:
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.reset();
+            MovementWESP.apply();
             GuideWENP[0].setValue(0);
             GuideWENP[1].setValue(0);
             GuideWENP.setState(IPS_IDLE);

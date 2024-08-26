@@ -800,12 +800,10 @@ class Telescope : public DefaultDevice
         };
 
         // A switch for North/South motion
-        ISwitch MovementNSS[2];
-        ISwitchVectorProperty MovementNSSP;
+        INDI::PropertySwitch MovementNSSP {2};
 
         // A switch for West/East motion
-        ISwitch MovementWES[2];
-        ISwitchVectorProperty MovementWESP;
+        INDI::PropertySwitch MovementWESP {2};
 
         // Reverse NS or WE
         INDI::PropertySwitch ReverseMovementSP {2};
@@ -841,7 +839,6 @@ class Telescope : public DefaultDevice
 
         // Switch for choosing between motion control by 4-way joystick or two separate axes
         INDI::PropertySwitch MotionControlModeTP {2};
-        // ISwitch /*MotionControlModeT*/[2];
         enum
         {
             MOTION_CONTROL_MODE_JOYSTICK,

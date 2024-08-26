@@ -203,15 +203,15 @@ bool Telescope::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&MovementNSS[DIRECTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
-    IUFillSwitch(&MovementNSS[DIRECTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
-    IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(), "TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB,
+    MovementNSSP[DIRECTION_NORTH].fill("MOTION_NORTH", "North", ISS_OFF);
+    MovementNSSP[DIRECTION_SOUTH].fill("MOTION_SOUTH", "South", ISS_OFF);
+    MovementNSSP.fill(getDeviceName(), "TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&MovementWES[DIRECTION_WEST], "MOTION_WEST", "West", ISS_OFF);
-    IUFillSwitch(&MovementWES[DIRECTION_EAST], "MOTION_EAST", "East", ISS_OFF);
-    IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(), "TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB,
+    MovementWESP[DIRECTION_WEST].fill("MOTION_WEST", "West", ISS_OFF);
+    MovementWESP[DIRECTION_EAST].fill("MOTION_EAST", "East", ISS_OFF);
+    MovementWESP.fill(getDeviceName(), "TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reverse NS or WE
@@ -353,8 +353,8 @@ bool Telescope::updateProperties()
 
         if (CanGOTO())
         {
-            defineProperty(&MovementNSSP);
-            defineProperty(&MovementWESP);
+            defineProperty(MovementNSSP);
+            defineProperty(MovementWESP);
             defineProperty(ReverseMovementSP);
             if (nSlewRate >= 4)
                 defineProperty(&SlewRateSP);
@@ -414,8 +414,8 @@ bool Telescope::updateProperties()
 
         if (CanGOTO())
         {
-            deleteProperty(MovementNSSP.name);
-            deleteProperty(MovementWESP.name);
+            deleteProperty(MovementNSSP);
+            deleteProperty(MovementWESP);
             deleteProperty(ReverseMovementSP.getName());
             if (nSlewRate >= 4)
                 deleteProperty(SlewRateSP.name);
@@ -704,9 +704,9 @@ bool Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
     DEBUG(Logger::DBG_ERROR, "Telescope does not support North/South motion.");
-    IUResetSwitch(&MovementNSSP);
-    MovementNSSP.s = IPS_IDLE;
-    IDSetSwitch(&MovementNSSP, nullptr);
+    MovementNSSP.reset();
+    MovementNSSP.setState(IPS_IDLE);
+    MovementNSSP.apply();
     return false;
 }
 
@@ -715,9 +715,9 @@ bool Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
     DEBUG(Logger::DBG_ERROR, "Telescope does not support West/East motion.");
-    IUResetSwitch(&MovementWESP);
-    MovementWESP.s = IPS_IDLE;
-    IDSetSwitch(&MovementWESP, nullptr);
+    MovementWESP.reset();
+    MovementWESP.setState(IPS_IDLE);
+    MovementWESP.apply();
     return false;
 }
 
@@ -1096,7 +1096,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // NS Motion
         ///////////////////////////////////
-        if (!strcmp(name, MovementNSSP.name))
+        if (MovementNSSP.isNameMatch(name))
         {
             // Check if it is already parked.
             if (CanPark())
@@ -1105,18 +1105,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 {
                     DEBUG(Logger::DBG_WARNING,
                           "Please unpark the mount before issuing any motion/sync commands.");
-                    MovementNSSP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementNSSP, nullptr);
+                    MovementNSSP.setState(IPS_IDLE);
+                    MovementNSSP.apply();
                     return false;
                 }
             }
 
-            IUUpdateSwitch(&MovementNSSP, states, names, n);
+            MovementNSSP.update(states, names, n);
 
-            int current_motion = IUFindOnSwitchIndex(&MovementNSSP);
+            int current_motion = MovementNSSP.findOnSwitchIndex();
 
             // if same move requested, return
-            if (MovementNSSP.s == IPS_BUSY && current_motion == last_ns_motion)
+            if (MovementNSSP.getState() == IPS_BUSY && current_motion == last_ns_motion)
                 return true;
 
             // Time to stop motion
@@ -1128,8 +1128,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                 if (MoveNS(targetDirection, MOTION_STOP))
                 {
-                    IUResetSwitch(&MovementNSSP);
-                    MovementNSSP.s = IPS_IDLE;
+                    MovementNSSP.reset();
+                    MovementNSSP.setState(IPS_IDLE);
                     last_ns_motion = -1;
                     // Update Target when stopped so that domes can track
                     TargetNP[AXIS_RA].setValue(EqNP[AXIS_RA].getValue());
@@ -1137,7 +1137,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     TargetNP.apply();
                 }
                 else
-                    MovementNSSP.s = IPS_ALERT;
+                    MovementNSSP.setState(IPS_ALERT);
             }
             else
             {
@@ -1150,18 +1150,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                 if (MoveNS(targetDirection, MOTION_START))
                 {
-                    MovementNSSP.s = IPS_BUSY;
+                    MovementNSSP.setState(IPS_BUSY);
                     last_ns_motion = targetDirection;
                 }
                 else
                 {
-                    IUResetSwitch(&MovementNSSP);
-                    MovementNSSP.s = IPS_ALERT;
+                    MovementNSSP.reset();
+                    MovementNSSP.setState(IPS_ALERT);
                     last_ns_motion = -1;
                 }
             }
 
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.apply();
 
             return true;
         }
@@ -1169,7 +1169,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // WE Motion
         ///////////////////////////////////
-        if (!strcmp(name, MovementWESP.name))
+        if (MovementWESP.isNameMatch(name))
         {
             // Check if it is already parked.
             if (CanPark())
@@ -1178,18 +1178,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 {
                     DEBUG(Logger::DBG_WARNING,
                           "Please unpark the mount before issuing any motion/sync commands.");
-                    MovementWESP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementWESP, nullptr);
+                    MovementWESP.setState(IPS_IDLE);
+                    MovementWESP.apply();
                     return false;
                 }
             }
 
-            IUUpdateSwitch(&MovementWESP, states, names, n);
+            MovementWESP.update(states, names, n);
 
-            int current_motion = IUFindOnSwitchIndex(&MovementWESP);
+            int current_motion = MovementWESP.findOnSwitchIndex();
 
             // if same move requested, return
-            if (MovementWESP.s == IPS_BUSY && current_motion == last_we_motion)
+            if (MovementWESP.getState() == IPS_BUSY && current_motion == last_we_motion)
                 return true;
 
             // Time to stop motion
@@ -1200,8 +1200,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     targetDirection = targetDirection == DIRECTION_EAST ? DIRECTION_WEST : DIRECTION_EAST;
                 if (MoveWE(targetDirection, MOTION_STOP))
                 {
-                    IUResetSwitch(&MovementWESP);
-                    MovementWESP.s = IPS_IDLE;
+                    MovementWESP.reset();
+                    MovementWESP.setState(IPS_IDLE);
                     last_we_motion = -1;
                     // Update Target when stopped so that domes can track
                     TargetNP[AXIS_RA].setValue(EqNP[AXIS_RA].getValue());
@@ -1209,7 +1209,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     TargetNP.apply();
                 }
                 else
-                    MovementWESP.s = IPS_ALERT;
+                    MovementWESP.setState(IPS_ALERT);
             }
             else
             {
@@ -1222,18 +1222,18 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                 if (MoveWE(targetDirection, MOTION_START))
                 {
-                    MovementWESP.s = IPS_BUSY;
+                    MovementWESP.setState(IPS_BUSY);
                     last_we_motion = targetDirection;
                 }
                 else
                 {
-                    IUResetSwitch(&MovementWESP);
-                    MovementWESP.s = IPS_ALERT;
+                    MovementWESP.reset();
+                    MovementWESP.setState(IPS_ALERT);
                     last_we_motion = -1;
                 }
             }
 
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.apply();
 
             return true;
         }
@@ -1304,17 +1304,17 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     EqNP.apply();
                     LOG_INFO("Slew/Track aborted.");
                 }
-                if (MovementWESP.s == IPS_BUSY)
+                if (MovementWESP.getState() == IPS_BUSY)
                 {
-                    IUResetSwitch(&MovementWESP);
-                    MovementWESP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementWESP, nullptr);
+                    MovementWESP.reset();
+                    MovementWESP.setState(IPS_IDLE);
+                    MovementWESP.apply();
                 }
-                if (MovementNSSP.s == IPS_BUSY)
+                if (MovementNSSP.getState() == IPS_BUSY)
                 {
-                    IUResetSwitch(&MovementNSSP);
-                    MovementNSSP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementNSSP, nullptr);
+                    MovementNSSP.reset();
+                    MovementNSSP.setState(IPS_IDLE);
+                    MovementNSSP.apply();
                 }
 
                 last_ns_motion = last_we_motion = -1;
@@ -1429,8 +1429,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             bool rc = false;
 
-            if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY ||
-                    MovementWESP.s == IPS_BUSY)
+            if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.getState() == IPS_BUSY ||
+                MovementWESP.getState() == IPS_BUSY)
             {
                 LOG_INFO("Can not change park position while slewing or already parked...");
                 ParkOptionSP.setState(IPS_ALERT);
@@ -2381,7 +2381,7 @@ void Telescope::processButton(const char *button_n, ISState state)
     {
         auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
-        if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
+        if (ParkSP.s == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
                 (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
@@ -2498,33 +2498,33 @@ void Telescope::processNSWE(double mag, double angle)
     if (mag < 0.5)
     {
         // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY)
         {
-            if (MoveNS(MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
+            if (MoveNS(MovementNSSP[DIRECTION_NORTH].getState() == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
             {
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, nullptr);
+                MovementNSSP.reset();
+                MovementNSSP.setState(IPS_IDLE);
+                MovementNSSP.apply();
             }
             else
             {
-                MovementNSSP.s = IPS_ALERT;
-                IDSetSwitch(&MovementNSSP, nullptr);
+                MovementNSSP.setState(IPS_ALERT);
+                MovementNSSP.apply();
             }
         }
 
-        if (MovementWESP.s == IPS_BUSY)
+        if (MovementWESP.getState() == IPS_BUSY)
         {
-            if (MoveWE(MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
+            if (MoveWE(MovementWESP[DIRECTION_WEST].getState() == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
             {
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, nullptr);
+                MovementWESP.reset();
+                MovementWESP.setState(IPS_IDLE);
+                MovementWESP.apply();
             }
             else
             {
-                MovementWESP.s = IPS_ALERT;
-                IDSetSwitch(&MovementWESP, nullptr);
+                MovementWESP.setState(IPS_ALERT);
+                MovementWESP.apply();
             }
         }
     }
@@ -2573,50 +2573,50 @@ void Telescope::processNSWE(double mag, double angle)
         if (angle > 0 && angle < 180)
         {
             // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+            if (MovementNSSP.getState() != IPS_BUSY || MovementNSSP[DIRECTION_NORTH].getState() != ISS_ON)
                 MoveNS(DIRECTION_NORTH, MOTION_START);
 
-            MovementNSSP.s                     = IPS_BUSY;
-            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_ON;
-            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.setState(IPS_BUSY);
+            MovementNSSP[DIRECTION_NORTH].setState(ISS_ON);
+            MovementNSSP[DIRECTION_SOUTH].setState(ISS_OFF);
+            MovementNSSP.apply();
         }
         // South
         if (angle > 180 && angle < 360)
         {
             // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[1].s != ISS_ON)
+            if (MovementNSSP.getState() != IPS_BUSY || MovementNSSP[DIRECTION_SOUTH].getState() != ISS_ON)
                 MoveNS(DIRECTION_SOUTH, MOTION_START);
 
-            MovementNSSP.s                     = IPS_BUSY;
-            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
-            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.setState(IPS_BUSY);
+            MovementNSSP[DIRECTION_NORTH].setState(ISS_OFF);
+            MovementNSSP[DIRECTION_SOUTH].setState(ISS_ON);
+            MovementNSSP.apply();
         }
         // East
         if (angle < 90 || angle > 270)
         {
             // Don't try to move if you're busy and moving in the same direction
-            if (MovementWESP.s != IPS_BUSY || MovementWES[1].s != ISS_ON)
+            if (MovementWESP.getState() != IPS_BUSY || MovementWESP[DIRECTION_EAST].getState() != ISS_ON)
                 MoveWE(DIRECTION_EAST, MOTION_START);
 
-            MovementWESP.s                    = IPS_BUSY;
-            MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
-            MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.setState(IPS_BUSY);
+            MovementWESP[DIRECTION_WEST].setState(ISS_OFF);
+            MovementWESP[DIRECTION_EAST].setState(ISS_ON);
+            MovementWESP.apply();
         }
 
         // West
         if (angle > 90 && angle < 270)
         {
             // Don't try to move if you're busy and moving in the same direction
-            if (MovementWESP.s != IPS_BUSY || MovementWES[0].s != ISS_ON)
+            if (MovementWESP.getState() != IPS_BUSY || MovementWESP[DIRECTION_WEST].getState() != ISS_ON)
                 MoveWE(DIRECTION_WEST, MOTION_START);
 
-            MovementWESP.s                    = IPS_BUSY;
-            MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
-            MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.setState(IPS_BUSY);
+            MovementWESP[DIRECTION_WEST].setState(ISS_ON);
+            MovementWESP[DIRECTION_EAST].setState(ISS_OFF);
+            MovementWESP.apply();
         }
     }
 }

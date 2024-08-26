@@ -568,16 +568,16 @@ bool LX200_TeenAstro::Park()
         IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
         EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
             EqNP.setState(IPS_IDLE);
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
+            MovementNSSP.reset();
+            MovementWESP.reset();
 
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
     }
     if (slewToPark(PortFD) < 0)  // slewToPark is a macro (lx200driver.h)
@@ -1150,7 +1150,7 @@ bool LX200_TeenAstro::SetGuideRate(float guideRate)
 IPState LX200_TeenAstro::GuideNorth(uint32_t ms)
 {
     SendPulseCmd(LX200_NORTH, ms);
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -1166,7 +1166,7 @@ IPState LX200_TeenAstro::GuideNorth(uint32_t ms)
 IPState LX200_TeenAstro::GuideSouth(uint32_t ms)
 {
     SendPulseCmd(LX200_SOUTH, ms);
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -1182,7 +1182,7 @@ IPState LX200_TeenAstro::GuideSouth(uint32_t ms)
 IPState LX200_TeenAstro::GuideEast(uint32_t ms)
 {
     SendPulseCmd(LX200_EAST, ms);
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)
@@ -1198,7 +1198,7 @@ IPState LX200_TeenAstro::GuideEast(uint32_t ms)
 IPState LX200_TeenAstro::GuideWest(uint32_t ms)
 {
     SendPulseCmd(LX200_WEST, ms);
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)

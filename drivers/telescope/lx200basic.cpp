@@ -106,8 +106,8 @@ bool LX200Basic::updateProperties()
         defineProperty(&SlewAccuracyNP);
 
         // We don't support NSWE controls
-        deleteProperty(MovementNSSP.name);
-        deleteProperty(MovementWESP.name);
+        deleteProperty(MovementNSSP);
+        deleteProperty(MovementWESP);
 
         getBasicData();
     }

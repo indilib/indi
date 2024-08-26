@@ -29,18 +29,18 @@ ScopeSim::ScopeSim() :
 
 bool ScopeSim::Abort()
 {
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, nullptr);
+        MovementNSSP.reset();
+        MovementNSSP.setState(IPS_IDLE);
+        MovementNSSP.apply();
     }
 
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, nullptr);
+        MovementWESP.setState(IPS_IDLE);
+        MovementWESP.reset();
+        MovementWESP.apply();
     }
 
     if (EqNP.getState() == IPS_BUSY)

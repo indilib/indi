@@ -2540,15 +2540,15 @@ bool LX200Pulsar2::Abort()
 
 IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2568,7 +2568,7 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementNSS[0].s = ISS_ON;
+        MovementNSSP[DIRECTION_NORTH].setState(ISS_ON);
         MoveNS(DIRECTION_NORTH, MOTION_START);
     }
 
@@ -2583,15 +2583,15 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2609,7 +2609,7 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementNSS[1].s = ISS_ON;
+        MovementNSSP[DIRECTION_SOUTH].setState(ISS_ON);
         MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
 
@@ -2624,15 +2624,15 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideEast(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2650,7 +2650,7 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementWES[1].s = ISS_ON;
+        MovementWESP[DIRECTION_EAST].setState(ISS_ON);
         MoveWE(DIRECTION_EAST, MOTION_START);
     }
 
@@ -2665,15 +2665,15 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
 
 IPState LX200Pulsar2::GuideWest(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2691,7 +2691,7 @@ IPState LX200Pulsar2::GuideWest(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementWES[0].s = ISS_ON;
+        MovementWESP[DIRECTION_WEST].setState(ISS_ON);
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
     // Set switched slew to "guide"
@@ -2775,15 +2775,15 @@ bool LX200Pulsar2::Goto(double r, double d)
         IDSetSwitch(&AbortSP, "Slew aborted.");
         EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
             EqNP.setState(IPS_IDLE);
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }
@@ -2849,16 +2849,16 @@ bool LX200Pulsar2::Park()
         IDSetSwitch(&AbortSP, "Slew aborted.");
         EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
             EqNP.setState(IPS_IDLE);
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
+            MovementNSSP.reset();
+            MovementWESP.reset();
 
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }

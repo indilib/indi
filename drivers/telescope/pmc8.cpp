@@ -1150,9 +1150,9 @@ IPState PMC8::GuideNorth(uint32_t ms)
     {
 
         // If already moving, then stop movement
-        if (MovementNSSP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY)
         {
-            int dir = IUFindOnSwitchIndex(&MovementNSSP);
+            int dir = MovementNSSP.findOnSwitchIndex();
             MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
         }
 
@@ -1191,9 +1191,9 @@ IPState PMC8::GuideSouth(uint32_t ms)
     {
 
         // If already moving, then stop movement
-        if (MovementNSSP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY)
         {
-            int dir = IUFindOnSwitchIndex(&MovementNSSP);
+            int dir = MovementNSSP.findOnSwitchIndex();
             MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
         }
 
@@ -1232,9 +1232,9 @@ IPState PMC8::GuideEast(uint32_t ms)
     {
 
         // If already moving (no pulse command), then stop movement
-        if (MovementWESP.s == IPS_BUSY)
+        if (MovementWESP.getState() == IPS_BUSY)
         {
-            int dir = IUFindOnSwitchIndex(&MovementWESP);
+            int dir = MovementWESP.findOnSwitchIndex();
             MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
         }
 
@@ -1274,9 +1274,9 @@ IPState PMC8::GuideWest(uint32_t ms)
     {
 
         // If already moving (no pulse command), then stop movement
-        if (MovementWESP.s == IPS_BUSY)
+        if (MovementWESP.getState() == IPS_BUSY)
         {
-            int dir = IUFindOnSwitchIndex(&MovementWESP);
+            int dir = MovementWESP.findOnSwitchIndex();
             MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
         }
 

@@ -1221,15 +1221,13 @@ void AstroTrac::simulateMount()
         return;
     }
 
-    if (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY)
     {
-        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
-                                &MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
-        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
-                                &MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
 
-        haVelocity *= MovementWESP.s == IPS_BUSY ? 1 : 0;
-        deVelocity *= MovementNSSP.s == IPS_BUSY ? 1 : 0;
+        haVelocity *= MovementWESP.getState() == IPS_BUSY ? 1 : 0;
+        deVelocity *= MovementNSSP.getState() == IPS_BUSY ? 1 : 0;
 
         // In degrees
         double elapsedDistanceHA = (elapsed / 1000.0 * haVelocity) / 3600.0;

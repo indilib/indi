@@ -495,7 +495,7 @@ IPState TitanTCS::GuideNorth(uint32_t ms)
 {
     SendCommand(":Mgn%d#", (int)ms);
     //
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -512,7 +512,7 @@ IPState TitanTCS::GuideSouth(uint32_t ms)
 {
     SendCommand(":Mgs%d#", (int)ms);
     //
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -529,7 +529,7 @@ IPState TitanTCS::GuideEast(uint32_t ms)
 {
     SendCommand(":Mge%d#", (int)ms);
     //
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)
@@ -546,7 +546,7 @@ IPState TitanTCS::GuideWest(uint32_t ms)
 {
     SendCommand(":Mgw%d#", (int)ms);
     //
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)
