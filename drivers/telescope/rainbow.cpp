@@ -1235,7 +1235,6 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     // ISwitch moveS = MovementNSSP[0];
     // int* guideTID = &m_GuideNSTID;
     int* guideTID = &m_GuideNSTID;
-    uint8_t rate = 50;
     int index = 0;
 
 
