@@ -1741,7 +1741,7 @@ bool LX200Gemini::Park()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
 
     updateParkingState();

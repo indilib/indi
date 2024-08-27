@@ -771,8 +771,12 @@ class Telescope : public DefaultDevice
         INDI::PropertyNumber LocationNP {3};
 
         // A Switch in the client interface to park the scope
-        ISwitchVectorProperty ParkSP;
-        ISwitch ParkS[2];
+        INDI::PropertySwitch ParkSP {2};
+        enum
+        {
+            PARK,
+            UNPARK
+        };
 
         // Custom parking position
         INumber ParkPositionN[2];

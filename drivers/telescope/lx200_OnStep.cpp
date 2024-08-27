@@ -2130,12 +2130,13 @@ bool LX200_OnStep::Park()
         }
         if (!isSimulation() && slewToPark(PortFD) < 0)
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Parking Failed.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Parking Failed.");
+            ParkSP.apply();
             return false;
         }
     }
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     return true;
 }
 
@@ -5386,21 +5387,21 @@ void LX200_OnStep::SyncParkStatus(bool isparked)
     LOG_DEBUG("OnStep SyncParkStatus called");
     PrintTrackState();
     IsParked = isparked;
-    IUResetSwitch(&ParkSP);
-    ParkSP.s = IPS_OK;
+    ParkSP.reset();
+    ParkSP.setState(IPS_OK);
 
     if (TrackState == SCOPE_PARKED)
     {
-        ParkS[0].s = ISS_ON;
+        ParkSP[PARK].setState(ISS_ON);
         LOG_INFO("Mount is parked.");
     }
     else
     {
-        ParkS[1].s = ISS_ON;
+        ParkSP[UNPARK].setState(ISS_ON);
         LOG_INFO("Mount is unparked.");
     }
 
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 }
 
 

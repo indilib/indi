@@ -397,8 +397,9 @@ bool LX200Classic::Park()
 
     if (!Goto(equatorialCoords.rightascension, equatorialCoords.declination))
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Parking Failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Parking Failed.");
+        ParkSP.apply();
         return false;
     }
 

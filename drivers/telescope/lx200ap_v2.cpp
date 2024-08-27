@@ -873,7 +873,7 @@ bool LX200AstroPhysicsV2::ISNewSwitch(const char *dev, const char *name, ISState
     // Switch Park(ed), Unpark(ed)
     // ===========================================================
 
-    if (!strcmp(name, ParkSP.name))
+    if (ParkSP.isNameMatch(name))
     {
     }
 
@@ -1152,7 +1152,7 @@ bool LX200AstroPhysicsV2::IsMountParked(bool * isAPParked)
     if (isSimulation())
     {
         // 2030-05-30, if Unparked is selected, this condition is not met
-        *isAPParked = (ParkS[0].s == ISS_ON);
+        *isAPParked = (ParkSP[PARK].getState() == ISS_ON);
         return true;
     }
 
@@ -1943,10 +1943,10 @@ bool LX200AstroPhysicsV2::UnPark()
 
         if (APUnParkMount(PortFD) < 0)
         {
-            IUResetSwitch(&ParkSP);
-            ParkS[0].s = ISS_ON;
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP[PARK].setState(ISS_ON);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
             LOG_ERROR("UnParking AP mount failed.");
             return false;
         }
@@ -1955,10 +1955,10 @@ bool LX200AstroPhysicsV2::UnPark()
         // Stop :Q#
         if ( abortSlew(PortFD) < 0)
         {
-            IUResetSwitch(&ParkSP);
-            ParkS[0].s = ISS_ON;
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP[PARK].setState(ISS_ON);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
             LOG_WARN("Abort motion Failed");
             return false;
         }

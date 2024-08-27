@@ -540,14 +540,15 @@ bool LX200_10MICRON::Park()
     LOG_INFO("Parking.");
     if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Park command failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Park command failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
     // postpone SetParked(true) for ReadScopeStatus so that we know it is actually correct
     return true;
 }
@@ -560,15 +561,16 @@ bool LX200_10MICRON::UnPark()
     LOG_INFO("Unparking.");
     if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Unpark command failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Unpark command failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_OK;
+    ParkSP.setState(IPS_OK);
     TrackState = SCOPE_IDLE;
     SetParked(false);
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
     return true;
 }
 

@@ -482,8 +482,9 @@ bool LX200Telescope::Park()
 
         if (!isSimulation() && slewToPark(PortFD) < 0)
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Parking Failed.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Parking Failed.");
+            ParkSP.apply();
             return false;
         }
     }

@@ -192,9 +192,9 @@ bool Telescope::initProperties()
     }
 
     // @INDI_STANDARD_PROPERTY@
-    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
-    IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
+    ParkSP[PARK].fill("PARK", "Park(ed)", ISS_OFF);
+    ParkSP[UNPARK].fill("UNPARK", "UnPark(ed)", ISS_OFF);
+    ParkSP.fill(getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
@@ -367,7 +367,7 @@ bool Telescope::updateProperties()
             defineProperty(LocationNP);
         if (CanPark())
         {
-            defineProperty(&ParkSP);
+            defineProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
                 defineProperty(&ParkPositionNP);
@@ -429,7 +429,7 @@ bool Telescope::updateProperties()
 
         if (CanPark())
         {
-            deleteProperty(ParkSP.name);
+            deleteProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
                 deleteProperty(ParkPositionNP.name);
@@ -1015,81 +1015,81 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Parking
         ///////////////////////////////////
-        if (!strcmp(name, ParkSP.name))
+        if (ParkSP.isNameMatch(name))
         {
             if (TrackState == SCOPE_PARKING)
             {
-                IUResetSwitch(&ParkSP);
-                ParkSP.s = IPS_ALERT;
+                ParkSP.reset();
+                ParkSP.setState(IPS_ALERT);
                 Abort();
                 LOG_INFO("Parking/Unparking aborted.");
-                IDSetSwitch(&ParkSP, nullptr);
+                ParkSP.apply();
                 return true;
             }
 
-            int preIndex = IUFindOnSwitchIndex(&ParkSP);
-            IUUpdateSwitch(&ParkSP, states, names, n);
+            int preIndex = ParkSP.findOnSwitchIndex();
+            ParkSP.update(states, names, n);
 
-            bool toPark = (ParkS[0].s == ISS_ON);
+            bool toPark = (ParkSP[PARK].getState() == ISS_ON);
 
             if (toPark == false && TrackState != SCOPE_PARKED)
             {
-                IUResetSwitch(&ParkSP);
-                ParkS[1].s = ISS_ON;
-                ParkSP.s   = IPS_IDLE;
+                ParkSP.reset();
+                ParkSP[UNPARK].setState(ISS_ON);
+                ParkSP.setState(IPS_IDLE);
                 LOG_INFO("Telescope already unparked.");
                 IsParked = false;
-                IDSetSwitch(&ParkSP, nullptr);
+                ParkSP.apply();
                 return true;
             }
 
             if (toPark == false && isLocked())
             {
-                IUResetSwitch(&ParkSP);
-                ParkS[0].s = ISS_ON;
-                ParkSP.s   = IPS_ALERT;
+                ParkSP.reset();
+                ParkSP[PARK].setState(ISS_ON);
+                ParkSP.setState(IPS_ALERT);
                 LOG_WARN("Cannot unpark mount when dome is locking. See: Dome Policy in options tab.");
                 IsParked = true;
-                IDSetSwitch(&ParkSP, nullptr);
+                ParkSP.apply();
                 return true;
             }
 
             if (toPark && TrackState == SCOPE_PARKED)
             {
-                IUResetSwitch(&ParkSP);
-                ParkS[0].s = ISS_ON;
-                ParkSP.s   = IPS_IDLE;
+                ParkSP.reset();
+                ParkSP[PARK].setState(ISS_ON);
+                ParkSP.setState(IPS_IDLE);
                 LOG_INFO("Telescope already parked.");
-                IDSetSwitch(&ParkSP, nullptr);
+                ParkSP.apply();
                 return true;
             }
 
             RememberTrackState = TrackState;
 
-            IUResetSwitch(&ParkSP);
+            ParkSP.reset();
             bool rc = toPark ? Park() : UnPark();
             if (rc)
             {
                 if (TrackState == SCOPE_PARKING)
                 {
-                    ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
-                    ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
-                    ParkSP.s   = IPS_BUSY;
+                    ParkSP[PARK].setState(toPark ? ISS_ON : ISS_OFF);
+                    ParkSP[UNPARK].setState(toPark ? ISS_OFF : ISS_ON);
+                    ParkSP.setState(IPS_BUSY);
                 }
                 else
                 {
-                    ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
-                    ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
-                    ParkSP.s   = IPS_OK;
+                    ParkSP[PARK].setState(toPark ? ISS_ON : ISS_OFF);
+                    ParkSP[UNPARK].setState(toPark ? ISS_OFF : ISS_ON);
+                    ParkSP.setState(IPS_OK);
                 }
             }
             else
             {
-                ParkS[preIndex].s = ISS_ON;
-                ParkSP.s          = IPS_ALERT;
+                ParkSP[preIndex].setState(ISS_ON);
+                ParkSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.apply();
             return true;
         }
 
@@ -1290,11 +1290,11 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 AbortSP.setState(IPS_OK);
 
-                if (ParkSP.s == IPS_BUSY)
+                if (ParkSP.getState() == IPS_BUSY)
                 {
-                    IUResetSwitch(&ParkSP);
-                    ParkSP.s = IPS_ALERT;
-                    IDSetSwitch(&ParkSP, nullptr);
+                    ParkSP.reset();
+                    ParkSP.setState(IPS_ALERT);
+                    ParkSP.apply();
 
                     LOG_INFO("Parking aborted.");
                 }
@@ -1961,23 +1961,23 @@ void Telescope::SetParkDataType(TelescopeParkData type)
 void Telescope::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
-    IUResetSwitch(&ParkSP);
-    ParkSP.s = IPS_OK;
+    ParkSP.reset();
+    ParkSP.setState(IPS_OK);
 
     if (IsParked)
     {
-        ParkS[0].s = ISS_ON;
+        ParkSP[PARK].setState(ISS_ON);
         TrackState = SCOPE_PARKED;
         LOG_INFO("Mount is parked.");
     }
     else
     {
-        ParkS[1].s = ISS_ON;
+        ParkSP[UNPARK].setState(ISS_ON);
         TrackState = SCOPE_IDLE;
         LOG_INFO("Mount is unparked.");
     }
 
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 }
 
 void Telescope::SetParked(bool isparked)
@@ -2381,7 +2381,7 @@ void Telescope::processButton(const char *button_n, ISState state)
     {
         auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
-        if (ParkSP.s == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
+        if (ParkSP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
                 (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
@@ -2393,14 +2393,14 @@ void Telescope::processButton(const char *button_n, ISState state)
     else if (!strcmp(button_n, "PARKBUTTON"))
     {
         ISState states[2] = { ISS_ON, ISS_OFF };
-        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
+        const char *names[2]    = { ParkSP[PARK].getName(), ParkSP[UNPARK].getName() };
+        ISNewSwitch(getDeviceName(), ParkSP.getName(), states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "UNPARKBUTTON"))
     {
         ISState states[2] = { ISS_OFF, ISS_ON };
-        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
+        const char *names[2]    = { ParkSP[PARK].getName(), ParkSP[UNPARK].getName() };
+        ISNewSwitch(getDeviceName(), ParkSP.getName(), states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {

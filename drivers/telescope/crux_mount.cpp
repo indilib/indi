@@ -181,10 +181,10 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         int iVal = 0;
         // ---------------------------------------------------------------------
         // Park $$$
-        if (!strcmp(name, ParkSP.name))
+        if (ParkSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&ParkSP);
+            ParkSP.update(states, names, n);
+            int nowIndex = ParkSP.findOnSwitchIndex();
             if(nowIndex == 0)
                 Park();
             else if(nowIndex == 1)
@@ -1069,28 +1069,28 @@ bool TitanTCS::GetMountParams(bool bAll)
         if(info.Parking == 1)
         {
             TrackState = SCOPE_PARKING;
-            ParkS[0].s = ISS_ON;
-            ParkS[1].s = ISS_OFF;
-            ParkSP.s   = IPS_BUSY;
+            ParkSP[PARK].setState(ISS_ON);
+            ParkSP[UNPARK].setState(ISS_OFF);
+            ParkSP.setState(IPS_BUSY);
             IUSaveText(&MountInfoT[0], "Parking");
         }
         else if(info.Parking == 2)
         {
             TrackState = SCOPE_PARKED;
-            ParkS[0].s = ISS_ON;
-            ParkS[1].s = ISS_OFF;
-            ParkSP.s   = IPS_IDLE;
+            ParkSP[PARK].setState(ISS_ON);
+            ParkSP[UNPARK].setState(ISS_OFF);
+            ParkSP.setState(IPS_IDLE);
             IUSaveText(&MountInfoT[0], "Parked");
         }
         else if(info.Parking == 0)
         {
-            ParkSP.s   = IPS_IDLE;
-            ParkS[0].s = ISS_OFF;
-            ParkS[1].s = ISS_ON;
+            ParkSP.setState(IPS_IDLE);
+            ParkSP[PARK].setState(ISS_OFF);
+            ParkSP[UNPARK].setState(ISS_ON);
             IUSaveText(&MountInfoT[0], "Unpark");
         }
 
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
     }
     // Tracking On / Off
     if((TrackState == SCOPE_SLEWING) || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
@@ -1398,7 +1398,7 @@ bool TitanTCS::Park()
 
     if(SendCommand(":hP8#"))
     {
-        ParkSP.s   = IPS_BUSY;
+        ParkSP.setState(IPS_BUSY);
         TrackState = SCOPE_PARKING;
         return true;
     }
@@ -1411,7 +1411,7 @@ bool TitanTCS::UnPark()
 
     if(SendCommand(":hP0#"))
     {
-        ParkSP.s   = IPS_BUSY;
+        ParkSP.setState(IPS_BUSY);
         TrackState = SCOPE_PARKING;
         return true;
     }

@@ -1313,8 +1313,8 @@ bool LX200Pulsar2::Connect()
             LOGF_DEBUG("%s", "The mount was awake on connection.");
             // the following assumes we are tracking, since there is no "idle" state for Pulsar2
             TrackState = SCOPE_TRACKING;
-            ParkS[1].s = ISS_ON; // Unparked
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP[UNPARK].setState(ISS_ON); // Unparked
+            ParkSP.apply();
         }
     }
 
@@ -2824,14 +2824,16 @@ bool LX200Pulsar2::Park()
     {
         if (!Pulsar2Commands::isHomeSet(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "No parking position defined.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("No parking position defined.");
+            ParkSP.apply();
             return false;
         }
         if (Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Scope has already been parked.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Scope has already been parked.");
+            ParkSP.apply();
             return false;
         }
     }
@@ -2869,12 +2871,13 @@ bool LX200Pulsar2::Park()
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Parking Failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Parking Failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
@@ -2940,20 +2943,22 @@ bool LX200Pulsar2::UnPark()
     {
         if (!Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Mount is not parked.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Mount is not parked.");
+            ParkSP.apply();
             LOG_INFO("Mount is not parked, so cannot unpark.");
             return false; // early exit
         }
         if (!Pulsar2Commands::unpark(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Unparking failed.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Unparking failed.");
+            ParkSP.apply();
             LOG_INFO("Unparking failed.");
             return false; // early exit
         }
     }
-    ParkSP.s   = IPS_OK;
+    ParkSP.setState(IPS_OK);
     TrackState = SCOPE_IDLE;
     SetParked(false);
     IDMessage(getDeviceName(), "Telescope has been unparked.");
@@ -2962,7 +2967,7 @@ bool LX200Pulsar2::UnPark()
     // "idle" state for Pulsar2
     LOG_INFO("Telescope has been unparked.");
     TrackState = SCOPE_TRACKING;
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 
     return true;
 }

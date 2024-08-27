@@ -586,11 +586,12 @@ bool LX200_TeenAstro::Park()
     }
     if (slewToPark(PortFD) < 0)  // slewToPark is a macro (lx200driver.h)
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Parking Failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Parking Failed.");
+        ParkSP.apply();
         return false;
     }
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
 
