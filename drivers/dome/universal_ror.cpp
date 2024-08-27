@@ -45,6 +45,11 @@ bool UniversalROR::initProperties()
     InputTP.fill(getDeviceName(), "INPUT_INDEX", "Input Indexes", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     InputTP.load();
 
+    // Limit Switch Indicators
+    LimitSwitchLP[FullyOpened].fill("FULLY_OPENED", "Fully Opened", IPS_IDLE);
+    LimitSwitchLP[FullyClosed].fill("FULLY_CLOSED", "Fully Closed", IPS_IDLE);
+    LimitSwitchLP.fill(getDeviceName(), "LIMIT_SWITCHES", "Limit Switches", MAIN_CONTROL_TAB, IPS_IDLE);
+
     // Output Indexes
     OutputTP[OpenRoof].fill("OPEN_ROOF", "Open Roof", "Comma separated indexes");
     OutputTP[CloseRoof].fill("CLOSE_ROOF", "Close Roof", "Comma separated indexes");
@@ -117,6 +122,8 @@ bool UniversalROR::Connect()
 ////////////////////////////////////////////////////////////////////////////////
 bool UniversalROR::Disconnect()
 {
+    m_InputFullyOpened.clear();
+    m_InputFullyClosed.clear();
     return true;
 }
 
@@ -182,11 +189,13 @@ bool UniversalROR::updateProperties()
 
         defineProperty(InputTP);
         defineProperty(OutputTP);
+        defineProperty(LimitSwitchLP);
     }
     else
     {
         deleteProperty(InputTP);
         deleteProperty(OutputTP);
+        deleteProperty(LimitSwitchLP);
     }
 
     return true;
@@ -366,10 +375,14 @@ void UniversalROR::ActiveDevicesUpdated()
     m_Client->setFullyClosedCallback([&](bool on)
     {
         m_FullClosedLimitSwitch = on;
+        LimitSwitchLP[FullyClosed].setState(on ? IPS_OK : IPS_IDLE);
+        LimitSwitchLP.apply();
     });
     m_Client->setFullyOpenedCallback([&](bool on)
     {
         m_FullOpenLimitSwitch = on;
+        LimitSwitchLP[FullyOpened].setState(on ? IPS_OK : IPS_IDLE);
+        LimitSwitchLP.apply();
     });
     m_Client->watchDevice(input.c_str());
     m_Client->watchDevice(output.c_str());

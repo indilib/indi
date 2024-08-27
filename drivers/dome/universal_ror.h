@@ -56,6 +56,7 @@ class UniversalROR : public INDI::Dome
         bool m_FullOpenLimitSwitch {false}, m_FullClosedLimitSwitch {false};
 
         INDI::PropertyText InputTP {2};
+        INDI::PropertyLight LimitSwitchLP {2};
         enum
         {
             FullyOpened,
