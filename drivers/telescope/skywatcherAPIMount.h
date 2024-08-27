@@ -115,6 +115,12 @@ class SkywatcherAPIMount :
             long &Axis2Microsteps);
         const INDI::AlignmentSubsystem::TelescopeDirectionVector
         TelescopeDirectionVectorFromSkywatcherMicrosteps(long Axis1Microsteps, long Axis2Microsteps);
+        double AzimuthToDegrees(double degree);
+        double DegreesToAzimuth(double degree);
+        bool isNorthHemisphere() const
+        {
+            return m_Location.latitude >= 0;
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Misc
@@ -124,6 +130,23 @@ class SkywatcherAPIMount :
         bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
         // Reset tracking timer to account for drift compensation
         void resetTracking();
+        // Classical tracking via PID control loop
+        bool trackUsingPID();
+        // Simpler tracking loop develped by Paweł T. Jochym
+        bool trackUsingPredictiveRates();
+        // Get guide ticks
+        void getGuidePulses(double &az, double &alt);
+
+        /**
+         * @brief TrackByRate Set axis tracking rate in arcsecs/sec.
+         * @param axis AXIS1 AZ or AXIS2 ALT
+         * @param rate arcsecs/s. Zero would stop tracking.
+         * For AZ, negative means left while positive means right.
+         * For Alt, negative is down while positive is up.
+         * @return True if successful, false otherwise.
+         */
+        bool trackByRate(AXISID axis, double rate);
+
         inline double average(const std::vector<double> &values)
         {
             return values.empty() ? 0 : std::accumulate(values.begin(), values.end(), 0.0) / values.size();
@@ -233,16 +256,16 @@ class SkywatcherAPIMount :
             AZSteps,
             ALSteps,
             JulianOffset,
-         };
+        };
 
-         // Axis 1 Direct Track Control
-         INDI::PropertyNumber Axis1TrackRateNP {2};
-         INDI::PropertyNumber Axis2TrackRateNP {2};
-         enum
-         {
+        // Axis 1 Direct Track Control
+        INDI::PropertyNumber Axis1TrackRateNP {2};
+        INDI::PropertyNumber Axis2TrackRateNP {2};
+        enum
+        {
             TrackDirection,
             TrackClockRate,
-         };
+        };
 
         // AUX Encoders
         INDI::PropertySwitch AUXEncoderSP {2};
@@ -261,13 +284,16 @@ class SkywatcherAPIMount :
         std::unique_ptr<PID> m_Controllers[2];
 
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
-        static constexpr double MAX_TRACKING_DELTA {5};    
+        static constexpr double MAX_TRACKING_DELTA {5};
         static constexpr const char *TRACKING_TAB = "Tracking";
 
         INDI::ElapsedTimer m_TrackingRateTimer;
+        int32_t m_LastTrackRate[2] = {-1, -1};
         uint8_t m_LastCustomDirection[2];
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
+        double m_LastOffset[2] = {0, 0};
+        uint8_t m_OffsetSwitchSettle[2] = {0, 0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;
