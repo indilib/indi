@@ -73,6 +73,7 @@ void UniversalRORClient::newProperty(INDI::Property property)
 ///////////////////////////////////////////////////////////////////////////////////////////
 void UniversalRORClient::serverDisconnected(int exitCode)
 {
+    INDI_UNUSED(exitCode);
     m_InputReady = m_OutputReady = false;
 }
 
