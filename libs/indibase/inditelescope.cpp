@@ -179,15 +179,15 @@ bool Telescope::initProperties()
         strftime(curTime, sizeof(curTime), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
 
         // @INDI_STANDARD_PROPERTY@
-        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_END], "SAT_PASS_WINDOW_END", "End UTC", curTime);
-        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_START], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
-        IUFillTextVector(&SatPassWindowTP, SatPassWindowT, SAT_PASS_WINDOW_COUNT, getDeviceName(),
+        SatPassWindowTP[SAT_PASS_WINDOW_END].fill("SAT_PASS_WINDOW_END", "End UTC", curTime);
+        SatPassWindowTP[SAT_PASS_WINDOW_START].fill("SAT_PASS_WINDOW_START", "Start UTC", curTime);
+        SatPassWindowTP.fill(getDeviceName(),
                          "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
         // @INDI_STANDARD_PROPERTY@
-        IUFillSwitch(&TrackSatS[SAT_TRACK], "SAT_TRACK", "Track", ISS_OFF);
-        IUFillSwitch(&TrackSatS[SAT_HALT], "SAT_HALT", "Halt", ISS_ON);
-        IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
+        TrackSatSP[SAT_TRACK].fill("SAT_TRACK", "Track", ISS_OFF);
+        TrackSatSP[SAT_HALT].fill("SAT_HALT", "Halt", ISS_ON);
+        TrackSatSP.fill(getDeviceName(), "SAT_TRACKING_STAT",
                            "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     }
 
@@ -389,8 +389,8 @@ bool Telescope::updateProperties()
         if (CanTrackSatellite())
         {
             defineProperty(TLEtoTrackTP);
-            defineProperty(&SatPassWindowTP);
-            defineProperty(&TrackSatSP);
+            defineProperty(SatPassWindowTP);
+            defineProperty(TrackSatSP);
         }
 
         if (HasPECState())
@@ -450,8 +450,8 @@ bool Telescope::updateProperties()
         if (CanTrackSatellite())
         {
             deleteProperty(TLEtoTrackTP);
-            deleteProperty(SatPassWindowTP.name);
-            deleteProperty(TrackSatSP.name);
+            deleteProperty(SatPassWindowTP);
+            deleteProperty(TrackSatSP);
         }
 
         if (HasPECState())

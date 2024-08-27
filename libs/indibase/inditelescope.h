@@ -895,8 +895,7 @@ class Telescope : public DefaultDevice
          * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ITextVectorProperty SatPassWindowTP;
-        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
+        INDI::PropertyText SatPassWindowTP {0};
         /**
          * \struct SatelliteTracking
          * \brief Possible states for the satellite tracking.
@@ -911,8 +910,7 @@ class Telescope : public DefaultDevice
          * \brief Switch Vector property defining the state of the satellite tracking of the mount.
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ISwitchVectorProperty TrackSatSP;
-        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        INDI::PropertySwitch TrackSatSP {0};
 
         // PEC State
         INDI::PropertySwitch PECStateSP {2};

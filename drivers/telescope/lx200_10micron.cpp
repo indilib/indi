@@ -1215,41 +1215,41 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentStateSP, nullptr);
             return true;
         }
-        if (strcmp(TrackSatSP.name, name) == 0)
+        if (TrackSatSP.isNameMatch(name))
         {
 
-            IUUpdateSwitch(&TrackSatSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&TrackSatSP);
+            TrackSatSP.update(states, names, n);
+            int index    = TrackSatSP.findOnSwitchIndex();
 
             switch (index)
             {
                 case SAT_TRACK:
                     if ( 0 != TrackSat() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Tracking failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Tracking satellite");
                     return true;
                 case SAT_HALT:
                     if ( !Abort() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Halt failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Halt tracking");
                     return true;
                 default:
-                    TrackSatSP.s = IPS_ALERT;
-                    IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
+                    TrackSatSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown tracking modus %d", index);
                     return false;
             }
         }
@@ -1331,18 +1331,18 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         }
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
-            IUUpdateText(&SatPassWindowTP, texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowT[SAT_PASS_WINDOW_START].text, SatPassWindowT[SAT_PASS_WINDOW_END].text))
+            SatPassWindowTP.update(texts, names, n);
+            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(), SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
             {
-                SatPassWindowTP.s = IPS_OK;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_OK);
+                SatPassWindowTP.apply();
                 LOG_INFO("Trajectory set");
                 return true;
             }
             else
             {
-                SatPassWindowTP.s = IPS_ALERT;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_ALERT);
+                SatPassWindowTP.apply();
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }
