@@ -1358,9 +1358,9 @@ bool LX200Pulsar2::ReadScopeStatus()
                         if (isSlewComplete())
                         {
                             // Set slew mode to "Centering"
-                            IUResetSwitch(&SlewRateSP);
-                            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-                            IDSetSwitch(&SlewRateSP, nullptr);
+                            SlewRateSP.reset();
+                            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+                            SlewRateSP.apply();
                             TrackState = SCOPE_TRACKING;
                             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
                         }
@@ -2415,13 +2415,14 @@ bool LX200Pulsar2::SetSlewRate(int index)
         (isSimulation() || Pulsar2Commands::setSlewMode(PortFD, static_cast<Pulsar2Commands::SlewMode>(index)));
     if (success)
     {
-        SlewRateSP.s = IPS_OK;
-        IDSetSwitch(&SlewRateSP, nullptr);
+        SlewRateSP.setState(IPS_OK);
+        SlewRateSP.apply();
     }
     else
     {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew rate");
+        SlewRateSP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting slew rate");
+        SlewRateSP.apply();
     }
     return success;
 }
@@ -2564,8 +2565,9 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
         MovementNSSP[DIRECTION_NORTH].setState(ISS_ON);
@@ -2573,9 +2575,9 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
     }
 
     // Set switched slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_ns = LX200_NORTH;
     GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -2605,8 +2607,9 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
         MovementNSSP[DIRECTION_SOUTH].setState(ISS_ON);
@@ -2614,9 +2617,9 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
     }
 
     // Set switch slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_ns = LX200_SOUTH;
     GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -2646,8 +2649,9 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
         MovementWESP[DIRECTION_EAST].setState(ISS_ON);
@@ -2655,9 +2659,9 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
     }
 
     // Set switched slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_we = LX200_EAST;
     GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
@@ -2687,17 +2691,18 @@ IPState LX200Pulsar2::GuideWest(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
         MovementWESP[DIRECTION_WEST].setState(ISS_ON);
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
     // Set switched slew to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_we = LX200_WEST;
     GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;

@@ -73,18 +73,18 @@ bool SynscanLegacyDriver::initProperties()
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "32x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "400x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "600x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("1x");
+    SlewRateSP[1].setLabel("8x");
+    SlewRateSP[2].setLabel("16x");
+    SlewRateSP[3].setLabel("32x");
+    SlewRateSP[4].setLabel("64x");
+    SlewRateSP[5].setLabel("128x");
+    SlewRateSP[6].setLabel("400x");
+    SlewRateSP[7].setLabel("600x");
+    SlewRateSP[8].setLabel("MAX");
+    SlewRateSP.reset();
     // Max is the default
-    SlewRateS[8].s = ISS_ON;
+    SlewRateSP[8].setState(ISS_ON);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Mount Info Text Property
@@ -1527,7 +1527,7 @@ void SynscanLegacyDriver::MountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
+    double currentSlewRate = SLEW_RATE[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */

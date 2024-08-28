@@ -59,7 +59,7 @@ bool LX200FS2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SlewRateSP);
+        defineProperty(SlewRateSP);
         defineProperty(&SlewAccuracyNP);
         defineProperty(&StopAfterParkSP);
 
@@ -87,7 +87,7 @@ bool LX200FS2::updateProperties()
     }
     else
     {
-        deleteProperty(SlewRateSP.name);
+        deleteProperty(SlewRateSP);
         deleteProperty(SlewAccuracyNP.name);
         deleteProperty(StopAfterParkSP.name);
     }
@@ -210,7 +210,7 @@ void LX200FS2::TrackingStop()
     if (ParkedStatus != PARKED_NOTPARKED) return;
 
     // Remember current slew rate
-    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (SlewRateSP.findOnSwitchIndex());
 
     updateSlewRate(SLEW_CENTERING);
     ParkedStatus = PARKED_NEEDABORT;

@@ -112,14 +112,15 @@ bool Paramount::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (int i = 0; i < SlewRateSP.nsp - 1; i++)
+    for (size_t i = 0; i < SlewRateSP.count() - 1; i++)
     {
-        sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
-        SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
+        SlewRateSP[i].setLabel(std::to_string(slewspeeds[i]) + "x");
+
+        SlewRateSP[i].setAux((void *)&slewspeeds[i]);
     }
 
     // Set 64x as default speed
-    SlewRateSP.sp[5].s = ISS_ON;
+    SlewRateSP[5].setState(ISS_ON);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&JogRateN[RA_AXIS], "JOG_RATE_WE", "W/E Rate (arcmin)", "%g", 0, 600, 60, 30);
@@ -650,7 +651,7 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     int motion = (dir == DIRECTION_NORTH) ? PARAMOUNT_NORTH : PARAMOUNT_SOUTH;
     //int rate   = IUFindOnSwitchIndex(&SlewRateSP);
-    int rate = slewspeeds[IUFindOnSwitchIndex(&SlewRateSP)];
+    int rate = slewspeeds[SlewRateSP.findOnSwitchIndex()];
 
     switch (command)
     {
@@ -688,7 +689,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
 
     int motion = (dir == DIRECTION_WEST) ? PARAMOUNT_WEST : PARAMOUNT_EAST;
-    int rate   = IUFindOnSwitchIndex(&SlewRateSP);
+    int rate   = SlewRateSP.findOnSwitchIndex();
 
     switch (command)
     {

@@ -52,10 +52,14 @@ bool LX200GotoNova::initProperties()
     LX200Generic::initProperties();
 
 
-    strcpy(SlewRateS[0].label, "16x");
-    strcpy(SlewRateS[1].label, "64x");
-    strcpy(SlewRateS[2].label, "256x");
-    strcpy(SlewRateS[3].label, "512x");
+    // strcpy(SlewRateS[0].label, "16x");
+    // strcpy(SlewRateS[1].label, "64x");
+    // strcpy(SlewRateS[2].label, "256x");
+    // strcpy(SlewRateS[3].label, "512x");
+    SlewRateSP[0].setLabel("16x");
+    SlewRateSP[1].setLabel("64x");
+    SlewRateSP[2].setLabel("256x");
+    SlewRateSP[3].setLabel("512x");
 
     // Sync Type
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);

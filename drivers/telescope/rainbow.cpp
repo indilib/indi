@@ -1294,13 +1294,13 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     }
 
     // Make sure SLEWING SPEED is set to Guide
-    if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
+    if (SlewRateSP.findOnSwitchIndex() != SLEW_GUIDE)
     {
         // Set slew to guiding
         SetSlewRate(SLEW_GUIDE);
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[SLEW_GUIDE].s = ISS_ON;
-        IDSetSwitch(&SlewRateSP, nullptr);
+        SlewRateSP.reset();
+        SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+        SlewRateSP.apply();
     }
 
     directionProperty[index].setState(ISS_ON);

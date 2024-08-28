@@ -101,11 +101,11 @@ bool ScopeSim::initProperties()
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                      IPS_IDLE);
 
-    IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+    SlewRateSP[SLEW_GUIDE].fill("SLEW_GUIDE", "Guide", ISS_OFF);
+    SlewRateSP[SLEW_CENTERING].fill("SLEW_CENTERING", "Centering", ISS_OFF);
+    SlewRateSP[SLEW_FIND].fill("SLEW_FIND", "Find", ISS_OFF);
+    SlewRateSP[SLEW_MAX].fill("SLEW_MAX", "Max", ISS_ON);
+    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Add Tracking Modes, the order must match the order of the TelescopeTrackMode enum
@@ -462,13 +462,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
 #endif \
     // Slew mode
-        if (strcmp(name, SlewRateSP.name) == 0)
+        if (SlewRateSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
+            if (SlewRateSP.update( states, names, n) == false)
                 return false;
 
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
     }
@@ -491,7 +491,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
-    mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
+    mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
     LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S", command == 0 ? "start" : "stop", rate);
@@ -509,7 +509,7 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         return false;
     }
 
-    mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
+    mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
     int rate = (dir == INDI_DIR_WE::DIRECTION_EAST) ? -mcRate : mcRate;
     LOGF_DEBUG("MoveWE dir %d, motion %s, rate %d", dir == DIRECTION_EAST ? "E" : "W", command == 0 ? "start" : "stop", rate);
 

@@ -72,10 +72,10 @@ bool AstroTrac::initProperties()
     // Slew Speeds
     for (uint8_t i = 0; i < SLEW_MODES; i++)
     {
-        sprintf(SlewRateSP.sp[i].label, "%dx", SLEW_SPEEDS[i]);
-        SlewRateSP.sp[i].aux = (void *)&SLEW_SPEEDS[i];
+        SlewRateSP[i].setLabel(std::to_string(SLEW_SPEEDS[i]) + "x");
+        SlewRateSP[i].setAux((void *)&SLEW_SPEEDS[i]);
     }
-    SlewRateS[5].s = ISS_ON;
+    SlewRateSP[5].setState(ISS_ON);
 
     // Mount Type
     int configMountType = MOUNT_GEM;
@@ -872,7 +872,7 @@ bool AstroTrac::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     if (command == MOTION_START)
     {
-        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+        double velocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL
                           * (dir == DIRECTION_NORTH ? 1 : -1);
         setVelocity(AXIS_DE,  velocity);
     }
@@ -899,7 +899,7 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     if (command == MOTION_START)
     {
-        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+        double velocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL
                           * (dir == DIRECTION_WEST ? 1 : -1);
         setVelocity(AXIS_RA,  velocity);
     }
@@ -1223,8 +1223,8 @@ void AstroTrac::simulateMount()
 
     if (MovementWESP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY)
     {
-        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
-        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double haVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
 
         haVelocity *= MovementWESP.getState() == IPS_BUSY ? 1 : 0;
         deVelocity *= MovementNSSP.getState() == IPS_BUSY ? 1 : 0;

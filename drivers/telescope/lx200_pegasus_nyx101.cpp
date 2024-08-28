@@ -184,19 +184,19 @@ bool LX200NYX101::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT", "Reboot", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "200x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "300x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "600x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "900x", MAXINDILABEL);
-    strncpy(SlewRateS[9].label, "1200x", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("2x");
+    SlewRateSP[1].setLabel("8x");
+    SlewRateSP[2].setLabel("16x");
+    SlewRateSP[3].setLabel("64x");
+    SlewRateSP[4].setLabel("128x");
+    SlewRateSP[5].setLabel("200x");
+    SlewRateSP[6].setLabel("300x");
+    SlewRateSP[7].setLabel("600x");
+    SlewRateSP[8].setLabel("900x");
+    SlewRateSP[9].setLabel("1200x");
+    SlewRateSP.reset();
 
-    SlewRateS[9].s = ISS_ON;
+    SlewRateSP[9].setState(ISS_ON);
 
 
     return true;

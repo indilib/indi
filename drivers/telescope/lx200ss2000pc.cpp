@@ -459,9 +459,9 @@ bool LX200SS2000PC::ReadScopeStatus()
         if (isSlewComplete())
         {
             // Set slew mode to "Centering"
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+            SlewRateSP.apply();
 
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");

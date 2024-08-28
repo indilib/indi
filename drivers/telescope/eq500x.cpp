@@ -534,9 +534,9 @@ bool EQ500X::ReadScopeStatus()
                 }
 
                 // Update slew rate
-                IUResetSwitch(&SlewRateSP);
-                SlewRateS[adjustment->switch_index].s = ISS_ON;
-                IDSetSwitch(&SlewRateSP, nullptr);
+                SlewRateSP.reset();
+                SlewRateSP[adjustment->switch_index].setState(ISS_ON);
+                SlewRateSP.apply();
             }
 
             // If all movement flags are cleared, we are done adjusting
@@ -681,7 +681,7 @@ bool EQ500X::Goto(double ra, double dec)
     //EqNP.s     = IPS_BUSY;
 
     // Remember current slew rate
-    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (SlewRateSP.findOnSwitchIndex());
 
     // Format RA/DEC for logs
     char RAStr[16] = {0}, DecStr[16] = {0};

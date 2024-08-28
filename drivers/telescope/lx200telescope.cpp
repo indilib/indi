@@ -296,9 +296,9 @@ bool LX200Telescope::ReadScopeStatus()
         if (isSlewComplete())
         {
             // Set slew mode to "Centering"
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+            SlewRateSP.apply();
 
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
@@ -897,20 +897,21 @@ bool LX200Telescope::SetSlewRate(int index)
 
 bool LX200Telescope::updateSlewRate(int index)
 {
-    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
+    if (SlewRateSP.findOnSwitchIndex() == index)
         return true;
 
     if (!isSimulation() && setSlewMode(PortFD, 3 - index) < 0)
     {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+        SlewRateSP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting slew mode.");
+        SlewRateSP.apply();
         return false;
     }
 
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[index].s = ISS_ON;
-    SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[index].setState(ISS_ON);
+    SlewRateSP.setState(IPS_OK);
+    SlewRateSP.apply();
     return true;
 }
 

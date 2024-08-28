@@ -163,7 +163,7 @@ bool Telescope::initProperties()
 
     // @INDI_STANDARD_PROPERTY@
     if (nSlewRate >= 4)
-        IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
+        SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     if (CanTrackSatellite())
@@ -357,7 +357,7 @@ bool Telescope::updateProperties()
             defineProperty(MovementWESP);
             defineProperty(ReverseMovementSP);
             if (nSlewRate >= 4)
-                defineProperty(&SlewRateSP);
+                defineProperty(SlewRateSP);
             defineProperty(TargetNP);
         }
 
@@ -418,7 +418,7 @@ bool Telescope::updateProperties()
             deleteProperty(MovementWESP);
             deleteProperty(ReverseMovementSP.getName());
             if (nSlewRate >= 4)
-                deleteProperty(SlewRateSP.name);
+                deleteProperty(SlewRateSP);
             deleteProperty(TargetNP);
         }
 
@@ -628,8 +628,8 @@ bool Telescope::saveConfigItems(FILE *fp)
     if (CanGOTO())
         ReverseMovementSP.save(fp);
 
-    if (SlewRateS != nullptr)
-        IUSaveConfigSwitch(fp, &SlewRateSP);
+    if (SlewRateSP.isValid())
+        SlewRateSP.save(fp);
     if (HasPECState())
         PECStateSP.save(fp);
     if (HasTrackMode())
@@ -995,20 +995,20 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Slew Rate
         ///////////////////////////////////
-        if (!strcmp(name, SlewRateSP.name))
+        if (SlewRateSP.isNameMatch(name))
         {
-            int preIndex = IUFindOnSwitchIndex(&SlewRateSP);
-            IUUpdateSwitch(&SlewRateSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&SlewRateSP);
+            int preIndex = SlewRateSP.findOnSwitchIndex();
+            SlewRateSP.update(states, names, n);
+            int nowIndex = SlewRateSP.findOnSwitchIndex();
             if (SetSlewRate(nowIndex) == false)
             {
-                IUResetSwitch(&SlewRateSP);
-                SlewRateS[preIndex].s = ISS_ON;
-                SlewRateSP.s          = IPS_ALERT;
+                SlewRateSP.reset();
+                SlewRateSP[preIndex].setState(ISS_ON);
+                SlewRateSP.setState(IPS_ALERT);
             }
             else
-                SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+                SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
 
@@ -1861,29 +1861,33 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 
     if (nSlewRate >= 4)
     {
-        free(SlewRateS);
-        SlewRateS = static_cast<ISwitch *>(malloc(sizeof(ISwitch) * nSlewRate));
+        SlewRateSP.resize(0);
+        INDI::WidgetSwitch node;
         //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
-            char name[4];
-            snprintf(name, 4, "%dx", i + 1);
-            IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
+            // char name[4];
+            auto name = std::to_string(i+1) + "x";
+            // snprintf(name, 4, "%dx", i + 1);
+             // IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
+            node.fill(name, name, ISS_OFF);
+            SlewRateSP.push(std::move(node));
         }
 
         // If number of slew rate is EXACTLY 4, then let's use common labels
         if (nSlewRate == 4)
         {
-            strncpy((SlewRateS + (0))->label, "Guide", MAXINDILABEL);
-            strncpy((SlewRateS + (1))->label, "Centering", MAXINDILABEL);
-            strncpy((SlewRateS + (2))->label, "Find", MAXINDILABEL);
-            strncpy((SlewRateS + (3))->label, "Max", MAXINDILABEL);
+            // strncpy((SlewRateS + (0))->label, "Guide", MAXINDILABEL);
+            SlewRateSP[0].setLabel("Guide");
+            SlewRateSP[1].setLabel("Centering");
+            SlewRateSP[2].setLabel("Find");
+            SlewRateSP[3].setLabel("Max");
         }
 
         // By Default we set current Slew Rate to 0.5 of max
-        (SlewRateS + (nSlewRate / 2))->s = ISS_ON;
+        SlewRateSP[nSlewRate /2].setState(ISS_ON);
 
-        IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
+        SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     }
 
@@ -2627,7 +2631,7 @@ void Telescope::processSlewPresets(double mag, double angle)
     if (mag != 1)
         return;
 
-    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
+    size_t currentIndex = SlewRateSP.findOnSwitchIndex();
 
     // Up
     if (angle > 0 && angle < 180)
@@ -2635,22 +2639,22 @@ void Telescope::processSlewPresets(double mag, double angle)
         if (currentIndex <= 0)
             return;
 
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[currentIndex - 1].s = ISS_ON;
+        SlewRateSP.reset();
+        SlewRateSP[currentIndex - 1].setState(ISS_ON);
         SetSlewRate(currentIndex - 1);
     }
     // Down
     else
     {
-        if (currentIndex >= SlewRateSP.nsp - 1)
+        if (currentIndex >= SlewRateSP.count() - 1)
             return;
 
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[currentIndex + 1].s = ISS_ON;
+        SlewRateSP.reset();
+        SlewRateSP[currentIndex + 1].setState(ISS_ON);
         SetSlewRate(currentIndex - 1);
     }
 
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.apply();
 }
 
 void Telescope::joystickHelper(const char *joystick_n, double mag, double angle, void *context)

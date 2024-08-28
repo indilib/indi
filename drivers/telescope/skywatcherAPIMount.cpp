@@ -98,12 +98,13 @@ bool SkywatcherAPIMount::initProperties()
     // Allow the base class to initialise its visible before connection properties
     INDI::Telescope::initProperties();
 
-    for (int i = 0; i < SlewRateSP.nsp; ++i)
+    for (size_t i = 0; i < SlewRateSP.count(); ++i)
     {
-        sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP.sp[i].aux = &SlewSpeeds[i];
+        // sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
+        SlewRateSP[i].setLabel(std::to_string(SlewSpeeds[i]) + "x");
+        SlewRateSP[i].setAux(&SlewSpeeds[i]);
     }
-    strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
+    SlewRateSP[SlewRateSP.count() - 1].setName("SLEW_MAX");
 
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -654,7 +655,7 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 double SkywatcherAPIMount::GetSlewRate()
 {
-    ISwitch *Switch = IUFindOnSwitch(&SlewRateSP);
+    ISwitch *Switch = SlewRateSP.findOnSwitch();
     return *(static_cast<double *>(Switch->aux));
 }
 

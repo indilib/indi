@@ -652,7 +652,7 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     else
         move = (dir == DIRECTION_NORTH) ? CELESTRON_S : CELESTRON_N;
 
-    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
+    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(SlewRateSP.findOnSwitchIndex());
 
     switch (command)
     {
@@ -683,7 +683,7 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     CELESTRON_DIRECTION move = (dir == DIRECTION_WEST) ? CELESTRON_W : CELESTRON_E;
-    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
+    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(SlewRateSP.findOnSwitchIndex());
 
     switch (command)
     {
@@ -1333,7 +1333,7 @@ void CelestronGPS::mountSim()
 
     if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
-        int rate = IUFindOnSwitchIndex(&SlewRateSP);
+        int rate = SlewRateSP.findOnSwitchIndex();
 
         switch (rate)
         {
@@ -1791,9 +1791,9 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     }
 
     // Set slew to guiding
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     // start the guide timeout timer
     AddGuideTimer(dirn, static_cast<int>(ms));
     return IPS_BUSY;

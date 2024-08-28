@@ -82,19 +82,19 @@ bool LX200AM5::initProperties()
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "0.25x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "0.50x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "4x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "20x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "60x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "720x", MAXINDILABEL);
-    strncpy(SlewRateS[9].label, "1440x", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+
+    SlewRateSP[0].setLabel("0.25x");
+    SlewRateSP[1].setLabel("1x");
+    SlewRateSP[2].setLabel("2x");
+    SlewRateSP[3].setLabel("4x");
+    SlewRateSP[4].setLabel("8x");
+    SlewRateSP[5].setLabel("20x");
+    SlewRateSP[6].setLabel("60x");
+    SlewRateSP[7].setLabel("720x");
+    SlewRateSP[8].setLabel("1440x");
+    SlewRateSP.reset();
     // 1440x is the default
-    SlewRateS[9].s = ISS_ON;
+    SlewRateSP[9].setState(ISS_ON);
 
     // Home/Zero position
     // HomeSP[0].fill("GO", "Go", ISS_OFF);

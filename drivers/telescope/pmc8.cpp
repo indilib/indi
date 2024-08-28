@@ -124,15 +124,15 @@ bool PMC8::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // relabel move speeds
-    strcpy(SlewRateSP.sp[0].label, "4x");
-    strcpy(SlewRateSP.sp[1].label, "8x");
-    strcpy(SlewRateSP.sp[2].label, "16x");
-    strcpy(SlewRateSP.sp[3].label, "32x");
-    strcpy(SlewRateSP.sp[4].label, "64x");
-    strcpy(SlewRateSP.sp[5].label, "128x");
-    strcpy(SlewRateSP.sp[6].label, "256x");
-    strcpy(SlewRateSP.sp[7].label, "512x");
-    strcpy(SlewRateSP.sp[8].label, "833x");
+    SlewRateSP[0].setLabel("4x");
+    SlewRateSP[1].setLabel("8x");
+    SlewRateSP[2].setLabel("16x");
+    SlewRateSP[3].setLabel("32x");
+    SlewRateSP[4].setLabel("64x");
+    SlewRateSP[5].setLabel("128x");
+    SlewRateSP[6].setLabel("256x");
+    SlewRateSP[7].setLabel("512x");
+    SlewRateSP[8].setLabel("833x");
 
     // settings for ramping up/down when moving
     IUFillNumber(&RampN[0], "RAMP_INTERVAL", "Interval (ms)", "%g", 20, 1000, 5, 200);
@@ -895,7 +895,7 @@ void PMC8::simulationTriggered(bool enable)
 
 int PMC8::getSlewRate()
 {
-    int mode = IUFindOnSwitchIndex(&SlewRateSP);
+    int mode = SlewRateSP.findOnSwitchIndex();
     if (mode >= 8) return PMC8_MAX_MOVE_RATE;
     return 4 * pow(2, mode) * 15;
 }
@@ -1017,7 +1017,7 @@ bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     }
 
     // read desired move rate
-    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
+    int currentIndex = SlewRateSP.findOnSwitchIndex();
     LOGF_DEBUG("MoveNS at slew index %d", currentIndex);
 
     switch (command)
@@ -1088,7 +1088,7 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
 
     // read desired move rate
-    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
+    int currentIndex = SlewRateSP.findOnSwitchIndex();
     LOGF_DEBUG("MoveWE at slew index %d", currentIndex);
 
     switch (command)

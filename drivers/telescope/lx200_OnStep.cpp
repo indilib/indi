@@ -135,21 +135,19 @@ bool LX200_OnStep::initProperties()
     // ============== MOTION_TAB
     //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
     //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
-    uint8_t nSlewRate = 10;
-    free(SlewRateS);
-    SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
-    // 0=.25X 1=.5x 2=1x 3=2x 4=4x 5=8x 6=24x 7=48x 8=half-MaxRate 9=MaxRate
-    IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-    IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);   //last OnStep - OnStepX
-    IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
-    IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+    SlewRateSP.resize(0);
+
+    SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+    SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+    SlewRateSP[2].fill("2", "1x", ISS_OFF);
+    SlewRateSP[3].fill("3", "2x", ISS_OFF);
+    SlewRateSP[4].fill("4", "4x", ISS_OFF);
+    SlewRateSP[5].fill("5", "8x", ISS_ON);
+    SlewRateSP[6].fill("6", "20x", ISS_OFF);   //last OnStep - OnStepX
+    SlewRateSP[7].fill("7", "48x", ISS_OFF);
+    SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+    SlewRateSP[9].fill("9", "Max", ISS_OFF);
+    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
@@ -492,7 +490,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OnstepStatTP);
 
         // Motion Control
-        defineProperty(&SlewRateSP);    // was missing
+        defineProperty(SlewRateSP);    // was missing
         defineProperty(&MaxSlewRateNP);
         defineProperty(&TrackCompSP);
         defineProperty(&TrackAxisSP);
@@ -699,16 +697,16 @@ bool LX200_OnStep::updateProperties()
         //             updateLocation(latitude, longitude, 0);
         //         }
         //NOTE: if updateProperties is called it clobbers this, so added here
-        IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-        IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
-        IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
+        SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+        SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+        SlewRateSP[2].fill("2", "1x", ISS_OFF);
+        SlewRateSP[3].fill("3", "2x", ISS_OFF);
+        SlewRateSP[4].fill("4", "4x", ISS_OFF);
+        SlewRateSP[5].fill("5", "8x", ISS_ON);
+        SlewRateSP[6].fill("6", "20x", ISS_OFF);
+        SlewRateSP[7].fill("7", "48x", ISS_OFF);
+        SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+        SlewRateSP[9].fill("9", "Max", ISS_OFF);
 
     }
     else
@@ -722,7 +720,7 @@ bool LX200_OnStep::updateProperties()
         // Options
 
         // Motion Control
-        deleteProperty(SlewRateSP.name);    // was missing
+        deleteProperty(SlewRateSP);    // was missing
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(TrackAxisSP.name);
@@ -928,10 +926,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[int(values[0])].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[int(values[0])].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
 
@@ -1336,12 +1334,12 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             return true;
         }
         //Move to more standard controls
-        if (!strcmp(name, SlewRateSP.name))
+        if (SlewRateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SlewRateSP, states, names, n);
+            SlewRateSP.update(states, names, n);
             int ret;
             char cmd[CMD_MAX_LEN] = {0};
-            int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
+            int index = SlewRateSP.findOnSwitchIndex() ;//-1; //-1 because index is 1-10, OS Values are 0-9
             snprintf(cmd, sizeof(cmd), ":R%d#", index);
             ret = sendOnStepCommandBlind(cmd);
 
@@ -1350,19 +1348,20 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 LOGF_DEBUG("Pas OK Return value =%d", ret);
                 LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
-                SlewRateSP.s = IPS_ALERT;
-                IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
+                SlewRateSP.setState(IPS_ALERT);
+                LOG_ERROR("Setting Max Slew Rate Failed");
+                SlewRateSP.apply();
                 return false;
             }
-            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateS[index].label);
+            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateSP[index].getLabel());
             LOGF_DEBUG("OK Return value =%d", ret);
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = index;
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[index].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[index].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
 
@@ -2642,10 +2641,10 @@ bool LX200_OnStep::ReadScopeStatus()
 
             // Refresh current Slew Rate
             int idx = OSStat[strlen(OSStat) - 2] - '0';
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[idx].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[idx].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             LOGF_DEBUG("Guide Rate Index: %d", idx);
             // End Refresh current Slew Rate
         }
