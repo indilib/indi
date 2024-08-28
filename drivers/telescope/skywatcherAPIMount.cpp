@@ -1640,7 +1640,7 @@ bool SkywatcherAPIMount::trackUsingPID()
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
     // FIXME: This was not tested.
-    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
         // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
         // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
@@ -1648,7 +1648,7 @@ bool SkywatcherAPIMount::trackUsingPID()
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
         m_TrackingRateTimer.restart();
     }
-    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
         double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
@@ -1837,7 +1837,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
     // FIXME: This was not tested.
-    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
         // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
         // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
@@ -1845,7 +1845,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
         m_TrackingRateTimer.restart();
     }
-    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
         double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
