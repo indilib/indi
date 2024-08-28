@@ -366,6 +366,13 @@ double range24(double r);
  */
 double range360(double r);
 
+/**
+ * \brief range180 Limits an angle to be between -180 to +180 degrees
+ * \param r angle in degrees
+ * \return Limited angle
+ */
+double range180(double r);
+
 /** \brief rangeDec Limits declination value to be in -90 to 90 range.
  *  \param r declination angle
  *  \return limited declination

@@ -180,6 +180,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool Handshake() override;
 
     protected:
         virtual void getBasicData() override;
@@ -506,7 +507,4 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
     private:
         int currentCatalog;
         int currentSubCatalog;
-
-
-
 };
