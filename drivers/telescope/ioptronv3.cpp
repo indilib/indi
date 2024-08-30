@@ -216,7 +216,7 @@ bool IOptronV3::initProperties()
     currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
     driver->setSimLongLat(LocationNP[LOCATION_LONGITUDE].getValue() > 180 ? LocationNP[LOCATION_LONGITUDE].getValue() - 360 :
-                              LocationNP[LOCATION_LONGITUDE].getValue(), LocationNP[LOCATION_LATITUDE].getValue());
+                          LocationNP[LOCATION_LONGITUDE].getValue(), LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -675,7 +675,7 @@ bool IOptronV3::ReadScopeStatus()
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
-            TrackModeSP.setState(IPS_IDLE);
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
@@ -683,10 +683,22 @@ bool IOptronV3::ReadScopeStatus()
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                }
                 break;
             case ST_HOME:
                 TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
+                if (HomeSP.getState() == IPS_BUSY)
+                {
+                    HomeSP.reset();
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
+                }
                 break;
             case ST_SLEWING:
             case ST_MERIDIAN_FLIPPING:
@@ -1091,7 +1103,7 @@ void IOptronV3::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-        currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
+            currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 

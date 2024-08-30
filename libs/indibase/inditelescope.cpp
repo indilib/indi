@@ -82,20 +82,20 @@ bool Telescope::initProperties()
     DomePolicySP[DOME_IGNORED].fill("DOME_IGNORED", "Dome ignored", ISS_ON);
     DomePolicySP[DOME_LOCKS].fill("DOME_LOCKS", "Dome locks", ISS_OFF);
     DomePolicySP.fill(getDeviceName(), "DOME_POLICY", "Dome Policy",  OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+                      ISR_1OFMANY, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     EqNP[AXIS_RA].fill("RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     EqNP[AXIS_DE].fill("DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     EqNP.fill(getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
-                       IP_RW, 60, IPS_IDLE);
+              IP_RW, 60, IPS_IDLE);
     lastEqState = IPS_IDLE;
 
     // @INDI_STANDARD_PROPERTY@
     TargetNP[AXIS_RA].fill("RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     TargetNP[AXIS_DE].fill("DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     TargetNP.fill(getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
-                       IPS_IDLE);
+                  IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     ParkOptionSP[PARK_CURRENT].fill("PARK_CURRENT", "Current", ISS_OFF);
@@ -114,64 +114,64 @@ bool Telescope::initProperties()
     LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss.s)", "%012.8m", 0, 360, 0, 0.0);
     LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
-                       IP_RW, 60, IPS_IDLE);
+                    IP_RW, 60, IPS_IDLE);
 
     // Pier Side
     // @INDI_STANDARD_PROPERTY@
     PierSideSP[PIER_WEST].fill("PIER_WEST", "West (pointing east)", ISS_OFF);
     PierSideSP[PIER_EAST].fill("PIER_EAST", "East (pointing west)", ISS_OFF);
     PierSideSP.fill(getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
-                       IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
+                    IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Pier Side Simulation
     // @INDI_STANDARD_PROPERTY@
     SimulatePierSideSP[SIMULATE_YES].fill("SIMULATE_YES", "Yes", ISS_OFF);
     SimulatePierSideSP[SIMULATE_NO].fill("SIMULATE_NO", "No", ISS_ON);
     SimulatePierSideSP.fill(getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side",
-                       MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                            MAIN_CONTROL_TAB,
+                            IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // PEC State
     // @INDI_STANDARD_PROPERTY@
     PECStateSP[PEC_OFF].fill("PEC OFF", "PEC OFF", ISS_ON);
     PECStateSP[PEC_ON].fill("PEC ON", "PEC ON", ISS_OFF);
     PECStateSP.fill(getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+                    IPS_IDLE);
 
     // Track Mode. Child class must call AddTrackMode to add members
     // @INDI_STANDARD_PROPERTY@
     TrackModeSP.fill(getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                     IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Track State
     // @INDI_STANDARD_PROPERTY@
     TrackStateSP[TRACK_ON].fill("TRACK_ON", "On", ISS_OFF);
     TrackStateSP[TRACK_OFF].fill("TRACK_OFF", "Off", ISS_ON);
     TrackStateSP.fill(getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+                      IP_RW, ISR_1OFMANY, 0,
+                      IPS_IDLE);
 
     // Track Rate
     // @INDI_STANDARD_PROPERTY@
     TrackRateNP[AXIS_RA].fill("TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001,
-                 TRACKRATE_SIDEREAL);
+                              TRACKRATE_SIDEREAL);
     TrackRateNP[AXIS_DE].fill("TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
     TrackRateNP.fill(getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
-                       IP_RW, 60, IPS_IDLE);
+                     IP_RW, 60, IPS_IDLE);
 
     generateCoordSet();
 
     // @INDI_STANDARD_PROPERTY@
     if (nSlewRate >= 4)
         SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
-                           MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                        MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     if (CanTrackSatellite())
     {
         // @INDI_STANDARD_PROPERTY@
         TLEtoTrackTP[0].fill("TLE", "TLE", "");
         TLEtoTrackTP.fill(getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB,
-                         IP_RW, 60, IPS_IDLE);
+                          IP_RW, 60, IPS_IDLE);
 
         char curTime[32] = {0};
         std::time_t t = std::time(nullptr);
@@ -182,37 +182,37 @@ bool Telescope::initProperties()
         SatPassWindowTP[SAT_PASS_WINDOW_END].fill("SAT_PASS_WINDOW_END", "End UTC", curTime);
         SatPassWindowTP[SAT_PASS_WINDOW_START].fill("SAT_PASS_WINDOW_START", "Start UTC", curTime);
         SatPassWindowTP.fill(getDeviceName(),
-                         "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+                             "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
         // @INDI_STANDARD_PROPERTY@
         TrackSatSP[SAT_TRACK].fill("SAT_TRACK", "Track", ISS_OFF);
         TrackSatSP[SAT_HALT].fill("SAT_HALT", "Halt", ISS_ON);
         TrackSatSP.fill(getDeviceName(), "SAT_TRACKING_STAT",
-                           "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                        "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     }
 
     // @INDI_STANDARD_PROPERTY@
     ParkSP[PARK].fill("PARK", "Park(ed)", ISS_OFF);
     ParkSP[UNPARK].fill("UNPARK", "UnPark(ed)", ISS_OFF);
     ParkSP.fill(getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+                ISR_1OFMANY, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
     AbortSP.fill(getDeviceName(), "TELESCOPE_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                 IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     MovementNSSP[DIRECTION_NORTH].fill("MOTION_NORTH", "North", ISS_OFF);
     MovementNSSP[DIRECTION_SOUTH].fill("MOTION_SOUTH", "South", ISS_OFF);
     MovementNSSP.fill(getDeviceName(), "TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB,
-                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                      IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // @INDI_STANDARD_PROPERTY@
     MovementWESP[DIRECTION_WEST].fill("MOTION_WEST", "West", ISS_OFF);
     MovementWESP[DIRECTION_EAST].fill("MOTION_EAST", "East", ISS_OFF);
     MovementWESP.fill(getDeviceName(), "TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB,
-                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                      IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reverse NS or WE
     // @INDI_STANDARD_PROPERTY@
@@ -228,14 +228,14 @@ bool Telescope::initProperties()
     MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].fill("MOTION_CONTROL_MODE_JOYSTICK", "4-Way Joystick", ISS_ON);
     MotionControlModeTP[MOTION_CONTROL_MODE_AXES].fill("MOTION_CONTROL_MODE_AXES", "Two Separate Axes", ISS_OFF);
     MotionControlModeTP.fill(getDeviceName(), "MOTION_CONTROL_MODE", "Motion Control",
-                       "Joystick", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                             "Joystick", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Lock Axis
     // @INDI_STANDARD_PROPERTY@
     LockAxisSP[LOCK_AXIS_1].fill("LOCK_AXIS_1", "West/East", ISS_OFF);
     LockAxisSP[LOCK_AXIS_2].fill("LOCK_AXIS_2", "North/South", ISS_OFF);
     LockAxisSP.fill(getDeviceName(), "JOYSTICK_LOCK_AXIS", "Lock Axis", "Joystick", IP_RW,
-                       ISR_ATMOST1, 60, IPS_IDLE);
+                    ISR_ATMOST1, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
 
@@ -664,7 +664,7 @@ void Telescope::NewRaDec(double ra, double dec)
             break;
     }
 
-        if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateSP[TRACK_ON].getState() == ISS_ON)
+    if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateSP[TRACK_ON].getState() == ISS_ON)
     {
         TrackStateSP.setState(IPS_IDLE);
         TrackStateSP[TRACK_ON].setState(ISS_OFF);
@@ -680,8 +680,8 @@ void Telescope::NewRaDec(double ra, double dec)
     }
 
     if (std::abs(EqNP[AXIS_RA].getValue() - ra) > EQ_NOTIFY_THRESHOLD ||
-        std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
-        EqNP.getState() != lastEqState)
+            std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
+            EqNP.getState() != lastEqState)
     {
         EqNP[AXIS_RA].setValue(ra);
         EqNP[AXIS_DE].setValue(dec);
@@ -1255,11 +1255,22 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         if (HomeSP.isNameMatch(name))
         {
-            auto onSwitchName = std::string(IUFindOnSwitchName(states, names, n));
+            auto onSwitchName = IUFindOnSwitchName(states, names, n);
+            // No switch selected. Cancel whatever action if any and return
+            if (onSwitchName == NULL)
+            {
+                if (HomeSP.getState() == IPS_BUSY)
+                    Abort();
+                HomeSP.reset();
+                HomeSP.setState(IPS_IDLE);
+                HomeSP.apply();
+                return true;
+            }
+            auto actionString = std::string(onSwitchName);
             auto action = HOME_FIND;
-            if (onSwitchName == "SET")
+            if (actionString == "SET")
                 action = HOME_SET;
-            else if (onSwitchName == "GO")
+            else if (actionString == "GO")
                 action = HOME_GO;
 
             if (isParked())
@@ -1430,7 +1441,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             bool rc = false;
 
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.getState() == IPS_BUSY ||
-                MovementWESP.getState() == IPS_BUSY)
+                    MovementWESP.getState() == IPS_BUSY)
             {
                 LOG_INFO("Can not change park position while slewing or already parked...");
                 ParkOptionSP.setState(IPS_ALERT);
@@ -1684,7 +1695,7 @@ int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
     TrackModeSP.push(std::move(node));
 
     TrackModeSP.shrink_to_fit();
-    TrackModeSP.fill(getDeviceName(), name,label, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    TrackModeSP.fill(getDeviceName(), name, label, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     return (TrackModeSP.count() - 1);
 }
@@ -1867,9 +1878,9 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
         for (int i = 0; i < nSlewRate; i++)
         {
             // char name[4];
-            auto name = std::to_string(i+1) + "x";
+            auto name = std::to_string(i + 1) + "x";
             // snprintf(name, 4, "%dx", i + 1);
-             // IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
+            // IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
             node.fill(name, name, ISS_OFF);
             SlewRateSP.push(std::move(node));
         }
@@ -1885,10 +1896,10 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
         }
 
         // By Default we set current Slew Rate to 0.5 of max
-        SlewRateSP[nSlewRate /2].setState(ISS_ON);
+        SlewRateSP[nSlewRate / 2].setState(ISS_ON);
 
         SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
-                           MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                        MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     }
 
     if (CanHomeFind() || CanHomeSet() || CanHomeGo())
@@ -2385,7 +2396,8 @@ void Telescope::processButton(const char *button_n, ISState state)
     {
         auto trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
-        if (ParkSP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY || EqNP.getState() == IPS_BUSY ||
+        if (ParkSP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY
+                || EqNP.getState() == IPS_BUSY ||
                 (trackSW && trackSW.getState() == IPS_BUSY))
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
