@@ -106,7 +106,7 @@ bool ScopeSim::initProperties()
     SlewRateSP[SLEW_FIND].fill("SLEW_FIND", "Find", ISS_OFF);
     SlewRateSP[SLEW_MAX].fill("SLEW_MAX", "Max", ISS_ON);
     SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                    IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Add Tracking Modes, the order must match the order of the TelescopeTrackMode enum
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -168,8 +168,8 @@ bool ScopeSim::updateProperties()
 
                 alignment.latitude = Angle(LocationNP[LOCATION_LATITUDE].getValue());
                 alignment.longitude = Angle(LocationNP[LOCATION_LONGITUDE].getValue());
-                currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
-                currentDEC = ParkPositionN[AXIS_DE].value;
+                currentRA = (alignment.lst() - Angle(ParkPositionNP[AXIS_RA].getValue(), Angle::ANGLE_UNITS::HOURS)).Hours();
+                currentDEC = ParkPositionNP[AXIS_DE].getValue();
                 Sync(currentRA, currentDEC);
 
             }

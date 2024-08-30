@@ -148,7 +148,7 @@ bool LX200_OnStep::initProperties()
     SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
     SlewRateSP[9].fill("9", "Max", ISS_OFF);
     SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                    IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB,
@@ -809,7 +809,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         if (strstr(name, "ROTATOR_"))
             return RI::processNumber(dev, name, values, names, n);
 
-        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
+        if (EqNP.isNameMatch(name))
             //Replace this from inditelescope so it doesn't change state
             //Most of this needs to be handled by our updates, or it breaks things
         {
@@ -843,37 +843,22 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 // Check if it can sync
                 if (Telescope::CanSync())
                 {
-                    ISwitch *sw;
-                    sw = IUFindSwitch(&CoordSP, "SYNC");
-                    if ((sw != nullptr) && (sw->s == ISS_ON))
+                    auto oneSwitch = CoordSP.findWidgetByName("SYNC");
+                    if (oneSwitch && oneSwitch->getState() == ISS_ON)
                     {
-                        rc = Sync(ra, dec);
-                        //                         if (rc)
-                        //                             EqNP.s = lastEqState = IPS_OK;
-                        //                         else
-                        //                             EqNP.s = lastEqState = IPS_ALERT;
-                        //                         IDSetNumber(&EqNP, nullptr);
-                        return rc;
+                        return Sync(ra, dec);
                     }
                 }
 
-                // Remember Track State
-                //                 RememberTrackState = TrackState;
                 // Issue GOTO
                 rc = Goto(ra, dec);
                 if (rc)
                 {
-                    //       EqNP.s = lastEqState = IPS_BUSY;
                     //  Now fill in target co-ords, so domes can start turning
                     TargetNP[AXIS_RA].setValue(ra);
                     TargetNP[AXIS_DE].setValue(dec);
                     TargetNP.apply();
                 }
-                else
-                {
-                    //        EqNP.s = lastEqState = IPS_ALERT;
-                }
-                //    IDSetNumber(&EqNP, nullptr);
             }
             return rc;
         }
@@ -2382,7 +2367,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     }
                     break;
             }
-                if (EqNP[AXIS_RA].getValue() != currentRA || EqNP[AXIS_DE].getValue() != currentDEC)
+            if (EqNP[AXIS_RA].getValue() != currentRA || EqNP[AXIS_DE].getValue() != currentDEC)
             {
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("EqNP coordinates updated");
@@ -4982,7 +4967,7 @@ void LX200_OnStep::slewError(int slewCode)
         default:
             LOG_ERROR("OnStep slew/syncError: Not in range of values that should be returned! INVALID, Something went wrong!");
     }
-        EqNP.setState(IPS_ALERT);
+    EqNP.setState(IPS_ALERT);
     EqNP.apply();
 }
 

@@ -764,8 +764,7 @@ class Telescope : public DefaultDevice
         INDI::PropertySwitch AbortSP {1};
 
         // On a coord_set message, sync, or slew
-        ISwitchVectorProperty CoordSP;
-        ISwitch CoordS[4];
+        INDI::PropertySwitch CoordSP {4};
 
         // A number vector that stores latitude and longitude
         INDI::PropertyNumber LocationNP {3};
@@ -779,8 +778,7 @@ class Telescope : public DefaultDevice
         };
 
         // Custom parking position
-        INumber ParkPositionN[2];
-        INumberVectorProperty ParkPositionNP;
+        INDI::PropertyNumber ParkPositionNP {2};
 
         /**
         + NAME: TELESCOPE_PARK_POSITION
@@ -823,8 +821,8 @@ class Telescope : public DefaultDevice
         INDI::PropertyText TimeTP {2};
         enum
         {
-          UTC,
-          OFFSET
+            UTC,
+            OFFSET
         };
         void sendTimeFromSystem();
 
@@ -863,8 +861,8 @@ class Telescope : public DefaultDevice
         INDI::PropertySwitch SimulatePierSideSP {2};
         enum
         {
-          SIMULATE_YES,
-          SIMULATE_NO
+            SIMULATE_YES,
+            SIMULATE_NO
         };
         bool getSimulatePierSide() const;
         void setSimulatePierSide(bool value);

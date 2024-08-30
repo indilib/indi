@@ -879,7 +879,7 @@ bool ioptronHC8406::ReadScopeStatus()
         if (isSlewComplete())
         {
             nanosleep(&timeout, nullptr); //Wait until :MS# finish
-            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
+            if (CoordSP.isSwitchOn("SYNC") || CoordSP.isSwitchOn("SLEW"))
             {
                 TrackState = SCOPE_IDLE;
                 LOG_WARN("Slew is complete. IDLE");

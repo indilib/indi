@@ -159,6 +159,10 @@ bool Telescope::initProperties()
     TrackRateNP.fill(getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
                      IP_RW, 60, IPS_IDLE);
 
+    // On Coord Set
+    // @INDI_STANDARD_PROPERTY@
+    // Note: Member elements can be TRACK, SLEW, SYNC, and FLIP
+    CoordSP.fill(getDeviceName(), "ON_COORD_SET", "On Set", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     generateCoordSet();
 
     // @INDI_STANDARD_PROPERTY@
@@ -337,7 +341,7 @@ bool Telescope::updateProperties()
 
         //  Now we add our telescope specific stuff
         if (CanGOTO() || CanSync())
-            defineProperty(&CoordSP);
+            defineProperty(CoordSP);
         defineProperty(EqNP);
         if (CanAbort())
             defineProperty(AbortSP);
@@ -370,7 +374,7 @@ bool Telescope::updateProperties()
             defineProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineProperty(&ParkPositionNP);
+                defineProperty(ParkPositionNP);
                 defineProperty(ParkOptionSP);
             }
         }
@@ -399,7 +403,7 @@ bool Telescope::updateProperties()
     else
     {
         if (CanGOTO() || CanSync())
-            deleteProperty(CoordSP.name);
+            deleteProperty(CoordSP);
         deleteProperty(EqNP);
         if (CanAbort())
             deleteProperty(AbortSP);
@@ -432,7 +436,7 @@ bool Telescope::updateProperties()
             deleteProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                deleteProperty(ParkPositionNP.name);
+                deleteProperty(ParkPositionNP);
                 deleteProperty(ParkOptionSP);
             }
         }
@@ -803,9 +807,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 // Check if it can sync
                 if (CanSync())
                 {
-                    ISwitch *sw;
-                    sw = IUFindSwitch(&CoordSP, "SYNC");
-                    if ((sw != nullptr) && (sw->s == ISS_ON))
+                    if (CoordSP.isSwitchOn("SYNC"))
                     {
                         rc = Sync(ra, dec);
                         if (rc)
@@ -820,12 +822,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 bool doFlip = false;
                 if (CanFlip())
                 {
-                    ISwitch *sw;
-                    sw = IUFindSwitch(&CoordSP, "FLIP");
-                    if ((sw != nullptr) && (sw->s == ISS_ON))
-                    {
-                        doFlip = true;
-                    }
+                    doFlip = CoordSP.isSwitchOn("FLIP");
                 }
 
                 // Remember Track State
@@ -859,7 +856,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         ///////////////////////////////////
         // Geographic Coords
         ///////////////////////////////////
-        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        if (LocationNP.isNameMatch(name))
         {
             int latindex       = IUFindIndex("LAT", names, n);
             int longindex      = IUFindIndex("LONG", names, n);
@@ -882,17 +879,16 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         ///////////////////////////////////
         // Park Position
         ///////////////////////////////////
-        if (strcmp(name, ParkPositionNP.name) == 0)
+        if (ParkPositionNP.isNameMatch(name))
         {
             double axis1 = std::numeric_limits<double>::quiet_NaN(), axis2 = std::numeric_limits<double>::quiet_NaN();
             for (int x = 0; x < n; x++)
             {
-                INumber *parkPosAxis = IUFindNumber(&ParkPositionNP, names[x]);
-                if (parkPosAxis == &ParkPositionN[AXIS_RA])
+                if (ParkPositionNP[AXIS_RA].isNameMatch(names[x]))
                 {
                     axis1 = values[x];
                 }
-                else if (parkPosAxis == &ParkPositionN[AXIS_DE])
+                else if (ParkPositionNP[AXIS_DE].isNameMatch(names[x]))
                 {
                     axis2 = values[x];
                 }
@@ -906,17 +902,17 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
                 if (rc)
                 {
-                    IUUpdateNumber(&ParkPositionNP, values, names, n);
-                    Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
-                    Axis2ParkPosition = ParkPositionN[AXIS_DE].value;
+                    ParkPositionNP.update(values, names, n);
+                    Axis1ParkPosition = ParkPositionNP[AXIS_RA].getValue();
+                    Axis2ParkPosition = ParkPositionNP[AXIS_DE].getValue();
                 }
 
-                ParkPositionNP.s = rc ? IPS_OK : IPS_ALERT;
+                ParkPositionNP.setState(rc ? IPS_OK : IPS_ALERT);
             }
             else
-                ParkPositionNP.s = IPS_ALERT;
+                ParkPositionNP.setState(IPS_ALERT);
 
-            IDSetNumber(&ParkPositionNP, nullptr);
+            ParkPositionNP.apply();
             return true;
         }
 
@@ -926,9 +922,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         if (TrackRateNP.isNameMatch(name))
         {
             double preAxis1 = TrackRateNP[AXIS_RA].getValue(), preAxis2 = TrackRateNP[AXIS_DE].getValue();
-            bool rc = (TrackRateNP.update(values, names, n) == 0);
-
-            if (!rc)
+            if (TrackRateNP.update(values, names, n) == false)
             {
                 TrackRateNP.setState(IPS_ALERT);
                 TrackRateNP.apply();
@@ -947,13 +941,14 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
 
                 // All is fine, ask mount to change tracking rate
-                rc = SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
-
-                if (!rc)
+                if (SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue()) == false)
                 {
                     TrackRateNP[AXIS_RA].setValue(preAxis1);
                     TrackRateNP[AXIS_DE].setValue(preAxis2);
+                    TrackRateNP.setState(IPS_ALERT);
                 }
+                else
+                    TrackRateNP.setState(IPS_OK);
             }
 
             // If we are already tracking but tracking mode is NOT custom
@@ -965,7 +960,6 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
             }
 
             // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
-            TrackRateNP.setState(rc ? IPS_OK : IPS_ALERT);
             TrackRateNP.apply();
             return true;
         }
@@ -982,13 +976,13 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This one is for us
-        if (!strcmp(name, CoordSP.name))
+        if (CoordSP.isNameMatch(name))
         {
             //  client is telling us what to do with co-ordinate requests
-            CoordSP.s = IPS_OK;
-            IUUpdateSwitch(&CoordSP, states, names, n);
+            CoordSP.setState(IPS_OK);
+            CoordSP.update(states, names, n);
             //  Update client display
-            IDSetSwitch(&CoordSP, nullptr);
+            CoordSP.apply();
             return true;
         }
 
@@ -1833,29 +1827,33 @@ bool Telescope::SetParkPosition(double Axis1Value, double Axis2Value)
 
 void Telescope::generateCoordSet()
 {
-    std::vector <std::tuple<std::string, std::string>> coords;
+    CoordSP.resize(0);
 
-    coords.push_back(std::make_tuple("TRACK", "Track"));
+    INDI::WidgetSwitch node;
+    node.fill("TRACK", "Track", ISS_ON);
+    CoordSP.push(std::move(node));
 
     if(CanGOTO())
-        coords.push_back(std::make_tuple("SLEW", "Slew"));
-
-    if(CanSync())
-        coords.push_back(std::make_tuple("SYNC", "Sync"));
-
-    if(CanFlip())
-        coords.push_back(std::make_tuple("FLIP", "Flip"));
-
-    int j = 0;
-    for(auto i : coords)
     {
-        IUFillSwitch(&CoordS[j], std::get<0>(i).c_str(), std::get<1>(i).c_str(), j == 0 ? ISS_ON : ISS_OFF);
-        ++j;
+        INDI::WidgetSwitch node;
+        node.fill("SLEW", "Slew", ISS_OFF);
+        CoordSP.push(std::move(node));
     }
 
-    IUFillSwitchVector(&CoordSP, CoordS, static_cast<int>(coords.size()), getDeviceName(), "ON_COORD_SET", "On Set",
-                       MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    if(CanSync())
+    {
+        INDI::WidgetSwitch node;
+        node.fill("SYNC", "Sync", ISS_OFF);
+        CoordSP.push(std::move(node));
+
+    }
+
+    if(CanFlip())
+    {
+        INDI::WidgetSwitch node;
+        node.fill("FLIP", "Flip", ISS_OFF);
+        CoordSP.push(std::move(node));
+    }
 }
 
 void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
@@ -1935,36 +1933,35 @@ void Telescope::SetParkDataType(TelescopeParkData type)
         switch (parkDataType)
         {
             case PARK_RA_DEC:
-                IUFillNumber(&ParkPositionN[AXIS_RA], "PARK_RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-                IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+                ParkPositionNP[AXIS_RA].fill("PARK_RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+                ParkPositionNP[AXIS_DE].fill("PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
                 break;
 
             case PARK_HA_DEC:
-                IUFillNumber(&ParkPositionN[AXIS_RA], "PARK_HA", "HA (hh:mm:ss)", "%010.6m", -12, 12, 0, 0);
-                IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+                ParkPositionNP[AXIS_RA].fill("PARK_HA", "HA (hh:mm:ss)", "%010.6m", -12, 12, 0, 0);
+                ParkPositionNP[AXIS_DE].fill("PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
                 break;
 
             case PARK_AZ_ALT:
-                IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-                IUFillNumber(&ParkPositionN[AXIS_ALT], "PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
+                ParkPositionNP[AXIS_AZ].fill("PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+                ParkPositionNP[AXIS_ALT].fill("PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
                 break;
 
             case PARK_RA_DEC_ENCODER:
-                IUFillNumber(&ParkPositionN[AXIS_RA], "PARK_RA", "RA Encoder", "%.0f", 0, 16777215, 1, 0);
-                IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_DEC", "DEC Encoder", "%.0f", 0, 16777215, 1, 0);
+                ParkPositionNP[AXIS_RA].fill("PARK_RA", "RA Encoder", "%.0f", 0, 16777215, 1, 0);
+                ParkPositionNP[AXIS_DE].fill("PARK_DEC", "DEC Encoder", "%.0f", 0, 16777215, 1, 0);
                 break;
 
             case PARK_AZ_ALT_ENCODER:
-                IUFillNumber(&ParkPositionN[AXIS_RA], "PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
-                IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_ALT", "ALT Encoder", "%.0f", 0, 16777215, 1, 0);
+                ParkPositionNP[AXIS_RA].fill("PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
+                ParkPositionNP[AXIS_DE].fill("PARK_ALT", "ALT Encoder", "%.0f", 0, 16777215, 1, 0);
                 break;
 
             default:
                 break;
         }
 
-        IUFillNumberVector(&ParkPositionNP, ParkPositionN, 2, getDeviceName(), "TELESCOPE_PARK_POSITION",
-                           "Park Position", SITE_TAB, IP_RW, 60, IPS_IDLE);
+        ParkPositionNP.fill(getDeviceName(), "TELESCOPE_PARK_POSITION", "Park Position", SITE_TAB, IP_RW, 60, IPS_IDLE);
     }
 }
 
@@ -2018,9 +2015,9 @@ bool Telescope::InitPark()
     if (parkDataType != PARK_SIMPLE)
     {
         LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
-        ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
-        ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
-        IDSetNumber(&ParkPositionNP, nullptr);
+        ParkPositionNP[AXIS_RA].setValue(Axis1ParkPosition);
+        ParkPositionNP[AXIS_DE].setValue(Axis2ParkPosition);
+        ParkPositionNP.apply();
     }
 
     return true;
@@ -2345,9 +2342,9 @@ double Telescope::GetAxis2ParkDefault() const
 void Telescope::SetAxis1Park(double value)
 {
     LOGF_DEBUG("Setting Park Axis1 to %.2f", value);
-    Axis1ParkPosition            = value;
-    ParkPositionN[AXIS_RA].value = value;
-    IDSetNumber(&ParkPositionNP, nullptr);
+    Axis1ParkPosition = value;
+    ParkPositionNP[AXIS_RA].setValue(value);
+    ParkPositionNP.apply();
 }
 
 void Telescope::SetAxis1ParkDefault(double value)
@@ -2359,9 +2356,9 @@ void Telescope::SetAxis1ParkDefault(double value)
 void Telescope::SetAxis2Park(double value)
 {
     LOGF_DEBUG("Setting Park Axis2 to %.2f", value);
-    Axis2ParkPosition            = value;
-    ParkPositionN[AXIS_DE].value = value;
-    IDSetNumber(&ParkPositionNP, nullptr);
+    Axis2ParkPosition = value;
+    ParkPositionNP[AXIS_DE].setValue(value);
+    ParkPositionNP.apply();
 }
 
 void Telescope::SetAxis2ParkDefault(double value)

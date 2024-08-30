@@ -193,7 +193,7 @@ bool PMC8::updateProperties()
         defineProperty(&FirmwareTP);
 
         // do not support park position
-        deleteProperty(ParkPositionNP.name);
+        deleteProperty(ParkPositionNP);
         deleteProperty(ParkOptionSP);
     }
     else
@@ -1394,7 +1394,7 @@ void PMC8::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-        currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
+            currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 

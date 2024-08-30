@@ -223,7 +223,7 @@ void LX200AstroPhysicsV2::initRateLabels()
         SlewRateSP[3].fill("600", "600x", ISS_OFF);
         SlewRateSP[4].fill("1200", "1200x", ISS_OFF);
         SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
-                           ISR_1OFMANY, 0, IPS_IDLE);
+                        ISR_1OFMANY, 0, IPS_IDLE);
 
         // Slew speed when performing regular GOTO
         IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -584,7 +584,7 @@ bool LX200AstroPhysicsV2::ISNewNumber(const char *dev, const char *name, double 
         double ra = lst - HourangleCoordsN[0].value;
         double dec = HourangleCoordsN[1].value;
         bool success = false;
-        if ((ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s) || (ISS_ON == IUFindSwitch(&CoordSP, "SLEW")->s))
+        if (CoordSP.isSwitchOn("TRACK") || CoordSP.isSwitchOn("SLEW"))
         {
             success = Goto(ra, dec);
         }
@@ -2203,7 +2203,7 @@ bool LX200AstroPhysicsV2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command
         ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
         states[rememberSlewRate] = ISS_ON;
         const char *names[] = { SlewRateSP[0].getName(), SlewRateSP[1].getName(),
-                               SlewRateSP[2].getName(), SlewRateSP[3].getName()
+                                SlewRateSP[2].getName(), SlewRateSP[3].getName()
                               };
         ISNewSwitch(SlewRateSP.getDeviceName(), SlewRateSP.getName(), states, const_cast<char **>(names), 4);
         rememberSlewRate = -1;
@@ -2221,7 +2221,7 @@ bool LX200AstroPhysicsV2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command
         ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
         states[rememberSlewRate] = ISS_ON;
         const char *names[] = { SlewRateSP[0].getName(), SlewRateSP[1].getName(),
-                               SlewRateSP[2].getName(), SlewRateSP[3].getName()
+                                SlewRateSP[2].getName(), SlewRateSP[3].getName()
                               };
         ISNewSwitch(SlewRateSP.getDeviceName(), SlewRateSP.getName(), states, const_cast<char **>(names), 4);
         rememberSlewRate = -1;

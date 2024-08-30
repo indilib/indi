@@ -87,7 +87,7 @@ bool ScopeSim::Goto(double ra, double dec)
     DEBUGF(DBG_SIMULATOR, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf",
            ra * 360.0 / 24.0, ra, dec);
 
-    if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+    if (CoordSP.isSwitchOn("TRACK"))
     {
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
@@ -588,7 +588,7 @@ void ScopeSim::TimerHit()
         case SCOPE_SLEWING:
             if ((STOPPED == AxisStatusRA) && (STOPPED == AxisStatusDEC))
             {
-                if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+                if (CoordSP.isSwitchOn("TRACK"))
                 {
                     // Goto has finished start tracking
                     DEBUG(DBG_SIMULATOR, "TimerHit - Goto finished start tracking");
@@ -601,8 +601,7 @@ void ScopeSim::TimerHit()
                     break;
                 }
             }
-            else
-                break;
+            break;
 
         case SCOPE_TRACKING:
         {

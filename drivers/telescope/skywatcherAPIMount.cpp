@@ -429,9 +429,7 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
             }
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
-                ISwitch *sw = IUFindSwitch(&CoordSP, "SYNC");
-
-                if (sw != nullptr && sw->s == ISS_ON && isParked())
+                if (CoordSP.isSwitchOn("SYNC") && isParked())
                 {
                     return Sync(ra, dec);
                 }
@@ -516,7 +514,8 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "GOTO RA %lf DEC %lf", ra, dec);
 
-        if (IUFindSwitch(&CoordSP, "TRACK")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
+        auto onSwitch = CoordSP.findOnSwitch();
+        if (onSwitch && (onSwitch->isNameMatch("TRACK") || onSwitch->isNameMatch("SLEW")))
         {
             char RAStr[32], DecStr[32];
             fs_sexa(RAStr, ra, 2, 3600);
@@ -840,7 +839,8 @@ bool SkywatcherAPIMount::ReadScopeStatus()
                 return Goto(m_SkyTrackingTarget.rightascension, m_SkyTrackingTarget.declination);
             }
 
-            if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+            auto onSwitch = CoordSP.findOnSwitch();
+            if (onSwitch && (onSwitch->isNameMatch("TRACK")))
             {
                 // Goto has finished start tracking
                 TrackState = SCOPE_TRACKING;
