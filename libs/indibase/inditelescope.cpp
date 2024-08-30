@@ -1689,14 +1689,9 @@ bool Telescope::SetTrackEnabled(bool enabled)
 
 int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeSP.resize(0);
     INDI::WidgetSwitch node;
     node.fill(name, label, isDefault ? ISS_ON : ISS_OFF);
     TrackModeSP.push(std::move(node));
-
-    TrackModeSP.shrink_to_fit();
-    TrackModeSP.fill(getDeviceName(), name, label, MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
     return (TrackModeSP.count() - 1);
 }
 
