@@ -143,9 +143,26 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
         }
 
         template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
+        bool isSwitchOn(const std::string &name) const
+        {
+            auto onSwitch = findOnSwitch();
+            return (onSwitch && onSwitch->isNameMatch(name));
+        }
+
+        template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
         int findOnSwitchIndex() const
         {
             return IUFindOnSwitchIndex(this);
+        }
+
+        template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
+        std::string findOnSwitchName() const
+        {
+            auto onSwitch = findOnSwitch();
+            if (onSwitch)
+                return onSwitch->getName();
+            else
+                return std::string();
         }
 
     public: // only for INumber
@@ -472,7 +489,7 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         {
             return getLabel() == otherLabel;
         }
-        
+
         bool isEmpty() const
         {
             return getText()[0] == '\0';

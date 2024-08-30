@@ -52,10 +52,22 @@ int PropertySwitch::findOnSwitchIndex() const
     return d->typedProperty.findOnSwitchIndex();
 }
 
+std::string PropertySwitch::findOnSwitchName() const
+{
+    D_PTR(const PropertySwitch);
+    return d->typedProperty.findOnSwitchName();
+}
+
 INDI::WidgetViewSwitch *PropertySwitch::findOnSwitch() const
 {
     D_PTR(const PropertySwitch);
     return d->typedProperty.findOnSwitch();
+}
+
+bool PropertySwitch::isSwitchOn(const std::string &name) const
+{
+    D_PTR(const PropertySwitch);
+    return d->typedProperty.isSwitchOn(name);
 }
 
 bool PropertySwitch::update(const ISState states[], const char * const names[], int n)
@@ -64,7 +76,7 @@ bool PropertySwitch::update(const ISState states[], const char * const names[], 
     if (d->onNewValuesCallback)
     {
         NewValues newValues;
-        for (int i=0; i<n; ++i)
+        for (int i = 0; i < n; ++i)
         {
             newValues[names[i]] = states[i];
         }

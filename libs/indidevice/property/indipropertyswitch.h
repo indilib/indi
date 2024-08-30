@@ -58,7 +58,9 @@ class PropertySwitch: public INDI::PropertyBasic<ISwitch>
     public:
         void reset();
         int findOnSwitchIndex() const;
+        std::string findOnSwitchName() const;
         INDI::WidgetViewSwitch *findOnSwitch() const;
+        bool isSwitchOn(const std::string &name) const;
 
     public:
         void setRule(ISRule rule);
