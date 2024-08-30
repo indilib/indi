@@ -540,14 +540,15 @@ bool LX200_10MICRON::Park()
     LOG_INFO("Parking.");
     if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Park command failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Park command failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
     // postpone SetParked(true) for ReadScopeStatus so that we know it is actually correct
     return true;
 }
@@ -560,15 +561,16 @@ bool LX200_10MICRON::UnPark()
     LOG_INFO("Unparking.");
     if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Unpark command failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Unpark command failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_OK;
+    ParkSP.setState(IPS_OK);
     TrackState = SCOPE_IDLE;
     SetParked(false);
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
     return true;
 }
 
@@ -1120,8 +1122,8 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
             TLEfromDatabaseNP.s = IPS_OK;
-            TLEtoTrackTP.s = IPS_IDLE;
-            IDSetText(&TLEtoTrackTP, nullptr);
+            TLEtoTrackTP.setState(IPS_IDLE);
+            TLEtoTrackTP.apply();
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
             LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
 
@@ -1213,41 +1215,41 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentStateSP, nullptr);
             return true;
         }
-        if (strcmp(TrackSatSP.name, name) == 0)
+        if (TrackSatSP.isNameMatch(name))
         {
 
-            IUUpdateSwitch(&TrackSatSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&TrackSatSP);
+            TrackSatSP.update(states, names, n);
+            int index    = TrackSatSP.findOnSwitchIndex();
 
             switch (index)
             {
                 case SAT_TRACK:
                     if ( 0 != TrackSat() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Tracking failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Tracking satellite");
                     return true;
                 case SAT_HALT:
                     if ( !Abort() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Halt failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Halt tracking");
                     return true;
                 default:
-                    TrackSatSP.s = IPS_ALERT;
-                    IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
+                    TrackSatSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown tracking modus %d", index);
                     return false;
             }
         }
@@ -1307,21 +1309,21 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
 
-            IUUpdateText(&TLEtoTrackTP, texts, names, n);
-            if (0 == SetTLEtoFollow(TLEtoTrackT[0].text))
+            TLEtoTrackTP.update(texts, names, n);
+            if (0 == SetTLEtoFollow(TLEtoTrackTP[0].getText()))
             {
-                TLEtoTrackTP.s = IPS_OK;
+                TLEtoTrackTP.setState(IPS_OK);
                 TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
+                TLEtoTrackTP.apply();
                 IDSetNumber(&TLEfromDatabaseNP, nullptr);
-                LOGF_INFO("Selected TLE %s", TLEtoTrackT[0].text);
+                LOGF_INFO("Selected TLE %s", TLEtoTrackTP[0].getText());
                 return true;
             }
             else
             {
-                TLEtoTrackTP.s = IPS_ALERT;
+                TLEtoTrackTP.setState(IPS_ALERT);
                 TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
+                TLEtoTrackTP.apply();
                 IDSetNumber(&TLEfromDatabaseNP, nullptr);
                 LOG_ERROR("TLE was not correctly uploaded");
                 return false;
@@ -1329,18 +1331,18 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         }
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
-            IUUpdateText(&SatPassWindowTP, texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowT[SAT_PASS_WINDOW_START].text, SatPassWindowT[SAT_PASS_WINDOW_END].text))
+            SatPassWindowTP.update(texts, names, n);
+            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(), SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
             {
-                SatPassWindowTP.s = IPS_OK;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_OK);
+                SatPassWindowTP.apply();
                 LOG_INFO("Trajectory set");
                 return true;
             }
             else
             {
-                SatPassWindowTP.s = IPS_ALERT;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_ALERT);
+                SatPassWindowTP.apply();
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }

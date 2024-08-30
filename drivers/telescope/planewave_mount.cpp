@@ -363,8 +363,8 @@ bool PlaneWave::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[AXIS_RA].value;
-        dDE = TrackRateN[AXIS_DE].value;
+        dRA = TrackRateNP[AXIS_RA].getValue();
+        dDE = TrackRateNP[AXIS_DE].getValue();
     }
 
     INDI_UNUSED(dRA);
@@ -383,7 +383,7 @@ bool PlaneWave::SetTrackEnabled(bool enabled)
 {
     // On engaging track, we simply set the current track mode and it will take care of the rest including custom track rates.
     if (enabled)
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+        return SetTrackMode(TrackModeSP.findOnSwitchIndex());
     // Disable tracking
     else
     {

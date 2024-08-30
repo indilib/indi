@@ -82,19 +82,19 @@ bool LX200AM5::initProperties()
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "0.25x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "0.50x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "4x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "20x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "60x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "720x", MAXINDILABEL);
-    strncpy(SlewRateS[9].label, "1440x", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+
+    SlewRateSP[0].setLabel("0.25x");
+    SlewRateSP[1].setLabel("1x");
+    SlewRateSP[2].setLabel("2x");
+    SlewRateSP[3].setLabel("4x");
+    SlewRateSP[4].setLabel("8x");
+    SlewRateSP[5].setLabel("20x");
+    SlewRateSP[6].setLabel("60x");
+    SlewRateSP[7].setLabel("720x");
+    SlewRateSP[8].setLabel("1440x");
+    SlewRateSP.reset();
     // 1440x is the default
-    SlewRateS[9].s = ISS_ON;
+    SlewRateSP[9].setState(ISS_ON);
 
     // Home/Zero position
     // HomeSP[0].fill("GO", "Go", ISS_OFF);
@@ -326,13 +326,13 @@ bool LX200AM5::getTrackMode()
     char response[DRIVER_LEN] = {0};
     if (sendCommand(":GT#", response))
     {
-        IUResetSwitch(&TrackModeSP);
+        TrackModeSP.reset();
         auto onIndex = response[0] - 0x30;
-        TrackModeS[onIndex].s = ISS_ON;
+        TrackModeSP[onIndex].setState(ISS_ON);
         return true;
     }
 
-    TrackModeSP.s = IPS_ALERT;
+    TrackModeSP.setState(IPS_ALERT);
     return false;
 
 }
@@ -526,7 +526,7 @@ bool LX200AM5::ReadScopeStatus()
     else
     {
         // Tracking changed?
-        auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
+        auto wasTracking = TrackStateSP[INDI_ENABLED].getState() == ISS_ON;
         auto nowTracking = isTracking();
         if (wasTracking != nowTracking)
             TrackState = nowTracking ? SCOPE_TRACKING : SCOPE_IDLE;
@@ -534,8 +534,9 @@ bool LX200AM5::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 

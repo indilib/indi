@@ -324,7 +324,7 @@ bool ScopeScript::UnPark()
 
 bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
+    char _rate[] = { (char)('0' + SlewRateSP.findOnSwitchIndex()), 0 };
     bool status  = RunScript(command == MOTION_STOP ? SCRIPT_ABORT :
                              dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH,
                              _rate, nullptr, nullptr);
@@ -333,7 +333,7 @@ bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
+    char _rate[] = { (char)('0' + SlewRateSP.findOnSwitchIndex()), 0 };
     bool status =
         RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST,
                   _rate, nullptr, nullptr);

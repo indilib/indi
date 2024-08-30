@@ -29,33 +29,33 @@ ScopeSim::ScopeSim() :
 
 bool ScopeSim::Abort()
 {
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, nullptr);
+        MovementNSSP.reset();
+        MovementNSSP.setState(IPS_IDLE);
+        MovementNSSP.apply();
     }
 
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, nullptr);
+        MovementWESP.setState(IPS_IDLE);
+        MovementWESP.reset();
+        MovementWESP.apply();
     }
 
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
-        EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_IDLE);
+        EqNP.apply();
     }
 
     TrackState = SCOPE_IDLE;
 
     AxisStatusRA = AxisStatusDEC = STOPPED; // This marvelous inertia free scope can be stopped instantly!
 
-    AbortSP.s = IPS_OK;
-    IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, nullptr);
+    AbortSP.setState(IPS_OK);
+    AbortSP.reset();
+    AbortSP.apply();
     LOG_INFO("Telescope aborted.");
 
     return true;

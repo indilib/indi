@@ -135,21 +135,19 @@ bool LX200_OnStep::initProperties()
     // ============== MOTION_TAB
     //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
     //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
-    uint8_t nSlewRate = 10;
-    free(SlewRateS);
-    SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
-    // 0=.25X 1=.5x 2=1x 3=2x 4=4x 5=8x 6=24x 7=48x 8=half-MaxRate 9=MaxRate
-    IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-    IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);   //last OnStep - OnStepX
-    IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
-    IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+    SlewRateSP.resize(0);
+
+    SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+    SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+    SlewRateSP[2].fill("2", "1x", ISS_OFF);
+    SlewRateSP[3].fill("3", "2x", ISS_OFF);
+    SlewRateSP[4].fill("4", "4x", ISS_OFF);
+    SlewRateSP[5].fill("5", "8x", ISS_ON);
+    SlewRateSP[6].fill("6", "20x", ISS_OFF);   //last OnStep - OnStepX
+    SlewRateSP[7].fill("7", "48x", ISS_OFF);
+    SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+    SlewRateSP[9].fill("9", "Max", ISS_OFF);
+    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
@@ -492,7 +490,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OnstepStatTP);
 
         // Motion Control
-        defineProperty(&SlewRateSP);    // was missing
+        defineProperty(SlewRateSP);    // was missing
         defineProperty(&MaxSlewRateNP);
         defineProperty(&TrackCompSP);
         defineProperty(&TrackAxisSP);
@@ -677,17 +675,17 @@ bool LX200_OnStep::updateProperties()
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
 
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
 
         double longitude = -1000, latitude = -1000;
@@ -699,16 +697,16 @@ bool LX200_OnStep::updateProperties()
         //             updateLocation(latitude, longitude, 0);
         //         }
         //NOTE: if updateProperties is called it clobbers this, so added here
-        IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
-        IUFillSwitch(&SlewRateS[6], "6", "20x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
-        IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
-        IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
+        SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+        SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+        SlewRateSP[2].fill("2", "1x", ISS_OFF);
+        SlewRateSP[3].fill("3", "2x", ISS_OFF);
+        SlewRateSP[4].fill("4", "4x", ISS_OFF);
+        SlewRateSP[5].fill("5", "8x", ISS_ON);
+        SlewRateSP[6].fill("6", "20x", ISS_OFF);
+        SlewRateSP[7].fill("7", "48x", ISS_OFF);
+        SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+        SlewRateSP[9].fill("9", "Max", ISS_OFF);
 
     }
     else
@@ -722,7 +720,7 @@ bool LX200_OnStep::updateProperties()
         // Options
 
         // Motion Control
-        deleteProperty(SlewRateSP.name);    // was missing
+        deleteProperty(SlewRateSP);    // was missing
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(TrackAxisSP.name);
@@ -822,16 +820,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
             for (int x = 0; x < n; x++)
             {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
+                if (EqNP[AXIS_RA].isNameMatch(names[x]))
                     ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
+                else if (EqNP[AXIS_DE].isNameMatch(names[x]))
                     dec = values[x];
-                }
             }
+
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
                 // Check if it is already parked.
@@ -871,9 +865,9 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 {
                     //       EqNP.s = lastEqState = IPS_BUSY;
                     //  Now fill in target co-ords, so domes can start turning
-                    TargetN[AXIS_RA].value = ra;
-                    TargetN[AXIS_DE].value = dec;
-                    IDSetNumber(&TargetNP, nullptr);
+                    TargetNP[AXIS_RA].setValue(ra);
+                    TargetNP[AXIS_DE].setValue(dec);
+                    TargetNP.apply();
                 }
                 else
                 {
@@ -932,10 +926,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[int(values[0])].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[int(values[0])].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
 
@@ -1275,11 +1269,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
     {
         //Intercept Before inditelescope base can set TrackState
         //Next one modification of inditelescope.cpp function
-        if (!strcmp(name, TrackStateSP.name))
+        if (TrackStateSP.isNameMatch(name))
         {
             //             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            TrackStateSP.update(states, names, n);
+            int targetState = TrackStateSP.findOnSwitchIndex();
             //             LOG_DEBUG("OnStep driver TrackStateSP override called");
             //             if (previousState == targetState)
             //             {
@@ -1303,8 +1297,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             else
             {
                 //This is the case for an error on sending the command, so change TrackStateSP
-                TrackStateSP.s = IPS_ALERT;
-                IUResetSwitch(&TrackStateSP);
+                TrackStateSP.setState(IPS_ALERT);
+                TrackStateSP.reset();
                 return false;
             }
 
@@ -1340,12 +1334,12 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             return true;
         }
         //Move to more standard controls
-        if (!strcmp(name, SlewRateSP.name))
+        if (SlewRateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SlewRateSP, states, names, n);
+            SlewRateSP.update(states, names, n);
             int ret;
             char cmd[CMD_MAX_LEN] = {0};
-            int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
+            int index = SlewRateSP.findOnSwitchIndex() ;//-1; //-1 because index is 1-10, OS Values are 0-9
             snprintf(cmd, sizeof(cmd), ":R%d#", index);
             ret = sendOnStepCommandBlind(cmd);
 
@@ -1354,19 +1348,20 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 LOGF_DEBUG("Pas OK Return value =%d", ret);
                 LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
-                SlewRateSP.s = IPS_ALERT;
-                IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
+                SlewRateSP.setState(IPS_ALERT);
+                LOG_ERROR("Setting Max Slew Rate Failed");
+                SlewRateSP.apply();
                 return false;
             }
-            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateS[index].label);
+            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateSP[index].getLabel());
             LOGF_DEBUG("OK Return value =%d", ret);
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = index;
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[index].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[index].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
 
@@ -1767,24 +1762,24 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             IDSetSwitch(&OSPECReadSP, nullptr);
         }
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            index = IUFindOnSwitchIndex(&PECStateSP);
+            index = PECStateSP.findOnSwitchIndex();
             if (index == 0)
             {
                 OSPECEnabled = true;
                 StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
-                PECStateS[0].s = ISS_ON;
-                PECStateS[1].s = ISS_OFF;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[PEC_OFF].setState(ISS_ON);
+                PECStateSP[PEC_ON].setState(ISS_OFF);
+                PECStateSP.apply();
             }
             else if (index == 1)
             {
                 OSPECEnabled = true;
                 StartPECPlayback(0);
-                PECStateS[0].s = ISS_OFF;
-                PECStateS[1].s = ISS_ON;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
+                PECStateSP.apply();
             }
 
         }
@@ -2105,39 +2100,42 @@ bool LX200_OnStep::Park()
     if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
-        if (EqNP.s == IPS_BUSY)
+        if (EqNP.getState() == IPS_BUSY)
         {
             if (!isSimulation() && abortSlew(PortFD) < 0)
             {
-                Telescope::AbortSP.s = IPS_ALERT;
-                IDSetSwitch(&(Telescope::AbortSP), "Abort slew failed.");
+                Telescope::AbortSP.setState(IPS_ALERT);
+                LOG_ERROR("Abort slew failed.");
+                Telescope::AbortSP.apply();
                 return false;
             }
-            Telescope::AbortSP.s = IPS_OK;
-            EqNP.s    = IPS_IDLE;
-            IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
-            IDSetNumber(&EqNP, nullptr);
+            Telescope::AbortSP.setState(IPS_OK);
+            EqNP.setState(IPS_IDLE);
+            LOG_ERROR("Slew aborted.");
+            Telescope::AbortSP.apply();
+            EqNP.apply();
 
-            if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
             {
-                MovementNSSP.s = IPS_IDLE;
-                MovementWESP.s = IPS_IDLE;
-                EqNP.s = IPS_IDLE;
-                IUResetSwitch(&MovementNSSP);
-                IUResetSwitch(&MovementWESP);
+                MovementNSSP.setState(IPS_IDLE);
+                MovementWESP.setState(IPS_IDLE);
+                EqNP.setState(IPS_IDLE);
+                MovementNSSP.reset();
+                MovementWESP.reset();
 
-                IDSetSwitch(&MovementNSSP, nullptr);
-                IDSetSwitch(&MovementWESP, nullptr);
+                MovementNSSP.apply();
+                MovementWESP.apply();
             }
         }
         if (!isSimulation() && slewToPark(PortFD) < 0)
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Parking Failed.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Parking Failed.");
+            ParkSP.apply();
             return false;
         }
     }
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     return true;
 }
 
@@ -2190,8 +2188,9 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
             {
-                EqNP.s = IPS_ALERT;
-                IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                EqNP.setState(IPS_ALERT);
+                LOG_ERROR("Error reading RA/DEC.");
+                EqNP.apply();
                 LOG_INFO("RA/DEC could not be read, possible solution if using (wireless) ethernet: Use port 9998");
                 LOG_WARN("This update aborted, will try again...");
                 return true; //COMMUNICATION ERROR, BUT DON'T PUT TELESCOPE IN ERROR STATE
@@ -2305,29 +2304,29 @@ bool LX200_OnStep::ReadScopeStatus()
             bool trackStateUpdateNeded = false;
             if (TrackState == SCOPE_TRACKING)
             {
-                if (TrackStateSP.s != IPS_BUSY)
+                if (TrackStateSP.getState() != IPS_BUSY)
                 {
-                    TrackStateSP.s = IPS_BUSY;
+                    TrackStateSP.setState(IPS_BUSY);
                     trackStateUpdateNeded = true;
                 }
-                if (TrackStateS[TRACK_ON].s != ISS_ON || TrackStateS[TRACK_OFF].s != ISS_OFF)
+                if (TrackStateSP[TRACK_ON].getState() != ISS_ON || TrackStateSP[TRACK_OFF].getState() != ISS_OFF)
                 {
-                    TrackStateS[TRACK_ON].s = ISS_ON;
-                    TrackStateS[TRACK_OFF].s = ISS_OFF;
+                    TrackStateSP[TRACK_ON].setState(ISS_ON);
+                    TrackStateSP[TRACK_OFF].setState(ISS_OFF);
                     trackStateUpdateNeded = true;
                 }
             }
             else
             {
-                if (TrackStateSP.s != IPS_IDLE)
+                if (TrackStateSP.getState() != IPS_IDLE)
                 {
-                    TrackStateSP.s = IPS_IDLE;
+                    TrackStateSP.setState(IPS_IDLE);
                     trackStateUpdateNeded = true;
                 }
-                if (TrackStateS[TRACK_ON].s != ISS_OFF || TrackStateS[TRACK_OFF].s != ISS_ON)
+                if (TrackStateSP[TRACK_ON].getState() != ISS_OFF || TrackStateSP[TRACK_OFF].getState() != ISS_ON)
                 {
-                    TrackStateS[TRACK_ON].s = ISS_OFF;
-                    TrackStateS[TRACK_OFF].s = ISS_ON;
+                    TrackStateSP[TRACK_ON].setState(ISS_OFF);
+                    TrackStateSP[TRACK_OFF].setState(ISS_ON);
                     trackStateUpdateNeded = true;
                 }
             }
@@ -2336,7 +2335,7 @@ bool LX200_OnStep::ReadScopeStatus()
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("TRACKSTATE CHANGED");
 #endif
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP.apply();
             }
             else
             {
@@ -2350,9 +2349,9 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 case SCOPE_PARKED:
                 case SCOPE_IDLE:
-                    if (EqNP.s != IPS_IDLE)
+                    if (EqNP.getState() != IPS_IDLE)
                     {
-                        EqNP.s = IPS_IDLE;
+                        EqNP.setState(IPS_IDLE);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_IDLE");
@@ -2362,9 +2361,9 @@ bool LX200_OnStep::ReadScopeStatus()
 
                 case SCOPE_SLEWING:
                 case SCOPE_PARKING:
-                    if (EqNP.s != IPS_BUSY)
+                    if (EqNP.getState() != IPS_BUSY)
                     {
-                        EqNP.s = IPS_BUSY;
+                        EqNP.setState(IPS_BUSY);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_BUSY");
@@ -2373,9 +2372,9 @@ bool LX200_OnStep::ReadScopeStatus()
                     break;
 
                 case SCOPE_TRACKING:
-                    if (EqNP.s != IPS_OK)
+                    if (EqNP.getState() != IPS_OK)
                     {
-                        EqNP.s = IPS_OK;
+                        EqNP.setState(IPS_OK);
                         update_needed = true;
 #ifdef DEBUG_TRACKSTATE
                         LOG_DEBUG("EqNP set to IPS_OK");
@@ -2383,7 +2382,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     }
                     break;
             }
-            if (EqN[AXIS_RA].value != currentRA || EqN[AXIS_DE].value != currentDEC)
+                if (EqNP[AXIS_RA].getValue() != currentRA || EqNP[AXIS_DE].getValue() != currentDEC)
             {
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("EqNP coordinates updated");
@@ -2395,9 +2394,9 @@ bool LX200_OnStep::ReadScopeStatus()
 #ifdef DEBUG_TRACKSTATE
                 LOG_DEBUG("EqNP changed state");
 #endif
-                EqN[AXIS_RA].value = currentRA;
-                EqN[AXIS_DE].value = currentDEC;
-                IDSetNumber(&EqNP, nullptr);
+                EqNP[AXIS_RA].setValue(currentRA);
+                EqNP[AXIS_DE].setValue(currentDEC);
+                EqNP.apply();
 #ifdef DEBUG_TRACKSTATE
                 if (EqNP.s == IPS_BUSY)
                 {
@@ -2642,10 +2641,10 @@ bool LX200_OnStep::ReadScopeStatus()
 
             // Refresh current Slew Rate
             int idx = OSStat[strlen(OSStat) - 2] - '0';
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[idx].s = ISS_ON;
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[idx].setState(ISS_ON);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             LOGF_DEBUG("Guide Rate Index: %d", idx);
             // End Refresh current Slew Rate
         }
@@ -4983,8 +4982,8 @@ void LX200_OnStep::slewError(int slewCode)
         default:
             LOG_ERROR("OnStep slew/syncError: Not in range of values that should be returned! INVALID, Something went wrong!");
     }
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_ALERT);
+    EqNP.apply();
 }
 
 
@@ -4999,8 +4998,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
     {
         if (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+            EqNP.apply();
             return false;
         }
         LOG_DEBUG("CMD <:CM#>");
@@ -5016,8 +5016,9 @@ bool LX200_OnStep::Sync(double ra, double dec)
                     int error_code = read_buffer[1] - '0';
                     LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
                     slewError(error_code);
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Synchronization failed.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Synchronization failed.");
+                    EqNP.apply();
                     return false;
                 }
                 else
@@ -5116,7 +5117,7 @@ bool LX200_OnStep::sendScopeTime()
     {
         char utcStr[8] = {0};
         snprintf(utcStr, 8, "%.2f", offset);
-        IUSaveText(&TimeT[1], utcStr);
+        TimeTP[OFFSET].setText(utcStr);
     }
     else
     {
@@ -5159,14 +5160,14 @@ bool LX200_OnStep::sendScopeTime()
 
     // Format it into the final UTC ISO 8601
     strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
-    IUSaveText(&TimeT[0], cdate);
+    TimeTP[UTC].setText(cdate);
 
-    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
-    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeTP[UTC].getText());
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeTP[OFFSET].getText());
 
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
 
     return true;
 }
@@ -5180,11 +5181,11 @@ bool LX200_OnStep::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
         return true;
     }
     if (OSHighPrecision)
@@ -5200,16 +5201,20 @@ bool LX200_OnStep::sendScopeLocation()
             }
             else
             {
+                double value = 0;
                 OSHighPrecision = false; //Don't check using :GtH again
                 snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-                f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+                f_scansexa(lat_sexagesimal, &value);
+                LocationNP[LOCATION_LATITUDE].setValue(value);
             }
         }
         else
         {
+            double value = 0;
             //Got High precision coordinates
             snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            f_scansexa(lat_sexagesimal, &value);
+            LocationNP[LOCATION_LATITUDE].setValue(value);
         }
     }
     if (!OSHighPrecision) //Bypass check
@@ -5221,8 +5226,10 @@ bool LX200_OnStep::sendScopeLocation()
         }
         else
         {
+            double value = 0;
             snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            f_scansexa(lat_sexagesimal, &value);
+            LocationNP[LOCATION_LATITUDE].setValue(value);
         }
     }
 
@@ -5239,16 +5246,20 @@ bool LX200_OnStep::sendScopeLocation()
             }
             else
             {
+                double value = 0;
                 OSHighPrecision = false;
                 snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-                f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+                f_scansexa(lng_sexagesimal, &value);
+                LocationNP[LOCATION_LONGITUDE].setValue(value);
             }
         }
         else
         {
+            double value = 0;
             //Got High precision coordinates
             snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+            f_scansexa(lng_sexagesimal, &value);
+            LocationNP[LOCATION_LONGITUDE].setValue(value);
         }
     }
     if(!OSHighPrecision) //Not using high precision
@@ -5260,18 +5271,21 @@ bool LX200_OnStep::sendScopeLocation()
         }
         else
         {
+            double value = 0;
             snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+
+            f_scansexa(lng_sexagesimal, &value);
+            LocationNP[LOCATION_LONGITUDE].setValue(value);
         }
     }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
               lat_sexagesimal,
-              LocationN[LOCATION_LATITUDE].value,
+              LocationNP[LOCATION_LATITUDE].getValue(),
               lng_sexagesimal,
-              LocationN[LOCATION_LONGITUDE].value);
+              LocationNP[LOCATION_LONGITUDE].getValue());
 
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 
@@ -5304,29 +5318,31 @@ bool LX200_OnStep::Goto(double ra, double dec)
     fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            Telescope::AbortSP.apply();
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        LOG_ERROR("Slew aborted.");
+        AbortSP.apply();
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -5337,8 +5353,9 @@ bool LX200_OnStep::Goto(double ra, double dec)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 
@@ -5369,21 +5386,21 @@ void LX200_OnStep::SyncParkStatus(bool isparked)
     LOG_DEBUG("OnStep SyncParkStatus called");
     PrintTrackState();
     IsParked = isparked;
-    IUResetSwitch(&ParkSP);
-    ParkSP.s = IPS_OK;
+    ParkSP.reset();
+    ParkSP.setState(IPS_OK);
 
     if (TrackState == SCOPE_PARKED)
     {
-        ParkS[0].s = ISS_ON;
+        ParkSP[PARK].setState(ISS_ON);
         LOG_INFO("Mount is parked.");
     }
     else
     {
-        ParkS[1].s = ISS_ON;
+        ParkSP[UNPARK].setState(ISS_ON);
         LOG_INFO("Mount is unparked.");
     }
 
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 }
 
 

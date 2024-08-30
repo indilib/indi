@@ -85,18 +85,21 @@ bool IOptronV3::initProperties()
     INDI::Telescope::initProperties();
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("1x");
+    SlewRateSP[1].setLabel("2x");
+    SlewRateSP[2].setLabel("8x");
+    SlewRateSP[3].setLabel("16x");
+    SlewRateSP[4].setLabel("64x");
+    SlewRateSP[5].setLabel("128x");
+    SlewRateSP[6].setLabel("256x");
+    SlewRateSP[7].setLabel("512x");
+    SlewRateSP[8].setLabel("MAX");
+    SlewRateSP.reset();
+    // 64x is the default
+    SlewRateSP[4].setState(ISS_ON);
+
     // Max is the default
-    SlewRateS[8].s = ISS_ON;
+    SlewRateSP[8].setState(ISS_ON);
 
     /* Firmware */
     IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
@@ -210,10 +213,10 @@ bool IOptronV3::initProperties()
 
     addAuxControls();
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
-    driver->setSimLongLat(LocationN[LOCATION_LONGITUDE].value > 180 ? LocationN[LOCATION_LONGITUDE].value - 360 :
-                          LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value);
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
+    driver->setSimLongLat(LocationNP[LOCATION_LONGITUDE].getValue() > 180 ? LocationNP[LOCATION_LONGITUDE].getValue() - 360 :
+                              LocationNP[LOCATION_LONGITUDE].getValue(), LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -305,7 +308,7 @@ void IOptronV3::getStartupData()
         struct tm *utc;
         utc = gmtime(&utc_time);
         strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-        IUSaveText(&TimeT[0], ts);
+        TimeTP[UTC].setText(ts);
         LOGF_INFO("Mount UTC: %s", ts);
 
         // UTC Offset
@@ -315,11 +318,11 @@ void IOptronV3::getStartupData()
             utcOffsetMinutes += 60;
 
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[1], offset);
+        TimeTP[OFFSET].setText(offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
 
         LOGF_INFO("Mount Daylight Savings: %s", dayLightSavings ? "ON" : "OFF");
         DaylightS[0].s = dayLightSavings ? ISS_ON : ISS_OFF;
@@ -332,16 +335,16 @@ void IOptronV3::getStartupData()
     double longitude = 0, latitude = 0;
     if (driver->getStatus(&scopeInfo))
     {
-        LocationN[LOCATION_LATITUDE].value  = scopeInfo.latitude;
+        LocationNP[LOCATION_LATITUDE].setValue(scopeInfo.latitude);
         // Convert to INDI standard longitude (0 to 360 Eastward)
-        LocationN[LOCATION_LONGITUDE].value = (scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LONGITUDE].setValue((scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         char l[32] = {0}, L[32] = {0};
-        fs_sexa(l, LocationN[LOCATION_LATITUDE].value, 3, 3600);
-        fs_sexa(L, LocationN[LOCATION_LONGITUDE].value, 4, 3600);
+        fs_sexa(l, LocationNP[LOCATION_LATITUDE].getValue(), 3, 3600);
+        fs_sexa(L, LocationNP[LOCATION_LONGITUDE].getValue(), 4, 3600);
 
         LOGF_INFO("Mount Location: Lat %.32s - Long %.32s", l, L);
 
@@ -350,11 +353,11 @@ void IOptronV3::getStartupData()
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
     IOP_MB_STATE action;
@@ -370,8 +373,8 @@ void IOptronV3::getStartupData()
                   MeridianLimitNP[0].getValue(), MeridianActionSP[IOP_MB_STOP].getState() == ISS_ON ? "stop" : "flip");
     }
 
-    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
-    double parkAL = LocationN[LOCATION_LATITUDE].value;
+    double parkAZ = LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180;
+    double parkAL = LocationNP[LOCATION_LATITUDE].getValue();
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
@@ -535,11 +538,11 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         /* v3.0 PEC add controls and calls to the driver */
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PECStateSP, states, names, n);
+            PECStateSP.update(states, names, n);
 
-            if(PECStateS[PEC_OFF].s == ISS_ON)
+            if(PECStateSP[PEC_OFF].getState() == ISS_ON)
             {
                 // PEC OFF
                 if(isTraining)
@@ -550,7 +553,7 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 else
                 {
                     driver->setPECEnabled(false);
-                    PECStateSP.s = IPS_OK;
+                    PECStateSP.setState(IPS_OK);
                     LOG_INFO("Disabling PEC Chip");
                 }
             }
@@ -561,11 +564,11 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 {
                     // Data Check
                     driver->setPECEnabled(true);
-                    PECStateSP.s = IPS_BUSY;
+                    PECStateSP.setState(IPS_BUSY);
                     LOG_INFO("Enabling PEC Chip");
                 }
             }
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.apply();
             return true;
         }
 
@@ -662,27 +665,27 @@ bool IOptronV3::ReadScopeStatus()
             IDSetSwitch(&HemisphereSP, nullptr);
         }
 
-        if (IUFindOnSwitchIndex(&SlewRateSP) != newInfo.slewRate - 1)
+        if (SlewRateSP.findOnSwitchIndex() != newInfo.slewRate - 1)
         {
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[newInfo.slewRate - 1].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[newInfo.slewRate - 1].setState(ISS_ON);
+            SlewRateSP.apply();
         }
 
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
+            TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
                 break;
             case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_SLEWING:
@@ -695,7 +698,7 @@ bool IOptronV3::ReadScopeStatus()
             case ST_GUIDING:
                 if (newInfo.systemStatus == ST_TRACKING_PEC_OFF || newInfo.systemStatus == ST_TRACKING_PEC_ON)
                     setPECState(newInfo.systemStatus == ST_TRACKING_PEC_ON ? PEC_ON : PEC_OFF);
-                TrackModeSP.s = IPS_BUSY;
+                TrackModeSP.setState(IPS_BUSY);
                 TrackState    = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
                     LOG_INFO("Slew complete, tracking...");
@@ -704,11 +707,11 @@ bool IOptronV3::ReadScopeStatus()
                 break;
         }
 
-        if (IUFindOnSwitchIndex(&TrackModeSP) != newInfo.trackRate)
+        if (TrackModeSP.findOnSwitchIndex() != newInfo.trackRate)
         {
-            IUResetSwitch(&TrackModeSP);
-            TrackModeS[newInfo.trackRate].s = ISS_ON;
-            IDSetSwitch(&TrackModeSP, nullptr);
+            TrackModeSP.reset();
+            TrackModeSP[newInfo.trackRate].setState(ISS_ON);
+            TrackModeSP.apply();
         }
 
         scopeInfo = newInfo;
@@ -833,7 +836,7 @@ bool IOptronV3::Sync(double ra, double de)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = de;
@@ -1081,22 +1084,22 @@ void IOptronV3::mountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    double currentSlewRate = Driver::IOP_SLEW_RATES[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
+    double currentSlewRate = Driver::IOP_SLEW_RATES[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+        currentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 
         case SCOPE_TRACKING:
-            if (TrackModeS[TR_CUSTOM].s == ISS_ON)
+            if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
             {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateNP[AXIS_RA].getValue() / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateNP[AXIS_DE].getValue() / 3600.0) * dt);
             }
             break;
 
@@ -1181,9 +1184,9 @@ bool IOptronV3::SetDefaultPark()
     // By default azimuth 0
     SetAxis1Park(0);
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
     driver->setParkAz(0);
-    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
+    driver->setParkAlt(LocationNP[LOCATION_LATITUDE].getValue());
     return true;
 }
 
@@ -1223,9 +1226,9 @@ bool IOptronV3::SetTrackEnabled(bool enabled)
     {
         // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
-        SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        SetTrackMode(TrackModeSP.findOnSwitchIndex());
+        if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);

@@ -463,7 +463,7 @@ INDI::IEquatorialCoordinates DSC::TelescopeEquatorialToSky()
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
-        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
         lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.rightascension);
         //  convert lha to degrees
         lha    = lha * 360 / 24;

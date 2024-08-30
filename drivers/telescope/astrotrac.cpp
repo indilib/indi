@@ -72,10 +72,10 @@ bool AstroTrac::initProperties()
     // Slew Speeds
     for (uint8_t i = 0; i < SLEW_MODES; i++)
     {
-        sprintf(SlewRateSP.sp[i].label, "%dx", SLEW_SPEEDS[i]);
-        SlewRateSP.sp[i].aux = (void *)&SLEW_SPEEDS[i];
+        SlewRateSP[i].setLabel(std::to_string(SLEW_SPEEDS[i]) + "x");
+        SlewRateSP[i].setAux((void *)&SLEW_SPEEDS[i]);
     }
-    SlewRateS[5].s = ISS_ON;
+    SlewRateSP[5].setState(ISS_ON);
 
     // Mount Type
     int configMountType = MOUNT_GEM;
@@ -289,7 +289,7 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
     double velocity(0);
     if (getVelocity(axis, velocity))
     {
-        TrackRateN[axis].value = velocity;
+        TrackRateNP[axis].setValue(velocity);
         return true;
     }
     return false;
@@ -435,7 +435,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         deEncoder = 0;
 
     // Northern Hemisphere
-    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (East, looking West)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
@@ -466,7 +466,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         }
     }
 
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     ra = range24(lst - ha);
 
     char RAStr[32] = {0}, DecStr[32] = {0};
@@ -484,10 +484,10 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, double &deEncoder)
 {
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     double dHA = rangeHA(lst - ra);
     // Northern Hemisphere
-    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
         // "Normal" Pointing State (East, looking West)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
@@ -678,7 +678,7 @@ bool AstroTrac::ReadScopeStatus()
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
-        double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
         double dHA = rangeHA(lst - skyRA);
         setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
 
@@ -872,7 +872,7 @@ bool AstroTrac::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     if (command == MOTION_START)
     {
-        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+        double velocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL
                           * (dir == DIRECTION_NORTH ? 1 : -1);
         setVelocity(AXIS_DE,  velocity);
     }
@@ -899,7 +899,7 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     if (command == MOTION_START)
     {
-        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+        double velocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL
                           * (dir == DIRECTION_WEST ? 1 : -1);
         setVelocity(AXIS_RA,  velocity);
     }
@@ -1171,8 +1171,8 @@ bool AstroTrac::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[AXIS_RA].value;
-        dDE = TrackRateN[AXIS_DE].value;
+        dRA = TrackRateNP[AXIS_RA].getValue();
+        dDE = TrackRateNP[AXIS_DE].getValue();
     }
 
     return setVelocity(AXIS_RA, dRA) && setVelocity(AXIS_DE, dDE);
@@ -1185,7 +1185,7 @@ bool AstroTrac::SetTrackEnabled(bool enabled)
 {
     // On engaging track, we simply set the current track mode and it will take care of the rest including custom track rates.
     if (enabled)
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+        return SetTrackMode(TrackModeSP.findOnSwitchIndex());
     // Disable tracking
     else
     {
@@ -1221,15 +1221,13 @@ void AstroTrac::simulateMount()
         return;
     }
 
-    if (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY)
     {
-        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
-                                &MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
-        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL * (IUFindOnSwitchIndex(
-                                &MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double haVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
 
-        haVelocity *= MovementWESP.s == IPS_BUSY ? 1 : 0;
-        deVelocity *= MovementNSSP.s == IPS_BUSY ? 1 : 0;
+        haVelocity *= MovementWESP.getState() == IPS_BUSY ? 1 : 0;
+        deVelocity *= MovementNSSP.getState() == IPS_BUSY ? 1 : 0;
 
         // In degrees
         double elapsedDistanceHA = (elapsed / 1000.0 * haVelocity) / 3600.0;
@@ -1285,7 +1283,7 @@ void AstroTrac::simulateMount()
             case SCOPE_TRACKING:
             {
                 // Increase HA axis at selected tracking rate (arcsec/s).
-                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateNP[AXIS_RA].getValue()) / 3600.0;
                 if (SimData.currentMechanicalHA > 180)
                     SimData.currentMechanicalHA = 180;
                 else if (SimData.currentMechanicalHA < -180)

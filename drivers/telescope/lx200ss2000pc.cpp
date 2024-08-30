@@ -352,7 +352,7 @@ bool LX200SS2000PC::Park()
         }
     }
 
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
 
@@ -431,10 +431,10 @@ bool LX200SS2000PC::SetCurrentPark()
 bool LX200SS2000PC::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+    SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 0 : 180);
 
     // Alt = Latitude
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -459,9 +459,9 @@ bool LX200SS2000PC::ReadScopeStatus()
         if (isSlewComplete())
         {
             // Set slew mode to "Centering"
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+            SlewRateSP.apply();
 
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
@@ -479,8 +479,9 @@ bool LX200SS2000PC::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading RA/DEC.");
+        EqNP.apply();
         return false;
     }
 

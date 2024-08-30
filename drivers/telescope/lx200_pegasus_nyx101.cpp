@@ -77,7 +77,7 @@ bool LX200NYX101::initProperties()
         SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, SLEW_MODES);
 
     // Overwrite TRACK_CUSTOM, with TRACK_KING
-    IUFillSwitch(&TrackModeS[TRACK_KING], "TRACK_KING", "King", ISS_OFF);
+    TrackModeSP[TRACK_KING].fill("TRACK_KING", "King", ISS_OFF);
 
     // Elevation Limits
     ElevationLimitNP[OVERHEAD].fill("ELEVATION_OVERHEAD", "Overhead", "%g", 60, 90,   1, 90);
@@ -184,19 +184,19 @@ bool LX200NYX101::initProperties()
     RebootSP.fill(getDeviceName(), "REBOOT", "Reboot", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "200x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "300x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "600x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "900x", MAXINDILABEL);
-    strncpy(SlewRateS[9].label, "1200x", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("2x");
+    SlewRateSP[1].setLabel("8x");
+    SlewRateSP[2].setLabel("16x");
+    SlewRateSP[3].setLabel("64x");
+    SlewRateSP[4].setLabel("128x");
+    SlewRateSP[5].setLabel("200x");
+    SlewRateSP[6].setLabel("300x");
+    SlewRateSP[7].setLabel("600x");
+    SlewRateSP[8].setLabel("900x");
+    SlewRateSP[9].setLabel("1200x");
+    SlewRateSP.reset();
 
-    SlewRateS[9].s = ISS_ON;
+    SlewRateSP[9].setState(ISS_ON);
 
 
     return true;
@@ -494,13 +494,13 @@ bool LX200NYX101::ReadScopeStatus()
         RefractSP.setState(IPS_OK);
         RefractSP.apply();
     }
-    TrackModeS[TRACK_SIDEREAL].s = ISS_OFF;
-    TrackModeS[TRACK_LUNAR].s = ISS_OFF;
-    TrackModeS[TRACK_SOLAR].s = ISS_OFF;
-    TrackModeS[TRACK_KING].s = ISS_OFF;
-    TrackModeS[_TrackingMode].s = ISS_ON;
-    TrackModeSP.s   = IPS_OK;
-    IDSetSwitch(&TrackModeSP, nullptr);
+    TrackModeSP[TRACK_SIDEREAL].setState(ISS_OFF);
+    TrackModeSP[TRACK_LUNAR].setState(ISS_OFF);
+    TrackModeSP[TRACK_SOLAR].setState(ISS_OFF);
+    TrackModeSP[TRACK_KING].setState(ISS_OFF);
+    TrackModeSP[_TrackingMode].setState(ISS_ON);
+    TrackModeSP.setState(IPS_OK);
+    TrackModeSP.apply();
 
     switch(_PierSide)
     {
@@ -536,7 +536,7 @@ bool LX200NYX101::ReadScopeStatus()
     }
     else
     {
-        auto wasTracking = TrackStateS[INDI_ENABLED].s == ISS_ON;
+        auto wasTracking = TrackStateSP[INDI_ENABLED].getState() == ISS_ON;
         if (wasTracking != _IsTracking)
             TrackState = _IsTracking ? SCOPE_TRACKING : SCOPE_IDLE;
     }
@@ -544,8 +544,9 @@ bool LX200NYX101::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading Ra - Dec");
+        EqNP.setState(IPS_ALERT);
+        LOG_ERROR("Error reading Ra - Dec");
+        EqNP.apply();
         return false;
     }
 

@@ -166,10 +166,10 @@ bool LX200Gemini::initProperties()
     IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED",
                        "Center Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_SIDEREAL].fill("TRACK_SIDEREAL", "Sidereal", ISS_ON);
+    TrackModeSP[GEMINI_TRACK_KING].fill("TRACK_CUSTOM", "King", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_LUNAR].fill("TRACK_LUNAR", "Lunar", ISS_OFF);
+    TrackModeSP[GEMINI_TRACK_SOLAR].fill("TRACK_SOLAR", "Solar", ISS_OFF);
 
     //PEC
     IUFillSwitch(&PECControlS[PEC_START_TRAINING], "PEC_START_TRAINING", "Start Training", ISS_OFF);
@@ -612,7 +612,7 @@ bool LX200Gemini::updateProperties()
 
         if (gemini_software_level_ < 5.0)
         {
-            deleteProperty(PECStateSP.name);
+            deleteProperty(PECStateSP);
         }
         if (gemini_software_level_ >= 5.2)
         {
@@ -1003,21 +1003,22 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             return true;
         }
 
-        if (gemini_software_level_ >= 5.0 && !strcmp(name, PECStateSP.name))
+        if (gemini_software_level_ >= 5.0 && PECStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PECStateSP, states, names, n);
+            PECStateSP.update(states, names, n);
             for(int i = 0; i<n; ++i)
             {
-                if (!strcmp(names[i], PECStateS[PEC_ON].name))
+                // if (!strcmp(names[i], PECStateS[PEC_ON].name))
+                if (PECStateSP[PEC_ON].isNameMatch(name))
                 {
-                    if(PECStateS[PEC_ON].s == ISS_ON)
+                    if(PECStateSP[PEC_ON].getState() == ISS_ON)
                     {
                         LOG_INFO("PEC State.s ON.");
                         char valueString[16] = {0};
                         if(!setGeminiProperty(PEC_REPLAY_ON_ID, valueString))
                         {
-                            PECStateSP.s = IPS_ALERT;
-                            IDSetSwitch(&PECStateSP, nullptr);
+                            PECStateSP.setState(IPS_ALERT);
+                            PECStateSP.apply();
                             return false;
                         } else {
                             return true;
@@ -1025,24 +1026,24 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 
                     }
                 }
-                if (!strcmp(names[i], PECStateS[PEC_OFF].name))
+                if (PECStateSP[PEC_OFF].isNameMatch(name))
                 {
-                    if(PECStateS[PEC_OFF].s == ISS_ON)
+                    if(PECStateSP[PEC_OFF].getState() == ISS_ON)
                     {
                         LOG_INFO("PEC State.s ON.");
                         char valueString[16] = {0};
                         if(!setGeminiProperty(PEC_REPLAY_OFF_ID, valueString))
                         {
-                            PECStateSP.s = IPS_ALERT;
-                            IDSetSwitch(&PECStateSP, nullptr);
+                            PECStateSP.setState(IPS_ALERT);
+                            PECStateSP.apply();
                             return false;
                         }
                         return true;
                     }
                 }
             }
-            PECStateSP.s = IPS_OK;
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.setState(IPS_OK);
+            PECStateSP.apply();
             return true;
         }
 
@@ -1596,19 +1597,19 @@ bool LX200Gemini::ReadScopeStatus()
     {
         updateMovementState();
 
-        EqNP.s = IPS_BUSY;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_BUSY);
+        EqNP.apply();
 
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
             // Set slew mode to "Centering"
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.reset();
+            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+            SlewRateSP.apply();
 
-            EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.setState(IPS_OK);
+            EqNP.apply();
 
             if (TrackState == SCOPE_IDLE) {
                 SetTrackEnabled(true);
@@ -1628,8 +1629,8 @@ bool LX200Gemini::ReadScopeStatus()
             SetParked(true);
             sleepMount();
 
-            EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.setState(IPS_IDLE);
+            EqNP.apply();
 
             return true;
         }
@@ -1686,7 +1687,7 @@ void LX200Gemini::syncSideOfPier()
     // see https://www.indilib.org/forum/general/6785-side-of-pier-problem-bug.html?start=12#52492
     // for a description of the problem and the proposed fix
     //
-    auto lst = get_local_sidereal_time(this->LocationN[LOCATION_LONGITUDE].value);
+    auto lst = get_local_sidereal_time(this->LocationNP[LOCATION_LONGITUDE].getValue());
     auto ha = rangeHA(lst - currentRA);
     auto pointingState = PIER_UNKNOWN;
 
@@ -1740,7 +1741,7 @@ bool LX200Gemini::Park()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
 
     updateParkingState();
@@ -2136,29 +2137,31 @@ bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
     fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            AbortSP.apply();
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        LOG_ERROR("Slew aborted.");
+        AbortSP.apply();
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -2169,8 +2172,9 @@ bool LX200Gemini::GotoInternal(double ra, double dec, bool flip)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 
@@ -2261,7 +2265,7 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
 bool LX200Gemini::SetTrackEnabled(bool enabled)
 {
-    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : GEMINI_TRACK_TERRESTRIAL);
+    return SetTrackMode(enabled ? TrackModeSP.findOnSwitchIndex() : GEMINI_TRACK_TERRESTRIAL);
 }
 
 uint8_t LX200Gemini::calculateChecksum(char *cmd)

@@ -101,11 +101,11 @@ bool ScopeSim::initProperties()
     GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                      IPS_IDLE);
 
-    IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+    SlewRateSP[SLEW_GUIDE].fill("SLEW_GUIDE", "Guide", ISS_OFF);
+    SlewRateSP[SLEW_CENTERING].fill("SLEW_CENTERING", "Centering", ISS_OFF);
+    SlewRateSP[SLEW_FIND].fill("SLEW_FIND", "Find", ISS_OFF);
+    SlewRateSP[SLEW_MAX].fill("SLEW_MAX", "Max", ISS_ON);
+    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Add Tracking Modes, the order must match the order of the TelescopeTrackMode enum
@@ -166,8 +166,8 @@ bool ScopeSim::updateProperties()
             {
                 // at this point there is a valid ParkData.xml available
 
-                alignment.latitude = Angle(LocationN[LOCATION_LATITUDE].value);
-                alignment.longitude = Angle(LocationN[LOCATION_LONGITUDE].value);
+                alignment.latitude = Angle(LocationNP[LOCATION_LATITUDE].getValue());
+                alignment.longitude = Angle(LocationNP[LOCATION_LONGITUDE].getValue());
                 currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
                 currentDEC = ParkPositionN[AXIS_DE].value;
                 Sync(currentRA, currentDEC);
@@ -239,7 +239,7 @@ bool ScopeSim::ReadScopeStatus()
             if (!slewing)
             {
                 SetParked(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
                 LOG_INFO("Telescope slew is complete. Parked");
             }
             break;
@@ -250,7 +250,7 @@ bool ScopeSim::ReadScopeStatus()
                 // if the mount was not tracking before the slew should it remain not tracking?
                 TrackState = SCOPE_TRACKING;
                 SetTrackEnabled(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
 
                 if (HomeSP.getState() == IPS_BUSY)
                 {
@@ -337,7 +337,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     LOG_INFO("Sync is successful.");
 
-    EqNP.s = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -462,13 +462,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
 #endif \
     // Slew mode
-        if (strcmp(name, SlewRateSP.name) == 0)
+        if (SlewRateSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
+            if (SlewRateSP.update( states, names, n) == false)
                 return false;
 
-            SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            SlewRateSP.setState(IPS_OK);
+            SlewRateSP.apply();
             return true;
         }
     }
@@ -491,7 +491,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
-    mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
+    mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
     LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S", command == 0 ? "start" : "stop", rate);
@@ -509,7 +509,7 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         return false;
     }
 
-    mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
+    mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
     int rate = (dir == INDI_DIR_WE::DIRECTION_EAST) ? -mcRate : mcRate;
     LOGF_DEBUG("MoveWE dir %d, motion %s, rate %d", dir == DIRECTION_EAST ? "E" : "W", command == 0 ? "start" : "stop", rate);
 
@@ -586,7 +586,7 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
             axisSecondary.TrackRate(Axis::OFF);
             return true;
         case TRACK_CUSTOM:
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
             return true;
     }
     return false;
@@ -682,13 +682,13 @@ IPState ScopeSim::ExecuteHomeAction(TelescopeHomeAction action)
         case HOME_FIND:
             LOG_INFO("Finding home position...");
             m_Home[AXIS_RA] = alignment.lst().Hours();
-            m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+            m_Home[AXIS_DE] = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
             Goto(m_Home[AXIS_RA], m_Home[AXIS_DE]);
             return IPS_BUSY;
 
         case HOME_SET:
-            m_Home[AXIS_RA] = (alignment.lst() - Angle(EqN[AXIS_RA].value, Angle::HOURS)).HoursHa();
-            m_Home[AXIS_DE] = EqN[AXIS_DE].value;
+            m_Home[AXIS_RA] = (alignment.lst() - Angle(EqNP[AXIS_RA].getValue(), Angle::HOURS)).HoursHa();
+            m_Home[AXIS_DE] = EqNP[AXIS_DE].getValue();
             LOG_INFO("Setting home position to current position.");
             return IPS_OK;
 
@@ -698,7 +698,7 @@ IPState ScopeSim::ExecuteHomeAction(TelescopeHomeAction action)
             if (m_Home[AXIS_RA] == 0)
             {
                 m_Home[AXIS_RA] = 0;
-                m_Home[AXIS_DE] = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+                m_Home[AXIS_DE] = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
             }
 
             // Home HA to home RA

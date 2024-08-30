@@ -59,7 +59,7 @@ bool LX200FS2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SlewRateSP);
+        defineProperty(SlewRateSP);
         defineProperty(&SlewAccuracyNP);
         defineProperty(&StopAfterParkSP);
 
@@ -67,7 +67,7 @@ bool LX200FS2::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
 
             if (isParked())
             {
@@ -80,14 +80,14 @@ bool LX200FS2::updateProperties()
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
         }
     }
     else
     {
-        deleteProperty(SlewRateSP.name);
+        deleteProperty(SlewRateSP);
         deleteProperty(SlewAccuracyNP.name);
         deleteProperty(StopAfterParkSP.name);
     }
@@ -210,7 +210,7 @@ void LX200FS2::TrackingStop()
     if (ParkedStatus != PARKED_NOTPARKED) return;
 
     // Remember current slew rate
-    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (SlewRateSP.findOnSwitchIndex());
 
     updateSlewRate(SLEW_CENTERING);
     ParkedStatus = PARKED_NEEDABORT;
@@ -363,7 +363,7 @@ bool LX200FS2::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -390,22 +390,24 @@ bool LX200FS2::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
 
         if (Slew(PortFD))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.apply();
             slewError(1);
             return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -417,16 +419,18 @@ bool LX200FS2::Sync(double ra, double dec)
     {
         if (setObjectRA(PortFD, ra, true) < 0 || setObjectDEC(PortFD, dec, true) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+            EqNP.apply();
             return false;
         }
 
         char syncString[256];
         if (::Sync(PortFD, syncString) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Synchronization failed.");
+            EqNP.apply();
             return false;
         }
 
@@ -435,7 +439,7 @@ bool LX200FS2::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
     LOG_INFO("Synchronization successful.");
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
     NewRaDec(currentRA, currentDEC);
     return true;
 }

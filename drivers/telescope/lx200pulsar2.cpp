@@ -1313,8 +1313,8 @@ bool LX200Pulsar2::Connect()
             LOGF_DEBUG("%s", "The mount was awake on connection.");
             // the following assumes we are tracking, since there is no "idle" state for Pulsar2
             TrackState = SCOPE_TRACKING;
-            ParkS[1].s = ISS_ON; // Unparked
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP[UNPARK].setState(ISS_ON); // Unparked
+            ParkSP.apply();
         }
     }
 
@@ -1358,9 +1358,9 @@ bool LX200Pulsar2::ReadScopeStatus()
                         if (isSlewComplete())
                         {
                             // Set slew mode to "Centering"
-                            IUResetSwitch(&SlewRateSP);
-                            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-                            IDSetSwitch(&SlewRateSP, nullptr);
+                            SlewRateSP.reset();
+                            SlewRateSP[SLEW_CENTERING].setState(ISS_ON);
+                            SlewRateSP.apply();
                             TrackState = SCOPE_TRACKING;
                             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
                         }
@@ -1381,8 +1381,9 @@ bool LX200Pulsar2::ReadScopeStatus()
                     NewRaDec(currentRA, currentDEC);
                 else
                 {
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Error reading RA/DEC.");
+                    EqNP.apply();
                 }
 
                 // check side of pier -- note that this is done only every other polling cycle
@@ -2414,13 +2415,14 @@ bool LX200Pulsar2::SetSlewRate(int index)
         (isSimulation() || Pulsar2Commands::setSlewMode(PortFD, static_cast<Pulsar2Commands::SlewMode>(index)));
     if (success)
     {
-        SlewRateSP.s = IPS_OK;
-        IDSetSwitch(&SlewRateSP, nullptr);
+        SlewRateSP.setState(IPS_OK);
+        SlewRateSP.apply();
     }
     else
     {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew rate");
+        SlewRateSP.setState(IPS_ALERT);
+        LOG_ERROR("Error setting slew rate");
+        SlewRateSP.apply();
     }
     return success;
 }
@@ -2539,15 +2541,15 @@ bool LX200Pulsar2::Abort()
 
 IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2563,18 +2565,19 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
-        MovementNSS[0].s = ISS_ON;
+        MovementNSSP[DIRECTION_NORTH].setState(ISS_ON);
         MoveNS(DIRECTION_NORTH, MOTION_START);
     }
 
     // Set switched slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_ns = LX200_NORTH;
     GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -2582,15 +2585,15 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2604,18 +2607,19 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
-        MovementNSS[1].s = ISS_ON;
+        MovementNSSP[DIRECTION_SOUTH].setState(ISS_ON);
         MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
 
     // Set switch slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_ns = LX200_SOUTH;
     GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -2623,15 +2627,15 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideEast(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2645,18 +2649,19 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
-        MovementWES[1].s = ISS_ON;
+        MovementWESP[DIRECTION_EAST].setState(ISS_ON);
         MoveWE(DIRECTION_EAST, MOTION_START);
     }
 
     // Set switched slew rate to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_we = LX200_EAST;
     GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
@@ -2664,15 +2669,15 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
 
 IPState LX200Pulsar2::GuideWest(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2686,17 +2691,18 @@ IPState LX200Pulsar2::GuideWest(uint32_t ms)
     {
         if (!Pulsar2Commands::setSlewMode(PortFD, Pulsar2Commands::SlewGuide))
         {
-            SlewRateSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            SlewRateSP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting slew mode.");
+            SlewRateSP.apply();
             return IPS_ALERT;
         }
-        MovementWES[0].s = ISS_ON;
+        MovementWESP[DIRECTION_WEST].setState(ISS_ON);
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
     // Set switched slew to "guide"
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
+    SlewRateSP.reset();
+    SlewRateSP[SLEW_GUIDE].setState(ISS_ON);
+    SlewRateSP.apply();
     guide_direction_we = LX200_WEST;
     GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
@@ -2760,29 +2766,31 @@ bool LX200Pulsar2::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC = d, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            AbortSP.apply();
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        LOG_ERROR("Slew aborted.");
+        AbortSP.apply();
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }
@@ -2791,14 +2799,16 @@ bool LX200Pulsar2::Goto(double r, double d)
     {
         if (!Pulsar2Commands::setObjectRADec(PortFD, targetRA, targetDEC))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            LOG_ERROR("Error setting RA/DEC.");
+            EqNP.apply();
             return false;
         }
         if (!Pulsar2Commands::startSlew(PortFD))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.apply();
             slewError(3);
             return false;
         }
@@ -2819,55 +2829,60 @@ bool LX200Pulsar2::Park()
     {
         if (!Pulsar2Commands::isHomeSet(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "No parking position defined.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("No parking position defined.");
+            ParkSP.apply();
             return false;
         }
         if (Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Scope has already been parked.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Scope has already been parked.");
+            ParkSP.apply();
             return false;
         }
     }
 
     // If scope is moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            LOG_ERROR("Abort slew failed.");
+            AbortSP.apply();
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        LOG_ERROR("Slew aborted.");
+        AbortSP.apply();
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
 
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Parking Failed.");
+        ParkSP.setState(IPS_ALERT);
+        LOG_ERROR("Parking Failed.");
+        ParkSP.apply();
         return false;
     }
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
@@ -2886,8 +2901,9 @@ bool LX200Pulsar2::Sync(double ra, double dec)
             nanosleep(&timeout, nullptr); // This seems to be necessary (why?)
             if (!success)
             {
-                EqNP.s = IPS_ALERT;
-                IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+                EqNP.setState(IPS_ALERT);
+                LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
+                EqNP.apply();
             }
             else
             {
@@ -2903,15 +2919,15 @@ bool LX200Pulsar2::Sync(double ra, double dec)
                     LOGF_DEBUG("Sync RAresponse: %s, DECresponse: %s", RAresponse, DECresponse);
                     currentRA  = ra;
                     currentDEC = dec;
-                    EqNP.s     = IPS_OK;
+                    EqNP.setState(IPS_OK);
                     NewRaDec(currentRA, currentDEC);
                     LOG_INFO("Synchronization successful.");
                 }
                 else
                 {
-                    EqNP.s = IPS_ALERT;
-                    IDSetNumber(&EqNP, "Synchronization failed.");
-                    LOG_INFO("Synchronization failed.");
+                    EqNP.setState(IPS_ALERT);
+                    LOG_ERROR("Synchronization failed.");
+                    EqNP.apply();
                 }
             }
         }
@@ -2932,20 +2948,22 @@ bool LX200Pulsar2::UnPark()
     {
         if (!Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Mount is not parked.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Mount is not parked.");
+            ParkSP.apply();
             LOG_INFO("Mount is not parked, so cannot unpark.");
             return false; // early exit
         }
         if (!Pulsar2Commands::unpark(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Unparking failed.");
+            ParkSP.setState(IPS_ALERT);
+            LOG_ERROR("Unparking failed.");
+            ParkSP.apply();
             LOG_INFO("Unparking failed.");
             return false; // early exit
         }
     }
-    ParkSP.s   = IPS_OK;
+    ParkSP.setState(IPS_OK);
     TrackState = SCOPE_IDLE;
     SetParked(false);
     IDMessage(getDeviceName(), "Telescope has been unparked.");
@@ -2954,7 +2972,7 @@ bool LX200Pulsar2::UnPark()
     // "idle" state for Pulsar2
     LOG_INFO("Telescope has been unparked.");
     TrackState = SCOPE_TRACKING;
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 
     return true;
 }
@@ -3347,26 +3365,26 @@ void LX200Pulsar2::getBasicData()
 
 bool LX200Pulsar2::storeScopeLocation()
 {
-    LocationNP.s = IPS_OK;
+    LocationNP.setState(IPS_OK);
     double lat = 29.5; // simulation default
     double lon = 48.0; // simulation default
 
     if (isSimulation() || Pulsar2Commands::getSiteLatitudeLongitude(PortFD, &lat, &lon))
     {
-        LocationNP.np[0].value = lat;
+        LocationNP[LOCATION_LATITUDE].setValue(lat);
         double stdLon = (lon < 0 ? 360.0 + lon : lon);
-        LocationNP.np[1].value = stdLon;
+        LocationNP[LOCATION_LONGITUDE].setValue(stdLon);
 
-        LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
-                   LocationN[LOCATION_LONGITUDE].value);
+        LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationNP[LOCATION_LATITUDE].getValue(),
+                   LocationNP[LOCATION_LONGITUDE].getValue());
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
         saveConfig(true, "GEOGRAPHIC_COORD");
         if (LX200Pulsar2::verboseLogging) LOGF_INFO("Controller location read and stored; lat: %+f, lon: %+f", lat, stdLon);
     }
     else
     {
-        LocationNP.s = IPS_ALERT;
+        LocationNP.setState(IPS_ALERT);
         IDMessage(getDeviceName(), "Failed to get site lat/lon from Pulsar controller.");
         return false;
     }
@@ -3436,17 +3454,17 @@ bool LX200Pulsar2::sendScopeTime()
     char cdate[32];
     strftime(cdate, sizeof(cdate), "%Y-%m-%dT%H:%M:%S", &utm);
 
-    IUSaveText(&TimeT[0], cdate);
-    IUSaveText(&TimeT[1], "0"); // Pulsar maintains time in UTC only
+    TimeTP[UTC].setText(cdate);
+    TimeTP[OFFSET].setText("0"); // Pulsar maintains time in UTC only
     if (isDebug())
     {
         IDLog("Telescope Local Time: %02d:%02d:%02d\n", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
-        IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
-        IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
+        IDLog("Telescope TimeT Offset: %s\n", TimeTP[OFFSET].getText());
+        IDLog("Telescope UTC Time: %s\n", TimeTP[UTC].getText());
     }
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
 
     return true;
 }

@@ -112,14 +112,15 @@ bool Paramount::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (int i = 0; i < SlewRateSP.nsp - 1; i++)
+    for (size_t i = 0; i < SlewRateSP.count() - 1; i++)
     {
-        sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
-        SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
+        SlewRateSP[i].setLabel(std::to_string(slewspeeds[i]) + "x");
+
+        SlewRateSP[i].setAux((void *)&slewspeeds[i]);
     }
 
     // Set 64x as default speed
-    SlewRateSP.sp[5].s = ISS_ON;
+    SlewRateSP[5].setState(ISS_ON);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&JogRateN[RA_AXIS], "JOG_RATE_WE", "W/E Rate (arcmin)", "%g", 0, 600, 60, 30);
@@ -154,8 +155,8 @@ bool Paramount::initProperties()
 
     addAuxControls();
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
     return true;
 }
 
@@ -546,7 +547,7 @@ bool Paramount::Sync(double ra, double dec)
 
     LOG_INFO("Sync is successful.");
 
-    EqNP.s = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -556,7 +557,7 @@ bool Paramount::Sync(double ra, double dec)
 bool Paramount::Park()
 {
     double targetHA = GetAxis1Park();
-    targetRA  = range24(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - targetHA);
+    targetRA  = range24(get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue()) - targetHA);
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
@@ -650,7 +651,7 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     int motion = (dir == DIRECTION_NORTH) ? PARAMOUNT_NORTH : PARAMOUNT_SOUTH;
     //int rate   = IUFindOnSwitchIndex(&SlewRateSP);
-    int rate = slewspeeds[IUFindOnSwitchIndex(&SlewRateSP)];
+    int rate = slewspeeds[SlewRateSP.findOnSwitchIndex()];
 
     switch (command)
     {
@@ -688,7 +689,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
 
     int motion = (dir == DIRECTION_WEST) ? PARAMOUNT_WEST : PARAMOUNT_EAST;
-    int rate   = IUFindOnSwitchIndex(&SlewRateSP);
+    int rate   = SlewRateSP.findOnSwitchIndex();
 
     switch (command)
     {
@@ -748,7 +749,7 @@ bool Paramount::SetCurrentPark()
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
         return false;
 
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
     double ha  = get_local_hour_angle(lst, currentRA);
 
     SetAxis1Park(ha);
@@ -763,7 +764,7 @@ bool Paramount::SetDefaultPark()
     SetAxis1Park(0);
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    SetAxis2Park((LocationNP[LOCATION_LATITUDE].getValue() > 0) ? 90 : -90);
 
     return true;
 }
@@ -815,9 +816,9 @@ void Paramount::mountSim()
 
     double motionRate = 0;
 
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
         motionRate = JogRateN[0].value;
-    else if (MovementWESP.s == IPS_BUSY)
+    else if (MovementWESP.getState() == IPS_BUSY)
         motionRate = JogRateN[1].value;
 
     if (motionRate != 0)
@@ -825,12 +826,12 @@ void Paramount::mountSim()
         da_ra  = motionRate * dt * 0.05;
         da_dec = motionRate * dt * 0.05;
 
-        switch (MovementNSSP.s)
+        switch (MovementNSSP.getState())
         {
             case IPS_BUSY:
-                if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
+            if (MovementNSSP[DIRECTION_NORTH].getState() == ISS_ON)
                     currentDEC += da_dec;
-                else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
+            else if (MovementNSSP[DIRECTION_SOUTH].getState() == ISS_ON)
                     currentDEC -= da_dec;
                 break;
 
@@ -838,12 +839,12 @@ void Paramount::mountSim()
                 break;
         }
 
-        switch (MovementWESP.s)
+            switch (MovementWESP.getState())
         {
             case IPS_BUSY:
-                if (MovementWES[DIRECTION_WEST].s == ISS_ON)
+                if (MovementWESP[DIRECTION_WEST].getState() == ISS_ON)
                     currentRA += da_ra / 15.;
-                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                else if (MovementWESP[DIRECTION_EAST].getState() == ISS_ON)
                     currentRA -= da_ra / 15.;
                 break;
 
@@ -1053,8 +1054,8 @@ bool Paramount::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[RA_AXIS].value;
-        dDE = TrackRateN[DEC_AXIS].value;
+        dRA = TrackRateNP[RA_AXIS].getValue();
+        dDE = TrackRateNP[DEC_AXIS].getValue();
     }
     return setTheSkyTracking(true, isSidereal, dRA, dDE);
 }

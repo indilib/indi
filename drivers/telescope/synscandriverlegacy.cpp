@@ -73,18 +73,18 @@ bool SynscanLegacyDriver::initProperties()
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "32x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "400x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "600x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("1x");
+    SlewRateSP[1].setLabel("8x");
+    SlewRateSP[2].setLabel("16x");
+    SlewRateSP[3].setLabel("32x");
+    SlewRateSP[4].setLabel("64x");
+    SlewRateSP[5].setLabel("128x");
+    SlewRateSP[6].setLabel("400x");
+    SlewRateSP[7].setLabel("600x");
+    SlewRateSP[8].setLabel("MAX");
+    SlewRateSP.reset();
     // Max is the default
-    SlewRateS[8].s = ISS_ON;
+    SlewRateSP[8].setState(ISS_ON);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Mount Info Text Property
@@ -1058,10 +1058,10 @@ bool SynscanLegacyDriver::ReadTime()
         char timeString[MAXINDINAME] = {0};
         time_t now = time (nullptr);
         strftime(timeString, MAXINDINAME, "%T", gmtime(&now));
-        IUSaveText(&TimeT[0], "3");
-        IUSaveText(&TimeT[1], timeString);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText("3");
+        TimeTP[OFFSET].setText(timeString);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
 
@@ -1111,10 +1111,10 @@ bool SynscanLegacyDriver::ReadTime()
             offset = offset + 1;
         sprintf(ofs, "%d", offset);
 
-        IUSaveText(&TimeT[0], utc);
-        IUSaveText(&TimeT[1], ofs);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[UTC].setText(utc);
+        TimeTP[OFFSET].setText(ofs);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply(nullptr);
 
         LOGF_INFO("Mount UTC Time %s Offset %d", utc, offset);
 
@@ -1129,9 +1129,9 @@ bool SynscanLegacyDriver::ReadLocation()
 
     if (isSimulation())
     {
-        LocationN[LOCATION_LATITUDE].value  = 29.5;
-        LocationN[LOCATION_LONGITUDE].value = 48;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48);
+        LocationNP.apply();
         ReadLatLong = false;
         return true;
     }
@@ -1196,9 +1196,9 @@ bool SynscanLegacyDriver::ReadLocation()
                 lat = lat * -1;
             if (h == 1)
                 lon = 360 - lon;
-            LocationN[LOCATION_LATITUDE].value  = lat;
-            LocationN[LOCATION_LONGITUDE].value = lon;
-            IDSetNumber(&LocationNP, nullptr);
+            LocationNP[LOCATION_LATITUDE].setValue(lat);
+            LocationNP[LOCATION_LONGITUDE].setValue(lon);
+            LocationNP.apply();
 
             saveConfig(true, "GEOGRAPHIC_COORD");
 
@@ -1527,14 +1527,14 @@ void SynscanLegacyDriver::MountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
+    double currentSlewRate = SLEW_RATE[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act accordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+        CurrentRA += (TrackRateNP[AXIS_RA].getValue() / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 

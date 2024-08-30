@@ -98,12 +98,13 @@ bool SkywatcherAPIMount::initProperties()
     // Allow the base class to initialise its visible before connection properties
     INDI::Telescope::initProperties();
 
-    for (int i = 0; i < SlewRateSP.nsp; ++i)
+    for (size_t i = 0; i < SlewRateSP.count(); ++i)
     {
-        sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP.sp[i].aux = &SlewSpeeds[i];
+        // sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
+        SlewRateSP[i].setLabel(std::to_string(SlewSpeeds[i]) + "x");
+        SlewRateSP[i].setAux(&SlewSpeeds[i]);
     }
-    strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
+    SlewRateSP[SlewRateSP.count() - 1].setName("SLEW_MAX");
 
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -421,15 +422,10 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
 
             for (int x = 0; x < n; x++)
             {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
+                if (EqNP[AXIS_RA].isNameMatch(names[x]))
                     ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
+                else if (EqNP[AXIS_DE].isNameMatch(names[x]))
                     dec = values[x];
-                }
             }
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
@@ -659,7 +655,7 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 double SkywatcherAPIMount::GetSlewRate()
 {
-    ISwitch *Switch = IUFindOnSwitch(&SlewRateSP);
+    ISwitch *Switch = SlewRateSP.findOnSwitch();
     return *(static_cast<double *>(Switch->aux));
 }
 
@@ -762,8 +758,8 @@ bool SkywatcherAPIMount::SetTrackEnabled(bool enabled)
     {
         TrackState = SCOPE_TRACKING;
         resetTracking();
-        m_SkyTrackingTarget.rightascension = EqN[AXIS_RA].value;
-        m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
+        m_SkyTrackingTarget.rightascension = EqNP[AXIS_RA].getValue();
+        m_SkyTrackingTarget.declination = EqNP[AXIS_DE].getValue();
     }
     else
     {
@@ -1088,8 +1084,8 @@ void SkywatcherAPIMount::TimerHit()
             {
                 m_ManualMotionActive = false;
                 resetTracking();
-                m_SkyTrackingTarget.rightascension = EqN[AXIS_RA].value;
-                m_SkyTrackingTarget.declination = EqN[AXIS_DE].value;
+                m_SkyTrackingTarget.rightascension = EqNP[AXIS_RA].getValue();
+                m_SkyTrackingTarget.declination = EqNP[AXIS_DE].getValue();
             }
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
@@ -1644,7 +1640,7 @@ bool SkywatcherAPIMount::trackUsingPID()
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
     // FIXME: This was not tested.
-    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
         // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
         // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
@@ -1652,7 +1648,7 @@ bool SkywatcherAPIMount::trackUsingPID()
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
         m_TrackingRateTimer.restart();
     }
-    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
         double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
@@ -1841,7 +1837,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
 
     // We modify the SkyTrackingTarget for non-sidereal objects (Moon or Sun)
     // FIXME: This was not tested.
-    if (TrackModeS[TRACK_LUNAR].s == ISS_ON)
+    if (TrackModeSP[TRACK_LUNAR].getState() == ISS_ON)
     {
         // TRACKRATE_LUNAR how many arcsecs the Moon moved in one second.
         // TRACKRATE_SIDEREAL how many arcsecs the Sky moved in one second.
@@ -1849,7 +1845,7 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;
         m_TrackingRateTimer.restart();
     }
-    else if (TrackModeS[TRACK_SOLAR].s == ISS_ON)
+    else if (TrackModeSP[TRACK_SOLAR].getState() == ISS_ON)
     {
         double dRA = (TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) * m_TrackingRateTimer.elapsed() / 1000.0;
         m_SkyTrackingTarget.rightascension += (dRA / 3600.0) * 15.0;

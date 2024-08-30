@@ -89,24 +89,26 @@ bool IEQPro::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Slew Rates
-    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
-    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
-    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
-    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
-    IUResetSwitch(&SlewRateSP);
+    SlewRateSP[0].setLabel("1x");
+    SlewRateSP[1].setLabel("2x");
+    SlewRateSP[2].setLabel("8x");
+
+    SlewRateSP[3].setLabel("16x");
+    SlewRateSP[4].setLabel("64x");
+    SlewRateSP[5].setLabel("128x");
+    SlewRateSP[6].setLabel("256x");
+    SlewRateSP[7].setLabel("512x");
+    SlewRateSP[8].setLabel("MAX");
+
+    SlewRateSP.reset();
     // 64x is the default
-    SlewRateS[4].s = ISS_ON;
+    SlewRateSP[4].setState(ISS_ON);
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-    TrackRateN[AXIS_DE].min = -0.01;
-    TrackRateN[AXIS_DE].max = 0.01;
+    TrackRateNP[AXIS_RA].setMin(TRACKRATE_SIDEREAL - 0.01);
+    TrackRateNP[AXIS_RA].setMax(TRACKRATE_SIDEREAL + 0.01);
+    TrackRateNP[AXIS_DE].setMin(-0.01);
+    TrackRateNP[AXIS_DE].setMax(0.01);
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -150,8 +152,8 @@ bool IEQPro::initProperties()
     if (strstr(getDeviceName(), "CEM40") || strstr(getDeviceName(), "GEM45"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    currentRA  = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+    currentDEC = LocationNP[LOCATION_LATITUDE].getValue() > 0 ? 90 : -90;
     return true;
 }
 
@@ -225,13 +227,13 @@ void IEQPro::getStartupData()
         snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
         snprintf(utcOffset, 8, "%4.2f", utc_offset);
 
-        IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
-        IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
+        TimeTP[UTC].setText(isoDateTime);
+        TimeTP[OFFSET].setText(utcOffset);
 
         LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
     }
 
     // Get Longitude and Latitude from mount
@@ -247,37 +249,37 @@ void IEQPro::getStartupData()
 
         LOGF_INFO("Mount Longitude %g Latitude %g", longitude, latitude);
 
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         saveConfig(true, "GEOGRAPHIC_COORD");
     }
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].getValue());
     }
 
     // can we read pier side?
@@ -371,7 +373,7 @@ bool IEQPro::ReadScopeStatus()
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 // If we cannot park natively and we already parked
                 // scope, we do not want its state to change to IDLE
                 // For scopes that can park natively, ST_PARKED would be
@@ -380,13 +382,13 @@ bool IEQPro::ReadScopeStatus()
                     TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_PARKED;
                 if (!isParked())
                     SetParked(true);
                 break;
             case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
+                TrackModeSP.setState(IPS_IDLE);
                 TrackState    = SCOPE_IDLE;
                 break;
             case ST_SLEWING:
@@ -403,7 +405,7 @@ bool IEQPro::ReadScopeStatus()
                     if (slewDirty)
                     {
                         LOG_INFO("Manual parking complete. Shut the mount down.");
-                        TrackModeSP.s = IPS_IDLE;
+                        TrackModeSP.setState(IPS_IDLE);
                         TrackState    = SCOPE_PARKED;
                         SetTrackEnabled(false);
                         SetParked(true);
@@ -412,7 +414,7 @@ bool IEQPro::ReadScopeStatus()
                 }
                 else
                 {
-                    TrackModeSP.s = IPS_BUSY;
+                    TrackModeSP.setState(IPS_BUSY);
                     TrackState    = SCOPE_TRACKING;
                     if (scopeInfo.systemStatus == ST_SLEWING)
                         LOG_INFO("Slew complete, tracking...");
@@ -422,9 +424,9 @@ bool IEQPro::ReadScopeStatus()
                 break;
         }
 
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[newInfo.trackRate].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, nullptr);
+        TrackModeSP.reset();
+        TrackModeSP[newInfo.trackRate].setState(ISS_ON);
+        TrackModeSP.apply();
 
         scopeInfo = newInfo;
     }
@@ -519,7 +521,7 @@ bool IEQPro::Sync(double ra, double dec)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = dec;
@@ -933,7 +935,7 @@ bool IEQPro::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].getValue());
 
     return true;
 }
@@ -973,9 +975,9 @@ bool IEQPro::SetTrackEnabled(bool enabled)
     {
         // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
-        SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        SetTrackMode(TrackModeSP.findOnSwitchIndex());
+        if (TrackModeSP[TR_CUSTOM].getState() == ISS_ON)
+            SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);
