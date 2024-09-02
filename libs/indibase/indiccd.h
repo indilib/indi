@@ -751,9 +751,12 @@ class CCD : public DefaultDevice, GuiderInterface
         };
 
         // WCS
-        ISwitch WorldCoordS[2];
-        ISwitchVectorProperty WorldCoordSP;
-
+        INDI::PropertySwitch WorldCoordSP{2};
+        enum
+        {
+            WCS_ENABLE,
+            WCS_DISABLE
+        };
         // WCS CCD Rotation
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;

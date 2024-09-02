@@ -344,9 +344,9 @@ bool CCD::initProperties()
     /**********************************************/
 
     // WCS Enable/Disable
-    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW,
+    WorldCoordSP[WCS_ENABLE].fill("WCS_ENABLE", "Enable", ISS_OFF);
+    WorldCoordSP[WCS_DISABLE].fill("WCS_DISABLE", "Disable", ISS_ON);
+    WorldCoordSP.fill(getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CCDRotationN[0], "CCD_ROTATION_VALUE", "Rotation", "%g", -360, 360, 1, 0);
@@ -610,7 +610,7 @@ bool CCD::updateProperties()
 #endif
         defineProperty(ScopeInfoNP);
 
-        defineProperty(&WorldCoordSP);
+        defineProperty(WorldCoordSP);
         defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
@@ -693,11 +693,11 @@ bool CCD::updateProperties()
             deleteProperty(BayerTP);
         deleteProperty(ScopeInfoNP);
 
-        if (WorldCoordS[0].s == ISS_ON)
+        if (WorldCoordSP[WCS_ENABLE].getState() == ISS_ON)
         {
             deleteProperty(CCDRotationNP.name);
         }
-        deleteProperty(WorldCoordSP.name);
+        deleteProperty(WorldCoordSP);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
 
@@ -1553,12 +1553,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 #endif
 
         // WCS Enable/Disable
-        if (!strcmp(name, WorldCoordSP.name))
+        if (WorldCoordSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&WorldCoordSP, states, names, n);
-            WorldCoordSP.s = IPS_OK;
+            WorldCoordSP.update(states, names, n);
+            WorldCoordSP.setState(IPS_OK);
 
-            if (WorldCoordS[0].s == ISS_ON)
+            if (WorldCoordSP[0].getState() == ISS_ON)
             {
                 LOG_INFO("World Coordinate System is enabled.");
                 defineProperty(&CCDRotationNP);
@@ -1570,7 +1570,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             }
 
             m_ValidCCDRotation = false;
-            IDSetSwitch(&WorldCoordSP, nullptr);
+            WorldCoordSP.apply();
         }
 
         // Primary Chip Frame Reset
@@ -2174,7 +2174,7 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
         fitsKeywords.push_back({"EQUINOX", 2000, "Equinox"});
 
         // Add WCS Info
-        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && !std::isnan(effectiveFocalLength))
+        if (WorldCoordSP[WCS_ENABLE].getState() == ISS_ON && m_ValidCCDRotation && !std::isnan(effectiveFocalLength))
         {
             double J2000RAHours = J2000RA * 15;
             fitsKeywords.push_back({"CRVAL1", J2000RAHours, 10, "CRVAL1"});
