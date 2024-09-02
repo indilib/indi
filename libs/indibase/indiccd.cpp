@@ -227,10 +227,10 @@ bool CCD::initProperties()
                      IP_RO, 60, IPS_IDLE);
 
     // Bayer
-    IUFillText(&BayerT[0], "CFA_OFFSET_X", "X Offset", "0");
-    IUFillText(&BayerT[1], "CFA_OFFSET_Y", "Y Offset", "0");
-    IUFillText(&BayerT[2], "CFA_TYPE", "Filter", nullptr);
-    IUFillTextVector(&BayerTP, BayerT, 3, getDeviceName(), "CCD_CFA", "Bayer Info", IMAGE_INFO_TAB, IP_RW, 60,
+    BayerTP[CFA_OFFSET_X].fill("CFA_OFFSET_X", "X Offset", "0");
+    BayerTP[CFA_OFFSET_Y].fill("CFA_OFFSET_Y", "Y Offset", "0");
+    BayerTP[CFA_TYPE].fill("CFA_TYPE", "Filter", nullptr);
+    BayerTP.fill(getDeviceName(), "CCD_CFA", "Bayer Info", IMAGE_INFO_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     // Reset Frame Settings
@@ -589,7 +589,7 @@ bool CCD::updateProperties()
             defineProperty(&GuideCCD.FrameTypeSP);
 
         if (HasBayer())
-            defineProperty(&BayerTP);
+            defineProperty(BayerTP);
 
 #if 0
         defineProperty(&PrimaryCCD.RapidGuideSP);
@@ -690,7 +690,7 @@ bool CCD::updateProperties()
         }
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
         if (HasBayer())
-            deleteProperty(BayerTP.name);
+            deleteProperty(BayerTP);
         deleteProperty(ScopeInfoNP);
 
         if (WorldCoordS[0].s == ISS_ON)
@@ -968,11 +968,11 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             return true;
         }
 
-        if (!strcmp(name, BayerTP.name))
+        if (BayerTP.isNameMatch(name))
         {
-            IUUpdateText(&BayerTP, texts, names, n);
-            BayerTP.s = IPS_OK;
-            IDSetText(&BayerTP, nullptr);
+            BayerTP.update(texts, names, n);
+            BayerTP.setState(IPS_OK);
+            BayerTP.apply();
             return true;
         }
 
@@ -2043,9 +2043,9 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
 
     if (HasBayer() && targetChip->getNAxis() == 2)
     {
-        fitsKeywords.push_back({"XBAYROFF", atoi(BayerT[0].text), "X offset of Bayer array"});
-        fitsKeywords.push_back({"YBAYROFF", atoi(BayerT[1].text), "Y offset of Bayer array"});
-        fitsKeywords.push_back({"BAYERPAT", BayerT[2].text, "Bayer color pattern"});
+        fitsKeywords.push_back({"XBAYROFF", atoi(BayerTP[CFA_OFFSET_X].getText()), "X offset of Bayer array"});
+        fitsKeywords.push_back({"YBAYROFF", atoi(BayerTP[CFA_OFFSET_Y].getText()), "Y offset of Bayer array"});
+        fitsKeywords.push_back({"BAYERPAT", BayerTP[CFA_TYPE].getText(), "Bayer color pattern"});
     }
 
     if (!std::isnan(effectiveFocalLength))
@@ -2476,7 +2476,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 }
 
                 if (HasBayer())
-                    image.setColorFilterArray({2, 2, BayerT[2].text});
+                    image.setColorFilterArray({2, 2, BayerTP[2].getText()});
 
                 if (targetChip->getNAxis() == 3)
                 {
@@ -2813,7 +2813,7 @@ bool CCD::saveConfigItems(FILE * fp)
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageBinNP);
 
     if (HasBayer())
-        IUSaveConfigText(fp, &BayerTP);
+        BayerTP.save(fp);
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);

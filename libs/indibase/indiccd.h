@@ -686,9 +686,13 @@ class CCD : public DefaultDevice, GuiderInterface
         /**
          *@brief BayerTP Bayer pattern offset and type
          */
-        ITextVectorProperty BayerTP;
-        IText BayerT[3] {};
-
+        INDI::PropertyText BayerTP {3};
+        enum
+        {
+            CFA_OFFSET_X,
+            CFA_OFFSET_Y,
+            CFA_TYPE
+        };
         /**
          *@brief FileNameTP File name of locally-saved images. By default, images are uploaded to the client
          * but when upload option is set to either @a Both or @a Local, then they are saved on the local disk with

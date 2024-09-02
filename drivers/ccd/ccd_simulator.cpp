@@ -253,9 +253,9 @@ void CCDSim::setBayerEnabled(bool onOff)
     if (onOff)
     {
         SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-        IUSaveText(&BayerT[0], "0");
-        IUSaveText(&BayerT[1], "0");
-        IUSaveText(&BayerT[2], "RGGB");
+        BayerTP[CFA_OFFSET_X].setText("0");
+        BayerTP[CFA_OFFSET_Y].setText("0");
+        BayerTP[CFA_TYPE].setText("RGGB");
     }
     else
     {
@@ -1601,9 +1601,9 @@ bool CCDSim::loadNextImage()
     if (channels == 1 && strlen(bayer_pattern)  == 4)
     {
         SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-        IUSaveText(&BayerT[0], "0");
-        IUSaveText(&BayerT[1], "0");
-        IUSaveText(&BayerT[2], bayer_pattern);
+        BayerTP[CFA_OFFSET_X].setText("0");
+        BayerTP[CFA_OFFSET_Y].setText("0");
+        BayerTP[CFA_TYPE].setText(bayer_pattern);
     }
     else
     {

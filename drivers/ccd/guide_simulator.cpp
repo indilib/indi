@@ -203,9 +203,9 @@ void GuideSim::setRGB(bool onOff)
     if (onOff)
     {
         SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-        IUSaveText(&BayerT[0], "0");
-        IUSaveText(&BayerT[1], "0");
-        IUSaveText(&BayerT[2], "RGGB");
+        BayerTP[CFA_OFFSET_X].setText("0");
+        BayerTP[CFA_OFFSET_Y].setText("0");
+        BayerTP[CFA_TYPE].setText("RGGB");
     }
     else
     {
