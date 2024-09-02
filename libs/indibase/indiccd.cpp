@@ -155,8 +155,8 @@ bool CCD::initProperties()
     DefaultDevice::initProperties();
 
     // CCD Temperature
-    IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "CCD_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Camera temperature ramp
@@ -558,7 +558,7 @@ bool CCD::updateProperties()
 
         if (HasCooler())
         {
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
             defineProperty(TemperatureRampNP);
         }
 
@@ -681,7 +681,7 @@ bool CCD::updateProperties()
         }
         if (HasCooler())
         {
-            deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureNP);
             deleteProperty(TemperatureRampNP.getName());
         }
         if (HasST4Port())
@@ -1333,14 +1333,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 
         // CCD TEMPERATURE
-        if (!strcmp(name, TemperatureNP.name))
+        if (TemperatureNP.isNameMatch(name))
         {
-            if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
+            if (values[0] < TemperatureNP[0].getMin() || values[0] > TemperatureNP[0].getMax())
             {
-                TemperatureNP.s = IPS_ALERT;
+                TemperatureNP.setState(IPS_ALERT);
                 LOGF_ERROR("Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
-                           TemperatureN[0].min, TemperatureN[0].max);
-                IDSetNumber(&TemperatureNP, nullptr);
+                           TemperatureNP[0].getMin(), TemperatureNP[0].getMax());
+                TemperatureNP.apply();
                 return false;
             }
 
@@ -1348,14 +1348,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             // If temperature ramp is enabled, find
             if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
             {
-                if (values[0] < TemperatureN[0].value)
+                if (values[0] < TemperatureNP[0].getValue())
                 {
-                    nextTemperature = std::max(values[0], TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
+                    nextTemperature = std::max(values[0], TemperatureNP[0].getValue() - TemperatureRampNP[RAMP_SLOPE].getValue());
                 }
                 // Going up
                 else
                 {
-                    nextTemperature = std::min(values[0], TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
+                    nextTemperature = std::min(values[0], TemperatureNP[0].getValue() + TemperatureRampNP[RAMP_SLOPE].getValue());
                 }
             }
 
@@ -1368,14 +1368,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
                 m_TargetTemperature = values[0];
                 m_TemperatureCheckTimer.start();
-                TemperatureNP.s = IPS_BUSY;
+                TemperatureNP.setState(IPS_BUSY);
             }
             else if (rc == 1)
-                TemperatureNP.s = IPS_OK;
+                TemperatureNP.setState(IPS_OK);
             else
-                TemperatureNP.s = IPS_ALERT;
+                TemperatureNP.setState(IPS_ALERT);
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
             return true;
         }
 
@@ -1992,8 +1992,8 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
         fitsKeywords.push_back({"DARKTIME", exposureDuration, 6, "Total Dark Exposure Time (s)"});
 
     // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
-    if (HasCooler() || TemperatureNP.p == IP_RO)
-        fitsKeywords.push_back({"CCD-TEMP", TemperatureN[0].value, 3, "CCD Temperature (Celsius)"});
+    if (HasCooler() || TemperatureNP.getPermission() == IP_RO)
+        fitsKeywords.push_back({"CCD-TEMP", TemperatureNP[0].getValue(), 3, "CCD Temperature (Celsius)"});
 
     fitsKeywords.push_back({"PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)"});
     fitsKeywords.push_back({"PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)"});
@@ -3024,27 +3024,27 @@ void CCD::wsThreadEntry()
 /////////////////////////////////////////////////////////////////////////////////////////
 void CCD::checkTemperatureTarget()
 {
-    if (TemperatureNP.s == IPS_BUSY)
+    if (TemperatureNP.getState() == IPS_BUSY)
     {
-        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
+        if (std::abs(m_TargetTemperature - TemperatureNP[0].getValue()) <= TemperatureRampNP[RAMP_THRESHOLD].getValue())
         {
-            TemperatureNP.s = IPS_OK;
+            TemperatureNP.setState(IPS_OK);
             m_TemperatureCheckTimer.stop();
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
         }
         // If we are beyond a minute, check for next step
         else if (TemperatureRampNP[RAMP_SLOPE].getValue() > 0 && m_TemperatureElapsedTimer.elapsed() >= 60000)
         {
             double nextTemperature = 0;
             // Going down
-            if (m_TargetTemperature < TemperatureN[0].value)
+            if (m_TargetTemperature < TemperatureNP[0].getValue())
             {
-                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
+                nextTemperature = std::max(m_TargetTemperature, TemperatureNP[0].getValue() - TemperatureRampNP[RAMP_SLOPE].getValue());
             }
             // Going up
             else
             {
-                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
+                nextTemperature = std::min(m_TargetTemperature, TemperatureNP[0].getValue() + TemperatureRampNP[RAMP_SLOPE].getValue());
             }
 
             m_TemperatureElapsedTimer.restart();

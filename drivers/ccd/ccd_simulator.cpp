@@ -321,9 +321,9 @@ bool CCDSim::updateProperties()
 int CCDSim::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
     {
-        TemperatureN[0].value = temperature;
+        TemperatureNP[0].setValue(temperature);
         return 1;
     }
 
@@ -492,21 +492,21 @@ void CCDSim::TimerHit()
         }
     }
 
-    if (TemperatureNP.s == IPS_BUSY)
+    if (TemperatureNP.getState() == IPS_BUSY)
     {
-        if (TemperatureRequest < TemperatureN[0].value)
-            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
+        if (TemperatureRequest < TemperatureNP[0].getValue())
+            TemperatureNP[0].setValue(std::max(TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
         else
-            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
+            TemperatureNP[0].setValue(std::min(TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
 
-        if (std::abs(TemperatureN[0].value - m_LastTemperature) > 0.1)
+        if (std::abs(TemperatureNP[0].getValue() - m_LastTemperature) > 0.1)
         {
-            m_LastTemperature = TemperatureN[0].value;
-            IDSetNumber(&TemperatureNP, nullptr);
+            m_LastTemperature = TemperatureNP[0].getValue();
+            TemperatureNP.apply();
         }
 
         // Above 20, cooler is off
-        if (TemperatureN[0].value >= 20)
+        if (TemperatureNP[0].getValue() >= 20)
         {
             CoolerSP[INDI_ENABLED].setState(ISS_OFF);
             CoolerSP[INDI_DISABLED].setState(ISS_ON);
@@ -1183,7 +1183,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             {
                 CoolerSP.setState(IPS_IDLE);
                 m_TargetTemperature = 20;
-                TemperatureNP.s     = IPS_BUSY;
+                TemperatureNP.setState(IPS_BUSY);
                 m_TemperatureCheckTimer.start();
                 m_TemperatureElapsedTimer.start();
             }

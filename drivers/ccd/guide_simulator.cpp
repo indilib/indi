@@ -54,8 +54,8 @@ bool GuideSim::SetupParms()
 
     if (HasCooler())
     {
-        TemperatureN[0].value = 20;
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP[0].setValue(20);
+        TemperatureNP.apply();
     }
 
     //  Kwiq
@@ -256,9 +256,9 @@ bool GuideSim::updateProperties()
 int GuideSim::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
     {
-        TemperatureN[0].value = temperature;
+        TemperatureNP[0].setValue(temperature);
         return 1;
     }
 
@@ -358,18 +358,18 @@ void GuideSim::TimerHit()
         }
     }
 
-    if (TemperatureNP.s == IPS_BUSY)
+    if (TemperatureNP.getState() == IPS_BUSY)
     {
-        if (TemperatureRequest < TemperatureN[0].value)
-            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
+        if (TemperatureRequest < TemperatureNP[0].getValue())
+            TemperatureNP[0].setValue(std::max(TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
         else
-            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
+            TemperatureNP[0].setValue(std::min(TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
 
 
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
         // Above 20, cooler is off
-        if (TemperatureN[0].value >= 20)
+        if (TemperatureNP[0].getValue() >= 20)
         {
             CoolerSP[COOLER_ON].setState(ISS_OFF);
             CoolerSP[COOLER_OFF].setState(ISS_ON);
@@ -1085,7 +1085,7 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
             {
                 CoolerSP.setState(IPS_IDLE);
                 TemperatureRequest = 20;
-                TemperatureNP.s    = IPS_BUSY;
+                TemperatureNP.setState(IPS_BUSY);
             }
 
             CoolerSP.apply();

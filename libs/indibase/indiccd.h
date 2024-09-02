@@ -671,8 +671,7 @@ class CCD : public DefaultDevice, GuiderInterface
         /**
          * @brief TemperatureNP Camera Temperature in Celcius.
          */
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[1];
+        INDI::PropertyNumber TemperatureNP {1};
 
         /**
          * @brief Temperature Ramp in C/Min with configurable threshold
