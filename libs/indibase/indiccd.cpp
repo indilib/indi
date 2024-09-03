@@ -169,11 +169,11 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Primary CCD Region-Of-Interest (ROI)
-    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_X], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_Y], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_W], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_H], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
-    IUFillNumberVector(&PrimaryCCD.ImageFrameNP, PrimaryCCD.ImageFrameN, 4, getDeviceName(), "CCD_FRAME", "Frame",
+    PrimaryCCD.ImageFrameNP[CCDChip::FRAME_X].fill("X", "Left ", "%4.0f", 0, 0.0, 0, 0);
+    PrimaryCCD.ImageFrameNP[CCDChip::FRAME_Y].fill("Y", "Top", "%4.0f", 0, 0, 0, 0);
+    PrimaryCCD.ImageFrameNP[CCDChip::FRAME_W].fill("WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
+    PrimaryCCD.ImageFrameNP[CCDChip::FRAME_H].fill("HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
+    PrimaryCCD.ImageFrameNP.fill(getDeviceName(), "CCD_FRAME", "Frame",
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Frame Type
@@ -195,9 +195,9 @@ bool CCD::initProperties()
                        "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Primary CCD Binning
-    IUFillNumber(&PrimaryCCD.ImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
-    IUFillNumber(&PrimaryCCD.ImageBinN[1], "VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
-    IUFillNumberVector(&PrimaryCCD.ImageBinNP, PrimaryCCD.ImageBinN, 2, getDeviceName(), "CCD_BINNING", "Binning",
+    PrimaryCCD.ImageBinNP[0].fill("HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
+    PrimaryCCD.ImageBinNP[1].fill("VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
+    PrimaryCCD.ImageBinNP.fill(getDeviceName(), "CCD_BINNING", "Binning",
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
@@ -264,16 +264,16 @@ bool CCD::initProperties()
     /***************** Guide Chip *****************/
     /**********************************************/
 
-    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_X], "X", "Left ", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_Y], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_W], "WIDTH", "Width", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_H], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0);
-    IUFillNumberVector(&GuideCCD.ImageFrameNP, GuideCCD.ImageFrameN, 4, getDeviceName(), "GUIDER_FRAME", "Frame",
+    GuideCCD.ImageFrameNP[CCDChip::FRAME_X].fill("X", "Left ", "%4.0f", 0, 0, 0, 0);
+    GuideCCD.ImageFrameNP[CCDChip::FRAME_Y].fill("Y", "Top", "%4.0f", 0, 0, 0, 0);
+    GuideCCD.ImageFrameNP[CCDChip::FRAME_W].fill("WIDTH", "Width", "%4.0f", 0, 0, 0, 0);
+    GuideCCD.ImageFrameNP[CCDChip::FRAME_H].fill("HEIGHT", "Height", "%4.0f", 0, 0, 0, 0);
+    GuideCCD.ImageFrameNP.fill(getDeviceName(), "GUIDER_FRAME", "Frame",
                        GUIDE_HEAD_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
-    IUFillNumber(&GuideCCD.ImageBinN[1], "VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
-    IUFillNumberVector(&GuideCCD.ImageBinNP, GuideCCD.ImageBinN, 2, getDeviceName(), "GUIDER_BINNING", "Binning",
+    GuideCCD.ImageBinNP[CCDChip::HOR_BIN].fill("HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
+    GuideCCD.ImageBinNP[CCDChip::VER_BIN].fill("VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
+    GuideCCD.ImageBinNP.fill(getDeviceName(), "GUIDER_BINNING", "Binning",
                        GUIDE_HEAD_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
@@ -349,8 +349,8 @@ bool CCD::initProperties()
     WorldCoordSP.fill(getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&CCDRotationN[0], "CCD_ROTATION_VALUE", "Rotation", "%g", -360, 360, 1, 0);
-    IUFillNumberVector(&CCDRotationNP, CCDRotationN, 1, getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
+    CCDRotationNP[0].fill("CCD_ROTATION_VALUE", "Rotation", "%g", -360, 360, 1, 0);
+    CCDRotationNP.fill(getDeviceName(), "CCD_ROTATION", "CCD FOV", WCS_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     ScopeInfoNP[FOCAL_LENGTH].fill("FOCAL_LENGTH", "Focal Length (mm)", "%g", 0, 10000, 1, 0);
@@ -535,14 +535,14 @@ bool CCD::updateProperties()
         if (CanAbort())
             defineProperty(&PrimaryCCD.AbortExposureSP);
         if (CanSubFrame() == false)
-            PrimaryCCD.ImageFrameNP.p = IP_RO;
+            PrimaryCCD.ImageFrameNP.setPermission(IP_RO);
 
-        defineProperty(&PrimaryCCD.ImageFrameNP);
+        defineProperty(PrimaryCCD.ImageFrameNP);
         if (CanBin() || CanSubFrame())
             defineProperty(&PrimaryCCD.ResetSP);
 
         if (CanBin())
-            defineProperty(&PrimaryCCD.ImageBinNP);
+            defineProperty(PrimaryCCD.ImageBinNP);
 
         defineProperty(FITSHeaderTP);
 
@@ -552,8 +552,8 @@ bool CCD::updateProperties()
             if (CanAbort())
                 defineProperty(&GuideCCD.AbortExposureSP);
             if (CanSubFrame() == false)
-                GuideCCD.ImageFrameNP.p = IP_RO;
-            defineProperty(&GuideCCD.ImageFrameNP);
+                GuideCCD.ImageFrameNP.setPermission(IP_RO);
+            defineProperty(GuideCCD.ImageFrameNP);
         }
 
         if (HasCooler())
@@ -570,7 +570,7 @@ bool CCD::updateProperties()
         {
             defineProperty(&GuideCCD.ImagePixelSizeNP);
             if (CanBin())
-                defineProperty(&GuideCCD.ImageBinNP);
+                defineProperty(GuideCCD.ImageBinNP);
         }
         defineProperty(&PrimaryCCD.CompressSP);
         defineProperty(&PrimaryCCD.FitsBP);
@@ -627,7 +627,7 @@ bool CCD::updateProperties()
     }
     else
     {
-        deleteProperty(PrimaryCCD.ImageFrameNP.name);
+        deleteProperty(PrimaryCCD.ImageFrameNP);
         if (CanBin() || CanSubFrame())
             deleteProperty(PrimaryCCD.ResetSP.name);
 
@@ -637,7 +637,7 @@ bool CCD::updateProperties()
         deleteProperty(EncodeFormatSP.getName());
 
         if (CanBin())
-            deleteProperty(PrimaryCCD.ImageBinNP.name);
+            deleteProperty(PrimaryCCD.ImageBinNP);
 
         deleteProperty(PrimaryCCD.ImageExposureNP.name);
         if (CanAbort())
@@ -661,12 +661,12 @@ bool CCD::updateProperties()
             deleteProperty(GuideCCD.ImageExposureNP.name);
             if (CanAbort())
                 deleteProperty(GuideCCD.AbortExposureSP.name);
-            deleteProperty(GuideCCD.ImageFrameNP.name);
+            deleteProperty(GuideCCD.ImageFrameNP);
             deleteProperty(GuideCCD.ImagePixelSizeNP.name);
 
             deleteProperty(GuideCCD.FitsBP.name);
             if (CanBin())
-                deleteProperty(GuideCCD.ImageBinNP.name);
+                deleteProperty(GuideCCD.ImageBinNP);
             deleteProperty(GuideCCD.CompressSP.name);
             deleteProperty(GuideCCD.FrameTypeSP.name);
 
@@ -695,7 +695,7 @@ bool CCD::updateProperties()
 
         if (WorldCoordSP[WCS_ENABLE].getState() == ISS_ON)
         {
-            deleteProperty(CCDRotationNP.name);
+            deleteProperty(CCDRotationNP);
         }
         deleteProperty(WorldCoordSP);
         deleteProperty(UploadSP.name);
@@ -1148,17 +1148,18 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         if (!strcmp(name, "CCD_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber * np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
+            auto np = PrimaryCCD.ImageBinNP.findWidgetByName(names[0]);
+            // auto np =
             if (np == nullptr)
             {
-                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                PrimaryCCD.ImageBinNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageBinNP.apply();
                 return false;
             }
             else if (values[0] == 0 || values[1] == 0)
             {
-                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                PrimaryCCD.ImageBinNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageBinNP.apply();
                 LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
                 return false;
             }
@@ -1177,13 +1178,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             if (UpdateCCDBin(binx, biny))
             {
-                IUUpdateNumber(&PrimaryCCD.ImageBinNP, values, names, n);
-                PrimaryCCD.ImageBinNP.s = IPS_OK;
+                PrimaryCCD.ImageBinNP.update(values, names, n);
+                PrimaryCCD.ImageBinNP.setState(IPS_OK);
             }
             else
-                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                PrimaryCCD.ImageBinNP.setState(IPS_ALERT);
 
-            IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+            PrimaryCCD.ImageBinNP.apply();
 
             return true;
         }
@@ -1191,17 +1192,18 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         if (!strcmp(name, "GUIDER_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber * np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
+            // INumber * np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
+            auto np = GuideCCD.ImageBinNP.findWidgetByName(names[0]);
             if (np == nullptr)
             {
-                GuideCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber(&GuideCCD.ImageBinNP, nullptr);
+                GuideCCD.ImageBinNP.setState(IPS_ALERT);
+                GuideCCD.ImageBinNP.apply();
                 return false;
             }
             else if (values[0] == 0 || values[1] == 0)
             {
-                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageBinNP, nullptr);
+                PrimaryCCD.ImageBinNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageBinNP.apply();
                 LOGF_ERROR("%.fx%.f binning is invalid.", values[0], values[1]);
                 return false;
             }
@@ -1220,13 +1222,13 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             if (UpdateGuiderBin(binx, biny))
             {
-                IUUpdateNumber(&GuideCCD.ImageBinNP, values, names, n);
-                GuideCCD.ImageBinNP.s = IPS_OK;
+                GuideCCD.ImageBinNP.update(values, names, n);
+                GuideCCD.ImageBinNP.setState(IPS_OK);
             }
             else
-                GuideCCD.ImageBinNP.s = IPS_ALERT;
+                GuideCCD.ImageBinNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideCCD.ImageBinNP, nullptr);
+            GuideCCD.ImageBinNP.apply();
 
             return true;
         }
@@ -1269,39 +1271,39 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (x < 0 || y < 0 || w <= 0 || h <= 0)
             {
                 LOGF_ERROR("Invalid frame requested (%d,%d) (%d x %d)", x, y, w, h);
-                PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
+                PrimaryCCD.ImageFrameNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageFrameNP.apply();
                 return true;
             }
 
             if (UpdateCCDFrame(x, y, w, h))
             {
-                PrimaryCCD.ImageFrameNP.s = IPS_OK;
-                IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
+                PrimaryCCD.ImageFrameNP.setState(IPS_OK);
+                PrimaryCCD.ImageFrameNP.update(values, names, n);
             }
             else
-                PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
+                PrimaryCCD.ImageFrameNP.setState(IPS_ALERT);
 
-            IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
+            PrimaryCCD.ImageFrameNP.apply();
             return true;
         }
 
         if (!strcmp(name, "GUIDER_FRAME"))
         {
             //  We are being asked to set guide frame
-            if (IUUpdateNumber(&GuideCCD.ImageFrameNP, values, names, n) < 0)
+            if (GuideCCD.ImageFrameNP.update(values, names, n) == false)
                 return false;
 
-            GuideCCD.ImageFrameNP.s = IPS_OK;
+            GuideCCD.ImageFrameNP.setState(IPS_OK);
 
             DEBUGF(Logger::DBG_DEBUG, "Requested Guide Frame is %4.0f,%4.0f %4.0f x %4.0f", values[0], values[1],
                    values[2], values[4]);
 
-            if (UpdateGuiderFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value,
-                                  GuideCCD.ImageFrameN[2].value, GuideCCD.ImageFrameN[3].value) == false)
-                GuideCCD.ImageFrameNP.s = IPS_ALERT;
+            if (UpdateGuiderFrame(GuideCCD.ImageFrameNP[CCDChip::FRAME_X].getValue(), GuideCCD.ImageFrameNP[CCDChip::FRAME_Y].getValue(),
+                                  GuideCCD.ImageFrameNP[CCDChip::FRAME_W].getValue(), GuideCCD.ImageFrameNP[CCDChip::FRAME_H].getValue()) == false)
+                GuideCCD.ImageFrameNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideCCD.ImageFrameNP, nullptr);
+            GuideCCD.ImageFrameNP.apply();
 
             return true;
         }
@@ -1435,14 +1437,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 
         // CCD Rotation
-        if (!strcmp(name, CCDRotationNP.name))
+        if (CCDRotationNP.isNameMatch(name))
         {
-            IUUpdateNumber(&CCDRotationNP, values, names, n);
-            CCDRotationNP.s = IPS_OK;
-            IDSetNumber(&CCDRotationNP, nullptr);
+            CCDRotationNP.update(values, names, n);
+            CCDRotationNP.setState(IPS_OK);
+            CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
+            DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
 
             return true;
         }
@@ -1561,12 +1563,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (WorldCoordSP[0].getState() == ISS_ON)
             {
                 LOG_INFO("World Coordinate System is enabled.");
-                defineProperty(&CCDRotationNP);
+                defineProperty(CCDRotationNP);
             }
             else
             {
                 LOG_INFO("World Coordinate System is disabled.");
-                deleteProperty(CCDRotationNP.name);
+                deleteProperty(CCDRotationNP);
             }
 
             m_ValidCCDRotation = false;
@@ -2207,7 +2209,7 @@ void CCD::addFITSKeywords(CCDChip * targetChip, std::vector<FITSRecord> &fitsKey
             fitsKeywords.push_back({"CDELT2", degpix2, 10, "CDELT2"});
 
             // Rotation is CW, we need to convert it to CCW per CROTA1 definition
-            double rotation = 360 - CCDRotationN[0].value;
+            double rotation = 360 - CCDRotationNP[0].getValue();
             if (rotation > 360)
                 rotation -= 360;
 
@@ -2803,14 +2805,14 @@ bool CCD::saveConfigItems(FILE * fp)
     if (HasGuideHead())
     {
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
-        IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
+        GuideCCD.ImageBinNP.save(fp);
     }
 
-    if (CanSubFrame() && PrimaryCCD.ImageFrameN[2].value > 0)
-        IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
+    if (CanSubFrame() && PrimaryCCD.ImageFrameNP[CCDChip::FRAME_W].getValue() > 0)
+        PrimaryCCD.ImageFrameNP.save(fp);
 
     if (CanBin())
-        IUSaveConfigNumber(fp, &PrimaryCCD.ImageBinNP);
+        PrimaryCCD.ImageBinNP.save(fp);
 
     if (HasBayer())
         BayerTP.save(fp);

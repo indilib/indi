@@ -758,8 +758,7 @@ class CCD : public DefaultDevice, GuiderInterface
             WCS_DISABLE
         };
         // WCS CCD Rotation
-        INumber CCDRotationN[1];
-        INumberVectorProperty CCDRotationNP;
+        INDI::PropertyNumber CCDRotationNP{1};
 
         // Fast Exposure Toggle
         ISwitch FastExposureToggleS[2];
