@@ -148,7 +148,7 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
         {
             oneElement->setMinMax(min, max);
             if(sendToClient)
-                IUUpdateMinMax(oneProperty);
+                oneProperty.updateMinMax();
         }
     };
 
