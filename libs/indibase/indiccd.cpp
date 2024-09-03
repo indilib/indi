@@ -132,8 +132,8 @@ CCD::CCD() : GI(this)
 CCD::~CCD()
 {
     // Only update if index is different.
-    if (m_ConfigFastExposureIndex != IUFindOnSwitchIndex(&FastExposureToggleSP))
-        saveConfig(true, FastExposureToggleSP.name);
+    if (m_ConfigFastExposureIndex != FastExposureToggleSP.findOnSwitchIndex())
+        saveConfig(true, FastExposureToggleSP.getName());
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -413,12 +413,12 @@ bool CCD::initProperties()
     /**********************************************/
     /****************** Exposure Looping **********/
     /***************** Primary CCD Only ***********/
-    IUGetConfigOnSwitchIndex(getDeviceName(), FastExposureToggleSP.name, &m_ConfigFastExposureIndex);
-    IUFillSwitch(&FastExposureToggleS[INDI_ENABLED], "INDI_ENABLED", "Enabled",
+    IUGetConfigOnSwitchIndex(getDeviceName(), FastExposureToggleSP.getName(), &m_ConfigFastExposureIndex);
+    FastExposureToggleSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled",
                  m_ConfigFastExposureIndex == INDI_ENABLED ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&FastExposureToggleS[INDI_DISABLED], "INDI_DISABLED", "Disabled",
+    FastExposureToggleSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled",
                  m_ConfigFastExposureIndex == INDI_DISABLED ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&FastExposureToggleSP, FastExposureToggleS, 2, getDeviceName(), "CCD_FAST_TOGGLE", "Fast Exposure",
+    FastExposureToggleSP.fill(getDeviceName(), "CCD_FAST_TOGGLE", "Fast Exposure",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Should loop until the number of frames specified in this property is completed
@@ -622,7 +622,7 @@ bool CCD::updateProperties()
             defineProperty(&WebSocketSP);
 #endif
 
-        defineProperty(&FastExposureToggleSP);
+        defineProperty(FastExposureToggleSP);
         defineProperty(&FastExposureCountNP);
     }
     else
@@ -708,7 +708,7 @@ bool CCD::updateProperties()
             deleteProperty(WebSocketSettingsNP.name);
         }
 #endif
-        deleteProperty(FastExposureToggleSP.name);
+        deleteProperty(FastExposureToggleSP);
         deleteProperty(FastExposureCountNP.name);
     }
 
@@ -1505,15 +1505,15 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         }
 
         // Fast Exposure Toggle
-        if (!strcmp(name, FastExposureToggleSP.name))
+        if (FastExposureToggleSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&FastExposureToggleSP, states, names, n);
+            FastExposureToggleSP.update(states, names, n);
 
             // Only display warning for the first time this is enabled.
-            if (FastExposureToggleSP.s == IPS_IDLE && FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
+            if (FastExposureToggleSP.getState() == IPS_IDLE && FastExposureToggleSP[INDI_ENABLED].getState() == ISS_ON)
                 LOG_WARN("Experimental Feature: After a frame is downloaded, the next frame capture immediately starts to avoid any delays.");
 
-            if (FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
+            if (FastExposureToggleSP[INDI_DISABLED].getState() == ISS_ON)
             {
                 FastExposureCountNP.s = IPS_IDLE;
                 IDSetNumber(&FastExposureCountNP, nullptr);
@@ -1522,8 +1522,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                     AbortExposure();
             }
 
-            FastExposureToggleSP.s = IPS_OK;
-            IDSetSwitch(&FastExposureToggleSP, nullptr);
+            FastExposureToggleSP.setState(IPS_OK);
+            FastExposureToggleSP.apply();
             return true;
         }
 
@@ -2523,7 +2523,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
     }
 
-    if (FastExposureToggleS[INDI_ENABLED].s != ISS_ON)
+    if (FastExposureToggleSP[INDI_ENABLED].getState() != ISS_ON)
         targetChip->setExposureComplete();
 
     UploadComplete(targetChip);
@@ -2698,7 +2698,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 bool CCD::processFastExposure(CCDChip * targetChip)
 {
     // If fast exposure is on, let's immediately take another capture
-    if (FastExposureToggleS[INDI_ENABLED].s == ISS_ON)
+    if (FastExposureToggleSP[INDI_ENABLED].getState() == ISS_ON)
     {
         targetChip->setExposureComplete();
         double duration = targetChip->getExposureDuration();
@@ -2789,7 +2789,7 @@ bool CCD::saveConfigItems(FILE * fp)
     ActiveDeviceTP.save(fp);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
-    IUSaveConfigSwitch(fp, &FastExposureToggleSP);
+    FastExposureToggleSP.save(fp);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 

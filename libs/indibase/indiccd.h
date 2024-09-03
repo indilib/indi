@@ -761,8 +761,7 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertyNumber CCDRotationNP{1};
 
         // Fast Exposure Toggle
-        ISwitch FastExposureToggleS[2];
-        ISwitchVectorProperty FastExposureToggleSP;
+        INDI::PropertySwitch FastExposureToggleSP {2};
 
         // Fast Exposure Frame Count
         INumber FastExposureCountN[1];
