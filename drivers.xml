@@ -800,7 +800,11 @@
         <device label="Waveshare Relay" manufacturer="Waveshare">
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
-        </device>
+    	</device>
+	<device label="DarkLight Cover Calibrator" manufacturer="10th Tee Astronomy">
+	    <driver name="DarkLight Cover Calibrator">indi_darklight_covercalibrator</driver>
+	    <version>0.1</version>
+	</device>	
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
