@@ -40,7 +40,7 @@ For more information, please refer to the full terms of the Creative Commons Att
 
 #pragma once
 
-#include "libindi/defaultdevice.h"
+#include "defaultdevice.h"
 
 namespace Connection
 {
