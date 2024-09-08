@@ -51,7 +51,7 @@ std::mutex serialMutex;
 DarkLight_CoverCalibrator::DarkLight_CoverCalibrator() : lightDisabled(false), coverIsMoving(false), lightIsReady(true),
     autoOn(false)
 {
-    setVersion(CDRIVER_VERSION_MAJOR, CDRIVER_VERSION_MINOR);
+    setVersion(0, 1);
 }
 
 const char *DarkLight_CoverCalibrator::getDefaultName()
