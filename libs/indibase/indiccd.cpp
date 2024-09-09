@@ -234,8 +234,8 @@ bool CCD::initProperties()
                      IPS_IDLE);
 
     // Reset Frame Settings
-    IUFillSwitch(&PrimaryCCD.ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values",
+    PrimaryCCD.ResetSP[0].fill("RESET", "Reset", ISS_OFF);
+    PrimaryCCD.ResetSP.fill(getDeviceName(), "CCD_FRAME_RESET", "Frame Values",
                        IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     /**********************************************/
@@ -539,7 +539,7 @@ bool CCD::updateProperties()
 
         defineProperty(PrimaryCCD.ImageFrameNP);
         if (CanBin() || CanSubFrame())
-            defineProperty(&PrimaryCCD.ResetSP);
+            defineProperty(PrimaryCCD.ResetSP);
 
         if (CanBin())
             defineProperty(PrimaryCCD.ImageBinNP);
@@ -629,7 +629,7 @@ bool CCD::updateProperties()
     {
         deleteProperty(PrimaryCCD.ImageFrameNP);
         if (CanBin() || CanSubFrame())
-            deleteProperty(PrimaryCCD.ResetSP.name);
+            deleteProperty(PrimaryCCD.ResetSP);
 
         deleteProperty(PrimaryCCD.ImagePixelSizeNP);
 
@@ -1579,16 +1579,16 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         }
 
         // Primary Chip Frame Reset
-        if (strcmp(name, PrimaryCCD.ResetSP.name) == 0)
+        if (PrimaryCCD.ResetSP.isNameMatch(name))
         {
-            IUResetSwitch(&PrimaryCCD.ResetSP);
-            PrimaryCCD.ResetSP.s = IPS_OK;
+            PrimaryCCD.ResetSP.reset();
+            PrimaryCCD.ResetSP.setState(IPS_OK);
             if (CanBin())
                 UpdateCCDBin(1, 1);
             if (CanSubFrame())
                 UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
-            IDSetSwitch(&PrimaryCCD.ResetSP, nullptr);
+            PrimaryCCD.ResetSP.apply();
             return true;
         }
 

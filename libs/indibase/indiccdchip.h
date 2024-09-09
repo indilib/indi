@@ -532,8 +532,7 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Reset ROI Frame to Full Resolution
         /////////////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty ResetSP;
-        ISwitch ResetS[1];
+        INDI::PropertySwitch ResetSP{1};
 
         friend class CCD;
         friend class StreamRecoder;
