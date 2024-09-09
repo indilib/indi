@@ -190,8 +190,8 @@ bool CCD::initProperties()
                        "Expose", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Abort
-    IUFillSwitch(&PrimaryCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&PrimaryCCD.AbortExposureSP, PrimaryCCD.AbortExposureS, 1, getDeviceName(), "CCD_ABORT_EXPOSURE",
+    PrimaryCCD.AbortExposureSP[0].fill("ABORT", "Abort", ISS_OFF);
+    PrimaryCCD.AbortExposureSP.fill(getDeviceName(), "CCD_ABORT_EXPOSURE",
                        "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Primary CCD Binning
@@ -300,8 +300,8 @@ bool CCD::initProperties()
     GuideCCD.ImageExposureNP.fill(getDeviceName(), "GUIDER_EXPOSURE",
                        "Guide Head", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&GuideCCD.AbortExposureSP, GuideCCD.AbortExposureS, 1, getDeviceName(), "GUIDER_ABORT_EXPOSURE",
+    GuideCCD.AbortExposureSP[0].fill("ABORT", "Abort", ISS_OFF);
+    GuideCCD.AbortExposureSP.fill(getDeviceName(), "GUIDER_ABORT_EXPOSURE",
                        "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
@@ -533,7 +533,7 @@ bool CCD::updateProperties()
         defineProperty(PrimaryCCD.ImageExposureNP);
 
         if (CanAbort())
-            defineProperty(&PrimaryCCD.AbortExposureSP);
+            defineProperty(PrimaryCCD.AbortExposureSP);
         if (CanSubFrame() == false)
             PrimaryCCD.ImageFrameNP.setPermission(IP_RO);
 
@@ -550,7 +550,7 @@ bool CCD::updateProperties()
         {
             defineProperty(GuideCCD.ImageExposureNP);
             if (CanAbort())
-                defineProperty(&GuideCCD.AbortExposureSP);
+                defineProperty(GuideCCD.AbortExposureSP);
             if (CanSubFrame() == false)
                 GuideCCD.ImageFrameNP.setPermission(IP_RO);
             defineProperty(GuideCCD.ImageFrameNP);
@@ -641,7 +641,7 @@ bool CCD::updateProperties()
 
         deleteProperty(PrimaryCCD.ImageExposureNP);
         if (CanAbort())
-            deleteProperty(PrimaryCCD.AbortExposureSP.name);
+            deleteProperty(PrimaryCCD.AbortExposureSP);
         deleteProperty(PrimaryCCD.FitsBP.name);
         deleteProperty(PrimaryCCD.CompressSP.name);
 
@@ -660,7 +660,7 @@ bool CCD::updateProperties()
         {
             deleteProperty(GuideCCD.ImageExposureNP);
             if (CanAbort())
-                deleteProperty(GuideCCD.AbortExposureSP.name);
+                deleteProperty(GuideCCD.AbortExposureSP);
             deleteProperty(GuideCCD.ImageFrameNP);
             deleteProperty(GuideCCD.ImagePixelSizeNP);
 
@@ -1593,19 +1593,19 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         }
 
         // Primary Chip Abort Expsoure
-        if (strcmp(name, PrimaryCCD.AbortExposureSP.name) == 0)
+        if (PrimaryCCD.AbortExposureSP.isNameMatch(name))
         {
-            IUResetSwitch(&PrimaryCCD.AbortExposureSP);
+            PrimaryCCD.AbortExposureSP.reset();
 
             if (AbortExposure())
             {
-                PrimaryCCD.AbortExposureSP.s       = IPS_OK;
+                PrimaryCCD.AbortExposureSP.setState(IPS_OK);
                 PrimaryCCD.ImageExposureNP.setState(IPS_IDLE);
                 PrimaryCCD.ImageExposureNP[0].setValue(0);
             }
             else
             {
-                PrimaryCCD.AbortExposureSP.s = IPS_ALERT;
+                PrimaryCCD.AbortExposureSP.setState(IPS_ALERT);
                 PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
             }
 
@@ -1620,30 +1620,30 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 FastExposureCountNP.apply();
             }
 
-            IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
+            PrimaryCCD.AbortExposureSP.apply();
             PrimaryCCD.ImageExposureNP.apply();
 
             return true;
         }
 
         // Guide Chip Abort Exposure
-        if (strcmp(name, GuideCCD.AbortExposureSP.name) == 0)
+        if (GuideCCD.AbortExposureSP.isNameMatch(name))
         {
-            IUResetSwitch(&GuideCCD.AbortExposureSP);
+            GuideCCD.AbortExposureSP.reset();
 
             if (AbortGuideExposure())
             {
-                GuideCCD.AbortExposureSP.s       = IPS_OK;
+                GuideCCD.AbortExposureSP.setState(IPS_OK);
                 GuideCCD.ImageExposureNP.setState(IPS_IDLE);
                 GuideCCD.ImageExposureNP[0].setValue(0);
             }
             else
             {
-                GuideCCD.AbortExposureSP.s = IPS_ALERT;
+                GuideCCD.AbortExposureSP.setState(IPS_ALERT);
                 GuideCCD.ImageExposureNP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&GuideCCD.AbortExposureSP, nullptr);
+            GuideCCD.AbortExposureSP.apply();
             GuideCCD.ImageExposureNP.apply();
 
             return true;

@@ -20,6 +20,7 @@
 
 #include "indiapi.h"
 #include "indidriver.h"
+#include <indipropertyswitch.h>
 #include "indipropertynumber.h"
 
 #include <sys/time.h>
@@ -491,8 +492,7 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Abort Exposure
         /////////////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty AbortExposureSP;
-        ISwitch AbortExposureS[1];
+        INDI::PropertySwitch AbortExposureSP {1};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Frame ROI
