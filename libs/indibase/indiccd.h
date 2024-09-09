@@ -716,8 +716,7 @@ class CCD : public DefaultDevice, GuiderInterface
             FORMAT_XISF      /*!< Save Image as XISF format  */
         };
 
-        ISwitch UploadS[3];
-        ISwitchVectorProperty UploadSP;
+        INDI::PropertySwitch UploadSP {3};
 
         IText UploadSettingsT[2] {};
         ITextVectorProperty UploadSettingsTP;

@@ -384,10 +384,10 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Upload Mode
-    IUFillSwitch(&UploadS[UPLOAD_CLIENT], "UPLOAD_CLIENT", "Client", ISS_ON);
-    IUFillSwitch(&UploadS[UPLOAD_LOCAL], "UPLOAD_LOCAL", "Local", ISS_OFF);
-    IUFillSwitch(&UploadS[UPLOAD_BOTH], "UPLOAD_BOTH", "Both", ISS_OFF);
-    IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    UploadSP[UPLOAD_CLIENT].fill("UPLOAD_CLIENT", "Client", ISS_ON);
+    UploadSP[UPLOAD_LOCAL].fill("UPLOAD_LOCAL", "Local", ISS_OFF);
+    UploadSP[UPLOAD_BOTH].fill("UPLOAD_BOTH", "Both", ISS_OFF);
+    UploadSP.fill(getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Upload Settings
@@ -611,7 +611,7 @@ bool CCD::updateProperties()
         defineProperty(ScopeInfoNP);
 
         defineProperty(WorldCoordSP);
-        defineProperty(&UploadSP);
+        defineProperty(UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
@@ -698,7 +698,7 @@ bool CCD::updateProperties()
             deleteProperty(CCDRotationNP);
         }
         deleteProperty(WorldCoordSP);
-        deleteProperty(UploadSP.name);
+        deleteProperty(UploadSP);
         deleteProperty(UploadSettingsTP.name);
 
 #ifdef HAVE_WEBSOCKET
@@ -1469,20 +1469,20 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Upload Mode
-        if (!strcmp(name, UploadSP.name))
+        if (UploadSP.isNameMatch(name))
         {
-            int prevMode = IUFindOnSwitchIndex(&UploadSP);
-            IUUpdateSwitch(&UploadSP, states, names, n);
+            int prevMode = UploadSP.findOnSwitchIndex();
+            UploadSP.update(states, names, n);
 
-            if (UpdateCCDUploadMode(static_cast<CCD_UPLOAD_MODE>(IUFindOnSwitchIndex(&UploadSP))))
+            if (UpdateCCDUploadMode(static_cast<CCD_UPLOAD_MODE>(UploadSP.findOnSwitchIndex())))
             {
-                if (UploadS[UPLOAD_CLIENT].s == ISS_ON)
+                if (UploadSP[UPLOAD_CLIENT].getState() == ISS_ON)
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
                     if (prevMode != 0)
                         deleteProperty(FileNameTP.name);
                 }
-                else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
+                else if (UploadSP[UPLOAD_LOCAL].getState() == ISS_ON)
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
                     defineProperty(&FileNameTP);
@@ -1493,16 +1493,16 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                     defineProperty(&FileNameTP);
                 }
 
-                UploadSP.s = IPS_OK;
+                UploadSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&UploadSP);
-                UploadS[prevMode].s = ISS_ON;
-                UploadSP.s = IPS_ALERT;
+                UploadSP.reset();
+                UploadSP[prevMode].setState(ISS_ON);
+                UploadSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&UploadSP, nullptr);
+            UploadSP.apply();
 
             return true;
         }
@@ -2274,8 +2274,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     if (processFastExposure(targetChip) == false)
         return false;
 
-    bool sendImage = (UploadS[UPLOAD_CLIENT].s == ISS_ON || UploadS[UPLOAD_BOTH].s == ISS_ON);
-    bool saveImage = (UploadS[UPLOAD_LOCAL].s == ISS_ON || UploadS[UPLOAD_BOTH].s == ISS_ON);
+    bool sendImage = (UploadSP[UPLOAD_CLIENT].getState() == ISS_ON || UploadSP[UPLOAD_BOTH].getState() == ISS_ON);
+    bool saveImage = (UploadSP[UPLOAD_LOCAL].getState() == ISS_ON || UploadSP[UPLOAD_BOTH].getState() == ISS_ON);
 
     // Do not send or save an empty image.
     if (targetChip->getFrameBufferSize() == 0)
@@ -2709,7 +2709,7 @@ bool CCD::processFastExposure(CCDChip * targetChip)
         // Check fast exposure count
         if (FastExposureCountNP[0].getValue() > 1)
         {
-            if (UploadS[UPLOAD_LOCAL].s != ISS_ON)
+            if (UploadSP[UPLOAD_LOCAL].getState() != ISS_ON)
             {
                 if (FastExposureCountNP.getState() != IPS_BUSY)
                 {
@@ -2731,7 +2731,7 @@ bool CCD::processFastExposure(CCDChip * targetChip)
             FastExposureCountNP[0].setValue(FastExposureCountNP[0].getValue() - 1);
             FastExposureCountNP.apply();
 
-            if (UploadS[UPLOAD_LOCAL].s == ISS_ON || m_UploadTime < duration)
+            if (UploadSP[UPLOAD_LOCAL].getState() == ISS_ON || m_UploadTime < duration)
             {
                 if (StartExposure(duration))
                     PrimaryCCD.ImageExposureNP.setState(IPS_BUSY);
@@ -2790,7 +2790,7 @@ bool CCD::saveConfigItems(FILE * fp)
     DefaultDevice::saveConfigItems(fp);
 
     ActiveDeviceTP.save(fp);
-    IUSaveConfigSwitch(fp, &UploadSP);
+    UploadSP.save(fp);
     IUSaveConfigText(fp, &UploadSettingsTP);
     FastExposureToggleSP.save(fp);
 
