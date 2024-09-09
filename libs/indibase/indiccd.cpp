@@ -195,8 +195,8 @@ bool CCD::initProperties()
                        "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Primary CCD Binning
-    PrimaryCCD.ImageBinNP[0].fill("HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
-    PrimaryCCD.ImageBinNP[1].fill("VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
+    PrimaryCCD.ImageBinNP[CCDChip::HOR_BIN].fill("HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
+    PrimaryCCD.ImageBinNP[CCDChip::VER_BIN].fill("VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
     PrimaryCCD.ImageBinNP.fill(getDeviceName(), "CCD_BINNING", "Binning",
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -391,9 +391,9 @@ bool CCD::initProperties()
                        0, IPS_IDLE);
 
     // Upload Settings
-    IUFillText(&UploadSettingsT[UPLOAD_DIR], "UPLOAD_DIR", "Dir", "");
-    IUFillText(&UploadSettingsT[UPLOAD_PREFIX], "UPLOAD_PREFIX", "Prefix", "IMAGE_XXX");
-    IUFillTextVector(&UploadSettingsTP, UploadSettingsT, 2, getDeviceName(), "UPLOAD_SETTINGS", "Upload Settings",
+    UploadSettingsTP[UPLOAD_DIR].fill("UPLOAD_DIR", "Dir", "");
+    UploadSettingsTP[UPLOAD_PREFIX].fill("UPLOAD_PREFIX", "Prefix", "IMAGE_XXX");
+    UploadSettingsTP.fill(getDeviceName(), "UPLOAD_SETTINGS", "Upload Settings",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Upload File Path
@@ -613,9 +613,9 @@ bool CCD::updateProperties()
         defineProperty(WorldCoordSP);
         defineProperty(UploadSP);
 
-        if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
-            IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineProperty(&UploadSettingsTP);
+        if (UploadSettingsTP[UPLOAD_DIR].getText() == nullptr)
+            UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
+        defineProperty(UploadSettingsTP);
 
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
@@ -699,7 +699,7 @@ bool CCD::updateProperties()
         }
         deleteProperty(WorldCoordSP);
         deleteProperty(UploadSP);
-        deleteProperty(UploadSettingsTP.name);
+        deleteProperty(UploadSettingsTP);
 
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
@@ -1055,11 +1055,11 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             return true;
         }
 
-        if (!strcmp(name, UploadSettingsTP.name))
+        if (UploadSettingsTP.isNameMatch(name))
         {
-            IUUpdateText(&UploadSettingsTP, texts, names, n);
-            UploadSettingsTP.s = IPS_OK;
-            IDSetText(&UploadSettingsTP, nullptr);
+            UploadSettingsTP.update(texts, names, n);
+            UploadSettingsTP.setState(IPS_OK);
+            UploadSettingsTP.apply();
             return true;
         }
     }
@@ -2550,13 +2550,13 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         FILE * fp = nullptr;
         char imageFileName[MAXRBUF];
 
-        std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
-        int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
+        std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
+        int maxIndex       = getFileIndex(UploadSettingsTP[UPLOAD_DIR].getText(), UploadSettingsTP[UPLOAD_PREFIX].getText(),
                                           targetChip->FitsB.format);
 
         if (maxIndex < 0)
         {
-            LOGF_ERROR("Error iterating directory %s. %s", UploadSettingsT[0].text,
+            LOGF_ERROR("Error iterating directory %s. %s", UploadSettingsTP[UPLOAD_DIR].getText(),
                        strerror(errno));
             return false;
         }
@@ -2584,7 +2584,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
+        snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsTP[UPLOAD_DIR].getText(), prefix.c_str(), targetChip->FitsB.format);
 
         fp = fopen(imageFileName, "w");
         if (fp == nullptr)
@@ -2791,7 +2791,7 @@ bool CCD::saveConfigItems(FILE * fp)
 
     ActiveDeviceTP.save(fp);
     UploadSP.save(fp);
-    IUSaveConfigText(fp, &UploadSettingsTP);
+    UploadSettingsTP.save(fp);
     FastExposureToggleSP.save(fp);
 
     PrimaryCCD.CompressSP.save(fp);

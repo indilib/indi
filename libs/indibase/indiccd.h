@@ -718,8 +718,7 @@ class CCD : public DefaultDevice, GuiderInterface
 
         INDI::PropertySwitch UploadSP {3};
 
-        IText UploadSettingsT[2] {};
-        ITextVectorProperty UploadSettingsTP;
+        INDI::PropertyText UploadSettingsTP {2};
         enum
         {
             UPLOAD_DIR,
