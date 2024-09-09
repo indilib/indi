@@ -397,8 +397,8 @@ bool CCD::initProperties()
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Upload File Path
-    IUFillText(&FileNameT[0], "FILE_PATH", "Path", "");
-    IUFillTextVector(&FileNameTP, FileNameT, 1, getDeviceName(), "CCD_FILE_PATH", "Filename", IMAGE_INFO_TAB, IP_RO, 60,
+    FileNameTP[0].fill("FILE_PATH", "Path", "");
+    FileNameTP.fill(getDeviceName(), "CCD_FILE_PATH", "Filename", IMAGE_INFO_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     /**********************************************/
@@ -1480,17 +1480,17 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
                     if (prevMode != 0)
-                        deleteProperty(FileNameTP.name);
+                        deleteProperty(FileNameTP);
                 }
                 else if (UploadSP[UPLOAD_LOCAL].getState() == ISS_ON)
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                    defineProperty(&FileNameTP);
+                    defineProperty(FileNameTP);
                 }
                 else
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                    defineProperty(&FileNameTP);
+                    defineProperty(FileNameTP);
                 }
 
                 UploadSP.setState(IPS_OK);
@@ -2600,11 +2600,11 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         fclose(fp);
 
         // Save image file path
-        IUSaveText(&FileNameT[0], imageFileName);
+        FileNameTP[0].setText(imageFileName);
 
         DEBUGF(Logger::DBG_SESSION, "Image saved to %s", imageFileName);
-        FileNameTP.s = IPS_OK;
-        IDSetText(&FileNameTP, nullptr);
+        FileNameTP.setState(IPS_OK);
+        FileNameTP.apply();
     }
 
     if (targetChip->SendCompressed && EncodeFormatSP[FORMAT_XISF].getState() != ISS_ON)

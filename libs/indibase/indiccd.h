@@ -701,8 +701,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * but when upload option is set to either @a Both or @a Local, then they are saved on the local disk with
          * this name.
          */
-        ITextVectorProperty FileNameTP;
-        IText FileNameT[1] {};
+        INDI::PropertyText FileNameTP {1};
 
         /// Specifies Camera NATIVE capture format (e.g. Mono, RGB, RAW8..etc).
         INDI::PropertySwitch CaptureFormatSP {0};
