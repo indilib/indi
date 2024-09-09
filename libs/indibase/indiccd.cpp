@@ -215,9 +215,9 @@ bool CCD::initProperties()
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Primary CCD Compression Options
-    IUFillSwitch(&PrimaryCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&PrimaryCCD.CompressSP, PrimaryCCD.CompressS, 2, getDeviceName(), "CCD_COMPRESSION", "Compression",
+    PrimaryCCD.CompressSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    PrimaryCCD.CompressSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    PrimaryCCD.CompressSP.fill(getDeviceName(), "CCD_COMPRESSION", "Compression",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
@@ -304,9 +304,9 @@ bool CCD::initProperties()
     GuideCCD.AbortExposureSP.fill(getDeviceName(), "GUIDER_ABORT_EXPOSURE",
                        "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.CompressS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&GuideCCD.CompressS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&GuideCCD.CompressSP, GuideCCD.CompressS, 2, getDeviceName(), "GUIDER_COMPRESSION", "Compression",
+    GuideCCD.CompressSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    GuideCCD.CompressSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    GuideCCD.CompressSP.fill(getDeviceName(), "GUIDER_COMPRESSION", "Compression",
                        GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
@@ -572,11 +572,11 @@ bool CCD::updateProperties()
             if (CanBin())
                 defineProperty(GuideCCD.ImageBinNP);
         }
-        defineProperty(&PrimaryCCD.CompressSP);
+        defineProperty(PrimaryCCD.CompressSP);
         defineProperty(&PrimaryCCD.FitsBP);
         if (HasGuideHead())
         {
-            defineProperty(&GuideCCD.CompressSP);
+            defineProperty(GuideCCD.CompressSP);
             defineProperty(&GuideCCD.FitsBP);
         }
         if (HasST4Port())
@@ -643,7 +643,7 @@ bool CCD::updateProperties()
         if (CanAbort())
             deleteProperty(PrimaryCCD.AbortExposureSP);
         deleteProperty(PrimaryCCD.FitsBP.name);
-        deleteProperty(PrimaryCCD.CompressSP.name);
+        deleteProperty(PrimaryCCD.CompressSP);
 
 #if 0
         deleteProperty(PrimaryCCD.RapidGuideSP.name);
@@ -667,7 +667,7 @@ bool CCD::updateProperties()
             deleteProperty(GuideCCD.FitsBP.name);
             if (CanBin())
                 deleteProperty(GuideCCD.ImageBinNP);
-            deleteProperty(GuideCCD.CompressSP.name);
+            deleteProperty(GuideCCD.CompressSP);
             deleteProperty(GuideCCD.FrameTypeSP.name);
 
 #if 0
@@ -1650,22 +1650,22 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         }
 
         // Primary Chip Compression
-        if (strcmp(name, PrimaryCCD.CompressSP.name) == 0)
+        if (PrimaryCCD.CompressSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PrimaryCCD.CompressSP, states, names, n);
-            PrimaryCCD.CompressSP.s = IPS_OK;
-            IDSetSwitch(&PrimaryCCD.CompressSP, nullptr);
-            PrimaryCCD.SendCompressed = PrimaryCCD.CompressS[INDI_ENABLED].s == ISS_ON;
+            PrimaryCCD.CompressSP.update(states, names, n);
+            PrimaryCCD.CompressSP.setState(IPS_OK);
+            PrimaryCCD.CompressSP.apply();
+            PrimaryCCD.SendCompressed = PrimaryCCD.CompressSP[INDI_ENABLED].getState() == ISS_ON;
             return true;
         }
 
         // Guide Chip Compression
-        if (strcmp(name, GuideCCD.CompressSP.name) == 0)
+        if (GuideCCD.CompressSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&GuideCCD.CompressSP, states, names, n);
-            GuideCCD.CompressSP.s = IPS_OK;
-            IDSetSwitch(&GuideCCD.CompressSP, nullptr);
-            GuideCCD.SendCompressed = GuideCCD.CompressS[INDI_ENABLED].s == ISS_ON;
+            GuideCCD.CompressSP.update(states, names, n);
+            GuideCCD.CompressSP.setState(IPS_OK);
+            GuideCCD.CompressSP.apply();
+            GuideCCD.SendCompressed = GuideCCD.CompressSP[INDI_ENABLED].getState() == ISS_ON;
             return true;
         }
 
@@ -2794,7 +2794,7 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigText(fp, &UploadSettingsTP);
     FastExposureToggleSP.save(fp);
 
-    IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
+    PrimaryCCD.CompressSP.save(fp);
 
     if (PrimaryCCD.getCCDInfo()->p != IP_RO)
         IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
@@ -2807,7 +2807,7 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasGuideHead())
     {
-        IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
+        GuideCCD.CompressSP.save(fp);
         GuideCCD.ImageBinNP.save(fp);
     }
 
