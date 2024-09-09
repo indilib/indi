@@ -177,11 +177,11 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Frame Type
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::LIGHT_FRAME], "FRAME_LIGHT", "Light", ISS_ON);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::BIAS_FRAME], "FRAME_BIAS", "Bias", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::DARK_FRAME], "FRAME_DARK", "Dark", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::FLAT_FRAME], "FRAME_FLAT", "Flat", ISS_OFF);
-    IUFillSwitchVector(&PrimaryCCD.FrameTypeSP, PrimaryCCD.FrameTypeS, 4, getDeviceName(), "CCD_FRAME_TYPE",
+    PrimaryCCD.FrameTypeSP[CCDChip::LIGHT_FRAME].fill("FRAME_LIGHT", "Light", ISS_ON);
+    PrimaryCCD.FrameTypeSP[CCDChip::BIAS_FRAME].fill("FRAME_BIAS", "Bias", ISS_OFF);
+    PrimaryCCD.FrameTypeSP[CCDChip::DARK_FRAME].fill("FRAME_DARK", "Dark", ISS_OFF);
+    PrimaryCCD.FrameTypeSP[CCDChip::FLAT_FRAME].fill("FRAME_FLAT", "Flat", ISS_OFF);
+    PrimaryCCD.FrameTypeSP.fill(getDeviceName(), "CCD_FRAME_TYPE",
                        "Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Primary CCD Exposure
@@ -289,11 +289,11 @@ bool CCD::initProperties()
     GuideCCD.ImagePixelSizeNP.fill(getDeviceName(), "GUIDER_INFO",
                        "Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.FrameTypeS[0], "FRAME_LIGHT", "Light", ISS_ON);
-    IUFillSwitch(&GuideCCD.FrameTypeS[1], "FRAME_BIAS", "Bias", ISS_OFF);
-    IUFillSwitch(&GuideCCD.FrameTypeS[2], "FRAME_DARK", "Dark", ISS_OFF);
-    IUFillSwitch(&GuideCCD.FrameTypeS[3], "FRAME_FLAT", "Flat", ISS_OFF);
-    IUFillSwitchVector(&GuideCCD.FrameTypeSP, GuideCCD.FrameTypeS, 4, getDeviceName(), "GUIDER_FRAME_TYPE",
+    GuideCCD.FrameTypeSP[CCDChip::LIGHT_FRAME].fill("FRAME_LIGHT", "Light", ISS_ON);
+    GuideCCD.FrameTypeSP[CCDChip::BIAS_FRAME].fill("FRAME_BIAS", "Bias", ISS_OFF);
+    GuideCCD.FrameTypeSP[CCDChip::DARK_FRAME].fill("FRAME_DARK", "Dark", ISS_OFF);
+    GuideCCD.FrameTypeSP[CCDChip::FLAT_FRAME].fill("FRAME_FLAT", "Flat", ISS_OFF);
+    GuideCCD.FrameTypeSP.fill(getDeviceName(), "GUIDER_FRAME_TYPE",
                        "Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     GuideCCD.ImageExposureNP[0].fill("GUIDER_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
@@ -583,10 +583,10 @@ bool CCD::updateProperties()
         {
             GI::updateProperties();
         }
-        defineProperty(&PrimaryCCD.FrameTypeSP);
+        defineProperty(PrimaryCCD.FrameTypeSP);
 
         if (HasGuideHead())
-            defineProperty(&GuideCCD.FrameTypeSP);
+            defineProperty(GuideCCD.FrameTypeSP);
 
         if (HasBayer())
             defineProperty(BayerTP);
@@ -668,7 +668,7 @@ bool CCD::updateProperties()
             if (CanBin())
                 deleteProperty(GuideCCD.ImageBinNP);
             deleteProperty(GuideCCD.CompressSP);
-            deleteProperty(GuideCCD.FrameTypeSP.name);
+            deleteProperty(GuideCCD.FrameTypeSP);
 
 #if 0
             deleteProperty(GuideCCD.RapidGuideSP.name);
@@ -688,7 +688,7 @@ bool CCD::updateProperties()
         {
             GI::updateProperties();
         }
-        deleteProperty(PrimaryCCD.FrameTypeSP.name);
+        deleteProperty(PrimaryCCD.FrameTypeSP);
         if (HasBayer())
             deleteProperty(BayerTP);
         deleteProperty(ScopeInfoNP);
@@ -1670,66 +1670,66 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
         }
 
         // Primary Chip Frame Type
-        if (strcmp(name, PrimaryCCD.FrameTypeSP.name) == 0)
+        if (PrimaryCCD.FrameTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PrimaryCCD.FrameTypeSP, states, names, n);
-            PrimaryCCD.FrameTypeSP.s = IPS_OK;
-            if (PrimaryCCD.FrameTypeS[0].s == ISS_ON)
+            PrimaryCCD.FrameTypeSP.update(states, names, n);
+            PrimaryCCD.FrameTypeSP.setState(IPS_OK);
+            if (PrimaryCCD.FrameTypeSP[CCDChip::LIGHT_FRAME].getState() == ISS_ON)
                 PrimaryCCD.setFrameType(CCDChip::LIGHT_FRAME);
-            else if (PrimaryCCD.FrameTypeS[1].s == ISS_ON)
+            else if (PrimaryCCD.FrameTypeSP[CCDChip::BIAS_FRAME].getState() == ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
                 if (HasShutter() == false)
                     DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
-            else if (PrimaryCCD.FrameTypeS[2].s == ISS_ON)
+            else if (PrimaryCCD.FrameTypeSP[CCDChip::DARK_FRAME].getState() == ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
                 if (HasShutter() == false)
                     DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
-            else if (PrimaryCCD.FrameTypeS[3].s == ISS_ON)
+            else if (PrimaryCCD.FrameTypeSP[CCDChip::FLAT_FRAME].getState() == ISS_ON)
                 PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateCCDFrameType(PrimaryCCD.getFrameType()) == false)
-                PrimaryCCD.FrameTypeSP.s = IPS_ALERT;
+                PrimaryCCD.FrameTypeSP.setState(IPS_ALERT);
 
-            IDSetSwitch(&PrimaryCCD.FrameTypeSP, nullptr);
+            PrimaryCCD.FrameTypeSP.apply();
 
             return true;
         }
 
         // Guide Chip Frame Type
-        if (strcmp(name, GuideCCD.FrameTypeSP.name) == 0)
+        if (GuideCCD.FrameTypeSP.isNameMatch(name))
         {
             //  Compression Update
-            IUUpdateSwitch(&GuideCCD.FrameTypeSP, states, names, n);
-            GuideCCD.FrameTypeSP.s = IPS_OK;
-            if (GuideCCD.FrameTypeS[0].s == ISS_ON)
+            GuideCCD.FrameTypeSP.update(states, names, n);
+            GuideCCD.FrameTypeSP.setState(IPS_OK);
+            if (GuideCCD.FrameTypeSP[CCDChip::LIGHT_FRAME].getState() == ISS_ON)
                 GuideCCD.setFrameType(CCDChip::LIGHT_FRAME);
-            else if (GuideCCD.FrameTypeS[1].s == ISS_ON)
+            else if (GuideCCD.FrameTypeSP[CCDChip::BIAS_FRAME].getState() == ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
                 if (HasShutter() == false)
                     DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
-            else if (GuideCCD.FrameTypeS[2].s == ISS_ON)
+            else if (GuideCCD.FrameTypeSP[CCDChip::DARK_FRAME].getState() == ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::DARK_FRAME);
                 if (HasShutter() == false)
                     DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
-            else if (GuideCCD.FrameTypeS[3].s == ISS_ON)
+            else if (GuideCCD.FrameTypeSP[CCDChip::FLAT_FRAME].getState() == ISS_ON)
                 GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateGuiderFrameType(GuideCCD.getFrameType()) == false)
-                GuideCCD.FrameTypeSP.s = IPS_ALERT;
+                GuideCCD.FrameTypeSP.setState(IPS_ALERT);
 
-            IDSetSwitch(&GuideCCD.FrameTypeSP, nullptr);
+            GuideCCD.FrameTypeSP.apply();
 
             return true;
         }

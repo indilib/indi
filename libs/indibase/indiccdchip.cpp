@@ -243,7 +243,7 @@ void CCDChip::setExposureDuration(double duration)
 
 const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
 {
-    return FrameTypeS[fType].name;
+    return FrameTypeSP[fType].getName();
 }
 
 const char *CCDChip::getExposureStartTime()
