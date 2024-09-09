@@ -185,7 +185,7 @@ class CCDChip
          */
         inline double getExposureLeft() const
         {
-            return ImageExposureN[0].value;
+            return ImageExposureNP[0].getValue();
         }
 
         /**
@@ -264,7 +264,7 @@ class CCDChip
          */
         INumberVectorProperty *getCCDInfo()
         {
-            return &ImagePixelSizeNP;
+            return ImagePixelSizeNP;
         }
 
         /**
@@ -399,7 +399,7 @@ class CCDChip
          */
         bool isExposing() const
         {
-            return (ImageExposureNP.s == IPS_BUSY);
+            return (ImageExposureNP.getState() == IPS_BUSY);
         }
 
         /**
@@ -486,8 +486,7 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Exposure Duration
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImageExposureNP;
-        INumber ImageExposureN[1];
+        INDI::PropertyNumber ImageExposureNP {1};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Abort Exposure
@@ -512,8 +511,7 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Resolution & Pixel Size data
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImagePixelSizeNP;
-        INumber ImagePixelSizeN[6];
+        INDI::PropertyNumber ImagePixelSizeNP {6};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Frame Type (Light, Bias..etc)

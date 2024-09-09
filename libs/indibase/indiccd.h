@@ -639,16 +639,19 @@ class CCD : public DefaultDevice, GuiderInterface
          * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
          * by the mount driver if specified. It is important to generate a proper FITS header.
          */
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+        INDI::PropertyNumber EqNP {2};
 
         /**
          * @brief J200EqNP Snoop property to read the equatorial J2000 coordinates of the mount.
          * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
          * by the mount driver if specified. It is important to generate a proper FITS header.
          */
-        INumberVectorProperty J2000EqNP;
-        INumber J2000EqN[2];
+        INDI::PropertyNumber J2000EqNP {2};
+        enum
+        {
+            Ra,
+            DEC,
+        };
 
         /**
          * @brief ActiveDeviceTP defines 4 devices the camera driver can listen to (snoop) for
@@ -733,8 +736,7 @@ class CCD : public DefaultDevice, GuiderInterface
         };
 
         // Websocket Support
-        ISwitch WebSocketS[2];
-        ISwitchVectorProperty WebSocketSP;
+        INDI::PropertySwitch WebSocketSP {2};
         enum
         {
             WEBSOCKET_ENABLED,
@@ -743,8 +745,7 @@ class CCD : public DefaultDevice, GuiderInterface
 
 
         // Websocket Settings
-        INumber WebSocketSettingsN[1];
-        INumberVectorProperty WebSocketSettingsNP;
+        INDI::PropertyNumber WebSocketSettingsNP {1};
         enum
         {
             WS_SETTINGS_PORT,
@@ -764,8 +765,7 @@ class CCD : public DefaultDevice, GuiderInterface
         INDI::PropertySwitch FastExposureToggleSP {2};
 
         // Fast Exposure Frame Count
-        INumber FastExposureCountN[1];
-        INumberVectorProperty FastExposureCountNP;
+        INDI::PropertyNumber FastExposureCountNP {1};
         double m_UploadTime = { 0 };
         std::chrono::system_clock::time_point FastExposureToggleStartup;
 

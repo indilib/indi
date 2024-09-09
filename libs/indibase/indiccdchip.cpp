@@ -93,10 +93,10 @@ void CCDChip::setResolution(uint32_t x, uint32_t y)
     XRes = x;
     YRes = y;
 
-    ImagePixelSizeN[0].value = x;
-    ImagePixelSizeN[1].value = y;
+    ImagePixelSizeNP[0].setValue(x);
+    ImagePixelSizeNP[1].setValue(y);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 
     ImageFrameNP[FRAME_X].setMin(0);
     ImageFrameNP[FRAME_X].setMax(x - 1);
@@ -152,15 +152,15 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
         }
     };
 
-    if (!strcmp(property, ImageExposureNP.name))
-        nvp = &ImageExposureNP;
+    if (ImageExposureNP.isNameMatch(property))
+        updateMinMaxStep(ImageExposureNP);
     else if (ImageFrameNP.isNameMatch(property))
         updateMinMaxStep(ImageFrameNP);
     else if (ImageBinNP.isNameMatch(property))
         updateMinMaxStep(ImageBinNP);
 
-    else if (!strcmp(property, ImagePixelSizeNP.name))
-        nvp = &ImagePixelSizeNP;
+    else if (ImagePixelSizeNP.isNameMatch(property))
+        updateMinMaxStep(ImagePixelSizeNP);
     //    else if (!strcmp(property, RapidGuideDataNP.name))
     //        nvp = &RapidGuideDataNP;
     else
@@ -183,20 +183,20 @@ void CCDChip::setPixelSize(double x, double y)
     PixelSizeX = x;
     PixelSizeY = y;
 
-    ImagePixelSizeN[2].value = x;
-    ImagePixelSizeN[3].value = x;
-    ImagePixelSizeN[4].value = y;
+    ImagePixelSizeNP[2].setValue(x);
+    ImagePixelSizeNP[3].setValue(x);
+    ImagePixelSizeNP[4].setValue(y);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 }
 
 void CCDChip::setBPP(uint8_t bbp)
 {
     BitsPerPixel = bbp;
 
-    ImagePixelSizeN[5].value = BitsPerPixel;
+    ImagePixelSizeNP[5].setValue(BitsPerPixel);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 }
 
 void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
@@ -223,16 +223,16 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
 
 void CCDChip::setExposureLeft(double duration)
 {
-    ImageExposureNP.s = IPS_BUSY;
-    ImageExposureN[0].value = duration;
-    IDSetNumber(&ImageExposureNP, nullptr);
+    ImageExposureNP.setState(IPS_BUSY);
+    ImageExposureNP[0].setValue(duration);
+    ImageExposureNP.apply();
 }
 
 void CCDChip::setExposureComplete()
 {
-    ImageExposureNP.s = IPS_OK;
-    ImageExposureN[0].value = 0;
-    IDSetNumber(&ImageExposureNP, nullptr);
+    ImageExposureNP.setState(IPS_OK);
+    ImageExposureNP[0].setValue(0);
+    ImageExposureNP.apply();
 }
 
 void CCDChip::setExposureDuration(double duration)
@@ -275,8 +275,8 @@ const char *CCDChip::getExposureStartTime()
 
 void CCDChip::setExposureFailed()
 {
-    ImageExposureNP.s = IPS_ALERT;
-    IDSetNumber(&ImageExposureNP, nullptr);
+    ImageExposureNP.setState(IPS_ALERT);
+    ImageExposureNP.apply();
 }
 
 int CCDChip::getNAxis() const

@@ -185,8 +185,8 @@ bool CCD::initProperties()
                        "Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Primary CCD Exposure
-    IUFillNumber(&PrimaryCCD.ImageExposureN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
-    IUFillNumberVector(&PrimaryCCD.ImageExposureNP, PrimaryCCD.ImageExposureN, 1, getDeviceName(), "CCD_EXPOSURE",
+    PrimaryCCD.ImageExposureNP[0].fill("CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
+    PrimaryCCD.ImageExposureNP.fill(getDeviceName(), "CCD_EXPOSURE",
                        "Expose", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Abort
@@ -201,17 +201,17 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_X].fill("CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_Y].fill("CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE].fill("CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_X].fill("CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_Y].fill("CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
+    PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_BITSPERPIXEL].fill("CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
                  8, 64, 0, 0);
-    IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP, PrimaryCCD.ImagePixelSizeN, 6, getDeviceName(), "CCD_INFO",
+    PrimaryCCD.ImagePixelSizeNP.fill(getDeviceName(), "CCD_INFO",
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     // Primary CCD Compression Options
@@ -276,17 +276,17 @@ bool CCD::initProperties()
     GuideCCD.ImageBinNP.fill(getDeviceName(), "GUIDER_BINNING", "Binning",
                        GUIDE_HEAD_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_X].fill("CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_Y].fill("CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE].fill("CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_X].fill("CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_Y].fill("CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f", 8,
+    GuideCCD.ImagePixelSizeNP[CCDChip::CCD_BITSPERPIXEL].fill("CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f", 8,
                  64, 0, 0);
-    IUFillNumberVector(&GuideCCD.ImagePixelSizeNP, GuideCCD.ImagePixelSizeN, 6, getDeviceName(), "GUIDER_INFO",
+    GuideCCD.ImagePixelSizeNP.fill(getDeviceName(), "GUIDER_INFO",
                        "Info", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0], "FRAME_LIGHT", "Light", ISS_ON);
@@ -296,8 +296,8 @@ bool CCD::initProperties()
     IUFillSwitchVector(&GuideCCD.FrameTypeSP, GuideCCD.FrameTypeS, 4, getDeviceName(), "GUIDER_FRAME_TYPE",
                        "Type", GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImageExposureN[0], "GUIDER_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
-    IUFillNumberVector(&GuideCCD.ImageExposureNP, GuideCCD.ImageExposureN, 1, getDeviceName(), "GUIDER_EXPOSURE",
+    GuideCCD.ImageExposureNP[0].fill("GUIDER_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
+    GuideCCD.ImageExposureNP.fill(getDeviceName(), "GUIDER_EXPOSURE",
                        "Guide Head", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0], "ABORT", "Abort", ISS_OFF);
@@ -422,20 +422,20 @@ bool CCD::initProperties()
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Should loop until the number of frames specified in this property is completed
-    IUFillNumber(&FastExposureCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&FastExposureCountNP, FastExposureCountN, 1, getDeviceName(), "CCD_FAST_COUNT", "Fast Count",
+    FastExposureCountNP[0].fill("FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
+    FastExposureCountNP.fill(getDeviceName(), "CCD_FAST_COUNT", "Fast Count",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /**********************************************/
     /**************** Web Socket ******************/
     /**********************************************/
-    IUFillSwitch(&WebSocketS[WEBSOCKET_ENABLED], "WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&WebSocketS[WEBSOCKET_DISABLED], "WEBSOCKET_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&WebSocketSP, WebSocketS, 2, getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
+    WebSocketSP[WEBSOCKET_ENABLED].fill("WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
+    WebSocketSP[WEBSOCKET_DISABLED].fill("WEBSOCKET_DISABLED", "Disabled", ISS_ON);
+    WebSocketSP.fill(getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&WebSocketSettingsN[WS_SETTINGS_PORT], "WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
-    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
+    WebSocketSettingsNP[WS_SETTINGS_PORT].fill("WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
+    WebSocketSettingsNP.fill(getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
                        OPTIONS_TAB, IP_RW,
                        60, IPS_IDLE);
 
@@ -467,14 +467,14 @@ bool CCD::initProperties()
 
     auto mount = ActiveDeviceTP[ACTIVE_TELESCOPE].getText() ? ActiveDeviceTP[ACTIVE_TELESCOPE].getText() : "";
     // Snooped RA/DEC Property
-    IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, mount, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW, 60, IPS_IDLE);
+    EqNP[Ra].fill("RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqNP[DEC].fill("DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqNP.fill(mount, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW, 60, IPS_IDLE);
 
     // Snooped J2000 RA/DEC Property
-    IUFillNumber(&J2000EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&J2000EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&J2000EqNP, J2000EqN, 2, mount, "EQUATORIAL_COORD", "J2000 EQ Coord",
+    J2000EqNP[Ra].fill("RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    J2000EqNP[DEC].fill("DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    J2000EqNP.fill(mount, "EQUATORIAL_COORD", "J2000 EQ Coord",
                        "Main Control", IP_RW,
                        60, IPS_IDLE);
 
@@ -530,7 +530,7 @@ bool CCD::updateProperties()
     //IDLog("CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineProperty(&PrimaryCCD.ImageExposureNP);
+        defineProperty(PrimaryCCD.ImageExposureNP);
 
         if (CanAbort())
             defineProperty(&PrimaryCCD.AbortExposureSP);
@@ -548,7 +548,7 @@ bool CCD::updateProperties()
 
         if (HasGuideHead())
         {
-            defineProperty(&GuideCCD.ImageExposureNP);
+            defineProperty(GuideCCD.ImageExposureNP);
             if (CanAbort())
                 defineProperty(&GuideCCD.AbortExposureSP);
             if (CanSubFrame() == false)
@@ -565,10 +565,10 @@ bool CCD::updateProperties()
         defineProperty(CaptureFormatSP);
         defineProperty(EncodeFormatSP);
 
-        defineProperty(&PrimaryCCD.ImagePixelSizeNP);
+        defineProperty(PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
         {
-            defineProperty(&GuideCCD.ImagePixelSizeNP);
+            defineProperty(GuideCCD.ImagePixelSizeNP);
             if (CanBin())
                 defineProperty(GuideCCD.ImageBinNP);
         }
@@ -623,7 +623,7 @@ bool CCD::updateProperties()
 #endif
 
         defineProperty(FastExposureToggleSP);
-        defineProperty(&FastExposureCountNP);
+        defineProperty(FastExposureCountNP);
     }
     else
     {
@@ -631,7 +631,7 @@ bool CCD::updateProperties()
         if (CanBin() || CanSubFrame())
             deleteProperty(PrimaryCCD.ResetSP.name);
 
-        deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
+        deleteProperty(PrimaryCCD.ImagePixelSizeNP);
 
         deleteProperty(CaptureFormatSP.getName());
         deleteProperty(EncodeFormatSP.getName());
@@ -639,7 +639,7 @@ bool CCD::updateProperties()
         if (CanBin())
             deleteProperty(PrimaryCCD.ImageBinNP);
 
-        deleteProperty(PrimaryCCD.ImageExposureNP.name);
+        deleteProperty(PrimaryCCD.ImageExposureNP);
         if (CanAbort())
             deleteProperty(PrimaryCCD.AbortExposureSP.name);
         deleteProperty(PrimaryCCD.FitsBP.name);
@@ -658,11 +658,11 @@ bool CCD::updateProperties()
 
         if (HasGuideHead())
         {
-            deleteProperty(GuideCCD.ImageExposureNP.name);
+            deleteProperty(GuideCCD.ImageExposureNP);
             if (CanAbort())
                 deleteProperty(GuideCCD.AbortExposureSP.name);
             deleteProperty(GuideCCD.ImageFrameNP);
-            deleteProperty(GuideCCD.ImagePixelSizeNP.name);
+            deleteProperty(GuideCCD.ImagePixelSizeNP);
 
             deleteProperty(GuideCCD.FitsBP.name);
             if (CanBin())
@@ -709,7 +709,7 @@ bool CCD::updateProperties()
         }
 #endif
         deleteProperty(FastExposureToggleSP);
-        deleteProperty(FastExposureCountNP.name);
+        deleteProperty(FastExposureCountNP);
     }
 
     // Streamer
@@ -729,32 +729,34 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     auto propName = findXMLAttValu(root, "name");
     auto deviceName = std::string(findXMLAttValu(root, "device"));
 
-    if (IUSnoopNumber(root, &EqNP) == 0)
-    {
-        double newra, newdec;
-        newra  = EqN[0].value;
-        newdec = EqN[1].value;
-        if ((newra != RA) || (newdec != Dec))
-        {
-            //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
-            RA  = newra;
-            Dec = newdec;
-        }
-    }
-    else if (IUSnoopNumber(root, &J2000EqNP) == 0)
-    {
-        float newra, newdec;
-        newra  = J2000EqN[0].value;
-        newdec = J2000EqN[1].value;
-        if ((newra != J2000RA) || (newdec != J2000DE))
-        {
-            //    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
-            J2000RA = newra;
-            J2000DE = newdec;
-        }
-        J2000Valid = true;
-    }
-    else if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
+    // FixMe:// Uncomment Snoop conditions once Snoop property is added
+    // if (IUSnoopNumber(root, &EqNP) == 0)
+    // {
+    //     double newra, newdec;
+    //     newra  = EqNP[Ra].getValue();
+    //     newdec = EqNP[DEC].getValue();
+    //     if ((newra != RA) || (newdec != Dec))
+    //     {
+    //         //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
+    //         RA  = newra;
+    //         Dec = newdec;
+    //     }
+    // }
+    // else if (IUSnoopNumber(root, &J2000EqNP) == 0)
+    // {
+    //     float newra, newdec;
+    //     newra  = J2000EqNP[Ra].getValue();
+    //     newdec = J2000EqNP[DEC].getValue();
+    //     if ((newra != J2000RA) || (newdec != J2000DE))
+    //     {
+    //         //    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
+    //         J2000RA = newra;
+    //         J2000DE = newdec;
+    //     }
+    //     J2000Valid = true;
+    // }
+    // else
+    if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
     {
         // set default to say we have no valid information from mount
         pierSide = -1;
@@ -895,8 +897,9 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             ActiveDeviceTP.apply();
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
-            strncpy(J2000EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
+            // strncpy(EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
+            EqNP.setDeviceName(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
+            J2000EqNP.setDeviceName(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
             if (strlen(ActiveDeviceTP[ACTIVE_TELESCOPE].getText()) > 0)
             {
                 LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
@@ -1085,23 +1088,23 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         if (!strcmp(name, "CCD_EXPOSURE"))
         {
             if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME &&
-                    (values[0] < PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
+                (values[0] < PrimaryCCD.ImageExposureNP[0].getMin() || values[0] > PrimaryCCD.ImageExposureNP[0].getMax()))
             {
                 LOGF_ERROR("Requested exposure value (%g) seconds out of bounds [%g,%g].",
-                           values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
-                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                           values[0], PrimaryCCD.ImageExposureNP[0].getMin(), PrimaryCCD.ImageExposureNP[0].getMax());
+                PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageExposureNP.apply();
                 return false;
             }
 
             if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
-                PrimaryCCD.ImageExposureN[0].value = ExposureTime = PrimaryCCD.ImageExposureN[0].min;
+                PrimaryCCD.ImageExposureNP[0].setValue(ExposureTime = PrimaryCCD.ImageExposureNP[0].getMin());
             else
-                PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
+                PrimaryCCD.ImageExposureNP[0].setValue(ExposureTime = values[0]);
 
             // Only abort when busy if we are not already in an exposure loops
             //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
-            if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
+            if (PrimaryCCD.ImageExposureNP.getState() == IPS_BUSY)
             {
                 if (CanAbort() && AbortExposure() == false)
                     DEBUG(Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
@@ -1109,39 +1112,39 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             if (StartExposure(ExposureTime))
             {
-                PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                PrimaryCCD.ImageExposureNP.setState(IPS_BUSY);
                 if (ExposureTime * 1000 < getCurrentPollingPeriod())
                     setCurrentPollingPeriod(ExposureTime * 950);
             }
             else
-                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
+            PrimaryCCD.ImageExposureNP.apply();
             return true;
         }
 
         if (!strcmp(name, "GUIDER_EXPOSURE"))
         {
             if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME &&
-                    (values[0] < GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
+                    (values[0] < GuideCCD.ImageExposureNP[0].getMin() || values[0] > GuideCCD.ImageExposureNP[0].getMax()))
             {
                 LOGF_ERROR("Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
-                           values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
-                GuideCCD.ImageExposureNP.s = IPS_ALERT;
-                IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
+                           values[0], GuideCCD.ImageExposureNP[0].getMin(), GuideCCD.ImageExposureNP[0].getMax());
+                GuideCCD.ImageExposureNP.setState(IPS_ALERT);
+                GuideCCD.ImageExposureNP.apply();
                 return false;
             }
 
             if (GuideCCD.getFrameType() == CCDChip::BIAS_FRAME)
-                GuideCCD.ImageExposureN[0].value = GuiderExposureTime = GuideCCD.ImageExposureN[0].min;
+                GuideCCD.ImageExposureNP[0].setValue(GuiderExposureTime = GuideCCD.ImageExposureNP[0].getMin());
             else
-                GuideCCD.ImageExposureN[0].value = GuiderExposureTime = values[0];
+                GuideCCD.ImageExposureNP[0].setValue(GuiderExposureTime = values[0]);
 
-            GuideCCD.ImageExposureNP.s = IPS_BUSY;
+            GuideCCD.ImageExposureNP.setState(IPS_BUSY);
             if (StartGuideExposure(GuiderExposureTime))
-                GuideCCD.ImageExposureNP.s = IPS_BUSY;
+                GuideCCD.ImageExposureNP.setState(IPS_BUSY);
             else
-                GuideCCD.ImageExposureNP.s = IPS_ALERT;
-            IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
+                GuideCCD.ImageExposureNP.setState(IPS_ALERT);
+            GuideCCD.ImageExposureNP.apply();
             return true;
         }
 
@@ -1326,11 +1329,11 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 #endif
         // Fast Exposure Count
-        if (!strcmp(name, FastExposureCountNP.name))
+        if (FastExposureCountNP.isNameMatch(name))
         {
-            IUUpdateNumber(&FastExposureCountNP, values, names, n);
-            FastExposureCountNP.s = IPS_OK;
-            IDSetNumber(&FastExposureCountNP, nullptr);
+            FastExposureCountNP.update(values, names, n);
+            FastExposureCountNP.setState(IPS_OK);
+            FastExposureCountNP.apply();
             return true;
         }
 
@@ -1403,35 +1406,35 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 
         // Primary CCD Info
-        if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
+        if (PrimaryCCD.ImagePixelSizeNP.isNameMatch(name))
         {
-            if (IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n) == 0)
+            if (PrimaryCCD.ImagePixelSizeNP.update(values, names, n) == 0)
             {
-                PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-                SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value,
+                PrimaryCCD.ImagePixelSizeNP.setState(IPS_OK);
+                SetCCDParams(PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_X].getValue(),
+                             PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_Y].getValue(),
                              PrimaryCCD.getBPP(),
-                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
-                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.name);
+                             PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_X].getValue(),
+                             PrimaryCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_Y].getValue());
+                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.getName());
             }
             else
-                PrimaryCCD.ImagePixelSizeNP.s = IPS_ALERT;
+                PrimaryCCD.ImagePixelSizeNP.setState(IPS_ALERT);
 
-            IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
+            PrimaryCCD.ImagePixelSizeNP.apply();
             return true;
         }
 
         // Guide CCD Info
-        if (!strcmp(name, GuideCCD.ImagePixelSizeNP.name))
+        if (GuideCCD.ImagePixelSizeNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
-            GuideCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                            GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, GuideCCD.getBPP(),
-                            GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                            GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
-            IDSetNumber(&GuideCCD.ImagePixelSizeNP, nullptr);
+            GuideCCD.ImagePixelSizeNP.update(values, names, n);
+            GuideCCD.ImagePixelSizeNP.setState(IPS_OK);
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_X].getValue(),
+                            GuideCCD.ImagePixelSizeNP[CCDChip::CCD_MAX_Y].getValue(), GuideCCD.getBPP(),
+                            GuideCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_X].getValue(),
+                            GuideCCD.ImagePixelSizeNP[CCDChip::CCD_PIXEL_SIZE_Y].getValue());
+            GuideCCD.ImagePixelSizeNP.apply();
             saveConfig(true);
             return true;
         }
@@ -1515,8 +1518,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (FastExposureToggleSP[INDI_DISABLED].getState() == ISS_ON)
             {
-                FastExposureCountNP.s = IPS_IDLE;
-                IDSetNumber(&FastExposureCountNP, nullptr);
+                FastExposureCountNP.setState(IPS_IDLE);
+                FastExposureCountNP.apply();
                 m_UploadTime = 0;
                 if (PrimaryCCD.isExposing())
                     AbortExposure();
@@ -1597,28 +1600,28 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (AbortExposure())
             {
                 PrimaryCCD.AbortExposureSP.s       = IPS_OK;
-                PrimaryCCD.ImageExposureNP.s       = IPS_IDLE;
-                PrimaryCCD.ImageExposureN[0].value = 0;
+                PrimaryCCD.ImageExposureNP.setState(IPS_IDLE);
+                PrimaryCCD.ImageExposureNP[0].setValue(0);
             }
             else
             {
                 PrimaryCCD.AbortExposureSP.s = IPS_ALERT;
-                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
+                PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
             }
 
             setCurrentPollingPeriod(getPollingPeriod());
 
             // Fast Exposure Count
-            if (FastExposureCountNP.s == IPS_BUSY)
+            if (FastExposureCountNP.getState() == IPS_BUSY)
             {
                 m_UploadTime = 0;
-                FastExposureCountNP.s = IPS_IDLE;
-                FastExposureCountN[0].value = 1;
-                IDSetNumber(&FastExposureCountNP, nullptr);
+                FastExposureCountNP.setState(IPS_IDLE);
+                FastExposureCountNP[0].setValue(1);
+                FastExposureCountNP.apply();
             }
 
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+            PrimaryCCD.ImageExposureNP.apply();
 
             return true;
         }
@@ -1631,17 +1634,17 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (AbortGuideExposure())
             {
                 GuideCCD.AbortExposureSP.s       = IPS_OK;
-                GuideCCD.ImageExposureNP.s       = IPS_IDLE;
-                GuideCCD.ImageExposureN[0].value = 0;
+                GuideCCD.ImageExposureNP.setState(IPS_IDLE);
+                GuideCCD.ImageExposureNP[0].setValue(0);
             }
             else
             {
                 GuideCCD.AbortExposureSP.s = IPS_ALERT;
-                GuideCCD.ImageExposureNP.s = IPS_ALERT;
+                GuideCCD.ImageExposureNP.setState(IPS_ALERT);
             }
 
             IDSetSwitch(&GuideCCD.AbortExposureSP, nullptr);
-            IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
+            GuideCCD.ImageExposureNP.apply();
 
             return true;
         }
@@ -2704,11 +2707,11 @@ bool CCD::processFastExposure(CCDChip * targetChip)
         double duration = targetChip->getExposureDuration();
 
         // Check fast exposure count
-        if (FastExposureCountN[0].value > 1)
+        if (FastExposureCountNP[0].getValue() > 1)
         {
             if (UploadS[UPLOAD_LOCAL].s != ISS_ON)
             {
-                if (FastExposureCountNP.s != IPS_BUSY)
+                if (FastExposureCountNP.getState() != IPS_BUSY)
                 {
                     FastExposureToggleStartup = std::chrono::system_clock::now();
                 }
@@ -2724,16 +2727,16 @@ bool CCD::processFastExposure(CCDChip * targetChip)
                 }
             }
 
-            FastExposureCountNP.s = IPS_BUSY;
-            FastExposureCountN[0].value--;
-            IDSetNumber(&FastExposureCountNP, nullptr);
+            FastExposureCountNP.setState(IPS_BUSY);
+            FastExposureCountNP[0].setValue(FastExposureCountNP[0].getValue() - 1);
+            FastExposureCountNP.apply();
 
             if (UploadS[UPLOAD_LOCAL].s == ISS_ON || m_UploadTime < duration)
             {
                 if (StartExposure(duration))
-                    PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                    PrimaryCCD.ImageExposureNP.setState(IPS_BUSY);
                 else
-                    PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
+                    PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
                 if (duration * 1000 < getCurrentPollingPeriod())
                     setCurrentPollingPeriod(duration * 950);
             }
@@ -2742,11 +2745,11 @@ bool CCD::processFastExposure(CCDChip * targetChip)
                 LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.",
                            m_UploadTime,
                            duration);
-                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                FastExposureCountN[0].value = 1;
-                FastExposureCountNP.s = IPS_IDLE;
-                IDSetNumber(&FastExposureCountNP, nullptr);
+                PrimaryCCD.ImageExposureNP.setState(IPS_ALERT);
+                PrimaryCCD.ImageExposureNP.apply();
+                FastExposureCountNP[0].setValue(1);
+                FastExposureCountNP.setState(IPS_IDLE);
+                FastExposureCountNP.apply();
                 m_UploadTime = 0;
                 return false;
             }
@@ -2754,8 +2757,8 @@ bool CCD::processFastExposure(CCDChip * targetChip)
         else
         {
             m_UploadTime = 0;
-            FastExposureCountNP.s = IPS_IDLE;
-            IDSetNumber(&FastExposureCountNP, nullptr);
+            FastExposureCountNP.setState(IPS_IDLE);
+            FastExposureCountNP.apply();
         }
     }
 
