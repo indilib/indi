@@ -2813,8 +2813,8 @@ bool CCD::saveConfigItems(FILE * fp)
 
     PrimaryCCD.CompressSP.save(fp);
 
-    if (PrimaryCCD.getCCDInfo() != IP_RO)
-        IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
+    if (PrimaryCCD.getCCDInfo().getPermission() != IP_RO)
+        PrimaryCCD.getCCDInfo().save(fp);
     CaptureFormatSP.save(fp);
     EncodeFormatSP.save(fp);
 
