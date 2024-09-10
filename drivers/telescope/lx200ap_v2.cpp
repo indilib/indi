@@ -63,7 +63,7 @@ enum APPECRecordingState
 };
 
 // maximum guide pulse request to send to controller
-#define MAX_LX200AP_PULSE_LEN 999
+#define MAX_LX200AP_PULSE_LEN 999u
 
 // The workaround for long pulses doesn't work!
 // #define DONT_SIMULATE_LONG_PULSES true
@@ -1267,11 +1267,8 @@ IPState LX200AstroPhysicsV2::GuideNorth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (ms > MAX_LX200AP_PULSE_LEN)
-    {
-        LOGF_DEBUG("GuideNorth truncating %dms pulse to %dms", ms, MAX_LX200AP_PULSE_LEN);
-        ms = MAX_LX200AP_PULSE_LEN;
-    }
+    ms = std::clamp(ms, 1u, MAX_LX200AP_PULSE_LEN);
+
     if (usePulseCommand)
     {
         APSendPulseCmd(PortFD, LX200_NORTH, ms);
@@ -1299,11 +1296,9 @@ IPState LX200AstroPhysicsV2::GuideSouth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (ms > MAX_LX200AP_PULSE_LEN)
-    {
-        LOGF_DEBUG("GuideSouth truncating %dms pulse to %dms", ms, MAX_LX200AP_PULSE_LEN);
-        ms = MAX_LX200AP_PULSE_LEN;
-    }
+    // Clamp to within 1 to 9999
+    ms = std::clamp(ms, 1u, MAX_LX200AP_PULSE_LEN);
+
     if (usePulseCommand)
     {
         APSendPulseCmd(PortFD, LX200_SOUTH, ms);
@@ -1331,11 +1326,9 @@ IPState LX200AstroPhysicsV2::GuideEast(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (ms > MAX_LX200AP_PULSE_LEN)
-    {
-        LOGF_DEBUG("GuideEast truncating %dms pulse to %dms", ms, MAX_LX200AP_PULSE_LEN);
-        ms = MAX_LX200AP_PULSE_LEN;
-    }
+    // Clamp to within 1 to 9999
+    ms = std::clamp(ms, 1u, MAX_LX200AP_PULSE_LEN);
+
     if (usePulseCommand)
     {
         APSendPulseCmd(PortFD, LX200_EAST, ms);
@@ -1363,11 +1356,9 @@ IPState LX200AstroPhysicsV2::GuideWest(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (ms > MAX_LX200AP_PULSE_LEN)
-    {
-        LOGF_DEBUG("GuideWest truncating %dms pulse to %dms", ms, MAX_LX200AP_PULSE_LEN);
-        ms = MAX_LX200AP_PULSE_LEN;
-    }
+    // Clamp to within 1 to 9999
+    ms = std::clamp(ms, 1u, MAX_LX200AP_PULSE_LEN);
+
     if (usePulseCommand)
     {
         APSendPulseCmd(PortFD, LX200_WEST, ms);
