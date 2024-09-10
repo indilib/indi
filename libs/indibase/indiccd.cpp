@@ -729,34 +729,32 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     auto propName = findXMLAttValu(root, "name");
     auto deviceName = std::string(findXMLAttValu(root, "device"));
 
-    // FixMe:// Uncomment Snoop conditions once Snoop property is added
-    // if (IUSnoopNumber(root, &EqNP) == 0)
-    // {
-    //     double newra, newdec;
-    //     newra  = EqNP[Ra].getValue();
-    //     newdec = EqNP[DEC].getValue();
-    //     if ((newra != RA) || (newdec != Dec))
-    //     {
-    //         //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
-    //         RA  = newra;
-    //         Dec = newdec;
-    //     }
-    // }
-    // else if (IUSnoopNumber(root, &J2000EqNP) == 0)
-    // {
-    //     float newra, newdec;
-    //     newra  = J2000EqNP[Ra].getValue();
-    //     newdec = J2000EqNP[DEC].getValue();
-    //     if ((newra != J2000RA) || (newdec != J2000DE))
-    //     {
-    //         //    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
-    //         J2000RA = newra;
-    //         J2000DE = newdec;
-    //     }
-    //     J2000Valid = true;
-    // }
-    // else
-    if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
+    if ((EqNP.snoop(root)))
+    {
+        double newra, newdec;
+        newra  = EqNP[Ra].getValue();
+        newdec = EqNP[DEC].getValue();
+        if ((newra != RA) || (newdec != Dec))
+        {
+            //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
+            RA  = newra;
+            Dec = newdec;
+        }
+    }
+    else if (J2000EqNP.snoop(root))
+    {
+        float newra, newdec;
+        newra  = J2000EqNP[Ra].getValue();
+        newdec = J2000EqNP[DEC].getValue();
+        if ((newra != J2000RA) || (newdec != J2000DE))
+        {
+            //    	    IDLog("J2000 RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",J2000RA,J2000DE,newra,newdec);
+            J2000RA = newra;
+            J2000DE = newdec;
+        }
+        J2000Valid = true;
+    }
+    else if (!strcmp("TELESCOPE_PIER_SIDE", propName) && deviceName == ActiveDeviceTP[ACTIVE_TELESCOPE].getText())
     {
         // set default to say we have no valid information from mount
         pierSide = -1;
