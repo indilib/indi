@@ -290,7 +290,7 @@ template <typename T>
 bool PropertyBasic<T>::snoop(XMLEle *root)
 {
     D_PTR(const PropertyBasic);
-    d->typedProperty.snoop(root);
+    return d->typedProperty.snoop(root);
 }
 
 template <typename T>
