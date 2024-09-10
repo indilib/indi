@@ -250,6 +250,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
     public: // only driver side
         bool load();
         void save(FILE *f) const;                              /* outside implementation */
+        bool snoop(XMLEle *root);                              /* outside implementation */
 
         void vapply(const char *format, va_list args)
         const;   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
@@ -1240,6 +1241,36 @@ template <>
 inline void PropertyView<IBLOB>::save(FILE *f) const
 {
     IUSaveConfigBLOB(f, this);
+}
+
+template <>
+inline bool PropertyView<INumber>::snoop(XMLEle *root)
+{
+    return IUSnoopNumber(root, this) == 0;
+}
+
+template <>
+inline bool PropertyView<IText>::snoop(XMLEle *root)
+{
+    return IUSnoopText(root, this) == 0;
+}
+
+template <>
+inline bool PropertyView<ISwitch>::snoop(XMLEle *root)
+{
+    return IUSnoopSwitch(root, this) == 0;
+}
+
+template <>
+inline bool PropertyView<ILight>::snoop(XMLEle *root)
+{
+    return IUSnoopLight(root, this) == 0;
+}
+
+template <>
+inline bool PropertyView<IBLOB>::snoop(XMLEle *root)
+{
+    return IUSnoopBLOB(root, this) == 0;
 }
 
 template <typename T>
