@@ -20,7 +20,9 @@
 
 #include "indiapi.h"
 #include "indidriver.h"
-#include <indipropertyswitch.h>
+#include "indipropertyswitch.h"
+#include "indipropertyblob.h"
+
 #include "indipropertynumber.h"
 
 #include <sys/time.h>
@@ -263,7 +265,7 @@ class CCDChip
         /**
          * @brief Return CCD Info Property
          */
-        INumberVectorProperty *getCCDInfo()
+        INDI::PropertyNumber getCCDInfo()
         {
             return ImagePixelSizeNP;
         }
@@ -522,12 +524,10 @@ class CCDChip
         /// Compression Toggle
         /////////////////////////////////////////////////////////////////////////////////////////
         INDI::PropertySwitch CompressSP {2};
-
         /////////////////////////////////////////////////////////////////////////////////////////
         /// FITS Binary Data
         /////////////////////////////////////////////////////////////////////////////////////////
-        IBLOBVectorProperty FitsBP;
-        IBLOB FitsB;
+        INDI::PropertyBlob FitsBP;
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Reset ROI Frame to Full Resolution

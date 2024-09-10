@@ -222,8 +222,8 @@ bool CCD::initProperties()
     PrimaryCCD.SendCompressed = false;
 
     // Primary CCD Chip Data Blob
-    IUFillBLOB(&PrimaryCCD.FitsB, "CCD1", "Image", "");
-    IUFillBLOBVector(&PrimaryCCD.FitsBP, &PrimaryCCD.FitsB, 1, getDeviceName(), "CCD1", "Image Data", IMAGE_INFO_TAB,
+    PrimaryCCD.FitsBP[0].fill("CCD1", "Image", "");
+    PrimaryCCD.FitsBP.fill(getDeviceName(), "CCD1", "Image Data", IMAGE_INFO_TAB,
                      IP_RO, 60, IPS_IDLE);
 
     // Bayer
@@ -310,8 +310,8 @@ bool CCD::initProperties()
                        GUIDE_HEAD_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
-    IUFillBLOB(&GuideCCD.FitsB, "CCD2", "Guider Image", "");
-    IUFillBLOBVector(&GuideCCD.FitsBP, &GuideCCD.FitsB, 1, getDeviceName(), "CCD2", "Image Data", IMAGE_INFO_TAB, IP_RO,
+    GuideCCD.FitsBP[0].fill("CCD2", "Guider Image", "");
+    GuideCCD.FitsBP.fill(getDeviceName(), "CCD2", "Image Data", IMAGE_INFO_TAB, IP_RO,
                      60, IPS_IDLE);
 
     /**********************************************/
@@ -573,11 +573,11 @@ bool CCD::updateProperties()
                 defineProperty(GuideCCD.ImageBinNP);
         }
         defineProperty(PrimaryCCD.CompressSP);
-        defineProperty(&PrimaryCCD.FitsBP);
+        defineProperty(PrimaryCCD.FitsBP);
         if (HasGuideHead())
         {
             defineProperty(GuideCCD.CompressSP);
-            defineProperty(&GuideCCD.FitsBP);
+            defineProperty(GuideCCD.FitsBP);
         }
         if (HasST4Port())
         {
@@ -642,7 +642,7 @@ bool CCD::updateProperties()
         deleteProperty(PrimaryCCD.ImageExposureNP);
         if (CanAbort())
             deleteProperty(PrimaryCCD.AbortExposureSP);
-        deleteProperty(PrimaryCCD.FitsBP.name);
+        deleteProperty(PrimaryCCD.FitsBP);
         deleteProperty(PrimaryCCD.CompressSP);
 
 #if 0
@@ -664,7 +664,7 @@ bool CCD::updateProperties()
             deleteProperty(GuideCCD.ImageFrameNP);
             deleteProperty(GuideCCD.ImagePixelSizeNP);
 
-            deleteProperty(GuideCCD.FitsBP.name);
+            deleteProperty(GuideCCD.FitsBP);
             if (CanBin())
                 deleteProperty(GuideCCD.ImageBinNP);
             deleteProperty(GuideCCD.CompressSP);
@@ -1098,9 +1098,15 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             }
 
             if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
-                PrimaryCCD.ImageExposureNP[0].setValue(ExposureTime = PrimaryCCD.ImageExposureNP[0].getMin());
+            {
+                ExposureTime = PrimaryCCD.ImageExposureNP[0].getMin();
+                PrimaryCCD.ImageExposureNP[0].setValue(PrimaryCCD.ImageExposureNP[0].getMin());
+            }
             else
-                PrimaryCCD.ImageExposureNP[0].setValue(ExposureTime = values[0]);
+            {
+                ExposureTime = values[0];
+                PrimaryCCD.ImageExposureNP[0].setValue(values[0]);
+            }
 
             // Only abort when busy if we are not already in an exposure loops
             //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && FastExposureToggleS[INDI_DISABLED].s == ISS_ON)
@@ -1135,9 +1141,15 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             }
 
             if (GuideCCD.getFrameType() == CCDChip::BIAS_FRAME)
-                GuideCCD.ImageExposureNP[0].setValue(GuiderExposureTime = GuideCCD.ImageExposureNP[0].getMin());
+            {
+                GuiderExposureTime = GuideCCD.ImageExposureNP[0].getMin();
+                GuideCCD.ImageExposureNP[0].setValue(GuideCCD.ImageExposureNP[0].getMin());
+            }
             else
-                GuideCCD.ImageExposureNP[0].setValue(GuiderExposureTime = values[0]);
+            {
+                GuiderExposureTime = values[0];
+                GuideCCD.ImageExposureNP[0].setValue(values[0]);
+            }
 
             GuideCCD.ImageExposureNP.setState(IPS_BUSY);
             if (StartGuideExposure(GuiderExposureTime))
@@ -2543,16 +2555,16 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (saveImage)
     {
-        targetChip->FitsB.blob    = const_cast<void *>(fitsData);
-        targetChip->FitsB.bloblen = totalBytes;
-        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
-
+        targetChip->FitsBP[0].setBlob(const_cast<void *>(fitsData));
+        targetChip->FitsBP[0].setBlobLen(totalBytes);
+        std::string format = "." + std::string(targetChip->getImageExtension());
+        targetChip->FitsBP[0].setFormat(format);
         FILE * fp = nullptr;
         char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
         int maxIndex       = getFileIndex(UploadSettingsTP[UPLOAD_DIR].getText(), UploadSettingsTP[UPLOAD_PREFIX].getText(),
-                                          targetChip->FitsB.format);
+                                          targetChip->FitsBP[0].getFormat());
 
         if (maxIndex < 0)
         {
@@ -2584,7 +2596,8 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsTP[UPLOAD_DIR].getText(), prefix.c_str(), targetChip->FitsB.format);
+        // snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsTP[UPLOAD_DIR].getText(), prefix.c_str(), targetChip->FitsBP[0].getFormat());
+        strcpy(imageFileName, targetChip->FitsBP[0].getFormat());
 
         fp = fopen(imageFileName, "w");
         if (fp == nullptr)
@@ -2594,8 +2607,8 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         }
 
         int n = 0;
-        for (int nr = 0; nr < targetChip->FitsB.bloblen; nr += n)
-            n = fwrite((static_cast<char *>(targetChip->FitsB.blob) + nr), 1, targetChip->FitsB.bloblen - nr, fp);
+        for (int nr = 0; nr < targetChip->FitsBP[0].getBlobLen(); nr += n)
+            n = fwrite((static_cast<char *>(targetChip->FitsBP[0].getBlob()) + nr), 1, targetChip->FitsBP[0].getBlobLen() - nr, fp);
 
         fclose(fp);
 
@@ -2623,9 +2636,10 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
                 return false;
             }
 
-            targetChip->FitsB.blob    = compressedData;
-            targetChip->FitsB.bloblen = compressedBytes;
-            snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.fz", targetChip->getImageExtension());
+            targetChip->FitsBP[0].setBlob(compressedData);
+            targetChip->FitsBP[0].setBlobLen(compressedBytes);
+            std::string format = "." + std::string(targetChip->getImageExtension()) + ".fz";
+            targetChip->FitsBP[0].setFormat(format);
         }
         else
         {
@@ -2649,20 +2663,23 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
                 return false;
             }
 
-            targetChip->FitsB.blob    = compressedData;
-            targetChip->FitsB.bloblen = compressedBytes;
-            snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.z", targetChip->getImageExtension());
+            targetChip->FitsBP[0].setBlob(compressedData);
+            targetChip->FitsBP[0].setBlobLen(compressedBytes);
+            std::string format = "." + std::string(targetChip->getImageExtension()) + ".z";
+            targetChip->FitsBP[0].setFormat(format);
+
         }
     }
     else
     {
-        targetChip->FitsB.blob    = const_cast<void *>(fitsData);
-        targetChip->FitsB.bloblen = totalBytes;
-        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
+        targetChip->FitsBP[0].setBlob(const_cast<void *>(fitsData));
+        targetChip->FitsBP[0].setBlobLen(totalBytes);
+        std::string format = "." + std::string(targetChip->getImageExtension());
+        targetChip->FitsBP[0].setFormat(format);
     }
 
-    targetChip->FitsB.size = totalBytes;
-    targetChip->FitsBP.s   = IPS_OK;
+    targetChip->FitsBP[0].setSize(totalBytes);
+    targetChip->FitsBP.setState(IPS_OK);
 
     if (sendImage)
     {
@@ -2683,7 +2700,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 #endif
         {
             auto start = std::chrono::high_resolution_clock::now();
-            IDSetBLOB(&targetChip->FitsBP, nullptr);
+           targetChip->FitsBP.apply();
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> diff = end - start;
             LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
@@ -2796,9 +2813,8 @@ bool CCD::saveConfigItems(FILE * fp)
 
     PrimaryCCD.CompressSP.save(fp);
 
-    if (PrimaryCCD.getCCDInfo()->p != IP_RO)
+    if (PrimaryCCD.getCCDInfo() != IP_RO)
         IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
-
     CaptureFormatSP.save(fp);
     EncodeFormatSP.save(fp);
 
