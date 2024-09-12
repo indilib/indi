@@ -2560,7 +2560,10 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         FILE * fp = nullptr;
 
         std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
-        int maxIndex       = getFileIndex(UploadSettingsTP[UPLOAD_DIR].getText(), UploadSettingsTP[UPLOAD_PREFIX].getText(),
+        std::string directory = UploadSettingsTP[UPLOAD_DIR].getText();
+
+
+        int maxIndex       = getFileIndex(directory, UploadSettingsTP[UPLOAD_PREFIX].getText(),
                                           targetChip->FitsBP[0].getFormat());
 
         if (maxIndex < 0)
@@ -2944,7 +2947,7 @@ std::string regex_replace_compat(const std::string &input, const std::string &pa
     return s.str();
 }
 
-int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
+int CCD::getFileIndex(const std::string & dir, const char * prefix, const char * ext)
 {
     INDI_UNUSED(ext);
 
@@ -2959,22 +2962,22 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
     // Create directory if does not exist
     struct stat st;
 
-    if (stat(dir, &st) == -1)
+    if (stat(dir.c_str(), &st) == -1)
     {
         if (errno == ENOENT)
         {
-            DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
+            LOGF_INFO("Creating directory %s...", dir.c_str());
             if (INDI::mkpath(dir, 0755) == -1)
-                LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
+                LOGF_ERROR("Error creating directory %s (%s)", dir.c_str(), strerror(errno));
         }
         else
         {
-            LOGF_ERROR("Couldn't stat directory %s: %s", dir, strerror(errno));
+            LOGF_ERROR("Couldn't stat directory %s: %s", dir.c_str(), strerror(errno));
             return -1;
         }
     }
 
-    dpdf = opendir(dir);
+    dpdf = opendir(dir.c_str());
     if (dpdf != nullptr)
     {
         while ((epdf = readdir(dpdf)))

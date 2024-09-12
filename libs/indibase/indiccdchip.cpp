@@ -139,8 +139,6 @@ void CCDChip::setBin(uint8_t hor, uint8_t ver)
 void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                             bool sendToClient)
 {
-    INumberVectorProperty *nvp = nullptr;
-
     auto updateMinMaxStep = [element, min, max, step, sendToClient](INDI::PropertyNumber &oneProperty)
     {
         auto oneElement = oneProperty.findWidgetByName(element);

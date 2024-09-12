@@ -789,7 +789,7 @@ class CCD : public DefaultDevice, GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////
         bool uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double * min, double * max, CCDChip * targetChip);
-        int getFileIndex(const char * dir, const char * prefix, const char * ext);
+        int getFileIndex(const std::string & dir, const char * prefix, const char * ext);
         bool ExposureCompletePrivate(CCDChip * targetChip);
 
         // Threading for Websocket
