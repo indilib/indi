@@ -2563,7 +2563,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         std::string directory = UploadSettingsTP[UPLOAD_DIR].getText();
 
 
-        int maxIndex       = getFileIndex(directory, UploadSettingsTP[UPLOAD_PREFIX].getText(),
+        int maxIndex       = getFileIndex(directory, prefix,
                                           targetChip->FitsBP[0].getFormat());
 
         if (maxIndex < 0)
@@ -2947,7 +2947,7 @@ std::string regex_replace_compat(const std::string &input, const std::string &pa
     return s.str();
 }
 
-int CCD::getFileIndex(const std::string & dir, const char * prefix, const char * ext)
+int CCD::getFileIndex(const std::string & dir, const std::string & prefix, const std::string & ext)
 {
     INDI_UNUSED(ext);
 
