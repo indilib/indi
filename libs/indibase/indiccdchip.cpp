@@ -164,18 +164,6 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
 
     else if (ImagePixelSizeNP.isNameMatch(property))
         updateMinMaxStep(ImagePixelSizeNP);
-    return;
-
-    INumber *np = IUFindNumber(nvp, element);
-    if (np)
-    {
-        np->min  = min;
-        np->max  = max;
-        np->step = step;
-
-        if (sendToClient)
-            IUUpdateMinMax(nvp);
-    }
 }
 
 void CCDChip::setPixelSize(double x, double y)

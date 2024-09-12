@@ -1457,7 +1457,6 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            // DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
             LOGF_INFO("CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
 
             return true;
