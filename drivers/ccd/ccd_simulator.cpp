@@ -321,7 +321,7 @@ bool CCDSim::updateProperties()
 int CCDSim::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
+    if (std::abs(temperature - TemperatureNP[0].getValue()) < 0.1)
     {
         TemperatureNP[0].setValue(temperature);
         return 1;

@@ -141,14 +141,17 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
 {
     INumberVectorProperty *nvp = nullptr;
 
-    auto updateMinMaxStep = [element, min, max, sendToClient](INDI::PropertyNumber &oneProperty)
+    auto updateMinMaxStep = [element, min, max, step, sendToClient](INDI::PropertyNumber &oneProperty)
     {
         auto oneElement = oneProperty.findWidgetByName(element);
         if(oneElement)
         {
             oneElement->setMinMax(min, max);
+            oneElement->setStep(step);
             if(sendToClient)
+            {
                 oneProperty.updateMinMax();
+            }
         }
     };
 
@@ -161,10 +164,7 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
 
     else if (ImagePixelSizeNP.isNameMatch(property))
         updateMinMaxStep(ImagePixelSizeNP);
-    //    else if (!strcmp(property, RapidGuideDataNP.name))
-    //        nvp = &RapidGuideDataNP;
-    else
-        return;
+    return;
 
     INumber *np = IUFindNumber(nvp, element);
     if (np)

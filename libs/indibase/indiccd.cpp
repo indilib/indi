@@ -133,7 +133,7 @@ CCD::~CCD()
 {
     // Only update if index is different.
     if (m_ConfigFastExposureIndex != FastExposureToggleSP.findOnSwitchIndex())
-        saveConfig(true, FastExposureToggleSP.getName());
+        saveConfig(FastExposureToggleSP);
 }
 
 void CCD::SetCCDCapability(uint32_t cap)
@@ -1457,7 +1457,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             CCDRotationNP.apply();
             m_ValidCCDRotation = true;
 
-            DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
+            // DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
+            LOGF_INFO("CCD FOV rotation updated to %g degrees.", CCDRotationNP[0].getValue());
 
             return true;
         }
@@ -1488,18 +1489,18 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             {
                 if (UploadSP[UPLOAD_CLIENT].getState() == ISS_ON)
                 {
-                    DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
+                    LOG_INFO("Upload settings set to client only.");
                     if (prevMode != 0)
                         deleteProperty(FileNameTP);
                 }
                 else if (UploadSP[UPLOAD_LOCAL].getState() == ISS_ON)
                 {
-                    DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
+                    LOG_INFO("Upload settings set to local only.");
                     defineProperty(FileNameTP);
                 }
                 else
                 {
-                    DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
+                    LOG_INFO("Upload settings set to client and local.");
                     defineProperty(FileNameTP);
                 }
 
@@ -2558,7 +2559,6 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         std::string format = "." + std::string(targetChip->getImageExtension());
         targetChip->FitsBP[0].setFormat(format);
         FILE * fp = nullptr;
-        char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
         int maxIndex       = getFileIndex(UploadSettingsTP[UPLOAD_DIR].getText(), UploadSettingsTP[UPLOAD_PREFIX].getText(),
@@ -2594,26 +2594,27 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        // snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsTP[UPLOAD_DIR].getText(), prefix.c_str(), targetChip->FitsBP[0].getFormat());
-        strcpy(imageFileName, targetChip->FitsBP[0].getFormat());
+        std::string imageFileName = std::string(UploadSettingsTP[UPLOAD_DIR].getText()) + "/" + prefix + "/" + std::string(targetChip->FitsBP[0].getFormat());
 
-        fp = fopen(imageFileName, "w");
+        fp = fopen(imageFileName.c_str(), "w");
         if (fp == nullptr)
         {
-            LOGF_ERROR("Unable to save image file (%s). %s", imageFileName, strerror(errno));
+            LOGF_ERROR("Unable to save image file (%s). %s", imageFileName.c_str(), strerror(errno));
             return false;
         }
 
         int n = 0;
-        for (int nr = 0; nr < targetChip->FitsBP[0].getBlobLen(); nr += n)
-            n = fwrite((static_cast<char *>(targetChip->FitsBP[0].getBlob()) + nr), 1, targetChip->FitsBP[0].getBlobLen() - nr, fp);
+        auto len = targetChip->FitsBP[0].getBlobLen();
+        auto buffer = static_cast<char *>(targetChip->FitsBP[0].getBlob());
+        for (int nr = 0; nr < len; nr += n)
+            n = fwrite(buffer + nr, 1, len - nr, fp);
 
         fclose(fp);
 
         // Save image file path
         FileNameTP[0].setText(imageFileName);
 
-        DEBUGF(Logger::DBG_SESSION, "Image saved to %s", imageFileName);
+        LOGF_INFO("Image saved to %s", imageFileName.c_str());
         FileNameTP.setState(IPS_OK);
         FileNameTP.apply();
     }
