@@ -34,7 +34,7 @@
 
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
-WandererCoverV4EC::WandererCoverV4EC() : LightBoxInterface(this), DustCapInterface(this)
+WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(this), LightBoxInterface(this)
 {
     setVersion(1, 2);
 }
