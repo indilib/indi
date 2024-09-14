@@ -31,7 +31,7 @@ class ALTO : public INDI::DefaultDevice, public INDI::DustCapInterface
         virtual bool updateProperties() override;
 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;        
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
         bool Handshake();
@@ -40,6 +40,7 @@ class ALTO : public INDI::DefaultDevice, public INDI::DustCapInterface
         // From Dust Cap
         virtual IPState ParkCap() override;
         virtual IPState UnParkCap() override;
+        virtual IPState AbortCap() override;
 
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;

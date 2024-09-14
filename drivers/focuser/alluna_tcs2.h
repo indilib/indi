@@ -36,7 +36,6 @@ class AllunaTCS2 : public INDI::Focuser, public INDI::DustCapInterface
 
         bool initProperties() override;
         bool updateProperties() override;
-        void ISGetProperties(const char *dev) override;
 
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -80,7 +79,7 @@ class AllunaTCS2 : public INDI::Focuser, public INDI::DustCapInterface
         INDI::PropertySwitch SteppingModeSP{2};
 
         typedef enum { MICRO = 1, SPEED = 0 } SteppingMode;
-        SteppingMode steppingMode=MICRO;
+        SteppingMode steppingMode = MICRO;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Read Data From Controller
