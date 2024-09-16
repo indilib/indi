@@ -34,7 +34,7 @@
 
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
-WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(), INDI::LightBoxInterface(this, true)
+WandererCoverV4EC::WandererCoverV4EC() : DustCapInterface(this), LightBoxInterface(this)
 {
     setVersion(1, 2);
 }
@@ -54,8 +54,8 @@ bool WandererCoverV4EC::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
+    DI::initProperties(MAIN_CONTROL_TAB);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
     addAuxControls();
@@ -67,8 +67,8 @@ bool WandererCoverV4EC::initProperties()
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    LightIntensityNP.np[0].max = 255;
-    LightIntensityNP.np[0].value = 100;
+    LightIntensityNP[0].setMax(255);
+    LightIntensityNP[0].setValue(100);
 
     // Heater
     SetHeaterNP[Heat].fill( "Heater", "PWM", "%.2f", 0, 150, 50, 0);
@@ -114,9 +114,7 @@ bool WandererCoverV4EC::updateProperties()
             LOG_INFO("New firmware available!");
         }
 
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
-        defineProperty(&ParkCapSP);
+
         defineProperty(DataNP);
         defineProperty(SetHeaterNP);
         defineProperty(CloseSetNP);
@@ -124,17 +122,14 @@ bool WandererCoverV4EC::updateProperties()
     }
     else
     {
-
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
-        deleteProperty(ParkCapSP.name);
         deleteProperty(DataNP);
         deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
     }
 
-    updateLightBoxProperties();
+    DI::updateProperties();
+    LI::updateProperties();
     return true;
 }
 
@@ -144,9 +139,7 @@ bool WandererCoverV4EC::updateProperties()
 void WandererCoverV4EC::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
-
-    // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -154,8 +147,7 @@ void WandererCoverV4EC::ISGetProperties(const char *dev)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
-
+    LI::snoop(root);
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
@@ -254,19 +246,20 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
     DataNP.setState(IPS_OK);
     DataNP.apply();
 
-    auto prevParked = ParkCapS[CAP_PARK].s == ISS_ON;
-    auto prevState = ParkCapSP.s;
+    auto prevParked = ParkCapSP[CAP_PARK].getState() == ISS_ON;
+    auto prevState = ParkCapSP.getState();
 
-    ParkCapS[CAP_PARK].s = (positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF;
-    ParkCapS[CAP_UNPARK].s = (positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF;
-    ParkCapSP.s = (ParkCapS[CAP_PARK].s == ISS_ON || ParkCapS[CAP_UNPARK].s == ISS_ON) ? IPS_OK : IPS_IDLE;
+    ParkCapSP[CAP_PARK].setState((positionread - 10 <= closesetread) ? ISS_ON : ISS_OFF);
+    ParkCapSP[CAP_UNPARK].setState((positionread + 10 >= opensetread) ? ISS_ON : ISS_OFF);
+    ParkCapSP.setState((ParkCapSP[CAP_PARK].getState() == ISS_ON
+                        || ParkCapSP[CAP_UNPARK].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
 
-    auto currentParked = ParkCapS[CAP_PARK].s == ISS_ON;
-    auto currentState = ParkCapSP.s;
+    auto currentParked = ParkCapSP[CAP_PARK].getState() == ISS_ON;
+    auto currentState = ParkCapSP.getState();
 
     // Only update on state changes
     if ((prevParked != currentParked) || (prevState != currentState))
-        IDSetSwitch(&ParkCapSP, nullptr);
+        ParkCapSP.apply();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -274,7 +267,7 @@ void WandererCoverV4EC::updateData(double closesetread, double opensetread, doub
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (processLightBoxText(dev, name, texts, names, n))
+    if (LI::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -285,10 +278,10 @@ bool WandererCoverV4EC::ISNewText(const char *dev, const char *name, char *texts
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (processLightBoxSwitch(dev, name, states, names, n))
+    if (LI::processSwitch(dev, name, states, names, n))
         return true;
 
-    if (processDustCapSwitch(dev, name, states, names, n))
+    if (DI::processSwitch(dev, name, states, names, n))
         return true;
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -299,7 +292,7 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     if (dev && !strcmp(dev, getDeviceName()))
@@ -419,16 +412,16 @@ bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
     if(value > 0)
     {
         // Only change if already enabled.
-        if (LightS[INDI_ENABLED].s == ISS_ON)
+        if (LightSP[INDI_ENABLED].getState() == ISS_ON)
             rc = sendCommand(std::to_string(value));
     }
     else
     {
         EnableLightBox(false);
-        LightS[INDI_ENABLED].s = ISS_OFF;
-        LightS[INDI_DISABLED].s = ISS_ON;
-        LightSP.s = IPS_IDLE;
-        IDSetSwitch(&LightSP, nullptr);
+        LightSP[INDI_ENABLED].setState(ISS_OFF);
+        LightSP[INDI_DISABLED].setState(ISS_ON);
+        LightSP.setState(IPS_IDLE);
+        LightSP.apply();
     }
 
     return rc;
@@ -443,7 +436,7 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
     if(!enable)
         rc = sendCommand("9999");
     else
-        rc = sendCommand(std::to_string(static_cast<int>(LightIntensityN[0].value)));
+        rc = sendCommand(std::to_string(static_cast<int>(LightIntensityNP[0].getValue())));
 
     return rc;
 }
@@ -537,6 +530,5 @@ bool WandererCoverV4EC::saveConfigItems(FILE * fp)
     CloseSetNP.save(fp);
     OpenSetNP.save(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
-

@@ -56,7 +56,7 @@ static std::unique_ptr<WandererCover> wanderercover(new WandererCover());
 # define SET_CURRENT_POSITION_TO_CLOSED_POSITION "256\n"
 
 
-WandererCover::WandererCover() : LightBoxInterface(this, true)
+WandererCover::WandererCover() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 0);
 }
@@ -64,8 +64,8 @@ WandererCover::WandererCover() : LightBoxInterface(this, true)
 bool WandererCover::initProperties()
 {
     INDI::DefaultDevice::initProperties();
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
     addAuxControls();
@@ -102,12 +102,9 @@ bool WandererCover::initProperties()
                        "Action", TAB_NAME_CONFIGURATION, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-
-    LightIntensityN[0].min = 1;
-    LightIntensityN[0].max = 255;
-    LightIntensityN[0].step = 10;
-
-
+    LightIntensityNP[0].setMin(1);
+    LightIntensityNP[0].setMax(255);
+    LightIntensityNP[0].setStep(10);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -246,18 +243,17 @@ void WandererCover::ISGetProperties(const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 }
 
 bool WandererCover::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
+    DI::updateProperties();
+
     if (isConnected())
     {
-        defineProperty(&ParkCapSP);
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
         defineProperty(&StatusTP);
         defineProperty(&FirmwareTP);
 
@@ -265,24 +261,19 @@ bool WandererCover::updateProperties()
         defineProperty(&ControlPositionNegativeDegreesConfigurationVP);
         defineProperty(&DefinePositionConfigurationVP);
 
-        updateLightBoxProperties();
-
         getStartupData();
     }
     else
     {
-        deleteProperty(ParkCapSP.name);
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
 
         deleteProperty(ControlPositionPositiveDegreesConfigurationVP.name);
         deleteProperty(ControlPositionNegativeDegreesConfigurationVP.name);
         deleteProperty(DefinePositionConfigurationVP.name);
-
-        updateLightBoxProperties();
     }
+
+    LI::updateProperties();
     return true;
 }
 
@@ -295,7 +286,7 @@ bool WandererCover::ISNewNumber(const char *dev, const char *name, double values
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processLightBoxNumber(dev, name, values, names, n))
+        if (LI::processNumber(dev, name, values, names, n))
             return true;
     }
 
@@ -306,7 +297,7 @@ bool WandererCover::ISNewText(const char *dev, const char *name, char *texts[], 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processLightBoxText(dev, name, texts, names, n))
+        if (LI::processText(dev, name, texts, names, n))
             return true;
     }
 
@@ -317,10 +308,10 @@ bool WandererCover::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processDustCapSwitch(dev, name, states, names, n))
+        if (DI::processSwitch(dev, name, states, names, n))
             return true;
 
-        if (processLightBoxSwitch(dev, name, states, names, n))
+        if (LI::processSwitch(dev, name, states, names, n))
             return true;
 
         if (processConfigurationButtonSwitch(dev, name, states, names, n))
@@ -332,7 +323,7 @@ bool WandererCover::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool WandererCover::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -341,7 +332,7 @@ bool WandererCover::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
 
 bool WandererCover::getStartupData()
@@ -358,10 +349,10 @@ bool WandererCover::getStartupData()
     // IUSaveText(&StatusT[1], "Off");
     // LightS[0].s = ISS_OFF;
     // LightS[1].s = ISS_ON;
-    // IDSetSwitch(&LightSP, nullptr);
+    // LightSP.apply();
     // LightIntensityN[0].value = 0;
     // LOG_INFO("Light assumed as off.");
-    // IDSetNumber(&LightIntensityNP, nullptr);
+    // LightIntensityNP.apply();
 
     return true;
 }
@@ -399,11 +390,11 @@ IPState WandererCover::ParkCap()
 void WandererCover::setParkCapStatusAsClosed()
 {
     IUSaveText(&StatusT[0], "Closed");
-    IUResetSwitch(&ParkCapSP);
-    ParkCapS[0].s = ISS_ON;
-    ParkCapSP.s = IPS_OK;
+    ParkCapSP.reset();
+    ParkCapSP[0].setState(ISS_ON);
+    ParkCapSP.setState(IPS_OK);
     LOG_INFO("Cover closed.");
-    IDSetSwitch(&ParkCapSP, nullptr);
+    ParkCapSP.apply();
 }
 
 IPState WandererCover::UnParkCap()
@@ -438,16 +429,16 @@ IPState WandererCover::UnParkCap()
 void WandererCover::setParkCapStatusAsOpen()
 {
     IUSaveText(&StatusT[0], "Open");
-    IUResetSwitch(&ParkCapSP);
-    ParkCapS[1].s = ISS_ON;
-    ParkCapSP.s = IPS_OK;
+    ParkCapSP.reset();
+    ParkCapSP[1].setState(ISS_ON);
+    ParkCapSP.setState(IPS_OK);
     LOG_INFO("Cover open.");
-    IDSetSwitch(&ParkCapSP, nullptr);
+    ParkCapSP.apply();
 }
 
 bool WandererCover::EnableLightBox(bool enable)
 {
-    if (ParkCapS[1].s == ISS_ON)
+    if (ParkCapSP[1].getState() == ISS_ON)
     {
         LOG_ERROR("Cannot control light while cap is unparked.");
         return false;
@@ -484,11 +475,11 @@ bool WandererCover::switchOffLightBox()
 void WandererCover::setLightBoxStatusAsSwitchedOff()
 {
     IUSaveText(&StatusT[1], "Off");
-    LightS[0].s = ISS_OFF;
-    LightS[1].s = ISS_ON;
-    LightIntensityN[0].value = 0;
-    IDSetNumber(&LightIntensityNP, nullptr);
-    IDSetSwitch(&LightSP, nullptr);
+    LightSP[0].setState(ISS_OFF);
+    LightSP[1].setState(ISS_ON);
+    LightIntensityNP[0].setValue(0);
+    LightIntensityNP.apply();
+    LightSP.apply();
     LOG_INFO("Light panel switched off");
 }
 
@@ -556,8 +547,8 @@ bool WandererCover::setCurrentPositionToClosedPosition()
 
 void WandererCover::setLightBoxBrightnesStatusToValue(uint16_t value)
 {
-    LightIntensityN[0].value = value;
-    IDSetNumber(&LightIntensityNP, nullptr);
+    LightIntensityNP[0].setValue(value);
+    LightIntensityNP.apply();
     LOGF_INFO("Brightness set to %d.", value);
 }
 

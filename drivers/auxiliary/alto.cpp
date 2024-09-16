@@ -22,7 +22,7 @@
 
 static std::unique_ptr<ALTO> sesto(new ALTO());
 
-ALTO::ALTO() : DustCapInterface()
+ALTO::ALTO() : DustCapInterface(this)
 {
     setVersion(1, 0);
 }
@@ -35,7 +35,7 @@ bool ALTO::initProperties()
 
     INDI::DefaultDevice::initProperties();
 
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB, CAN_ABORT);
 
     setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
 
@@ -88,9 +88,8 @@ bool ALTO::updateProperties()
         {
             if (m_ALTO->getPosition(value))
             {
-                ParkCapS[CAP_PARK].s = value == 0 ? ISS_ON : ISS_OFF;
-                ParkCapS[CAP_UNPARK].s = value == 0 ? ISS_OFF : ISS_ON;
-
+                ParkCapSP[CAP_PARK].setState(value == 0 ? ISS_ON : ISS_OFF);
+                ParkCapSP[CAP_UNPARK].setState(value == 0 ? ISS_OFF : ISS_ON);
                 PositionNP[0].value = value;
             }
         }
@@ -99,7 +98,6 @@ bool ALTO::updateProperties()
             LOGF_ERROR("%s %d", e.what(), e.id);
         }
 
-        defineProperty(&ParkCapSP);
         defineProperty(PositionNP);
         defineProperty(MotionSpeedSP);
         defineProperty(MotionCommandSP);
@@ -107,12 +105,13 @@ bool ALTO::updateProperties()
     }
     else
     {
-        deleteProperty(ParkCapSP.name);
         deleteProperty(PositionNP);
         deleteProperty(MotionSpeedSP);
         deleteProperty(MotionCommandSP);
         deleteProperty(CalibrateToggleSP);
     }
+
+    DI::updateProperties();
 
     return true;
 }
@@ -176,7 +175,7 @@ bool ALTO::ISNewNumber(const char *dev, const char *name, double values[], char 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool ALTO::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (processDustCapSwitch(dev, name, states, names, n))
+    if (DI::processSwitch(dev, name, states, names, n))
         return true;
 
     // Motion Speed
@@ -290,6 +289,14 @@ IPState ALTO::UnParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+IPState ALTO::AbortCap()
+{
+    return m_ALTO->stop() ? IPS_OK : IPS_ALERT;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool ALTO::saveConfigItems(FILE * fp)
 {
     MotionSpeedSP.save(fp);
@@ -302,7 +309,7 @@ bool ALTO::saveConfigItems(FILE * fp)
 void ALTO::TimerHit()
 {
     // Check Park Cap status
-    if (ParkCapSP.s == IPS_BUSY)
+    if (ParkCapSP.getState() == IPS_BUSY)
     {
         json status;
         try
@@ -311,8 +318,8 @@ void ALTO::TimerHit()
             std::string mst = status["MST"];
             if (mst == "stop")
             {
-                ParkCapSP.s = IPS_OK;
-                IDSetSwitch(&ParkCapSP, nullptr);
+                ParkCapSP.setState(IPS_OK);
+                ParkCapSP.apply();
             }
         }
         catch (json::exception &e)

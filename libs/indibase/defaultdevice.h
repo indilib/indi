@@ -570,6 +570,7 @@ class DefaultDevice : public ParentDevice
         friend class FilterInterface;
         friend class FocuserInterface;
         friend class WeatherInterface;
+        friend class LightBoxInterface;
         friend class OutputInterface;
         friend class InputInterface;
         friend class PowerInterface;

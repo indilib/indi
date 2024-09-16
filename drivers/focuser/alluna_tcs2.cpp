@@ -32,7 +32,7 @@
 // create an instance of this driver
 static std::unique_ptr<AllunaTCS2> allunaTCS2(new AllunaTCS2 ());
 
-AllunaTCS2::AllunaTCS2() : DustCapInterface()
+AllunaTCS2::AllunaTCS2() : DustCapInterface(this)
 {
     LOG_DEBUG("Init AllunaTCS2");
     // Let's specify the driver version
@@ -53,7 +53,7 @@ AllunaTCS2::AllunaTCS2() : DustCapInterface()
 bool AllunaTCS2::initProperties()
 {
     INDI::Focuser::initProperties();
-    INDI::DustCapInterface::initDustCapProperties(getDeviceName(), DUSTCOVER_TAB);
+    DI::initProperties(DUSTCOVER_TAB);
 
 
     // Focuser temperature / ambient temperature, ekos uses first number of "FOCUS_TEMPERATURE" property
@@ -61,7 +61,7 @@ bool AllunaTCS2::initProperties()
     TemperatureNP[1].fill("TEMPERATURE_PRIMARY", "Primary Temp [C]", "%6.2f", -100, 100, 0, 0);
     TemperatureNP[2].fill("TEMPERATURE_SECONDARY", "Secondary Temp [C]", "%6.2f", -100, 100, 0, 0);
     TemperatureNP[3].fill("HUMIDITY", "Humidity [%]", "%6.2f", 0, 100, 0, 0);
-    TemperatureNP.fill(getDeviceName(),"FOCUS_TEMPERATURE", "Climate",CLIMATE_TAB, IP_RO, 0, IPS_IDLE);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Climate", CLIMATE_TAB, IP_RO, 0, IPS_IDLE);
 
     // Climate control
     ClimateControlSP[AUTO].fill("CLIMATE_AUTO",  "On", ISS_OFF);
@@ -74,7 +74,8 @@ bool AllunaTCS2::initProperties()
 
     SecondaryDewHeaterSP[ON].fill("SECONDARY_HEATER_ON",  "On", ISS_OFF);
     SecondaryDewHeaterSP[OFF].fill("SECONDARY_HEATER_OFF", "Off", ISS_ON);
-    SecondaryDewHeaterSP.fill(getDeviceName(), "SECONDARY_HEATER", "Heat secondary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    SecondaryDewHeaterSP.fill(getDeviceName(), "SECONDARY_HEATER", "Heat secondary", CLIMATE_TAB, IP_RW, ISR_1OFMANY, 60,
+                              IPS_IDLE);
 
     FanPowerNP[0].fill("FANPOWER", "Fan power [130..255]", "%3.0f", 130, 255, 1, 255);
     FanPowerNP.fill(getDeviceName(), "FANPOWER", "Fan Power", CLIMATE_TAB, IP_RW, 60, IPS_IDLE);
@@ -115,7 +116,6 @@ const char *AllunaTCS2::getDefaultName()
 
 bool AllunaTCS2::updateProperties()
 {
-    LOG_INFO("updateProperties called");
     INDI::Focuser::updateProperties();
 
     if (isConnected())
@@ -152,7 +152,7 @@ bool AllunaTCS2::updateProperties()
         defineProperty(FanPowerNP);
 
         // Cover
-        defineProperty(&ParkCapSP);
+        DI::updateProperties();
 
         LOG_INFO("AllunaTCS2 is ready.");
     }
@@ -168,7 +168,7 @@ bool AllunaTCS2::updateProperties()
         deleteProperty(SecondaryDewHeaterSP);
         deleteProperty(FanPowerNP);
 
-        deleteProperty(ParkCapSP.name);
+        DI::updateProperties();
     }
 
     return true;
@@ -190,15 +190,18 @@ bool AllunaTCS2::Handshake()
 bool AllunaTCS2::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 {
 
-   if (tcs.try_lock() ) {
-     bool result;
-     result = sendCommandNoLock(cmd, res, cmd_len, res_len);
-     tcs.unlock();
-     return result;
-   } else {
-     LOG_INFO("sendCommand: lock failed, abort");
-     return false;
-   }
+    if (tcs.try_lock() )
+    {
+        bool result;
+        result = sendCommandNoLock(cmd, res, cmd_len, res_len);
+        tcs.unlock();
+        return result;
+    }
+    else
+    {
+        LOG_INFO("sendCommand: lock failed, abort");
+        return false;
+    }
 
 }
 
@@ -233,10 +236,13 @@ bool AllunaTCS2::sendCommandNoLock(const char * cmd, char * res, int cmd_len, in
     if (res == nullptr)
         return true;
 
-    if (res_len > 0) {
+    if (res_len > 0)
+    {
         LOG_DEBUG("sendCommand: Read Answer Bytes");
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
-    } else {
+    }
+    else
+    {
         LOG_DEBUG("sendCommand: Read Answer String");
         rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
     }
@@ -269,7 +275,8 @@ bool AllunaTCS2::sendCommandOnly(const char * cmd, int cmd_len)
 {
     int nbytes_written = 0, rc = -1;
 
-    if (! tcs.try_lock() ) {
+    if (! tcs.try_lock() )
+    {
         LOGF_INFO("sendCommandOnly: %s: lock failed, abort", cmd);
         return false;
     }
@@ -352,20 +359,14 @@ void AllunaTCS2::hexDump(char * buf, const char * data, int size)
         buf[3 * size - 1] = '\0';
 }
 
-// client asks for list of all properties
-void AllunaTCS2::ISGetProperties(const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-    LOG_INFO("ISGetProperties called");
-    // FIXME: do something like upclass does with controller class
-}
-
 // client wants to change switch value (i.e. click on switch in GUI)
 bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
+    if (DI::processSwitch(dev, name, states, names, n))
+        return true;
+
     if (dev != nullptr && !strcmp(dev, getDeviceName()) )
-    {        
-        LOGF_INFO("ISNewSwitch called for %s", name);
+    {
         if (!strcmp(name, "CONNECTION") && !strcmp(names[0], "DISCONNECT") && states[0] == ISS_ON)
         {
             // turn off green Connected-LED
@@ -398,40 +399,43 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             defineProperty(&FocusAbsPosNP);
             // read focuser position (depends on stepping mode)
             getPosition();
-            LOGF_INFO("Processed %s",name);
+            LOGF_INFO("Processed %s", name);
             return true;
         }
 
         // Cover Switch?
-        if (!strcmp(name, ParkCapSP.name))
-        {
-            // Find out which state is requested by the client
-            const char *actionName = IUFindOnSwitchName(states, names, n);
-            // Do nothing, if state is already what it should be
-            int currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
-            if (!strcmp(actionName, ParkCapS[currentCoverIndex].name))
-            {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", ParkCapS[currentCoverIndex].label);
-               ParkCapSP.s = IPS_IDLE;
-               IDSetSwitch(&ParkCapSP, NULL);
-               return true;
-            }
+        // if (!strcmp(name, ParkCapSP.name))
+        // {
+        //     // Find out which state is requested by the client
+        //     const char *actionName = IUFindOnSwitchName(states, names, n);
+        //     // Do nothing, if state is already what it should be
+        //     int currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
+        //     if (!strcmp(actionName, ParkCapS[currentCoverIndex].name))
+        //     {
+        //         DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", ParkCapS[currentCoverIndex].label);
+        //         ParkCapSP.s = IPS_IDLE;
+        //         IDSetSwitch(&ParkCapSP, NULL);
+        //         return true;
+        //     }
 
-            // Otherwise, let us update the switch state
-            IUUpdateSwitch(&ParkCapSP, states, names, n);
-            currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
-            if ( setDustCover() ) {
-                isCoverMoving = true;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", ParkCapS[currentCoverIndex].label);
-                ParkCapSP.s = IPS_OK;
-                IDSetSwitch(&ParkCapSP, NULL);
-                return true;
-            } else {
-                DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-                ParkCapSP.s = IPS_ALERT;
-                IDSetSwitch(&ParkCapSP, NULL);
-            }
-        }
+        //     // Otherwise, let us update the switch state
+        //     IUUpdateSwitch(&ParkCapSP, states, names, n);
+        //     currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
+        //     if ( setDustCover() )
+        //     {
+        //         isCoverMoving = true;
+        //         DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", ParkCapS[currentCoverIndex].label);
+        //         ParkCapSP.s = IPS_OK;
+        //         IDSetSwitch(&ParkCapSP, NULL);
+        //         return true;
+        //     }
+        //     else
+        //     {
+        //         DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
+        //         ParkCapSP.s = IPS_ALERT;
+        //         IDSetSwitch(&ParkCapSP, NULL);
+        //     }
+        // }
 
         // Climate Control Switch?
         if (ClimateControlSP.isNameMatch(name))
@@ -442,21 +446,24 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             int currentClimateControlIndex = ClimateControlSP.findOnSwitchIndex();
             if (ClimateControlSP[currentClimateControlIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control is already %s", ClimateControlSP[currentClimateControlIndex].label);
-               ClimateControlSP.setState(IPS_IDLE);
-               ClimateControlSP.apply();
-               return true;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control is already %s", ClimateControlSP[currentClimateControlIndex].label);
+                ClimateControlSP.setState(IPS_IDLE);
+                ClimateControlSP.apply();
+                return true;
             }
 
             // Otherwise, let us update the switch state
             ClimateControlSP.update(states, names, n);
             currentClimateControlIndex = ClimateControlSP.findOnSwitchIndex();
-            if ( setClimateControl((currentClimateControlIndex==AUTO) ? MANUAL: AUTO) ) {
+            if ( setClimateControl((currentClimateControlIndex == AUTO) ? MANUAL : AUTO) )
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "ClimateControl is now %s", ClimateControlSP[currentClimateControlIndex].label);
                 ClimateControlSP.setState(IPS_OK);
                 ClimateControlSP.apply();
                 return true;
-            } else {
+            }
+            else
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
                 ClimateControlSP.setState(IPS_ALERT);
                 ClimateControlSP.apply();
@@ -472,21 +479,24 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             int currentPrimaryDewHeaterIndex = PrimaryDewHeaterSP.findOnSwitchIndex();
             if (PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is already %s", PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].label);
-               PrimaryDewHeaterSP.setState(IPS_IDLE);
-               PrimaryDewHeaterSP.apply();
-               return true;
+                DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is already %s", PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].label);
+                PrimaryDewHeaterSP.setState(IPS_IDLE);
+                PrimaryDewHeaterSP.apply();
+                return true;
             }
 
             // Otherwise, let us update the switch state
             PrimaryDewHeaterSP.update(states, names, n);
             currentPrimaryDewHeaterIndex = PrimaryDewHeaterSP.findOnSwitchIndex();
-            if ( setPrimaryDewHeater((currentPrimaryDewHeaterIndex==OFF) ? ON:OFF) ) {
+            if ( setPrimaryDewHeater((currentPrimaryDewHeaterIndex == OFF) ? ON : OFF) )
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater is now %s", PrimaryDewHeaterSP[currentPrimaryDewHeaterIndex].label);
                 PrimaryDewHeaterSP.setState(IPS_OK);
                 PrimaryDewHeaterSP.apply();
                 return true;
-            } else {
+            }
+            else
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
                 PrimaryDewHeaterSP.setState(IPS_ALERT);
                 PrimaryDewHeaterSP.apply();
@@ -502,21 +512,26 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             int currentSecondaryDewHeaterIndex = SecondaryDewHeaterSP.findOnSwitchIndex();
             if (SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].isNameMatch(actionName))
             {
-               DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is already %s", SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
-               SecondaryDewHeaterSP.setState(IPS_IDLE);
-               SecondaryDewHeaterSP.apply();
-               return true;
+                DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is already %s",
+                       SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
+                SecondaryDewHeaterSP.setState(IPS_IDLE);
+                SecondaryDewHeaterSP.apply();
+                return true;
             }
 
             // Otherwise, let us update the switch state
             SecondaryDewHeaterSP.update(states, names, n);
             currentSecondaryDewHeaterIndex = SecondaryDewHeaterSP.findOnSwitchIndex();
-            if ( setSecondaryDewHeater((currentSecondaryDewHeaterIndex==OFF) ? ON: OFF) ) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is now %s", SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
+            if ( setSecondaryDewHeater((currentSecondaryDewHeaterIndex == OFF) ? ON : OFF) )
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater is now %s",
+                       SecondaryDewHeaterSP[currentSecondaryDewHeaterIndex].label);
                 SecondaryDewHeaterSP.setState(IPS_OK);
                 SecondaryDewHeaterSP.apply();
                 return true;
-            } else {
+            }
+            else
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
                 SecondaryDewHeaterSP.setState(IPS_ALERT);
                 SecondaryDewHeaterSP.apply();
@@ -532,16 +547,15 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
 // client wants to change number value
 bool AllunaTCS2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    LOGF_INFO("ISNewSwitch called for %s\n", name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Fan Power
         if (FanPowerNP.isNameMatch(name))
         {
             // Try to update settings
-            int power=values[0];
-            if (power>255) power=255;
-            if (power<0) power=0;
+            int power = values[0];
+            if (power > 255) power = 255;
+            if (power < 0) power = 0;
             if (setFanPower(power))
             {
                 FanPowerNP.update(values, names, n);
@@ -562,11 +576,11 @@ bool AllunaTCS2::ISNewNumber(const char *dev, const char *name, double values[],
 
 IPState AllunaTCS2::MoveAbsFocuser(uint32_t targetTicks)
 {
-    LOGF_INFO("MoveAbsFocuser %d called", targetTicks);
     char cmd[DRIVER_LEN];
     snprintf(cmd, DRIVER_LEN, "FocuserGoTo %d\r\n", targetTicks);
     bool rc = sendCommandOnly(cmd);
-    if (rc == false) {
+    if (rc == false)
+    {
         LOGF_ERROR("MoveAbsFocuser %d failed", targetTicks);
         return IPS_ALERT;
     }
@@ -588,12 +602,12 @@ bool AllunaTCS2::AbortFocuser()
 
 void AllunaTCS2::TimerHit()
 {
-    LOG_INFO("TimerHit");
     if (!isConnected())
-        return; // No need to reset timer if we are not connected anymore
+        return;
 
     // try to read temperature, if it works no lock was present
-    if (getTemperature() && getFanPower()) {
+    if (getTemperature() && getFanPower())
+    {
         SetTimer(getCurrentPollingPeriod());
         return;
     }
@@ -608,7 +622,8 @@ void AllunaTCS2::TimerHit()
     {
         int32_t pos;
 
-         if ( res[1] == '#') {
+        if ( res[1] == '#')
+        {
             switch (res[0])
             {
                 case 'A': // aux1 on (primary mirror heating)
@@ -655,7 +670,8 @@ void AllunaTCS2::TimerHit()
                     pos = 1e6;
                     sscanf(res, "K#%d", &pos);
                     //LOGF_INFO("TimerHit: new pos (%d)",pos);
-                    if (pos != 1e6) {
+                    if (pos != 1e6)
+                    {
                         FocusAbsPosN[0].value = pos;
                     }
                     FocusAbsPosNP.s = IPS_BUSY;
@@ -673,22 +689,22 @@ void AllunaTCS2::TimerHit()
                     receiveDone();
                     break;
                 case 'O': // cover started moving
-                    LOG_INFO("TimerHit: cover started moving");
-                    ParkCapSP.s= IPS_BUSY;
-                    IDSetSwitch(&ParkCapSP, NULL);
+                    ParkCapSP.setState(IPS_BUSY);
+                    ParkCapSP.apply();
                     break;
                 case 'H': // cover stopped moving
-                    LOG_INFO("TimetHit: cover stopped moving");
                     isCoverMoving = false;
                     receiveDone();
-                    ParkCapSP.s= IPS_OK;
-                    IDSetSwitch(&ParkCapSP, NULL);
+                    ParkCapSP.setState(IPS_OK);
+                    ParkCapSP.apply();
                     break;
                 default: // unexpected output
                     LOGF_INFO("TimerHit: unexpected response (%s)", res);
-           }
-        } else {
-          LOGF_INFO("TimerHit: unexpected response (%s)", res);
+            }
+        }
+        else
+        {
+            LOGF_INFO("TimerHit: unexpected response (%s)", res);
         }
         actionInProgress = isFocuserMoving || isCoverMoving;
     }
@@ -735,54 +751,57 @@ bool AllunaTCS2::getTemperature()
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
     if ( !first_run && seconds.count() < 10 ) // update every 10 seconds
     {
-        if (tcs.try_lock()) {
+        if (tcs.try_lock())
+        {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature
             return true; // return true, if we could get the lock
-        } else {
+        }
+        else
+        {
             return false; // return false, if we could not get the lock
         }
     }
     else if ( sendCommandOnly("GetTemperatures\n")  )
     {
-      TemperatureNP.setState(IPS_BUSY);
-      isGetTemperature = true;
+        TemperatureNP.setState(IPS_BUSY);
+        isGetTemperature = true;
 
-      // expect and process device output while present
-      char res[DRIVER_LEN] = {0};
-      float value;
+        // expect and process device output while present
+        char res[DRIVER_LEN] = {0};
+        float value;
 
-      // read a line, if available
-      while (isGetTemperature && receiveNext(res))
-      {
-         switch (res[0])
-         {
-            case 'R': // ambient temperature value
-                sscanf(res, "R#%f", &value);
-                TemperatureNP[0].value = value;
-                break;
-            case 'S': // primary mirror temperature value
-                sscanf(res, "S#%f", &value);
-                TemperatureNP[1].value = value;
-                break;
-            case 'T': // secondary mirror temperature value
-                sscanf(res, "T#%f", &value);
-                TemperatureNP[2].value = value;
-                break;
-            case 'd': // ambient humidity value
-                sscanf(res, "d#%f", &value);
-                TemperatureNP[3].value = value;
-                receiveDone();
-                isGetTemperature=false;
-                TemperatureNP.setState(IPS_OK);
-                TemperatureNP.apply(); // update clients
-                break;
-            default: // unexpected output
-                LOGF_ERROR("GetTemperatures: unexpected response (%s)", res);
-          }
-      }
-      first_run = false;
-      last_temp_update = std::chrono::system_clock::now();
-      return true;
+        // read a line, if available
+        while (isGetTemperature && receiveNext(res))
+        {
+            switch (res[0])
+            {
+                case 'R': // ambient temperature value
+                    sscanf(res, "R#%f", &value);
+                    TemperatureNP[0].value = value;
+                    break;
+                case 'S': // primary mirror temperature value
+                    sscanf(res, "S#%f", &value);
+                    TemperatureNP[1].value = value;
+                    break;
+                case 'T': // secondary mirror temperature value
+                    sscanf(res, "T#%f", &value);
+                    TemperatureNP[2].value = value;
+                    break;
+                case 'd': // ambient humidity value
+                    sscanf(res, "d#%f", &value);
+                    TemperatureNP[3].value = value;
+                    receiveDone();
+                    isGetTemperature = false;
+                    TemperatureNP.setState(IPS_OK);
+                    TemperatureNP.apply(); // update clients
+                    break;
+                default: // unexpected output
+                    LOGF_ERROR("GetTemperatures: unexpected response (%s)", res);
+            }
+        }
+        first_run = false;
+        last_temp_update = std::chrono::system_clock::now();
+        return true;
     }
     return false;
 }
@@ -821,38 +840,40 @@ bool AllunaTCS2::getDustCover()
     if (value == -1)
         return false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Cover status read to be %s (%d)", (value==1)?"open":"closed", value);
-    ParkCapS[CAP_UNPARK].s = (value==1)?ISS_ON:ISS_OFF;
-    ParkCapS[CAP_PARK  ].s = (value!=1)?ISS_ON:ISS_OFF;
-    ParkCapSP.s = IPS_OK;
+    LOGF_DEBUG("Cover status read to be %s (%d)", (value == 1) ? "open" : "closed", value);
+    ParkCapSP[CAP_UNPARK].setState((value == 1) ? ISS_ON : ISS_OFF);
+    ParkCapSP[CAP_PARK  ].setState((value != 1) ? ISS_ON : ISS_OFF);
+    ParkCapSP.setState(IPS_OK);
 
     return true;
 }
 
 IPState AllunaTCS2::ParkCap()
 {
-    if (ParkCapS[CAP_PARK  ].s == ISS_OFF) {
+    if (ParkCapSP[CAP_PARK].getState() == ISS_OFF)
+    {
         if (setDustCover()) // toggle state of dust cover
             return IPS_BUSY;
         else
             return IPS_ALERT;
-    } else {
-        // Cover already parked, nothing to do
-        return IPS_OK;
     }
+
+    // Cover already parked, nothing to do
+    return IPS_OK;
 }
 
 IPState AllunaTCS2::UnParkCap()
 {
-    if (ParkCapS[CAP_UNPARK].s == ISS_OFF) {
+    if (ParkCapSP[CAP_UNPARK].getState() == ISS_OFF)
+    {
         if (setDustCover()) // toggle state of dust cover
             return IPS_BUSY;
         else
             return IPS_ALERT;
-    } else {
-        // Cover already unparked, nothing to do
-        return IPS_OK;
     }
+
+    // Cover already unparked, nothing to do
+    return IPS_OK;
 }
 
 
@@ -877,7 +898,7 @@ bool AllunaTCS2::getStepping()
 
     // Set limits as per documentation
     FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
-    LOGF_INFO("readStepping: set max position to %d",(int)FocusAbsPosN[0].max);
+    LOGF_INFO("readStepping: set max position to %d", (int)FocusAbsPosN[0].max);
     return true;
 }
 
@@ -885,9 +906,9 @@ bool AllunaTCS2::setStepping(SteppingMode mode)
 {
     int value;
     char cmd[DRIVER_LEN] = {0};
-    steppingMode=mode;
+    steppingMode = mode;
     value = (mode == SPEED) ? 0 : 1;
-    LOGF_INFO("Setting stepping mode to: %s", (mode==SPEED)?"SPEED":"micro");
+    LOGF_INFO("Setting stepping mode to: %s", (mode == SPEED) ? "SPEED" : "micro");
     LOGF_INFO("Setting stepping mode to: %d", value);
     snprintf(cmd, DRIVER_LEN, "SetFocuserMode %d\n", value);
     return sendCommand(cmd);
@@ -913,9 +934,10 @@ bool AllunaTCS2::getClimateControl()
     if (value == -1)
         return false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control status read to be %s (%d)", (value==1)?"automatic":"manual", value);
-    ClimateControlSP[AUTO  ].setState((value==1)?ISS_ON:ISS_OFF);
-    ClimateControlSP[MANUAL].setState((value!=1)?ISS_ON:ISS_OFF);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Climate Control status read to be %s (%d)", (value == 1) ? "automatic" : "manual",
+           value);
+    ClimateControlSP[AUTO  ].setState((value == 1) ? ISS_ON : ISS_OFF);
+    ClimateControlSP[MANUAL].setState((value != 1) ? ISS_ON : ISS_OFF);
     ClimateControlSP.setState(IPS_OK);
 
     return true;
@@ -943,9 +965,9 @@ bool AllunaTCS2::getPrimaryDewHeater()
     if (value == -1)
         return false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater status read to be %s (%d)", (value==1)?"ON":"OFF", value);
-    PrimaryDewHeaterSP[ON ].setState((value==1)?ISS_ON:ISS_OFF);
-    PrimaryDewHeaterSP[OFF].setState((value!=1)?ISS_ON:ISS_OFF);
+    DEBUGF(INDI::Logger::DBG_SESSION, "PrimaryDewHeater status read to be %s (%d)", (value == 1) ? "ON" : "OFF", value);
+    PrimaryDewHeaterSP[ON ].setState((value == 1) ? ISS_ON : ISS_OFF);
+    PrimaryDewHeaterSP[OFF].setState((value != 1) ? ISS_ON : ISS_OFF);
     PrimaryDewHeaterSP.setState(IPS_OK);
 
     return true;
@@ -973,9 +995,9 @@ bool AllunaTCS2::getSecondaryDewHeater()
     if (value == -1)
         return false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater status read to be %s (%d)", (value==1)?"ON":"OFF", value);
-    SecondaryDewHeaterSP[ON ].setState((value==1)?ISS_ON:ISS_OFF);
-    SecondaryDewHeaterSP[OFF].setState((value!=1)?ISS_ON:ISS_OFF);
+    DEBUGF(INDI::Logger::DBG_SESSION, "SecondaryDewHeater status read to be %s (%d)", (value == 1) ? "ON" : "OFF", value);
+    SecondaryDewHeaterSP[ON ].setState((value == 1) ? ISS_ON : ISS_OFF);
+    SecondaryDewHeaterSP[OFF].setState((value != 1) ? ISS_ON : ISS_OFF);
     SecondaryDewHeaterSP.setState(IPS_OK);
 
     return true;
@@ -1001,10 +1023,13 @@ bool AllunaTCS2::getFanPower()
     std::chrono::duration<double> seconds = std::chrono::system_clock::now() - last_temp_update;
     if ( !first_run && seconds.count() < 30 ) // update every 30 seconds
     {
-        if (tcs.try_lock()) {
+        if (tcs.try_lock())
+        {
             tcs.unlock(); // we need to get lock, to make TimerHit behave the same when we block reading temperature
             return true; // return true, if we could get the lock
-        } else {
+        }
+        else
+        {
             return false; // return false, if we could not get the lock
         }
     }
@@ -1017,11 +1042,12 @@ bool AllunaTCS2::getFanPower()
     if (value == -1)
         return false;
 
-    if (value != (int)FanPowerNP[0].value) {
-      LOGF_INFO("FanPower read to be %d", value);
-      FanPowerNP[0].value = (double)value;
-      FanPowerNP.setState(IPS_OK);
-      FanPowerNP.apply();
+    if (value != (int)FanPowerNP[0].value)
+    {
+        LOGF_INFO("FanPower read to be %d", value);
+        FanPowerNP[0].value = (double)value;
+        FanPowerNP.setState(IPS_OK);
+        FanPowerNP.apply();
     }
     return true;
 }

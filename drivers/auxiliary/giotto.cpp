@@ -26,7 +26,7 @@
 
 static std::unique_ptr<GIOTTO> sesto(new GIOTTO());
 
-GIOTTO::GIOTTO() : LightBoxInterface(this, true)
+GIOTTO::GIOTTO() : LightBoxInterface(this)
 {
     setVersion(1, 0);
 }
@@ -45,7 +45,7 @@ bool GIOTTO::initProperties()
 
     INDI::DefaultDevice::initProperties();
 
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
 
@@ -68,20 +68,7 @@ bool GIOTTO::initProperties()
 bool GIOTTO::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
-
-    if (isConnected())
-    {
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
-    }
-    else
-    {
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
-    }
-
-    updateLightBoxProperties();
-
+    LI::updateProperties();
     return true;
 }
 
@@ -93,7 +80,7 @@ void GIOTTO::ISGetProperties(const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,16 +102,16 @@ bool GIOTTO::Handshake()
     uint16_t max = 0;
     if (m_GIOTTO->getMaxBrightness(max))
     {
-        LightIntensityNP.np[0].max = max;
+        LightIntensityNP[0].setMax(max);
         LOGF_INFO("%s is online.", getDeviceName());
 
         uint16_t value = 0;
         if (m_GIOTTO->getBrightness(value))
-            LightIntensityNP.np[0].value = value;
+            LightIntensityNP[0].setValue(value);
 
         auto lightEnabled = m_GIOTTO->isLightEnabled();
-        LightS[0].s = lightEnabled ? ISS_ON : ISS_OFF;
-        LightS[1].s = lightEnabled ? ISS_OFF : ISS_ON;
+        LightSP[0].setState(lightEnabled ? ISS_ON : ISS_OFF);
+        LightSP[1].setState(lightEnabled ? ISS_OFF : ISS_ON);
 
         return true;
     }
@@ -147,7 +134,7 @@ const char *GIOTTO::getDefaultName()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool GIOTTO::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -158,7 +145,7 @@ bool GIOTTO::ISNewNumber(const char *dev, const char *name, double values[], cha
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool GIOTTO::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (processLightBoxText(dev, name, texts, names, n))
+    if (LI::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -169,7 +156,7 @@ bool GIOTTO::ISNewText(const char *dev, const char *name, char *texts[], char *n
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool GIOTTO::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (processLightBoxSwitch(dev, name, states, names, n))
+    if (LI::processSwitch(dev, name, states, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -180,7 +167,7 @@ bool GIOTTO::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool GIOTTO::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -208,5 +195,5 @@ bool GIOTTO::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }

@@ -21,6 +21,9 @@
 #pragma once
 
 #include "indibase.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertytext.h"
 
 #include <stdint.h>
 
@@ -40,6 +43,10 @@
    \e IMPORTANT: processLightBoxText() must be called in your driver ISNewText function.
 \author Jasem Mutlaq
 */
+
+// Alias
+using LI = INDI::LightBoxInterface;
+
 namespace INDI
 {
 
@@ -52,34 +59,39 @@ class LightBoxInterface
             FLAT_LIGHT_OFF
         };
 
+        enum
+        {
+            CAN_DIM = 1 << 0,   /** Does it support dimming? */
+        } LightBoxCapability;
+
     protected:
-        LightBoxInterface(DefaultDevice *device, bool isDimmable);
+        LightBoxInterface(DefaultDevice *device);
         virtual ~LightBoxInterface();
 
         /** \brief Initialize light box properties. It is recommended to call this function within initProperties() of your primary device
-                \param deviceName Name of the primary device
-                \param groupName Group or tab name to be used to define light box properties.
+                \param group Group or tab name to be used to define light box properties.
+                \param capabilities Light box capabilities
             */
-        void initLightBoxProperties(const char *deviceName, const char *groupNam);
+        void initProperties(const char *group, uint32_t capabilities);
 
         /**
              * @brief isGetLightBoxProperties Get light box properties
              * @param deviceName parent device name
              */
-        void isGetLightBoxProperties(const char *deviceName);
+        void ISGetProperties(const char *deviceName);
 
         /** \brief Process light box switch properties */
-        bool processLightBoxSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
         /** \brief Process light box number properties */
-        bool processLightBoxNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
         /** \brief Process light box text properties */
-        bool processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-        bool updateLightBoxProperties();
-        bool saveLightBoxConfigItems(FILE *fp);
-        bool snoopLightBox(XMLEle *root);
+        bool updateProperties();
+        bool saveConfigItems(FILE *fp);
+        bool snoop(XMLEle *root);
 
         /**
              * @brief setBrightness Set light level. Must be implemented in the child class, if supported.
@@ -96,25 +108,21 @@ class LightBoxInterface
         virtual bool EnableLightBox(bool enable);
 
         // Turn on/off light
-        ISwitchVectorProperty LightSP;
-        ISwitch LightS[2];
+        INDI::PropertySwitch LightSP {2};
 
         // Light Intensity
-        INumberVectorProperty LightIntensityNP;
-        INumber LightIntensityN[1];
+        INDI::PropertyNumber LightIntensityNP {1};
 
         // Active devices to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
 
-        INumberVectorProperty FilterIntensityNP;
-        INumber *FilterIntensityN;
+        INDI::PropertyNumber FilterIntensityNP {0};
 
     private:
         void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
-        DefaultDevice *device;
-        uint8_t currentFilterSlot;
-        bool isDimmable;
+        DefaultDevice *m_DefaultDevice {nullptr};
+        uint8_t currentFilterSlot {0};
+        uint32_t m_Capabilities {0};
 };
 }

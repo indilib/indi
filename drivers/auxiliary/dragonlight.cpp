@@ -35,7 +35,7 @@
 
 static std::unique_ptr<DragonLIGHT> dragonlight(new DragonLIGHT());
 
-DragonLIGHT::DragonLIGHT() : LightBoxInterface(this, true)
+DragonLIGHT::DragonLIGHT() : LightBoxInterface(this)
 {
     setVersion(1, 0);
 }
@@ -54,13 +54,13 @@ bool DragonLIGHT::initProperties()
     DiscoverSwitchSP[0].fill("DISCOVER", "Discover", ISS_OFF);
     DiscoverSwitchSP.fill(getDeviceName(), "DISCOVER", "Discover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
 
-    LightIntensityN[0].min = 0;
-    LightIntensityN[0].max = 255;
-    LightIntensityN[0].step = 1;
+    LightIntensityNP[0].setMin(0);
+    LightIntensityNP[0].setMax(255);
+    LightIntensityNP[0].setMax(1);
 
     addAuxControls();
 
@@ -75,7 +75,7 @@ void DragonLIGHT::ISGetProperties(const char *dev)
     defineProperty(DiscoverSwitchSP);
 
     // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 
     loadConfig(IPAddressTP);
 }
@@ -83,21 +83,17 @@ void DragonLIGHT::ISGetProperties(const char *dev)
 bool DragonLIGHT::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
+    LI::updateProperties();
 
     if (isConnected())
     {
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
         defineProperty(FirmwareTP);
     }
     else
     {
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
         deleteProperty(FirmwareTP);
     }
 
-    updateLightBoxProperties();
     return true;
 }
 
@@ -126,14 +122,14 @@ bool DragonLIGHT::EnableLightBox(bool enable)
 
 bool DragonLIGHT::SetLightBoxBrightness(uint16_t value)
 {
-    if (LightS[FLAT_LIGHT_ON].s != ISS_ON)
+    if (LightSP[FLAT_LIGHT_ON].getState() != ISS_ON)
     {
         LOG_ERROR("You must set On the Flat Light first.");
         return false;
     }
 
-    LightIntensityN[0].value = value;
-    IDSetNumber(&LightIntensityNP, nullptr);
+    LightIntensityNP[0].setValue(value);
+    LightIntensityNP.apply();
 
     httplib::Client cli(IPAddressTP[0].getText(), 80);
 
@@ -161,7 +157,7 @@ bool DragonLIGHT::SetLightBoxBrightness(uint16_t value)
 
 bool DragonLIGHT::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -178,7 +174,7 @@ bool DragonLIGHT::ISNewText(const char *dev, const char *name, char *texts[], ch
         return true;
     }
 
-    if (processLightBoxText(dev, name, texts, names, n))
+    if (LI::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -201,7 +197,7 @@ bool DragonLIGHT::ISNewSwitch(const char *dev, const char *name, ISState *states
         return true;
     }
 
-    if (processLightBoxSwitch(dev, name, states, names, n))
+    if (LI::processSwitch(dev, name, states, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -209,7 +205,7 @@ bool DragonLIGHT::ISNewSwitch(const char *dev, const char *name, ISState *states
 
 bool DragonLIGHT::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -220,7 +216,7 @@ bool DragonLIGHT::saveConfigItems(FILE *fp)
 
     IPAddressTP.save(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
 
 bool DragonLIGHT::Connect()
@@ -281,16 +277,16 @@ void DragonLIGHT::updateStatus()
 
         uint32_t brightness = j["brightness"];
 
-        LightIntensityN[0].value = brightness;
-        LightIntensityNP.s = IPS_OK;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(brightness);
+        LightIntensityNP.setState(IPS_OK);
+        LightIntensityNP.apply();
 
         bool isOn = j["isOn"];
 
-        LightS[FLAT_LIGHT_ON].s = isOn ?  ISS_ON : ISS_OFF;
-        LightS[FLAT_LIGHT_OFF].s = isOn ?  ISS_OFF : ISS_ON;
-        LightSP.s = IPS_OK;
-        IDSetSwitch(&LightSP, nullptr);
+        LightSP[FLAT_LIGHT_ON].setState(isOn ?  ISS_ON : ISS_OFF);
+        LightSP[FLAT_LIGHT_OFF].setState(isOn ?  ISS_OFF : ISS_ON);
+        LightSP.setState(IPS_OK);
+        LightSP.apply();
     }
     else
     {

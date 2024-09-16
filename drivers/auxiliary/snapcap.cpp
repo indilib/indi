@@ -43,12 +43,13 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 #define SNAP_RES 8 // Includes terminating null
 #define SNAP_TIMEOUT 3
 
-SnapCap::SnapCap() : LightBoxInterface(this, true)
+SnapCap::SnapCap() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 3);
 }
 
-SnapCap::~SnapCap(){
+SnapCap::~SnapCap()
+{
 
     delete serialConnection;
     delete tcpConnection;
@@ -76,12 +77,12 @@ bool SnapCap::initProperties()
     ForceSP[1].fill("ON", "On", ISS_OFF);
     ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
-    LightIntensityN[0].min  = 0;
-    LightIntensityN[0].max  = 255;
-    LightIntensityN[0].step = 10;
+    LightIntensityNP[0].setMin(0);
+    LightIntensityNP[0].setMax(255);
+    LightIntensityNP[0].setStep(10);
 
     hasLight = true;
 
@@ -118,36 +119,33 @@ void SnapCap::ISGetProperties(const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 }
 
 bool SnapCap::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
+    DI::updateProperties();
+
     if (isConnected())
     {
-        defineProperty(&ParkCapSP);
         if (hasLight)
         {
-            defineProperty(&LightSP);
-            defineProperty(&LightIntensityNP);
-            updateLightBoxProperties();
+            LI::updateProperties();
         }
         defineProperty(StatusTP);
         defineProperty(FirmwareTP);
         defineProperty(AbortSP);
         defineProperty(ForceSP);
+
         getStartupData();
     }
     else
     {
-        deleteProperty(ParkCapSP.name);
         if (hasLight)
         {
-            deleteProperty(LightSP.name);
-            deleteProperty(LightIntensityNP.name);
-            updateLightBoxProperties();
+            LI::updateProperties();
         }
         deleteProperty(StatusTP);
         deleteProperty(FirmwareTP);
@@ -160,7 +158,7 @@ bool SnapCap::updateProperties()
 
 const char *SnapCap::getDefaultName()
 {
-    return (const char *)"SnapCap";
+    return "SnapCap";
 }
 
 bool SnapCap::Handshake()
@@ -200,7 +198,7 @@ bool SnapCap::ISNewNumber(const char *dev, const char *name, double values[], ch
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -211,7 +209,7 @@ bool SnapCap::ISNewText(const char *dev, const char *name, char *texts[], char *
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (processLightBoxText(dev, name, texts, names, n))
+    if (LI::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -231,15 +229,15 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     }
     if (ForceSP.isNameMatch(name))
     {
-    	ForceSP.update(states, names, n);
-    	ForceSP.apply();
+        ForceSP.update(states, names, n);
+        ForceSP.apply();
         return true;
     }
 
-    if (processDustCapSwitch(dev, name, states, names, n))
+    if (DI::processSwitch(dev, name, states, names, n))
         return true;
 
-    if (processLightBoxSwitch(dev, name, states, names, n))
+    if (LI::processSwitch(dev, name, states, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -247,7 +245,7 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool SnapCap::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -256,7 +254,7 @@ bool SnapCap::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
 
 bool SnapCap::ping()
@@ -427,14 +425,14 @@ bool SnapCap::getStatus()
 
     if (isSimulation())
     {
-        if (ParkCapSP.s == IPS_BUSY && --simulationWorkCounter <= 0)
+        if (ParkCapSP.getState() == IPS_BUSY && --simulationWorkCounter <= 0)
         {
-            ParkCapSP.s = IPS_IDLE;
-            IDSetSwitch(&ParkCapSP, nullptr);
+            ParkCapSP.setState(IPS_IDLE);
+            ParkCapSP.apply();
             simulationWorkCounter = 0;
         }
 
-        if (ParkCapSP.s == IPS_BUSY)
+        if (ParkCapSP.getState() == IPS_BUSY)
         {
             response[2] = '1';
             response[4] = '0';
@@ -443,13 +441,13 @@ bool SnapCap::getStatus()
         {
             response[2] = '0';
             // Parked/Closed
-            if (ParkCapS[CAP_PARK].s == ISS_ON)
+            if (ParkCapSP[CAP_PARK].getState() == ISS_ON)
                 response[4] = '2';
             else
                 response[4] = '1';
         }
 
-        response[3] = (LightS[FLAT_LIGHT_ON].s == ISS_ON) ? '1' : '0';
+        response[3] = (LightSP[FLAT_LIGHT_ON].getState() == ISS_ON) ? '1' : '0';
     }
     else
     {
@@ -481,26 +479,26 @@ bool SnapCap::getStatus()
                 break;
 
             case 1:
-                if ((targetCoverStatus == 1 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
+                if ((targetCoverStatus == 1 && ParkCapSP.getState() == IPS_BUSY) || ParkCapSP.getState() == IPS_IDLE)
                 {
                     StatusTP[0].setText("Open");
-                    IUResetSwitch(&ParkCapSP);
-                    ParkCapS[CAP_UNPARK].s = ISS_ON;
-                    ParkCapSP.s            = IPS_OK;
+                    ParkCapSP.reset();
+                    ParkCapSP[CAP_UNPARK].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
                     LOG_INFO("Cover open.");
-                    IDSetSwitch(&ParkCapSP, nullptr);
+                    ParkCapSP.apply();
                 }
                 break;
 
             case 2:
-                if ((targetCoverStatus == 2 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
+                if ((targetCoverStatus == 2 && ParkCapSP.getState() == IPS_BUSY) || ParkCapSP.getState() == IPS_IDLE)
                 {
                     StatusTP[0].setText("Closed");
-                    IUResetSwitch(&ParkCapSP);
-                    ParkCapS[CAP_PARK].s = ISS_ON;
-                    ParkCapSP.s          = IPS_OK;
+                    ParkCapSP.reset();
+                    ParkCapSP[CAP_PARK].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
                     LOG_INFO("Cover closed.");
-                    IDSetSwitch(&ParkCapSP, nullptr);
+                    ParkCapSP.apply();
                 }
                 break;
 
@@ -532,21 +530,21 @@ bool SnapCap::getStatus()
         {
             case 0:
                 StatusTP[1].setText("Off");
-                if (LightS[0].s == ISS_ON)
+                if (LightSP[0].getState() == ISS_ON)
                 {
-                    LightS[0].s = ISS_OFF;
-                    LightS[1].s = ISS_ON;
-                    IDSetSwitch(&LightSP, nullptr);
+                    LightSP[0].setState(ISS_OFF);
+                    LightSP[1].setState(ISS_ON);
+                    LightSP.apply();
                 }
                 break;
 
             case 1:
                 StatusTP[1].setText("On");
-                if (LightS[1].s == ISS_ON)
+                if (LightSP[1].getState() == ISS_ON)
                 {
-                    LightS[0].s = ISS_ON;
-                    LightS[1].s = ISS_OFF;
-                    IDSetSwitch(&LightSP, nullptr);
+                    LightSP[0].setState(ISS_ON);
+                    LightSP[1].setState(ISS_OFF);
+                    LightSP.apply();
                 }
                 break;
         }
@@ -632,8 +630,8 @@ bool SnapCap::getBrightness()
     if (brightnessValue != prevBrightness)
     {
         prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(brightnessValue);
+        LightIntensityNP.apply();
     }
 
     return true;
@@ -643,8 +641,8 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 {
     if (isSimulation())
     {
-        LightIntensityN[0].value = value;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(value);
+        LightIntensityNP.apply();
         return true;
     }
 
@@ -668,8 +666,8 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
     if (brightnessValue != prevBrightness)
     {
         prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(brightnessValue);
+        LightIntensityNP.apply();
     }
 
     return true;
