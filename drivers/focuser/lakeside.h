@@ -47,7 +47,7 @@ class Lakeside : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool ReverseFocuser(bool enabled) override;
-        virtual bool SetFocuserBacklashEnabled(bool enabled);
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
         virtual bool SetFocuserBacklash(int32_t steps) override;
 
     private:
