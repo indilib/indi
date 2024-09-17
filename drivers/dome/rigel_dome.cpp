@@ -345,6 +345,16 @@ bool RigelDome::Sync(double az)
 /////////////////////////////////////////////////////////////////////////////
 IPState RigelDome::Park()
 {
+    if (readShutterStatus() && ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].getState() == ISS_ON)
+    {
+        if(ControlShutter(SHUTTER_CLOSE))
+        {
+            LOG_INFO("Shutter close on park");
+        }
+        else
+            return IPS_ALERT;
+    }
+
     targetAz = GetAxis1Park();
     if (setParkAz(targetAz))
     {
@@ -400,6 +410,16 @@ bool RigelDome::setHome(double az)
 /////////////////////////////////////////////////////////////////////////////
 IPState RigelDome::UnPark()
 {
+    if (readShutterStatus() && ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].getState() == ISS_ON)
+    {
+        if(ControlShutter(SHUTTER_OPEN))
+        {
+            LOG_INFO("Shutter open on unpark");
+        }
+        else
+            return IPS_ALERT;
+    }
+
     return IPS_OK;
 }
 
