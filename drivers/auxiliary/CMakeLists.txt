@@ -306,13 +306,13 @@ add_executable(indi_mydcp4esp32 ${mydcp4esp32_SRC})
 target_link_libraries(indi_mydcp4esp32 indidriver)
 install(TARGETS indi_mydcp4esp32 RUNTIME DESTINATION bin)
 
-# ########## Deep Sky Dad FP1 ###############
-SET(deepskydad_fp1_SRC
-    deepskydad_fp1.cpp)
+# ########## Deep Sky Dad FP ###############
+SET(deepskydad_fp_SRC
+    deepskydad_fp.cpp)
 
-add_executable(indi_deepskydad_fp1 ${deepskydad_fp1_SRC})
-target_link_libraries(indi_deepskydad_fp1 indidriver)
-install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
+add_executable(indi_deepskydad_fp ${deepskydad_fp_SRC})
+target_link_libraries(indi_deepskydad_fp indidriver)
+install(TARGETS indi_deepskydad_fp RUNTIME DESTINATION bin)
 
 # ########## GIOTTO ###############
 SET(giotto_SRC

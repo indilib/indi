@@ -33,11 +33,11 @@ namespace Connection
 class Serial;
 }
 
-class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
+class DeepSkyDadFP : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
     public:
-        DeepSkyDadFP1();
-        virtual ~DeepSkyDadFP1() = default;
+        DeepSkyDadFP();
+        virtual ~DeepSkyDadFP() = default;
 
         typedef enum { Off, On, OnIfFlapOpenOrLedActive } HeaterMode;
 
