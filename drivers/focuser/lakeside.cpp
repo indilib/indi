@@ -1046,7 +1046,7 @@ bool Lakeside::gotoPosition(uint32_t position)
     // -ve == Move Out
     if ( calc_steps < 0 )
     {
-        sprintf(cmd, "CO%d#", abs(calc_steps));
+        snprintf(cmd, LAKESIDE_LEN,  "CO%d#", abs(calc_steps));
         LOGF_DEBUG("MoveFocuser: move-out cmd to send (%s)", cmd);
     }
     else
@@ -1054,7 +1054,7 @@ bool Lakeside::gotoPosition(uint32_t position)
         if ( calc_steps > 0 )
         {
             // Move in nnnnn steps = CInnnnn#
-            sprintf(cmd, "CI%d#", calc_steps);
+            snprintf(cmd, LAKESIDE_LEN,  "CI%d#", calc_steps);
             LOGF_DEBUG("MoveFocuser: move-in cmd to send (%s)", cmd);
         }
         else
@@ -1097,7 +1097,7 @@ bool Lakeside::setBacklash(int backlash )
     tcflush(PortFD, TCIOFLUSH);
 
     //CRBnnn#
-    sprintf(cmd, "CRB%d#", backlash);
+    snprintf(cmd, LAKESIDE_LEN, "CRB%d#", backlash);
 
     if (!SendCmd(cmd))
     {
@@ -1134,7 +1134,7 @@ bool Lakeside::setStepSize(int stepsize )
     tcflush(PortFD, TCIOFLUSH);
 
     // CRSnnnnn#
-    sprintf(cmd, "CRS%d#", stepsize);
+    snprintf(cmd, LAKESIDE_LEN,  "CRS%d#", stepsize);
 
     if (!SendCmd(cmd))
     {
@@ -1271,7 +1271,7 @@ bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
     // CRg1# : Slope 1
     // CRg2# : Slope 2
 
-    sprintf(cmd, "CRg%d#", active_slope);
+    snprintf(cmd, LAKESIDE_LEN,  "CRg%d#", active_slope);
 
     if (!SendCmd(cmd))
     {
@@ -1310,7 +1310,7 @@ bool Lakeside::setSlope1Inc(uint32_t slope1_inc)
     tcflush(PortFD, TCIOFLUSH);
 
     //CR1nnn#
-    sprintf(cmd, "CR1%d#", slope1_inc);
+    snprintf(cmd, LAKESIDE_LEN,  "CR1%d#", slope1_inc);
 
     if (!SendCmd(cmd))
     {
@@ -1346,7 +1346,7 @@ bool Lakeside::setSlope2Inc(uint32_t slope2_inc)
     tcflush(PortFD, TCIOFLUSH);
 
     //CR2nnn#
-    sprintf(cmd, "CR2%d#", slope2_inc);
+    snprintf(cmd, LAKESIDE_LEN,  "CR2%d#", slope2_inc);
 
     if (!SendCmd(cmd))
     {
@@ -1382,7 +1382,7 @@ bool Lakeside::setSlope1Dir(uint32_t slope1_direction)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRannn#
-    sprintf(cmd, "CRa%d#", slope1_direction);
+    snprintf(cmd, LAKESIDE_LEN,  "CRa%d#", slope1_direction);
 
     if (!SendCmd(cmd))
     {
@@ -1418,7 +1418,7 @@ bool Lakeside::setSlope2Dir(uint32_t slope2_direction)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRannn#
-    sprintf(cmd, "CRb%d#", slope2_direction);
+    snprintf(cmd, LAKESIDE_LEN,  "CRb%d#", slope2_direction);
 
     if (!SendCmd(cmd))
     {
@@ -1454,7 +1454,7 @@ bool Lakeside::setSlope1Deadband(uint32_t slope1_deadband)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRcnnn#
-    sprintf(cmd, "CRc%d#", slope1_deadband);
+    snprintf(cmd, LAKESIDE_LEN,  "CRc%d#", slope1_deadband);
 
     if (!SendCmd(cmd))
     {
@@ -1490,7 +1490,7 @@ bool Lakeside::setSlope2Deadband(uint32_t slope2_deadband)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRdnnn#
-    sprintf(cmd, "CRd%d#", slope2_deadband);
+    snprintf(cmd, LAKESIDE_LEN,  "CRd%d#", slope2_deadband);
 
     if (!SendCmd(cmd))
     {
@@ -1526,7 +1526,7 @@ bool Lakeside::setSlope1Period(uint32_t slope1_period)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRennn#
-    sprintf(cmd, "CRe%d#", slope1_period);
+    snprintf(cmd, LAKESIDE_LEN,  "CRe%d#", slope1_period);
 
     if (!SendCmd(cmd))
     {
@@ -1562,7 +1562,7 @@ bool Lakeside::setSlope2Period(uint32_t slope2_period)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRfnnn#
-    sprintf(cmd, "CRf%d#", slope2_period);
+    snprintf(cmd, LAKESIDE_LEN,  "CRf%d#", slope2_period);
 
     if (!SendCmd(cmd))
     {
