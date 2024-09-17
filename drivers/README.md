@@ -16,17 +16,27 @@ Driver metadata is essential and includes the driver name, executable, version, 
 
 When submitting a driver to be merged in INDI, please submit along with it documentation that includes:
 
-+ Documentation template filled for your driver.
-+ Screenshot + Images used in the documentation (jpg only).
-+ Driver Metadata:
-++ Website
-++ Driver Name: Default driver name (**not** label).
-++ Driver Executable: indi_drivername_family..etc
-++ Family: Telescopes, Focusers, CCDs..etc
-++ Manufacturer
-++ Platforms: Which OS does it run on? The usual for INDI drivers is: Linux, BSD, OSX.
-++ Author
-++ Version
+- Documentation template filled for your driver.
+- Screenshot + Images used in the documentation (jpg only).
+- Driver Metadata:
+  - Website
+  - Driver Name: Default driver name (**not** label).
+  - Driver Executable: indi_drivername_family..etc
+  - Family: Telescopes, Focusers, CCDs..etc
+  - Manufacturer
+  - Platforms: Which OS does it run on? The usual for INDI drivers is: Linux, BSD, OSX.
+  - Author
+  - Version
+
+## Submitting Driver Listing
+
+INDI drivers are listed in [INDI Devices directory](https://indilib.org/devices). To submit a new driver:
+
+1. [Create an account](https://indilib.org/signin.html) on indilib.org. After your account is successfully registered, proceed the next step.
+2. [Add a new listing](https://indilib.org/devices/add.html).
+3. Switch the editor to code view, then copy and paste one the template below into the code view.
+4. Switch back to Editor view. Edit your listing. You can copy and paste INDI Control Panel images directly into the editor.
+5. After listing it added, it is pending review by moderators. If no comments are found, your listing will be published.
 
 ## Mount
 
@@ -94,7 +104,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 		<br /><img style="display: block; margin-left: auto; margin-right: auto;" src="/images/devices/DRIVER_NAME/options.jpg" alt="Options" /></li>
 	<li><strong>Scope Properties</strong>: Enter the Primary and Secondary scope information.&nbsp;Up to six different configurations for&nbsp;<em>Primary</em>&nbsp;and Secondary&nbsp;<em>Guider</em>&nbsp;telescopes can be saved separately, each with an optional unique label in <strong>Scope Name</strong> property.</li>
 	<li><strong>Scope Config</strong>: Select the active scope configuration.</li>
-	<li><strong>Joystick</strong>: Enable or Disable joystick support. An INDI Joystick driver must be running for this function to work. For more details, check the <a href="/support/tutorials/135-controlling-your-telescope-with-a-joystick.html">INDI Telescope Joystick</a> tutorial.</li>	
+	<li><strong>Joystick</strong>: Enable or Disable joystick support. An INDI Joystick driver must be running for this function to work. For more details, check the <a href="/support/tutorials/135-controlling-your-telescope-with-a-joystick.html">INDI Telescope Joystick</a> tutorial.</li>
 </ul>
 <h3>Motion Control</h3>
 <p><img style="display: block; margin-left: auto; margin-right: auto;" src="/images/devices/DRIVER_NAME/motion_control.jpg" alt="Motion Control" /></p>
@@ -130,6 +140,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 	</p>
 </form>
 ```
+
 ## CCD
 
 ```
@@ -264,4 +275,3 @@ There are no known bugs for this driver. If you found a bug, please report it at
 	</p>
 </form>
 ```
-
