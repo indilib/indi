@@ -1086,6 +1086,12 @@ bool Lakeside::SetFocuserBacklash(int32_t steps)
     return setBacklash(steps);
 }
 
+bool Lakeside::SetFocuserBacklashEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    return true;
+}
+
 //
 // Set backlash compensation
 //
