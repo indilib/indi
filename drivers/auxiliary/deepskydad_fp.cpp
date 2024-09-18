@@ -20,7 +20,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "deepskydad_fp1.h"
+#include "deepskydad_fp.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
@@ -33,19 +33,19 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 
-// We declare an auto pointer to DeepSkyDadFP1.
-static std::unique_ptr<DeepSkyDadFP1> dsdFp1(new DeepSkyDadFP1());
+// We declare an auto pointer to DeepSkyDadFP.
+static std::unique_ptr<DeepSkyDadFP> dsdFp(new DeepSkyDadFP());
 
 #define FLAT_CMD 40
 #define FLAT_RES 40
 #define FLAT_TIMEOUT 3
 
-DeepSkyDadFP1::DeepSkyDadFP1() : LightBoxInterface(this), DustCapInterface(this)
+DeepSkyDadFP::DeepSkyDadFP() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 1);
 }
 
-bool DeepSkyDadFP1::initProperties()
+bool DeepSkyDadFP::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
@@ -88,7 +88,7 @@ bool DeepSkyDadFP1::initProperties()
     return true;
 }
 
-void DeepSkyDadFP1::ISGetProperties(const char *dev)
+void DeepSkyDadFP::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
@@ -96,7 +96,7 @@ void DeepSkyDadFP1::ISGetProperties(const char *dev)
     LI::ISGetProperties(dev);
 }
 
-bool DeepSkyDadFP1::updateProperties()
+bool DeepSkyDadFP::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
@@ -121,12 +121,12 @@ bool DeepSkyDadFP1::updateProperties()
     return true;
 }
 
-const char *DeepSkyDadFP1::getDefaultName()
+const char *DeepSkyDadFP::getDefaultName()
 {
-    return "Deep Sky Dad FP1";
+    return "Deep Sky Dad FP";
 }
 
-bool DeepSkyDadFP1::Handshake()
+bool DeepSkyDadFP::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     if (!ping())
@@ -141,7 +141,7 @@ bool DeepSkyDadFP1::Handshake()
     return true;
 }
 
-bool DeepSkyDadFP1::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool DeepSkyDadFP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (LI::processNumber(dev, name, values, names, n))
         return true;
@@ -149,7 +149,7 @@ bool DeepSkyDadFP1::ISNewNumber(const char *dev, const char *name, double values
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool DeepSkyDadFP1::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool DeepSkyDadFP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -160,7 +160,7 @@ bool DeepSkyDadFP1::ISNewText(const char *dev, const char *name, char *texts[], 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool DeepSkyDadFP1::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool DeepSkyDadFP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -208,14 +208,14 @@ bool DeepSkyDadFP1::ISNewSwitch(const char *dev, const char *name, ISState *stat
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool DeepSkyDadFP1::ISSnoopDevice(XMLEle *root)
+bool DeepSkyDadFP::ISSnoopDevice(XMLEle *root)
 {
     LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool DeepSkyDadFP1::saveConfigItems(FILE *fp)
+bool DeepSkyDadFP::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
@@ -224,7 +224,7 @@ bool DeepSkyDadFP1::saveConfigItems(FILE *fp)
     return LI::saveConfigItems(fp);
 }
 
-bool DeepSkyDadFP1::ping()
+bool DeepSkyDadFP::ping()
 {
     char response[FLAT_RES] = {0};
 
@@ -234,7 +234,7 @@ bool DeepSkyDadFP1::ping()
     return true;
 }
 
-void DeepSkyDadFP1::TimerHit()
+void DeepSkyDadFP::TimerHit()
 {
     if (!isConnected())
         return;
@@ -244,7 +244,7 @@ void DeepSkyDadFP1::TimerHit()
     SetTimer(getCurrentPollingPeriod());
 }
 
-bool DeepSkyDadFP1::getStartupData()
+bool DeepSkyDadFP::getStartupData()
 {
     bool rc1 = getFirmwareVersion();
     bool rc2 = getStatus();
@@ -253,7 +253,7 @@ bool DeepSkyDadFP1::getStartupData()
     return (rc1 && rc2 && rc3);
 }
 
-IPState DeepSkyDadFP1::ParkCap()
+IPState DeepSkyDadFP::ParkCap()
 {
     char response[FLAT_RES];
     if (!sendCommand("[STRG270]", response) || !sendCommand("[SMOV]", response))
@@ -269,7 +269,7 @@ IPState DeepSkyDadFP1::ParkCap()
         return IPS_ALERT;
 }
 
-IPState DeepSkyDadFP1::UnParkCap()
+IPState DeepSkyDadFP::UnParkCap()
 {
     char response[FLAT_RES];
     if (!sendCommand("[STRG0]", response) || !sendCommand("[SMOV]", response))
@@ -285,7 +285,7 @@ IPState DeepSkyDadFP1::UnParkCap()
         return IPS_ALERT;
 }
 
-bool DeepSkyDadFP1::EnableLightBox(bool enable)
+bool DeepSkyDadFP::EnableLightBox(bool enable)
 {
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -304,7 +304,7 @@ bool DeepSkyDadFP1::EnableLightBox(bool enable)
     return false;
 }
 
-bool DeepSkyDadFP1::getStatus()
+bool DeepSkyDadFP::getStatus()
 {
     char response[FLAT_RES];
 
@@ -484,7 +484,7 @@ bool DeepSkyDadFP1::getStatus()
     return true;
 }
 
-bool DeepSkyDadFP1::getFirmwareVersion()
+bool DeepSkyDadFP::getFirmwareVersion()
 {
     char response[FLAT_RES] = {0};
     if (!sendCommand("[GFRM]", response))
@@ -498,7 +498,7 @@ bool DeepSkyDadFP1::getFirmwareVersion()
     return true;
 }
 
-bool DeepSkyDadFP1::getBrightness()
+bool DeepSkyDadFP::getBrightness()
 {
     char response[FLAT_RES] = {0};
     if (!sendCommand("[GLBR]", response))
@@ -523,7 +523,7 @@ bool DeepSkyDadFP1::getBrightness()
     return true;
 }
 
-bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
+bool DeepSkyDadFP::SetLightBoxBrightness(uint16_t value)
 {
     char command[FLAT_CMD] = {0};
     char response[FLAT_RES] = {0};
@@ -541,7 +541,7 @@ bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
     return true;
 }
 
-bool DeepSkyDadFP1::sendCommand(const char *cmd, char *res)
+bool DeepSkyDadFP::sendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 

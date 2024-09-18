@@ -761,8 +761,8 @@
             <driver name="MyDCP4ESP32">indi_mydcp4esp32</driver>
             <version>1.0</version>
         </device>
-        <device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
-            <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>
+        <device label="DeepSkyDad FP" manufacturer="DeepSkyDad">
+            <driver name="DeepSkyDad FP">indi_deepskydad_fp</driver>
             <version>1.0</version>
         </device>
         <device label="DeepSkyDad FR1" manufacturer="DeepSkyDad">
