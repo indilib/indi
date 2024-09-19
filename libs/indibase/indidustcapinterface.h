@@ -1,6 +1,6 @@
 /*
     Dust Cap Interface
-    Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2015-2025 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,16 +22,20 @@
 
 #include "indibase.h"
 #include "indidriver.h"
+#include "indipropertyswitch.h"
 
 /**
  * \class DustCapInterface
    \brief Provides interface to implement remotely controlled dust cover
 
-   \e IMPORTANT: initDustCapProperties() must be called before any other function to initialize the Dust Cap properties.
-
-   \e IMPORTANT: processDustCapSwitch() must be called in your driver ISNewSwitch function.
+   \e IMPORTANT: initProperties() must be called before any other function to initialize the Dust Cap properties.
+   \e IMPORTANT: updateProperties() must be called in your driver updateProperties function.
+   \e IMPORTANT: processSwitch() must be called in your driver ISNewSwitch function.
 \author Jasem Mutlaq
 */
+
+// Alias
+using DI = INDI::DustCapInterface;
 namespace INDI
 {
 
@@ -44,8 +48,15 @@ class DustCapInterface
             CAP_UNPARK
         };
 
+        enum
+        {
+            CAN_ABORT           = 1 << 0,   /** Can the dust cap abort motion? */
+            CAN_SET_POSITION    = 1 << 1,   /** Can the dust go to a specific angular position? UNUSED */
+            CAN_SET_LIMITS      = 1 << 2,   /** Can the dust set the minimum and maximum ranges for Park and Unpark? UNUSED */
+        } DustCapCapability;
+
     protected:
-        DustCapInterface() = default;
+        DustCapInterface(DefaultDevice *device);
         virtual ~DustCapInterface() = default;
 
         /**
@@ -60,20 +71,34 @@ class DustCapInterface
              */
         virtual IPState UnParkCap();
 
+        /**
+             * @brief Abort motion. Must be implemented by child.
+             * @return If command completed immediately, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
+             */
+        virtual IPState AbortCap();
+
         /** \brief Initialize dust cap properties. It is recommended to call this function within initProperties() of your primary device
-                \param deviceName Name of the primary device
-                \param groupName Group or tab name to be used to define focuser properties.
+                \param group Group or tab name to be used to define properties.
+                \param capabilities Any additional capabilities the dust cap supports besides Parking and Unparking.
             */
-        void initDustCapProperties(const char *deviceName, const char *groupName);
+        void initProperties(const char *group, uint32_t capabilities = 0);
+
+        /**
+         * @brief updateProperties Defines or Delete properties based on default device connection status
+         * @return True if all is OK, false otherwise.
+         */
+        bool updateProperties();
 
         /** \brief Process dust cap switch properties */
-        bool processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
         // Open/Close cover
-        ISwitchVectorProperty ParkCapSP;
-        ISwitch ParkCapS[2];
+        INDI::PropertySwitch ParkCapSP {2};
+        // Abort Motion
+        INDI::PropertySwitch AbortCapSP {1};
 
     private:
-        char dustCapName[MAXINDIDEVICE];
+        DefaultDevice *m_DefaultDevice { nullptr };
+        uint32_t m_Capabilities {0};
 };
 }

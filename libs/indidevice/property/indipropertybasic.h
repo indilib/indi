@@ -102,6 +102,13 @@ class PropertyBasic : public INDI::Property
          */
         void save(FILE *f) const;
 
+        /**
+         * @brief Inspect the root XML and snoop the property if it exists in the root element.
+         * @param root XML root element to snoop.
+         * @return True if root XML is snooped and property is updated successfully, false otherwise.
+         */
+        bool snoop(XMLEle *root);
+
         void vapply(const char *format, va_list args) const;
         void vdefine(const char *format, va_list args) const;
 

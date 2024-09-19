@@ -287,6 +287,13 @@ void PropertyBasic<T>::save(FILE *f) const
 }
 
 template <typename T>
+bool PropertyBasic<T>::snoop(XMLEle *root)
+{
+    D_PTR(const PropertyBasic);
+    return d->typedProperty.snoop(root);
+}
+
+template <typename T>
 void PropertyBasic<T>::vapply(const char *format, va_list args) const
 {
     D_PTR(const PropertyBasic);

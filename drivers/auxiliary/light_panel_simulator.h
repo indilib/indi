@@ -21,11 +21,13 @@ class LightPanelSimulator : public INDI::DefaultDevice, public INDI::LightBoxInt
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISSnoopDevice(XMLEle *root) override;
 
     protected:
 
         bool initProperties() override;
         bool updateProperties() override;
+        bool saveConfigItems(FILE *fp) override;
 
         bool Connect() override
         {

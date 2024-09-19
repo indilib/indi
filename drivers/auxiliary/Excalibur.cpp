@@ -18,7 +18,7 @@
 static std::unique_ptr<Excalibur> flatmaster(new Excalibur());
 
 
-Excalibur::Excalibur() : LightBoxInterface(this, true)
+Excalibur::Excalibur() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 0);
 }
@@ -31,14 +31,14 @@ bool Excalibur::initProperties()
     IUFillText(&StatusT[1], "Light", "Light", nullptr);
     IUFillTextVector(&StatusTP, StatusT, 2, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
 
-    LightIntensityN[0].min  = 0;
-    LightIntensityN[0].max  = 3000;
-    LightIntensityN[0].step = 1;
+    LightIntensityNP[0].setMin(0);
+    LightIntensityNP[0].setMax(3000);
+    LightIntensityNP[0].setStep(100);
 
     addAuxControls();
 
@@ -59,24 +59,20 @@ bool Excalibur::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
+    DI::updateProperties();
+    LI::updateProperties();
+
     if (isConnected())
     {
-        defineProperty(&ParkCapSP);
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
         defineProperty(&StatusTP);
 
     }
     else
     {
-        deleteProperty(ParkCapSP.name);
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
         deleteProperty(StatusTP.name);
 
     }
 
-    updateLightBoxProperties();
     return true;
 }
 
@@ -96,9 +92,9 @@ bool Excalibur::Ack()
     {
         if(strstr("FLAT.FLAP!#", response) != nullptr)
         {
-            LightS[1].s = ISS_ON;
-            LightS[0].s = ISS_OFF;
-            IDSetSwitch(&LightSP, nullptr);
+            LightSP[1].setState(ISS_ON);
+            LightSP[0].setState(ISS_OFF);
+            LightSP.apply();
             deviceStatus();
             return true;
 
@@ -115,92 +111,84 @@ bool Excalibur::Ack()
 
 bool Excalibur::EnableLightBox(bool enable)
 {
-    char response[20]= {0};
+    char response[20] = {0};
     char cmd[16] = {0};
-    if (!enable){
+    if (!enable)
+    {
         snprintf(cmd, 16, "L%d##", 0);
 
-                sendCommand(cmd,response);
-                IUSaveText(&StatusT[1], "Off");
-                IDSetText(&StatusTP, nullptr);
-                return true;
+        sendCommand(cmd, response);
+        IUSaveText(&StatusT[1], "Off");
+        IDSetText(&StatusTP, nullptr);
+        return true;
 
 
 
     }
     else
     {
+        snprintf(cmd, 16, "L%d##", (int)LightIntensityNP[0].getValue());
 
-        snprintf(cmd, 16, "L%d##", (int)LightIntensityN[0].value);
-
-                sendCommand(cmd,response);
-                IUSaveText(&StatusT[1], "On");
-                IDSetText(&StatusTP, nullptr);
-                return true;
+        sendCommand(cmd, response);
+        IUSaveText(&StatusT[1], "On");
+        IDSetText(&StatusTP, nullptr);
+        return true;
 
 
     }
-
 
     return false;
 }
 
 bool Excalibur::SetLightBoxBrightness(uint16_t value)
 {
-    if(LightS[FLAT_LIGHT_ON].s != ISS_ON)
+    if(LightSP[FLAT_LIGHT_ON].getState() != ISS_ON)
     {
         LOG_ERROR("You must set On the Flat Light first.");
         return false;
     }
-    if( ParkCapS[0].s != ISS_ON)
+    if( ParkCapSP[0].getState() != ISS_ON)
     {
         LOG_ERROR("You must Park eXcalibur first.");
         return false;
     }
 
     //char response[20] = {0};
-     char cmd[DRIVER_RES] = {0};
+    char cmd[DRIVER_RES] = {0};
 
-     snprintf(cmd, 30, "L%d##", value);
-     sendCommand(cmd);
-      return  true;
+    snprintf(cmd, 30, "L%d##", value);
+    sendCommand(cmd);
+    return  true;
 
 
 
 }
 IPState Excalibur::ParkCap()
 {
-
     sendCommand("S1#");
 
-
-    //IUSaveText(&StatusT[0], "Closed");
-     //IUSaveText(&StatusT[1], "On");
-    IUResetSwitch(&ParkCapSP);
-    ParkCapS[0].s = ISS_ON;
-    ParkCapSP.s = IPS_OK;
+    ParkCapSP.reset();
+    ParkCapSP[0].setState(ISS_ON);
+    ParkCapSP.setState(IPS_OK);
     LOG_INFO("Cover closed.");
-    IDSetSwitch(&ParkCapSP, nullptr);
-    IDSetText(&StatusTP, nullptr);
+    ParkCapSP.apply();
     return IPS_OK;
 }
 
 IPState Excalibur::UnParkCap()
 {
-
     sendCommand("S0#");
-
     // Set cover status to random value outside of range to force it to refresh
-    //IUSaveText(&StatusT[0], "Open");
     IUSaveText(&StatusT[1], "Off");
-    IUResetSwitch(&ParkCapSP);
-    ParkCapS[1].s = ISS_ON;
-    ParkCapSP.s = IPS_OK;
+    ParkCapSP.reset();
+    ParkCapSP[1].setState(ISS_ON);
+    ParkCapSP.setState(IPS_OK);
     LOG_INFO("Cover open.");
-    IDSetSwitch(&ParkCapSP, nullptr);
+    ParkCapSP.apply();
     IDSetText(&StatusTP, nullptr);
     return IPS_OK;
 }
+
 void Excalibur::TimerHit()
 {
     if (!isConnected())
@@ -209,9 +197,9 @@ void Excalibur::TimerHit()
     deviceStatus();
 
     // parking or unparking timed out, try again
-    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusT[0].text, "Timed out"))
+    if (ParkCapSP.getState() == IPS_BUSY && !strcmp(StatusT[0].text, "Timed out"))
     {
-        if (ParkCapS[0].s == ISS_ON)
+        if (ParkCapSP[0].getState() == ISS_ON)
             ParkCap();
         else
             UnParkCap();
@@ -222,7 +210,7 @@ void Excalibur::TimerHit()
 
 bool Excalibur::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -232,7 +220,7 @@ bool Excalibur::ISNewText(const char *dev, const char *name, char *texts[], char
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processLightBoxText(dev, name, texts, names, n))
+        if (LI::processText(dev, name, texts, names, n))
             return true;
     }
 
@@ -243,9 +231,9 @@ bool Excalibur::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processDustCapSwitch(dev, name, states, names, n))
+        if (DI::processSwitch(dev, name, states, names, n))
             return true;
-        if (processLightBoxSwitch(dev, name, states, names, n))
+        if (LI::processSwitch(dev, name, states, names, n))
             return true;
     }
 
@@ -254,7 +242,7 @@ bool Excalibur::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool Excalibur::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -263,7 +251,7 @@ bool Excalibur::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
 
 bool Excalibur::sendCommand(const char *command, char *res)
@@ -315,26 +303,25 @@ void Excalibur::deviceStatus()
 
     if (rc > 0)
     {
-       LightIntensityN[0].value = pos;
-       IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(pos);
+        LightIntensityNP.apply();
     }
-    if(LightIntensityN[0].value>0)
+
+    if(LightIntensityNP[0].getValue() > 0)
     {
         IUSaveText(&StatusT[1], "On");
-        if (LightS[1].s == ISS_ON)
+        if (LightSP[1].getState() == ISS_ON)
         {
-            LightS[0].s = ISS_ON;
-            LightS[1].s = ISS_OFF;
-            IDSetSwitch(&LightSP, nullptr);
+            LightSP[0].setState(ISS_ON);
+            LightSP[1].setState(ISS_OFF);
+            LightSP.apply();
         }
 
     }
     else
     {
         IUSaveText(&StatusT[1], "Off");
-
     }
-
 
     sendCommand("P#", res);
 
@@ -342,23 +329,24 @@ void Excalibur::deviceStatus()
     sscanf(res, "%d#", &pos2);
 
 
-    if(pos2<=0){
-    IUSaveText(&StatusT[0], "Closed");
-    if ( ParkCapS[0].s == ISS_OFF)
+    if(pos2 <= 0)
+    {
+        IUSaveText(&StatusT[0], "Closed");
+        if (ParkCapSP[0].getState() == ISS_OFF)
         {
-            ParkCapS[0].s = ISS_ON;
-            IDSetSwitch(&LightSP, nullptr);
+            ParkCapSP[0].setState(ISS_ON);
+            LightSP.apply();
         }
     }
     else
     {
         IUSaveText(&StatusT[0], "Open");
-        if ( ParkCapS[1].s == ISS_OFF)
-            {
-                ParkCapS[1].s = ISS_ON;
-                 IUSaveText(&StatusT[1], "Off");
-                IDSetSwitch(&LightSP, nullptr);
-            }
+        if (ParkCapSP[1].getState() == ISS_OFF)
+        {
+            ParkCapSP[1].setState(ISS_ON);
+            IUSaveText(&StatusT[1], "Off");
+            LightSP.apply();
+        }
 
     }
     IDSetText(&StatusTP, nullptr);

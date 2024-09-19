@@ -20,7 +20,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "deepskydad_fp1.h"
+#include "deepskydad_fp.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
@@ -33,19 +33,19 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 
-// We declare an auto pointer to DeepSkyDadFP1.
-static std::unique_ptr<DeepSkyDadFP1> dsdFp1(new DeepSkyDadFP1());
+// We declare an auto pointer to DeepSkyDadFP.
+static std::unique_ptr<DeepSkyDadFP> dsdFp(new DeepSkyDadFP());
 
 #define FLAT_CMD 40
 #define FLAT_RES 40
 #define FLAT_TIMEOUT 3
 
-DeepSkyDadFP1::DeepSkyDadFP1() : LightBoxInterface(this, true)
+DeepSkyDadFP::DeepSkyDadFP() : LightBoxInterface(this), DustCapInterface(this)
 {
     setVersion(1, 1);
 }
 
-bool DeepSkyDadFP1::initProperties()
+bool DeepSkyDadFP::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
@@ -67,12 +67,12 @@ bool DeepSkyDadFP1::initProperties()
     IUFillText(&FirmwareT[0], "Version", "Version", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
-    initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB);
+    LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
-    LightIntensityN[0].min  = 0;
-    LightIntensityN[0].max  = 4096;
-    LightIntensityN[0].step = 1;
+    LightIntensityNP[0].setMin(0);
+    LightIntensityNP[0].setMax(4096);
+    LightIntensityNP[0].setStep(1);
 
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
 
@@ -88,52 +88,45 @@ bool DeepSkyDadFP1::initProperties()
     return true;
 }
 
-void DeepSkyDadFP1::ISGetProperties(const char *dev)
+void DeepSkyDadFP::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
     // Get Light box properties
-    isGetLightBoxProperties(dev);
+    LI::ISGetProperties(dev);
 }
 
-bool DeepSkyDadFP1::updateProperties()
+bool DeepSkyDadFP::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
 
+    DI::updateProperties();
+    LI::updateProperties();
+
     if (isConnected())
     {
-        defineProperty(&ParkCapSP);
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
         defineProperty(&HeaterModeSP);
         defineProperty(&StatusTP);
         defineProperty(&FirmwareTP);
-
-        updateLightBoxProperties();
 
         getStartupData();
     }
     else
     {
-        deleteProperty(ParkCapSP.name);
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
         deleteProperty(HeaterModeSP.name);
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
-
-        updateLightBoxProperties();
     }
 
     return true;
 }
 
-const char *DeepSkyDadFP1::getDefaultName()
+const char *DeepSkyDadFP::getDefaultName()
 {
-    return "Deep Sky Dad FP1";
+    return "Deep Sky Dad FP";
 }
 
-bool DeepSkyDadFP1::Handshake()
+bool DeepSkyDadFP::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     if (!ping())
@@ -148,33 +141,33 @@ bool DeepSkyDadFP1::Handshake()
     return true;
 }
 
-bool DeepSkyDadFP1::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool DeepSkyDadFP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (processLightBoxNumber(dev, name, values, names, n))
+    if (LI::processNumber(dev, name, values, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool DeepSkyDadFP1::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool DeepSkyDadFP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processLightBoxText(dev, name, texts, names, n))
+        if (LI::processText(dev, name, texts, names, n))
             return true;
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool DeepSkyDadFP1::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool DeepSkyDadFP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (processDustCapSwitch(dev, name, states, names, n))
+        if (DI::processSwitch(dev, name, states, names, n))
             return true;
 
-        if (processLightBoxSwitch(dev, name, states, names, n))
+        if (LI::processSwitch(dev, name, states, names, n))
             return true;
 
         if (strcmp(HeaterModeSP.name, name) == 0)
@@ -215,23 +208,23 @@ bool DeepSkyDadFP1::ISNewSwitch(const char *dev, const char *name, ISState *stat
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool DeepSkyDadFP1::ISSnoopDevice(XMLEle *root)
+bool DeepSkyDadFP::ISSnoopDevice(XMLEle *root)
 {
-    snoopLightBox(root);
+    LI::snoop(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool DeepSkyDadFP1::saveConfigItems(FILE *fp)
+bool DeepSkyDadFP::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &HeaterModeSP);
 
-    return saveLightBoxConfigItems(fp);
+    return LI::saveConfigItems(fp);
 }
 
-bool DeepSkyDadFP1::ping()
+bool DeepSkyDadFP::ping()
 {
     char response[FLAT_RES] = {0};
 
@@ -241,7 +234,7 @@ bool DeepSkyDadFP1::ping()
     return true;
 }
 
-void DeepSkyDadFP1::TimerHit()
+void DeepSkyDadFP::TimerHit()
 {
     if (!isConnected())
         return;
@@ -251,7 +244,7 @@ void DeepSkyDadFP1::TimerHit()
     SetTimer(getCurrentPollingPeriod());
 }
 
-bool DeepSkyDadFP1::getStartupData()
+bool DeepSkyDadFP::getStartupData()
 {
     bool rc1 = getFirmwareVersion();
     bool rc2 = getStatus();
@@ -260,7 +253,7 @@ bool DeepSkyDadFP1::getStartupData()
     return (rc1 && rc2 && rc3);
 }
 
-IPState DeepSkyDadFP1::ParkCap()
+IPState DeepSkyDadFP::ParkCap()
 {
     char response[FLAT_RES];
     if (!sendCommand("[STRG270]", response) || !sendCommand("[SMOV]", response))
@@ -276,7 +269,7 @@ IPState DeepSkyDadFP1::ParkCap()
         return IPS_ALERT;
 }
 
-IPState DeepSkyDadFP1::UnParkCap()
+IPState DeepSkyDadFP::UnParkCap()
 {
     char response[FLAT_RES];
     if (!sendCommand("[STRG0]", response) || !sendCommand("[SMOV]", response))
@@ -292,7 +285,7 @@ IPState DeepSkyDadFP1::UnParkCap()
         return IPS_ALERT;
 }
 
-bool DeepSkyDadFP1::EnableLightBox(bool enable)
+bool DeepSkyDadFP::EnableLightBox(bool enable)
 {
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -311,7 +304,7 @@ bool DeepSkyDadFP1::EnableLightBox(bool enable)
     return false;
 }
 
-bool DeepSkyDadFP1::getStatus()
+bool DeepSkyDadFP::getStatus()
 {
     char response[FLAT_RES];
 
@@ -375,27 +368,25 @@ bool DeepSkyDadFP1::getStatus()
             if(coverStatus == 0)
             {
                 IUSaveText(&StatusT[0], "Open");
-                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
                 {
-                    IUResetSwitch(&ParkCapSP);
-                    ParkCapS[0].s = ISS_OFF;
-                    ParkCapS[1].s = ISS_ON;
-                    ParkCapSP.s   = IPS_OK;
+                    ParkCapSP.reset();
+                    ParkCapSP[1].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
                     LOG_INFO("Cover open.");
-                    IDSetSwitch(&ParkCapSP, nullptr);
+                    ParkCapSP.apply();
                 }
             }
             else if(coverStatus == 270)
             {
                 IUSaveText(&StatusT[0], "Closed");
-                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
                 {
-                    IUResetSwitch(&ParkCapSP);
-                    ParkCapS[0].s = ISS_ON;
-                    ParkCapS[1].s = ISS_OFF;
-                    ParkCapSP.s   = IPS_OK;
+                    ParkCapSP.reset();
+                    ParkCapSP[0].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
                     LOG_INFO("Cover closed.");
-                    IDSetSwitch(&ParkCapSP, nullptr);
+                    ParkCapSP.apply();
                 }
             }
             else
@@ -420,16 +411,16 @@ bool DeepSkyDadFP1::getStatus()
         {
             case 0:
                 IUSaveText(&StatusT[1], "Off");
-                LightS[0].s = ISS_OFF;
-                LightS[1].s = ISS_ON;
-                IDSetSwitch(&LightSP, nullptr);
+                LightSP[0].setState(ISS_OFF);
+                LightSP[1].setState(ISS_ON);
+                LightSP.apply();
                 break;
 
             case 1:
                 IUSaveText(&StatusT[1], "On");
-                LightS[0].s = ISS_ON;
-                LightS[1].s = ISS_OFF;
-                IDSetSwitch(&LightSP, nullptr);
+                LightSP[0].setState(ISS_ON);
+                LightSP[1].setState(ISS_OFF);
+                LightSP.apply();
                 break;
         }
     }
@@ -493,7 +484,7 @@ bool DeepSkyDadFP1::getStatus()
     return true;
 }
 
-bool DeepSkyDadFP1::getFirmwareVersion()
+bool DeepSkyDadFP::getFirmwareVersion()
 {
     char response[FLAT_RES] = {0};
     if (!sendCommand("[GFRM]", response))
@@ -507,7 +498,7 @@ bool DeepSkyDadFP1::getFirmwareVersion()
     return true;
 }
 
-bool DeepSkyDadFP1::getBrightness()
+bool DeepSkyDadFP::getBrightness()
 {
     char response[FLAT_RES] = {0};
     if (!sendCommand("[GLBR]", response))
@@ -524,15 +515,15 @@ bool DeepSkyDadFP1::getBrightness()
 
     if (brightnessValue != prevBrightness)
     {
-        prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        prevBrightness = brightnessValue;
+        LightIntensityNP[0].setValue(brightnessValue);
+        LightIntensityNP.apply();
     }
 
     return true;
 }
 
-bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
+bool DeepSkyDadFP::SetLightBoxBrightness(uint16_t value)
 {
     char command[FLAT_CMD] = {0};
     char response[FLAT_RES] = {0};
@@ -550,7 +541,7 @@ bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
     return true;
 }
 
-bool DeepSkyDadFP1::sendCommand(const char *cmd, char *res)
+bool DeepSkyDadFP::sendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
