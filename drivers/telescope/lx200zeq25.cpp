@@ -1360,16 +1360,16 @@ int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
     switch (direction)
     {
         case LX200_NORTH:
-            sprintf(cmd, ":Mn%04d#", duration_msec);
+            sprintf(cmd, ":Mn%05d#", duration_msec);
             break;
         case LX200_SOUTH:
-            sprintf(cmd, ":Ms%04d#", duration_msec);
+            sprintf(cmd, ":Ms%05d#", duration_msec);
             break;
         case LX200_EAST:
-            sprintf(cmd, ":Me%04d#", duration_msec);
+            sprintf(cmd, ":Me%05d#", duration_msec);
             break;
         case LX200_WEST:
-            sprintf(cmd, ":Mw%04d#", duration_msec);
+            sprintf(cmd, ":Mw%05d#", duration_msec);
             break;
         default:
             return 1;
