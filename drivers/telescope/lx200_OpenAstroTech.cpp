@@ -330,7 +330,23 @@ int LX200_OpenAstroTech::executeMeadeCommand(const char *cmd, char *data)
                 getchar = true;
             }
         }
-        else if(cmd[1] == 'M' && cmd[2] == 'A')     // MAL, MAZ
+        else if(cmd[1] == 'M' && cmd[2] == 'A') // MAL, MAZ
+        {
+            wait = false;
+        }
+        else if(cmd[1] == 'M' && cmd[2] == 'X') // MXxnnnnn#
+        {
+            getchar = true;
+        }
+        else if(cmd[1] == 'M' && (cmd[2] == 'g' || cmd[2] == 'G')) // Mgnxxxx#
+        {
+            wait = false;
+        }
+        else if(cmd[1] == 'S' && cmd[2] != 'C') // SCMM/DD/YY#
+        {
+            getchar = true;
+        }
+        else if(cmd[1] == 'X' && cmd[2] == 'S') // :XSRn.n# :XSDn.n# :XS...
         {
             wait = false;
         }
@@ -343,7 +359,18 @@ int LX200_OpenAstroTech::executeMeadeCommand(const char *cmd, char *data)
     if(getchar)
     {
         int val = getCommandChar(PortFD, cmd);
-        sprintf(data, "%c", val);
+        if(0 < val)
+        {
+            sprintf(data, "%c", val);
+        }
+        else if(0 == val)
+        {
+            sprintf(data, "%s", "null");
+        }
+        else
+        {
+            err = val;
+        }
     }
     else
     {
