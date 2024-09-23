@@ -1537,9 +1537,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             MotionControlModeTP.update(states, names, n);
             MotionControlModeTP.setState(IPS_OK);
             MotionControlModeTP.apply();
-            if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON)
+            if (MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 4-way joystick.");
-            else if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
+            else if (MotionControlModeTP[MOTION_CONTROL_MODE_AXES].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 2 separate axes.");
             else
                 DEBUGF(Logger::DBG_WARNING, "Motion control is set to unknown value %d!", n);
