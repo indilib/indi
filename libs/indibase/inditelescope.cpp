@@ -2422,7 +2422,7 @@ void Telescope::processButton(const char *button_n, ISState state)
 
 void Telescope::processJoystick(const char *joystick_n, double mag, double angle)
 {
-    if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
+    if (MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].getState() == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
     {
         if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
         {
@@ -2438,7 +2438,7 @@ void Telescope::processJoystick(const char *joystick_n, double mag, double angle
 
 void Telescope::processAxis(const char *axis_n, double value)
 {
-    if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
+    if (MotionControlModeTP[MOTION_CONTROL_MODE_AXES].getState() == ISS_ON)
     {
         if (!strcmp(axis_n, "MOTIONDIRNS") || !strcmp(axis_n, "MOTIONDIRWE"))
         {
