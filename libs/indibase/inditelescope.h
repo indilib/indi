@@ -843,8 +843,6 @@ class Telescope : public DefaultDevice
         {
             MOTION_CONTROL_MODE_JOYSTICK,
             MOTION_CONTROL_MODE_AXES,
-            MOTION_CONTROL_JOYSTICK,
-            MOTION_CONTROL_AXES
         };
 
         // Lock Joystick Axis to one direction only
