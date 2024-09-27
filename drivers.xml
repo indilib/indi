@@ -39,6 +39,10 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.23</version>
         </device>
+        <device label="UMi" manufacturer="ProxiSky">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.23</version>
+        </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
             <version>0.9</version>
