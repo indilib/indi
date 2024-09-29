@@ -452,21 +452,22 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
             pierSide = PIER_WEST;
         }
     }
+    // Southern Hemisphere
     else
     {
-        // East
+        // "Normal" Pointing State (West, looking East)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder <= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0;
-            pierSide = PIER_EAST;
+            pierSide = PIER_WEST;
         }
-        // West
+        // "Reversed" Pointing State (East, looking West)
         else
         {
             de = -90 + deEncoder;
             ha = 6.0 - (haEncoder / 360.0) * 24.0;
-            pierSide = PIER_WEST;
+            pierSide = PIER_EAST;
         }
     }
 
