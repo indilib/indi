@@ -1,4 +1,49 @@
-+From 2.0.8 to 2.0.9
++ From 2.0.9 to 2.1.0
+
+      eca176463 2024-09-30 Jasem Mutlaq         Fix pier side as proposed by Colin McGill                                                                                                             
+      417efe0a5 2024-09-29 Jasem Mutlaq         Reverse pier sides in southering hemisphere                                                                                                           
+      8987ca386 2024-09-27 Jasem Mutlaq         Add UMi driver alias                                                                                                                                  
+      626b1dfdd 2024-09-27 Jasem Mutlaq         Use a better method to calculate pier side                                                                                                            
+      bae648e56 2024-09-26 peteasa              enable more Meade commands (#2121)                                                                                                                    
+      6b2f85711 2024-09-24 naheedsa             use MOTION_CONTROL_MODE _FOO enums (#2123)                                                                                                            
+      0906ef1dc 2024-09-23 naheedsa             Fix Motion Control Mode (#2120)                                                                                                                       
+      abbbf18fc 2024-09-22 Jasem Mutlaq         Fix regressions due to recent migration. Do not save vector property if empty                                                                         
+      95ab87fab 2024-09-22 Nelson Sousa         lx200zeq driver had incorrect pulse commands; iOptron requires 5 digi… (#2118)                                                                        
+      a013edf38 2024-09-18 Pavle Gartner        Joining FP1 and FP2 into single FP driver (#2114)                                                                                                     
+      69343d3de 2024-09-18 Ian Harris           drivers/dome: rigel_dome shutter parking (#2115)                                                                                                      
+      9fc5e5493 2024-09-17 Jasem Mutlaq         Add vscode instructions                                                                                                                               
+      cdeba422b 2024-09-17 Jasem Mutlaq         Fix missing override                                                                                                                                  
+      0cac130fb 2024-09-17 Jasem Mutlaq         Add SetFocuserBacklashEnabled implementation                                                                                                          
+      a82487075 2024-09-17 Jasem Mutlaq         Add default vscode settings to help new developers                                                                                                    
+      6a09114b9 2024-09-17 Jasem Mutlaq         Use snprintf instead printf to protect against overflow                                                                                               
+      d2b2a8a17 2024-09-17 Jasem Mutlaq         Update add driver listing instructions                                                                                                                
+      de351e5c7 2024-09-16 Jasem Mutlaq         Update light box and dust cap interfaces to new style (#2112)                                                                                         
+      a2ab00925 2024-09-14 naheedsa             Migrate Temperature Property (#2106)                                                                                                                  
+      71a7ed59a 2024-09-10 Jasem Mutlaq         Add missing return                                                                                                                                    
+      8b97ca652 2024-09-10 Jasem Mutlaq         Add support to property name using New Style properties                                                                                               
+      7c65e203d 2024-09-10 Jasem Mutlaq         usePulseCommand should be intialized to true by default. Fixes #2110                                                                                  
+      45cbc7901 2024-09-10 Jasem Mutlaq         Clamp guide ms to [1,999] range. Fixes #2111                                                                                                          
+      81343c675 2024-09-08 Jasem Mutlaq         Use updated version of upload-artifact since v2 are deprecated                                                                                        
+      c6f3eb2d7 2024-08-30 Jasem Mutlaq         Migrate rest of INDI::Telescope legacy properties                                                                                                     
+      79af63545 2024-08-30 Jasem Mutlaq         Add isSwitchOn and findOnSwitchName convenience functions                                                                                             
+      af620564d 2024-08-30 Jasem Mutlaq         Fix AddTrackMode as it was reseting vector to zero                                                                                                    
+      06f05d516 2024-08-30 Jasem Mutlaq         Fix Homing crash                                                                                                                                      
+      ac7e94cc4 2024-08-30 naheedsa             Migrate telescope properties (#2101)                                                                                                                  
+      394bbc3fd 2024-08-28 gy-lehel             Add workaround for OnStepX failing connection (#2103)                                                                                                 
+      6311d15b7 2024-08-27 Jasem Mutlaq         Update Tracking code (#2105)                                                                                                                          
+      d8b04ceb8 2024-08-25 Jasem Mutlaq         Fix an issue where the client may be get disconnected from server                                                                                     
+      790481709 2024-08-20 Jasem Mutlaq         Fix order                                                                                                                                             
+      cee4cce0d 2024-08-20 Jasem Mutlaq         Add @INDI_STANDARD_PROPERTY@ tag to designate properties that require additional documentation                                                        
+      97d8031fc 2024-08-19 KenR001              Fixed myFocuserPro2 Autofocus Issues in Ekos (#2098)                                                                                                  
+      7d890cc2f 2024-08-19 Jasem Mutlaq         Initial work for guider and focuser interface refactor (#2100)                                                                                        
+      058db68b2 2024-08-10 Jasem Mutlaq         If the limit switch status is unknown, try to update it                                                                                               
+      a3b6cd8d6 2024-08-09 Jasem Mutlaq         We should not resize to 0 the inputs and outputs, just labels                                                                                         
+      ced1037e8 2024-08-09 Jasem Mutlaq         Use resize(0) to reset all properties since initProperties() can be called multiple times                                                             
+      c9fb77d20 2024-08-08 Jasem Mutlaq         HomeSP was defined before deviceName is available and was defined as empty. We set the device name in initProperties. Fixes #2095                     
+      16efcaaeb 2024-08-02 Jasem Mutlaq         INDI v2.0.9 release                                                                                                                                   
+      2c7307d2d 2024-08-02 Jasem Mutlaq         INDI v2.0.9 change log
+      
++ From 2.0.8 to 2.0.9
       aec9b2d50 2024-07-31 Jasem Mutlaq         Limit dome snooping to active mount                                                                                                                   
       de01a6e64 2024-07-31 Jasem Mutlaq         Ensure that we only update snooped properties for the devices defined in ACTIVE_DEVICES.                                                              
       bbe6a2155 2024-07-29 Jasem Mutlaq         Remove unnecessary return and set to unparked if limit switch status is unknown                                                                       
