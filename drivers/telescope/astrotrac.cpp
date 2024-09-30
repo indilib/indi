@@ -42,7 +42,7 @@ using namespace INDI::AlignmentSubsystem;
 
 AstroTrac::AstroTrac(): GI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
@@ -437,19 +437,19 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     // Northern Hemisphere
     if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
-        // "Normal" Pointing State (East, looking West)
+        // "Normal" Pointing State (West, looking East)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0;
-            pierSide = PIER_EAST;
+            pierSide = PIER_WEST;
         }
-        // "Reversed" Pointing State (West, looking East)
+        // "Reversed" Pointing State (East, looking West)
         else
         {
             de = 90 + deEncoder;
             ha = 6.0 + (haEncoder / 360.0) * 24.0;
-            pierSide = PIER_WEST;
+            pierSide = PIER_EAST;
         }
     }
     // Southern Hemisphere
