@@ -185,8 +185,7 @@ bool Telescope::initProperties()
         // @INDI_STANDARD_PROPERTY@
         SatPassWindowTP[SAT_PASS_WINDOW_END].fill("SAT_PASS_WINDOW_END", "End UTC", curTime);
         SatPassWindowTP[SAT_PASS_WINDOW_START].fill("SAT_PASS_WINDOW_START", "Start UTC", curTime);
-        SatPassWindowTP.fill(getDeviceName(),
-                             "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+        SatPassWindowTP.fill(getDeviceName(), "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
         // @INDI_STANDARD_PROPERTY@
         TrackSatSP[SAT_TRACK].fill("SAT_TRACK", "Track", ISS_OFF);
