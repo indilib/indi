@@ -434,9 +434,13 @@ void StreamManagerPrivate::asyncStreamThread()
 
         std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (PixelFormat != INDI_JPG && sourceBuffer->size() != srcFrameInfo.totalSize())
+        // Source buffer size may be equal or larger than frame info size
+        // as some driver still retain full unbinned window size even when binning the output
+        // frame
+        if (PixelFormat != INDI_JPG && sourceBuffer->size() < srcFrameInfo.totalSize())
         {
-            LOG_ERROR("Invalid source buffer size, skipping frame...");
+            LOGF_ERROR("Source buffer size %d is less than frame size %d, skipping frame...", sourceBuffer->size(),
+                       srcFrameInfo.totalSize());
             continue;
         }
 
