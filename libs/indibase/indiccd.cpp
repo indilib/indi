@@ -656,7 +656,7 @@ bool CCD::updateProperties()
 
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
-            defineProperty(&WebSocketSP);
+            defineProperty(WebSocketSP);
 #endif
 
         defineProperty(FastExposureToggleSP);
@@ -719,7 +719,7 @@ bool CCD::updateProperties()
         if (HasCooler())
         {
             deleteProperty(TemperatureNP);
-            deleteProperty(TemperatureRampNP.getName());
+            deleteProperty(TemperatureRampNP);
         }
         if (HasST4Port())
         {
@@ -741,8 +741,8 @@ bool CCD::updateProperties()
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
         {
-            deleteProperty(WebSocketSP.name);
-            deleteProperty(WebSocketSettingsNP.name);
+            deleteProperty(WebSocketSP);
+            deleteProperty(WebSocketSettingsNP);
         }
 #endif
         deleteProperty(FastExposureToggleSP);
@@ -1593,26 +1593,26 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
 #ifdef HAVE_WEBSOCKET
         // Websocket Enable/Disable
-        if (!strcmp(name, WebSocketSP.name))
+        if (WebSocketSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&WebSocketSP, states, names, n);
-            WebSocketSP.s = IPS_OK;
+            WebSocketSP.update(states, names, n);
+            WebSocketSP.setState(IPS_OK);
 
-            if (WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+            if (WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
             {
                 wsThread = std::thread(&wsThreadHelper, this);
-                WebSocketSettingsN[WS_SETTINGS_PORT].value = wsServer.generatePort();
-                WebSocketSettingsNP.s = IPS_OK;
-                defineProperty(&WebSocketSettingsNP);
+                WebSocketSettingsNP[WS_SETTINGS_PORT].setValue(wsServer.generatePort());
+                WebSocketSettingsNP.setState(IPS_OK);
+                defineProperty(WebSocketSettingsNP);
             }
             else if (wsServer.is_running())
             {
                 wsServer.stop();
                 wsThread.join();
-                deleteProperty(WebSocketSettingsNP.name);
+                deleteProperty(WebSocketSettingsNP);
             }
 
-            IDSetSwitch(&WebSocketSP, nullptr);
+            WebSocketSP.apply();
             return true;
         }
 #endif
@@ -2787,13 +2787,13 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
     if (sendImage)
     {
 #ifdef HAVE_WEBSOCKET
-        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+        if (HasWebSocket() && WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
         {
             auto start = std::chrono::high_resolution_clock::now();
 
             // Send format/size/..etc first later
-            wsServer.send_text(std::string(targetChip->FitsB.format));
-            wsServer.send_binary(targetChip->FitsB.blob, targetChip->FitsB.bloblen);
+            wsServer.send_text(std::string(targetChip->FitsBP[0].getFormat()));
+            wsServer.send_binary(targetChip->FitsBP[0].getBlob(), targetChip->FitsBP[0].getBlobLen());
 
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> diff = end - start;

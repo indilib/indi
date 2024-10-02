@@ -78,5 +78,7 @@
     "typeinfo": "cpp",
     "valarray": "cpp",
     "variant": "cpp"
-  }
+  },
+  // Pass any arguments to configure CMake here (e.g. -DINDI_BUILD_WEBSOCKET=On)
+  "cmake.configureArgs": []
 }

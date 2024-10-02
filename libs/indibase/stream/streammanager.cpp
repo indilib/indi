@@ -1178,7 +1178,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         // Upload to client now
 #ifdef HAVE_WEBSOCKET
         if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
         {
             if (Format != ".streajpg")
             {
@@ -1215,7 +1215,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         {
 #ifdef HAVE_WEBSOCKET
             if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
             {
                 if (Format != ".stream")
                 {
