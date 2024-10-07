@@ -1415,7 +1415,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 TrackStateSP[previousState].setState(ISS_ON);
             }
 
-            TrackStateSP.reset();
+            TrackStateSP.apply();
             return true;
         }
 
