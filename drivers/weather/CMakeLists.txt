@@ -46,14 +46,6 @@ add_executable(indi_uranus_weather ${uranusmeteo_SRC})
 target_link_libraries(indi_uranus_weather indidriver)
 install(TARGETS indi_uranus_weather RUNTIME DESTINATION bin)
 
-# ########## weewx Driver ###############
-SET(weewx_SRC
-    indi_weewx_json.cpp)
-
-add_executable(indi_weewx_json ${weewx_SRC})
-target_link_libraries(indi_weewx_json indidriver)
-install(TARGETS indi_weewx_json RUNTIME DESTINATION bin)
-
 # ########## Vantage Driver ###############
 SET(vantage_SRC
     vantage.cpp)
