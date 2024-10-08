@@ -81,6 +81,14 @@ add_executable(indi_rbfocus_focus ${rbfocus_SRC})
 target_link_libraries(indi_rbfocus_focus indidriver)
 install(TARGETS indi_rbfocus_focus RUNTIME DESTINATION bin)
 
+# ############### Astromech Focuser ################
+SET(astromech_focuser_SRC
+    astromech_focuser.cpp)
+
+add_executable(indi_astromechfoc ${astromech_focuser_SRC})
+target_link_libraries(indi_astromechfoc indidriver)
+install(TARGETS indi_astromechfoc RUNTIME DESTINATION bin)
+
 # ############### Moonlite Focuser ################
 SET(moonlite_SRC
     moonlite.cpp)
