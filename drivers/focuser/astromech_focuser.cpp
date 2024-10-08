@@ -39,9 +39,6 @@ static std::unique_ptr<astromechanics_foc> Astromechanics_foc(new astromechanics
 // Delay for receiving messages
 #define FOC_POSMAX_HARDWARE 32767
 #define FOC_POSMIN_HARDWARE 0
-/* Define Driver version */
-#define INDI_ASTROMECHFOC_VERSION_MAJOR 0
-#define INDI_ASTROMECHFOC_VERSION_MINOR 2
 
 bool astromechanics_foc::Disconnect()
 {
@@ -59,7 +56,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 astromechanics_foc::astromechanics_foc()
 {
-    setVersion(INDI_ASTROMECHFOC_VERSION_MAJOR, INDI_ASTROMECHFOC_VERSION_MINOR);
+    setVersion(0, 2);
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
