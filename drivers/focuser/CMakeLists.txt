@@ -183,6 +183,14 @@ add_executable(indi_rainbowrsf_focus ${RSF_SRC})
 target_link_libraries(indi_rainbowrsf_focus indidriver)
 install(TARGETS indi_rainbowrsf_focus RUNTIME DESTINATION bin)
 
+# ############### Dream Focuser ################
+SET(dreamfocuser_SRC
+    dreamfocuser.cpp)
+
+add_executable(indi_dreamfocuser_focus ${dreamfocuser_SRC})
+target_link_libraries(indi_dreamfocuser_focus indidriver)
+install(TARGETS indi_dreamfocuser_focus RUNTIME DESTINATION bin)
+
 # ########## Lakeside ###########
 set(indilakeside_SRCS lakeside.cpp)
 
