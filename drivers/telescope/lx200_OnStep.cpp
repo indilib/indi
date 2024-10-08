@@ -697,16 +697,7 @@ bool LX200_OnStep::updateProperties()
         //             updateLocation(latitude, longitude, 0);
         //         }
         //NOTE: if updateProperties is called it clobbers this, so added here
-        SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
-        SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
-        SlewRateSP[2].fill("2", "1x", ISS_OFF);
-        SlewRateSP[3].fill("3", "2x", ISS_OFF);
-        SlewRateSP[4].fill("4", "4x", ISS_OFF);
-        SlewRateSP[5].fill("5", "8x", ISS_ON);
-        SlewRateSP[6].fill("6", "20x", ISS_OFF);
-        SlewRateSP[7].fill("7", "48x", ISS_OFF);
-        SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
-        SlewRateSP[9].fill("9", "Max", ISS_OFF);
+        initSlewRates();
 
     }
     else
@@ -2534,6 +2525,7 @@ bool LX200_OnStep::ReadScopeStatus()
                         LOGF_DEBUG("capabilities = %x", capabilities);
                         capabilities |= TELESCOPE_HAS_PEC;
                         SetTelescopeCapability(capabilities, 10 );
+                        initSlewRates();
                         LX200_OnStep::updateProperties();
                     }
                 }
@@ -2591,6 +2583,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     LOGF_DEBUG("capabilities = %x", capabilities);
                     capabilities |= TELESCOPE_HAS_PIER_SIDE;
                     SetTelescopeCapability(capabilities, 10 );
+                    initSlewRates();
                     LX200_OnStep::updateProperties();
                 }
                 if (strstr(OSStat, "o"))
@@ -5483,4 +5476,18 @@ bool LX200_OnStep::Handshake()
     }
 
     return false;
+}
+
+void LX200_OnStep::initSlewRates()
+{
+    SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+    SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+    SlewRateSP[2].fill("2", "1x", ISS_OFF);
+    SlewRateSP[3].fill("3", "2x", ISS_OFF);
+    SlewRateSP[4].fill("4", "4x", ISS_OFF);
+    SlewRateSP[5].fill("5", "8x", ISS_ON);
+    SlewRateSP[6].fill("6", "20x", ISS_OFF);   //last OnStep - OnStepX
+    SlewRateSP[7].fill("7", "48x", ISS_OFF);
+    SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+    SlewRateSP[9].fill("9", "Max", ISS_OFF);
 }

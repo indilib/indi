@@ -277,6 +277,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IPState OSDisableOutput(int output);
         bool OSGetOutputState(int output);
 
+        // Reset slew rate labels
+        void initSlewRates();
 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
