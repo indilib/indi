@@ -940,20 +940,20 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
 
                 // All is fine, ask mount to change tracking rate
-                if (SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue()) == false)
+                if (SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue()))
                 {
                     TrackRateNP[AXIS_RA].setValue(preAxis1);
                     TrackRateNP[AXIS_DE].setValue(preAxis2);
-                    TrackRateNP.setState(IPS_ALERT);
+                    TrackRateNP.setState(IPS_OK);
                 }
                 else
-                    TrackRateNP.setState(IPS_OK);
+                    TrackRateNP.setState(IPS_ALERT);
             }
 
             // If we are already tracking but tracking mode is NOT custom
             // We just inform the user that it must be set to custom for these values to take
             // effect.
-            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && !TrackModeSP.isNameMatch("TRACK_CUSTOM"))
             {
                 LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
