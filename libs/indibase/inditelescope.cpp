@@ -921,14 +921,15 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         if (TrackRateNP.isNameMatch(name))
         {
             double preAxis1 = TrackRateNP[AXIS_RA].getValue(), preAxis2 = TrackRateNP[AXIS_DE].getValue();
-            if (TrackRateNP.update(values, names, n) == false)
+            auto currentTrackingMode = TrackModeSP.findOnSwitch();
+            if (TrackRateNP.update(values, names, n) == false || currentTrackingMode == nullptr)
             {
                 TrackRateNP.setState(IPS_ALERT);
                 TrackRateNP.apply();
                 return false;
             }
 
-            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && currentTrackingMode->isNameMatch("TRACK_CUSTOM"))
             {
                 // Check that we do not abruptly change positive tracking rates to negative ones.
                 // tracking must be stopped first.
@@ -940,20 +941,20 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 }
 
                 // All is fine, ask mount to change tracking rate
-                if (SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue()))
+                if (SetTrackRate(TrackRateNP[AXIS_RA].getValue(), TrackRateNP[AXIS_DE].getValue()) == false)
                 {
                     TrackRateNP[AXIS_RA].setValue(preAxis1);
                     TrackRateNP[AXIS_DE].setValue(preAxis2);
-                    TrackRateNP.setState(IPS_OK);
+                    TrackRateNP.setState(IPS_ALERT);
                 }
                 else
-                    TrackRateNP.setState(IPS_ALERT);
+                    TrackRateNP.setState(IPS_OK);
             }
 
             // If we are already tracking but tracking mode is NOT custom
             // We just inform the user that it must be set to custom for these values to take
             // effect.
-            if (TrackState == SCOPE_TRACKING && !TrackModeSP.isNameMatch("TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && !currentTrackingMode->isNameMatch("TRACK_CUSTOM"))
             {
                 LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
@@ -1363,8 +1364,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            bool rc = SetTrackMode(currIndex);
-            if (rc)
+            if (SetTrackMode(currIndex))
                 TrackModeSP.setState(IPS_OK);
             else
             {
@@ -1397,14 +1397,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
-
-            if (rc)
+            if (SetTrackEnabled((targetState == TRACK_ON) ? true : false))
             {
                 TrackState = (targetState == TRACK_ON) ? SCOPE_TRACKING : SCOPE_IDLE;
-
                 TrackStateSP.setState((targetState == TRACK_ON) ? IPS_BUSY : IPS_IDLE);
-
                 TrackStateSP[TRACK_ON].setState((targetState == TRACK_ON) ? ISS_ON : ISS_OFF);
                 TrackStateSP[TRACK_OFF].setState((targetState == TRACK_ON) ? ISS_OFF : ISS_ON);
             }
@@ -1436,7 +1432,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.getState() == IPS_BUSY ||
                     MovementWESP.getState() == IPS_BUSY)
             {
-                LOG_INFO("Can not change park position while slewing or already parked...");
+                LOG_INFO("Can not change park position while slewing or already parked.");
                 ParkOptionSP.setState(IPS_ALERT);
                 ParkOptionSP.apply();
                 return false;
