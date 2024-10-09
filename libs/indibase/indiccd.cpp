@@ -2697,7 +2697,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        std::string imageFileName = std::string(UploadSettingsTP[UPLOAD_DIR].getText()) + "/" + prefix + "/" + std::string(
+        std::string imageFileName = std::string(UploadSettingsTP[UPLOAD_DIR].getText()) + "/" + prefix + std::string(
                                         targetChip->FitsBP[0].getFormat());
 
         fp = fopen(imageFileName.c_str(), "w");
