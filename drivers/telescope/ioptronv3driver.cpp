@@ -36,7 +36,11 @@ const std::map<std::string, std::string> Driver::models =
 {
     {"0010", "SkyHunter EQ"},
     {"0011", "SkyHunter AA"},
+    {"0012", "HAE16 EQ"},
+    {"0013", "HAE16 AA"},
+    {"0014", "HAE18 EQ"},
     {"0015", "HEM15"},
+    {"0022", "HAE18 AA"},
     {"0025", "HEM27"},
     {"0026", "CEM26"},
     {"0027", "CEM26-EC"},
@@ -437,7 +441,8 @@ bool Driver::setCurrentHome()
 /* v3.0 Added in control for PEC , Train and Data Integrity */
 bool Driver::setPECEnabled(bool enabled)
 {
-    return sendCommandOk(enabled ? ":SPP1#" : ":SPP0#");
+   // return sendCommandOk(enabled ? ":SPP1#" : ":SPP0#");
+    return true;
 }
 
 bool Driver::setPETEnabled(bool enabled)
