@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2024 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -32,6 +32,201 @@
 
 static const uint8_t header = 0xaa;
 
+const char* ScopeDomeUSB21::cmdToString(Command cmd) const
+{
+    static const CmdStr cmdStrMap[] =
+    {
+        { ACK_c, "ACK_c" },
+        { FunctionNotSupported, "FunctionNotSupported" },
+        { MotionConflict, "MotionConflict" },
+        { ParamError, "ParamError" },
+        { FuncBufferError, "FuncBufferError" },
+        { ConnectionTest, "ConnectionTest" },
+        { SetAllDigital, "SetAllDigital" },
+        { ClearDigitalChannel, "ClearDigitalChannel" },
+        { ClearAllDigital, "ClearAllDigital" },
+        { SetDigitalChannel, "SetDigitalChannel" },
+        { GetDigitalChannel, "GetDigitalChannel" },
+        { GetAllDigital, "GetAllDigital" },
+
+        { GetCounter, "GetCounter" },
+        { ResetCounter, "ResetCounter" },
+        { SetCounterDebounceTime, "SetCounterDebounceTime" },
+        { SetCounterMax, "SetCounterMax" },
+        { GetCounterMax, "GetCounterMax" },
+        { SetCounterMin, "SetCounterMin" },
+        { GetCounterMin, "GetCounterMin" },
+        { CCWRotation, "CCWRotation" },
+        { CWRotation, "CWRotation" },
+
+        { GetAnalogChannel, "GetAnalogChannel" },
+        { OutputAnalogChannel1, "OutputAnalogChannel1" },
+        { OutputAnalogChannel2, "OutputAnalogChannel2" },
+        { OutputAllAnalog, "OutputAllAnalog" },
+        { ClearAnalogChannel, "ClearAnalogChannel" },
+        { SetAllAnalog, "SetAllAnalog" },
+        { ClearAllAnalog, "ClearAllAnalog" },
+        { SetAnalogChannel, "SetAnalogChannel" },
+        { GetVersionFirmware, "GetVersionFirmware" },
+
+        { SetAllRelays, "SetAllRelays" },
+        { ClearRelay, "ClearRelay" },
+        { SetRelay, "SetRelay" },
+
+        { GetStatus, "GetStatus" },
+        { GetTemp1, "GetTemp1" },
+        { GetTemp2, "GetTemp2" },
+        { GetTemp3, "GetTemp3" },
+        { GetTemp4, "GetTemp4" },
+        { GetTemp5, "GetTemp5" },
+        { GetDscnt, "GetDscnt" },
+        { GetHum, "GetHum" },
+        { GetTempHum, "GetTempHum" },
+        { GetAnalog1, "GetAnalog1" },
+        { GetAnalog2, "GetAnalog2" },
+        { Get230, "Get230" },
+        { EnableAutoClose, "EnableAutoClose" },
+        { DisableAutoClose, "DisableAutoClose" },
+        { GetAutoClose, "GetAutoClose" },
+
+        { EnablePosSave, "EnablePosSave" },
+        { DisablePosSave, "DisablePosSave" },
+        { GetPosSave, "GetPosSave" },
+
+        { GetCounterExt, "GetCounterExt" },
+        { ResetCounterExt, "ResetCounterExt" },
+        { SetCounterDebounceTimeExt, "SetCounterDebounceTimeExt" },
+        { SetCounterMaxExt, "SetCounterMaxExt" },
+        { GetCounterMaxExt, "GetCounterMaxExt" },
+
+        { SetCounterMinExt, "SetCounterMinExt" },
+        { GetCounterMinExt, "GetCounterMinExt" },
+
+        { GetAllDigitalExt, "GetAllDigitalExt" },
+        { StandbyOff, "StandbyOff" },
+        { StandbyOn, "StandbyOn" },
+        { GetPowerState, "GetPowerState" },
+        { SetImpPerTurn, "SetImpPerTurn" },
+
+        { UpdateFirmware, "UpdateFirmware" },
+        { UpdateRotaryFirmwareSerial, "UpdateRotaryFirmwareSerial" },
+        { UpdateRotaryFirmwareRf, "UpdateRotaryFirmwareRf" },
+
+        { GoHome, "GoHome" },
+
+        { GetMainAnalog1, "GetMainAnalog1" },
+        { GetMainAnalog2, "GetMainAnalog2" },
+
+        { GetPressure, "GetPressure" },
+        { GetTempIn, "GetTempIn" },
+        { GetTempOut, "GetTempOut" },
+
+        { GetRotaryCounter1, "GetRotaryCounter1" },
+        { GetRotaryCounter2, "GetRotaryCounter2" },
+        { ResetRotaryCounter1, "ResetRotaryCounter1" },
+        { ResetRotaryCounter2, "ResetRotaryCounter2" },
+
+        { RotaryAutoOpen1, "RotaryAutoOpen1" },
+        { RotaryAutoOpen2, "RotaryAutoOpen2" },
+
+        { RotaryAutoClose1, "RotaryAutoClose1" },
+        { RotaryAutoClose2, "RotaryAutoClose2" },
+
+        { GetLinkStrength, "GetLinkStrength" },
+
+        { GetLowVoltageMain, "GetLowVoltageMain" },
+        { SetLowVoltageMain, "SetLowVoltageMain" },
+        { GetLowVoltageRotary, "GetLowVoltageRotary" },
+        { SetLowVoltageRotary, "SetLowVoltageRotary" },
+
+        { GetHomeSensorPosition, "GetHomeSensorPosition" },
+        { SetHomeSensorPosition, "SetHomeSensorPosition" },
+
+        { GetImpPerTurn, "GetImpPerTurn" },
+        { Stop, "Stop" },
+
+        { GetStartCnt, "GetStartCnt" },
+        { Ready, "Ready" },
+
+        { SetStopTime, "SetStopTime" },
+        { GetStopTime, "GetStopTime" },
+
+        { GetCounterDebounceTimeExt, "GetCounterDebounceTimeExt" },
+
+        { SetDebounceTimeInputs, "SetDebounceTimeInputs" },
+        { GetDebounceTimeInputs, "GetDebounceTimeInputs" },
+
+        { FindHome, "FindHome" },
+        { NegHomeSensorActiveState, "NegHomeSensorActiveState" },
+
+        // { PowerOnlyAtHome, "PowerOnlyAtHome" },
+
+        { SetAutoCloseEvents, "SetAutoCloseEvents" },
+        { GetAutoCloseEvents, "GetAutoCloseEvents" },
+        { SetAutoCloseTime, "SetAutoCloseTime" },
+        { GetAutoCloseTime, "GetAutoCloseTime" },
+
+        { SetShutterConfig, "SetShutterConfig" },
+        { GetShutterConfig, "GetShutterConfig" },
+
+        { GetVersionFirmwareRotary, "GetVersionFirmwareRotary" },
+        { GetCommunicationMode, "GetCommunicationMode" },
+        { SetCommunicationMode, "SetCommunicationMode" },
+
+        { SetTherm1Mode, "SetTherm1Mode" },
+        { SetTherm1Out1, "SetTherm1Out1" },
+        { SetTherm1Out2, "SetTherm1Out2" },
+        { SetTherm1Hist, "SetTherm1Hist" },
+        { SetTherm1VAL, "SetTherm1VAL" },
+
+        { GetTherm1Mode, "GetTherm1Mode" },
+        { GetTherm1Out1, "GetTherm1Out1" },
+        { GetTherm1Out2, "GetTherm1Out2" },
+        { GetTherm1Hist, "GetTherm1Hist" },
+        { GetTherm1VAL, "GetTherm1VAL" },
+
+        { SetTherm2Mode, "SetTherm2Mode" },
+        { SetTherm2Out1, "SetTherm2Out1" },
+        { SetTherm2Out2, "SetTherm2Out2" },
+        { SetTherm2Hist, "SetTherm2Hist" },
+        { SetTherm2VAL, "SetTherm2VAL" },
+
+        { GetTherm2Mode, "GetTherm2Mode" },
+        { GetTherm2Out1, "GetTherm2Out1" },
+        { GetTherm2Out2, "GetTherm2Out2" },
+        { GetTherm2Hist, "GetTherm2Hist" },
+        { GetTherm2VAL, "GetTherm2VAL" },
+
+        { SetTherm3Mode, "SetTherm3Mode" },
+        { SetTherm3Out1, "SetTherm3Out1" },
+        { SetTherm3Out2, "SetTherm3Out2" },
+        { SetTherm3Hist, "SetTherm3Hist" },
+        { SetTherm3VAL, "SetTherm3VAL" },
+
+        { GetTherm3Mode, "GetTherm3Mode" },
+        { GetTherm3Out1, "GetTherm3Out1" },
+        { GetTherm3Out2, "GetTherm3Out2" },
+        { GetTherm3Hist, "GetTherm3Hist" },
+        { GetTherm3VAL, "GetTherm3VAL" },
+        { StartSafeCommunication, "StartSafeCommunication" },
+        { StopSafeCommunication, "StopSafeCommunication" },
+        { SetAutoCloseOrder, "SetAutoCloseOrder" },
+        { GetAutoCloseOrder, "GetAutoCloseOrder" },
+
+        { FullSystemCal, "FullSystemCal" },
+        { IsFullSystemCalReq, "IsFullSystemCalReq" }
+    };
+
+    for (auto i = 0u; i < sizeof(cmdStrMap) / sizeof(CmdStr); ++i)
+    {
+        if (cmdStrMap[i].cmd == cmd)
+        {
+            return cmdStrMap[i].str;
+        }
+    }
+    return "Unknown command";
+}
+
 bool ScopeDomeUSB21::detect()
 {
     int rc = -1;
@@ -40,7 +235,7 @@ bool ScopeDomeUSB21::detect()
     rc = write(ConnectionTest);
     LOGF_DEBUG("write rc: %d", rc);
     rc = read(cmd);
-    LOGF_DEBUG("read rc: %d, cmd %d", rc, (int)cmd);
+    LOGF_DEBUG("read rc: %d, cmd %s (%d)", rc, cmdToString(cmd), (int)cmd);
 
     if (cmd != ConnectionTest)
     {
@@ -91,10 +286,11 @@ int ScopeDomeUSB21::writeBuf(Command cmd, uint8_t len, uint8_t *buff)
     prevcmd = cmd;
 
     // Write buffer
+    LOGF_DEBUG("write buf: %x %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3], cbuf[4]);
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error writing command: %s. Cmd %d", errstr, cmd);
+        LOGF_ERROR("Error writing command: %s. Cmd %s (%d)", errstr, cmdToString(cmd), cmd);
     }
     return rc;
 }
@@ -121,7 +317,7 @@ int ScopeDomeUSB21::write(Command cmd)
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error writing command: %s. Cmd: %d", errstr, cmd);
+        LOGF_ERROR("Error writing command: %s. Cmd: %s (%d)", errstr, cmdToString(cmd), cmd);
     }
     return rc;
 }
@@ -131,13 +327,14 @@ int ScopeDomeUSB21::readBuf(Command &cmd, uint8_t len, uint8_t *buff)
     int nbytes_read = 0, rc = -1;
     int BytesToRead = len + 4;
     uint8_t cbuf[BytesToRead];
+    memset(cbuf, 0, BytesToRead);
     char errstr[MAXRBUF];
 
     // Read buffer
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error reading: %s. Cmd: %d", errstr, prevcmd);
+        LOGF_ERROR("Error reading: %s. Cmd: %s (%d)", errstr, cmdToString(prevcmd), prevcmd);
         return rc;
     }
 
@@ -155,18 +352,18 @@ int ScopeDomeUSB21::readBuf(Command &cmd, uint8_t len, uint8_t *buff)
 
     if (cbuf[3] != Checksum)
     {
-        LOGF_ERROR("readbuf checksum error, cmd: %d", prevcmd);
+        LOGF_ERROR("readbuf checksum error, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
         return CHECKSUM_ERROR;
     }
     if (cmd == FunctionNotSupported)
     {
-        LOG_ERROR("readbuf not supported error");
+        LOGF_ERROR("readbuf not supported error, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
         return FUNCTION_NOT_SUPPORTED_BY_FIRMWARE;
     }
 
     if (cbuf[1] != len)
     {
-        LOGF_ERROR("readbuf packet length error, cmd: %d", prevcmd);
+        LOGF_ERROR("readbuf packet length error, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
         return PACKET_LENGTH_ERROR;
     }
     return rc;
@@ -183,7 +380,7 @@ int ScopeDomeUSB21::read(Command &cmd)
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error reading: %s. Cmd %d", errstr, prevcmd);
+        LOGF_ERROR("Error reading: %s. Cmd %s (%d)", errstr, cmdToString(prevcmd), prevcmd);
         return rc;
     }
 
@@ -195,23 +392,23 @@ int ScopeDomeUSB21::read(Command &cmd)
 
     if (cbuf[3] != Checksum || cbuf[1] != 0)
     {
-        LOGF_ERROR("read checksum error, cmd: %d", prevcmd);
+        LOGF_ERROR("read checksum error, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
         return CHECKSUM_ERROR;
     }
     switch (cmd)
     {
         case MotionConflict:
-            LOG_ERROR("read motion conflict");
+            LOGF_ERROR("read motion conflict, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
             err = MOTION_CONFLICT;
             break;
 
         case FunctionNotSupported:
-            LOG_ERROR("read function not supported");
+            LOGF_ERROR("read function not supported, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
             err = FUNCTION_NOT_SUPPORTED;
             break;
 
         case ParamError:
-            LOG_ERROR("read param error");
+            LOGF_ERROR("read param error, cmd: %s (%d)", cmdToString(prevcmd), prevcmd);
             err = PARAM_ERROR;
             break;
         default:
@@ -238,7 +435,7 @@ bool ScopeDomeUSB21::readFloat(Command cmd, float &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readFloat: %d %f", cmd, value);
+    LOGF_DEBUG("readFloat: %s (%d) = %f", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -262,7 +459,7 @@ bool ScopeDomeUSB21::readU8(Command cmd, uint8_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readU8: %d %x", cmd, value);
+    LOGF_DEBUG("readU8: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -286,7 +483,7 @@ bool ScopeDomeUSB21::readS8(Command cmd, int8_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readS8: %d %x", cmd, value);
+    LOGF_DEBUG("readS8: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -310,7 +507,7 @@ bool ScopeDomeUSB21::readU16(Command cmd, uint16_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readU16: %d %x", cmd, value);
+    LOGF_DEBUG("readU16: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -334,7 +531,7 @@ bool ScopeDomeUSB21::readS16(Command cmd, int16_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readS16: %d %x", cmd, value);
+    LOGF_DEBUG("readS16: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -358,7 +555,7 @@ bool ScopeDomeUSB21::readU32(Command cmd, uint32_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readU32: %d %x", cmd, value);
+    LOGF_DEBUG("readU32: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;
@@ -382,7 +579,7 @@ bool ScopeDomeUSB21::readS32(Command cmd, int32_t &dst)
             reconnect();
     }
     while (rc != 0 && --retryCount);
-    LOGF_DEBUG("readU32: %d %x", cmd, value);
+    LOGF_DEBUG("readS32: %s (%d) = 0x%x", cmdToString(cmd), cmd, value);
     if (rc == 0)
     {
         dst = value;

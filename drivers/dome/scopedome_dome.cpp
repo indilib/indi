@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2024 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -51,7 +51,7 @@ std::unique_ptr<ScopeDome> scopeDome(new ScopeDome());
 
 ScopeDome::ScopeDome()
 {
-    setVersion(2, 0);
+    setVersion(2, 1);
     targetAz = 0;
     setShutterState(SHUTTER_UNKNOWN);
     simShutterStatus = SHUTTER_CLOSED;
@@ -516,36 +516,46 @@ bool ScopeDome::UpdateShutterStatus()
     InputsSP.setState(IPS_OK);
     InputsSP.apply();
 
-    if (interface->getInputState(ScopeDomeCard::OPEN1) == ISS_ON) // shutter open switch triggered
+    if (m_ShutterState == SHUTTER_MOVING)
     {
-        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+        if (interface->getInputState(ScopeDomeCard::OPEN1) == ISS_ON) // shutter open switch triggered
         {
-            LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
-            interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
-            if (getDomeState() == DOME_UNPARKING)
+            if (targetShutter == SHUTTER_OPEN)
             {
-                SetParked(false);
+                LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
+                interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
+                if (getDomeState() == DOME_UNPARKING)
+                {
+                    SetParked(false);
+                }
+                setShutterState(SHUTTER_OPENED);
             }
         }
-        setShutterState(SHUTTER_OPENED);
-    }
-    else if (interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_ON) // shutter closed switch triggered
-    {
-        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+        else if (interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_ON) // shutter closed switch triggered
         {
-            LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
-            interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
+            if (targetShutter == SHUTTER_CLOSE)
+            {
+                LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
+                interface->controlShutter(ScopeDomeCard::STOP_SHUTTER);
 
-            if (getDomeState() == DOME_PARKING && DomeAbsPosNP.getState() != IPS_BUSY)
-            {
-                SetParked(true);
+                if (getDomeState() == DOME_PARKING && DomeAbsPosNP.getState() != IPS_BUSY)
+                {
+                    SetParked(true);
+                }
+                setShutterState(SHUTTER_CLOSED);
             }
         }
-        setShutterState(SHUTTER_CLOSED);
     }
     else
     {
-        setShutterState(SHUTTER_MOVING);
+        if (interface->getInputState(ScopeDomeCard::OPEN1) == ISS_ON) // shutter open switch triggered
+        {
+            setShutterState(SHUTTER_OPENED);
+        }
+        else if (interface->getInputState(ScopeDomeCard::CLOSED1) == ISS_ON) // shutter closed switch triggered
+        {
+            setShutterState(SHUTTER_CLOSED);
+        }
     }
 
     ISState link = interface->getInputState(ScopeDomeCard::ROTARY_LINK);
@@ -559,6 +569,23 @@ bool ScopeDome::UpdateShutterStatus()
         else
         {
             LOG_WARN("Rotary link established, shutter control now possible");
+
+            if (reconnected && m_ShutterState == SHUTTER_MOVING)
+            {
+                // We have just reconnected the serial port, possibly due to controller reset.
+                // If we were shutting or opening the shutter, retry that operation now that we have shutter link.
+                if (targetShutter == SHUTTER_CLOSE)
+                {
+                    LOG_WARN("Retrying closing shutter");
+                    interface->controlShutter(ScopeDomeCard::CLOSE_SHUTTER);
+                }
+                else if (targetShutter == SHUTTER_OPEN)
+                {
+                    LOG_WARN("Retrying opening shutter");
+                    interface->controlShutter(ScopeDomeCard::OPEN_SHUTTER);
+                }
+                reconnected = false;
+            }
         }
     }
     return true;
@@ -688,6 +715,7 @@ void ScopeDome::TimerHit()
                 interface->move(currentRotation);
             }
         }
+        DomeAbsPosNP.apply();
     }
     else if (status == DOME_CALIBRATING)
     {
@@ -941,6 +969,8 @@ bool ScopeDome::Abort()
 {
     interface->abort();
     status = DOME_READY;
+    setShutterState(SHUTTER_UNKNOWN);
+    reconnected = false; // just in case.
     return true;
 }
 
@@ -992,6 +1022,7 @@ void ScopeDome::reconnect()
     interface->setPortFD(PortFD);
     LOG_INFO("Reconnected");
     reconnecting = false;
+    reconnected = true;  // Retry shutter operation when link returns
 }
 
 /*
