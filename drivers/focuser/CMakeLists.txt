@@ -81,6 +81,14 @@ add_executable(indi_rbfocus_focus ${rbfocus_SRC})
 target_link_libraries(indi_rbfocus_focus indidriver)
 install(TARGETS indi_rbfocus_focus RUNTIME DESTINATION bin)
 
+# ############### Astromech Focuser ################
+SET(astromech_focuser_SRC
+    astromech_focuser.cpp)
+
+add_executable(indi_astromechfoc ${astromech_focuser_SRC})
+target_link_libraries(indi_astromechfoc indidriver)
+install(TARGETS indi_astromechfoc RUNTIME DESTINATION bin)
+
 # ############### Moonlite Focuser ################
 SET(moonlite_SRC
     moonlite.cpp)
@@ -174,6 +182,14 @@ SET(RSF_SRC
 add_executable(indi_rainbowrsf_focus ${RSF_SRC})
 target_link_libraries(indi_rainbowrsf_focus indidriver)
 install(TARGETS indi_rainbowrsf_focus RUNTIME DESTINATION bin)
+
+# ############### Dream Focuser ################
+SET(dreamfocuser_SRC
+    dreamfocuser.cpp)
+
+add_executable(indi_dreamfocuser_focus ${dreamfocuser_SRC})
+target_link_libraries(indi_dreamfocuser_focus indidriver)
+install(TARGETS indi_dreamfocuser_focus RUNTIME DESTINATION bin)
 
 # ########## Lakeside ###########
 set(indilakeside_SRCS lakeside.cpp)
