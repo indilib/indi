@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017-2023 Jarno Paananen. All right reserved.
+  Copyright(c) 2017-2024 Jarno Paananen. All right reserved.
 
   Driver for SnapCap dust cap / flat panel
 
@@ -84,6 +84,7 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
         // From Dust Cap
         virtual IPState ParkCap() override;
         virtual IPState UnParkCap() override;
+        virtual IPState AbortCap() override;
 
         // From Light Box
         virtual bool SetLightBoxBrightness(uint16_t value) override;
@@ -100,16 +101,11 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
         bool sendCommand(const char *command, char *response);
 
-        IPState Abort();
-
         // Status
         INDI::PropertyText StatusTP{3};
 
         // Firmware version
         INDI::PropertyText FirmwareTP{1};
-
-        // Abort
-        INDI::PropertySwitch AbortSP{1};
 
         // Force open & close
         INDI::PropertySwitch ForceSP{2};
@@ -128,4 +124,5 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
     private:
         bool callHandshake();
-        uint8_t dustcapConnection = CONNECTION_SERIAL | CONNECTION_TCP;};
+        uint8_t dustcapConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+};

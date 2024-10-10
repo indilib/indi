@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017-2023 Jarno Paananen. All right reserved.
+  Copyright(c) 2017-2024 Jarno Paananen. All right reserved.
 
   Based on Flip Flat driver by:
 
@@ -45,7 +45,7 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
 SnapCap::SnapCap() : LightBoxInterface(this), DustCapInterface(this)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 }
 
 SnapCap::~SnapCap()
@@ -69,15 +69,11 @@ bool SnapCap::initProperties()
     FirmwareTP[0].fill("VERSION", "Version", nullptr);
     FirmwareTP.fill(getDeviceName(), "FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    // Abort and force open/close buttons
-    AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
-    AbortSP.fill(getDeviceName(), "ABORT", "Abort", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     ForceSP[0].fill("OFF", "Off", ISS_ON);
     ForceSP[1].fill("ON", "On", ISS_OFF);
     ForceSP.fill(getDeviceName(), "FORCE", "Force movement", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    DI::initProperties(MAIN_CONTROL_TAB);
+    DI::initProperties(MAIN_CONTROL_TAB, CAN_ABORT);
     LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
 
     LightIntensityNP[0].setMin(0);
@@ -136,7 +132,6 @@ bool SnapCap::updateProperties()
         }
         defineProperty(StatusTP);
         defineProperty(FirmwareTP);
-        defineProperty(AbortSP);
         defineProperty(ForceSP);
 
         getStartupData();
@@ -149,7 +144,6 @@ bool SnapCap::updateProperties()
         }
         deleteProperty(StatusTP);
         deleteProperty(FirmwareTP);
-        deleteProperty(AbortSP);
         deleteProperty(ForceSP);
     }
 
@@ -220,13 +214,6 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     if (!dev || strcmp(dev, getDeviceName()))
         return false;
 
-    if (AbortSP.isNameMatch(name))
-    {
-        AbortSP.reset();
-        AbortSP.setState(Abort());
-        AbortSP.apply();
-        return true;
-    }
     if (ForceSP.isNameMatch(name))
     {
         ForceSP.update(states, names, n);
@@ -368,7 +355,7 @@ IPState SnapCap::UnParkCap()
         return IPS_ALERT;
 }
 
-IPState SnapCap::Abort()
+IPState SnapCap::AbortCap()
 {
     if (isSimulation())
     {
