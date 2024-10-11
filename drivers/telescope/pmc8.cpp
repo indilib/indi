@@ -386,15 +386,6 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 
             return true;
         }
-        // Track Rate - auto change to custom track rate when setting
-        if (TrackRateNP.isNameMatch(name))
-        {
-            TrackModeSP.reset();
-            TrackModeSP[TRACK_CUSTOM].setState(ISS_ON);
-            TrackModeSP.setState(IPS_OK);
-            TrackModeSP.apply();
-            return true;
-        }
     }
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
