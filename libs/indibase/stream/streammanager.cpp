@@ -118,7 +118,7 @@ bool StreamManagerPrivate::initProperties()
 
     /* Record Frames */
     /* File */
-    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/indi__D_");
+    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/Videos/indi__D_");
     RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "indi_record__T_");
     RecordFileTP.fill(getDeviceName(), "RECORD_FILE", "Record File",
