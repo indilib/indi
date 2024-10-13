@@ -185,8 +185,7 @@ bool Telescope::initProperties()
         // @INDI_STANDARD_PROPERTY@
         SatPassWindowTP[SAT_PASS_WINDOW_END].fill("SAT_PASS_WINDOW_END", "End UTC", curTime);
         SatPassWindowTP[SAT_PASS_WINDOW_START].fill("SAT_PASS_WINDOW_START", "Start UTC", curTime);
-        SatPassWindowTP.fill(getDeviceName(),
-                             "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+        SatPassWindowTP.fill(getDeviceName(), "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
         // @INDI_STANDARD_PROPERTY@
         TrackSatSP[SAT_TRACK].fill("SAT_TRACK", "Track", ISS_OFF);
@@ -922,14 +921,15 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
         if (TrackRateNP.isNameMatch(name))
         {
             double preAxis1 = TrackRateNP[AXIS_RA].getValue(), preAxis2 = TrackRateNP[AXIS_DE].getValue();
-            if (TrackRateNP.update(values, names, n) == false)
+            auto currentTrackingMode = TrackModeSP.findOnSwitch();
+            if (TrackRateNP.update(values, names, n) == false || currentTrackingMode == nullptr)
             {
                 TrackRateNP.setState(IPS_ALERT);
                 TrackRateNP.apply();
                 return false;
             }
 
-            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && currentTrackingMode->isNameMatch("TRACK_CUSTOM"))
             {
                 // Check that we do not abruptly change positive tracking rates to negative ones.
                 // tracking must be stopped first.
@@ -954,7 +954,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
             // If we are already tracking but tracking mode is NOT custom
             // We just inform the user that it must be set to custom for these values to take
             // effect.
-            if (TrackState == SCOPE_TRACKING && TrackModeSP.isNameMatch("TRACK_CUSTOM"))
+            if (TrackState == SCOPE_TRACKING && !currentTrackingMode->isNameMatch("TRACK_CUSTOM"))
             {
                 LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
@@ -1364,8 +1364,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            bool rc = SetTrackMode(currIndex);
-            if (rc)
+            if (SetTrackMode(currIndex))
                 TrackModeSP.setState(IPS_OK);
             else
             {
@@ -1398,14 +1397,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
-
-            if (rc)
+            if (SetTrackEnabled((targetState == TRACK_ON) ? true : false))
             {
                 TrackState = (targetState == TRACK_ON) ? SCOPE_TRACKING : SCOPE_IDLE;
-
                 TrackStateSP.setState((targetState == TRACK_ON) ? IPS_BUSY : IPS_IDLE);
-
                 TrackStateSP[TRACK_ON].setState((targetState == TRACK_ON) ? ISS_ON : ISS_OFF);
                 TrackStateSP[TRACK_OFF].setState((targetState == TRACK_ON) ? ISS_OFF : ISS_ON);
             }
@@ -1416,7 +1411,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 TrackStateSP[previousState].setState(ISS_ON);
             }
 
-            TrackStateSP.reset();
+            TrackStateSP.apply();
             return true;
         }
 
@@ -1437,7 +1432,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.getState() == IPS_BUSY ||
                     MovementWESP.getState() == IPS_BUSY)
             {
-                LOG_INFO("Can not change park position while slewing or already parked...");
+                LOG_INFO("Can not change park position while slewing or already parked.");
                 ParkOptionSP.setState(IPS_ALERT);
                 ParkOptionSP.apply();
                 return false;
@@ -1537,9 +1532,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             MotionControlModeTP.update(states, names, n);
             MotionControlModeTP.setState(IPS_OK);
             MotionControlModeTP.apply();
-            if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON)
+            if (MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 4-way joystick.");
-            else if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
+            else if (MotionControlModeTP[MOTION_CONTROL_MODE_AXES].getState() == ISS_ON)
                 LOG_INFO("Motion control is set to 2 separate axes.");
             else
                 DEBUGF(Logger::DBG_WARNING, "Motion control is set to unknown value %d!", n);
@@ -2422,7 +2417,7 @@ void Telescope::processButton(const char *button_n, ISState state)
 
 void Telescope::processJoystick(const char *joystick_n, double mag, double angle)
 {
-    if (MotionControlModeTP[MOTION_CONTROL_JOYSTICK].getState() == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
+    if (MotionControlModeTP[MOTION_CONTROL_MODE_JOYSTICK].getState() == ISS_ON && !strcmp(joystick_n, "MOTIONDIR"))
     {
         if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
         {
@@ -2438,7 +2433,7 @@ void Telescope::processJoystick(const char *joystick_n, double mag, double angle
 
 void Telescope::processAxis(const char *axis_n, double value)
 {
-    if (MotionControlModeTP[MOTION_CONTROL_AXES].getState() == ISS_ON)
+    if (MotionControlModeTP[MOTION_CONTROL_MODE_AXES].getState() == ISS_ON)
     {
         if (!strcmp(axis_n, "MOTIONDIRNS") || !strcmp(axis_n, "MOTIONDIRWE"))
         {

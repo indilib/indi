@@ -118,7 +118,7 @@ bool StreamManagerPrivate::initProperties()
 
     /* Record Frames */
     /* File */
-    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/indi__D_");
+    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/Videos/indi__D_");
     RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "indi_record__T_");
     RecordFileTP.fill(getDeviceName(), "RECORD_FILE", "Record File",
@@ -434,9 +434,13 @@ void StreamManagerPrivate::asyncStreamThread()
 
         std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (PixelFormat != INDI_JPG && sourceBuffer->size() != srcFrameInfo.totalSize())
+        // Source buffer size may be equal or larger than frame info size
+        // as some driver still retain full unbinned window size even when binning the output
+        // frame
+        if (PixelFormat != INDI_JPG && sourceBuffer->size() < srcFrameInfo.totalSize())
         {
-            LOG_ERROR("Invalid source buffer size, skipping frame...");
+            LOGF_ERROR("Source buffer size %d is less than frame size %d, skipping frame...", sourceBuffer->size(),
+                       srcFrameInfo.totalSize());
             continue;
         }
 
@@ -1178,7 +1182,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         // Upload to client now
 #ifdef HAVE_WEBSOCKET
         if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
         {
             if (Format != ".streajpg")
             {
@@ -1215,7 +1219,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         {
 #ifdef HAVE_WEBSOCKET
             if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
             {
                 if (Format != ".stream")
                 {

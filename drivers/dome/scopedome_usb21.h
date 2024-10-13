@@ -278,6 +278,13 @@ class ScopeDomeUSB21 final: public ScopeDomeCard
             IsFullSystemCalReq
         } Command;
 
+        typedef struct
+        {
+            Command cmd;
+            const char* str;
+        } CmdStr;
+        const char* cmdToString(Command cmd) const;
+
         typedef enum
         {
             NO_ERROR                       = 0,

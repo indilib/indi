@@ -97,6 +97,8 @@ bool LX200_OnStep::initProperties()
     RI::initProperties(ROTATOR_TAB);
     SetParkDataType(PARK_RA_DEC);
 
+    initSlewRates();
+
     //FocuserInterface
     //Initial, these will be updated later.
     FocusRelPosN[0].min   = 0.;
@@ -135,20 +137,6 @@ bool LX200_OnStep::initProperties()
     // ============== MOTION_TAB
     //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
     //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
-    SlewRateSP.resize(0);
-
-    SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
-    SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
-    SlewRateSP[2].fill("2", "1x", ISS_OFF);
-    SlewRateSP[3].fill("3", "2x", ISS_OFF);
-    SlewRateSP[4].fill("4", "4x", ISS_OFF);
-    SlewRateSP[5].fill("5", "8x", ISS_ON);
-    SlewRateSP[6].fill("6", "20x", ISS_OFF);   //last OnStep - OnStepX
-    SlewRateSP[7].fill("7", "48x", ISS_OFF);
-    SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
-    SlewRateSP[9].fill("9", "Max", ISS_OFF);
-    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
-                    IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB,
@@ -697,16 +685,7 @@ bool LX200_OnStep::updateProperties()
         //             updateLocation(latitude, longitude, 0);
         //         }
         //NOTE: if updateProperties is called it clobbers this, so added here
-        SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
-        SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
-        SlewRateSP[2].fill("2", "1x", ISS_OFF);
-        SlewRateSP[3].fill("3", "2x", ISS_OFF);
-        SlewRateSP[4].fill("4", "4x", ISS_OFF);
-        SlewRateSP[5].fill("5", "8x", ISS_ON);
-        SlewRateSP[6].fill("6", "20x", ISS_OFF);
-        SlewRateSP[7].fill("7", "48x", ISS_OFF);
-        SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
-        SlewRateSP[9].fill("9", "Max", ISS_OFF);
+
 
     }
     else
@@ -2534,6 +2513,7 @@ bool LX200_OnStep::ReadScopeStatus()
                         LOGF_DEBUG("capabilities = %x", capabilities);
                         capabilities |= TELESCOPE_HAS_PEC;
                         SetTelescopeCapability(capabilities, 10 );
+                        initSlewRates();
                         LX200_OnStep::updateProperties();
                     }
                 }
@@ -2591,6 +2571,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     LOGF_DEBUG("capabilities = %x", capabilities);
                     capabilities |= TELESCOPE_HAS_PIER_SIDE;
                     SetTelescopeCapability(capabilities, 10 );
+                    initSlewRates();
                     LX200_OnStep::updateProperties();
                 }
                 if (strstr(OSStat, "o"))
@@ -5483,4 +5464,20 @@ bool LX200_OnStep::Handshake()
     }
 
     return false;
+}
+
+void LX200_OnStep::initSlewRates()
+{
+    SlewRateSP[0].fill("0", "0.25x", ISS_OFF);
+    SlewRateSP[1].fill("1", "0.5x", ISS_OFF);
+    SlewRateSP[2].fill("2", "1x", ISS_OFF);
+    SlewRateSP[3].fill("3", "2x", ISS_OFF);
+    SlewRateSP[4].fill("4", "4x", ISS_OFF);
+    SlewRateSP[5].fill("5", "8x", ISS_ON);
+    SlewRateSP[6].fill("6", "20x", ISS_OFF);   //last OnStep - OnStepX
+    SlewRateSP[7].fill("7", "48x", ISS_OFF);
+    SlewRateSP[8].fill("8", "Half-Max", ISS_OFF);
+    SlewRateSP[9].fill("9", "Max", ISS_OFF);
+
+    SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 }

@@ -268,6 +268,8 @@ bool IOptronV3::updateProperties()
         deleteProperty(MeridianLimitNP);
     }
 
+    GI::updateProperties();
+
     return true;
 }
 

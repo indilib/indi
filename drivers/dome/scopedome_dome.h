@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2024 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -282,6 +282,7 @@ class ScopeDome : public INDI::Dome
 
         void reconnect();
         bool reconnecting{false};
+        bool reconnected{false};
 
         const INDI::PropertyText &getCredentials() const
         {

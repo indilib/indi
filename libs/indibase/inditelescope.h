@@ -843,8 +843,6 @@ class Telescope : public DefaultDevice
         {
             MOTION_CONTROL_MODE_JOYSTICK,
             MOTION_CONTROL_MODE_AXES,
-            MOTION_CONTROL_JOYSTICK,
-            MOTION_CONTROL_AXES
         };
 
         // Lock Joystick Axis to one direction only
@@ -879,6 +877,12 @@ class Telescope : public DefaultDevice
          */
         INDI::PropertyText TLEtoTrackTP{1};
         /**
+         * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
+        INDI::PropertyText SatPassWindowTP {2};
+
+        /**
          * \struct SatelliteWindow
          * \brief Satellite pass: window start and end.
          */
@@ -886,13 +890,13 @@ class Telescope : public DefaultDevice
         {
             SAT_PASS_WINDOW_START, ///< Index for start of the window
             SAT_PASS_WINDOW_END, ///< Index for end of the window
-            SAT_PASS_WINDOW_COUNT ///< Number of indices
         } SatelliteWindow;
+
         /**
-         * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
+         * \brief Switch Vector property defining the state of the satellite tracking of the mount.
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        INDI::PropertyText SatPassWindowTP {0};
+        INDI::PropertySwitch TrackSatSP {2};
         /**
          * \struct SatelliteTracking
          * \brief Possible states for the satellite tracking.
@@ -901,13 +905,7 @@ class Telescope : public DefaultDevice
         {
             SAT_TRACK, ///< Track signal
             SAT_HALT, ///< Halt signal (abort)
-            SAT_TRACK_COUNT ///< State counter
         } SatelliteTracking;
-        /**
-         * \brief Switch Vector property defining the state of the satellite tracking of the mount.
-         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
-         */
-        INDI::PropertySwitch TrackSatSP {0};
 
         // PEC State
         INDI::PropertySwitch PECStateSP {2};

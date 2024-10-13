@@ -42,7 +42,7 @@ using namespace INDI::AlignmentSubsystem;
 
 AstroTrac::AstroTrac(): GI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
@@ -423,7 +423,7 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 /// Mechanical HA Range: -90 to +90 degrees. Home Position Mechanical HA: 0
 /// For north hemisphere, home position HA = -6 hours, DE = 90 degrees.
 /////////////////////////////////////////////////////////////////////////////
-void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de)
+void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de, TelescopePierSide &pierSide)
 {
     static const double jitter = 0.0005;
     double ha = 0;
@@ -437,32 +437,37 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     // Northern Hemisphere
     if (LocationNP[LOCATION_LATITUDE].getValue() >= 0)
     {
-        // "Normal" Pointing State (East, looking West)
+        // "Normal" Pointing State (West, looking East)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0;
+            pierSide = PIER_WEST;
         }
-        // "Reversed" Pointing State (West, looking East)
+        // "Reversed" Pointing State (East, looking West)
         else
         {
             de = 90 + deEncoder;
             ha = 6.0 + (haEncoder / 360.0) * 24.0;
+            pierSide = PIER_EAST;
         }
     }
+    // Southern Hemisphere
     else
     {
-        // East
+        // "Normal" Pointing State (West, looking East)
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder <= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0;
+            pierSide = PIER_WEST;
         }
-        // West
+        // "Reversed" Pointing State (East, looking West)
         else
         {
             de = -90 + deEncoder;
             ha = 6.0 - (haEncoder / 360.0) * 24.0;
+            pierSide = PIER_EAST;
         }
     }
 
@@ -634,6 +639,7 @@ bool AstroTrac::ReadScopeStatus()
 {
     TelescopeDirectionVector TDV;
     double ra = 0, de = 0, skyRA = 0, skyDE = 0;
+    TelescopePierSide side;
 
     if (isSimulation())
         simulateMount();
@@ -642,7 +648,7 @@ bool AstroTrac::ReadScopeStatus()
     double lastDEEncoder = EncoderNP[AXIS_DE].getValue();
     if (getEncoderPosition(AXIS_RA) && getEncoderPosition(AXIS_DE))
     {
-        getRADEFromEncoders(EncoderNP[AXIS_RA].getValue(), EncoderNP[AXIS_DE].getValue(), ra, de);
+        getRADEFromEncoders(EncoderNP[AXIS_RA].getValue(), EncoderNP[AXIS_DE].getValue(), ra, de, side);
         // Send to client if changed.
         if (std::fabs(lastHAEncoder - EncoderNP[AXIS_RA].getValue()) > 0
                 || std::fabs(lastDEEncoder - EncoderNP[AXIS_DE].getValue()) > 0)
@@ -678,9 +684,9 @@ bool AstroTrac::ReadScopeStatus()
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
-        double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
-        double dHA = rangeHA(lst - skyRA);
-        setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
+        // double lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].getValue());
+        // double dHA = rangeHA(lst - skyRA);
+        setPierSide(side);
 
         char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
         fs_sexa(mountRAString, ra, 2, 3600);
@@ -1223,8 +1229,10 @@ void AstroTrac::simulateMount()
 
     if (MovementWESP.getState() == IPS_BUSY || MovementNSSP.getState() == IPS_BUSY)
     {
-        double haVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
-        double deVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL * (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double haVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL *
+                            (MovementWESP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[SlewRateSP.findOnSwitchIndex()] * TRACKRATE_SIDEREAL *
+                            (MovementNSSP.findOnSwitchIndex() == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
 
         haVelocity *= MovementWESP.getState() == IPS_BUSY ? 1 : 0;
         deVelocity *= MovementNSSP.getState() == IPS_BUSY ? 1 : 0;

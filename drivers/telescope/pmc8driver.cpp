@@ -77,10 +77,10 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
 #define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
-#define PMC8_RATE_SIDEREAL 15.000
-#define PMC8_RATE_LUNAR 14.451
-#define PMC8_RATE_SOLAR 14.959
-#define PMC8_RATE_KING 14.996
+#define PMC8_RATE_SIDEREAL 15.041067
+#define PMC8_RATE_LUNAR 14.685
+#define PMC8_RATE_SOLAR 15.000
+#define PMC8_RATE_KING 15.037
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
 bool pmc8_debug                 = false;
@@ -266,10 +266,10 @@ void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
             ra -= 24;
 
         set_pmc8_sim_ra(ra);
-        if (pmc8_latitude <0)
+        if (pmc8_latitude < 0)
             set_pmc8_sim_dec(-90.0);
         else
-             set_pmc8_sim_dec(90.0);
+            set_pmc8_sim_dec(90.0);
 
     }
 }
@@ -843,10 +843,10 @@ uint8_t get_pmc8_tracking_mode_from_rate(double rate)
 {
     int tmotor, refmotor;
     uint8_t mode;
-    
+
     //get precise motor rate
     convert_precise_rate_to_motor(rate, &tmotor);
-    
+
     //now check what sidereal would be
     convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL, &refmotor);
     if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;
@@ -1586,7 +1586,7 @@ bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int 
         else
             return false;
     }
-    
+
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - lst = %f hour_angle=%f", lst, hour_angle);
 
@@ -1627,7 +1627,7 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
         if (deccounts < 0)
             hour_angle = -(motor_angle + 6);
         else
-            hour_angle = -(motor_angle - 6);        
+            hour_angle = -(motor_angle - 6);
     }
 
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "hour_angle = %f", hour_angle);
@@ -1644,7 +1644,7 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
     //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra_value (final) = %f", ra_value);
 
     motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
-    
+
     // Northern Hemisphere
     if (pmc8_east_dir)
     {
@@ -1680,7 +1680,7 @@ bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, in
             return false;
     }
     // Southern Hemisphere
-    else 
+    else
     {
         if (sop == INDI::Telescope::PIER_EAST)
             motor_angle = -(dec + 90.0);
@@ -1957,7 +1957,7 @@ bool abort_pmc8_goto(int fd)
     char response[16];
     int nbytes_read    = 0;
     int nbytes_written = 0;
-    
+
     snprintf(cmd, sizeof(cmd), "ESPt300000!");
 
     if (!pmc8_simulation)
@@ -1974,7 +1974,8 @@ bool abort_pmc8_goto(int fd)
 
         if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))
         {
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Abort Goto cmd response incorrect: %s - expected %s", response, expresp);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Abort Goto cmd response incorrect: %s - expected %s", response,
+                         expresp);
             return false;
         }
     }

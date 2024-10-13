@@ -29,7 +29,7 @@
 
 class GPUSBDriver;
 
-class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
+class GPUSB : public INDI::DefaultDevice, public INDI::GuiderInterface
 {
     public:
         GPUSB();

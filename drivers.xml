@@ -39,6 +39,10 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.23</version>
         </device>
+        <device label="UMi" manufacturer="ProxiSky">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.23</version>
+        </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
             <version>0.9</version>
@@ -121,7 +125,7 @@
         </device>
         <device label="AstroTrac" manufacturer="AstroTrac">
             <driver name="AstroTrac">indi_astrotrac_telescope</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Rainbow RST-135" manufacturer="Rainbow Astro">
             <driver name="Rainbow">indi_rainbow_telescope</driver>
@@ -188,6 +192,42 @@
             <version>1.7</version>
         </device>
         <device label="iOptron GEM28" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HEM15" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HEM44" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAE43" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAE69" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAZ31" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAZ46" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAZ71" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAE16" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron HAE18" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.7</version>
         </device>
