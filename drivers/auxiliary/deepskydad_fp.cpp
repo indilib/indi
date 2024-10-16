@@ -324,10 +324,17 @@ bool DeepSkyDadFP::getStatus()
     else
         sscanf(response, "(%d)", &lightStatus);
 
-    if (!sendCommand("[GPOS]", response))
-        return false;
-    else
-        sscanf(response, "(%d)", &coverStatus);
+    if(isFP2) {
+        if (!sendCommand("[GOPS]", response))
+            return false;
+        else
+            sscanf(response, "(%d)", &coverStatus);
+    } else {
+        if (!sendCommand("[GPOS]", response))
+            return false;
+        else
+            sscanf(response, "(%d)", &coverStatus);
+    }
 
     if (!sendCommand("[GHTT]", response))
         return false;
@@ -342,56 +349,112 @@ bool DeepSkyDadFP::getStatus()
 
     bool statusUpdated = false;
 
-    if (coverStatus != prevCoverStatus)
-    {
-        if(motorStatus == 1)
+    if(isFP2) {
+        if (coverStatus != prevCoverStatus)
         {
-            if(coverStatus == 0)
+            if(motorStatus == 1)
             {
-                IUSaveText(&StatusT[0], "Open");
-            }
-            else if(coverStatus == 270)
-            {
-                IUSaveText(&StatusT[0], "Closed");
+                if(coverStatus == 0)
+                {
+                    IUSaveText(&StatusT[0], "Closed");
+                }
+                else if(coverStatus == 1)
+                {
+                    IUSaveText(&StatusT[0], "Open");
+                }
+                else
+                {
+                    IUSaveText(&StatusT[0], "Not open/closed");
+                }
             }
             else
             {
-                IUSaveText(&StatusT[0], "Not open/closed");
+                prevCoverStatus = coverStatus;
+
+                statusUpdated = true;
+
+                if(coverStatus == 1)
+                {
+                    IUSaveText(&StatusT[0], "Open");
+                    if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                    {
+                        ParkCapSP.reset();
+                        ParkCapSP[1].setState(ISS_ON);
+                        ParkCapSP.setState(IPS_OK);
+                        LOG_INFO("Cover open.");
+                        ParkCapSP.apply();
+                    }
+                }
+                else if(coverStatus == 0)
+                {
+                    IUSaveText(&StatusT[0], "Closed");
+                    if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                    {
+                        ParkCapSP.reset();
+                        ParkCapSP[0].setState(ISS_ON);
+                        ParkCapSP.setState(IPS_OK);
+                        LOG_INFO("Cover closed.");
+                        ParkCapSP.apply();
+                    }
+                }
+                else
+                {
+                    IUSaveText(&StatusT[0], "Not open/closed");
+                }
             }
         }
-        else
+    } else {
+        if (coverStatus != prevCoverStatus)
         {
-            prevCoverStatus = coverStatus;
-
-            statusUpdated = true;
-
-            if(coverStatus == 0)
+            if(motorStatus == 1)
             {
-                IUSaveText(&StatusT[0], "Open");
-                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                if(coverStatus == 0)
                 {
-                    ParkCapSP.reset();
-                    ParkCapSP[1].setState(ISS_ON);
-                    ParkCapSP.setState(IPS_OK);
-                    LOG_INFO("Cover open.");
-                    ParkCapSP.apply();
+                    IUSaveText(&StatusT[0], "Open");
                 }
-            }
-            else if(coverStatus == 270)
-            {
-                IUSaveText(&StatusT[0], "Closed");
-                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                else if(coverStatus == 270)
                 {
-                    ParkCapSP.reset();
-                    ParkCapSP[0].setState(ISS_ON);
-                    ParkCapSP.setState(IPS_OK);
-                    LOG_INFO("Cover closed.");
-                    ParkCapSP.apply();
+                    IUSaveText(&StatusT[0], "Closed");
+                }
+                else
+                {
+                    IUSaveText(&StatusT[0], "Not open/closed");
                 }
             }
             else
             {
-                IUSaveText(&StatusT[0], "Not open/closed");
+                prevCoverStatus = coverStatus;
+
+                statusUpdated = true;
+
+                if(coverStatus == 0)
+                {
+                    IUSaveText(&StatusT[0], "Open");
+                    if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                    {
+                        ParkCapSP.reset();
+                        ParkCapSP[1].setState(ISS_ON);
+                        ParkCapSP.setState(IPS_OK);
+                        LOG_INFO("Cover open.");
+                        ParkCapSP.apply();
+                    }
+                }
+                else if(coverStatus == 270)
+                {
+                    IUSaveText(&StatusT[0], "Closed");
+                    if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                    {
+                        ParkCapSP.reset();
+                        ParkCapSP[0].setState(ISS_ON);
+                        ParkCapSP.setState(IPS_OK);
+                        LOG_INFO("Cover closed.");
+                        ParkCapSP.apply();
+                    }
+                }
+                else
+                {
+                    IUSaveText(&StatusT[0], "Not open/closed");
+                }
             }
         }
     }
@@ -494,6 +557,7 @@ bool DeepSkyDadFP::getFirmwareVersion()
     snprintf(versionString, 6, "%s", response + 31);
     IUSaveText(&FirmwareT[0], response);
     IDSetText(&FirmwareTP, nullptr);
+    isFP2 = strstr(response, "DeepSkyDad.FP2") != nullptr;
 
     return true;
 }
