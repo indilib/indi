@@ -351,3 +351,11 @@ SET(wavesharerelay_SRC
 add_executable(indi_wavesharemodbus_relay ${wavesharerelay_SRC})
 target_link_libraries(indi_wavesharemodbus_relay indidriver)
 install(TARGETS indi_wavesharemodbus_relay RUNTIME DESTINATION bin)
+
+# ############### DarkLight Cover Calibrator ################
+SET(darklight_covercalibrator_SRC
+darklight_covercalibrator.cpp)
+
+add_executable(indi_darklight_covercalibrator ${darklight_covercalibrator_SRC})
+target_link_libraries(indi_darklight_covercalibrator indidriver)
+install(TARGETS indi_darklight_covercalibrator RUNTIME DESTINATION bin)
