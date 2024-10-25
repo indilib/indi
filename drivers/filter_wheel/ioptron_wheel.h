@@ -38,11 +38,8 @@ class iEFW : public INDI::FilterWheel
 //        void TimerHit() override;
 	int getFilterPos();
         // Firmware of the iEFW
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1] {};
-       // Filter Wheel ID
-        ITextVectorProperty WheelIDTP;
-        IText WheelIDT[1] {};
+        INDI::PropertyText FirmwareTP {1};
+        INDI::PropertyText WheelIDTP  {1};;
 
     private:
 
@@ -53,6 +50,5 @@ class iEFW : public INDI::FilterWheel
   // Calibration offset
         bool getOffset(int filter);
         bool setOffset(int filter, int shift);
-        ISwitch HomeS[1];
-        ISwitchVectorProperty HomeSP;
+	INDI::PropertySwitch HomeSP{1};
 };

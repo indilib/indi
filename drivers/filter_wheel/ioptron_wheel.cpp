@@ -44,7 +44,7 @@ get offset 。nn = filter num , snnnnn=offset
 
 “:DeviceInfo#”		Response: “nnnnnnnnnnnn#”
 This command includes 12 digits.
-The 7th and 8th digit means model of filter wheel. 
+The 7th and 8th digit means model of filter wheel.
 Model number  99 is iEFW-15, 98 is iEFW18
 
 :FW1#			Response:  nnnnnnnnnnnn#
@@ -74,11 +74,10 @@ bool iEFW::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
- // Firmware of the iEFW
-    IUFillText(&FirmwareT[0], "FIRMWARE", "Firmware", "Unknown");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_ID", "iEFW Firmware", FILTER_TAB, IP_RO, 60, IPS_IDLE);
-    IUFillText(&WheelIDT[0], "MODEL", "Model", "iEFW");
-    IUFillTextVector(&WheelIDTP, WheelIDT, 1, getDeviceName(), "MODEL_ID", "iEFW Model", FILTER_TAB, IP_RO, 60, IPS_IDLE);
+    FirmwareTP[0].fill("FIRMWARE", "Firmware", "240101240101");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_ID", "iEFW Firmware", FILTER_TAB, IP_RO, 60, IPS_IDLE);
+    WheelIDTP[0].fill("MODEL", "Model", "iEFW");
+    WheelIDTP.fill(getDeviceName(), "MODEL_ID", "iEFW Model", FILTER_TAB, IP_RO, 60, IPS_IDLE);
     return true;
 }
 
@@ -88,9 +87,9 @@ bool iEFW::updateProperties()
 
     if (isConnected())
       {
-        defineProperty(&HomeSP);
-        defineProperty(&FirmwareTP);
-        defineProperty(&WheelIDTP);
+        defineProperty(HomeSP);
+        defineProperty(FirmwareTP);
+        defineProperty(WheelIDTP);
 	bool rc1=getiEFWInfo();
         bool rc2=getiEFWfirmwareInfo();
         getFilterPos();
@@ -98,9 +97,9 @@ bool iEFW::updateProperties()
       }
     else
       {
-        deleteProperty(HomeSP.name);
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(WheelIDTP.name);
+        deleteProperty(HomeSP);
+        deleteProperty(FirmwareTP);
+        deleteProperty(WheelIDTP);
       }
     return true;
 }
@@ -109,18 +108,17 @@ bool iEFW::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (HomeSP.isNameMatch(name))
         {
             if (getiEFWID())
             {
                 LOG_INFO("Filter getid.");
-                HomeSP.s = IPS_OK;
-                FilterSlotNP.s = IPS_OK;
-                IDSetNumber(&FilterSlotNP, nullptr);
+           	HomeSP.setState(IPS_OK);
+           	HomeSP.apply();
             }
             else
-                HomeSP.s = IPS_ALERT;
-            IDSetSwitch(&HomeSP, nullptr);
+               HomeSP.setState(IPS_ALERT);
+                HomeSP.apply();
             return true;
         }
     }
@@ -165,16 +163,17 @@ bool iEFW::getiEFWInfo()
        if (iefwmodel==99)
  	{
 	 FilterSlotN[0].max = 5;
-   	 WheelIDTP.s = IPS_OK;
-    	 IUSaveText(&WheelIDT[0], "iEFW-15");
-   	 IDSetText(&WheelIDTP, "iEFW Model is %s", "iEFW-15");
+	 WheelIDTP.setState(IPS_OK);
+         WheelIDTP[0].setText("iEFW-15");
+         WheelIDTP.apply();
 	};
        if (iefwmodel==98)
         {
          FilterSlotN[0].max = 8;
-         WheelIDTP.s = IPS_OK;
-         IUSaveText(&WheelIDT[0], "iEFW-18");
-         IDSetText(&WheelIDTP, "iEFW Model is %s", "iEFW-18");
+         WheelIDTP.setState(IPS_OK);
+         WheelIDTP[0].setText("iEFW-18");
+         WheelIDTP.apply();
+
         };
 	return true;
     }
@@ -210,9 +209,9 @@ bool iEFW::getiEFWfirmwareInfo()
     tcflush(PortFD, TCIOFLUSH);
     resp[nbytes_read] = '\0';
     sscanf(resp, "%12s", iefwfirminfo);
-    FirmwareTP.s = IPS_OK;
-    IUSaveText(&FirmwareT[0], iefwfirminfo);
-    IDSetText(&FirmwareTP, "iEFW Firmware is %s", iefwfirminfo);
+    FirmwareTP.setState(IPS_OK);
+    FirmwareTP[0].setText(iefwfirminfo);
+    FirmwareTP.apply();
     LOGF_DEBUG("Success, response from iEFW is : %s", iefwfirminfo);
     return true;
 }
@@ -222,7 +221,6 @@ int iEFW::getFilterPos()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[16] = {0};
-//  char iefwposinfo[16] = {0};
     int  iefwpos = 1;
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, ":WP#", 4, &nbytes_written)) != TTY_OK)
