@@ -47,8 +47,5 @@ class iEFW : public INDI::FilterWheel
 	bool getiEFWInfo();
         bool getiEFWfirmwareInfo();
 	void initOffset();
-  // Calibration offset
- //       bool getOffset(int filter);
- //       bool setOffset(int filter, int shift);
 	INDI::PropertySwitch HomeSP{1};
 };
