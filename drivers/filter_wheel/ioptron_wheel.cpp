@@ -144,7 +144,7 @@ bool iEFW::getiEFWInfo()
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "Init send iEFW deviceinfo  error: %s.", errstr);
+        LOGF_ERROR( "Init send iEFW deviceinfo  error: %s.", errstr);
         return false;
     };
 
@@ -152,7 +152,7 @@ bool iEFW::getiEFWInfo()
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "Init read iEFW deviceinfo error: %s.", errstr);
+        LOGF_ERROR( "Init read iEFW deviceinfo error: %s.", errstr);
         return false;
     };
     tcflush(PortFD, TCIOFLUSH);
@@ -179,7 +179,7 @@ bool iEFW::getiEFWInfo()
     }
     else
     {
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "iEFW getinfo Response: %s", resp);
+        LOGF_ERROR( "iEFW getinfo Response: %s", resp);
         return false;
     }
 
@@ -198,12 +198,12 @@ bool iEFW::getiEFWfirmwareInfo()
     if ( (rc = tty_write(PortFD, ":FW1#", 5, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "get iEFW FiremwareInfo error: %s.", errstr);
+        LOGF_ERROR( "get iEFW FiremwareInfo error: %s.", errstr);
     }
     if ( (rc = tty_read_section(PortFD, resp, '#', iEFW_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "get iEFW FirmwareInfo  error: %s.", errstr);
+        LOGF_ERROR( "get iEFW FirmwareInfo  error: %s.", errstr);
         return false;
     }
     tcflush(PortFD, TCIOFLUSH);
@@ -226,12 +226,12 @@ int iEFW::getFilterPos()
     if ( (rc = tty_write(PortFD, ":WP#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "send iEFW filter pos Info error: %s.", errstr);
+        LOGF_ERROR( "send iEFW filter pos Info error: %s.", errstr);
     }
     if ( (rc = tty_read_section(PortFD, resp, '#', iEFW_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "read iEFW filter pos Info  error: %s.", errstr);
+        LOGF_ERROR( "read iEFW filter pos Info  error: %s.", errstr);
         return false;
     }
     tcflush(PortFD, TCIOFLUSH);
@@ -284,7 +284,7 @@ bool iEFW::SelectFilter(int f)
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR(INDI::Logger::DBG_ERROR, "select iEFW send pos Info error: %s.", errstr);
+        LOGF_ERROR( "select iEFW send pos Info error: %s.", errstr);
     }
     tcflush(PortFD, TCIOFLUSH);
     // check current position  -1  is moving
