@@ -112,7 +112,7 @@ bool iEFW::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         {
             if (getiEFWID())
             {
-                LOG_INFO("Filter getid.");
+                LOG_INFO("Filter is at home position");
            	HomeSP.setState(IPS_OK);
            	HomeSP.apply();
             }
