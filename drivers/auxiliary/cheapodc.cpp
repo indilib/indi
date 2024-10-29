@@ -43,7 +43,7 @@ std::unique_ptr<CheapoDC> cheapodc(new CheapoDC());
 
 CheapoDC::CheapoDC()
 {
-    setVersion(CDRIVER_VERSION_MAJOR, CDRIVER_VERSION_MINOR);
+    setVersion(CHEAPODC_VERSION_MAJOR, CHEAPODC_VERSION_MINOR);
 }
 
 bool CheapoDC::initProperties()
@@ -62,8 +62,8 @@ bool CheapoDC::initProperties()
     MaximumOutputNP[0].fill("MAXIMUMOUTPUT", "Power (%)", "%3.0f", 1, 100, 1, prevMaxOutput);
     MaximumOutputNP.fill(getDeviceName(), "MAXIMUMOUTPUT", "Output Max", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    XtrnTemperatureNP[0].fill("WEATHERQUERY", "Weather Query (\u2103)", "%3.2f", -50., 120., 0., 0.);
-    XtrnTemperatureNP[1].fill("EXTERNALINPUT", "External Input (\u2103)", "%3.2f", -50., 120., 0., 0.);
+    XtrnTemperatureNP[WEATHER_QUERY].fill("WEATHERQUERY", "Weather Query (\u2103)", "%3.2f", -50., 120., 0., 0.);
+    XtrnTemperatureNP[EXTERNAL_INPUT].fill("EXTERNALINPUT", "External Input (\u2103)", "%3.2f", -50., 120., 0., 0.);
     XtrnTemperatureNP.fill(getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     HumidityNP[0].fill("HUMIDITY", "Relative (%)", "%3.0f", 0., 100., 0., 0.);
@@ -112,61 +112,90 @@ bool CheapoDC::initProperties()
 
     /* Firmware version */
     FWversionTP[0].fill("FIRMWARE", "Firmware Version", nullptr);
-    FWversionTP.fill(getDeviceName(), "FW_VERSION", "Firmware", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
+    FWversionTP.fill(getDeviceName(), "FW_VERSION", "Device", CONNECTION_TAB, IP_RO, 0, IPS_IDLE);
+
+    /*  Set Weather Source */
+    WeatherSourceSP[0].fill("OPENMETEO", "Open-Meteo", ISS_ON);
+    WeatherSourceSP[1].fill("OPENWEATHER", "OpenWeather", ISS_OFF);
+    WeatherSourceSP[2].fill("EXTERNALSOURCE", "External Source", ISS_OFF);
+    WeatherSourceSP.fill(getDeviceName(), "WEATHER_SOURCE", "Weather Source", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Weather Query API Key*/
     WeatherQueryAPIKeyTP[0].fill("API_KEY", "Weather API Key", nullptr);
     WeatherQueryAPIKeyTP.fill(getDeviceName(), "WEATHER_API_KEY", "Weather API Key", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    /*  Latitude */
-    LatitudeNP[0].fill("LAT", "Decimal Degrees", "%4.2f", -90.0, 90.0, 0., 0.);
-    LatitudeNP.fill(getDeviceName(), "LATITUDE", "Latitude", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
-    /*  Longitude */
-    LongitudeNP[0].fill("LONG", "Decimal Degrees", "%4.2f", -180.0, 180.0, 0., 0.);
-    LongitudeNP.fill(getDeviceName(), "LONGITUDE", "Longitude", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
+   
     /*  Location Name */
     LocationNameTP[0].fill("NAME", "Location Name", nullptr);
     LocationNameTP.fill(getDeviceName(), "LOCATION_NAME", "Weather", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
-    /*  Location Name */
+    /*  Weather Updated */
     WeatherUpdatedTP[0].fill("LAST_UPDATED", "Last Updated", nullptr);
     WeatherUpdatedTP.fill(getDeviceName(), "WEATHER_UPDATED", "Weather", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
+    // Snoop Temperature Device settings - for external temperatue probe ie: Focuser temperature probe
+    EnableSnoopTemperatureSP[0].fill("ENABLE", "Enable", ISS_OFF);
+    EnableSnoopTemperatureSP[1].fill("DISABLE", "Disable", ISS_ON);
+    EnableSnoopTemperatureSP.fill(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", "Snoop Temp", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+ 
+    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_DEVICE", temperatureDevice, MAXINDIDEVICE);
+    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_Property", temperatureProperty, MAXINDINAME);
+    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_ATTRIBUTE", temperatureAttribute, MAXINDINAME);
+
+   // TEMPERATURE_Property text case kept for backwards compatibility to previous version saved config files
+    SnoopTemperatureDeviceTP[0].fill("TEMPERATURE_DEVICE", "Device", temperatureDevice);
+    SnoopTemperatureDeviceTP[1].fill("TEMPERATURE_Property", "Property", temperatureProperty);
+    SnoopTemperatureDeviceTP[2].fill("TEMPERATURE_ATTRIBUTE", "Attribute", temperatureAttribute);
+    SnoopTemperatureDeviceTP.fill(getDeviceName(), "TEMPERATURE_SNOOP", "Temperature Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    
+    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", &snoopTemperatureIndex) == 0) 
+        setSnoopTemperature = (snoopTemperatureIndex == INDI_ENABLED);
+    
+    // Weather snoop setting for a Weather device ie: Weather station
+    EnableSnoopWeatherSP[0].fill("ENABLE", "Enable", ISS_OFF);
+    EnableSnoopWeatherSP[1].fill("DISABLE", "Disable", ISS_ON);
+    EnableSnoopWeatherSP.fill(getDeviceName(), "ENABLE_SNOOP_WEATHER", "Snoop Weather", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "WEATHER_DEVICE", weatherDevice, MAXINDIDEVICE);
+    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "WEATHER_PROPERTY", weatherProperty, MAXINDINAME);
+    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "TEMPERATURE_ATTRIBUTE", weatherTempAttribute, MAXINDINAME);
+    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "HUMIDITY_ATTRIBUTE", weatherHumidityAttribute, MAXINDINAME);
+    
+    SnoopWeatherDeviceTP[0].fill("WEATHER_DEVICE", "Device", weatherDevice);
+    SnoopWeatherDeviceTP[1].fill("WEATHER_PROPERTY", "Property", weatherProperty);
+    SnoopWeatherDeviceTP[2].fill("TEMPERATURE_ATTRIBUTE", "Temp Attribute", weatherTempAttribute);
+    SnoopWeatherDeviceTP[3].fill("HUMIDITY_ATTRIBUTE", "Humidity Attribute", weatherHumidityAttribute);
+    SnoopWeatherDeviceTP.fill(getDeviceName(), "WEATHER_SNOOP", "Weather Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_WEATHER", &snoopWeatherIndex) == 0) 
+        setSnoopWeather = (snoopWeatherIndex == INDI_ENABLED);
+
+    /* Location coordinates */
+    LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60, IPS_IDLE);
+    
+    // Snoop for Location settings to get geo coordinates
     IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_DEVICE", locationDevice, MAXINDIDEVICE);
     IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_PROPERTY", locationProperty, MAXINDINAME);
     IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_LAT_ATTRIBUTE", locationLatAttribute, MAXINDINAME);
     IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_LON_ATTRIBUTE", locationLongAttribute, MAXINDINAME);
-
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_DEVICE", temperatureDevice, MAXINDIDEVICE);
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_PROPERTY", temperatureProperty, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_ATTRIBUTE", temperatureAttribute, MAXINDINAME);
-
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_LOCATION", &snoopLocationIndex) == 0)
-        setSnoopLocation = (snoopLocationIndex == 0);
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", &snoopTemperatureIndex) == 0) 
-        setSnoopTemperature = (snoopTemperatureIndex == 0);
-
-    /* Enable/Disable Snoop pickup for Latitude/Longitude and Temperature */
-    EnableSnoopLocationSP[0].fill("ENABLE", "Enable", ISS_OFF);
-    EnableSnoopLocationSP[1].fill("DISABLE", "Disable", ISS_ON);
-    EnableSnoopLocationSP.fill(getDeviceName(), "ENABLE_SNOOP_LOCATION", "Snoop Location", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    EnableSnoopLocationSP[0].fill("ENABLE", "Enable", ISS_ON);
+    EnableSnoopLocationSP[1].fill("DISABLE", "Disable", ISS_OFF);
+    EnableSnoopLocationSP.fill(getDeviceName(), "ENABLE_SNOOP_LOCATION", "Snoop Location", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     SnoopLocationDeviceTP[0].fill("LOCATION_DEVICE", "Device", locationDevice);
     SnoopLocationDeviceTP[1].fill("LOCATION_PROPERTY", "Property", locationProperty);
     SnoopLocationDeviceTP[2].fill("LOCATION_LAT_ATTRIBUTE", "LAT Attribute", locationLatAttribute);
     SnoopLocationDeviceTP[3].fill("LOCATION_LONG_ATTRIBUTE", "LONG Attribute", locationLongAttribute);
-    SnoopLocationDeviceTP.fill(getDeviceName(), "LOCATION_SNOOP", "Location Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    SnoopLocationDeviceTP.fill(getDeviceName(), "LOCATION_SNOOP", "Location Device", SITE_TAB, IP_RW, 0, IPS_IDLE);
 
-    EnableSnoopTemperatureSP[0].fill("ENABLE", "Enable", ISS_OFF);
-    EnableSnoopTemperatureSP[1].fill("DISABLE", "Disable", ISS_ON);
-    EnableSnoopTemperatureSP.fill(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", "Snoop Temp", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_LOCATION", &snoopLocationIndex) == 0)
+        setSnoopLocation = (snoopLocationIndex == INDI_ENABLED);
 
-    SnoopTemperatureDeviceTP[0].fill("TEMPERATURE_DEVICE", "Device", temperatureDevice);
-    SnoopTemperatureDeviceTP[1].fill("TEMPERATURE_Property", "Property", temperatureProperty);
-    SnoopTemperatureDeviceTP[2].fill("TEMPERATURE_ATTRIBUTE", "Attribute", temperatureAttribute);
-    SnoopTemperatureDeviceTP.fill(getDeviceName(), "TEMPERATURE_SNOOP", "Temperature Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Refresh
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
@@ -221,25 +250,40 @@ bool CheapoDC::updateProperties()
         defineProperty(QueryWeatherEveryNP);
         // Get weather source to determin if API Key needed
         getWeatherSource();
+        if (fwVOneDetected) // Set FW2.x features to RO
+        {
+            WeatherSourceSP.setPermission(IP_RO);
+            EnableSnoopWeatherSP.setPermission(IP_RO);
+            SnoopWeatherDeviceTP.setPermission(IP_RO);
+        }
+        defineProperty(WeatherSourceSP);
         if (usingOpenWeather)
         {
             defineProperty(WeatherQueryAPIKeyTP);
             defineProperty(LocationNameTP);
         }
         defineProperty(WeatherUpdatedTP);
-        defineProperty(LatitudeNP);
-        defineProperty(LongitudeNP);
-        defineProperty(EnableSnoopLocationSP);
-        defineProperty(SnoopLocationDeviceTP);
         defineProperty(EnableSnoopTemperatureSP);
         defineProperty(SnoopTemperatureDeviceTP);
+        defineProperty(EnableSnoopWeatherSP);
+        defineProperty(SnoopWeatherDeviceTP);
+
+        // Site Tab
+        defineProperty(LocationNP);
+        defineProperty(EnableSnoopLocationSP);
+        defineProperty(SnoopLocationDeviceTP);
 
         // Connection Tab
         defineProperty(FWversionTP);
 
         loadConfig(true);
         readSettings();
-        LOG_INFO("CheapoDC parameters updated, device ready for use.");
+        //LOG_INFO("CheapoDC parameters updated, device ready for use.");
+        if (fwVOneDetected)
+        {
+            LOG_WARN("Go to https://github.com/hcomet/CheapoDC/releases to download the latest firmware release");
+            LOGF_WARN("CheapoDC firmware V%s detected. Please upgrade firmware to latest V2+.", FWversionTP[0].getText());
+        }
         timerIndex = SetTimer(getCurrentPollingPeriod());
     }
     else
@@ -259,19 +303,25 @@ bool CheapoDC::updateProperties()
         deleteProperty(TrackingRangeNP);
         deleteProperty(UpdateOutputEveryNP);
         deleteProperty(QueryWeatherEveryNP);
+        deleteProperty(WeatherSourceSP);
         if (usingOpenWeather)
         {
             deleteProperty(WeatherQueryAPIKeyTP);
             deleteProperty(LocationNameTP);
         }
         deleteProperty(WeatherUpdatedTP);
-        deleteProperty(LatitudeNP);
-        deleteProperty(LongitudeNP);
-        deleteProperty(FWversionTP);
-        deleteProperty(EnableSnoopLocationSP);
-        deleteProperty(SnoopLocationDeviceTP);
         deleteProperty(EnableSnoopTemperatureSP);
         deleteProperty(SnoopTemperatureDeviceTP);
+        deleteProperty(EnableSnoopWeatherSP);
+        deleteProperty(SnoopWeatherDeviceTP);
+
+        // Site Tab
+        deleteProperty(LocationNP);
+        deleteProperty(EnableSnoopLocationSP);
+        deleteProperty(SnoopLocationDeviceTP);
+
+        // Connection Tab
+        deleteProperty(FWversionTP);
     }
 
     return true;
@@ -313,19 +363,17 @@ void CheapoDC::redrawOptions()
     deleteProperty(TrackingRangeNP);
     deleteProperty(UpdateOutputEveryNP);
     deleteProperty(QueryWeatherEveryNP);
-    if (usingOpenWeather)
+    deleteProperty(WeatherSourceSP);
+    if (usingOpenWeather || previouslyUsingOpenWeather)
     {
         deleteProperty(WeatherQueryAPIKeyTP);
         deleteProperty(LocationNameTP);
     }
     deleteProperty(WeatherUpdatedTP);
-    deleteProperty(LatitudeNP);
-    deleteProperty(LongitudeNP);
-    deleteProperty(FWversionTP);
-    deleteProperty(EnableSnoopLocationSP);
-    deleteProperty(SnoopLocationDeviceTP);
     deleteProperty(EnableSnoopTemperatureSP);
     deleteProperty(SnoopTemperatureDeviceTP);
+    deleteProperty(EnableSnoopWeatherSP);
+    deleteProperty(SnoopWeatherDeviceTP);
 
     // Options Tab re-define properties to pick up changes and maintain order
     defineProperty(MinimumOutputNP);
@@ -334,18 +382,17 @@ void CheapoDC::redrawOptions()
     defineProperty(TrackingRangeNP);
     defineProperty(UpdateOutputEveryNP);
     defineProperty(QueryWeatherEveryNP);
+    defineProperty(WeatherSourceSP);
     if (usingOpenWeather)
     {
         defineProperty(WeatherQueryAPIKeyTP);
         defineProperty(LocationNameTP);
     }
     defineProperty(WeatherUpdatedTP);
-    defineProperty(LatitudeNP);
-    defineProperty(LongitudeNP);
-    defineProperty(EnableSnoopLocationSP);
-    defineProperty(SnoopLocationDeviceTP);
     defineProperty(EnableSnoopTemperatureSP);
     defineProperty(SnoopTemperatureDeviceTP);
+    defineProperty(EnableSnoopWeatherSP);
+    defineProperty(SnoopWeatherDeviceTP);
 
     doOptionsRedraw = false;
 }
@@ -504,7 +551,7 @@ bool CheapoDC::Handshake()
     {
         if (Ack())
         {
-            LOG_INFO("CheapoDC is online. Getting device parameters...");
+            //LOG_INFO("CheapoDC is online. Getting device parameters...");
             return true;
         }
         LOG_ERROR("Error retrieving data from CheapoDC, retrying...");
@@ -528,6 +575,16 @@ bool CheapoDC::Ack()
     FWversionTP.setState(IPS_OK);
     FWversionTP.apply();
 
+    if (resp[0] == '1')
+    {
+        fwVOneDetected = true;
+    }
+    else
+    {
+        fwVOneDetected = false;
+    }
+
+
     return true;
 }
 
@@ -536,7 +593,39 @@ void CheapoDC::getWeatherSource()
     char resp[CDC_RESPONSE_LENGTH] = {};
 
     if (sendGetCommand(CDC_CMD_WS, resp))
-        usingOpenWeather = (strcmp(resp, "OpenWeather") == 0);
+    {
+        if (fwVOneDetected)
+        {
+            usingOpenWeather = (strcmp(resp, "OpenWeather") == 0);
+            WeatherSourceSP.reset();
+            if (usingOpenWeather)
+                WeatherSourceSP[OPENWEATHER].setState(ISS_ON);
+            else
+                WeatherSourceSP[OPENMETEO].setState(ISS_ON);
+
+            WeatherSourceSP.setState(IPS_OK);
+            WeatherSourceSP.apply();
+        }
+        else
+        {
+            int newWeatherSource;
+            int ok = 0;
+
+            ok = sscanf(resp, "%d", &newWeatherSource);
+            usingOpenWeather = (newWeatherSource == OPENWEATHER);
+            usingExternalWeatherSource = (newWeatherSource == EXTERNALSOURCE);
+
+            if ((ok == 1) && (newWeatherSource <= EXTERNALSOURCE))
+            {
+                WeatherSourceSP.reset();
+                WeatherSourceSP[newWeatherSource].setState(ISS_ON);
+                WeatherSourceSP.setState(IPS_OK);
+                WeatherSourceSP.apply();
+            }
+            else
+                LOGF_ERROR("Get Weather Source: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_WS);
+        }
+    }
 }
 
 // Set Controller Mode (Automatic, Manual, Off)
@@ -562,6 +651,10 @@ bool CheapoDC::setTemperatureMode(int value)
     {
         char valBuf[CDC_SET_VALUE_LENGTH] = {};
 
+        // Check Temperature Snoop if EXTERNAL_INPUT
+        if ((value == EXTERNAL_INPUT) && (EnableSnoopTemperatureSP[INDI_ENABLED].getState() == ISS_OFF))
+            LOG_INFO("Temperature Mode set to External Input. Enable Temp Snoop to send temperatures from the Temperature Device.");
+        
         sprintf(valBuf, CDC_INT_VALUE, value);
         return sendSetCommand(CDC_CMD_DCTM, valBuf);
     }
@@ -581,6 +674,24 @@ bool CheapoDC::setSetPointMode(int value)
     }
 }
 
+bool CheapoDC::setWeatherSource(int value)
+{
+    if (fwVOneDetected)
+    {
+        LOGF_WARN("CheapoDC firmware V%s does not support Set Weather Source. Please upgrade firmware to latest V2+.", FWversionTP[0].getText());
+        return false;
+    }
+    if ((value < OPENMETEO) || (value > EXTERNALSOURCE))
+        return false;
+    else
+    {
+        char valBuf[CDC_SET_VALUE_LENGTH] = {};
+
+        sprintf(valBuf, CDC_INT_VALUE, value);
+        return sendSetCommand(CDC_CMD_WS, valBuf);
+    }
+}
+
 bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     bool result = false;
@@ -593,8 +704,7 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         ControllerModeSP.setState(IPS_BUSY);
         ControllerModeSP.apply();
         result = setControllerMode(ControllerModeSP.findOnSwitchIndex());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (TemperatureModeSP.isNameMatch(name))
@@ -603,8 +713,7 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         TemperatureModeSP.setState(IPS_BUSY);
         TemperatureModeSP.apply();
         result = setTemperatureMode(TemperatureModeSP.findOnSwitchIndex());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (SetPointModeSP.isNameMatch(name))
@@ -613,8 +722,16 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         SetPointModeSP.setState(IPS_BUSY);
         SetPointModeSP.apply();
         result = setSetPointMode(SetPointModeSP.findOnSwitchIndex());
-        readSettings();
-        return result;
+        return result && readSettings();
+    }
+
+    if (WeatherSourceSP.isNameMatch(name))
+    {
+        WeatherSourceSP.update(states, names, n);
+        WeatherSourceSP.setState(IPS_BUSY);
+        WeatherSourceSP.apply();
+        result = setWeatherSource(WeatherSourceSP.findOnSwitchIndex());
+        return result && readSettings();
     }
 
     if (EnableSnoopLocationSP.isNameMatch(name))
@@ -624,9 +741,7 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         snoopLocationIndex = EnableSnoopLocationSP.findOnSwitchIndex();
         EnableSnoopLocationSP.apply();
         setSnoopLocation = (snoopLocationIndex == 0);
-        result = readSettings();
-
-        return result;
+        return readSettings();
     }
 
     if (EnableSnoopTemperatureSP.isNameMatch(name))
@@ -635,10 +750,24 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         EnableSnoopTemperatureSP.setState(IPS_BUSY);
         snoopTemperatureIndex = EnableSnoopTemperatureSP.findOnSwitchIndex();
         EnableSnoopTemperatureSP.apply();
-        setSnoopTemperature = (snoopTemperatureIndex == 0);
-        result = readSettings();
+        setSnoopTemperature = (snoopTemperatureIndex == INDI_ENABLED);
+        return readSettings();
+    }
 
-        return result;
+    if (EnableSnoopWeatherSP.isNameMatch(name))
+    {
+        if (fwVOneDetected)
+        {
+            LOGF_WARN("CheapoDC firmware V%s does not support Snoop for a Weather Device. Please upgrade firmware to latest V2+.", FWversionTP[0].getText());
+            return false;
+        }
+        
+        EnableSnoopWeatherSP.update(states, names, n);
+        EnableSnoopWeatherSP.setState(IPS_BUSY);
+        snoopWeatherIndex = EnableSnoopWeatherSP.findOnSwitchIndex();
+        EnableSnoopWeatherSP.apply();
+        setSnoopWeather = (snoopWeatherIndex == INDI_ENABLED);
+        return readSettings();
     }
 
     if (RefreshSP.isNameMatch(name))
@@ -649,7 +778,7 @@ bool CheapoDC::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         RefreshSP.setState(IPS_BUSY);
         RefreshSP.apply();
         result = sendSetCommand(CDC_CMD_QN, buf);
-        return readSettings();
+        return result && readSettings();
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -754,6 +883,17 @@ bool CheapoDC::setWeatherQueryEvery(int value)
     }
 }
 
+bool CheapoDC::setWeatherQueryEnabled(bool enabled)
+{
+    char disabledBuf[2] = "0";
+    char enabledBuf[2] = "1";
+
+    if (enabled)
+        return sendSetCommand(CDC_CMD_WQEN, enabledBuf);
+    else
+        return sendSetCommand(CDC_CMD_WQEN, disabledBuf);
+}
+
 bool CheapoDC::setLatitude(float value)
 {
     if ((value < -90.0) || (value > 90.0))
@@ -769,6 +909,8 @@ bool CheapoDC::setLatitude(float value)
 
 bool CheapoDC::setLongitude(float value)
 {
+    if (value > 180)
+        value = value - 360;
     if ((value < -180.0) || (value > 180.0))
         return false;
     else
@@ -780,12 +922,56 @@ bool CheapoDC::setLongitude(float value)
     }
 }
 
+bool CheapoDC::setLocation(float latitude, float longitude)
+{
+    bool result = true;
+    char buf[3] = {"NA"};
+    // CheapoDC longitude expected -180 to +180
+    if (longitude > 180)
+        longitude -= 360;
+
+    if (!fwVOneDetected)
+        result = result && setWeatherQueryEnabled( false);
+
+    result = result && setLatitude(latitude);
+    result = result && setLongitude(longitude);
+    
+    if (!fwVOneDetected)
+    {
+        result = result && setWeatherQueryEnabled(true);
+        result = result && sendSetCommand(CDC_CMD_QN, buf);
+    }
+    return result;
+}
+
 bool CheapoDC::setExternalTemperature(float value)
 {
     char valBuf[CDC_SET_VALUE_LENGTH] = {};
 
     sprintf(valBuf, CDC_FLOAT_VALUE, value);
     return sendSetCommand(CDC_CMD_ATPX, valBuf);
+}
+
+bool CheapoDC::setWeatherTemperature(float value)
+{
+    char valBuf[CDC_SET_VALUE_LENGTH] = {};
+    if (usingExternalWeatherSource)
+    {
+        sprintf(valBuf, CDC_FLOAT_VALUE, value);
+        return sendSetCommand(CDC_CMD_ATPQ, valBuf);
+    }
+    return false;
+}
+
+bool CheapoDC::setWeatherHumidity(float value)
+{
+    char valBuf[CDC_SET_VALUE_LENGTH] = {};
+    if (usingExternalWeatherSource)
+    {
+        sprintf(valBuf, CDC_FLOAT_VALUE, value);
+        return sendSetCommand(CDC_CMD_HU, valBuf);
+    }
+    return false;
 }
 
 bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -801,8 +987,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         TrackPointOffsetNP.setState(IPS_BUSY);
         TrackPointOffsetNP.apply();
         result = setTrackPointOffset(TrackPointOffsetNP[0].getValue());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (TrackingRangeNP.isNameMatch(name))
@@ -811,8 +996,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         TrackingRangeNP.setState(IPS_BUSY);
         TrackingRangeNP.apply();
         result = setTrackingRange(TrackingRangeNP[0].getValue());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (OutputPowerNP.isNameMatch(name))
@@ -836,8 +1020,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
                 LOGF_WARN("Output must be >= Minimum Output (%d) and <= MaximumOutput (%d).", minOutput, maxOutput);
                 result = false;
             }
-            readSettings();
-            return result;
+            return result && readSettings();
         }
         else
         {
@@ -855,8 +1038,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         result = setMinimumOutput(MinimumOutputNP[0].getValue());
         doMainControlRedraw = true;
         doOptionsRedraw = true;
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (MaximumOutputNP.isNameMatch(name))
@@ -867,8 +1049,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         result = setMaximumOutput(MaximumOutputNP[0].getValue());
         doMainControlRedraw = true;
         doOptionsRedraw = true;
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (SetPointTemperatureNP.isNameMatch(name))
@@ -877,28 +1058,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         SetPointTemperatureNP.setState(IPS_BUSY);
         SetPointTemperatureNP.apply();
         result = setSetPoint(SetPointTemperatureNP[0].getValue());
-        readSettings();
-        return result;
-    }
-
-    if (LatitudeNP.isNameMatch(name))
-    {
-        LatitudeNP.update(values, names, n);
-        LatitudeNP.setState(IPS_BUSY);
-        LatitudeNP.apply();
-        result = setLatitude(LatitudeNP[0].getValue());
-        readSettings();
-        return result;
-    }
-
-    if (LongitudeNP.isNameMatch(name))
-    {
-        LongitudeNP.update(values, names, n);
-        LongitudeNP.setState(IPS_BUSY);
-        LongitudeNP.apply();
-        result = setLongitude(LongitudeNP[0].getValue());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (UpdateOutputEveryNP.isNameMatch(name))
@@ -907,8 +1067,7 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         UpdateOutputEveryNP.setState(IPS_BUSY);
         UpdateOutputEveryNP.apply();
         result = setUpdateOutputEvery(UpdateOutputEveryNP[0].getValue());
-        readSettings();
-        return result;
+        return result && readSettings();
     }
 
     if (QueryWeatherEveryNP.isNameMatch(name))
@@ -917,8 +1076,16 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         QueryWeatherEveryNP.setState(IPS_BUSY);
         QueryWeatherEveryNP.apply();
         result = setWeatherQueryEvery(QueryWeatherEveryNP[0].getValue());
-        readSettings();
-        return result;
+        return result && readSettings();
+    }
+
+    if (LocationNP.isNameMatch(name))
+    {
+        LocationNP.update(values, names, n);
+        LocationNP.setState(IPS_BUSY);
+        LocationNP.apply();
+        result = setLocation(LocationNP[LOCATION_LATITUDE].getValue(), LocationNP[LOCATION_LONGITUDE].getValue());
+        return result && readSettings();
     }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -948,7 +1115,7 @@ bool CheapoDC::setSnoopLocationDevice(const char *device, const char *property, 
     if (newSnoop)
     {
         IDSnoopDevice(locationDevice, locationProperty);
-        LOGF_INFO("Update location device, %s : %s", locationDevice, locationProperty);
+        //LOGF_INFO("Update location device, %s : %s", locationDevice, locationProperty);
     }
 
     return true;
@@ -975,7 +1142,37 @@ bool CheapoDC::setSnoopTemperatureDevice(const char *device, const char *propert
     if (newSnoop)
     {
         IDSnoopDevice(temperatureDevice, temperatureProperty);
-        LOGF_INFO("Update temperature device, %s : %s", temperatureDevice, temperatureProperty);
+        //LOGF_INFO("Update temperature device, %s : %s", temperatureDevice, temperatureProperty);
+    }
+
+    return true;
+}
+
+bool CheapoDC::setSnoopWeatherDevice(const char *device, const char *property, const char *temperatureAttribute, const char *humidityAttribute)
+{
+    bool newSnoop = false;
+    if (strcmp(device, weatherDevice) != 0)
+    {
+        indi_strlcpy(weatherDevice, device, sizeof(weatherDevice));
+        newSnoop = true;
+    }
+
+    if (strcmp(property, weatherProperty) != 0)
+    {
+        indi_strlcpy(weatherProperty, property, sizeof(weatherProperty));
+        newSnoop = true;
+    }
+
+    if (strcmp(temperatureAttribute, weatherTempAttribute) != 0)
+        indi_strlcpy(weatherTempAttribute, temperatureAttribute, sizeof(weatherTempAttribute));
+
+    if (strcmp(humidityAttribute, weatherHumidityAttribute) != 0)
+        indi_strlcpy(weatherHumidityAttribute, humidityAttribute, sizeof(weatherHumidityAttribute));
+
+    if (newSnoop)
+    {
+        IDSnoopDevice(weatherDevice, weatherProperty);
+        //LOGF_INFO("Update weather device, %s : %s", weatherDevice, weatherProperty);
     }
 
     return true;
@@ -1038,6 +1235,18 @@ bool CheapoDC::ISNewText(const char *dev, const char *name, char *texts[], char 
         return result;
     }
 
+    if (SnoopWeatherDeviceTP.isNameMatch(name))
+    {
+        SnoopWeatherDeviceTP.update(texts, names, n);
+        SnoopWeatherDeviceTP.setState(IPS_OK);
+        SnoopWeatherDeviceTP.apply();
+        result = setSnoopWeatherDevice(SnoopWeatherDeviceTP[0].getText(),
+                                        SnoopWeatherDeviceTP[1].getText(),
+                                        SnoopWeatherDeviceTP[2].getText(),
+                                        SnoopWeatherDeviceTP[3].getText());
+        return result;
+    }
+
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
@@ -1052,8 +1261,8 @@ bool CheapoDC::ISSnoopDevice(XMLEle *root)
     {
         return true;
     }
-
-    if ((!strcmp(propName, temperatureProperty)) && (!strcmp(deviceName, temperatureDevice)) && (!snoopTemperatureIndex))
+    
+    if ((!strcmp(propName, temperatureProperty)) && (!strcmp(deviceName, temperatureDevice)) && (snoopTemperatureIndex == INDI_ENABLED))
     {
         bool tempAtributeFound = false;
 
@@ -1063,9 +1272,11 @@ bool CheapoDC::ISSnoopDevice(XMLEle *root)
 
             if (!strcmp(name, temperatureAttribute))
             {
-                float FocuserTemp = atof(pcdataXMLEle(ep));
+                float externalTemp = atof(pcdataXMLEle(ep));
 
-                result = setExternalTemperature(FocuserTemp);
+                if (externalTemp != XtrnTemperatureNP[EXTERNAL_INPUT].getValue())
+                    result = setExternalTemperature(externalTemp) || result;
+                // LOGF_INFO("External Temp set to: %.2f", externalTemp);
                 tempAtributeFound = true;
             }
         }
@@ -1074,10 +1285,13 @@ bool CheapoDC::ISSnoopDevice(XMLEle *root)
             LOGF_WARN("TEMPERATURE attribute, %s, not found for %s:%s", temperatureAttribute, temperatureDevice, temperatureProperty);
     }
 
-    if ((!strcmp(propName, locationProperty)) && (!strcmp(deviceName, locationDevice)) && (!snoopLocationIndex))
+    if ((!strcmp(propName, locationProperty)) && (!strcmp(deviceName, locationDevice)) && (snoopLocationIndex == INDI_ENABLED))
     {
         bool latAtributeFound = false;
         bool longAtributeFound = false;
+        bool updateLocation = false;
+        float latitude = LocationNP[LOCATION_LATITUDE].getValue();
+        float longitude = LocationNP[LOCATION_LONGITUDE].getValue();
 
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -1085,20 +1299,19 @@ bool CheapoDC::ISSnoopDevice(XMLEle *root)
 
             if (!strcmp(name, locationLongAttribute))
             {
-                float Longitude = atof(pcdataXMLEle(ep));
-                if (Longitude > 180)
-                    Longitude -= 360;
-
-                result = setLongitude(Longitude);
+                longitude = atof(pcdataXMLEle(ep));
+                updateLocation = (longitude != LocationNP[LOCATION_LONGITUDE].getValue()) || updateLocation;
                 longAtributeFound = true;
-            }
-            else if (!strcmp(name, locationLatAttribute))
+            } else if (!strcmp(name, locationLatAttribute))
             {
-                float Latitude = atof(pcdataXMLEle(ep));
-
-                result = setLatitude(Latitude);
+                latitude = atof(pcdataXMLEle(ep));
                 latAtributeFound = true;
+                updateLocation = (latitude != LocationNP[LOCATION_LATITUDE].getValue()) || updateLocation;
             }
+        }
+        if (updateLocation)
+        {
+            result= setLocation(latitude, longitude) || result;
         }
         if (!longAtributeFound)
             LOGF_WARN("LONG attribute, %s, not found for %s:%s", locationLongAttribute, locationDevice, locationProperty);
@@ -1106,6 +1319,40 @@ bool CheapoDC::ISSnoopDevice(XMLEle *root)
             LOGF_WARN("LAT attribute, %s, not found for %s:%s", locationLatAttribute, locationDevice, locationProperty);
     }
 
+    if (usingExternalWeatherSource && (!strcmp(propName, weatherProperty)) && (!strcmp(deviceName, weatherDevice)) && (snoopWeatherIndex == INDI_ENABLED))
+    {
+        bool temperatureAttributeFound = false;
+        bool humidityAttributeFound = false;
+
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char *name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, weatherTempAttribute))
+            {
+                float temperature = atof(pcdataXMLEle(ep));
+
+                if (temperature != XtrnTemperatureNP[WEATHER_QUERY].getValue())
+                    result = setWeatherTemperature(temperature) || result;
+                temperatureAttributeFound = true;
+            }
+            else if (!strcmp(name, weatherHumidityAttribute))
+            {
+                float humidity = atof(pcdataXMLEle(ep));
+
+                if (humidity != HumidityNP[0].getValue())
+                    result = setWeatherHumidity(humidity) || result;
+                humidityAttributeFound = true;
+            }
+        }
+        if (!temperatureAttributeFound)
+            LOGF_WARN("TEMPERATURE attribute, %s, not found for %s:%s", weatherTempAttribute, weatherDevice, weatherProperty);
+        if (!humidityAttributeFound)
+            LOGF_WARN("HUMIDITY attribute, %s, not found for %s:%s", weatherHumidityAttribute, weatherDevice, weatherProperty);
+    }
+
+    if (result)
+        result = readSettings() || result;
     return result;
 }
 
@@ -1124,27 +1371,19 @@ bool CheapoDC::readSettings()
     EnableSnoopLocationSP[snoopLocationIndex].setState(ISS_ON);
     EnableSnoopLocationSP.setState(IPS_OK);
     EnableSnoopLocationSP.apply();
-    if (prevSnoopLocationIndex != snoopLocationIndex)
-    {
-        if (snoopLocationIndex == 1)
-        {
-            LongitudeNP.setPermission(IP_RW);
-            LatitudeNP.setPermission(IP_RW);
-        }
-        else
-        {
-            LongitudeNP.setPermission(IP_RO);
-            LatitudeNP.setPermission(IP_RO);
-        }
-        prevSnoopLocationIndex = snoopLocationIndex;
-        doOptionsRedraw = true;
-    }
 
     EnableSnoopTemperatureSP.reset();
     EnableSnoopTemperatureSP[snoopTemperatureIndex].setState(ISS_ON);
     EnableSnoopTemperatureSP.setState(IPS_OK);
     EnableSnoopTemperatureSP.apply();
-
+    
+    EnableSnoopWeatherSP.reset();
+    if (fwVOneDetected)  // Overide setting
+        snoopWeatherIndex = INDI_DISABLED;
+    EnableSnoopWeatherSP[snoopWeatherIndex].setState(ISS_ON);
+    EnableSnoopWeatherSP.setState(IPS_OK);
+    EnableSnoopWeatherSP.apply();
+    
     // Get Temperatures first
     if (!sendGetCommand(CDC_CMD_ATPQ, resp))
         return false;
@@ -1357,7 +1596,7 @@ bool CheapoDC::readSettings()
     else
         LOGF_ERROR("Get Query Weather Every: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_WQE);
 
-    // Get Latitude
+    // Get Location - Latitude
     memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_LAT, resp))
@@ -1367,14 +1606,14 @@ bool CheapoDC::readSettings()
 
     if ((ok == 1) && (latitude >= -90.0) && (latitude <= 90.0))
     {
-        LatitudeNP[0].setValue(latitude);
-        LatitudeNP.setState(IPS_OK);
-        LatitudeNP.apply();
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
     }
     else
         LOGF_ERROR("Get Latitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LAT);
 
-    // Get Longitude
+    // Get Location - Longitude
     memset(resp, '\0', sizeof(resp));
 
     if (!sendGetCommand(CDC_CMD_LON, resp))
@@ -1384,9 +1623,11 @@ bool CheapoDC::readSettings()
 
     if ((ok == 1) && (longitude >= -180.0) && (longitude <= 180.0))
     {
-        LongitudeNP[0].setValue(longitude);
-        LongitudeNP.setState(IPS_OK);
-        LongitudeNP.apply();
+        if (longitude < 0)
+            longitude = longitude + 360;
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
     }
     else
         LOGF_ERROR("Get Longitude: Response <%s> for Command <%s> invalid.", resp, CDC_CMD_LON);
@@ -1408,6 +1649,11 @@ bool CheapoDC::readSettings()
     }
     else
         LOGF_ERROR("Get Set Point Mode: Response <%s> for Command <%s> not valid.", resp, CDC_CMD_SPM);
+
+    // Get weather source
+    previouslyUsingOpenWeather = usingOpenWeather;
+    getWeatherSource();
+    doOptionsRedraw = (previouslyUsingOpenWeather != usingOpenWeather);
 
     // Get API Key if using OpenWeather
     if (usingOpenWeather)
@@ -1431,6 +1677,7 @@ bool CheapoDC::readSettings()
         LocationNameTP.setState(IPS_OK);
         LocationNameTP.apply();
     }
+
     // Get Last Weather Update date time
     memset(resp, '\0', sizeof(resp));
 
@@ -1473,6 +1720,22 @@ bool CheapoDC::readSettings()
     {
         IDSnoopDevice(temperatureDevice, temperatureProperty);
         setSnoopTemperature = false;
+    }    
+
+    // Snoop Weather Device
+    SnoopWeatherDeviceTP[0].setText(weatherDevice);
+    SnoopWeatherDeviceTP[1].setText(weatherProperty);
+    SnoopWeatherDeviceTP[2].setText(weatherTempAttribute);
+    SnoopWeatherDeviceTP[3].setText(weatherHumidityAttribute);
+    SnoopWeatherDeviceTP.setState(IPS_OK);
+    SnoopWeatherDeviceTP.apply();
+
+    // Update for Snoop weather device when driver loads
+    if (setSnoopWeather)
+    {
+        if (!fwVOneDetected) 
+            IDSnoopDevice(weatherDevice, weatherProperty);
+        setSnoopWeather = false;
     }
 
     // Get Controller Mode
@@ -1535,6 +1798,42 @@ bool CheapoDC::readSettings()
     RefreshSP.setState(IPS_OK);
     RefreshSP.apply();
 
+    // Check for Snoop and settings alignment
+    // For Temperature Device
+    if ((previousTemperatureMode != temperatureMode) && 
+        (temperatureMode == EXTERNAL_INPUT) &&
+        (snoopTemperatureIndex == INDI_DISABLED))
+    {
+        LOG_INFO("Temperature Mode set to External Input. Enable Temp Snoop to send temperatures from the Temperature Device.");
+    }
+    previousTemperatureMode = temperatureMode;
+
+    if ((previousSnoopTemperatureIndex != snoopTemperatureIndex) && 
+        (snoopTemperatureIndex == INDI_ENABLED) &&
+        (temperatureMode != EXTERNAL_INPUT))
+    {
+        LOG_INFO("Temp Snoop Enabled. Set Temperature Mode to External Input to send temperatures from the Temperature Device.");
+    }
+    previousSnoopTemperatureIndex = snoopTemperatureIndex;
+
+    // For Weather Device
+    if (!fwVOneDetected)
+    {
+        if ((usingExternalWeatherSource) && (!previuoslyUsingExternalWeatherSource) && (snoopWeatherIndex == INDI_DISABLED))
+        {
+            LOG_INFO("Weather Source set to External Source. Enable Weather Snoop to send temperature/humidity from the Weather Device.");
+        }
+        previuoslyUsingExternalWeatherSource = usingExternalWeatherSource;
+
+        if ((previousSnoopWeatherIndex != snoopWeatherIndex) && 
+            (snoopWeatherIndex == INDI_ENABLED) &&
+            (WeatherSourceSP[EXTERNALSOURCE].getState() == ISS_OFF))
+        {
+            LOG_INFO("Weather Snoop Enabled. Set Weather Source to External Source to send temperature/humidity from the Weather Device.");
+        }
+        previousSnoopWeatherIndex = snoopWeatherIndex;
+    }
+
     // Check to see if any properties need to be redrawn
     if (doMainControlRedraw)
         redrawMainControl();
@@ -1550,8 +1849,10 @@ bool CheapoDC::saveConfigItems(FILE *fp)
 
     EnableSnoopLocationSP.save(fp);
     EnableSnoopTemperatureSP.save(fp);
+    EnableSnoopWeatherSP.save(fp);
     SnoopLocationDeviceTP.save(fp);
     SnoopTemperatureDeviceTP.save(fp);
+    SnoopWeatherDeviceTP.save(fp);
 
     return INDI::DefaultDevice::saveConfigItems(fp);
 }

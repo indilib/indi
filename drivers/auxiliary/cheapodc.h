@@ -28,8 +28,19 @@
 #include <time.h>  // for nsleep()
 #include <errno.h> // for nsleep()
 
-#define CDRIVER_VERSION_MAJOR 1
-#define CDRIVER_VERSION_MINOR 0
+/* 
+    Version Change Information
+    V1.0
+        - Initial release supports CheapoDC firmware 1.X features
+    V1.1
+        - release to add support for CheapoDC firmware 2.x features
+        - bug fix for Longitude range checking
+        - adds support for Weather Device snoop for local temperature/humidity instead of using CheapoDC weather query
+        - move Latitude/Longitude settings to more common Site Management Tab with Location settings
+        - Location Snoop enabled by default for Telescope Simulator 
+*/
+#define CHEAPODC_VERSION_MAJOR 1
+#define CHEAPODC_VERSION_MINOR 1
 
 // CheapoDC Commands used
 #define CDC_CMD_ATPQ "ATPQ" // ambient temperature - float %3.2f
@@ -59,6 +70,7 @@
 #define CDC_CMD_WUL "WUL"   // Get Weather Query Station name
 #define CDC_CMD_LWUD "LWUD" // date of last weather update (in Weather Staion time zone)
 #define CDC_CMD_LWUT "LWUT" // time of last weather update (in Weather Staion time zone)
+#define CDC_CMD_WQEN "WQEN" // Weather Query Enabled (false=0, true=1)
 
 #define CDC_GET_COMMAND "{\"GET\":\"%s\"}"
 #define CDC_SET_COMMAND "{\"SET\":{\"%s\":\"%s\"}}"
@@ -104,31 +116,48 @@ public:
 private:
     enum controllerMode
     {
-        AUTOMATIC,
+        AUTOMATIC = 0,
         MANUAL,
         OFF,
     };
 
     enum temperatureMode
     {
-        WEATHER_QUERY,
+        WEATHER_QUERY = 0,
         EXTERNAL_INPUT
     };
 
     enum setPointMode
     {
-        DEWPOINT,
+        DEWPOINT = 0,
         TEMPERATURE,
         MIDPOINT
     };
 
+    enum weatherSource
+    {
+        OPENMETEO = 0,
+        OPENWEATHER,
+        EXTERNALSOURCE
+    };
+
+    enum CheapoDCLocation
+        {
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE
+        };
+
+    bool fwVOneDetected = false;
     int timerIndex;
     unsigned int previousControllerMode = MANUAL;
     unsigned int prevMinOutput = 0;
     unsigned int prevMaxOutput = 100;
-    int snoopLocationIndex = 1; // Default is Disabled
-    int snoopTemperatureIndex = 1; // Default is Disabled
-    int prevSnoopLocationIndex = snoopLocationIndex;
+    int snoopLocationIndex = INDI_ENABLED; // Default is Enabled
+    int snoopTemperatureIndex = INDI_DISABLED; // Default is Disabled
+    int previousSnoopTemperatureIndex = snoopTemperatureIndex; 
+    unsigned int previousTemperatureMode = WEATHER_QUERY;
+    int snoopWeatherIndex = INDI_DISABLED; // Default is Disabled
+    int previousSnoopWeatherIndex = snoopWeatherIndex;
     char locationDevice[MAXINDIDEVICE] = {"Telescope Simulator"};
     char locationProperty[MAXINDINAME] = {"GEOGRAPHIC_COORD"};
     char locationLatAttribute[MAXINDINAME] = {"LAT"};
@@ -136,9 +165,17 @@ private:
     char temperatureDevice[MAXINDIDEVICE] = {"Focuser Simulator"};
     char temperatureProperty[MAXINDINAME] = {"FOCUS_TEMPERATURE"};
     char temperatureAttribute[MAXINDINAME] = {"TEMPERATURE"};
-    bool setSnoopLocation = false;
+    char weatherDevice[MAXINDIDEVICE] = {"Weather Simulator"};
+    char weatherProperty[MAXINDINAME] = {"WEATHER_PARAMETERS"};
+    char weatherTempAttribute[MAXINDINAME] = {"WEATHER_TEMPERATURE"};
+    char weatherHumidityAttribute[MAXINDINAME] = {"WEATHER_HUMIDITY"};
+    bool setSnoopLocation = true; //defualt is enabled
     bool setSnoopTemperature = false;
-    bool usingOpenWeather = true;
+    bool setSnoopWeather = false;
+    bool usingOpenWeather = false;
+    bool previouslyUsingOpenWeather = usingOpenWeather;
+    bool usingExternalWeatherSource = false;
+    bool previuoslyUsingExternalWeatherSource = usingExternalWeatherSource;
     bool doMainControlRedraw = false;
     bool doOptionsRedraw = false;
 
@@ -152,6 +189,7 @@ private:
     void redrawMainControl();
     void redrawOptions();
     void getWeatherSource();
+    bool setWeatherSource(int value);
     bool setControllerMode(int value);
     bool setTemperatureMode(int value);
     bool setSetPointMode(int value);
@@ -164,12 +202,18 @@ private:
     bool setUpdateOutputEvery(int value);
     bool setWeatherQueryEvery(int value);
     bool setWeatherQueryAPIKey(const char *key);
+    bool setWeatherQueryEnabled(bool enabled);
     bool setLatitude(float value);
     bool setLongitude(float value);
+    bool setLocation(float latitude, float longitude);
     bool setLocationName(const char *name);
     bool setExternalTemperature(float value);
+    bool setWeatherTemperature(float value);
+    bool setWeatherHumidity(float value);
     bool setSnoopLocationDevice(const char *device, const char *property, const char *latAttribute, const char *lonAttribute);
     bool setSnoopTemperatureDevice(const char *device, const char *property, const char *attribute);
+    bool setSnoopWeatherDevice(const char *device, const char *property, const char *temperatureAttribute, const char *humidityAttribute);
+    
 
     // Connection::Serial *serialConnection { nullptr };
     Connection::TCP *tcpConnection{nullptr};
@@ -196,15 +240,19 @@ private:
     INDI::PropertyNumber TrackingRangeNP{1};
     INDI::PropertyNumber UpdateOutputEveryNP{1};
     INDI::PropertyNumber QueryWeatherEveryNP{1};
+    INDI::PropertySwitch WeatherSourceSP{3};
     INDI::PropertyText WeatherQueryAPIKeyTP{1};
     INDI::PropertyText LocationNameTP{1};
     INDI::PropertyText WeatherUpdatedTP{1};
-    INDI::PropertyNumber LongitudeNP{1};
-    INDI::PropertyNumber LatitudeNP{1};
+    //INDI::PropertyNumber LongitudeNP{1};
+    //INDI::PropertyNumber LatitudeNP{1};
+    INDI::PropertyNumber LocationNP{2};
     INDI::PropertyText FWversionTP{1};
     INDI::PropertySwitch EnableSnoopLocationSP{2};
     INDI::PropertySwitch EnableSnoopTemperatureSP{2};
+    INDI::PropertySwitch EnableSnoopWeatherSP{2};
     INDI::PropertyText SnoopLocationDeviceTP{4};
     INDI::PropertyText SnoopTemperatureDeviceTP{3};
+    INDI::PropertyText SnoopWeatherDeviceTP{4};
     INDI::PropertySwitch RefreshSP{1};
 };
