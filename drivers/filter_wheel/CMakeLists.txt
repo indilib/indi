@@ -78,3 +78,11 @@ add_executable(indi_pegasusindigo_wheel ${pegasus_indigo_SRC})
 
 target_link_libraries(indi_pegasusindigo_wheel indidriver)
 install(TARGETS indi_pegasusindigo_wheel RUNTIME DESTINATION bin)
+
+# ############### iOptron Filter Wheel ################
+SET(ioptron_wheel_SRC
+    ioptron_wheel.cpp)
+
+add_executable(indi_ioptron_wheel ${ioptron_wheel_SRC})
+target_link_libraries(indi_ioptron_wheel indidriver)
+install(TARGETS indi_ioptron_wheel RUNTIME DESTINATION bin)

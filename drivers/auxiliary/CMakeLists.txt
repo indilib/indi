@@ -25,6 +25,14 @@ add_executable(indi_wanderercover_v4_ec ${indi_wanderercover_v4_ec_SRC})
 target_link_libraries(indi_wanderercover_v4_ec indidriver)
 install(TARGETS indi_wanderercover_v4_ec RUNTIME DESTINATION bin)
 
+# ########## Astrolink-4###############
+SET(indi_astrolink4_SRC
+    indi_astrolink4.cpp)
+
+add_executable(indi_astrolink4 ${indi_wanderercover_v4_ec_SRC})
+target_link_libraries(indi_astrolink4 indidriver)
+install(TARGETS indi_astrolink4 RUNTIME DESTINATION bin)
+
 # ########## Wanderer Box Plus V3 ###############
 SET(indi_wandererbox_plus_v3_SRC
     wandererbox_plus_v3.cpp)
