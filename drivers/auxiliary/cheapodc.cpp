@@ -138,51 +138,28 @@ bool CheapoDC::initProperties()
     EnableSnoopTemperatureSP[1].fill("DISABLE", "Disable", ISS_ON);
     EnableSnoopTemperatureSP.fill(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", "Snoop Temp", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
- 
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_DEVICE", temperatureDevice, MAXINDIDEVICE);
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_Property", temperatureProperty, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "TEMPERATURE_SNOOP", "TEMPERATURE_ATTRIBUTE", temperatureAttribute, MAXINDINAME);
-
    // TEMPERATURE_Property text case kept for backwards compatibility to previous version saved config files
     SnoopTemperatureDeviceTP[0].fill("TEMPERATURE_DEVICE", "Device", temperatureDevice);
     SnoopTemperatureDeviceTP[1].fill("TEMPERATURE_Property", "Property", temperatureProperty);
     SnoopTemperatureDeviceTP[2].fill("TEMPERATURE_ATTRIBUTE", "Attribute", temperatureAttribute);
     SnoopTemperatureDeviceTP.fill(getDeviceName(), "TEMPERATURE_SNOOP", "Temperature Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_TEMPERATURE", &snoopTemperatureIndex) == 0) 
-        setSnoopTemperature = (snoopTemperatureIndex == INDI_ENABLED);
-    
     // Weather snoop setting for a Weather device ie: Weather station
     EnableSnoopWeatherSP[0].fill("ENABLE", "Enable", ISS_OFF);
     EnableSnoopWeatherSP[1].fill("DISABLE", "Disable", ISS_ON);
     EnableSnoopWeatherSP.fill(getDeviceName(), "ENABLE_SNOOP_WEATHER", "Snoop Weather", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "WEATHER_DEVICE", weatherDevice, MAXINDIDEVICE);
-    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "WEATHER_PROPERTY", weatherProperty, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "TEMPERATURE_ATTRIBUTE", weatherTempAttribute, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "WEATHER_SNOOP", "HUMIDITY_ATTRIBUTE", weatherHumidityAttribute, MAXINDINAME);
-    
+ 
     SnoopWeatherDeviceTP[0].fill("WEATHER_DEVICE", "Device", weatherDevice);
     SnoopWeatherDeviceTP[1].fill("WEATHER_PROPERTY", "Property", weatherProperty);
     SnoopWeatherDeviceTP[2].fill("TEMPERATURE_ATTRIBUTE", "Temp Attribute", weatherTempAttribute);
     SnoopWeatherDeviceTP[3].fill("HUMIDITY_ATTRIBUTE", "Humidity Attribute", weatherHumidityAttribute);
     SnoopWeatherDeviceTP.fill(getDeviceName(), "WEATHER_SNOOP", "Weather Device", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_WEATHER", &snoopWeatherIndex) == 0) 
-        setSnoopWeather = (snoopWeatherIndex == INDI_ENABLED);
-
     /* Location coordinates */
     LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
     LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60, IPS_IDLE);
-    
-    // Snoop for Location settings to get geo coordinates
-    IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_DEVICE", locationDevice, MAXINDIDEVICE);
-    IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_PROPERTY", locationProperty, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_LAT_ATTRIBUTE", locationLatAttribute, MAXINDINAME);
-    IUGetConfigText(getDeviceName(), "LOCATION_SNOOP", "LOCATION_LON_ATTRIBUTE", locationLongAttribute, MAXINDINAME);
-    
+  
     EnableSnoopLocationSP[0].fill("ENABLE", "Enable", ISS_ON);
     EnableSnoopLocationSP[1].fill("DISABLE", "Disable", ISS_OFF);
     EnableSnoopLocationSP.fill(getDeviceName(), "ENABLE_SNOOP_LOCATION", "Snoop Location", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -192,10 +169,6 @@ bool CheapoDC::initProperties()
     SnoopLocationDeviceTP[2].fill("LOCATION_LAT_ATTRIBUTE", "LAT Attribute", locationLatAttribute);
     SnoopLocationDeviceTP[3].fill("LOCATION_LONG_ATTRIBUTE", "LONG Attribute", locationLongAttribute);
     SnoopLocationDeviceTP.fill(getDeviceName(), "LOCATION_SNOOP", "Location Device", SITE_TAB, IP_RW, 0, IPS_IDLE);
-
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), "ENABLE_SNOOP_LOCATION", &snoopLocationIndex) == 0)
-        setSnoopLocation = (snoopLocationIndex == INDI_ENABLED);
-
 
     // Refresh
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
@@ -230,6 +203,22 @@ bool CheapoDC::updateProperties()
 
     if (isConnected())
     {
+
+        //load Snoop info from Config
+        EnableSnoopTemperatureSP.load();
+        snoopTemperatureIndex = EnableSnoopTemperatureSP.findOnSwitchIndex();
+        setSnoopTemperature = snoopTemperatureIndex == INDI_ENABLED;
+        SnoopLocationDeviceTP.load();
+
+        EnableSnoopWeatherSP.load();
+        snoopWeatherIndex = EnableSnoopWeatherSP.findOnSwitchIndex();
+        setSnoopWeather = snoopWeatherIndex == INDI_ENABLED;
+        SnoopWeatherDeviceTP.load();
+
+        EnableSnoopLocationSP.load();
+        snoopLocationIndex = EnableSnoopLocationSP.findOnSwitchIndex();
+        setSnoopLocation = snoopLocationIndex == INDI_ENABLED;
+        SnoopLocationDeviceTP.load();
 
         // Main Control Tab
         defineProperty(ControllerModeSP);
@@ -276,9 +265,7 @@ bool CheapoDC::updateProperties()
         // Connection Tab
         defineProperty(FWversionTP);
 
-        loadConfig(true);
         readSettings();
-        //LOG_INFO("CheapoDC parameters updated, device ready for use.");
         if (fwVOneDetected)
         {
             LOG_WARN("Go to https://github.com/hcomet/CheapoDC/releases to download the latest firmware release");
@@ -575,14 +562,7 @@ bool CheapoDC::Ack()
     FWversionTP.setState(IPS_OK);
     FWversionTP.apply();
 
-    if (resp[0] == '1')
-    {
-        fwVOneDetected = true;
-    }
-    else
-    {
-        fwVOneDetected = false;
-    }
+    fwVOneDetected = resp[0] == '1';
 
 
     return true;
