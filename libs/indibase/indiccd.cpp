@@ -475,24 +475,11 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-
-    // Load from config
-    char telescope[MAXINDIDEVICE] = {"Telescope Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_TELESCOPE", telescope, MAXINDIDEVICE);
-    char rotator[MAXINDIDEVICE] = {"Rotator Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_ROTATOR", rotator, MAXINDIDEVICE);
-    char focuser[MAXINDIDEVICE] = {"Focuser Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FOCUSER", focuser, MAXINDIDEVICE);
-    char filter[MAXINDIDEVICE] = {"CCD Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FILTER", filter, MAXINDIDEVICE);
-    char skyquality[MAXINDIDEVICE] = {"SQM"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_SKYQUALITY", skyquality, MAXINDIDEVICE);
-
-    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", telescope);
-    ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", rotator);
-    ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", focuser);
-    ActiveDeviceTP[ACTIVE_FILTER].fill("ACTIVE_FILTER", "Filter", filter);
-    ActiveDeviceTP[ACTIVE_SKYQUALITY].fill("ACTIVE_SKYQUALITY", "Sky Quality", skyquality);
+    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
+    ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
+    ActiveDeviceTP[ACTIVE_FILTER].fill("ACTIVE_FILTER", "Filter", "CCD Simulator");
+    ActiveDeviceTP[ACTIVE_SKYQUALITY].fill("ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     ActiveDeviceTP.load();
 
