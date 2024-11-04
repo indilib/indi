@@ -61,19 +61,19 @@ bool Pyxis::initProperties()
     // Rotation Rate
     RotationRateNP[0].fill("RATE", "Rate", "%.f", 0, 99, 10, 8);
     RotationRateNP.fill(getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+                        IPS_IDLE);
 
     // Stepping
     SteppingSP[FULL_STEP].fill("FULL_STEP", "Full", ISS_OFF);
     SteppingSP[HALF_STEP].fill("HALF_STEP", "Half", ISS_OFF);
     SteppingSP.fill( getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+                     ISR_ATMOST1, 0, IPS_IDLE);
 
     // Power
     PowerSP[POWER_SLEEP].fill("POWER_SLEEP", "Sleep", ISS_OFF);
     PowerSP[POWER_WAKEUP].fill("POWER_WAKEUP", "Wake Up", ISS_OFF);
     PowerSP.fill(getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
+                 IPS_IDLE);
 
     // Firmware version
     FirmwareTP[0].fill("FIRMWARE_VERSION", "Version", "Unknown");
@@ -530,6 +530,9 @@ void Pyxis::TimerHit()
         return;
     }
 
+    // Record last state
+    auto currentState = GotoRotatorNP.s;
+
     if (HomeRotatorSP.s == IPS_BUSY)
     {
         if (isMotionComplete())
@@ -554,13 +557,18 @@ void Pyxis::TimerHit()
             SetTimer(POLL_100MS) ;
             return ;
         }
-        GotoRotatorNP.s = IPS_OK;
+        currentState = IPS_OK;
     }
 
-    uint16_t PA = 0;
-    if (getPA(PA) && (PA != static_cast<uint16_t>(GotoRotatorN[0].value)))
+    // Update PA
+    uint16_t PA = GotoRotatorN[0].value;
+    getPA(PA);
+
+    // If either PA or state changed, update the property.
+    if ( (PA != static_cast<uint16_t>(GotoRotatorN[0].value)) || currentState != GotoRotatorNP.s)
     {
         GotoRotatorN[0].value = PA;
+        GotoRotatorNP.s = currentState;
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
