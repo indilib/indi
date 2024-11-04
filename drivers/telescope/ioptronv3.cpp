@@ -769,6 +769,25 @@ bool IOptronV3::ReadScopeStatus()
     rc = driver->getCoords(&currentRA, &currentDEC, &pierState, &cwState);
     if (rc)
     {
+        // Add Extra Logging info
+        if (isDebug())
+        {
+            char RAStr[64] = {0}, DecStr[64] = {0}, AzStr[64] = {0}, AltStr[64] = {0};
+            fs_sexa(RAStr, currentRA, 2, 3600);
+            fs_sexa(DecStr, currentDEC, 2, 3600);
+            INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+            INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+            INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+            fs_sexa(AzStr, horizontalCoords.azimuth, 2, 3600);
+            fs_sexa(AltStr, horizontalCoords.altitude, 2, 3600);
+            std::string pierSide = "Uknkown";
+            if (pierState == IOP_PIER_EAST)
+                pierSide = "East";
+            else if (pierState == IOP_PIER_WEST)
+                pierSide = "West";
+            DEBUGF(DBG_SCOPE, "RA: %s DE: %s AZ: %s AL: %s PierSide: %s CWState %d", RAStr, DecStr, AzStr, AltStr, pierSide.c_str(), cwState);
+        }
+
         // 2021.11.30 JM: This is a hack to circumvent a bug in iOptorn firmware
         // the "system status" bit is set to SLEWING even when parking is done (2), it never
         // changes to (6) which indicates it has parked. So we use a counter to check if there
