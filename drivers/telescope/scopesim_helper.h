@@ -288,7 +288,7 @@ class Axis
             guideDuration = 0;
         }
 
-        bool isSlewing;
+        bool isSlewing = false;
 
         bool isTracking()
         {
@@ -328,7 +328,7 @@ class Axis
             return guideDuration > 0;
         }
 
-        int mcRate;             // int -4 to 4 sets move rate, zero is stopped
+        int mcRate = 0;             // int -4 to 4 sets move rate, zero is stopped
 
         void update();         // called about once a second to update the position and mode
 
@@ -346,13 +346,13 @@ class Axis
             0, 0
         };
 
-        bool tracking;      // this allows the tracking state and rate to be set independently
+        bool tracking = false;      // this allows the tracking state and rate to be set independently
 
         AXIS_TRACK_RATE trackingRate { AXIS_TRACK_RATE::OFF };
 
         Angle rotateCentre { 90.0 };
 
-        double guideDuration;
+        double guideDuration = 0;
         Angle guideRateDegSec;
 
         // rates are angles in degrees per second derived from the values in indicom.h
