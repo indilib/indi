@@ -191,8 +191,9 @@ void Axis::update()         // called about once a second to update the position
     }
 
     int rate = std::max(-4,std::min(4,mcRate));
-    if(rate != mcRate)
-        fprintf(stderr,"Invalid mcRate Detected = %d\n",mcRate);
+    if(rate != mcRate) {
+        LOGF_ERROR("Invalid mcRate Detected = %d",mcRate);
+    }
 
     // handle the motion control
     if (rate < 0)
