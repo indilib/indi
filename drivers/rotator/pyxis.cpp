@@ -48,9 +48,9 @@ std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
 Pyxis::Pyxis()
 {
+    setVersion(1, 1);
     // We do not have absolute ticks
     RI::SetCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
-
     setRotatorConnection(CONNECTION_SERIAL);
 }
 
@@ -537,6 +537,7 @@ void Pyxis::TimerHit()
     {
         if (isMotionComplete())
         {
+            currentState = IPS_OK;
             HomeRotatorSP.s = IPS_OK;
             HomeRotatorS[0].s = ISS_OFF;
             IDSetSwitch(&HomeRotatorSP, nullptr);
@@ -553,11 +554,13 @@ void Pyxis::TimerHit()
     {
         if (!isMotionComplete())
         {
-            LOGF_DEBUG("Motion in %s", "progress") ;
+            LOG_DEBUG("Motion in progress.") ;
             SetTimer(POLL_100MS) ;
-            return ;
+            return;
         }
+
         currentState = IPS_OK;
+        LOG_INFO("Motion complete.") ;
     }
 
     // Update PA
@@ -622,7 +625,6 @@ bool Pyxis::isMotionComplete()
     }
 
     LOGF_DEBUG("RES <%s>", res);
-
     return true;
 }
 
