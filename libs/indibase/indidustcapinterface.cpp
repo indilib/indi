@@ -27,7 +27,10 @@ namespace INDI
 {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-///
+/// Dust Cap status:
+/// Parked: PARK switch is ON and state is IPS_OK
+/// Unparked: UNPARK switch is ON and state is IPS_OK
+/// Unknown: PARK and UNPARK are either not toggled or state is IPS_ALERT
 /////////////////////////////////////////////////////////////////////////////////////////////
 DustCapInterface::DustCapInterface(DefaultDevice *defaultDevice) : m_DefaultDevice(defaultDevice)
 {
@@ -43,7 +46,7 @@ void DustCapInterface::initProperties(const char *group, uint32_t capabilities)
     // Open/Close cover
     ParkCapSP[CAP_PARK].fill("PARK", "Park", ISS_OFF);
     ParkCapSP[CAP_UNPARK].fill("UNPARK", "Unpark", ISS_OFF);
-    ParkCapSP.fill(m_DefaultDevice->getDeviceName(), "CAP_PARK", "Dust Cover", group, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ParkCapSP.fill(m_DefaultDevice->getDeviceName(), "CAP_PARK", "Dust Cover", group, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Abort motion
     AbortCapSP[0].fill("ABORT", "Abort", ISS_OFF);
@@ -94,8 +97,17 @@ bool DustCapInterface::processSwitch(const char *dev, const char *name, ISState 
     }
     else if (AbortCapSP.isNameMatch(name))
     {
-        AbortCapSP.setState(AbortCap());
+        auto state = AbortCap();
+        AbortCapSP.setState(state);
         AbortCapSP.apply();
+        // In case cap was in motion, and was aborted, we update its state to ABORT
+        // We reset all switches as well.
+        if (state == IPS_OK && ParkCapSP.getState() == IPS_BUSY)
+        {
+            ParkCapSP.reset();
+            ParkCapSP.setState(IPS_ALERT);
+            ParkCapSP.apply();
+        }
         return true;
     }
 
