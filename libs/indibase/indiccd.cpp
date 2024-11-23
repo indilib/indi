@@ -815,20 +815,26 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
     else if (!strcmp(propName, "FILTER_NAME") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
-        LOG_DEBUG("SNOOP: FILTER_NAME update...");
-        FilterNames.clear();
+        auto newFilterNames = std::vector<std::string>();
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            FilterNames.push_back(pcdataXMLEle(ep));
-        LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+            newFilterNames.push_back(pcdataXMLEle(ep));
+        if (newFilterNames != FilterNames)
+        {
+            FilterNames = newFilterNames;
+            LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+        }
 
     }
     else if (!strcmp(propName, "FILTER_SLOT") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
-        LOG_DEBUG("SNOOP: FILTER_SLOT update...");
-        CurrentFilterSlot = -1;
+        auto newFilterSlot = -1;
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            CurrentFilterSlot = atoi(pcdataXMLEle(ep));
+            newFilterSlot = atoi(pcdataXMLEle(ep));
+        if (newFilterSlot != CurrentFilterSlot)
+    {
+        CurrentFilterSlot = newFilterSlot;
         LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
+    }
     }
     else if (!strcmp(propName, "SKY_QUALITY") && deviceName == ActiveDeviceTP[ACTIVE_SKYQUALITY].getText())
     {
