@@ -27,25 +27,28 @@
 // We declare an auto pointer to domeSim.
 static std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
-#define DOME_SPEED    10.0 /* 10 degrees per second, constant */
-#define SHUTTER_TIMER 5.0  /* Shutter closes/open in 5 seconds */
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 DomeSim::DomeSim()
 {
     targetAz        = 0;
-    shutterTimer    = 0;
     prev_az         = 0;
     prev_alt        = 0;
 
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
 }
 
-/************************************************************************************
- *
-* ***********************************************************************************/
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::initProperties()
 {
     INDI::Dome::initProperties();
+
+    SpeedNP[Dome].fill("DOME", "Dome (deg/s)", "%.2f", 0.1, 10, 1, 5);
+    SpeedNP[Shutter].fill("SHUTTER", "Shutter (m/s)", "%.2f", 0.01, 1, 0.1, 0.1);
+    SpeedNP.fill(getDeviceName(), "SPEEDS", "Speeds", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -54,10 +57,12 @@ bool DomeSim::initProperties()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::SetupParms()
 {
     targetAz     = 0;
-    shutterTimer = SHUTTER_TIMER;
     DomeAbsPosNP[0].setValue(0);
     DomeAbsPosNP.apply();
 
@@ -76,40 +81,81 @@ bool DomeSim::SetupParms()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 const char *DomeSim::getDefaultName()
 {
     return "Dome Simulator";
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::updateProperties()
 {
     INDI::Dome::updateProperties();
 
     if (isConnected())
     {
+        defineProperty(SpeedNP);
         SetupParms();
+    }
+    else
+    {
+        deleteProperty(SpeedNP);
     }
 
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::Connect()
 {
-    SetTimer(1000); //  start the timer
+    SetTimer(1000);
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::Disconnect()
 {
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool DomeSim::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (SpeedNP.isNameMatch(name))
+        {
+            SpeedNP.update(values, names, n);
+            SpeedNP.setState(IPS_OK);
+            SpeedNP.apply();
+            saveConfig(SpeedNP);
+            return true;
+        }
+    }
+
+    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void DomeSim::TimerHit()
 {
-    int nexttimer = 1000;
-
     if (!isConnected())
         return;
+
+    auto domeSpeed = SpeedNP[Dome].getValue();
+    auto shutterSpeed = SpeedNP[Shutter].getValue();
 
     if (DomeAbsPosNP.getState() == IPS_BUSY)
     {
@@ -117,12 +163,11 @@ void DomeSim::TimerHit()
         double a = targetAz;
         double b = DomeAbsPosNP[0].getValue();
         int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
-        double diff = DOME_SPEED * sign;
+        double diff = domeSpeed * sign;
         b += diff;
         DomeAbsPosNP[0].setValue(range360(b));
 
-
-        if (fabs(targetAz - DomeAbsPosNP[0].getValue()) <= DOME_SPEED)
+        if (std::abs(targetAz - DomeAbsPosNP[0].getValue()) <= domeSpeed)
         {
             DomeAbsPosNP[0].setValue(targetAz);
             LOG_INFO("Dome reached requested azimuth angle.");
@@ -138,11 +183,14 @@ void DomeSim::TimerHit()
         DomeAbsPosNP.apply();
     }
 
+    // Dome shutter, we decrease by shutter speed in meters/second
     if (DomeShutterSP.getState() == IPS_BUSY)
     {
-        if (shutterTimer-- <= 0)
+        m_ShutterDistance -= shutterSpeed;
+
+        if (m_ShutterDistance <= 0)
         {
-            shutterTimer = 0;
+            m_ShutterDistance = 0;
             DomeShutterSP.setState(IPS_OK);
             LOGF_INFO("Shutter is %s.", (DomeShutterSP[0].getState() == ISS_ON ? "open" : "closed"));
             DomeShutterSP.apply();
@@ -151,9 +199,13 @@ void DomeSim::TimerHit()
                 SetParked(false);
         }
     }
-    SetTimer(nexttimer);
+
+    SetTimer(getPollingPeriod());
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
@@ -171,30 +223,39 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
     return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::MoveAbs(double az)
 {
     targetAz = az;
 
     // Requested position is within one cycle, let's declare it done
-    if (std::abs(az - DomeAbsPosNP[0].getValue()) < DOME_SPEED)
+    if (std::abs(az - DomeAbsPosNP[0].getValue()) < SpeedNP[Dome].getValue())
         return IPS_OK;
 
     // It will take a few cycles to reach final position
     return IPS_BUSY;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::MoveRel(double azDiff)
 {
     targetAz = range360(DomeAbsPosNP[0].getValue() + azDiff);
 
     // Requested position is within one cycle, let's declare it done
-    if (std::abs(targetAz - DomeAbsPosNP[0].value) < DOME_SPEED)
+    if (std::abs(targetAz - DomeAbsPosNP[0].value) < SpeedNP[Dome].getValue())
         return IPS_OK;
 
     // It will take a few cycles to reach final position
     return IPS_BUSY;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::Park()
 {
     targetAz = DomeParamNP[0].getValue();
@@ -204,18 +265,29 @@ IPState DomeSim::Park()
     return IPS_BUSY;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::UnPark()
 {
     return Dome::ControlShutter(SHUTTER_OPEN);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState DomeSim::ControlShutter(ShutterOperation operation)
 {
     INDI_UNUSED(operation);
-    shutterTimer = SHUTTER_TIMER;
+    // If shutter width = 1 meter, then we only need to open half of that since we presume
+    // two sides are moving at the same speed closing or opening.
+    m_ShutterDistance = DomeMeasurementsNP[DM_SHUTTER_WIDTH].getValue() / 2;
     return IPS_BUSY;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::Abort()
 {
     // If we abort while in the middle of opening/closing shutter, alert.
@@ -230,15 +302,31 @@ bool DomeSim::Abort()
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosNP[0].getValue());
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool DomeSim::SetDefaultPark()
 {
     // By default set position to 90
     SetAxis1Park(90);
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool DomeSim::saveConfigItems(FILE * fp)
+{
+    Dome::saveConfigItems(fp);
+    SpeedNP.save(fp);
     return true;
 }
