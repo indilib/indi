@@ -475,24 +475,11 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-
-    // Load from config
-    char telescope[MAXINDIDEVICE] = {"Telescope Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_TELESCOPE", telescope, MAXINDIDEVICE);
-    char rotator[MAXINDIDEVICE] = {"Rotator Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_ROTATOR", rotator, MAXINDIDEVICE);
-    char focuser[MAXINDIDEVICE] = {"Focuser Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FOCUSER", focuser, MAXINDIDEVICE);
-    char filter[MAXINDIDEVICE] = {"CCD Simulator"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_FILTER", filter, MAXINDIDEVICE);
-    char skyquality[MAXINDIDEVICE] = {"SQM"};
-    IUGetConfigText(getDeviceName(), "ACTIVE_DEVICES", "ACTIVE_SKYQUALITY", skyquality, MAXINDIDEVICE);
-
-    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", telescope);
-    ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", rotator);
-    ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", focuser);
-    ActiveDeviceTP[ACTIVE_FILTER].fill("ACTIVE_FILTER", "Filter", filter);
-    ActiveDeviceTP[ACTIVE_SKYQUALITY].fill("ACTIVE_SKYQUALITY", "Sky Quality", skyquality);
+    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
+    ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
+    ActiveDeviceTP[ACTIVE_FILTER].fill("ACTIVE_FILTER", "Filter", "CCD Simulator");
+    ActiveDeviceTP[ACTIVE_SKYQUALITY].fill("ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     ActiveDeviceTP.load();
 
@@ -828,20 +815,26 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     }
     else if (!strcmp(propName, "FILTER_NAME") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
-        LOG_DEBUG("SNOOP: FILTER_NAME update...");
-        FilterNames.clear();
+        auto newFilterNames = std::vector<std::string>();
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            FilterNames.push_back(pcdataXMLEle(ep));
-        LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+            newFilterNames.push_back(pcdataXMLEle(ep));
+        if (newFilterNames != FilterNames)
+        {
+            FilterNames = newFilterNames;
+            LOGF_DEBUG("SNOOP: FILTER_NAME -> %s", join(FilterNames, ", ").c_str());
+        }
 
     }
     else if (!strcmp(propName, "FILTER_SLOT") && deviceName == ActiveDeviceTP[ACTIVE_FILTER].getText())
     {
-        LOG_DEBUG("SNOOP: FILTER_SLOT update...");
-        CurrentFilterSlot = -1;
+        auto newFilterSlot = -1;
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            CurrentFilterSlot = atoi(pcdataXMLEle(ep));
+            newFilterSlot = atoi(pcdataXMLEle(ep));
+        if (newFilterSlot != CurrentFilterSlot)
+    {
+        CurrentFilterSlot = newFilterSlot;
         LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
+    }
     }
     else if (!strcmp(propName, "SKY_QUALITY") && deviceName == ActiveDeviceTP[ACTIVE_SKYQUALITY].getText())
     {

@@ -190,16 +190,21 @@ void Axis::update()         // called about once a second to update the position
         //LOGF_DEBUG("move %s: change %f, position %f", b, change, position.Degrees());
     }
 
+    int rate = std::max(-4,std::min(4,mcRate));
+    if(rate != mcRate) {
+        LOGF_ERROR("Invalid mcRate Detected = %d",mcRate);
+    }
+
     // handle the motion control
-    if (mcRate < 0)
+    if (rate < 0)
     {
-        change = -mcRates[-mcRate].Degrees() * interval;
+        change = -mcRates[-rate].Degrees() * interval;
         //LOGF_DEBUG("mcRate %d, rate %f, change %f", mcRate, mcRates[-mcRate].Degrees(), change);
         position += change;
     }
-    else if (mcRate > 0)
+    else if (rate > 0)
     {
-        change = mcRates[mcRate].Degrees() * interval;
+        change = mcRates[rate].Degrees() * interval;
         //LOGF_DEBUG("mcRate %d, rate %f, change %f", mcRate, mcRates[mcRate].Degrees(), change);
         position += change;
     }
