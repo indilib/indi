@@ -512,7 +512,7 @@ bool MoonLiteDRO::isMoving()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[3] = '\0';
+    resp[2] = '\0';
 
     LOGF_DEBUG("RES <%s>", resp);
 
