@@ -83,9 +83,9 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 // The rate is communicated as "arcsecs per sidereal second" NOT per second so it should be 15.000
 // not 15.041067
 #define PMC8_RATE_SIDEREAL 15.000
-#define PMC8_RATE_LUNAR 14.685
-#define PMC8_RATE_SOLAR 15.000
-#define PMC8_RATE_KING 15.037
+#define PMC8_RATE_LUNAR 14.451
+#define PMC8_RATE_SOLAR 14.959
+#define PMC8_RATE_KING 14.996
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
 bool pmc8_debug                 = false;
