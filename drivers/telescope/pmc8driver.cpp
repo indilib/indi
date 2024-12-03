@@ -82,6 +82,7 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 // and confirmation: https://espmc-eight.groups.io/g/MAIN/topic/96696552?p=Created,,,20,2,0,0
 // The rate is communicated as "arcsecs per sidereal second" NOT per second so it should be 15.000
 // not 15.041067
+// The INDI Driver uses arcsecs per SOLAR second, so it needs to be converted.
 #define PMC8_RATE_SIDEREAL 15.000
 #define PMC8_RATE_LUNAR 14.451
 #define PMC8_RATE_SOLAR 14.959
