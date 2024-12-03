@@ -68,8 +68,8 @@ Description: Instrument-Neutral Device Interface library -- shared data
 Package: indi-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libindi-data (>= ${source:Version})
-conflicts: indi-astrolin4, indi-astromechfoc, indi-dreamfocuser, indi-spectracyber
-replaces: indi-astrolin4, indi-astromechfoc, indi-dreamfocuser, indi-spectracyber
+conflicts: indi-astrolink4, indi-astromechfoc, indi-dreamfocuser, indi-spectracyber
+replaces: indi-astrolink4, indi-astromechfoc, indi-dreamfocuser, indi-spectracyber
 Description: INDI server, drivers and tools
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
@@ -87,6 +87,8 @@ Architecture: any
 Depends: libindi1 (= ${binary:Version}), ${misc:Depends}
 Suggests: indi-bin (= ${binary:Version})
 Pre-Depends: ${misc:Pre-Depends}
+conflicts: indi-astrolink4-dbg, indi-astromechfoc-dbg, indi-dreamfocuser-dbg, indi-spectracyber-dbg
+replaces: indi-astrolink4-dbg, indi-astromechfoc-dbg, indi-dreamfocuser-dbg, indi-spectracyber-dbg
 Description: Instrument-Neutral Device Interface library -- debug symbols
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
