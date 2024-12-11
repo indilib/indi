@@ -495,7 +495,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     mcRate = std::max(1,std::min(4,mcRate));
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
-    if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
+    if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopesim_helper.cpp: alignment
             rate = -rate;
     LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S", command == 0 ? "start" : "stop", rate);
 

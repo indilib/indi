@@ -230,7 +230,9 @@ Angle Alignment::lst()
 
 void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * apparentHa, Angle* apparentDec)
 {
-    Angle prio, seco; // "Angle" is right-hand-system
+    // Primary instrument axis: "Angle" is negative PA-system looking SCP
+    // Secondary instrument axis: "Angle" is negative PA-system looking E
+    Angle prio, seco;
     // get instrument place
     switch (mountType)
     {
@@ -240,11 +242,11 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
             prio = primary;
             break;
         case MOUNT_TYPE::EQ_GEM:
-            seco = (latitude >= 0) ? secondary : -secondary;  // northern : southern hemisphere
-            if (seco > 90 || seco < -90)  // pierside west/looking east (cf. apperentHaDecToMount())
+            seco = (latitude >= 0) ? secondary : -secondary; // northern : southern hemisphere
+            if (seco > 90 || seco < -90) // pierside west/looking east (cf. apperentHaDecToMount())
             {
-                prio = primary + Angle(180.0);  // Ha is right-hand-system
-                seco = Angle(180.0) - seco;     // Dec is left-hand-system
+                prio = primary + Angle(180.0);  // Ha is negative PA-system looking SCP
+                seco = Angle(180.0) - seco;     // Dec is positive PA-system looking E
             }
             else
             {
@@ -294,7 +296,9 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
                     secondary->Degrees() );
     }
-    Angle instrumentHa, instrumentDec; // "Angle" is right-hand-system
+    // Ha is negative PA-system looking SCP
+    // Dec is positive PA-system looking E
+    Angle instrumentHa, instrumentDec;
     // ignore diurnal aberrations and refractions to get observed ha, dec
     // apply telescope pointing to get instrument
     observedToInstrument(apparentHa, apparentDec, &instrumentHa, &instrumentDec);
@@ -310,8 +314,8 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         case MOUNT_TYPE::EQ_GEM:
             if (instrumentHa < flipHourAngle)  // pierside west (looking east)
             {
-                *primary = instrumentHa + Angle(180);    // Ha is right-hand-system
-                *secondary = Angle(180) - instrumentDec; // Dec is left-hand-system
+                *primary = instrumentHa + Angle(180);    // Primary instrument axis: "Angle" is negative PA-system looking SCP
+                *secondary = Angle(180) - instrumentDec; // Secondary instrument axis: "Angle" is negative PA-system looking E
             }
             else
             {
