@@ -2,7 +2,7 @@
 %define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
-Version: 2.0.7.git
+Version: 2.1.0.git
 Release: %(date -u +%%Y%%m%%d%%H%%M%%S)%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
