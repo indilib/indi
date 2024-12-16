@@ -697,6 +697,7 @@ void AllunaTCS2::TimerHit()
                     receiveDone();
                     ParkCapSP.setState(IPS_OK);
                     ParkCapSP.apply();
+                    getDustCover();
                     break;
                 default: // unexpected output
                     LOGF_INFO("TimerHit: unexpected response (%s)", res);
@@ -844,19 +845,24 @@ bool AllunaTCS2::getDustCover()
     ParkCapSP[CAP_UNPARK].setState((value == 1) ? ISS_ON : ISS_OFF);
     ParkCapSP[CAP_PARK  ].setState((value != 1) ? ISS_ON : ISS_OFF);
     ParkCapSP.setState(IPS_OK);
+    ParkCapSP.apply();
 
     return true;
 }
 
 IPState AllunaTCS2::ParkCap()
 {
-    if (ParkCapSP[CAP_PARK].getState() == ISS_OFF)
+    if (ParkCapSP[CAP_PARK].getState() == ISS_ON)
     {
-        if (setDustCover()) // toggle state of dust cover
+        LOG_INFO("Toggle");
+        if (setDustCover()) { // toggle state of dust cover
+            isCoverMoving = true;
             return IPS_BUSY;
+        }
         else
             return IPS_ALERT;
     }
+    getDustCover();
 
     // Cover already parked, nothing to do
     return IPS_OK;
@@ -864,13 +870,18 @@ IPState AllunaTCS2::ParkCap()
 
 IPState AllunaTCS2::UnParkCap()
 {
-    if (ParkCapSP[CAP_UNPARK].getState() == ISS_OFF)
+    LOGF_INFO("UnParkCap called, state is %d %d", ParkCapSP[CAP_PARK].getState(), ParkCapSP[CAP_UNPARK].getState());
+    if (ParkCapSP[CAP_UNPARK].getState() == ISS_ON)
     {
-        if (setDustCover()) // toggle state of dust cover
+        LOG_INFO("Toggle");
+        if (setDustCover()) { // toggle state of dust cover
+            isCoverMoving = true;
             return IPS_BUSY;
+        }
         else
             return IPS_ALERT;
     }
+    getDustCover();
 
     // Cover already unparked, nothing to do
     return IPS_OK;
