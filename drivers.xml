@@ -845,6 +845,10 @@
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
         </device>
+        <device label="IPX800" manufacturer="GCE">
+            <driver name="IPX800">indi_ipx800</driver>
+            <version>0.7</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
