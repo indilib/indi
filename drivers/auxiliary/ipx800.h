@@ -123,11 +123,6 @@ class Ipx800 : public INDI::DefaultDevice, public INDI::InputInterface, public I
     bool setupParams();
     float CalcTimeLeft(timeval);
 
-    ISState fullOpenLimitSwitch { ISS_ON };
-    ISState fullClosedLimitSwitch { ISS_OFF };
-    double MotionRequest { 0 };
-    struct timeval MotionStart { 0, 0 };
-
     ISwitch RelaisInfoS[11] {};
     ISwitch Relais1InfoS[11], Relais2InfoS[11],Relais3InfoS[11],Relais4InfoS[11],Relais5InfoS[11],Relais6InfoS[11],Relais7InfoS[11],Relais8InfoS[11] {};
     ISwitchVectorProperty RelaisInfoSP[8] {};
