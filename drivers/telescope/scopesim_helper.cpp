@@ -86,7 +86,7 @@ void Axis::StartSlew(Angle angle)
 void Axis::Tracking(bool enabled)
 {
     tracking = enabled;
-    LOGF_EXTRA1("%s Teacking enabled %s", axisName, enabled ? "true" : "false");
+    LOGF_EXTRA1("%s Tracking enabled %s", axisName, enabled ? "true" : "false");
 }
 
 void Axis::TrackRate(AXIS_TRACK_RATE rate)
@@ -214,7 +214,7 @@ void Axis::update()         // called about once a second to update the position
     {
         change = guideRateDegSec.Degrees() * (guideDuration > interval ? interval : guideDuration);
         guideDuration -= interval;
-        //LOGF_DEBUG("guide rate %f, remaining duration %f, change %f", guideRateDegSec.Degrees(), guideDuration, change);
+        LOGF_DEBUG("guide rate %f, remaining duration %f, change %f", guideRateDegSec.Degrees(), guideDuration, change);
         position += change;
     }
 }
@@ -230,6 +230,8 @@ Angle Alignment::lst()
 
 void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * apparentHa, Angle* apparentDec)
 {
+    // Primary instrument axis: "Angle" is negative PA-system looking SCP
+    // Secondary instrument axis: "Angle" is negative PA-system looking E
     Angle prio, seco;
     // get instrument place
     switch (mountType)
@@ -240,13 +242,16 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
             prio = primary;
             break;
         case MOUNT_TYPE::EQ_GEM:
-            seco = (latitude >= 0) ? secondary : -secondary;
-            prio = primary;
-            if (seco > 90 || seco < -90)
+            seco = (latitude >= 0) ? secondary : -secondary; // northern : southern hemisphere
+            if (seco > 90 || seco < -90) // pierside west/looking east (cf. apperentHaDecToMount())
             {
-                // pointing state inverted
-                seco = Angle(180.0 - seco.Degrees());
-                prio += 180.0;
+                prio = primary + Angle(180.0);  // Ha is negative PA-system looking SCP
+                seco = Angle(180.0) - seco;     // Dec is positive PA-system looking E
+            }
+            else
+            {
+                prio = primary;
+                seco = secondary;
             }
             break;
     }
@@ -262,6 +267,9 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * app
         LOGF_EXTRA1("m2a Azm Alt %f, %f  Ha Dec %f, %f  rot %f", prio.Degrees(), seco.Degrees(), apparentHa->Degrees(),
                     apparentDec->Degrees(), rot.Degrees());
     }
+    else
+        LOGF_EXTRA1("mountToApparentHaDec: pri %f, sec %f to ha %f, dec %f", prio.Degrees(), seco.Degrees(), apparentHa->Degrees(),
+                    apparentDec->Degrees());
 }
 
 void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * apparentRa, Angle* apparentDec)
@@ -269,7 +277,7 @@ void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * app
     Angle ha;
     mountToApparentHaDec(primary, secondary, &ha, apparentDec);
     *apparentRa = lst() - ha;
-    LOGF_EXTRA1("mountToApparentRaDec %f, %f to ha %f, ra %f, %f", primary.Degrees(), secondary.Degrees(), ha.Degrees(),
+    LOGF_EXTRA1("mountToApparentRaDec: pri %f, sec %f to ha %f, ra %f, dec %f", primary.Degrees(), secondary.Degrees(), ha.Degrees(),
                 apparentRa->Degrees(), apparentDec->Degrees());
 }
 
@@ -288,9 +296,11 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         LOGF_EXTRA1("a2M haDec %f, %f Azm Alt %f, %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
                     secondary->Degrees() );
     }
+    // Ha is negative PA-system looking SCP
+    // Dec is positive PA-system looking E
+    Angle instrumentHa, instrumentDec;
     // ignore diurnal aberrations and refractions to get observed ha, dec
     // apply telescope pointing to get instrument
-    Angle instrumentHa, instrumentDec;
     observedToInstrument(apparentHa, apparentDec, &instrumentHa, &instrumentDec);
 
     switch (mountType)
@@ -298,30 +308,34 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         case MOUNT_TYPE::ALTAZ:
             break;
         case MOUNT_TYPE::EQ_FORK:
-            *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;
             *primary = instrumentHa;
+            *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;  // northern : southern hemisphere
             break;
         case MOUNT_TYPE::EQ_GEM:
-            *secondary = instrumentDec;
-            *primary = instrumentHa;
-            // use the instrument Ha to select the pointing state
-            if (instrumentHa < flipHourAngle)
+            if (instrumentHa < flipHourAngle)  // pierside west (looking east)
             {
-                // pointing state inverted
-                *primary += Angle(180);
-                *secondary = Angle(180) - instrumentDec;
+                *primary = instrumentHa + Angle(180);    // Primary instrument axis: "Angle" is negative PA-system looking SCP
+                *secondary = Angle(180) - instrumentDec; // Secondary instrument axis: "Angle" is negative PA-system looking E
             }
-            if (latitude < 0)
+            else
+            {
+                *primary = instrumentHa;
+                *secondary = instrumentDec;
+            }
+            if (latitude < 0)  // southern hemisphere
                 *secondary = -*secondary;
             break;
     }
+    if (mountType != MOUNT_TYPE::ALTAZ)
+        LOGF_EXTRA1("apparentHaDecToMount: ha %f, dec %f to pri %f, sec %f", apparentHa.Degrees(), apparentDec.Degrees(), primary->Degrees(),
+                    secondary->Degrees() );
 }
 
 void Alignment::apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle* primary, Angle* secondary)
 {
     Angle ha = lst() - apparentRa;
     apparentHaDecToMount(ha, apparentDec, primary, secondary);
-    LOGF_EXTRA1("apparentRaDecToMount ra %f, ha %f, %f to %f, %f", apparentRa.Degrees(), ha.Degrees(), apparentDec.Degrees(),
+    LOGF_EXTRA1("apparentRaDecToMount: ra %f, ha %f, dec %f to pri %f, sec %f", apparentRa.Degrees(), ha.Degrees(), apparentDec.Degrees(),
                 primary->Degrees(), secondary->Degrees());
 }
 
