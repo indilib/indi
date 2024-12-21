@@ -32,7 +32,7 @@ class FilterSim : public INDI::FilterWheel
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        const char *getDefaultName();
+        virtual const char *getDefaultName() override;
 
         bool Connect() override;
         bool Disconnect() override;
