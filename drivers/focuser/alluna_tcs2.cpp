@@ -403,40 +403,6 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // Cover Switch?
-        // if (!strcmp(name, ParkCapSP.name))
-        // {
-        //     // Find out which state is requested by the client
-        //     const char *actionName = IUFindOnSwitchName(states, names, n);
-        //     // Do nothing, if state is already what it should be
-        //     int currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
-        //     if (!strcmp(actionName, ParkCapS[currentCoverIndex].name))
-        //     {
-        //         DEBUGF(INDI::Logger::DBG_SESSION, "Cover is already %s", ParkCapS[currentCoverIndex].label);
-        //         ParkCapSP.s = IPS_IDLE;
-        //         IDSetSwitch(&ParkCapSP, NULL);
-        //         return true;
-        //     }
-
-        //     // Otherwise, let us update the switch state
-        //     IUUpdateSwitch(&ParkCapSP, states, names, n);
-        //     currentCoverIndex = IUFindOnSwitchIndex(&ParkCapSP);
-        //     if ( setDustCover() )
-        //     {
-        //         isCoverMoving = true;
-        //         DEBUGF(INDI::Logger::DBG_SESSION, "Cover is now %s", ParkCapS[currentCoverIndex].label);
-        //         ParkCapSP.s = IPS_OK;
-        //         IDSetSwitch(&ParkCapSP, NULL);
-        //         return true;
-        //     }
-        //     else
-        //     {
-        //         DEBUG(INDI::Logger::DBG_SESSION, "Cannot get lock, try again");
-        //         ParkCapSP.s = IPS_ALERT;
-        //         IDSetSwitch(&ParkCapSP, NULL);
-        //     }
-        // }
-
         // Climate Control Switch?
         if (ClimateControlSP.isNameMatch(name))
         {
@@ -679,10 +645,10 @@ void AllunaTCS2::TimerHit()
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                     break;
                 case 'I': // starting to focus
-                    LOG_INFO("TimerHit: starting to focus");
+                    LOG_DEBUG("TimerHit: starting to focus");
                     break;
                 case 'J': // end of focusing
-                    LOG_INFO("TimetHit: end of focusing");
+                    LOG_DEBUG("TimetHit: end of focusing");
                     isFocuserMoving = false;
                     FocusAbsPosNP.s = IPS_OK;
                     IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -700,12 +666,12 @@ void AllunaTCS2::TimerHit()
                     getDustCover();
                     break;
                 default: // unexpected output
-                    LOGF_INFO("TimerHit: unexpected response (%s)", res);
+                    LOGF_DEBUG("TimerHit: unexpected response (%s)", res);
             }
         }
         else
         {
-            LOGF_INFO("TimerHit: unexpected response (%s)", res);
+            LOGF_DEBUG("TimerHit: unexpected response (%s)", res);
         }
         actionInProgress = isFocuserMoving || isCoverMoving;
     }
@@ -854,7 +820,7 @@ IPState AllunaTCS2::ParkCap()
 {
     if (ParkCapSP[CAP_PARK].getState() == ISS_ON)
     {
-        LOG_INFO("Toggle");
+        LOG_DEBUG("Toggle");
         if (setDustCover()) { // toggle state of dust cover
             isCoverMoving = true;
             return IPS_BUSY;
@@ -870,10 +836,10 @@ IPState AllunaTCS2::ParkCap()
 
 IPState AllunaTCS2::UnParkCap()
 {
-    LOGF_INFO("UnParkCap called, state is %d %d", ParkCapSP[CAP_PARK].getState(), ParkCapSP[CAP_UNPARK].getState());
+    LOGF_DEBUG("UnParkCap called, state is %d %d", ParkCapSP[CAP_PARK].getState(), ParkCapSP[CAP_UNPARK].getState());
     if (ParkCapSP[CAP_UNPARK].getState() == ISS_ON)
     {
-        LOG_INFO("Toggle");
+        LOG_DEBUG("Toggle");
         if (setDustCover()) { // toggle state of dust cover
             isCoverMoving = true;
             return IPS_BUSY;
@@ -909,7 +875,7 @@ bool AllunaTCS2::getStepping()
 
     // Set limits as per documentation
     FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
-    LOGF_INFO("readStepping: set max position to %d", (int)FocusAbsPosN[0].max);
+    LOGF_DEBUG("readStepping: set max position to %d", (int)FocusAbsPosN[0].max);
     return true;
 }
 
@@ -919,8 +885,8 @@ bool AllunaTCS2::setStepping(SteppingMode mode)
     char cmd[DRIVER_LEN] = {0};
     steppingMode = mode;
     value = (mode == SPEED) ? 0 : 1;
-    LOGF_INFO("Setting stepping mode to: %s", (mode == SPEED) ? "SPEED" : "micro");
-    LOGF_INFO("Setting stepping mode to: %d", value);
+    LOGF_DEBUG("Setting stepping mode to: %s", (mode == SPEED) ? "SPEED" : "micro");
+    LOGF_DEBUG("Setting stepping mode to: %d", value);
     snprintf(cmd, DRIVER_LEN, "SetFocuserMode %d\n", value);
     return sendCommand(cmd);
 }
@@ -1055,7 +1021,7 @@ bool AllunaTCS2::getFanPower()
 
     if (value != (int)FanPowerNP[0].value)
     {
-        LOGF_INFO("FanPower read to be %d", value);
+        LOGF_DEBUG("FanPower read to be %d", value);
         FanPowerNP[0].value = (double)value;
         FanPowerNP.setState(IPS_OK);
         FanPowerNP.apply();
