@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <regex>
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
