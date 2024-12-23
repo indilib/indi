@@ -39,7 +39,11 @@
 #include <map>
 
 #include <dirent.h>
+#ifdef __OpenBSD__
+#include <sys/videoio.h>
+#else
 #include <linux/videodev2.h>
+#endif
 
 #define VIDEO_COMPRESSION_LEVEL 4
 
