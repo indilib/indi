@@ -153,7 +153,8 @@ bool iEAFFocus::Ack()
     tcflush(PortFD, TCIOFLUSH);
     resp[nbytes_read] = '\0';
     sscanf(resp, "%6d%2d%4d", &ieafpos, &ieafmodel, &ieaflast);
-    if (ieafmodel == 2)
+    //add iAFS Focuser
+    if ((ieafmodel == 2)||(ieafmodel == 3))
     {
         return true;
     }

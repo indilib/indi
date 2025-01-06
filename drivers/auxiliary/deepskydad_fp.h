@@ -81,6 +81,7 @@ class DeepSkyDadFP : public INDI::DefaultDevice, public INDI::LightBoxInterface,
         // Firmware version
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
+        bool isFP2;
 
         int PortFD{ -1 };
 

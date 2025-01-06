@@ -80,5 +80,10 @@
     "variant": "cpp"
   },
   // Pass any arguments to configure CMake here (e.g. -DINDI_BUILD_WEBSOCKET=On)
-  "cmake.configureArgs": []
+  "cmake.configureArgs": [],
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.configureSettings": {
+    "CMAKE_INSTALL_PREFIX": "/usr",
+    "CMAKE_CURRENT_BINARY_DIR": "${workspaceFolder}/build"
+  }
 }

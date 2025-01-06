@@ -1349,16 +1349,9 @@ bool LX200Telescope::sendScopeLocation()
         double value = 0;
         snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
         f_scansexa(lng_sexagesimal, &value);
+        value = range360(value);
         LocationNP[LOCATION_LONGITUDE].setValue(value);
-
-        // JM 2024.02.05: INDI Longitude MUST be 0 to +360 eastward
-        // We cannot use cartographic format in the INDI drivers!
-        if (LocationNP[LOCATION_LONGITUDE].getValue() < 0)
-        {
-
-            LocationNP[LOCATION_LONGITUDE].setValue(360);
-            fs_sexa(lng_sexagesimal, LocationNP[LOCATION_LONGITUDE].getValue(), 2, 36000);
-        }
+        fs_sexa(lng_sexagesimal, LocationNP[LOCATION_LONGITUDE].getValue(), 2, 36000);
     }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude (0 to +360 Eastwards) %s (%g)",

@@ -1,5 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2010 Gerry Rozema. All rights reserved.
+  Copyright(c) 2024 Joe Zhou. All rights reserved.
+
+  iOptron Filter Wheel
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -20,25 +22,30 @@
 
 #include "indifilterwheel.h"
 
-/**
- * @brief The FilterSim class provides a simple simulator to change filters. The filter names are saved to a config file when updated.
- */
-class FilterSim : public INDI::FilterWheel
+class iEFW : public INDI::FilterWheel
 {
     public:
-        FilterSim() = default;
-        virtual ~FilterSim() = default;
+        iEFW();
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        virtual bool initProperties() override;
-        virtual bool updateProperties() override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual const char *getDefaultName() override;
-
-        bool Connect() override;
-        bool Disconnect() override;
+    protected:
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
+        bool Handshake() override;
+        int QueryFilter() override;
         bool SelectFilter(int) override;
-        void TimerHit() override;
+//        void TimerHit() override;
+	int getFilterPos();
+        // Firmware of the iEFW
+        INDI::PropertyText FirmwareTP {1};
+        INDI::PropertyText WheelIDTP  {1};;
 
     private:
-        INDI::PropertyNumber DelayNP {1};
+
+        bool getiEFWID();
+	bool getiEFWInfo();
+        bool getiEFWfirmwareInfo();
+	void initOffset();
+	INDI::PropertySwitch HomeSP{1};
 };

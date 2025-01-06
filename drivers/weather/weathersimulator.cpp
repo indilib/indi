@@ -58,6 +58,7 @@ bool WeatherSimulator::initProperties()
 
     ControlWeatherNP[CONTROL_WEATHER].fill("Weather", "Weather", "%.f", 0, 1, 1, 0);
     ControlWeatherNP[CONTROL_TEMPERATURE].fill("Temperature", "Temperature", "%.2f", -50, 70, 10, 15);
+    ControlWeatherNP[CONTROL_HUMIDITY].fill( "Humidity", "Humidity", "%.f", 0, 100, 5, 0);
     ControlWeatherNP[CONTROL_WIND].fill("Wind", "Wind", "%.2f", 0, 100, 5, 0);
     ControlWeatherNP[CONTROL_GUST].fill("Gust", "Gust", "%.2f", 0, 50, 5, 0);
     ControlWeatherNP[CONTROL_RAIN].fill( "Precip", "Precip", "%.f", 0, 100, 10, 0);
@@ -66,6 +67,7 @@ bool WeatherSimulator::initProperties()
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_HUMIDITY", "Humidity (%)", 0, 100, 15);
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
     addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
     addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0);
@@ -96,6 +98,7 @@ IPState WeatherSimulator::updateWeather()
 {
     setParameterValue("WEATHER_FORECAST", ControlWeatherNP[CONTROL_WEATHER].getValue());
     setParameterValue("WEATHER_TEMPERATURE", ControlWeatherNP[CONTROL_TEMPERATURE].getValue());
+    setParameterValue("WEATHER_HUMIDITY", ControlWeatherNP[CONTROL_HUMIDITY].getValue());
     setParameterValue("WEATHER_WIND_SPEED", ControlWeatherNP[CONTROL_WIND].getValue());
     setParameterValue("WEATHER_WIND_GUST", ControlWeatherNP[CONTROL_GUST].getValue());
     setParameterValue("WEATHER_RAIN_HOUR", ControlWeatherNP[CONTROL_RAIN].getValue());

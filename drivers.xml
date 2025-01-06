@@ -471,7 +471,7 @@
         </device>
         <device label="Pyxis" manufacturer="Optec">
             <driver name="Pyxis">indi_pyxis_rotator</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Pegasus Falcon" manufacturer="Pegasus Astro">
             <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
@@ -683,6 +683,10 @@
             <driver name="Pegasus INDIGO">indi_pegasusindigo_wheel</driver>
             <version>1.0</version>
         </device>
+       <device label="iOptron Wheel" manufacturer="iOptron">
+            <driver name="ioptron Wheel">indi_ioptron_wheel</driver>
+            <version>1.0</version>
+        </device>        
     </devGroup>
     <devGroup group="Auxiliary">
         <device label="Astrometry" manufacturer="Others">

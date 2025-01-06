@@ -492,8 +492,11 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         return false;
     }
     mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
+    mcRate = std::max(1,std::min(4,mcRate));
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
+    if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopesim_helper.cpp: alignment
+            rate = -rate;
     LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S", command == 0 ? "start" : "stop", rate);
 
     axisSecondary.mcRate = command == MOTION_START ? rate : 0;
@@ -510,6 +513,8 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
 
     mcRate = static_cast<int>(SlewRateSP.findOnSwitchIndex()) + 1;
+    mcRate = std::max(1,std::min(4,mcRate));
+
     int rate = (dir == INDI_DIR_WE::DIRECTION_EAST) ? -mcRate : mcRate;
     LOGF_DEBUG("MoveWE dir %d, motion %s, rate %d", dir == DIRECTION_EAST ? "E" : "W", command == 0 ? "start" : "stop", rate);
 
@@ -520,6 +525,8 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 IPState ScopeSim::GuideNorth(uint32_t ms)
 {
     double rate = GuideRateNP[DEC_AXIS].getValue();
+    if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
+            rate = -rate;
     axisSecondary.StartGuide(rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -528,6 +535,8 @@ IPState ScopeSim::GuideNorth(uint32_t ms)
 IPState ScopeSim::GuideSouth(uint32_t ms)
 {
     double rate = GuideRateNP[DEC_AXIS].getValue();
+    if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
+            rate = -rate;
     axisSecondary.StartGuide(-rate, ms);
     guidingNS = true;
     return IPS_BUSY;

@@ -45,11 +45,12 @@ protected:
     virtual bool saveConfigItems(FILE *fp) override;
 
 private:
-    INDI::PropertyNumber ControlWeatherNP {5};
+    INDI::PropertyNumber ControlWeatherNP {6};
     enum
     {
         CONTROL_WEATHER,
         CONTROL_TEMPERATURE,
+        CONTROL_HUMIDITY,
         CONTROL_WIND,
         CONTROL_GUST,
         CONTROL_RAIN

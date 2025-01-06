@@ -1,3 +1,37 @@
++ From 2.1.0 to 2.1.1
+
+      daaa7a44c 2024-12-01 Jasem Mutlaq         Terminate string to remove delimeter at the end                                                                                                       
+      436d7c5f6 2024-11-28 Jasem Mutlaq         Fix bug when processing longitude due to regression                                                                                                   
+      aabf46a21 2024-11-24 Jasem Mutlaq         Add speed controls to account for different dome speed scenarios                                                                                      
+      28bf89a1d 2024-11-23 Jasem Mutlaq         Reduce spam in logs                                                                                                                                   
+      4af322800 2024-11-20 Jasem Mutlaq         When aborting dust cap, update the parking status as well. Clarify the Parked, Unparked, and Unknown states.                                          
+      0c9294363 2024-11-10 Jasem Mutlaq         Bump version to 1.1                                                                                                                                   
+      cef7d28fc 2024-11-06 Artyom Beilis        Sim crash fix - looks like found root cause (#2147)                                                                                                   
+      220efb42c 2024-11-04 Jasem Mutlaq         Add verbose logging to iOptron driver                                                                                                                 
+      4d2d652a2 2024-11-03 hcomet               Upgrade CheapoDC driver for new device firmware features (#2142)                                                                                      
+      b41b4c7d7 2024-11-03 Jasem Mutlaq         possible fix for pyrix status issue                                                                                                                   
+      12d6291a2 2024-11-02 Artyom Beilis        Fixed crash due not checking boundary values of the axis in telescope_simulator (#2144)                                                               
+      870ad2ce3 2024-11-01 Jasem Mutlaq         Do not load config twice                                                                                                                              
+      9d6e87abf 2024-10-28 joe13905179063       Update ieaffocus.cpp (#2141)                                                                                                                          
+      d4c96d836 2024-10-19 naheedsa             Migrate Astromech focuser (#2134)                                                                                                                     
+      8b9da900d 2024-10-19 naheedsa             Migrate INDI Astrolink4 (#2133)                                                                                                                       
+      3b6e51454 2024-10-16 Pavle Gartner        FP2 motor status (#2139)                                                                                                                              
+      ab5f6dae8 2024-10-13 Jasem Mutlaq         Use                                                                                                                                                   
+      02f31b81f 2024-10-11 Jasem Mutlaq         Correct tracking rates as submitted by Andreas Schneider                                                                                              
+      3a0d0a8f3 2024-10-11 Jasem Mutlaq         Add missing models and change PEC command                                                                                                             
+      e09b94530 2024-10-10 Jarno Paananen       Miscellaneous ScopeDome driver updates. (#2137)                                                                                                       
+      c2530d100 2024-10-10 Jarno Paananen       Update SnapCap driver to use common abort capability from DustCapInterface instead of doing it manually. (#2136)                                      
+      3c35e7565 2024-10-09 Jasem Mutlaq         Fix image file name path. Fixes #2135                                                                                                                 
+      abf12b440 2024-10-09 Jasem Mutlaq         Fix crash in LX200 OnStep                                                                                                                             
+      5ffb3f651 2024-10-08 Jasem Mutlaq         Use Current tracking mode                                                                                                                             
+      68b456e87 2024-10-08 Jasem Mutlaq         Fix setting custom track rates. Fixes #2128                                                                                                           
+      e110e617d 2024-10-08 Jasem Mutlaq         Slew rate labels can be reset after setTelescopeCapability. This should be fixed in 2.1.1. For now, we need to reset labels after each call           
+      930881030 2024-10-07 Jasem Mutlaq         Add missing update properties for Guider Interface                                                                                                    
+      4c52a14cd 2024-10-07 Anthony Hinsinger    Fixed missing apply() on TrackStateSP property (#2130)                                                                                                
+      b5a6eab9e 2024-10-06 Jasem Mutlaq         Fix order of interfaces. Default device must always come first                                                                                        
+      c7cb615f0 2024-10-02 Jasem Mutlaq         allow for source buffer to be larger than srcFrameInfo size since some drivers do not reallocate after binning the frame                              
+      d122fb137 2024-10-02 Jasem Mutlaq         Find WebsocketSP Property                                                                                                                             
+
 + From 2.0.9 to 2.1.0
 
       eca176463 2024-09-30 Jasem Mutlaq         Fix pier side as proposed by Colin McGill                                                                                                             
