@@ -24,6 +24,7 @@
 
     ===========================================
 
+    Version 1.24: During manual slew, only send back RA & DE.
     Version not yet updated/No INDI release:
     Version 1.22
     - fixed #:AW#" and ":MP#" commands by using getCommandSingleCharResponse instead of sendOnStepCommandBlind
@@ -197,6 +198,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool SetTrackRate(double raRate, double deRate) override;
         virtual void slewError(int slewCode) override;
         virtual bool Sync(double ra, double dec) override;
+
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
         virtual void Init_Outputs();
@@ -374,9 +378,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         ISwitchVectorProperty OSRotatorDerotateSP;
         ISwitch OSRotatorDerotateS[2]; //On or Off
 
-
-
         int IsTracking = 0;
+        uint32_t m_RememberPollingPeriod {1000};
 
         // Reticle +/- Buttons
         ISwitchVectorProperty ReticSP;

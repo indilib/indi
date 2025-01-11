@@ -2607,11 +2607,14 @@ bool LX200_OnStep::ReadScopeStatus()
 
             // Refresh current Slew Rate
             int idx = OSStat[strlen(OSStat) - 2] - '0';
-            SlewRateSP.reset();
-            SlewRateSP[idx].setState(ISS_ON);
-            SlewRateSP.setState(IPS_OK);
-            SlewRateSP.apply();
-            LOGF_DEBUG("Guide Rate Index: %d", idx);
+            if (SlewRateSP.findOnSwitchIndex() != idx)
+            {
+                SlewRateSP.reset();
+                SlewRateSP[idx].setState(ISS_ON);
+                SlewRateSP.setState(IPS_OK);
+                SlewRateSP.apply();
+                LOGF_DEBUG("Slew Rate Index: %d", idx);
+            }
             // End Refresh current Slew Rate
         }
         else
@@ -2928,6 +2931,12 @@ bool LX200_OnStep::ReadScopeStatus()
         }
     }
 #endif
+
+
+    //========== Jasem Mutlaq 2025.01.10: If we are in manual motion, immediately return as rapid updates for RA/DE are far more critical
+    // then the rest of the measurements below.
+    if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
+        return true;
 
     //========== Get actual Backlash values
     double backlash_DEC, backlash_RA;
@@ -5480,4 +5489,46 @@ void LX200_OnStep::initSlewRates()
     SlewRateSP[9].fill("9", "Max", ISS_OFF);
 
     SlewRateSP.fill(getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+}
+
+bool LX200_OnStep::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    if (command == MOTION_START)
+    {
+        if (MovementWESP.getState() != IPS_BUSY && m_RememberPollingPeriod == 0)
+            m_RememberPollingPeriod = getCurrentPollingPeriod();
+        setCurrentPollingPeriod(200);
+    }
+    else
+    {
+        // Only restore if WE isn't moving
+        if (MovementWESP.getState() != IPS_BUSY)
+        {
+            setCurrentPollingPeriod(m_RememberPollingPeriod);
+            m_RememberPollingPeriod = 0;
+        }
+    }
+
+    return LX200Telescope::MoveNS(dir, command);
+}
+
+bool LX200_OnStep::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+{
+    if (command == MOTION_START)
+    {
+        if (MovementNSSP.getState() != IPS_BUSY && m_RememberPollingPeriod == 0)
+            m_RememberPollingPeriod = getCurrentPollingPeriod();
+        setCurrentPollingPeriod(200);
+    }
+    else
+    {
+        // Only restore if NS isn't moving
+        if (MovementNSSP.getState() != IPS_BUSY)
+        {
+            setCurrentPollingPeriod(m_RememberPollingPeriod);
+            m_RememberPollingPeriod = 0;
+        }
+    }
+
+    return LX200Telescope::MoveWE(dir, command);
 }

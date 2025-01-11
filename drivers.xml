@@ -33,15 +33,19 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
         </device>
         <device label="WARPDRIVE" manufacturer="WarpAstron">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
         </device>
         <device label="UMi" manufacturer="ProxiSky">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
+        </device>
+        <device label="EM31Pro" manufacturer="Emcan Astro">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
