@@ -29,7 +29,11 @@
 #include <stdio.h>
 #include <cstdlib>
 
+#ifdef __OpenBSD__
+#include <sys/videoio.h>
+#else
 #include <linux/videodev2.h>
+#endif
 
 class V4L2_Decoder
 {
