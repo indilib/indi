@@ -51,7 +51,7 @@
 
 #pragma once
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 #include <linux/types.h>
 #else
 #include <stdint.h>

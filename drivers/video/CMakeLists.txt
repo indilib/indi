@@ -1,6 +1,6 @@
 # ########## INDI::CCD V4L Driver ###############
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD")
     SET(v4l2driverccd_SRC
         lx/Lx.cpp
         v4l2driver.cpp
