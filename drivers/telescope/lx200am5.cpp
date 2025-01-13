@@ -1,7 +1,7 @@
 /*
-    ZWO AM5 INDI driver
+    ZWO AM5/AM3 INDI driver
 
-    Copyright (C) 2022 Jasem Mutlaq
+    Copyright (C) 2022-2025 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@
 
 LX200AM5::LX200AM5()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -109,7 +109,8 @@ bool LX200AM5::initProperties()
     BuzzerSP[Low].fill("LOW", "Low", ISS_OFF);
     BuzzerSP[High].fill("HIGH", "High", ISS_ON);
     BuzzerSP.fill(getDeviceName(), "BUZZER", "Buzzer", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    BuzzerSP.onUpdate([this]{
+    BuzzerSP.onUpdate([this]
+    {
         if (setBuzzer(BuzzerSP.findOnSwitchIndex()))
         {
             BuzzerSP.setState(IPState::IPS_OK);
@@ -120,6 +121,20 @@ bool LX200AM5::initProperties()
         }
         BuzzerSP.apply();
     });
+
+    // Meridian Flip Enable
+    MeridianFlipSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    MeridianFlipSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    MeridianFlipSP.fill(getDeviceName(), "MERIDIAN_FLIP", "Meridian Flip", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Post Meridian Track
+    PostMeridianTrackSP[TRACK].fill("TRACK", "Track", ISS_ON);
+    PostMeridianTrackSP[STOP].fill("STOP", "Stop", ISS_OFF);
+    PostMeridianTrackSP.fill(getDeviceName(), "POST_MERIDIAN_TRACK", "After Meridian", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Meridian Flip Limit
+    MeridianLimitNP[0].fill("LIMIT", "Limit (deg)", "%.f", -15, 15, 1, 0);
+    MeridianLimitNP.fill(getDeviceName(), "MERIDIAN_LIMIT", "Meridian Limit", MERIDIAN_FLIP_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 }
@@ -139,12 +154,27 @@ bool LX200AM5::updateProperties()
         defineProperty(GuideRateNP);
         defineProperty(BuzzerSP);
 
+        // Only define meridian flip properties for equatorial mount
+        if (MountTypeSP[Equatorial].getState() == ISS_ON)
+        {
+            defineProperty(MeridianFlipSP);
+            defineProperty(PostMeridianTrackSP);
+            defineProperty(MeridianLimitNP);
+        }
     }
     else
     {
         //deleteProperty(HomeSP);
         deleteProperty(GuideRateNP);
         deleteProperty(BuzzerSP);
+
+        // Only delete meridian flip properties if they were defined
+        if (MountTypeSP[Equatorial].getState() == ISS_ON)
+        {
+            deleteProperty(MeridianFlipSP);
+            deleteProperty(PostMeridianTrackSP);
+            deleteProperty(MeridianLimitNP);
+        }
     }
 
     return true;
@@ -194,6 +224,10 @@ void LX200AM5::setup()
     getGuideRate();
     getBuzzer();
 
+    // Only get meridian flip settings for equatorial mount
+    if (MountTypeSP[Equatorial].getState() == ISS_ON)
+        getMeridianFlipSettings();
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -203,6 +237,30 @@ bool LX200AM5::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Meridian Flip
+        if (MeridianFlipSP.isNameMatch(name))
+        {
+            MeridianFlipSP.update(states, names, n);
+            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
+                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
+                                              MeridianLimitNP[0].getValue());
+            MeridianFlipSP.setState(rc ? IPS_OK : IPS_ALERT);
+            MeridianFlipSP.apply();
+            return true;
+        }
+
+        // Post Meridian Track
+        if (PostMeridianTrackSP.isNameMatch(name))
+        {
+            PostMeridianTrackSP.update(states, names, n);
+            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
+                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
+                                              MeridianLimitNP[0].getValue());
+            PostMeridianTrackSP.setState(rc ? IPS_OK : IPS_ALERT);
+            PostMeridianTrackSP.apply();
+            return true;
+        }
+
         // Mount Type
         if (MountTypeSP.isNameMatch(name))
         {
@@ -233,6 +291,17 @@ bool LX200AM5::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (MeridianLimitNP.isNameMatch(name))
+        {
+            MeridianLimitNP.update(values, names, n);
+            auto rc = setMeridianFlipSettings(MeridianFlipSP[INDI_ENABLED].getState() == ISS_ON,
+                                              PostMeridianTrackSP[TRACK].getState() == ISS_ON,
+                                              MeridianLimitNP[0].getValue());
+            MeridianLimitNP.setState(rc ? IPS_OK : IPS_ALERT);
+            MeridianLimitNP.apply();
+            return true;
+        }
+
         if (GuideRateNP.isNameMatch(name))
         {
             GuideRateNP.update(values, names, n);
@@ -371,6 +440,58 @@ bool LX200AM5::getBuzzer()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setMeridianFlipSettings(bool enabled, bool track, double limit)
+{
+    char command[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, ":STa%d%d%c%02d#", enabled ? 1 : 0, track ? 1 : 0,
+             limit >= 0 ? '+' : '-', static_cast<int>(std::abs(limit)));
+    char response[2] = {0};
+    auto rc = sendCommand(command, response, -1, 1);
+    return rc && response[0] == '1';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getMeridianFlipSettings()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GTa#", response))
+    {
+        if (strlen(response) >= 5)
+        {
+            // First digit: meridian flip enabled
+            MeridianFlipSP.reset();
+            MeridianFlipSP[response[0] == '1' ? INDI_ENABLED : INDI_DISABLED].setState(ISS_ON);
+            MeridianFlipSP.setState(IPS_OK);
+
+            // Second digit: track after meridian
+            PostMeridianTrackSP.reset();
+            PostMeridianTrackSP[response[1] == '1' ? TRACK : STOP].setState(ISS_ON);
+            PostMeridianTrackSP.setState(IPS_OK);
+
+            // Last three digits: limit angle
+            char *sign = &response[2];
+            char *limit = &response[3];
+            int limitValue = atoi(limit);
+            if (*sign == '-')
+                limitValue = -limitValue;
+            MeridianLimitNP[0].setValue(limitValue);
+            MeridianLimitNP.setState(IPS_OK);
+
+            return true;
+        }
+    }
+
+    MeridianFlipSP.setState(IPS_ALERT);
+    PostMeridianTrackSP.setState(IPS_ALERT);
+    MeridianLimitNP.setState(IPS_ALERT);
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool LX200AM5::setUTCOffset(double offset)
 {
     int h {0}, m {0}, s {0};
@@ -423,7 +544,7 @@ bool LX200AM5::goHome()
 bool LX200AM5::setHome()
 {
     const char cmd[] = ":SOa#";
-    char status ='0';
+    char status = '0';
     return sendCommand(cmd, &status, strlen(cmd), sizeof(status)) && status == '1';
 }
 
