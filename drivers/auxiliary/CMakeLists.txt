@@ -359,3 +359,11 @@ SET(wavesharerelay_SRC
 add_executable(indi_wavesharemodbus_relay ${wavesharerelay_SRC})
 target_link_libraries(indi_wavesharemodbus_relay indidriver)
 install(TARGETS indi_wavesharemodbus_relay RUNTIME DESTINATION bin)
+
+# ########## IPX800 Controller ###############
+SET(ipx800v4_SRC
+    ipx800v4.cpp)
+
+add_executable(indi_ipx800v4 ${ipx800v4_SRC})
+target_link_libraries(indi_ipx800v4 indidriver ${HTTPLIB_LIBRARY})
+install(TARGETS indi_ipx800v4 RUNTIME DESTINATION bin)
