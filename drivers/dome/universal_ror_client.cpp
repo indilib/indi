@@ -30,6 +30,7 @@
 *******************************************************************************/
 
 #include "universal_ror_client.h"
+#include "indilogger.h"
 
 #include <cmath>
 #include <cstring>
@@ -40,6 +41,8 @@
 UniversalRORClient::UniversalRORClient(const std::string &input, const std::string &output) : m_Input(input),
     m_Output(output)
 {
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Client initialized with input driver: %s, output driver: %s",
+                 input.c_str(), output.c_str());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,9 +58,15 @@ UniversalRORClient::~UniversalRORClient()
 void UniversalRORClient::newDevice(INDI::BaseDevice dp)
 {
     if (dp.isDeviceNameMatch(m_Input))
+    {
         m_InputReady = true;
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Input device '%s' is ready", m_Input.c_str());
+    }
     if (dp.isDeviceNameMatch(m_Output))
+    {
         m_OutputReady = true;
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Output device '%s' is ready", m_Output.c_str());
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -75,6 +84,7 @@ void UniversalRORClient::serverDisconnected(int exitCode)
 {
     INDI_UNUSED(exitCode);
     m_InputReady = m_OutputReady = false;
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Server disconnected with exit code %d", exitCode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -89,6 +99,7 @@ void UniversalRORClient::updateProperty(INDI::Property property)
         if (property.isNameMatch(name))
         {
             fullyOpenedUpdated = true;
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully opened input %s updated", name.c_str());
         }
     }
 
@@ -101,12 +112,12 @@ void UniversalRORClient::updateProperty(INDI::Property property)
         if (property.isNameMatch(name))
         {
             fullyClosedUpdated = true;
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully closed input %s updated", name.c_str());
         }
     }
 
     if (fullyClosedUpdated)
         syncFullyClosedState();
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +127,13 @@ bool UniversalRORClient::openRoof()
 {
     auto device = getDevice(m_Output.c_str());
     if (!device || !device.isConnected())
+    {
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot open roof - Output device '%s' not connected",
+                     m_Output.c_str());
         return false;
+    }
+
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Opening roof using output device '%s'", m_Output.c_str());
 
     for (const auto &value : m_OutputOpenRoof)
     {
@@ -124,9 +141,14 @@ bool UniversalRORClient::openRoof()
         auto property = device.getSwitch(name.c_str());
         if (property)
         {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Setting output %s to ON", name.c_str());
             property.reset();
             property[1].setState(ISS_ON);
             sendNewSwitch(property);
+        }
+        else
+        {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
         }
     }
     return true;
@@ -139,7 +161,13 @@ bool UniversalRORClient::closeRoof()
 {
     auto device = getDevice(m_Output.c_str());
     if (!device || !device.isConnected())
+    {
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot close roof - Output device '%s' not connected",
+                     m_Output.c_str());
         return false;
+    }
+
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Closing roof using output device '%s'", m_Output.c_str());
 
     for (const auto &value : m_OutputCloseRoof)
     {
@@ -147,9 +175,14 @@ bool UniversalRORClient::closeRoof()
         auto property = device.getSwitch(name.c_str());
         if (property)
         {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Setting output %s to ON", name.c_str());
             property.reset();
             property[1].setState(ISS_ON);
             sendNewSwitch(property);
+        }
+        else
+        {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
         }
     }
     return true;
@@ -162,7 +195,13 @@ bool UniversalRORClient::stop()
 {
     auto device = getDevice(m_Output.c_str());
     if (!device || !device.isConnected())
+    {
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot stop roof - Output device '%s' not connected",
+                     m_Output.c_str());
         return false;
+    }
+
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Stopping roof movement using output device '%s'", m_Output.c_str());
 
     // Find all close roof digital outputs and set them to OFF
     // Only send OFF if required
@@ -172,6 +211,7 @@ bool UniversalRORClient::stop()
         auto property = device.getSwitch(name.c_str());
         if (property && property[0].getState() != ISS_ON)
         {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Setting close output %s to OFF", name.c_str());
             property.reset();
             property[0].setState(ISS_ON);
             sendNewSwitch(property);
@@ -185,6 +225,7 @@ bool UniversalRORClient::stop()
         auto property = device.getSwitch(name.c_str());
         if (property && property[0].getState() != ISS_ON)
         {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Setting open output %s to OFF", name.c_str());
             property.reset();
             property[0].setState(ISS_ON);
             sendNewSwitch(property);
@@ -200,7 +241,14 @@ void UniversalRORClient::syncFullyOpenedState()
 {
     auto device = getDevice(m_Input.c_str());
     if (!device || !device.isConnected())
+    {
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot sync open state - Input device '%s' not connected",
+                     m_Input.c_str());
         return;
+    }
+
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Syncing fully opened state from input device '%s'",
+                 m_Input.c_str());
 
     std::vector<bool> fullyOpenedStates;
     for (const auto &value : m_InputFullyOpened)
@@ -210,7 +258,12 @@ void UniversalRORClient::syncFullyOpenedState()
         if (property)
         {
             auto toggled = property[1].getState() == ISS_ON;
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Input %s state: %s", name.c_str(), toggled ? "ON" : "OFF");
             fullyOpenedStates.push_back(toggled);
+        }
+        else
+        {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
         }
     }
 
@@ -218,6 +271,7 @@ void UniversalRORClient::syncFullyOpenedState()
     {
         return value;
     });
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully opened state: %s", on ? "YES" : "NO");
     m_FullyOpenedCallback(on);
 }
 
@@ -228,7 +282,14 @@ void UniversalRORClient::syncFullyClosedState()
 {
     auto device = getDevice(m_Input.c_str());
     if (!device || !device.isConnected())
+    {
+        DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot sync closed state - Input device '%s' not connected",
+                     m_Input.c_str());
         return;
+    }
+
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Syncing fully closed state from input device '%s'",
+                 m_Input.c_str());
 
     std::vector<bool> fullyClosedStates;
     for (const auto &value : m_InputFullyClosed)
@@ -238,7 +299,12 @@ void UniversalRORClient::syncFullyClosedState()
         if (property)
         {
             auto toggled = property[1].getState() == ISS_ON;
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Input %s state: %s", name.c_str(), toggled ? "ON" : "OFF");
             fullyClosedStates.push_back(toggled);
+        }
+        else
+        {
+            DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
         }
     }
 
@@ -246,5 +312,6 @@ void UniversalRORClient::syncFullyClosedState()
     {
         return value;
     });
+    DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully closed state: %s", on ? "YES" : "NO");
     m_FullyClosedCallback(on);
 }
