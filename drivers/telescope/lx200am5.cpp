@@ -83,7 +83,7 @@ bool LX200AM5::initProperties()
 
     // Slew Rates
 
-    SlewRateSP[0].setLabel("0.25x");
+    SlewRateSP[0].setLabel("0.5x");
     SlewRateSP[1].setLabel("1x");
     SlewRateSP[2].setLabel("2x");
     SlewRateSP[3].setLabel("4x");
@@ -94,7 +94,7 @@ bool LX200AM5::initProperties()
     SlewRateSP[8].setLabel("1440x");
     SlewRateSP.reset();
     // 1440x is the default
-    SlewRateSP[9].setState(ISS_ON);
+    SlewRateSP[8].setState(ISS_ON);
 
     // Home/Zero position
     // HomeSP[0].fill("GO", "Go", ISS_OFF);
@@ -373,7 +373,7 @@ bool LX200AM5::getMountType()
 bool LX200AM5::SetSlewRate(int index)
 {
     char command[DRIVER_LEN] = {0};
-    snprintf(command, DRIVER_LEN, ":R%d#", index);
+    snprintf(command, DRIVER_LEN, ":R%d#", index + 1);
     return sendCommand(command);
 }
 

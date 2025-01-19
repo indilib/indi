@@ -171,6 +171,6 @@ class LX200AM5 : public LX200Generic
         // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {64};
         // Slew Modes
-        static constexpr const uint8_t SLEW_MODES {10};
+        static constexpr const uint8_t SLEW_MODES {9};
         static constexpr const char * MERIDIAN_FLIP_TAB {"Meridian Flip"};
 };
