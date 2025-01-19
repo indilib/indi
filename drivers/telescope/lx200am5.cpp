@@ -122,6 +122,27 @@ bool LX200AM5::initProperties()
         BuzzerSP.apply();
     });
 
+    // Heavy Duty Mode
+    HeavyDutyModeSP[HeavyDutyModeOff].fill("OFF", "Off", ISS_OFF);
+    HeavyDutyModeSP[HeavyDutyModeOn].fill("ON", "On", ISS_OFF);
+    HeavyDutyModeSP.fill(getDeviceName(), "HEAVY_DUTY_MODE", "Heavy Duty Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    HeavyDutyModeSP.onUpdate([this]{
+        IPState state = IPS_BUSY;
+
+        if (HeavyDutyModeSP[HeavyDutyModeOff].getState() == ISS_ON)
+        {
+            state = setHeavyDutyMode(false) ? IPS_OK : IPS_ALERT;
+        }
+
+        if (HeavyDutyModeSP[HeavyDutyModeOn].getState() == ISS_ON)
+        {
+            state = setHeavyDutyMode(true) ? IPS_OK : IPS_ALERT;
+        }
+
+        HeavyDutyModeSP.setState(state);
+        HeavyDutyModeSP.apply();
+    });
+
     // Meridian Flip Enable
     MeridianFlipSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     MeridianFlipSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
@@ -153,6 +174,7 @@ bool LX200AM5::updateProperties()
         //defineProperty(HomeSP);
         defineProperty(GuideRateNP);
         defineProperty(BuzzerSP);
+        defineProperty(HeavyDutyModeSP);
 
         // Only define meridian flip properties for equatorial mount
         if (MountTypeSP[Equatorial].getState() == ISS_ON)
@@ -167,6 +189,7 @@ bool LX200AM5::updateProperties()
         //deleteProperty(HomeSP);
         deleteProperty(GuideRateNP);
         deleteProperty(BuzzerSP);
+        deleteProperty(HeavyDutyModeSP);
 
         // Only delete meridian flip properties if they were defined
         if (MountTypeSP[Equatorial].getState() == ISS_ON)
@@ -223,6 +246,7 @@ void LX200AM5::setup()
     getTrackMode();
     getGuideRate();
     getBuzzer();
+    getHeavyDutyMode();
 
     // Only get meridian flip settings for equatorial mount
     if (MountTypeSP[Equatorial].getState() == ISS_ON)
@@ -435,6 +459,44 @@ bool LX200AM5::getBuzzer()
         BuzzerSP.setState(IPS_ALERT);
         return true;
     }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::getHeavyDutyMode()
+{
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand(":GRl#", response))
+    {
+        HeavyDutyModeSP.reset();
+
+        if (strcmp(response, "1440#") == 0)
+        {
+            HeavyDutyModeSP[HeavyDutyModeOff].setState(ISS_ON);
+        }
+
+        if (strcmp(response, "720#") == 0)
+        {
+            HeavyDutyModeSP[HeavyDutyModeOn].setState(ISS_ON);
+        }
+
+        HeavyDutyModeSP.setState(IPS_OK);
+        return true;
+    }
+    else
+    {
+        HeavyDutyModeSP.setState(IPS_ALERT);
+        return true;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool LX200AM5::setHeavyDutyMode(bool enable)
+{
+    return sendCommand(enable ? ":SRl720#" : ":SRl1440#");
 }
 
 /////////////////////////////////////////////////////////////////////////////

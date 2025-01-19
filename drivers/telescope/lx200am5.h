@@ -104,6 +104,14 @@ class LX200AM5 : public LX200Generic
             High
         };
 
+        // Heavy duty control
+        INDI::PropertySwitch HeavyDutyModeSP {2};
+        enum
+        {
+            HeavyDutyModeOff = 0,
+            HeavyDutyModeOn  = 1,
+        };
+
         // Meridian Flip Control
         INDI::PropertySwitch MeridianFlipSP {2};
 
@@ -135,6 +143,10 @@ class LX200AM5 : public LX200Generic
         // Buzzer
         bool getBuzzer();
         bool setBuzzer(int value);
+
+        // Heavy Duty Mode
+        bool getHeavyDutyMode();
+        bool setHeavyDutyMode(bool enable);
 
         // Mount type
         bool setMountType(int type);
