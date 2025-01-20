@@ -51,8 +51,8 @@ class IPX800 : public INDI::DefaultDevice, public INDI::InputInterface, public I
 
     private:
         bool sendCommand(const char *cmd, char *response);
-        bool UpdateDigitalInputs();
-        bool UpdateAnalogInputs();
+        bool UpdateDigitalInputs() override;
+        bool UpdateAnalogInputs() override;
 
 
         Connection::TCP *tcpConnection { nullptr };
