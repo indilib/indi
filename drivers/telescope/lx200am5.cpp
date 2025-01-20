@@ -123,22 +123,12 @@ bool LX200AM5::initProperties()
     });
 
     // Heavy Duty Mode
-    HeavyDutyModeSP[HeavyDutyModeOff].fill("OFF", "Off", ISS_OFF);
-    HeavyDutyModeSP[HeavyDutyModeOn].fill("ON", "On", ISS_OFF);
+    HeavyDutyModeSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    HeavyDutyModeSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     HeavyDutyModeSP.fill(getDeviceName(), "HEAVY_DUTY_MODE", "Heavy Duty Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     HeavyDutyModeSP.onUpdate([this]{
-        IPState state = IPS_BUSY;
-
-        if (HeavyDutyModeSP[HeavyDutyModeOff].getState() == ISS_ON)
-        {
-            state = setHeavyDutyMode(false) ? IPS_OK : IPS_ALERT;
-        }
-
-        if (HeavyDutyModeSP[HeavyDutyModeOn].getState() == ISS_ON)
-        {
-            state = setHeavyDutyMode(true) ? IPS_OK : IPS_ALERT;
-        }
-
+        bool enabled = HeavyDutyModeSP[INDI_ENABLED].getState() == ISS_ON;
+        IPState state = setHeavyDutyMode(enabled) ? IPS_OK : IPS_ALERT;
         HeavyDutyModeSP.setState(state);
         HeavyDutyModeSP.apply();
     });
@@ -473,12 +463,12 @@ bool LX200AM5::getHeavyDutyMode()
 
         if (strcmp(response, "1440#") == 0)
         {
-            HeavyDutyModeSP[HeavyDutyModeOff].setState(ISS_ON);
+            HeavyDutyModeSP[INDI_DISABLED].setState(ISS_ON);
         }
 
         if (strcmp(response, "720#") == 0)
         {
-            HeavyDutyModeSP[HeavyDutyModeOn].setState(ISS_ON);
+            HeavyDutyModeSP[INDI_ENABLED].setState(ISS_ON);
         }
 
         HeavyDutyModeSP.setState(IPS_OK);
