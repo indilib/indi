@@ -60,7 +60,8 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
     DigitalOutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_OUTPUT_LABELS", "Labels", groupName, IP_RW, 60,
                                IPS_IDLE);
     DigitalOutputLabelsTP.shrink_to_fit();
-    DigitalOutputLabelsTP.load();
+    if (Outputs > 0)
+        DigitalOutputLabelsTP.load();
 
     DigitalOutputsSP.reserve(Outputs);
     // Initialize switches, use labels if loaded.
