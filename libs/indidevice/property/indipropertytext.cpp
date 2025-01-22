@@ -56,4 +56,10 @@ void PropertyText::fill(
     d->typedProperty.fill(device, name, label, group, permission, timeout, state);
 }
 
+bool PropertyText::isUpdated(const char * const texts[], const char * const names[], int n) const
+{
+    D_PTR(const PropertyText);
+    return d->typedProperty.isUpdated(texts, names, n);
+}
+
 }

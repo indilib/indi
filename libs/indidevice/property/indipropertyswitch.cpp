@@ -121,6 +121,12 @@ const char * PropertySwitch::getRuleAsString() const
     return d->typedProperty.getRuleAsString();
 }
 
+bool PropertySwitch::isUpdated(const ISState states[], const char * const names[], int n) const
+{
+    D_PTR(const PropertySwitch);
+    return d->typedProperty.isUpdated(states, names, n);
+}
+
 void PropertySwitch::onNewValues(const std::function<void(const INDI::PropertySwitch::NewValues &)> &callback)
 {
     D_PTR(PropertySwitch);
