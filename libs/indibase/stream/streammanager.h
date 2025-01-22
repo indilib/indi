@@ -26,6 +26,7 @@
 #include "indidevapi.h"
 #include "indibasetypes.h"
 #include "indimacros.h"
+#include <cstdint>
 #include <memory>
 
 /**
