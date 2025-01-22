@@ -109,6 +109,10 @@ class OutputInterface
         // Output Labels
         INDI::PropertyText DigitalOutputLabelsTP {0};
 
+        // Indicates whether we loaded the labels from configuration file successfully.
+        // If loaded from config file, then we do not need to overwrite.
+        bool m_DigitalOutputLabelsConfig {false};
+
         DefaultDevice *m_defaultDevice { nullptr };
 };
 }
