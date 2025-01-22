@@ -23,6 +23,7 @@
 #include "indibase.h"
 #include "indidriver.h"
 #include "indipropertyswitch.h"
+#include <cstdint>
 
 /**
  * \class DustCapInterface
