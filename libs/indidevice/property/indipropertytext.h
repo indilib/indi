@@ -34,6 +34,7 @@ class PropertyText: public INDI::PropertyBasic<IText>
 
     public:
         bool update(const char * const texts[], const char * const names[], int n);
+        bool isUpdated(const char * const texts[], const char * const names[], int n) const;
 
         void fill(
             const char *device, const char *name, const char *label, const char *group,

@@ -265,6 +265,42 @@ void PropertyView<INumber>::updateMinMax()
         WeakIUUpdateMinMax(this);
 }
 
+template <> template<>
+bool PropertyView<IText>::isUpdated(const char * const texts[], const char * const names[], int n) const
+{
+    for (int i = 0; i < n; i++)
+    {
+        auto widget = findWidgetByName(names[i]);
+        if (widget && strcmp(widget->getText(), texts[i]) != 0)
+            return true;
+    }
+    return false;
+}
+
+template <> template<>
+bool PropertyView<INumber>::isUpdated(const double values[], const char * const names[], int n) const
+{
+    for (int i = 0; i < n; i++)
+    {
+        auto widget = findWidgetByName(names[i]);
+        if (widget && widget->getValue() != values[i])
+            return true;
+    }
+    return false;
+}
+
+template <> template<>
+bool PropertyView<ISwitch>::isUpdated(const ISState states[], const char * const names[], int n) const
+{
+    for (int i = 0; i < n; i++)
+    {
+        auto widget = findWidgetByName(names[i]);
+        if (widget && widget->getState() != states[i])
+            return true;
+    }
+    return false;
+}
+
 void WidgetView<IText>::fill(const char *name, const char *label, const char *initialText)
 {
     IUFillText(this, name, label, initialText);

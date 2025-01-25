@@ -87,13 +87,15 @@ bool LightBoxInterface::updateProperties()
     {
         m_DefaultDevice->defineProperty(LightSP);
         m_DefaultDevice->defineProperty(LightIntensityNP);
+        if (!FilterIntensityNP.isEmpty())
+            m_DefaultDevice->defineProperty(FilterIntensityNP);
     }
     else
     {
         m_DefaultDevice->deleteProperty(LightSP);
         m_DefaultDevice->deleteProperty(LightIntensityNP);
 
-        if (FilterIntensityNP.count() > 0)
+        if (!FilterIntensityNP.isEmpty())
             m_DefaultDevice->deleteProperty(FilterIntensityNP);
     }
 
@@ -197,7 +199,7 @@ bool LightBoxInterface::processText(const char *dev, const char *name, char *tex
         if (!ActiveDeviceTP[0].isEmpty())
         {
             IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceTP[0].text, "FILTER_NAME");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_NAME");
         }
         // If filter removed, remove presets
         else
@@ -236,13 +238,15 @@ bool LightBoxInterface::SetLightBoxBrightness(uint16_t value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool LightBoxInterface::snoop(XMLEle *root)
 {
-    // If dimming not supported, we return
-    if (!(m_Capabilities & CAN_DIM))
+    auto deviceName = findXMLAttValu(root, "device");
+
+    // If dimming not supported or not our device, we return
+    if (!(m_Capabilities & CAN_DIM) || strcmp(ActiveDeviceTP[0].getText(), deviceName))
         return false;
 
-    XMLEle *ep           = nullptr;
-    const char *propTag  = tagXMLEle(root);
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle *ep = nullptr;
+    auto propTag  = tagXMLEle(root);
+    auto propName = findXMLAttValu(root, "name");
 
     if (!strcmp(propTag, "delProperty"))
         return false;
@@ -273,6 +277,7 @@ bool LightBoxInterface::snoop(XMLEle *root)
             if (isDifferent)
             {
                 m_DefaultDevice->deleteProperty(FilterIntensityNP);
+                FilterIntensityNP.resize(0);
             }
             else
                 return false;

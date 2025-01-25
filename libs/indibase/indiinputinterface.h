@@ -112,7 +112,7 @@ class InputInterface
 
         // Indicates whether we loaded the labels from configuration file successfully.
         // If loaded from config file, then we do not need to overwrite.
-        bool m_DigitalLabelConfig {false}, m_AnalogLabelConfig {false};
+        bool m_DigitalInputLabelsConfig {false}, m_AnalogInputLabelsConfig {false};
 
         DefaultDevice *m_defaultDevice { nullptr };
 };
