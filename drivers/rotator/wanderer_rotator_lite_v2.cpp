@@ -281,6 +281,7 @@ IPState WandererRotatorLiteV2::HomeRotator()
     if(GotoRotatorN[0].value!=0)
     {
     double angle = -1 * GotoRotatorN[0].value;
+    positionhistory = angle;
 
     char cmd[16];
     int position = (int)(angle * 1199+1000000);

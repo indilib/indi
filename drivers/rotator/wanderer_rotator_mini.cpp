@@ -240,6 +240,7 @@ bool WandererRotatorMini::Handshake()
 IPState WandererRotatorMini::MoveRotator(double angle)
 {
     angle = angle - GotoRotatorN[0].value;
+    positionhistory = angle;
 
     char cmd[16];
     int position = (int)(angle * 1142+1000000);
