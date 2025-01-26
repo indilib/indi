@@ -827,7 +827,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     if (!strcmp("TARGET_EOD_COORD", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         int rc_ra = -1, rc_de = -1;
-        double ra = 0, de = 0;
+        double ra = std::numeric_limits<double>::quiet_NaN(), de = std::numeric_limits<double>::quiet_NaN();
 
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -842,7 +842,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         //  Dont start moving the dome till the mount has initialized all the variables
         if (HaveRaDec && CanAbsMove())
         {
-            if (rc_ra == 0 && rc_de == 0)
+            if (rc_ra == 0 && rc_de == 0 && !std::isnan(ra) && !std::isnan(de))
             {
                 //  everything parsed ok, so lets start the dome to moving
                 //  If this slew involves a meridian flip, then the slaving calcs will end up using
@@ -866,7 +866,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     if (!strcmp("EQUATORIAL_EOD_COORD", propName) && deviceName == ActiveDeviceTP[ACTIVE_MOUNT].getText())
     {
         int rc_ra = -1, rc_de = -1;
-        double ra = 0, de = 0;
+        double ra = std::numeric_limits<double>::quiet_NaN(), de = std::numeric_limits<double>::quiet_NaN();
 
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -878,12 +878,16 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 rc_de = f_scansexa(pcdataXMLEle(ep), &de);
         }
 
-        if (rc_ra == 0 && rc_de == 0)
+        if (rc_ra == 0 && rc_de == 0 && !std::isnan(ra) && !std::isnan(de))
         {
             // Do not spam log
             if (std::fabs(mountEquatorialCoords.rightascension - ra) > 0.01
                     || std::fabs(mountEquatorialCoords.declination - de) > 0.01)
             {
+                // Ignore empty coords.
+                if (ra == 0 && de == 0)
+                    return true;
+
                 char RAStr[64] = {0}, DEStr[64] = {0};
                 fs_sexa(RAStr, ra, 2, 3600);
                 fs_sexa(DEStr, de, 2, 3600);
@@ -1352,9 +1356,8 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.latitude, hourAngle, OptCenter);
 
-    LOGF_DEBUG("OTA_SIDE: %d", OTASide);
-    LOGF_DEBUG("Mount OTA_SIDE: %d", mountOTASide);
-    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.latitude);
+    LOGF_DEBUG("OTA_SIDE: %d, Mount OTA_SIDE: %d, OTA_OFFSET: %d Lat: %g", OTASide, mountOTASide,
+               DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.latitude);
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // To be sure mountHoriztonalCoords is up to date.
@@ -2321,3 +2324,4 @@ void Dome::setDomeConnection(const uint8_t &value)
 }
 
 }
+
