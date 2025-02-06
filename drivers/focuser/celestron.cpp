@@ -182,12 +182,33 @@ bool CelestronSCT::Ack()
     if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::GET_VER, reply))
         return false;
 
-    if (reply.size() == 4)
+    // Check minimum size for firmware version
+    if (reply.empty())
     {
-        LOGF_INFO("Firmware Version %i.%i.%i", reply[0], reply [1], (reply[2] << 8) + reply[3]);
+        LOG_ERROR("Empty response from focuser");
+        return false;
+    }
+
+    // Ensure we have at least 2 bytes for major.minor version
+    if (reply.size() < 2)
+    {
+        LOG_ERROR("Incomplete firmware version response");
+        return false;
+    }
+
+    if (reply.size() >= 4)
+    {
+        // Full version with build number
+        uint16_t build = (reply[2] << 8);
+        if (reply.size() > 4)
+            build += reply[3];
+        LOGF_INFO("Firmware Version %d.%d.%d", reply[0], reply[1], build);
     }
     else
-        LOGF_INFO("Firmware Version %i.%i", reply[0], reply [1]);
+    {
+        // Just major.minor version
+        LOGF_INFO("Firmware Version %d.%d", reply[0], reply[1]);
+    }
     return true;
 }
 
@@ -197,32 +218,57 @@ bool CelestronSCT::readPosition()
     if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_GET_POSITION, reply))
         return false;
 
+    // Position response should be 3 bytes
+    if (reply.size() < 3)
+    {
+        LOG_ERROR("Invalid position response size");
+        return false;
+    }
+
     int truePos = (reply[0] << 16) + (reply[1] << 8) + reply[2];
-    LOGF_DEBUG("True Position %i", truePos);
+    LOGF_DEBUG("True Position %d", truePos);
     FocusAbsPosN[0].value = absPos(truePos);
     return true;
 }
 
 bool CelestronSCT::isMoving()
 {
-    Aux::buffer reply(1);
+    Aux::buffer reply;
     if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_SLEW_DONE, reply))
+    {
+        LOG_ERROR("Failed to get motion status");
         return false;
+    }
+
+    if (reply.empty())
+    {
+        LOG_ERROR("Empty motion status response");
+        return false;
+    }
+
     return reply[0] != static_cast<uint8_t>(0xFF);
 }
 
 // read the focuser limits from the hardware
 bool CelestronSCT::readLimits()
 {
-    Aux::buffer reply(8);
+    Aux::buffer reply;
     if(!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_GET_HS_POSITIONS, reply))
         return false;
+
+    // Limits response should be 8 bytes (4 bytes each for min and max positions)
+    if (reply.size() < 8)
+    {
+        LOG_ERROR("Invalid limits response size");
+        return false;
+    }
 
     truePosMin = (reply[0] << 24) + (reply[1] << 16) + (reply[2] << 8) + reply[3];
     truePosMax = (reply[4] << 24) + (reply[5] << 16) + (reply[6] << 8) + reply[7];
 
     // check on integrity of values
-    if (truePosMax <= truePosMin){
+    if (truePosMax <= truePosMin)
+    {
         focuserIsCalibrated = false;
         LOGF_INFO("Focus range %i to %i invalid", truePosMin, truePosMax);
         return false;
@@ -232,7 +278,7 @@ bool CelestronSCT::readLimits()
     FocusAbsPosN[0].max = FocusMaxPosN[0].value = absPos(truePosMin);
     FocusAbsPosNP.s = IPS_OK;
     FocusMaxPosNP.s = IPS_OK;
-    IUUpdateMinMax(&FocusAbsPosNP);  
+    IUUpdateMinMax(&FocusAbsPosNP);
     IDSetNumber(&FocusMaxPosNP, nullptr);
 
     // FocusMinPosN[0].value = lo;
@@ -332,8 +378,8 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
 
     // the focuser seems happy to move 500 steps past the soft limit so don't check backlash
     if (targetTicks > FocusMaxPosN[0].value)
-            // targetTicks < FocusMinPosN[0].value)
-            
+        // targetTicks < FocusMinPosN[0].value)
+
     {
         LOGF_ERROR("Move to %i not allowed because it is out of range", targetTicks);
         return IPS_ALERT;
@@ -442,7 +488,19 @@ void CelestronSCT::TimerHit()
         usleep(500000);     // slowing things down while calibrating seems to help
         // check the calibration state
         Aux::buffer reply;
-        communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_CALIB_DONE, reply);
+        if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_CALIB_DONE, reply))
+        {
+            LOG_ERROR("Failed to get calibration status");
+            return;
+        }
+
+        // Need at least 2 bytes for complete flag and state
+        if (reply.size() < 2)
+        {
+            LOG_ERROR("Invalid calibration status response size");
+            return;
+        }
+
         bool complete = reply[0] > 0;
         int state = reply[1];
 
@@ -499,4 +557,3 @@ bool CelestronSCT::SetFocuserBacklash(int32_t steps)
     INDI_UNUSED(steps);
     return true;
 }
-
