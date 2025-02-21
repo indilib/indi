@@ -113,7 +113,7 @@ class LX200_10MICRON : public LX200Generic
         bool Park() override;
         bool UnPark() override;
         bool SetTrackEnabled(bool enabled) override;
-        bool flip();
+        bool Flip(double ra, double dec) override;
         bool getUnattendedFlipSetting();
         bool setUnattendedFlipSetting(bool setting);
         bool SyncConfigBehaviour(bool cmcfg);
@@ -180,6 +180,7 @@ class LX200_10MICRON : public LX200Generic
     private:
         int fd = -1; // short notation for PortFD/sockfd
         bool getMountInfo();
+        bool flip();
 
         int OldGstat = GSTAT_UNSET;
         struct _Ginfo
