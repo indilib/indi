@@ -18,6 +18,7 @@
 
 #include "indioutputinterface.h"
 #include "defaultdevice.h"
+#include "inditimer.h"
 #include "../../libs/modbus/nanomodbus.h"
 
 class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
@@ -32,6 +33,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
         bool Handshake();
@@ -62,4 +64,5 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
         INDI::PropertyText FirmwareVersionTP {1};
         int PortFD{-1};
         nmbs_t nmbs;
+
 };

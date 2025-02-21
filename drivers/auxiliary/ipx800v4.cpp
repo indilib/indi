@@ -335,6 +335,14 @@ bool IPX800::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool IPX800::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (OutputInterface::processNumber(dev, name, values, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
 bool IPX800::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);

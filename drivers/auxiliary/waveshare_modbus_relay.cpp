@@ -152,6 +152,14 @@ bool WaveshareRelay::ISNewSwitch(const char *dev, const char *name, ISState *sta
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool WaveshareRelay::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (INDI::OutputInterface::processNumber(dev, name, values, names, n))
+        return true;
+
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
