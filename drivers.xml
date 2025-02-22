@@ -13,7 +13,7 @@
         </device>
         <device label="LX200 10micron" manufacturer="10 Micron">
             <driver name="LX200 10micron">indi_lx200_10micron</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>

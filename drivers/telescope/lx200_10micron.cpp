@@ -3,7 +3,7 @@
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
     Mount Command Protocol 2.14.11
 
-    Copyright (C) 2017-2023 Hans Lambermont
+    Copyright (C) 2017-2025 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -67,6 +67,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         TELESCOPE_CAN_GOTO |
         TELESCOPE_CAN_SYNC |
         TELESCOPE_CAN_PARK |
+        TELESCOPE_CAN_FLIP |
         TELESCOPE_CAN_ABORT |
         TELESCOPE_HAS_TIME |
         TELESCOPE_HAS_LOCATION |
@@ -78,7 +79,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
         4
     );
 
-    setVersion(1, 2); // don't forget to update drivers.xml
+    setVersion(1, 3); // don't forget to update drivers.xml
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
@@ -649,6 +650,13 @@ bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
         return true;
     }
     return false;
+}
+
+bool LX200_10MICRON::Flip(double ra, double dec)
+{
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
+    return flip();
 }
 
 bool LX200_10MICRON::flip()
