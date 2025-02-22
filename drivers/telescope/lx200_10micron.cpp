@@ -654,6 +654,8 @@ bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
 
 bool LX200_10MICRON::Flip(double ra, double dec)
 {
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
     return flip();
 }
 
