@@ -1303,12 +1303,16 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     WI::saveConfigItems(fp);
 
     PowerLEDSP.save(fp);
-    AutoDewSP.save(fp);
-    if (version == UPB_V2)
+    if (version == UPB_V1) {
+        AutoDewSP.save(fp);
+    }
+    if (version == UPB_V2) {
+        IUSaveConfigSwitch(fp, &AutoDewV2SP);
         AutoDewAggNP.save(fp);
+    }
     FocuserSettingsNP.save(fp);
     PowerControlsLabelsTP.save(fp);
-    DewControlsLabelsTP.apply();
+    DewControlsLabelsTP.save(fp);
     USBControlsLabelsTP.save(fp);
     return true;
 }
