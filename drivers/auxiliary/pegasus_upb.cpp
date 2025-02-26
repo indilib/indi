@@ -73,26 +73,26 @@ bool PegasusUPB::initProperties()
     PowerCycleAllSP[POWER_CYCLE_ON].fill("POWER_CYCLE_ON", "All On", ISS_OFF);
     PowerCycleAllSP[POWER_CYCLE_OFF].fill("POWER_CYCLE_OFF", "All Off", ISS_OFF);
     PowerCycleAllSP.fill(getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                         IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
     RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
-                       60, IPS_IDLE);
+                  60, IPS_IDLE);
 
     // Power Sensors
     PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     PowerSensorsNP[SENSOR_CURRENT].fill("SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
     PowerSensorsNP[SENSOR_POWER].fill("SENSOR_POWER", "Power (W)", "%4.2f", 0, 999, 100, 0);
     PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
-                       60, IPS_IDLE);
+                        60, IPS_IDLE);
 
     // Overall Power Consumption
     PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
     PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
-                       MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+                            MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -103,21 +103,24 @@ bool PegasusUPB::initProperties()
     DewControlsLabelsTP[DEW_LABEL_2].fill("DEW_LABEL_2", "Dew B", "Dew B");
     DewControlsLabelsTP[DEW_LABEL_3].fill("DEW_LABEL_3", "Dew C", "Dew C");
     DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "Dew Labels",
-                     DEW_TAB, IP_WO, 60, IPS_IDLE);
+                             DEW_TAB, IP_WO, 60, IPS_IDLE);
 
     char dewLabel[MAXINDILABEL];
 
     // Turn on/off power and power boot up
     memset(dewLabel, 0, MAXINDILABEL);
-    int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_1].getName(), dewLabel,
+    int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_1].getName(),
+                                dewLabel,
                                 MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_2].getName(), dewLabel,
+    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_2].getName(),
+                            dewLabel,
                             MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_3].getName(), dewLabel,
+    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[DEW_LABEL_3].getName(),
+                            dewLabel,
                             MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
     IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
@@ -128,40 +131,44 @@ bool PegasusUPB::initProperties()
     DewControlsLabelsTP[DEW_LABEL_2].fill("DEW_LABEL_2", "Dew B", AutoDewV2S[1].label);
     DewControlsLabelsTP[DEW_LABEL_3].fill("DEW_LABEL_3", "Dew C", AutoDewV2S[2].label);
     DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "DEW Labels",
-                     DEW_TAB, IP_WO, 60, IPS_IDLE);
+                             DEW_TAB, IP_WO, 60, IPS_IDLE);
     // Power Labels
     PowerControlsLabelsTP[POWER_LABEL_1].fill("POWER_LABEL_1", "Port 1", "Port 1");
     PowerControlsLabelsTP[POWER_LABEL_2].fill("POWER_LABEL_2", "Port 2", "Port 2");
     PowerControlsLabelsTP[POWER_LABEL_3].fill("POWER_LABEL_3", "Port 3", "Port 3");
     PowerControlsLabelsTP[POWER_LABEL_4].fill("POWER_LABEL_4", "Port 4", "Port 4");
     PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
-                     POWER_TAB, IP_WO, 60, IPS_IDLE);
+                               POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     char portLabel[MAXINDILABEL];
 
     // Turn on/off power and power boot up
     memset(portLabel, 0, MAXINDILABEL);
-    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_1].getName(), portLabel,
+    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(),
+                                 PowerControlsLabelsTP[POWER_LABEL_1].getName(), portLabel,
                                  MAXINDILABEL);
     PowerControlSP[POWER_CONTROL_1].fill("POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_2].getName(), portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_2].getName(),
+                             portLabel,
                              MAXINDILABEL);
     PowerControlSP[POWER_CONTROL_2].fill("POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_3].getName(), portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_3].getName(),
+                             portLabel,
                              MAXINDILABEL);
     PowerControlSP[POWER_CONTROL_3].fill("POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_4].getName(), portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[POWER_LABEL_4].getName(),
+                             portLabel,
                              MAXINDILABEL);
-   PowerControlSP[POWER_CONTROL_4].fill("POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
+    PowerControlSP[POWER_CONTROL_4].fill("POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
 
     PowerControlSP.fill(getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW,
-                       ISR_NOFMANY, 60, IPS_IDLE);
+                        ISR_NOFMANY, 60, IPS_IDLE);
 
     // Power Labels
     PowerControlsLabelsTP[POWER_LABEL_1].fill("POWER_LABEL_1", "Port 1", PowerControlSP[POWER_CONTROL_1].getLabel());
@@ -169,15 +176,19 @@ bool PegasusUPB::initProperties()
     PowerControlsLabelsTP[POWER_LABEL_3].fill( "POWER_LABEL_3", "Port 3", PowerControlSP[POWER_CONTROL_3].getLabel());
     PowerControlsLabelsTP[POWER_LABEL_4].fill( "POWER_LABEL_4", "Port 4", PowerControlSP[POWER_CONTROL_4].getLabel());
     PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
-                     POWER_TAB, IP_WO, 60, IPS_IDLE);
+                               POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     // Current Draw
-    PowerCurrentNP[POWER_CURRENT_1].fill("POWER_CURRENT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), "%4.2f A", 0, 1000, 0, 0);
-    PowerCurrentNP[POWER_CURRENT_2].fill("POWER_CURRENT_2", PowerControlSP[POWER_CONTROL_2].getLabel(), "%4.2f A", 0, 1000, 0, 0);
-    PowerCurrentNP[POWER_CURRENT_3].fill("POWER_CURRENT_3", PowerControlSP[POWER_CONTROL_3].getLabel(), "%4.2f A", 0, 1000, 0, 0);
-    PowerCurrentNP[POWER_CURRENT_4].fill("POWER_CURRENT_4", PowerControlSP[POWER_CONTROL_4].getLabel(), "%4.2f A", 0, 1000, 0, 0);
+    PowerCurrentNP[POWER_CURRENT_1].fill("POWER_CURRENT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), "%4.2f A", 0, 1000, 0,
+                                         0);
+    PowerCurrentNP[POWER_CURRENT_2].fill("POWER_CURRENT_2", PowerControlSP[POWER_CONTROL_2].getLabel(), "%4.2f A", 0, 1000, 0,
+                                         0);
+    PowerCurrentNP[POWER_CURRENT_3].fill("POWER_CURRENT_3", PowerControlSP[POWER_CONTROL_3].getLabel(), "%4.2f A", 0, 1000, 0,
+                                         0);
+    PowerCurrentNP[POWER_CURRENT_4].fill("POWER_CURRENT_4", PowerControlSP[POWER_CONTROL_4].getLabel(), "%4.2f A", 0, 1000, 0,
+                                         0);
     PowerCurrentNP.fill(getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO,
-                       60, IPS_IDLE);
+                        60, IPS_IDLE);
 
     // Power on Boot
     PowerOnBootSP[POWER_PORT_1].fill("POWER_PORT_1", PowerControlSP[POWER_CONTROL_1].getLabel(), ISS_ON);
@@ -204,17 +215,17 @@ bool PegasusUPB::initProperties()
     sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[2].label);
     OverCurrentLP[DEW_C].fill("DEW_C", tempLabel, IPS_OK);
     OverCurrentLP.fill(getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
-                      IPS_IDLE);
+                       IPS_IDLE);
 
     // Power LED
     PowerLEDSP[POWER_LED_ON].fill("POWER_LED_ON", "On", ISS_ON);
     PowerLEDSP[POWER_LED_OFF].fill("POWER_LED_OFF", "Off", ISS_OFF);
     PowerLEDSP.fill(getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60,
-                       IPS_IDLE);
+                    IPS_IDLE);
 
     AdjustableOutputNP[0].fill("ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
     AdjustableOutputNP.fill(getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output",
-                       POWER_TAB, IP_RW, 60, IPS_IDLE);
+                            POWER_TAB, IP_RW, 60, IPS_IDLE);
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -225,12 +236,12 @@ bool PegasusUPB::initProperties()
     AutoDewSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     AutoDewSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     AutoDewSP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
-                       IPS_IDLE);
+                   IPS_IDLE);
 
     // Automatic Dew Aggressiveness v2
     AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
     AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
-                       IPS_IDLE);
+                      IPS_IDLE);
 
     // Dew PWM
     DewPWMNP[DEW_PWM_A].fill("DEW_A", AutoDewV2S[0].label, "%.2f %%", 0, 100, 10, 0);
@@ -243,7 +254,7 @@ bool PegasusUPB::initProperties()
     DewCurrentDrawNP[DEW_PWM_B].fill("DEW_CURRENT_B", AutoDewV2S[1].label, "%4.2f A", 0, 1000, 10, 0);
     DewCurrentDrawNP[DEW_PWM_C].fill("DEW_CURRENT_C", AutoDewV2S[2].label, "%4.2f A", 0, 1000, 10, 0);
     DewCurrentDrawNP.fill(getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60,
-                       IPS_IDLE);
+                          IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// USB Group
@@ -253,7 +264,7 @@ bool PegasusUPB::initProperties()
     USBControlSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     USBControlSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     USBControlSP.fill(getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
-                       60, IPS_IDLE);
+                      60, IPS_IDLE);
 
     // USB Labels
     USBControlsLabelsTP[USB_LABEL_1].fill("USB_LABEL_1", "USB3 Port1", "USB3 Port1");
@@ -264,7 +275,7 @@ bool PegasusUPB::initProperties()
     USBControlsLabelsTP[USB_LABEL_6].fill("USB_LABEL_6", "USB2 Port6", "USB2 Port6");
 
     USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
-                     USB_TAB, IP_WO, 60, IPS_IDLE);
+                             USB_TAB, IP_WO, 60, IPS_IDLE);
 
     // USB Hub control v2
 
@@ -297,7 +308,7 @@ bool PegasusUPB::initProperties()
     USBControlV2SP[PORT_6].fill("PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
 
     USBControlV2SP.fill(getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
-                       ISR_NOFMANY, 60, IPS_IDLE);
+                        ISR_NOFMANY, 60, IPS_IDLE);
 
     // USB Labels update with custom values
     USBControlsLabelsTP[USB_LABEL_1].fill("USB_LABEL_1", "USB3 Port1", USBControlV2SP[PORT_1].getLabel());
@@ -308,7 +319,7 @@ bool PegasusUPB::initProperties()
     USBControlsLabelsTP[USB_LABEL_6].fill("USB_LABEL_6", "USB2 Port6", USBControlV2SP[PORT_6].getLabel());
 
     USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
-                     USB_TAB, IP_WO, 60, IPS_IDLE);
+                             USB_TAB, IP_WO, 60, IPS_IDLE);
     // USB Hub Status
     USBStatusLP[PORT_1].fill("PORT_1", USBControlV2SP[PORT_1].getLabel(), IPS_OK);
     USBStatusLP[PORT_2].fill("PORT_2", USBControlV2SP[PORT_2].getLabel(), IPS_OK);
@@ -326,14 +337,14 @@ bool PegasusUPB::initProperties()
     //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
     FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     FocuserSettingsNP.fill(getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
-                       IP_RW, 60, IPS_IDLE);
+                           IP_RW, 60, IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
     ////////////////////////////////////////////////////////////////////////////
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
     FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
-                     IPS_IDLE);
+                    IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
@@ -615,7 +626,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             PowerOnBootSP.update(states, names, n);
             PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
             PowerOnBootSP.apply();
-            saveConfig(true, PowerOnBootSP.getName());
+            saveConfig(PowerOnBootSP);
             return true;
         }
 
@@ -666,6 +677,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             }
 
             IDSetSwitch(&AutoDewV2SP, nullptr);
+            saveConfig(true, AutoDewV2SP.name);
             return true;
         }
 
@@ -871,7 +883,7 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
             PowerControlsLabelsTP.update(texts, names, n);
             PowerControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("Power port labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig();
+            saveConfig(PowerControlsLabelsTP);
             PowerControlsLabelsTP.apply();
             return true;
         }
@@ -881,7 +893,7 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
             DewControlsLabelsTP.update(texts, names, n);
             DewControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("Dew labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig();
+            saveConfig(DewControlsLabelsTP);
             DewControlsLabelsTP.apply();
             return true;
         }
@@ -891,7 +903,7 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
             USBControlsLabelsTP.update(texts, names, n);
             USBControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("USB labels saved. Driver must be restarted for the labels to take effect.");
-            saveConfig();
+            saveConfig(USBControlsLabelsTP);
             USBControlsLabelsTP.apply();
             return true;
         }
