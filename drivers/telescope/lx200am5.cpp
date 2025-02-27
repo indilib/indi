@@ -126,7 +126,8 @@ bool LX200AM5::initProperties()
     HeavyDutyModeSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     HeavyDutyModeSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     HeavyDutyModeSP.fill(getDeviceName(), "HEAVY_DUTY_MODE", "Heavy Duty Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    HeavyDutyModeSP.onUpdate([this]{
+    HeavyDutyModeSP.onUpdate([this]
+    {
         bool enabled = HeavyDutyModeSP[INDI_ENABLED].getState() == ISS_ON;
         IPState state = setHeavyDutyMode(enabled) ? IPS_OK : IPS_ALERT;
         HeavyDutyModeSP.setState(state);
@@ -141,7 +142,8 @@ bool LX200AM5::initProperties()
     // Post Meridian Track
     PostMeridianTrackSP[TRACK].fill("TRACK", "Track", ISS_ON);
     PostMeridianTrackSP[STOP].fill("STOP", "Stop", ISS_OFF);
-    PostMeridianTrackSP.fill(getDeviceName(), "POST_MERIDIAN_TRACK", "After Meridian", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    PostMeridianTrackSP.fill(getDeviceName(), "POST_MERIDIAN_TRACK", "After Meridian", MERIDIAN_FLIP_TAB, IP_RW, ISR_1OFMANY,
+                             60, IPS_IDLE);
 
     // Meridian Flip Limit
     MeridianLimitNP[0].fill("LIMIT", "Limit (deg)", "%.f", -15, 15, 1, 0);
@@ -375,7 +377,7 @@ bool LX200AM5::SetSlewRate(int index)
 bool LX200AM5::setGuideRate(double value)
 {
     char command[DRIVER_LEN] = {0};
-    snprintf(command, DRIVER_LEN, ":Rg%.2f", value);
+    snprintf(command, DRIVER_LEN, ":Rg%.2f#", value);
     return sendCommand(command);
 }
 
