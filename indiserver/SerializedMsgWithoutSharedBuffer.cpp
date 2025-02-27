@@ -19,7 +19,9 @@
 #include "SerializedMsgWithoutSharedBuffer.hpp"
 #include "Utils.hpp"
 #include "Msg.hpp"
+#include "MsgChunck.hpp"
 #include "base64.h"
+
 #include <unordered_map>
 
 SerializedMsgWithoutSharedBuffer::SerializedMsgWithoutSharedBuffer(Msg * parent): SerializedMsg(parent)

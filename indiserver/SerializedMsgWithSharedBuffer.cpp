@@ -18,6 +18,7 @@
 */
 #include "SerializedMsgWithSharedBuffer.hpp"
 
+#include "MsgChunck.hpp"
 #include "Utils.hpp"
 #include "Msg.hpp"
 #include "sharedblob.h"
