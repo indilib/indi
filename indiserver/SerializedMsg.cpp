@@ -36,7 +36,7 @@ SerializedMsg::SerializedMsg(Msg * parent) : asyncProgress(), owner(parent), awa
         }
     }
     requirements.xml = true;
-    asyncStatus = PENDING;
+    asyncStatus = SerializationStatus::pending;
     asyncProgress.set<SerializedMsg, &SerializedMsg::async_progressed>(this);
 }
 
@@ -52,7 +52,7 @@ SerializedMsg::~SerializedMsg()
 bool SerializedMsg::async_canceled()
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
-    return asyncStatus == CANCELING;
+    return asyncStatus == SerializationStatus::canceling;
 }
 
 void SerializedMsg::async_updateRequirement(const SerializationRequirement &req)
@@ -77,19 +77,19 @@ void SerializedMsg::async_pushChunck(const MsgChunck &m)
 void SerializedMsg::async_done()
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
-    asyncStatus = TERMINATED;
+    asyncStatus = SerializationStatus::terminated;
     asyncProgress.send();
 }
 
 void SerializedMsg::async_start()
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
-    if (asyncStatus != PENDING)
+    if (asyncStatus != SerializationStatus::pending)
     {
         return;
     }
 
-    asyncStatus = RUNNING;
+    asyncStatus = SerializationStatus::running;
     if (generateContentAsync())
     {
         asyncProgress.start();
@@ -110,7 +110,7 @@ void SerializedMsg::async_progressed()
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus == TERMINATED)
+    if (asyncStatus == SerializationStatus::terminated)
     {
         // FIXME: unblock ?
         asyncProgress.stop();
@@ -130,7 +130,7 @@ bool SerializedMsg::isAsyncRunning()
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    return (asyncStatus == RUNNING) || (asyncStatus == CANCELING);
+    return (asyncStatus == SerializationStatus::running) || (asyncStatus == SerializationStatus::canceling);
 }
 
 
@@ -138,12 +138,12 @@ bool SerializedMsg::requestContent(const MsgChunckIterator &position)
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus == PENDING)
+    if (asyncStatus == SerializationStatus::pending)
     {
         async_start();
     }
 
-    if (asyncStatus == TERMINATED)
+    if (asyncStatus == SerializationStatus::terminated)
     {
         return true;
     }
@@ -162,7 +162,7 @@ bool SerializedMsg::getContent(MsgChunckIterator &from, void* &data, ssize_t &si
 {
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    if (asyncStatus != TERMINATED && from.chunckId >= chuncks.size())
+    if (asyncStatus != SerializationStatus::terminated && from.chunckId >= chuncks.size())
     {
         // Not ready yet
         return false;
@@ -203,7 +203,7 @@ void SerializedMsg::advance(MsgChunckIterator &iter, ssize_t s)
     {
         iter.chunckId ++ ;
         iter.chunckOffset = 0;
-        if (iter.chunckId >= chuncks.size() && asyncStatus == TERMINATED)
+        if (iter.chunckId >= chuncks.size() && asyncStatus == SerializationStatus::terminated)
         {
             iter.endReached = true;
         }

@@ -19,7 +19,6 @@
 #pragma once
 
 #include "SerializationRequirement.hpp"
-#include "MsgChunck.hpp"
 
 #include <mutex>
 #include <vector>
@@ -27,10 +26,11 @@
 #include <ev++.h>
 
 class Msg;
+class MsgChunck;
 class MsgChunckIterator;
 class MsgQueue;
 
-enum SerializationStatus { PENDING, RUNNING, CANCELING, TERMINATED };
+enum class SerializationStatus { pending, running, canceling, terminated };
 
 class SerializedMsg
 {
@@ -61,8 +61,6 @@ class SerializedMsg
 
         // True if a producing thread is active
         bool isAsyncRunning();
-
-    protected:
 
         SerializationStatus asyncStatus;
         Msg * owner;
