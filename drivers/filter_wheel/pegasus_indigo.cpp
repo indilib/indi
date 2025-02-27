@@ -57,8 +57,8 @@ bool PegasusINDIGO::initProperties()
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 7;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(7);
 
     return true;
 }
@@ -132,7 +132,7 @@ bool PegasusINDIGO::SelectFilter(int position)
 //////////////////////////////////////////////////////////////////////
 void PegasusINDIGO::TimerHit()
 {
-    if (isConnected() && FilterSlotNP.s == IPS_BUSY)
+    if (isConnected() && FilterSlotNP.getState() == IPS_BUSY)
     {
         char response[DRIVER_LEN] = {0};
         if (sendCommand("WF", response))
@@ -240,4 +240,3 @@ std::vector<std::string> PegasusINDIGO::split(const std::string &input, const st
           last;
     return {first, last};
 }
-

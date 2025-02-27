@@ -50,8 +50,8 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
     time(&RunStart);
 
     // Filter stuff
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 8;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(8);
 }
 
 bool CCDSim::setupParameters()
@@ -238,8 +238,8 @@ bool CCDSim::initProperties()
 
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 8;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(8);
 
     addDebugControl();
 
@@ -1054,12 +1054,10 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if (strcmp(name, FilterNameTP->name) == 0)
-        {
-            INDI::FilterInterface::processText(dev, name, texts, names, n);
+        if (INDI::FilterInterface::processText(dev, name, texts, names, n))
             return true;
-        }
-        else if (DirectoryTP.isNameMatch(name))
+
+        if (DirectoryTP.isNameMatch(name))
         {
             DirectoryTP.update(texts, names, n);
             if (DirectorySP[INDI_ENABLED].getState() == ISS_OFF || (DirectorySP[INDI_ENABLED].getState() == ISS_ON && watchDirectory()))
@@ -1080,6 +1078,8 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (INDI::FilterInterface::processNumber(dev, name, values, names, n))
+            return true;
 
         if (GainNP.isNameMatch(name))
         {
@@ -1127,11 +1127,6 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             usePE = true;
 
             EqPENP.apply();
-            return true;
-        }
-        else if (!strcmp(name, FilterSlotNP.name))
-        {
-            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
         else if (FocusSimulationNP.isNameMatch(name))

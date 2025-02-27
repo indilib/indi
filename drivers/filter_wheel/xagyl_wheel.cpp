@@ -341,16 +341,16 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
 void XAGYLWheel::initOffset()
 {
     delete [] OffsetN;
-    OffsetN = new INumber[static_cast<uint8_t>(FilterSlotN[0].max)];
+    OffsetN = new INumber[static_cast<uint8_t>(FilterSlotNP[0].getMax())];
     char offsetName[MAXINDINAME], offsetLabel[MAXINDILABEL];
-    for (int i = 0; i < FilterSlotN[0].max; i++)
+    for (int i = 0; i < FilterSlotNP[0].getMax(); i++)
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i + 1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i + 1);
         IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -9, 9, 1, 0);
     }
 
-    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(),
+    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotNP[0].getMax(), getDeviceName(),
                        "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
 }
 
@@ -511,7 +511,7 @@ bool XAGYLWheel::getFilterPosition()
 
     if (rc > 0)
     {
-        FilterSlotN[0].value = CurrentFilter;
+        FilterSlotNP[0].setValue(CurrentFilter);
         return true;
     }
     else
@@ -616,7 +616,7 @@ bool XAGYLWheel::getMaxFilterSlots()
 
     if (rc > 0)
     {
-        FilterSlotN[0].max = maxFilterSlots;
+        FilterSlotNP[0].setMax(maxFilterSlots);
         return true;
     }
     return false;

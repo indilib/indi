@@ -53,9 +53,9 @@ bool ManualFilter::initProperties()
     double maxFilters = 5;
     IUGetConfigNumber(getDeviceName(), "MAX_FILTERS", "MAX", &maxFilters);
     // If names are already loaded, then we ignore all and use this instead.
-    if (FilterNameT)
-        maxFilters = FilterNameTP->ntp;
-    FilterSlotN[0].max = maxFilters;
+    if (FilterNameTP.size() > 0)
+        maxFilters = FilterNameTP.size();
+    FilterSlotNP[0].setMax(maxFilters);
     IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, maxFilters);
     IUFillNumberVector(&MaxFiltersNP, MaxFiltersN, 1, getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
@@ -93,8 +93,8 @@ bool ManualFilter::ISNewNumber(const char *dev, const char *name, double values[
         {
             IUUpdateNumber(&SyncNP, values, names, n);
             CurrentFilter = SyncN[0].value;
-            FilterSlotN[0].value = CurrentFilter;
-            IDSetNumber(&FilterSlotNP, nullptr);
+            FilterSlotNP[0].setValue(CurrentFilter);
+            FilterSlotNP.apply();
             SyncNP.s = IPS_OK;
             IDSetNumber(&SyncNP, nullptr);
 
@@ -105,7 +105,7 @@ bool ManualFilter::ISNewNumber(const char *dev, const char *name, double values[
         else if (!strcmp(MaxFiltersNP.name, name))
         {
             IUUpdateNumber(&MaxFiltersNP, values, names, n);
-            FilterSlotN[0].max = MaxFiltersN[0].value;
+            FilterSlotNP[0].setMax(MaxFiltersN[0].value);
             MaxFiltersNP.s = IPS_OK;
             saveConfig(true, MaxFiltersNP.name);
             IDSetNumber(&MaxFiltersNP, nullptr);
@@ -150,7 +150,7 @@ bool ManualFilter::SelectFilter(int f)
 
     FilterSetSP.s = IPS_BUSY;
     IDSetSwitch(&FilterSetSP, nullptr);
-    LOGF_INFO("Please change filter to %s then click Filter is set when done.", FilterNameT[f - 1].text);
+    LOGF_INFO("Please change filter to %s then click Filter is set when done.", FilterNameTP[f - 1].getText());
     return true;
 }
 
