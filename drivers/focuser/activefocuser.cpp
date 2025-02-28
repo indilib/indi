@@ -182,39 +182,39 @@ bool ActiveFocuser::initProperties()
 
     // Setting focus max position constant
 
-    FocusMaxPosN[0].value = MAX_TICKS;
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP[0].setValue(MAX_TICKS);
+    FocusMaxPosNP.setPermission(IP_RO);
     strncpy(FocusMaxPosN[0].label, "Steps", MAXINDILABEL);
 
     // Disabling focuser speed
 
-    FocusSpeedN[0].min = 0;
-    FocusSpeedN[0].max = 0;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedN\[0\]\.setMin()
+    FocusSpeedNP[0].setMax(0);
+    FocusSpeedNP[0].setValue(1);
     IUUpdateMinMax(&FocusSpeedNP);
 
     // Setting default absolute position values
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = MAX_TICKS;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(MAX_TICKS);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000.);
     strncpy(FocusAbsPosN[0].label, "Steps", MAXINDILABEL);
 
 
     // Setting default relative position values
 
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 5000;
-    FocusRelPosN[0].value = 100;
-    FocusRelPosN[0].step = 1;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000);
+    FocusRelPosNP[0].setValue(100);
+    FocusRelPosNP[0].setStep(1);
     strncpy(FocusRelPosN[0].label, "Steps", MAXINDILABEL);
 
     PresetN[0].max = MAX_TICKS;
     PresetN[1].max = MAX_TICKS;
     PresetN[2].max = MAX_TICKS;
 
-    internalTicks = FocusAbsPosN[0].value;
+    internalTicks = FocusAbsPosNP[0].getValue();
 
     setDefaultPollingPeriod(750);
 
@@ -422,8 +422,8 @@ IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks)
 IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks)
 {
 
-    FocusRelPosN[0].value = ticks;
-    IDSetNumber(&FocusRelPosNP, nullptr);
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.apply();
 
     int relativeTicks = ((dir == FOCUS_INWARD ? ticks : -ticks));
 
@@ -446,8 +446,8 @@ void ActiveFocuser::TimerHit()
     {
 
         MAX_TICKS = ActiveFocuserUtils::SystemState::GetSpan();
-        FocusMaxPosN[0].value = MAX_TICKS;
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP[0].setValue(MAX_TICKS);
+        FocusMaxPosNP.apply();
 
         PresetN[0].max = MAX_TICKS;
         PresetN[1].max = MAX_TICKS;
@@ -456,10 +456,10 @@ void ActiveFocuser::TimerHit()
         HardwareVersionN[0].text = ActiveFocuserUtils::SystemState::GetHardwareRevision();
         IDSetText(&HardwareVersionNP, nullptr);
 
-        FocusAbsPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPositionStep();
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(ActiveFocuserUtils::SystemState::GetCurrentPositionStep());
+        FocusAbsPosNP.apply();
 
-        internalTicks = FocusAbsPosN[0].value;
+        internalTicks = FocusAbsPosNP[0].getValue();
 
         AirTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetAirTemperature();
         IDSetNumber(&AirTemperatureNP, nullptr);
@@ -481,13 +481,13 @@ void ActiveFocuser::TimerHit()
 
         if(ActiveFocuserUtils::SystemState::GetIsMoving())
         {
-            FocusAbsPosNP.s = IPS_BUSY;
-            FocusRelPosNP.s = IPS_BUSY;
+            FocusAbsPosNP.setState(IPS_BUSY);
+            FocusRelPosNP.setState(IPS_BUSY);
         }
         else
         {
-            FocusAbsPosNP.s = IPS_IDLE;
-            FocusRelPosNP.s = IPS_IDLE;
+            FocusAbsPosNP.setState(IPS_IDLE);
+            FocusRelPosNP.setState(IPS_IDLE);
         }
 
         SetTimer(getCurrentPollingPeriod());

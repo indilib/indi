@@ -62,10 +62,10 @@ MBabcdnz - write memory dword - abcd = content, n = address
 response - MBabcd0z(?)
 
 MC0000nz - read memory word - n = address
-response - 
+response -
 
 MDab00nz - write memory word - ab = content, n = address
-response - 
+response -
 
 ----
 
@@ -117,9 +117,9 @@ bool DreamFocuser::initProperties()
     INDI::Focuser::initProperties();
 
     // Default speed
-    //FocusSpeedN[0].min = 0;
-    //FocusSpeedN[0].max = 127;
-    //FocusSpeedN[0].value = 50;
+    //FocusSpeedNPsetMin(0)
+    //FocusSpeedNP[0].setMax(127);
+    //FocusSpeedNP[0].setValue(50);
     //IUUpdateMinMax(&FocusSpeedNP);
 
     // Max Position
@@ -140,34 +140,37 @@ bool DreamFocuser::initProperties()
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE);
 
     // Focuser humidity and dewpoint
     IUFillNumber(&WeatherN[0], "FOCUS_HUMIDITY", "Humidity [%]", "%6.1f", 0, 100, 0, 0);
     IUFillNumber(&WeatherN[1], "FOCUS_DEWPOINT", "Dew point [C]", "%6.1f", -100, 100, 0, 0);
-    IUFillNumberVector(&WeatherNP, WeatherN, 2, getDeviceName(), "FOCUS_WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&WeatherNP, WeatherN, 2, getDeviceName(), "FOCUS_WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     // We init here the property we wish to "snoop" from the target device
     IUFillSwitch(&StatusS[0], "ABSOLUTE", "Absolute", ISS_OFF);
     IUFillSwitch(&StatusS[1], "MOVING", "Moving", ISS_OFF);
     IUFillSwitch(&StatusS[2], "PARKED", "Parked", ISS_OFF);
-    IUFillSwitchVector(&StatusSP, StatusS, 3, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StatusSP, StatusS, 3, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0,
+                       IPS_IDLE);
 
-    //    PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosN[0].min = -MaxPositionN[0].value;
-    //    PresetN[0].max = PresetN[1].max = PresetN[2].max = FocusAbsPosN[0].max = MaxPositionN[0].value;
+    //    PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosNP[0].setMin(-MaxPositionN[0].value);
+    //    PresetN[0].max = PresetN[1].max = PresetN[2].max = FocusAbsPosNP[0].setMax(MaxPositionN[0].value);
     //    strcpy(PresetN[0].format, "%6.0f");
     //    strcpy(PresetN[1].format, "%6.0f");
     //    strcpy(PresetN[2].format, "%6.0f");
-    //    PresetN[0].step = PresetN[1].step = PresetN[2].step = FocusAbsPosN[0].step = DREAMFOCUSER_STEP_SIZE;
+    //    PresetN[0].step = PresetN[1].step = PresetN[2].step = FocusAbsPosNP[0].setStep(DREAMFOCUSER_STEP_SIZE);
 
     // Maximum position can't be changed from driver
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP.setPermission(IP_RO);
 
-    FocusAbsPosN[0].value = 0;
-    FocusRelPosN[0].min = -FocusMaxPosN[0].max;
-    FocusRelPosN[0].max = FocusMaxPosN[0].max;
-    FocusRelPosN[0].step = DREAMFOCUSER_STEP_SIZE;
-    FocusRelPosN[0].value = 5 * DREAMFOCUSER_STEP_SIZE;
+    FocusAbsPosNP[0].setValue(0);
+    FocusRelPosNP[0].setMin(-FocusMaxPosNP[0].getMax());
+    FocusRelPosNP[0].setMax(FocusMaxPosNP[0].getMax());
+    FocusRelPosNP[0].setStep(DREAMFOCUSER_STEP_SIZE);
+    FocusRelPosNP[0].setValue(5 * DREAMFOCUSER_STEP_SIZE);
 
     serialConnection->setDefaultPort("/dev/ttyACM0");
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
@@ -239,13 +242,13 @@ void DreamFocuser::ISGetProperties(const char *dev)
 
 //            if (MaxPositionN[0].value > 0)
 //            {
-//                PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosN[0].min = -MaxPositionN[0].value;;
-//                PresetN[0].max = PresetN[1].max = PresetN[2].max = FocusAbsPosN[0].max = MaxPositionN[0].value;
-//                IUUpdateMinMax(&FocusAbsPosNP);
+//                PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosNP[0].setMin(-MaxPositionN[0].value;);
+//                PresetN[0].max = PresetN[1].max = PresetN[2].max = FocusAbsPosNP[0].setMax(MaxPositionN[0].value);
+//                FocusAbsPosNP.updateMinMax();
 //                IUUpdateMinMax(&PresetNP);
-//                IDSetNumber(&FocusAbsPosNP, nullptr);
+//                FocusAbsPosNP.apply();
 
-//                LOGF_DEBUG("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+//                LOGF_DEBUG("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
 //            }
 
 //            MaxPositionNP.s = IPS_OK;
@@ -261,12 +264,12 @@ void DreamFocuser::ISGetProperties(const char *dev)
 
 //            if (MaxTravelN[0].value > 0)
 //            {
-//                FocusRelPosN[0].min = 0;
-//                FocusRelPosN[0].max = MaxTravelN[0].value;
-//                IUUpdateMinMax(&FocusRelPosNP);
-//                IDSetNumber(&FocusRelPosNP, nullptr);
+//                FocusRelPosNP[0].setMin(0);
+//                FocusRelPosNP[0].setMax(MaxTravelN[0].value);
+//                FocusRelPosNP.updateMinMax();
+//                FocusRelPosNP.apply();
 
-//                LOGF_DEBUG("Focuser relative limits: min (%g) max (%g)", FocusRelPosN[0].min, FocusRelPosN[0].max);
+//                LOGF_DEBUG("Focuser relative limits: min (%g) max (%g)", FocusRelPosNP[0].getMin(), FocusRelPosNP[0].getMax());
 //            }
 
 //            MaxTravelNP.s = IPS_OK;
@@ -298,8 +301,8 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
                 if ( setPark() )
                 {
                     //ParkSP.s = IPS_OK;
-                    FocusAbsPosNP.s = IPS_OK;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_OK);
+                    FocusAbsPosNP.apply();
                 }
                 else
                     ParkSP.s = IPS_ALERT;
@@ -346,8 +349,8 @@ bool DreamFocuser::getStatus()
     {
         isMoving = ( currentResponse.d & 3 ) != 0 ? true : false;
         //isZero = ( (currentResponse.d>>2) & 1 )  == 1;
-        isParked = (currentResponse.d>>3) & 3;
-        isVcc12V = ( (currentResponse.d>>5) & 1 ) == 1;
+        isParked = (currentResponse.d >> 3) & 3;
+        isVcc12V = ( (currentResponse.d >> 5) & 1 ) == 1;
     }
     else
         return false;
@@ -394,7 +397,7 @@ bool DreamFocuser::getMaxPosition()
         return true;
     }
     else
-      LOG_ERROR("getMaxPosition error");
+        LOG_ERROR("getMaxPosition error");
 
     return false;
 }
@@ -403,13 +406,14 @@ bool DreamFocuser::getMaxPosition()
 bool DreamFocuser::setSync( uint32_t position)
 {
     if ( dispatch_command('Z', position) )
-        if ( static_cast<uint32_t>((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d) == position )
+        if ( static_cast<uint32_t>((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) |
+                                   currentResponse.d) == position )
         {
             LOGF_DEBUG("Syncing to position %d", position);
             return true;
         };
-        LOG_ERROR("Sync failed.");
-        return false;
+    LOG_ERROR("Sync failed.");
+    return false;
 }
 
 bool DreamFocuser::setPark()
@@ -422,8 +426,8 @@ bool DreamFocuser::setPark()
 
     if ( dispatch_command('G') )
     {
-      LOG_INFO( "Focuser park command.");
-      return true;
+        LOG_INFO( "Focuser park command.");
+        return true;
     }
     LOG_ERROR("Park failed.");
     return false;
@@ -483,8 +487,8 @@ IPState DreamFocuser::MoveAbsFocuser(uint32_t ticks)
     }
     if ( setPosition(ticks) )
     {
-        FocusAbsPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
         return IPS_OK;
     }
     return IPS_ALERT;
@@ -504,8 +508,8 @@ IPState DreamFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     if ( setPosition(finalTicks) )
     {
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusRelPosNP.apply();
         return IPS_OK;
     }
     return IPS_ALERT;
@@ -518,20 +522,21 @@ void DreamFocuser::TimerHit()
     if ( ! isConnected() )
         return;
 
-    int oldAbsStatus = FocusAbsPosNP.s;
+    int oldAbsStatus = FocusAbsPosNP.getState();
     int32_t oldPosition = currentPosition;
 
     if ( getMaxPosition() )
     {
-        if ( FocusMaxPosN[0].value != currentMaxPosition ) {
-            FocusMaxPosN[0].value = currentMaxPosition;
-            FocusMaxPosNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxPosNP, nullptr);
+        if ( FocusMaxPosNP[0].getValue() != currentMaxPosition )
+        {
+            FocusMaxPosNP[0].setValue(currentMaxPosition);
+            FocusMaxPosNP.setState(IPS_OK);
+            FocusMaxPosNP.apply();
             SetFocuserMaxPosition(currentMaxPosition);
         }
     }
     else
-        FocusMaxPosNP.s = IPS_ALERT;
+        FocusMaxPosNP.setState(IPS_ALERT);
 
     if ( getStatus() )
     {
@@ -540,13 +545,13 @@ void DreamFocuser::TimerHit()
         if ( isMoving )
         {
             //LOG_INFO("Moving" );
-            FocusAbsPosNP.s = IPS_BUSY;
+            FocusAbsPosNP.setState(IPS_BUSY);
             StatusS[1].s = ISS_ON;
         }
         else
         {
-            if ( FocusAbsPosNP.s != IPS_IDLE )
-                FocusAbsPosNP.s = IPS_OK;
+            if ( FocusAbsPosNP.getState() != IPS_IDLE )
+                FocusAbsPosNP.setState(IPS_OK);
             StatusS[1].s = ISS_OFF;
         };
 
@@ -572,18 +577,18 @@ void DreamFocuser::TimerHit()
         if ( isAbsolute )
         {
             StatusS[0].s = ISS_ON;
-            if ( FocusAbsPosN[0].min != 0 )
+            if ( FocusAbsPosNP[0].getMin() != 0 )
             {
-                FocusAbsPosN[0].min = 0;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP[0].setMin(0);
+                FocusAbsPosNP.apply();
             }
         }
         else
         {
-            if ( FocusAbsPosN[0].min == 0 )
+            if ( FocusAbsPosNP[0].getMin() == 0 )
             {
-                FocusAbsPosN[0].min = -FocusAbsPosN[0].max;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP[0].setMin(-FocusAbsPosNP[0].getMax());
+                FocusAbsPosNP.apply();
             }
             StatusS[0].s = ISS_OFF;
         }
@@ -606,31 +611,31 @@ void DreamFocuser::TimerHit()
         WeatherNP.s = IPS_ALERT;
     }
 
-    if ( FocusAbsPosNP.s != IPS_IDLE )
+    if ( FocusAbsPosNP.getState() != IPS_IDLE )
     {
         if ( getPosition() )
         {
             if ( oldPosition != currentPosition )
             {
-                FocusAbsPosNP.s = IPS_BUSY;
+                FocusAbsPosNP.setState(IPS_BUSY);
                 StatusS[1].s = ISS_ON;
-                FocusAbsPosN[0].value = currentPosition;
+                FocusAbsPosNP[0].setValue(currentPosition);
             }
             else
             {
                 StatusS[1].s = ISS_OFF;
-                FocusAbsPosNP.s = IPS_OK;
+                FocusAbsPosNP.setState(IPS_OK);
             }
             //if ( currentPosition < 0 )
-            // FocusAbsPosNP.s = IPS_ALERT;
+            // FocusAbsPosNP.setState(IPS_ALERT);
         }
         else
-            FocusAbsPosNP.s = IPS_ALERT;
+            FocusAbsPosNP.setState(IPS_ALERT);
     }
 
 
-    if ((oldAbsStatus != FocusAbsPosNP.s) || (oldPosition != currentPosition))
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+    if ((oldAbsStatus != FocusAbsPosNP.getState()) || (oldPosition != currentPosition))
+        FocusAbsPosNP.apply();
 
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&WeatherNP, nullptr);
@@ -713,7 +718,8 @@ bool DreamFocuser::send_command(char k, uint32_t l, unsigned char addr)
     c.addr = addr;
     c.z = calculate_checksum(c);
 
-    LOGF_DEBUG("Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d, c.addr, c.z);
+    LOGF_DEBUG("Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d,
+               c.addr, c.z);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -743,7 +749,8 @@ bool DreamFocuser::read_response()
         LOGF_ERROR("TTY error detected: %s", err_msg);
         return false;
     }
-    LOGF_DEBUG("Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a, currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.addr, currentResponse.z);
+    LOGF_DEBUG("Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a,
+               currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.addr, currentResponse.z);
 
     if ( nbytes_read != sizeof(currentResponse) )
     {

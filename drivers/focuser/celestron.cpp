@@ -57,10 +57,10 @@ bool CelestronSCT::initProperties()
     // Focuser backlash
     // CR this is a value, positive or negative to define the direction.  It will need to be implemented
     // in the driver.
-    FocusBacklashN[0].min = -500;
-    FocusBacklashN[0].max = 500;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(-500);
+    FocusBacklashNP[0].setMax(500);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(0);
 
     //    IUFillNumber(&FocusBacklashN[0], "STEPS", "Steps", "%.f", -500., 500., 1., 0.);
     //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
@@ -83,30 +83,30 @@ bool CelestronSCT::initProperties()
 
     // Speed range
     // CR no need to have adjustable speed, how to remove?
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 3;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(0);
+    FocusSpeedNP[0].setMax(3);
+    FocusSpeedNP[0].setValue(1);
 
     // From online screenshots, seems maximum value is 60,000 steps
     // max and min positions can be read from a calibrated focuser
 
     // Relative Position Range
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(30000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
     // Absolute Position Range
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(60000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     // Maximum Position Settings
-    FocusMaxPosN[0].max   = 60000;
-    FocusMaxPosN[0].min   = 1000;
-    FocusMaxPosN[0].value = 60000;
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP[0].setMax(60000);
+    FocusMaxPosNP[0].setMin(1000);
+    FocusMaxPosNP[0].setValue(60000);
+    FocusMaxPosNP.setPermission(IP_RO);
 
     // Poll every 500ms
     setDefaultPollingPeriod(500);
@@ -227,7 +227,7 @@ bool CelestronSCT::readPosition()
 
     int truePos = (reply[0] << 16) + (reply[1] << 8) + reply[2];
     LOGF_DEBUG("True Position %d", truePos);
-    FocusAbsPosN[0].value = absPos(truePos);
+    FocusAbsPosNP[0].setValue(absPos(truePos));
     return true;
 }
 
@@ -275,13 +275,14 @@ bool CelestronSCT::readLimits()
     }
 
     // absolute direction is reverse from true
-    FocusAbsPosN[0].max = FocusMaxPosN[0].value = absPos(truePosMin);
-    FocusAbsPosNP.s = IPS_OK;
-    FocusMaxPosNP.s = IPS_OK;
-    IUUpdateMinMax(&FocusAbsPosNP);
-    IDSetNumber(&FocusMaxPosNP, nullptr);
+    FocusAbsPosNP[0].setMax(absPos(truePosMin));
+    FocusMaxPosNP[0].setValue(absPos(truePosMin));
+    FocusAbsPosNP.setState(IPS_OK);
+    FocusMaxPosNP.setState(IPS_OK);
+    FocusAbsPosNP.updateMinMax();
+    FocusMaxPosNP.apply();
 
-    // FocusMinPosN[0].value = lo;
+    // FocusMinPosNP[0].setValue(lo);
     // FocusMinPosNP.s = IPS_OK;
     // IDSetNumber(&FocusMinPosNP, nullptr);
 
@@ -348,7 +349,7 @@ bool CelestronSCT::getStartupParameters()
     bool rc1 = false, rc2 = false;
 
     if ( (rc1 = readPosition()))
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if ( !(rc2 = readLimits()))
     {
@@ -377,7 +378,7 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
     }
 
     // the focuser seems happy to move 500 steps past the soft limit so don't check backlash
-    if (targetTicks > FocusMaxPosN[0].value)
+    if (targetTicks > FocusMaxPosNP[0].getValue())
         // targetTicks < FocusMinPosN[0].value)
 
     {
@@ -388,13 +389,12 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
     uint32_t position = targetTicks;
 
     // implement backlash
-    int delta = targetTicks - FocusAbsPosN[0].value;
-    if ((FocusBacklashN[0].value < 0 && delta > 0) ||
-            (FocusBacklashN[0].value > 0 && delta < 0))
+    int delta = targetTicks - FocusAbsPosNP[0].getValue();
+    if ((FocusBacklashNP[0].getValue() < 0 && delta > 0) || (FocusBacklashNP[0].getValue() > 0 && delta < 0))
     {
         backlashMove = true;
         finalPosition = position;
-        position -= FocusBacklashN[0].value;
+        position -= FocusBacklashNP[0].getValue();
     }
 
     if (!startMove(position))
@@ -425,12 +425,12 @@ IPState CelestronSCT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()), newPosition));
     return MoveAbsFocuser(newPosition);
 }
 
@@ -443,16 +443,16 @@ void CelestronSCT::TimerHit()
     }
 
     // Check position
-    double lastPosition = FocusAbsPosN[0].value;
+    double lastPosition = FocusAbsPosNP[0].getValue();
     bool rc = readPosition();
     if (rc)
     {
         // Only update if there is actual change
-        if (fabs(lastPosition - FocusAbsPosN[0].value) > 1)
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+        if (fabs(lastPosition - FocusAbsPosNP[0].getValue()) > 1)
+            FocusAbsPosNP.apply();
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         // CR The backlash handling will probably have to be done here, if the move state
         // shows that a backlash move has been done then the final move needs to be started
@@ -474,10 +474,10 @@ void CelestronSCT::TimerHit()
             }
             else
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached requested position.");
             }
         }
@@ -519,8 +519,8 @@ void CelestronSCT::TimerHit()
             // read the new limits
             if (complete && readLimits())
             {
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IDSetNumber(&FocusMaxPosNP, nullptr);
+                FocusAbsPosNP.updateMinMax();
+                FocusMaxPosNP.apply();
                 // IDSetNumber(&FocusMinPosNP, nullptr);
             }
         }

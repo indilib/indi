@@ -147,25 +147,25 @@ bool EsattoArco::initProperties()
     /////////////////////////////////////////////////////
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].value = 2097152;
-    PresetN[0].max = FocusMaxPosN[0].value;
-    PresetN[1].max = FocusMaxPosN[0].value;
-    PresetN[2].max = FocusMaxPosN[0].value;
+    FocusMaxPosNP[0].setValue(2097152);
+    PresetN[0].max = FocusMaxPosNP[0].getValue();
+    PresetN[1].max = FocusMaxPosNP[0].getValue();
+    PresetN[2].max = FocusMaxPosNP[0].getValue();
 
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 10000;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(10000);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(0);
 
     addAuxControls();
 
@@ -288,29 +288,29 @@ bool EsattoArco::updateMaxLimit()
 
     if (m_Esatto->getMaxPosition(maxLimit) && maxLimit > 0)
     {
-        FocusMaxPosN[0].max = maxLimit;
-        if (FocusMaxPosN[0].value > maxLimit)
-            FocusMaxPosN[0].value = maxLimit;
+        FocusMaxPosNP[0].setMax(maxLimit);
+        if (FocusMaxPosNP[0].getValue() > maxLimit)
+            FocusMaxPosNP[0].setValue(maxLimit);
 
-        FocusAbsPosN[0].min   = 0;
-        FocusAbsPosN[0].max   = maxLimit;
-        FocusAbsPosN[0].value = 0;
-        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        FocusAbsPosNP[0].setMin(0);
+        FocusAbsPosNP[0].setMax(maxLimit);
+        FocusAbsPosNP[0].setValue(0);
+        FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-        FocusRelPosN[0].min   = 0.;
-        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-        FocusRelPosN[0].value = 0;
-        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+        FocusRelPosNP[0].setMin(0.);
+        FocusRelPosNP[0].setMax(FocusAbsPosNP.getStep() 10);
+        FocusRelPosNP[0].setValue(0);
+        FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
         PresetN[0].max = maxLimit;
-        PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        PresetN[0].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
         PresetN[1].max = maxLimit;
-        PresetN[1].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        PresetN[1].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
         PresetN[2].max = maxLimit;
-        PresetN[2].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        PresetN[2].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
 
 
-        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosNP.setState(IPS_OK);
         return true;
     }
 
@@ -334,7 +334,7 @@ bool EsattoArco::updatePosition()
     uint32_t steps;
     // Update focuser position
     if (m_Esatto->getAbsolutePosition(steps))
-        FocusAbsPosN[0].value = steps;
+        FocusAbsPosNP[0].setValue(steps);
 
     double arcoPosition;
     // Update Arco steps position
@@ -430,7 +430,7 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             {
                 if (bStage == BacklashMinimum)
                 {
-                    FocusBacklashN[0].value = static_cast<int32_t>(FocusAbsPosN[0].value);
+                    FocusBacklashNP[0].setValue(static_cast<int32_t>(FocusAbsPosNP[0].getValue()));
 
                     IUSaveText(&BacklashMessageT[0], "Drive the focuser in the opposite direction, then press NEXT to finish.");
                     IDSetText(&BacklashMessageTP, nullptr);
@@ -438,11 +438,11 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 }
                 else if (bStage == BacklashMaximum)
                 {
-                    FocusBacklashN[0].value -= FocusAbsPosN[0].value;
+                    FocusBacklashNP[0].setValue(FocusBacklashNP[0].getValue() - FocusAbsPosNP[0].getValue());
 
                     // Set Esatto backlash
-                    SetFocuserBacklash(FocusBacklashN[0].value);
-                    IDSetNumber(&FocusBacklashNP, nullptr);
+                    SetFocuserBacklash(FocusBacklashNP[0].getValue());
+                    FocusBacklashNP.apply();
 
                     SetFocuserBacklashEnabled(true);
 
@@ -577,7 +577,7 @@ IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -603,22 +603,22 @@ void EsattoArco::TimerHit()
         return;
     }
 
-    auto currentFocusPosition = FocusAbsPosN[0].value;
+    auto currentFocusPosition = FocusAbsPosNP[0].getValue();
     auto currentRotatorPosition = RotatorAbsPosN[0].value;
     if (updatePosition())
     {
-        if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
+        if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)
         {
             // Focuser State Machine
-            if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+            if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
             }
             else
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.apply();
         }
 
         // Rotator State Machine

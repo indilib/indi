@@ -85,21 +85,21 @@ bool DMFC::initProperties()
                      0, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     // Backlash compensation
-    FocusBacklashN[0].min   = 1; // 0 is off.
-    FocusBacklashN[0].max   = 1000;
-    FocusBacklashN[0].value = 1;
-    FocusBacklashN[0].step  = 1;
+    FocusBacklashNP[0].setMin(1); // 0 is off.
+    FocusBacklashNP[0].setMax(1000);
+    FocusBacklashNP[0].setValue(1);
+    FocusBacklashNP[0].setStep(1);
 
     //LED Default ON
     LEDS[LED_ON].s = ISS_ON;
@@ -496,10 +496,10 @@ bool DMFC::updateFocusParams()
     }
 
     currentPosition = atoi(token);
-    if (currentPosition != FocusAbsPosN[0].value)
+    if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        FocusAbsPosN[0].value = currentPosition;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(currentPosition);
+        FocusAbsPosNP.apply();
     }
 
     // #6 Moving Status
@@ -544,10 +544,10 @@ bool DMFC::updateFocusParams()
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
         IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[INDI_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
-        FocusReverseSP.s = IPS_OK;
-        IDSetSwitch(&FocusReverseSP, nullptr);
+        FocusReverseSP[INDI_ENABLED].setState((reverseStatus == 1) ? ISS_ON : ISS_OFF);
+        FocusReverseSP[INDI_DISABLED].setState((reverseStatus == 0) ? ISS_ON : ISS_OFF);
+        FocusReverseSP.setState(IPS_OK);
+        FocusReverseSP.apply();
     }
 
     // #9 Encoder status
@@ -583,26 +583,26 @@ bool DMFC::updateFocusParams()
     {
         LOG_WARN("Backlash value is zero, disabling backlash switch...");
 
-        FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-        FocusBacklashS[INDI_DISABLED].s = ISS_ON;
+        FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+        FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
         FocusBacklashSP.s = IPS_IDLE;
-        IDSetSwitch(&FocusBacklashSP, nullptr);
+        FocusBacklashSP.apply();
     }
-    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
+    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashNP.apply();))
     {
-        if (backlash != FocusBacklashN[0].value)
+        if (backlash != FocusBacklashNP.apply();)
         {
-            FocusBacklashN[0].value = backlash;
+            FocusBacklashNP[0].setValue(backlash);
             FocusBacklashNP.s = IPS_OK;
             IDSetNumber(&FocusBacklashNP, nullptr);
         }
 
         if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
         {
-            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
             FocusBacklashSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusBacklashSP, nullptr);
+            FocusBacklashSP.apply();
         }
     }
 
@@ -740,7 +740,7 @@ bool DMFC::SetFocuserBacklashEnabled(bool enabled)
     if (!enabled)
         return SetFocuserBacklash(0);
 
-    return SetFocuserBacklash(FocusBacklashN[0].value > 0 ? FocusBacklashN[0].value : 1);
+    return SetFocuserBacklash(FocusBacklashNP.apply(); > 0 ? FocusBacklashNP.apply(); : 1);
 }
 
 bool DMFC::setMotorType(uint8_t type)
@@ -782,7 +782,7 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -805,14 +805,14 @@ void DMFC::TimerHit()
 
     if (rc)
     {
-        if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+        if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
         {
             if (isMoving == false)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached requested position.");
             }
         }
@@ -828,10 +828,10 @@ bool DMFC::AbortFocuser()
 
     if (tty_write(PortFD, cmd, 2, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
         this->ignoreResponse();
         return true;
     }

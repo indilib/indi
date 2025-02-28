@@ -89,14 +89,14 @@ bool PerfectStar::initProperties()
     //    IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 100000, 100., 0.);
     //    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    //    FocusAbsPosN[0].min = SyncN[0].min = 0;
-    //    FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
-    //    FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
-    //    FocusAbsPosN[0].value                = 0;
+    //    FocusAbsPosNP[0].setMin(SyncNP[0].setMin(0));
+    //    FocusAbsPosNP[0].setMax(SyncNP[0].setMax(MaxPositionN[0].value));
+    //    FocusAbsPosNP[0].setStep(SyncNP[0].setStep(MaxPositionN[0].value / 50.0));
+    //    FocusAbsPosNP[0].getValue()                = 0;
 
-    //    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    //    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
-    //    FocusRelPosN[0].value = 100;
+    //    FocusRelPosNP[0].setMax((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 2);
+    //    FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 100.0);
+    //    FocusRelPosNP[0].setValue(100);
 
     addSimulationControl();
 
@@ -131,54 +131,54 @@ void PerfectStar::TimerHit()
     bool rc = getPosition(&currentTicks);
 
     if (rc)
-        FocusAbsPosN[0].value = currentTicks;
+        FocusAbsPosNP[0].setValue(currentTicks);
 
     getStatus(&status);
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (sim)
         {
-            if (FocusAbsPosN[0].value < targetPosition)
+            if (FocusAbsPosNP[0].getValue() < targetPosition)
                 simPosition += 500;
             else
                 simPosition -= 500;
 
             if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 500)
             {
-                FocusAbsPosN[0].value = targetPosition;
-                simPosition           = FocusAbsPosN[0].value;
+                FocusAbsPosNP[0].setValue(targetPosition);
+                simPosition           = FocusAbsPosNP[0].getValue();
                 status                = PS_NOOP;
             }
 
-            FocusAbsPosN[0].value = simPosition;
+            FocusAbsPosNP[0].setValue(simPosition);
         }
 
-        if (status == PS_HALT && targetPosition == FocusAbsPosN[0].value)
+        if (status == PS_HALT && targetPosition == FocusAbsPosNP[0].getValue())
         {
-            if (FocusRelPosNP.s == IPS_BUSY)
+            if (FocusRelPosNP.getState() == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
             }
 
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             LOG_DEBUG("Focuser reached target position.");
         }
         else if (status == PS_NOOP)
         {
-            if (FocusRelPosNP.s == IPS_BUSY)
+            if (FocusRelPosNP.getState() == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
             }
 
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             LOG_INFO("Focuser reached home position.");
         }
     }
 
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -194,20 +194,20 @@ bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[]
 
         //            if (MaxPositionN[0].value > 0)
         //            {
-        //                FocusAbsPosN[0].min = SyncN[0].min = 0;
-        //                FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
-        //                FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
+        //                FocusAbsPosNP[0].setMin(SyncNP[0].setMin(0));
+        //                FocusAbsPosNP[0].setMax(SyncNP[0].setMax(MaxPositionN[0].value));
+        //                FocusAbsPosNP[0].setStep(SyncNP[0].setStep(MaxPositionN[0].value / 50.0));
 
-        //                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-        //                FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
-        //                FocusRelPosN[0].min  = 0;
+        //                FocusRelPosNP[0].setMax((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 2);
+        //                FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 100.0);
+        //                FocusRelPosNP[0].setMin(0);
 
-        //                IUUpdateMinMax(&FocusAbsPosNP);
-        //                IUUpdateMinMax(&FocusRelPosNP);
+        //                FocusAbsPosNP.updateMinMax();
+        //                FocusRelPosNP.updateMinMax();
         //                IUUpdateMinMax(&SyncNP);
 
-        //                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-        //                       FocusAbsPosN[0].max);
+        //                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosNP[0].getMin(),
+        //                       FocusAbsPosNP[0].getMax());
         //            }
 
         //            MaxPositionNP.s = IPS_OK;
@@ -246,14 +246,14 @@ IPState PerfectStar::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
 
 IPState PerfectStar::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t finalTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    uint32_t finalTicks = FocusAbsPosNP[0].getValue() + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
 
     return MoveAbsFocuser(finalTicks);
 }
@@ -469,7 +469,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
         if (status == PS_GOTO)
         {
             // Moving in state
-            if (targetPosition < FocusAbsPosN[0].value)
+            if (targetPosition < FocusAbsPosNP[0].getValue())
                 status = PS_IN;
             else
                 // Moving out state

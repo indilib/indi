@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2023 Christian Liska. All rights reserved.
   based on the 2018 MFOC implementation (c) Franck Le Rhun and Christian Liska
- 
+
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -40,11 +40,11 @@ static std::unique_ptr<lacerta_mfoc_fmc> Lacerta_mfoc_fmc(new lacerta_mfoc_fmc()
 ************************************************************************************/
 lacerta_mfoc_fmc::lacerta_mfoc_fmc()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | 
-                        FOCUSER_CAN_REL_MOVE | 
-                        FOCUSER_HAS_BACKLASH | 
-                        FOCUSER_CAN_SYNC |
-                        FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_HAS_BACKLASH |
+                      FOCUSER_CAN_SYNC |
+                      FOCUSER_CAN_ABORT);
 }
 
 /************************************************************************************
@@ -78,28 +78,30 @@ void lacerta_mfoc_fmc::ISGetProperties(const char *dev)
 bool lacerta_mfoc_fmc::initProperties()
 {
     INDI::Focuser::initProperties();
-     
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 12;
+
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(12);
 
     IUFillNumber(&CurrentHoldingN[0], "CURRHOLD", "holding current mA", "%4d", 0, 1200, 1, 160);
-    IUFillNumberVector(&CurrentHoldingNP, CurrentHoldingN, 1, getDeviceName(), "CURRHOLD_SETTINGS", "Curr. Hold", FOCUS_TAB, IP_WO, 60,
+    IUFillNumberVector(&CurrentHoldingNP, CurrentHoldingN, 1, getDeviceName(), "CURRHOLD_SETTINGS", "Curr. Hold", FOCUS_TAB,
+                       IP_WO, 60,
                        IPS_IDLE);
 
     IUFillNumber(&CurrentMovingN[0], "CURRMOVE", "moving current mA", "%4d", 0, 1200, 1, 400);
-    IUFillNumberVector(&CurrentMovingNP, CurrentMovingN, 1, getDeviceName(), "CURRMOVE_SETTINGS", "Curr. Move", FOCUS_TAB, IP_WO, 60,
+    IUFillNumberVector(&CurrentMovingNP, CurrentMovingN, 1, getDeviceName(), "CURRMOVE_SETTINGS", "Curr. Move", FOCUS_TAB,
+                       IP_WO, 60,
                        IPS_IDLE);
 
-    FocusMaxPosN[0].min = MFOC_POSMIN_HARDWARE;
-    FocusMaxPosN[0].max = MFOC_POSMAX_HARDWARE;
-    FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
-    FocusMaxPosN[0].value = 110000;
+    FocusMaxPosNP[0].setMin(MFOC_POSMIN_HARDWARE);
+    FocusMaxPosNP[0].setMax(MFOC_POSMAX_HARDWARE);
+    FocusMaxPosNP[0].setStep((FocusMaxPosNP[0].getMax() - FocusMaxPosNP[0].getMin()) / 20.0);
+    FocusMaxPosNP[0].setValue(110000);
 
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = FocusMaxPosN[0].value;
-    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50.0;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue());
+    FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50.0);
 
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
@@ -123,7 +125,7 @@ bool lacerta_mfoc_fmc::initProperties()
 bool lacerta_mfoc_fmc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
-    FocusAbsPosN[0].value = GetAbsFocuserPosition();
+    FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
 
     INDI::Focuser::updateProperties();
 
@@ -162,14 +164,14 @@ bool lacerta_mfoc_fmc::Handshake()
     int nbytes_read = 0;
 
     bool device_found = false;
-    if (tty_write_string(PortFD, ": i #", &nbytes_written) == TTY_OK) 
-    {      
+    if (tty_write_string(PortFD, ": i #", &nbytes_written) == TTY_OK)
+    {
         int count = 0;
-        do 
+        do
         {
-            try 
+            try
             {
-                if (tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read) != TTY_OK) 
+                if (tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read) != TTY_OK)
                 {
                     LOGF_ERROR("Unknown device or MFOC firmware not compatible with this driver version! Please update firmware! %s", device);
                     return false;
@@ -178,14 +180,16 @@ bool lacerta_mfoc_fmc::Handshake()
                 sscanf(MFOC_res, "%s %s", MFOC_res_type, device);
                 LOGF_INFO("%s", device);
                 device_found = strcmp(device, "MFOC") == 0 || strcmp(device, "FMC") == 0;
-            } catch (...) 
+            }
+            catch (...)
             {
                 LOGF_ERROR("Cannot detect connected device %s", device);
                 return false;
             }
             count ++;
-        } while (!device_found && count != 10); 
-    } 
+        }
+        while (!device_found && count != 10);
+    }
     LOGF_INFO("Device detected: %s", device);
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
@@ -193,13 +197,13 @@ bool lacerta_mfoc_fmc::Handshake()
     tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
     MFOC_res[nbytes_read] = 0;
     LOGF_DEBUG("Handshake: RES [%s]", MFOC_res);
-    
+
     sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
 
     if (MFOC_res_type[0] == 'p')
     {
-        FocusAbsPosN[0].value = MFOC_pos_measd;
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(MFOC_pos_measd);
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
 
@@ -256,7 +260,7 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             LOGF_DEBUG("ISNewSwitch: CMD [%s]", MFOC_cmd);
             tty_write_string(PortFD, ": W #", &nbytes_written);
             tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-            MFOC_res[nbytes_read] = 0;           
+            MFOC_res[nbytes_read] = 0;
             sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tdir_measd);
             LOGF_DEBUG("ISNewSwitch: RES [%s]", MFOC_res);
 
@@ -272,7 +276,7 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             IDSetSwitch(&TempTrackDirSP, nullptr);
             return true;
         }
-         
+
         // Start at saved position
         if (strcmp(StartSavedPositionSP.name, name) == 0)
         {
@@ -342,7 +346,7 @@ bool lacerta_mfoc_fmc::ISNewNumber(const char *dev, const char *name, double val
         if (strcmp(name, "CURRHOLD_SETTINGS") == 0)
         {
             IUUpdateNumber(&CurrentHoldingNP, values, names, n);
-            if (!SetCurrHold(CurrentHoldingN[0].value)) 
+            if (!SetCurrHold(CurrentHoldingN[0].value))
             {
                 CurrentHoldingNP.s = IPS_ALERT;
                 IDSetNumber(&CurrentHoldingNP, nullptr);
@@ -356,7 +360,7 @@ bool lacerta_mfoc_fmc::ISNewNumber(const char *dev, const char *name, double val
         if (strcmp(name, "CURRMOVE_SETTINGS") == 0)
         {
             IUUpdateNumber(&CurrentMovingNP, values, names, n);
-            if (!SetCurrMove(CurrentMovingN[0].value)) 
+            if (!SetCurrMove(CurrentMovingN[0].value))
             {
                 CurrentMovingNP.s = IPS_ALERT;
                 IDSetNumber(&CurrentMovingNP, nullptr);
@@ -398,7 +402,8 @@ bool lacerta_mfoc_fmc::SetFocuserBacklash(int32_t steps)
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         MFOC_res[nbytes_read] = 0;
         sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tdir_measd);
-    } while(strcmp("b", MFOC_res_type) != 0);
+    }
+    while(strcmp("b", MFOC_res_type) != 0);
     LOGF_DEBUG("RES [%s]", MFOC_res);
 
     return true;
@@ -413,24 +418,25 @@ bool lacerta_mfoc_fmc::SetCurrHold(int currHoldValue)
     int MFOC_ch_measd = 0;
     char ch_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
- 
+
     sprintf(ch_char, "%d", currHoldValue);
     strcat(ch_char, " #");
     strcat(MFOC_cmd, ch_char);
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
-    
-    do 
+
+    do
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_ch_measd);
         MFOC_res[nbytes_read] = 0;
-    } while(strcmp("e", MFOC_res_type) != 0);
+    }
+    while(strcmp("e", MFOC_res_type) != 0);
 
     LOGF_DEBUG("RES [%s]", MFOC_res);
     LOGF_INFO("Holding Current set to %d mA", MFOC_ch_measd);
- 
+
     return true;
 }
 
@@ -454,9 +460,10 @@ bool lacerta_mfoc_fmc::SetCurrMove(int currMoveValue)
     do
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-       sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_cm_measd);
+        sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_cm_measd);
         MFOC_res[nbytes_read] = 0;
-    } while(strcmp("f", MFOC_res_type) != 0);
+    }
+    while(strcmp("f", MFOC_res_type) != 0);
 
     LOGF_DEBUG("RES [%s]", MFOC_res);
     LOGF_INFO("Moving Current set to %d mA", MFOC_cm_measd);
@@ -486,12 +493,13 @@ bool lacerta_mfoc_fmc::SetTempComp(double values[], char *names[], int n)
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
 
     tty_write_string(PortFD, ": u #", &nbytes_written);
-    do 
+    do
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         MFOC_res[nbytes_read] = 0;
         sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tc_measd);
-    } while(strcmp("u", MFOC_res_type) != 0);
+    }
+    while(strcmp("u", MFOC_res_type) != 0);
     LOGF_DEBUG("RES [%s]", MFOC_res);
 
     IDSetNumber(&TempCompNP, nullptr);
@@ -523,7 +531,8 @@ bool lacerta_mfoc_fmc::SetFocuserMaxPosition(uint32_t ticks)
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
         MFOC_res[nbytes_read] = 0;
         sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_pm_measd);
-    } while (strcmp("g", MFOC_res_type) != 0);
+    }
+    while (strcmp("g", MFOC_res_type) != 0);
     LOGF_DEBUG("RES [%s]", MFOC_res);
 
     return true;
@@ -547,7 +556,7 @@ IPState lacerta_mfoc_fmc::MoveAbsFocuser(uint32_t targetTicks)
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
     IgnoreButLogResponse();
 
-    FocusAbsPosN[0].value = targetTicks;
+    FocusAbsPosNP[0].setValue(targetTicks);
 
     GetAbsFocuserPosition();
 
@@ -560,13 +569,13 @@ IPState lacerta_mfoc_fmc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc_fmc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    auto targetTicks = FocusAbsPosN[0].value;
+    auto targetTicks = FocusAbsPosNP[0].getValue();
     if (dir == FOCUS_INWARD) targetTicks -= ticks;
     else targetTicks += ticks;
-    targetTicks = std::clamp(targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
-    
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    targetTicks = std::clamp(targetTicks, FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
+
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
 
     return MoveAbsFocuser(targetTicks);
 }
@@ -574,7 +583,7 @@ IPState lacerta_mfoc_fmc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc_fmc::SyncFocuser(uint32_t ticks) 
+bool lacerta_mfoc_fmc::SyncFocuser(uint32_t ticks)
 {
     char MFOC_cmd[32] = ": P ";
     char sync_pos[8] = {0};
@@ -595,7 +604,7 @@ bool lacerta_mfoc_fmc::SyncFocuser(uint32_t ticks)
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc_fmc::AbortFocuser() 
+bool lacerta_mfoc_fmc::AbortFocuser()
 {
     char MFOC_cmd[32] = ": H #";
     char MFOC_res[32]  = {0};
@@ -605,26 +614,27 @@ bool lacerta_mfoc_fmc::AbortFocuser()
     int halt_flag = 0;
 
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
-   
+
     if (tty_write_string(PortFD, MFOC_cmd, &nbytes_written) == TTY_OK)
     {
 
         int count = 0;
-        do 
+        do
         {
             count ++;
             tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
             MFOC_res[nbytes_read] = 0;
             sscanf (MFOC_res, "%s %d", MFOC_res_type, &halt_flag);
-        } while(strcmp(MFOC_res_type, "H") != 0 && count <= 100);
+        }
+        while(strcmp(MFOC_res_type, "H") != 0 && count <= 100);
 
-        FocusAbsPosN[0].value = GetAbsFocuserPosition();
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
     else
         return false;
-    
+
 }
 
 /************************************************************************************
@@ -657,7 +667,7 @@ uint32_t lacerta_mfoc_fmc::GetAbsFocuserPosition()
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD [%s]", MFOC_cmd);
-    
+
     do
     {
         tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
@@ -676,7 +686,8 @@ void lacerta_mfoc_fmc::IgnoreResponse()
     tty_read_section(PortFD, MFOC_res, 0xA, FOCUSMFOC_TIMEOUT, &nbytes_read);
 }
 
-void lacerta_mfoc_fmc::IgnoreButLogResponse() {
+void lacerta_mfoc_fmc::IgnoreButLogResponse()
+{
     int nbytes_read = 0;
     char MFOC_res[64];
     tty_read_section(PortFD, MFOC_res, 0xA, FOCUSMFOC_TIMEOUT, &nbytes_read);

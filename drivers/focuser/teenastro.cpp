@@ -125,10 +125,10 @@ bool TeenAstroFocuser::initProperties()
 
     strcpy(FocusSpeedNP.label, "Go-to speed");
     strcpy(FocusSpeedNP.group, FOCUS_TAB);
-    strcpy(FocusSpeedN[0].label, "Steps/s");
-    FocusSpeedN[0].min = TAF_speed_min;
-    FocusSpeedN[0].max = TAF_speed_max;
-    FocusSpeedN[0].step = TAF_STEP(TAF_speed_min, TAF_speed_max);
+    strcpy(FocusSpeedNPlabel, "Steps/s");
+    FocusSpeedNP[0].setMin(TAF_speed_min);
+    FocusSpeedNP[0].setMax(TAF_speed_max);
+    FocusSpeedNP[0].setStep(TAF_STEP(TAF_speed_min, TAF_speed_max));
 
     // Main control tab
     //
@@ -224,8 +224,16 @@ bool TeenAstroFocuser::initProperties()
 
 void TeenAstroFocuser::initPositionPropertiesRanges(uint32_t maxPos)
 {
-    FocusAbsPosN[0].max  = FocusRelPosN[0].max  = FocusSyncN[0].max  = CfgParkPosN[0].max  = maxPos;
-    FocusAbsPosN[0].step = FocusRelPosN[0].step = FocusSyncN[0].step = CfgParkPosN[0].step = maxPos / TAF_UI_STEPS;
+    FocusAbsPosNP[0].setMax(maxPos);
+    FocusRelPosNP[0].setMax(maxPos);
+    FocusSyncNP[0].setMax(maxPos);
+    CfgParkPosN[0].max = maxPos;
+
+    auto step = maxPos / TAF_UI_STEPS;
+    FocusAbsPosNP[0].setStep(step);
+    FocusRelPosNP[0].setStep(step);
+    FocusSyncNP[0].setStep(step);
+    CfgParkPosN[0].step = step;
 }
 
 bool TeenAstroFocuser::updateProperties()
@@ -257,19 +265,19 @@ bool TeenAstroFocuser::updateProperties()
 
 void TeenAstroFocuser::defineMainControlProperties()
 {
-    deleteProperty(FocusSyncNP.name);   // remove superclass controls to improve ordering of UI elements
-    deleteProperty(FocusMaxPosNP.name);
-    deleteProperty(FocusAbortSP.name);
-    deleteProperty(FocusRelPosNP.name);
-    deleteProperty(FocusAbsPosNP.name);
+    deleteProperty(FocusSyncNP);   // remove superclass controls to improve ordering of UI elements
+    deleteProperty(FocusMaxPosNP);
+    deleteProperty(FocusAbortSP);
+    deleteProperty(FocusRelPosNP);
+    deleteProperty(FocusAbsPosNP);
 
-    defineProperty(&FocusRelPosNP);
-    defineProperty(&FocusAbsPosNP);
-    defineProperty(&FocusAbortSP);
+    defineProperty(FocusRelPosNP);
+    defineProperty(FocusAbsPosNP);
+    defineProperty(FocusAbortSP);
     defineProperty(&GoToParkSP);
     defineProperty(&CfgParkPosNP);
-    defineProperty(&FocusSyncNP);
-    defineProperty(&FocusMaxPosNP);
+    defineProperty(FocusSyncNP);
+    defineProperty(FocusMaxPosNP);
     defineProperty(&CurSpeedNP);
     defineProperty(&TempNP);
 }
@@ -405,7 +413,7 @@ bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double va
     {
         uint32_t val = (uint32_t) rint(values[0]);
         bool res = SetFocuserMaxPosition(val);
-        if(res && FocusMaxPosN[0].value != val)
+        if(res && FocusMaxPosNP[0].getValue() != val)
         {
             initPositionPropertiesRanges(val);
             deleteMainControlProperties();      // Force redraw of UI controls as IUUpdateMinMax
@@ -460,17 +468,17 @@ bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double va
 
 IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 {
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-    FocusRelPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.setState(IPS_BUSY);
+    FocusRelPosNP.apply();
 
     if(!goTo(pos))
     {
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        FocusRelPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusRelPosNP, NULL);
+        FocusAbsPosNP.setState(IPS_ALERT);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.setState(IPS_ALERT);
+        FocusRelPosNP.apply();
 
         return IPS_ALERT;
     }
@@ -479,9 +487,9 @@ IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 
 IPState TeenAstroFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    FocusRelPosN[0].value = ticks;
+    FocusRelPosNP[0].setValue(ticks);
 
-    uint32_t pos = uint32_t(FocusAbsPosN[0].value);
+    uint32_t pos = uint32_t(FocusAbsPosNP[0].getValue());
     if (dir == FOCUS_INWARD)
         pos -= ticks;
     else
@@ -626,15 +634,15 @@ bool TeenAstroFocuser::updateState()
         return false;
     }
 
-    if(FocusAbsPosNP.s == IPS_BUSY && speed == 0)
+    if(FocusAbsPosNP.getState() == IPS_BUSY && speed == 0)
         DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached target position.");
 
-    FocusAbsPosN[0].value = pos;
-    FocusAbsPosNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    FocusAbsPosNP[0].setValue(pos);
+    FocusAbsPosNP.setState(speed > 0 ? IPS_BUSY : IPS_OK);
+    FocusAbsPosNP.apply();
 
-    FocusRelPosNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    FocusRelPosNP.setState(speed > 0 ? IPS_BUSY : IPS_OK);
+    FocusRelPosNP.apply();
 
     CurSpeedN[0].value = speed;
     CurSpeedNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
@@ -669,20 +677,20 @@ bool TeenAstroFocuser::updateMotionConfig()
         return false;
     }
 
-    if(maxPos != FocusMaxPosN[0].value)
+    if(maxPos != FocusMaxPosNP[0].getValue())
         initPositionPropertiesRanges(maxPos);
 
     CfgParkPosN[0].value = parkPos;
     CfgParkPosNP.s = IPS_OK;
     IDSetNumber(&CfgParkPosNP, NULL);
-    FocusMaxPosN[0].value = maxPos;
-    FocusMaxPosNP.s = IPS_OK;
+    FocusMaxPosNP[0].setValue(maxPos);
+    FocusMaxPosNP.setState(IPS_OK);
     IDSetNumber(&FocusMaxPosNP, NULL);
     CfgManualSpeedN[0].value = manualSpeed;
     CfgManualSpeedNP.s = IPS_OK;
     IDSetNumber(&CfgManualSpeedNP, NULL);
-    FocusSpeedN[0].value = goToSpeed;
-    FocusSpeedNP.s = IPS_OK;
+    FocusSpeedNP[0].setValue(goToSpeed);
+    FocusSpeedNP.setState(IPS_OK);
     IDSetNumber(&FocusSpeedNP, NULL);
     CfgGoToAccN[0].value = gotoAcc;
     CfgGoToAccNP.s = IPS_OK;

@@ -110,15 +110,15 @@ bool HitecAstroDCFocuser::initProperties()
     //    IUFillSwitchVector(&ReverseDirectionSP, ReverseDirectionS, 1, getDeviceName(), "REVERSE_DIRECTION",
     //                       "Reverse direction", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
-    FocusSpeedN[0].value = 100.;
-    FocusSpeedN[0].min   = 1.;
-    FocusSpeedN[0].max   = 100.;
-    FocusSpeedN[0].value = 100.;
+    FocusSpeedNP[0].setValue(100.);
+    FocusSpeedNP[0].setMin(1.);
+    FocusSpeedNP[0].setMax(100.);
+    FocusSpeedNP[0].setValue(100.);
 
-    FocusRelPosN[0].min   = 1;
-    FocusRelPosN[0].max   = 50000;
-    FocusRelPosN[0].step  = 1000;
-    FocusRelPosN[0].value = 1000;
+    FocusRelPosNP[0].setMin(1);
+    FocusRelPosNP[0].setMax(50000);
+    FocusRelPosNP[0].setStep(1000);
+    FocusRelPosNP[0].setValue(1000);
 
     setDefaultPollingPeriod(500);
 
@@ -210,8 +210,8 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         return IPS_ALERT;
     }
 
-    //    FocusRelPosNP.s = IPS_BUSY;
-    //    IDSetNumber(&FocusRelPosNP, nullptr);
+    //    FocusRelPosNP.setState(IPS_BUSY);
+    //    FocusRelPosNP.apply();
 
     // JM 2017-03-16: iticks is not used, FIXME.
     //    if (dir == FOCUS_INWARD)
@@ -220,7 +220,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     //    }
 
     //if (ReverseDirectionS[0].s == ISS_ON)
-    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
+    if (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON)
     {
         dir = dir == FOCUS_INWARD ? FOCUS_OUTWARD : FOCUS_INWARD;
     }
@@ -254,7 +254,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         return IPS_ALERT;
     }
 
-    //FocusRelPosNP.s = IPS_BUSY;
+    //FocusRelPosNP.setState(IPS_BUSY);
 
     memset(command, 0, 8);
     hid_read_timeout(m_HIDHandle, command, 8, HID_TIMEOUT);
@@ -263,8 +263,8 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     rval = command[1] == 0x21 ? IPS_OK : IPS_ALERT;
 
-    //FocusRelPosNP.s = rval;
-    //IDSetNumber(&FocusRelPosNP, nullptr);
+    //FocusRelPosNP.setState(rval);
+    //FocusRelPosNP.apply();
 
     return rval;
 }
@@ -282,10 +282,10 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
         return IPS_ALERT;
     }
 
-    FocusSpeedNP.s = IPS_BUSY;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(IPS_BUSY);
+    FocusSpeedNP.apply();
 
-    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
+    if (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON)
     {
         dir = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
     }
@@ -325,8 +325,8 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
     rval = command[1] == 0x24 ? IPS_OK : IPS_ALERT;
 
-    FocusSpeedNP.s = rval;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(rval);
+    FocusSpeedNP.apply();
 
     m_Duration = duration;
     m_State    = SLEWING;

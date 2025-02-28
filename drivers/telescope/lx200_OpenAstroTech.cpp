@@ -62,10 +62,43 @@ bool LX200_OpenAstroTech::initProperties()
     LX200GPS::initProperties();
     IUFillText(&MeadeCommandT, OAT_MEADE_COMMAND, "Result / Command", "");
     IUFillTextVector(&MeadeCommandTP, &MeadeCommandT, 1, getDeviceName(), "Meade", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_SYNC);
 
+    // Set focuser capabilities
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED |
+                      FOCUSER_HAS_BACKLASH | FOCUSER_CAN_SYNC);
+
+    // Initialize focuser properties
     FI::initProperties(FOCUS_TAB);
-    initFocuserProperties(FOCUS_TAB);
+
+    // Set custom ranges for focuser properties
+    FocusSpeedNP[0].setMinMax(0.0, 4.0);
+    FocusSpeedNP[0].setStep(1.0);
+    FocusSpeedNP[0].setValue(2.0);
+
+    FocusTimerNP[0].setMinMax(0.0, 5000.0);
+    FocusTimerNP[0].setStep(50.0);
+    FocusTimerNP[0].setValue(1000.0);
+    lastTimerValue = 1000.0;
+
+    FocusAbsPosNP[0].setMinMax(0.0, 100000.0);
+    FocusAbsPosNP[0].setStep(100.0);
+    FocusAbsPosNP[0].setValue(0);
+
+    FocusRelPosNP[0].setMinMax(0.0, 100000.0);
+    FocusRelPosNP[0].setStep(100.0);
+    FocusRelPosNP[0].setValue(0);
+
+    FocusSyncNP[0].setMinMax(0.0, 100000.0);
+    FocusSyncNP[0].setStep(1000.0);
+    FocusSyncNP[0].setValue(0);
+
+    FocusMaxPosNP[0].setMinMax(1000.0, 100000.0);
+    FocusMaxPosNP[0].setStep(10000.0);
+    FocusMaxPosNP[0].setValue(50000.0);
+
+    FocusBacklashNP[0].setMinMax(0, 5000.0);
+    FocusBacklashNP[0].setStep(100);
+    FocusBacklashNP[0].setValue(0);
 
     // Polar Align Alt
     IUFillNumber(&PolarAlignAltN, "OAT_POLAR_ALT", "Arcmin", "%.f", -140.0, 140.0, 1.0, 0);
@@ -457,7 +490,7 @@ int LX200_OpenAstroTech::flushIO(int fd)
 
 IPState LX200_OpenAstroTech::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     INDI_UNUSED(speed);
     //  :FRsnnn#  Set focuser target position relative (in microns)
     //            Returns: Nothing
@@ -479,7 +512,7 @@ IPState LX200_OpenAstroTech::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
 IPState LX200_OpenAstroTech::MoveAbsFocuser (uint32_t targetTicks)
 {
-    if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks))
+    if (FocusAbsPosNP[0].getMax() >= int(targetTicks) && FocusAbsPosNP[0].getMin() <= int(targetTicks))
     {
         char read_buffer[32];
         snprintf(read_buffer, sizeof(read_buffer), ":Fp#");
@@ -514,7 +547,7 @@ IPState LX200_OpenAstroTech::MoveAbsFocuser (uint32_t targetTicks)
 
 IPState LX200_OpenAstroTech::MoveRelFocuser (FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     //  :FMsnnn#  Set focuser target position relative (in microns)
     //            Returns: Nothing
     char read_buffer[64];
@@ -564,70 +597,12 @@ bool LX200_OpenAstroTech::SyncFocuser(uint32_t ticks)
     return val == '1';
 }
 
-void LX200_OpenAstroTech::initFocuserProperties(const char * groupName)
-{
-    IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 4.0, 1.0, 2.0);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", groupName,
-                       IP_RW, 60, IPS_OK);
-
-    IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Timer", groupName,
-                       IP_RW, 60, IPS_OK);
-    lastTimerValue = 1000.0;
-
-    // Absolute Position
-    IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Steps", "%.f", 0.0, 100000.0, 100.0, 0);
-    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, getDeviceName(), "ABS_FOCUS_POSITION",
-                       "Absolute Position",
-                       groupName, IP_RW, 60, IPS_OK);
-
-    // Relative Position
-    IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Steps", "%.f", 0.0, 100000.0, 100.0, 0);
-    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, getDeviceName(), "REL_FOCUS_POSITION",
-                       "Relative Position",
-                       groupName, IP_RW, 60, IPS_OK);
-
-    // Sync
-    IUFillNumber(&FocusSyncN[0], "FOCUS_SYNC_VALUE", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync",
-                       groupName, IP_RW, 60, IPS_OK);
-
-    // Maximum Position
-    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1000.0, 100000.0, 10000.0, 50000.0);
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position",
-                       groupName, IP_RW, 60, IPS_OK);
-
-    // Abort
-    IUFillSwitch(&FocusAbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion",
-                       groupName, IP_RW,
-                       ISR_ATMOST1, 60, IPS_IDLE);
-
-    // Revese
-    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, getDeviceName(), "FOCUS_REVERSE_MOTION",
-                       "Reverse Motion", groupName, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Backlash Compensation
-    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUS_BACKLASH_TOGGLE",
-                       "Backlash", groupName, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Backlash Compensation Value
-    IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 5000.0, 100, 0);
-    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH_STEPS",
-                       "Backlash",
-                       groupName, IP_RW, 60, IPS_OK);
-}
+// initFocuserProperties function removed as we're using FocuserInterface properties
 
 int LX200_OpenAstroTech::OATUpdateFocuser()
 {
     // we don't need to poll if we're not moving
-    if(!(FocusRelPosNP.s == IPS_BUSY || FocusAbsPosNP.s == IPS_BUSY) && FocusAbsPosN[0].value != 0.0)
+    if(!(FocusRelPosNP.getState() == IPS_BUSY || FocusAbsPosNP.getState() == IPS_BUSY) && FocusAbsPosNP[0].getValue() != 0.0)
     {
         return 0;
     }
@@ -638,39 +613,39 @@ int LX200_OpenAstroTech::OATUpdateFocuser()
     char value[RB_MAX_LEN] = {0};
     if (!getCommandString(PortFD, value, ":Fp#"))
     {
-        FocusAbsPosN[0].value = atof(value);
-        FocusSyncN[0].value = atof(value);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusSyncNP, nullptr);
-        LOGF_INFO("Current focuser: %f", FocusAbsPosN[0].value);
+        FocusAbsPosNP[0].setValue(atof(value));
+        FocusSyncNP[0].setValue(atof(value));
+        FocusAbsPosNP.apply();
+        FocusSyncNP.apply();
+        LOGF_INFO("Current focuser: %f", FocusAbsPosNP[0].getValue());
     }
     // get is_moving
     char valueStatus = getCommandChar(PortFD, ":FB#");
     if (valueStatus == '0')
     {
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        FocusAbsPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
     }
     else if (valueStatus == '1')
     {
-        FocusRelPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_BUSY);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.setState(IPS_BUSY);
+        FocusAbsPosNP.apply();
     }
     else
     {
         LOGF_WARN("Communication :FB# error, check connection: %d", valueStatus);
         //INVALID REPLY
-        FocusRelPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_ALERT);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.setState(IPS_ALERT);
+        FocusAbsPosNP.apply();
     }
     FI::updateProperties();
-    LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+    LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
     return 0;
 }
 

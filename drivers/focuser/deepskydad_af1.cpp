@@ -53,15 +53,15 @@ bool DeepSkyDadAF1::initProperties()
                        IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 5000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 100000.;
-    FocusAbsPosN[0].value = 50000.;
-    FocusAbsPosN[0].step = 500.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(50000.);
+    FocusAbsPosNP[0].setStep(500.);
 
     // Max. movement
     IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
@@ -216,7 +216,7 @@ bool DeepSkyDadAF1::readPosition()
     int rc = sscanf(res, "(%d)", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
@@ -237,7 +237,7 @@ bool DeepSkyDadAF1::readMaxMovement()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxMoveN[0].value = steps;
+        FocusMaxMoveNP[0].setValue(steps);
         FocusMaxMoveNP.s = IPS_OK;
     }
     else
@@ -260,8 +260,8 @@ bool DeepSkyDadAF1::readMaxPosition()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxPosN[0].value = steps;
-        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosNP[0].setValue(steps);
+        FocusMaxPosNP.setState(IPS_OK);
     }
     else
     {
@@ -711,7 +711,7 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         {
             IUUpdateNumber(&FocusMaxPosNP, values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosN[0].value));
+            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosNP[0].getValue()));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
@@ -719,8 +719,8 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
                 return false;
             }
 
-            FocusMaxPosNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxPosNP, nullptr);
+            FocusMaxPosNP.setState(IPS_OK);
+            FocusMaxPosNP.apply();
             return true;
         }
 
@@ -754,7 +754,7 @@ void DeepSkyDadAF1::GetFocusParams()
     IUResetSwitch(&CurrentHoldSP);
 
     if (readPosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (readStepMode())
         IDSetSwitch(&StepModeSP, nullptr);
@@ -763,7 +763,7 @@ void DeepSkyDadAF1::GetFocusParams()
         IDSetNumber(&SettleBufferNP, nullptr);
 
     if (readMaxPosition())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP.apply();
 
     if (readMaxMovement())
         IDSetNumber(&FocusMaxMoveNP, nullptr);
@@ -789,7 +789,7 @@ IPState DeepSkyDadAF1::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(FocusMaxPosNP[0].getValue());
 
     IEAddTimer(duration, &DeepSkyDadAF1::timedMoveHelper, this);
     return IPS_BUSY;
@@ -803,13 +803,13 @@ void DeepSkyDadAF1::timedMoveHelper(void * context)
 void DeepSkyDadAF1::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 
@@ -828,18 +828,18 @@ IPState DeepSkyDadAF1::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()), newPosition));
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
-    //FocusRelPosN[0].value = ticks;
-    //FocusRelPosNP.s       = IPS_BUSY;
+    //FocusRelPosNP[0].setValue(ticks);
+    //FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -855,22 +855,22 @@ void DeepSkyDadAF1::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (std::abs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }

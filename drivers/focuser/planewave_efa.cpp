@@ -96,18 +96,18 @@ bool EFA::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Setup limits
-    FocusMaxPosN[0].value = 1e7;
-    FocusMaxPosN[0].max   = 1e7;
-    FocusMaxPosN[0].step  = FocusMaxPosN[0].max / 50;
+    FocusMaxPosNP[0].setValue(1e7);
+    FocusMaxPosNP[0].setMax(1e7);
+    FocusMaxPosNP[0].setStep(FocusMaxPosNP[0].getMax() / 50);
 
-    FocusAbsPosN[0].max   = 1e7;
-    FocusAbsPosN[0].step  = FocusAbsPosN[0].max / 50;
+    FocusAbsPosNP[0].setMax(1e7);
+    FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50);
 
-    FocusSyncN[0].max     = 1e7;
-    FocusSyncN[0].step    = FocusSyncN[0].max / 50;
+    FocusSyncNP[0].setMax(1e7);
+    FocusSyncNP[0].setStep(FocusSyncNP[0].getMax() / 50);
 
-    FocusRelPosN[0].max   = FocusAbsPosN[0].max / 2;
-    FocusRelPosN[0].step  = FocusRelPosN[0].max / 50;
+    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getMax() / 2);
+    FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 50);
 
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -372,12 +372,12 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 IPState EFA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int direction = (dir == FOCUS_INWARD) ? -1 : 1;
-    int reversed = (FocusReverseS[INDI_ENABLED].s == ISS_ON) ? -1 : 1;
+    int reversed = (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON) ? -1 : 1;
     int relative = static_cast<int>(ticks);
-    int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);
+    int targetAbsPosition = FocusAbsPosNP[0].getValue() + (relative * direction * reversed);
 
-    targetAbsPosition = std::min(static_cast<uint32_t>(FocusAbsPosN[0].max),
-                                 static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min), targetAbsPosition)));
+    targetAbsPosition = std::min(static_cast<uint32_t>(FocusAbsPosNP[0].getMax()),
+                                 static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosNP[0].getMin()), targetAbsPosition)));
 
     return MoveAbsFocuser(targetAbsPosition);
 }
@@ -458,23 +458,23 @@ void EFA::TimerHit()
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (isGOTOComplete())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
             LOG_INFO("Focuser reached requested position.");
         }
         else
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP.apply();
     }
-    else if (std::fabs(FocusAbsPosN[0].value - m_LastPosition) > 0)
+    else if (std::fabs(FocusAbsPosNP[0].getValue() - m_LastPosition) > 0)
     {
-        m_LastPosition = FocusAbsPosN[0].value;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        m_LastPosition = FocusAbsPosNP[0].getValue();
+        FocusAbsPosNP.apply();
     }
 
     IN_TIMER = false;
@@ -552,19 +552,19 @@ void EFA::getStartupValues()
 
     if (readMaxSlewLimit())
     {
-        FocusAbsPosN[0].max = FocusMaxPosN[0].max;
-        FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+        FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getMax());
+        FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50);
 
-        FocusRelPosN[0].value = FocusAbsPosN[0].max / 50;
-        FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
-        FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+        FocusRelPosNP[0].setValue(FocusAbsPosNP[0].getMax() / 50);
+        FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getMax() / 2);
+        FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 50);
 
-        FocusMaxPosN[0].value = FocusMaxPosN[0].max;
-        FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+        FocusMaxPosNP[0].setValue(FocusMaxPosNP[0].getMax());
+        FocusMaxPosNP[0].setStep(FocusMaxPosNP[0].getMax() / 50);
 
-        IUUpdateMinMax(&FocusRelPosNP);
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusMaxPosNP);
+        FocusRelPosNP.updateMinMax();
+        FocusAbsPosNP.updateMinMax();
+        FocusMaxPosNP.updateMinMax();
     }
 }
 
@@ -823,7 +823,7 @@ bool EFA::readPosition()
     if (!sendCommand(cmd, res, len, DRIVER_LEN))
         return false;
 
-    FocusAbsPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
+    FocusAbsPosNP[0].setValue(res[5] << 16 | res[6] << 8 | res[7]);
     return true;
 }
 
@@ -850,7 +850,7 @@ bool EFA::readMaxSlewLimit()
     uint32_t limit = res[5] << 16 | res[6] << 8 | res[7];
     if (limit > 0)
     {
-        FocusMaxPosN[0].max = limit;
+        FocusMaxPosNP[0].setMax(limit);
         return true;
     }
 
