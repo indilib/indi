@@ -24,6 +24,8 @@
 #include "sharedblob.h"
 #include "base64.h"
 
+#include <unistd.h>
+
 bool SerializedMsgWithSharedBuffer::detectInlineBlobs()
 {
     for(auto blobContent : findBlobElements(owner->xmlContent))

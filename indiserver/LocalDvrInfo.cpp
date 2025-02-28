@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <libgen.h>
+#include <unistd.h>
 
 // these externs need to go
 extern Fifo * fifo;
