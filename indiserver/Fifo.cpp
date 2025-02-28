@@ -19,10 +19,12 @@
 #include "Fifo.hpp"
 #include "Utils.hpp"
 #include "Constants.hpp"
-#include <fcntl.h>
 #include "DvrInfo.hpp"
 #include "LocalDrvInfo.hpp"
 #include "RemoteDvrInfo.hpp"
+
+#include <fcntl.h>
+#include <unistd.h>
 
 Fifo::Fifo(const std::string &name) : name(name)
 {
