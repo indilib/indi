@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Jérémie Klein. All rights reserved.
+  Copyright(c) 2025 Jérémie Klein. All rights reserved.
 
   ASCOM Alpaca Dome INDI Driver
 
@@ -48,6 +48,7 @@ class AlpacaDome : public INDI::Dome
         virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
         virtual bool saveConfigItems(FILE *fp) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
 
     protected:
         bool Connect() override;

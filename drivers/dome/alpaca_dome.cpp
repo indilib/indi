@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Jérémie Klein. All rights reserved.
+  Copyright(c) 2025 Jérémie Klein. All rights reserved.
 
   ASCOM Alpaca Dome INDI Driver
 
@@ -50,8 +50,8 @@ bool AlpacaDome::initProperties()
     INDI::Dome::initProperties();
 
     // Setup server address properties
-    ServerAddressTP[0].fill("HOST", "Host", "localhost");
-    ServerAddressTP[1].fill("PORT", "Port", "32323");
+    ServerAddressTP[0].fill("HOST", "Host", "");  // Empty default to force configuration
+    ServerAddressTP[1].fill("PORT", "Port", "");
     ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "Server", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Setup device number property
@@ -64,6 +64,9 @@ bool AlpacaDome::initProperties()
     ConnectionSettingsNP[2].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
     ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Load config before setting any defaults
+    loadConfig(true);
+
     SetParkDataType(PARK_NONE);
     addAuxControls();
 
@@ -74,13 +77,10 @@ void AlpacaDome::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
 
+    // Always define these properties
     defineProperty(ServerAddressTP);
     defineProperty(DeviceNumberNP);
     defineProperty(ConnectionSettingsNP);
-    
-    loadConfig(ServerAddressTP);
-    loadConfig(DeviceNumberNP);
-    loadConfig(ConnectionSettingsNP);
 }
 
 bool AlpacaDome::Connect()
@@ -127,6 +127,8 @@ bool AlpacaDome::ISNewText(const char *dev, const char *name, char *texts[], cha
         ServerAddressTP.update(texts, names, n);
         ServerAddressTP.setState(IPS_OK);
         ServerAddressTP.apply();
+        // Save configuration after update
+        saveConfig();
         return true;
     }
 
@@ -139,14 +141,10 @@ bool AlpacaDome::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(ConnectionSettingsNP);
-        defineProperty(DeviceNumberNP);
         LOG_INFO("Alpaca dome is ready for operation.");
     }
     else
     {
-        deleteProperty(ConnectionSettingsNP);
-        deleteProperty(DeviceNumberNP);
         LOG_INFO("Alpaca dome is disconnected.");
     }
 
@@ -171,6 +169,22 @@ bool AlpacaDome::saveConfigItems(FILE *fp)
     ConnectionSettingsNP.save(fp);
     
     return true;
+}
+
+bool AlpacaDome::loadConfig(bool silent, const char *property)
+{
+    // Charger d'abord la configuration parent
+    bool result = INDI::Dome::loadConfig(silent, property);
+
+    // Si aucune propriété spécifique n'est demandée, charger toutes nos propriétés
+    if (property == nullptr)
+    {
+        result &= ServerAddressTP.load();
+        result &= DeviceNumberNP.load();
+        result &= ConnectionSettingsNP.load();
+    }
+    
+    return result;
 }
 
 IPState AlpacaDome::Move(DomeDirection dir, DomeMotionCommand operation)
@@ -460,7 +474,8 @@ bool AlpacaDome::ISNewNumber(const char *dev, const char *name, double values[],
             ConnectionSettingsNP.update(values, names, n);
             ConnectionSettingsNP.setState(IPS_OK);
             ConnectionSettingsNP.apply();
-            
+            // Save configuration after update
+            saveConfig();
             LOG_INFO("Connection settings updated.");
             return true;
         }
@@ -475,7 +490,8 @@ bool AlpacaDome::ISNewNumber(const char *dev, const char *name, double values[],
             DeviceNumberNP.update(values, names, n);
             DeviceNumberNP.setState(IPS_OK);
             DeviceNumberNP.apply();
-            
+            // Save configuration after update
+            saveConfig();
             LOG_INFO("Alpaca device number updated.");
             return true;
         }
