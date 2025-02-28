@@ -21,9 +21,9 @@
 #include "Constants.hpp"
 #include "SerializedMsg.hpp"
 #include "Msg.hpp"
-
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 void MsgQueue::writeToFd()
 {
