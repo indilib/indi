@@ -92,3 +92,12 @@ SET(universalror_SRC
 add_executable(indi_universalror_dome ${universalror_SRC})
 target_link_libraries(indi_universalror_dome indidriver indiclient)
 install(TARGETS indi_universalror_dome RUNTIME DESTINATION bin)
+
+# ############### Alpaca Dome ################
+SET(alpaca_dome_SRC
+    alpaca_dome.cpp
+    )
+
+add_executable(indi_alpaca_dome ${alpaca_dome_SRC})
+target_link_libraries(indi_alpaca_dome indidriver indiclient)
+install(TARGETS indi_alpaca_dome RUNTIME DESTINATION bin)

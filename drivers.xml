@@ -907,6 +907,10 @@
             <driver name="Universal ROR">indi_universalror_dome</driver>
             <version>0.1</version>
         </device>
+        <device label="Alpaca Dome" manufacturer="Others">
+            <driver name="Alpaca Dome">indi_alpaca_dome</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Weather">
         <device label="Weather Simulator" manufacturer="Simulator">
