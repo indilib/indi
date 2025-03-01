@@ -24,22 +24,23 @@
 #include <vector>
 #include <unordered_map>
 
- void log(const std::string &log);
+void log(const std::string &log);
 /* Turn a printf format into std::string */
- std::string fmt(const char * fmt, ...) __attribute__ ((format (printf, 1, 0)));
+std::string fmt(const char * fmt, ...) __attribute__ ((format (printf, 1, 0)));
 
- char *indi_tstamp(char *s);
- void logStartup(int ac, char *av[]);
- void noSIGPIPE(void);
- char *indi_tstamp(char *s);
- void logDMsg(XMLEle *root, const char *dev);
- void Bye(void);
- std::vector<XMLEle *> findBlobElements(XMLEle * root);
- int readFdError(int fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
- void * attachSharedBuffer(int fd, size_t &size);
- void dettachSharedBuffer(int fd, void * ptr, size_t size);
- bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t &size);
- XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<XMLEle*, XMLEle*> &replacement);
+char *indi_tstamp(char *s);
+void logStartup(int ac, char *av[]);
+void noSIGPIPE(void);
+char *indi_tstamp(char *s);
+void logDMsg(XMLEle *root, const char *dev);
+void Bye(void);
+std::vector<XMLEle *> findBlobElements(XMLEle * root);
+int readFdError(int
+                fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
+void * attachSharedBuffer(int fd, size_t &size);
+void dettachSharedBuffer(int fd, void * ptr, size_t size);
+bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t &size);
+XMLEle * cloneXMLEleWithReplacementMap(XMLEle * root, const std::unordered_map<XMLEle*, XMLEle*> &replacement);
 
 #define STRINGIFY_TOK(x) #x
 #define TO_STRING(x) STRINGIFY_TOK(x)

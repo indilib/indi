@@ -57,7 +57,7 @@ void UnixServer::ioCb(ev::io &, int revents)
     }
 }
 
- void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
+void initUnixSocketAddr(const std::string &unixAddr, struct sockaddr_un &serv_addr_un, socklen_t &addrlen, bool bind)
 {
     memset(&serv_addr_un, 0, sizeof(serv_addr_un));
     serv_addr_un.sun_family = AF_UNIX;
