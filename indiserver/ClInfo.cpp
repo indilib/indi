@@ -104,6 +104,7 @@ void ClInfo::close()
     fflush(stderr);
 #endif
 }
+
 void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string &dev, const std::string &name, Msg *mp, XMLEle *root)
 {
     /* queue message to each interested client */
