@@ -953,6 +953,10 @@
             <driver name="Uranus Meteo Sensor">indi_uranus_weather</driver>
             <version>1.0</version>
         </device>
+        <device label="Weather Safety Alpaca" manufacturer="Others">
+            <driver name="Weather Safety Alpaca">indi_weather_safety_alpaca</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Agent">
         <device label="Imager Agent" manufacturer="Others">
