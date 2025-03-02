@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2025 Your Name. All rights reserved.
+  Copyright(c) 2025 Jérémie Klein. All rights reserved.
 
   ASCOM Alpaca Weather Safety INDI Driver
 
