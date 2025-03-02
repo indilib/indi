@@ -71,6 +71,8 @@ class LX200ZEQ25 : public LX200Generic
         int setZEQ25Longitude(double Long);
         int setZEQ25UTCOffset(double hours);
         int setZEQ25Date(int days, int months, int years);
+        int setZEQ25ObjectRA(int fd, double ra);
+        int setZEQ25ObjectDEC(int fd, double dec);
         bool slewZEQ25();
         int moveZEQ25To(int direction);
         int haltZEQ25Movement();
