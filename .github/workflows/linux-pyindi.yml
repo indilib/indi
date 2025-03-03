@@ -50,8 +50,7 @@ jobs:
           pkg-config \
           libglib2.0-dev \
           libgirepository1.0-dev \
-          gir1.2-glib-2.0 \
-          gsc
+          gir1.2-glib-2.0
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
@@ -109,4 +108,4 @@ jobs:
 
       - name: Test PyIndi
         run: |
-          cd pyindi-client && /bin/bash -c "indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & $GITHUB_WORKSPACE/venv/bin/tox"
+          cd pyindi-client && /bin/bash -c "INDI_SKIP_GSC=1 indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & $GITHUB_WORKSPACE/venv/bin/tox"
