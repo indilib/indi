@@ -50,7 +50,8 @@ jobs:
           pkg-config \
           libglib2.0-dev \
           libgirepository1.0-dev \
-          gir1.2-glib-2.0
+          gir1.2-glib-2.0 \
+          gsc
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
@@ -71,7 +72,7 @@ jobs:
       - name: Build PyIndi
         run: |
           cd pyindi-client
-          # Créer un fichier setup.py temporaire pour gérer la génération SWIG
+          # Create a temporary setup.py to handle SWIG generation
           cat > setup.py << 'EOL'
           from setuptools import setup, Extension
           
@@ -100,6 +101,11 @@ jobs:
         run: |
           cd pyindi-client
           $GITHUB_WORKSPACE/venv/bin/pip install -r requirements-test.txt
+
+      - name: Format Python code
+        run: |
+          cd pyindi-client
+          $GITHUB_WORKSPACE/venv/bin/black tests examples
 
       - name: Test PyIndi
         run: |
