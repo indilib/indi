@@ -47,7 +47,7 @@ jobs:
 
       - name: Build PyIndi
         run: |
-          cd pyindi-client && python3 ./setup.py install
+          cd pyindi-client && pip install .
 
       - name: Install test deps
         run: |
