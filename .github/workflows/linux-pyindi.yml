@@ -71,14 +71,27 @@ jobs:
       - name: Build PyIndi
         run: |
           cd pyindi-client
-          # Check environments
-          echo "Content of directory:"
-          ls -la
-          echo "SWIG version:"
-          swig -version
-          echo "Python version:"
-          $GITHUB_WORKSPACE/venv/bin/python --version
-          # Build wheel
+          # Créer un fichier setup.py temporaire pour gérer la génération SWIG
+          cat > setup.py << 'EOL'
+          from setuptools import setup, Extension
+          
+          setup(
+              name="pyindi-client",
+              ext_modules=[
+                  Extension(
+                      "_PyIndi",
+                      sources=["indiclientpython.i"],
+                      include_dirs=["/usr/include", "/usr/include/libindi", "/usr/local/include/libindi"],
+                      libraries=["z", "cfitsio", "nova", "indiclient"],
+                      language="c++",
+                      swig_opts=["-c++", "-threads", "-I/usr/include", "-I/usr/include/libindi", "-I/usr/local/include/libindi"]
+                  )
+              ]
+          )
+          EOL
+          # Build avec le setup.py temporaire
+          $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
+          # Puis build avec pyproject.toml
           $GITHUB_WORKSPACE/venv/bin/python -m build --wheel
           # Install wheel
           $GITHUB_WORKSPACE/venv/bin/pip install dist/*.whl
