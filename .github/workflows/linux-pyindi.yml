@@ -47,7 +47,10 @@ jobs:
           libdbus-1-dev \
           dbus \
           python3-dbus \
-          pkg-config
+          pkg-config \
+          libglib2.0-dev \
+          libgirepository1.0-dev \
+          gir1.2-glib-2.0
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
