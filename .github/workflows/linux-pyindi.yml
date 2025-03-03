@@ -90,9 +90,9 @@ jobs:
               ]
           )
           EOL
-          # Build avec le setup.py temporaire
+          # Build with temporary setup.py
           $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
-          # Puis build avec pyproject.toml
+          # Build wheel
           $GITHUB_WORKSPACE/venv/bin/python -m build --wheel
           # Install wheel
           $GITHUB_WORKSPACE/venv/bin/pip install dist/*.whl
