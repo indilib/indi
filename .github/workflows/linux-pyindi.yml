@@ -66,13 +66,12 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          $GITHUB_WORKSPACE/venv/bin/pip install wheel setuptools
+          $GITHUB_WORKSPACE/venv/bin/pip install build pip-tools
 
       - name: Build PyIndi
         run: |
           cd pyindi-client
-          $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
-          $GITHUB_WORKSPACE/venv/bin/python setup.py bdist_wheel
+          $GITHUB_WORKSPACE/venv/bin/python -m build
           $GITHUB_WORKSPACE/venv/bin/pip install dist/*.whl
 
       - name: Install test deps
