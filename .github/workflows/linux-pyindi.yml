@@ -64,10 +64,16 @@ jobs:
           echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/venv" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/venv/bin" >> $GITHUB_PATH
 
+      - name: Install build dependencies
+        run: |
+          $GITHUB_WORKSPACE/venv/bin/pip install wheel setuptools
+
       - name: Build PyIndi
         run: |
           cd pyindi-client
-          $GITHUB_WORKSPACE/venv/bin/pip install .
+          $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
+          $GITHUB_WORKSPACE/venv/bin/python setup.py bdist_wheel
+          $GITHUB_WORKSPACE/venv/bin/pip install dist/*.whl
 
       - name: Install test deps
         run: |
