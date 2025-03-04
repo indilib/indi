@@ -395,5 +395,6 @@ bool LX200GPS::UnPark()
 
     INDI_UNUSED(ret);
     TrackState = SCOPE_IDLE;
+    SetParked(false);
     return true;
 }
