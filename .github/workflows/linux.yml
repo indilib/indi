@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["ubuntu", "debian", "debian-buster", "fedora"]
+        container: ["ubuntu", "debian", "fedora"]
 
     container:
       image: ghcr.io/indilib/${{ matrix.container }}
