@@ -37,7 +37,20 @@ jobs:
 
       - name: Install Python3 Pre-requisites
         run: |
-          $(command -v sudo) apt-get update && $(command -v sudo) apt-get install -y python3 python3-dev python3-setuptools swig python3-pip
+          $(command -v sudo) apt-get update && $(command -v sudo) apt-get install -y \
+          python3 \
+          python3-dev \
+          python3-setuptools \
+          python3-venv \
+          swig \
+          python3-pip \
+          libdbus-1-dev \
+          dbus \
+          python3-dbus \
+          pkg-config \
+          libglib2.0-dev \
+          libgirepository1.0-dev \
+          gir1.2-glib-2.0
 
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
@@ -45,14 +58,54 @@ jobs:
           repository: indilib/pyindi-client
           path: ./pyindi-client
 
+      - name: Create and activate venv
+        run: |
+          python3 -m venv venv
+          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/venv" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/venv/bin" >> $GITHUB_PATH
+
+      - name: Install build dependencies
+        run: |
+          $GITHUB_WORKSPACE/venv/bin/pip install setuptools wheel build
+
       - name: Build PyIndi
         run: |
-          cd pyindi-client && python3 ./setup.py install
+          cd pyindi-client
+          # Create a temporary setup.py to handle SWIG generation
+          cat > setup.py << 'EOL'
+          from setuptools import setup, Extension
+          
+          setup(
+              name="pyindi-client",
+              ext_modules=[
+                  Extension(
+                      "_PyIndi",
+                      sources=["indiclientpython.i"],
+                      include_dirs=["/usr/include", "/usr/include/libindi", "/usr/local/include/libindi"],
+                      libraries=["z", "cfitsio", "nova", "indiclient"],
+                      language="c++",
+                      swig_opts=["-c++", "-threads", "-I/usr/include", "-I/usr/include/libindi", "-I/usr/local/include/libindi"]
+                  )
+              ]
+          )
+          EOL
+          # Build with temporary setup.py
+          $GITHUB_WORKSPACE/venv/bin/python setup.py build_ext --inplace
+          # Build wheel
+          $GITHUB_WORKSPACE/venv/bin/python -m build --wheel
+          # Install wheel
+          $GITHUB_WORKSPACE/venv/bin/pip install dist/*.whl
 
       - name: Install test deps
         run: |
-          cd pyindi-client && pip3 install --break-system-packages -r requirements-test.txt
+          cd pyindi-client
+          $GITHUB_WORKSPACE/venv/bin/pip install -r requirements-test.txt
+
+      - name: Format Python code
+        run: |
+          cd pyindi-client
+          $GITHUB_WORKSPACE/venv/bin/black tests examples
 
       - name: Test PyIndi
         run: |
-          cd pyindi-client && /bin/bash -c "indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & tox"
+          cd pyindi-client && /bin/bash -c "INDI_SKIP_GSC=1 indiserver indi_simulator_ccd indi_simulator_focus indi_simulator_gps indi_simulator_guide indi_simulator_wheel indi_simulator_telescope & $GITHUB_WORKSPACE/venv/bin/tox"
