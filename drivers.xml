@@ -907,6 +907,10 @@
             <driver name="Universal ROR">indi_universalror_dome</driver>
             <version>0.1</version>
         </device>
+        <device label="Alpaca Dome" manufacturer="Alpaca">
+            <driver name="Alpaca Dome">indi_alpaca_dome</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Weather">
         <device label="Weather Simulator" manufacturer="Simulator">
@@ -947,6 +951,10 @@
         </device>
         <device label="Uranus Meteo Sensor" manufacturer="Pegasus Astro">
             <driver name="Uranus Meteo Sensor">indi_uranus_weather</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Weather Safety Alpaca" manufacturer="Alpaca">
+            <driver name="Weather Safety Alpaca">indi_weather_safety_alpaca</driver>
             <version>1.0</version>
         </device>
     </devGroup>

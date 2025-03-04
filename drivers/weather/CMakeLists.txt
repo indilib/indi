@@ -65,3 +65,11 @@ ENDIF()
 add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
 target_link_libraries(indi_openweathermap_weather indidriver ${CURL} ${JSONLIB})
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
+
+# ########## Weather safety alpaca ###############
+SET(WeatherSafetyAlpaca_SRC
+    weather_safety_alpaca.cpp)
+
+add_executable(indi_weather_safety_alpaca ${WeatherSafetyAlpaca_SRC})
+target_link_libraries(indi_weather_safety_alpaca indidriver indiclient)
+install(TARGETS indi_weather_safety_alpaca RUNTIME DESTINATION bin)
