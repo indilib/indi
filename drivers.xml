@@ -941,6 +941,10 @@
             <driver name="Weather Watcher">indi_watcher_weather</driver>
             <version>1.1</version>
         </device>
+        <device label="AAG Solo CloudWatcher" manufacturer="Lunático Astronomía">
+            <driver name="AAG Solo CloudWatcher">indi_aagsolo</driver>
+            <version>0.1</version>
+        </device>
         <device label="Weather Safety Proxy" manufacturer="Others">
             <driver name="Weather Safety Proxy">indi_weather_safety_proxy</driver>
             <version>1.0</version>

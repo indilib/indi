@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2025 Jasem Mutlaq and Peter Englmaier. All rights reserved.
 
-  INDI Solo Watcher Driver
+  INDI AAG Solo CloudWatcher Driver
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -22,7 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "solo.h"
+#include "aagsolo.h"
 #include "locale_compat.h"
 
 #include <curl/curl.h>
@@ -31,8 +31,8 @@
 #include <cstring>
 
 
-// We declare an auto pointer to Solo.
-static std::unique_ptr<Solo> solo(new Solo());
+// We declare an auto pointer to AAGSolo.
+static std::unique_ptr<AAGSolo> aag_solo(new AAGSolo());
 
 static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -40,35 +40,35 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
     return size * nmemb;
 }
 
-Solo::Solo()
+AAGSolo::AAGSolo()
 {
     setVersion(0, 1);
     setWeatherConnection(CONNECTION_NONE);
 }
 
-const char *Solo::getDefaultName()
+const char *AAGSolo::getDefaultName()
 {
-    return "CloudWatcher Solo";
+    return "AAG Solo Cloudwatcher";
 }
 
-bool Solo::Connect()
+bool AAGSolo::Connect()
 {
     if (soloHostTP[0].getText() == nullptr
         || soloHostTP[0].getText()[0] == '\0')
     {
-        LOG_ERROR("Solo host name or ip must be specified first in options. Example: aagsolo.local.net");
+        LOG_ERROR("AAG Solo Cloudwatcher host name or ip must be specified first in options. Example: aagsolo.local.net");
         return false;
     }
     else
         return true;
 }
 
-bool Solo::Disconnect()
+bool AAGSolo::Disconnect()
 {
     return true;
 }
 
-bool Solo::createProperties()
+bool AAGSolo::createProperties()
 {
     if (readWatchFile() == false)
         return false;
@@ -198,7 +198,7 @@ bool Solo::createProperties()
 }
 
 // initialize properties on launching indiserver
-bool Solo::initProperties()
+bool AAGSolo::initProperties()
 {
     INDI::Weather::initProperties();
     addDebugControl();
@@ -224,7 +224,7 @@ bool Solo::initProperties()
 }
 
 // initialize properties after connection/disconnection
-bool Solo::updateProperties()
+bool AAGSolo::updateProperties()
 {
     if (isConnected())
     {
@@ -249,12 +249,12 @@ bool Solo::updateProperties()
 }
 
 // get dynamic properties
-bool Solo::getProperties()
+bool AAGSolo::getProperties()
 {
     return true;
 }
 // get properties from configuation
-void Solo::ISGetProperties(const char *dev)
+void AAGSolo::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
 
@@ -264,7 +264,7 @@ void Solo::ISGetProperties(const char *dev)
     loadConfig(true, "SOLO_HOST");
 }
 
-bool Solo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool AAGSolo::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -279,7 +279,7 @@ bool Solo::ISNewText(const char *dev, const char *name, char *texts[], char *nam
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
 }
 
-bool Solo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool AAGSolo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -300,7 +300,7 @@ bool Solo::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
-IPState Solo::updateWeather()
+IPState AAGSolo::updateWeather()
 {
     if (readWatchFile() == false)
         return IPS_BUSY;
@@ -331,7 +331,7 @@ IPState Solo::updateWeather()
     return IPS_OK;
 }
 
-bool Solo::readWatchFile()
+bool AAGSolo::readWatchFile()
 {
     CURL *curl;
     CURLcode res;
@@ -363,7 +363,7 @@ bool Solo::readWatchFile()
     return rc;
 }
 
-bool Solo::saveConfigItems(FILE *fp)
+bool AAGSolo::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
 
@@ -373,7 +373,7 @@ bool Solo::saveConfigItems(FILE *fp)
     return true;
 }
 
-std::map<std::string, std::string> Solo::createMap(std::string const &s)
+std::map<std::string, std::string> AAGSolo::createMap(std::string const &s)
 {
     std::map<std::string, std::string> m;
 

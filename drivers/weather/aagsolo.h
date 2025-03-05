@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2025 Jasem Mutlaq and Peter Englmaier. All rights reserved.
 
-  INDI Solo Watcher Driver
+  INDI AAG Solo CloudWatcher Driver
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -28,10 +28,10 @@
 
 #include <map>
 
-class Solo : public INDI::Weather
+class AAGSolo : public INDI::Weather
 {
     public:
-        Solo();
+        AAGSolo();
 
         //  Generic indi device entries
         bool Connect() override;

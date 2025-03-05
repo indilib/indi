@@ -23,13 +23,13 @@ add_executable(indi_watcher_weather ${weatherwatcher_SRC})
 target_link_libraries(indi_watcher_weather indidriver ${CURL})
 install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin)
 
-# ########## Solo Weather Station ###############
-SET(solo_SRC
-    solo.cpp)
+# ########## AAGSolo Weather Station ###############
+SET(aagsolo_SRC
+    aagsolo.cpp)
 
-add_executable(indi_solo ${solo_SRC})
-target_link_libraries(indi_solo indidriver ${CURL})
-install(TARGETS indi_solo RUNTIME DESTINATION bin)
+add_executable(indi_aagsolo ${aagsolo_SRC})
+target_link_libraries(indi_aagsolo indidriver ${CURL})
+install(TARGETS indi_aagsolo RUNTIME DESTINATION bin)
 
 # ########## Weather Safety Proxy ###############
 SET(weathersafetyproxy_SRC
