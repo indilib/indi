@@ -1356,7 +1356,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.latitude, hourAngle, OptCenter);
 
-    LOGF_DEBUG("OTA_SIDE: %d, Mount OTA_SIDE: %d, OTA_OFFSET: %d Lat: %g", OTASide, mountOTASide,
+    LOGF_DEBUG("OTA_SIDE: %d, Mount OTA_SIDE: %d, OTA_OFFSET: %0.2f Lat: %.2f", OTASide, mountOTASide,
                DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.latitude);
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
