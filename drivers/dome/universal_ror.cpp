@@ -91,8 +91,41 @@ bool UniversalROR::setupParms()
 ////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////
+// Connection status monitoring function
+void UniversalROR::checkConnectionStatus()
+{
+    if (!m_Client)
+        return;
+
+    if (!m_Client->isConnected())
+    {
+        m_ConnectionAttempts++;
+        if (m_ConnectionAttempts >= MAX_CONNECTION_ATTEMPTS)
+        {
+            LOG_ERROR("Devices did not connect within the timeout period. Please check your configuration.");
+            m_ConnectionAttempts = 0;
+            // Stop the connection timer
+            m_ConnectionTimer.stop();
+        }
+        else
+        {
+            // Continue checking every 5 seconds
+            m_ConnectionTimer.start(5000);
+        }
+    }
+    else
+    {
+        // We're connected, stop the timer
+        m_ConnectionAttempts = 0;
+        m_ConnectionTimer.stop();
+    }
+}
+
 bool UniversalROR::Connect()
 {
+    // Reset connection attempts counter
+    m_ConnectionAttempts = 0;
+
     // Check if client is initialized and connected
     if (!m_Client || !m_Client->isConnected())
     {
@@ -104,16 +137,39 @@ bool UniversalROR::Connect()
             ActiveDevicesUpdated();
 
         // Check again if that worked.
-        if (!m_Client || !m_Client->isConnected())
+        if (!m_Client)
         {
-            LOG_ERROR("ROR Client is not connected. Specify the input and output drivers in Options tab.");
+            LOG_ERROR("ROR Client is not initialized. Specify the input and output drivers in Options tab.");
             return false;
         }
 
+        // If client is initialized but not connected, we'll continue anyway
+        // The connection callback will handle syncing indexes when devices connect
+        if (!m_Client->isConnected())
+        {
+            LOG_INFO("ROR Client initialized but devices not connected yet. Will sync when devices connect.");
+
+            // Start a separate timer to monitor connection status
+            m_ConnectionTimer.stop(); // Stop any existing timer
+            m_ConnectionTimer.callOnTimeout(std::bind(&UniversalROR::checkConnectionStatus, this));
+            m_ConnectionTimer.start(5000);
+            return true;
+        }
     }
 
-    syncIndexes();
-    SetTimer(getPollingPeriod());
+    // Only if all three conditions are met (client connected, input device connected, output device connected)
+    // which is what m_Client->isConnected() checks, then we can sync indexes
+    if (m_Client->isConnected())
+    {
+        LOG_INFO("All devices connected. Syncing indexes...");
+        syncIndexes();
+        SetTimer(getPollingPeriod());
+    }
+    else
+    {
+        LOG_INFO("Waiting for devices to connect...");
+        // Don't set the regular timer yet - it will be set when devices connect
+    }
     return true;
 }
 
@@ -122,6 +178,9 @@ bool UniversalROR::Connect()
 ////////////////////////////////////////////////////////////////////////////////
 bool UniversalROR::Disconnect()
 {
+    // Stop the connection timer if it's running
+    m_ConnectionTimer.stop();
+
     m_InputFullyOpened.clear();
     m_InputFullyClosed.clear();
     return true;
@@ -157,7 +216,13 @@ bool UniversalROR::ISNewText(const char * dev, const char * name, char * texts[]
             InputTP.setState(IPS_OK);
             InputTP.apply();
             saveConfig(InputTP);
-            syncIndexes();
+
+            // Only sync indexes if all devices are connected
+            if (m_Client && m_Client->isConnected())
+                syncIndexes();
+            else
+                LOG_INFO("Indexes updated. Will sync when devices connect.");
+
             return true;
         }
 
@@ -168,7 +233,13 @@ bool UniversalROR::ISNewText(const char * dev, const char * name, char * texts[]
             OutputTP.setState(IPS_OK);
             OutputTP.apply();
             saveConfig(OutputTP);
-            syncIndexes();
+
+            // Only sync indexes if all devices are connected
+            if (m_Client && m_Client->isConnected())
+                syncIndexes();
+            else
+                LOG_INFO("Indexes updated. Will sync when devices connect.");
+
             return true;
         }
     }
@@ -210,8 +281,11 @@ void UniversalROR::TimerHit()
         return;
 
     // In case the limit switch status is unknown, try to sync them up from client.
+    // Only do this if the client is fully connected to both input and output devices
     if (m_FullClosedLimitSwitch == m_FullOpenLimitSwitch && m_Client && m_Client->isConnected())
     {
+        // We know the client is connected, but we'll still check the return values
+        // to avoid logging errors for expected conditions
         m_Client->syncFullyOpenedState();
         m_Client->syncFullyClosedState();
     }
@@ -371,6 +445,10 @@ void UniversalROR::ActiveDevicesUpdated()
     if (input.empty() || output.empty())
         return;
 
+    // If there is no change, return
+    if (m_Client && m_Client->inputDevice() == input && m_Client->outputDevice() == output)
+        return;
+
     m_Client.reset(new UniversalRORClient(input, output));
     m_Client->setFullyClosedCallback([&](bool on)
     {
@@ -383,6 +461,15 @@ void UniversalROR::ActiveDevicesUpdated()
         m_FullOpenLimitSwitch = on;
         LimitSwitchLP[FullyOpened].setState(on ? IPS_OK : IPS_IDLE);
         LimitSwitchLP.apply();
+    });
+    m_Client->setConnectionCallback([&](bool connected)
+    {
+        if (connected)
+        {
+            LOG_INFO("Devices connected. Syncing indexes...");
+            syncIndexes();
+            SetTimer(getPollingPeriod());
+        }
     });
     m_Client->watchDevice(input.c_str());
     m_Client->watchDevice(output.c_str());
@@ -429,9 +516,6 @@ bool UniversalROR::syncIndexes()
         m_OutputCloseRoof = closeRoofList;
         m_Client->setOutputCloseRoof(m_OutputCloseRoof);
     }
-
-    m_Client->syncFullyOpenedState();
-    m_Client->syncFullyClosedState();
 
     return true;
 }

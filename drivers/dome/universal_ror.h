@@ -20,6 +20,7 @@
 #pragma once
 
 #include "indidome.h"
+#include "inditimer.h"
 #include "universal_ror_client.h"
 
 class UniversalROR : public INDI::Dome
@@ -53,6 +54,7 @@ class UniversalROR : public INDI::Dome
         bool setupParms();
         bool syncIndexes();
         std::vector<uint8_t> extract(const std::string &text);
+        void checkConnectionStatus();
         bool m_FullOpenLimitSwitch {false}, m_FullClosedLimitSwitch {false};
 
         INDI::PropertyText InputTP {2};
@@ -73,4 +75,9 @@ class UniversalROR : public INDI::Dome
         std::vector<uint8_t> m_OutputOpenRoof, m_OutputCloseRoof;
         std::vector<uint8_t> m_InputFullyOpened, m_InputFullyClosed;
         std::unique_ptr<UniversalRORClient> m_Client;
+
+        // Connection tracking
+        int m_ConnectionAttempts {0};
+        static constexpr int MAX_CONNECTION_ATTEMPTS {5}; // 5 attempts * 5 seconds = 25 seconds max wait time
+        INDI::Timer m_ConnectionTimer;
 };
