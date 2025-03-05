@@ -45,6 +45,15 @@ class UniversalRORClient : public INDI::BaseClient
             return m_InputReady && m_OutputReady;
         }
 
+        const std::string &inputDevice() const
+        {
+            return m_Input;
+        }
+        const std::string &outputDevice() const
+        {
+            return m_Output;
+        }
+
         bool openRoof();
         bool closeRoof();
         bool stop();
@@ -79,8 +88,13 @@ class UniversalRORClient : public INDI::BaseClient
             m_FullyClosedCallback = callback;
         }
 
-        void syncFullyOpenedState();
-        void syncFullyClosedState();
+        void setConnectionCallback(std::function<void(bool)> callback)
+        {
+            m_ConnectionCallback = callback;
+        }
+
+        bool syncFullyOpenedState();
+        bool syncFullyClosedState();
 
     protected:
         virtual void newDevice(INDI::BaseDevice dp) override;
@@ -93,5 +107,5 @@ class UniversalRORClient : public INDI::BaseClient
         bool m_InputReady {false}, m_OutputReady {false};
         std::vector<uint8_t> m_OutputOpenRoof, m_OutputCloseRoof;
         std::vector<uint8_t> m_InputFullyOpened, m_InputFullyClosed;
-        std::function<void(bool)> m_FullyOpenedCallback, m_FullyClosedCallback;
+        std::function<void(bool)> m_FullyOpenedCallback, m_FullyClosedCallback, m_ConnectionCallback;
 };

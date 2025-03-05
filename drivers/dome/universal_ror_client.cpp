@@ -57,15 +57,23 @@ UniversalRORClient::~UniversalRORClient()
 ///////////////////////////////////////////////////////////////////////////////////////////
 void UniversalRORClient::newDevice(INDI::BaseDevice dp)
 {
-    if (dp.isDeviceNameMatch(m_Input))
+    if (dp.isDeviceNameMatch(m_Input) && dp.isConnected())
     {
         m_InputReady = true;
         DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Input device '%s' is ready", m_Input.c_str());
     }
-    if (dp.isDeviceNameMatch(m_Output))
+
+    if (dp.isDeviceNameMatch(m_Output) && dp.isConnected())
     {
         m_OutputReady = true;
         DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Output device '%s' is ready", m_Output.c_str());
+    }
+
+    // If we just became connected and we have a connection callback, call it
+    if (m_InputReady && m_OutputReady && m_ConnectionCallback)
+    {
+        DEBUGDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Both devices are now connected, triggering connection callback");
+        m_ConnectionCallback(true);
     }
 }
 
@@ -92,6 +100,27 @@ void UniversalRORClient::serverDisconnected(int exitCode)
 ///////////////////////////////////////////////////////////////////////////////////////////
 void UniversalRORClient::updateProperty(INDI::Property property)
 {
+    // If we're not fully connected yet, let's check.
+    if (!m_InputReady || !m_OutputReady)
+    {
+        if (property.isNameMatch("CONNECTION"))
+        {
+            auto toggled = property.getSwitch()->at(0)->getState() == ISS_ON;
+            if (property.isDeviceNameMatch(m_Input))
+                m_InputReady = toggled;
+            if (property.isDeviceNameMatch(m_Output))
+                m_OutputReady = toggled;
+
+            if (m_InputReady && m_OutputReady && m_ConnectionCallback)
+            {
+                DEBUGDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Both devices are now connected, triggering connection callback");
+                m_ConnectionCallback(true);
+            }
+
+            return;
+        }
+    }
+
     auto fullyOpenedUpdated = false, fullyClosedUpdated = false;
     for (const auto &value : m_InputFullyOpened)
     {
@@ -237,14 +266,14 @@ bool UniversalRORClient::stop()
 ///////////////////////////////////////////////////////////////////////////////////////////
 /// Checks fully opened state properties.
 ///////////////////////////////////////////////////////////////////////////////////////////
-void UniversalRORClient::syncFullyOpenedState()
+bool UniversalRORClient::syncFullyOpenedState()
 {
     auto device = getDevice(m_Input.c_str());
     if (!device || !device.isConnected())
     {
         DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot sync open state - Input device '%s' not connected",
                      m_Input.c_str());
-        return;
+        return false;
     }
 
     DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Syncing fully opened state from input device '%s'",
@@ -264,6 +293,7 @@ void UniversalRORClient::syncFullyOpenedState()
         else
         {
             DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
+            return false;
         }
     }
 
@@ -273,19 +303,20 @@ void UniversalRORClient::syncFullyOpenedState()
     });
     DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully opened state: %s", on ? "YES" : "NO");
     m_FullyOpenedCallback(on);
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-void UniversalRORClient::syncFullyClosedState()
+bool UniversalRORClient::syncFullyClosedState()
 {
     auto device = getDevice(m_Input.c_str());
     if (!device || !device.isConnected())
     {
         DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Cannot sync closed state - Input device '%s' not connected",
                      m_Input.c_str());
-        return;
+        return false;
     }
 
     DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Syncing fully closed state from input device '%s'",
@@ -305,6 +336,7 @@ void UniversalRORClient::syncFullyClosedState()
         else
         {
             DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_ERROR, "Failed to get switch property for %s", name.c_str());
+            return false;
         }
     }
 
@@ -314,4 +346,5 @@ void UniversalRORClient::syncFullyClosedState()
     });
     DEBUGFDEVICE("Universal ROR", INDI::Logger::DBG_DEBUG, "Fully closed state: %s", on ? "YES" : "NO");
     m_FullyClosedCallback(on);
+    return true;
 }
