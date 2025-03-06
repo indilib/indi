@@ -200,8 +200,9 @@ bool AAGSolo::createProperties()
 // initialize properties on launching indiserver
 bool AAGSolo::initProperties()
 {
-    INDI::Weather::initProperties();
+    INDI::Weather::initProperties(); // FIXME: parameters shoudl be statusGroup and paramsGroup
     addDebugControl();
+
     // Critical Parameters --------------------------------------------------------------------
     criticalSP[0].fill("CRITICAL_1", "Rain", ISS_ON);
     criticalSP[1].fill("CRITICAL_2", "Temperature", ISS_OFF);
@@ -213,13 +214,11 @@ bool AAGSolo::initProperties()
     criticalSP[7].fill("CRITICAL_8", "Light", ISS_OFF);
     criticalSP[8].fill("CRITICAL_9", "Safe", ISS_OFF);
     criticalSP.fill(getDeviceName(), "CRITICALS", "Criticals", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
-    defineProperty(criticalSP);
-    loadConfig(true, "CRITICALS");
+    criticalSP.load();
 
     soloInfoTP[0].fill("CWINFO", "cwinfo", nullptr);
     soloInfoTP[1].fill("DATATIME", "GMT Time", nullptr);
     soloInfoTP.fill(getDefaultName(), "DEVICEINFO", "Device Info", INFO_TAB, IP_RO, 60, IPS_IDLE);
-    defineProperty(soloInfoTP);
     return true;
 }
 
@@ -228,7 +227,6 @@ bool AAGSolo::updateProperties()
 {
     if (isConnected())
     {
-        getProperties();
         createProperties();
         INDI::Weather::updateProperties(); // define inherited properties
     }
@@ -244,15 +242,12 @@ bool AAGSolo::updateProperties()
         // clear array of "ParametersRangeNP"
         INDI::Weather::ParametersRangeNP.clear();
     }
+    defineProperty(criticalSP);
+    defineProperty(soloInfoTP);
 
     return true;
 }
 
-// get dynamic properties
-bool AAGSolo::getProperties()
-{
-    return true;
-}
 // get properties from configuation
 void AAGSolo::ISGetProperties(const char *dev)
 {
@@ -385,4 +380,3 @@ std::map<std::string, std::string> AAGSolo::createMap(std::string const &s)
 
     return m;
 }
-

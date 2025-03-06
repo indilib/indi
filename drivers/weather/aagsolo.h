@@ -74,7 +74,6 @@ class AAGSolo : public INDI::Weather
         std::map<std::string, std::string> createMap(std::string const &s);
         bool readWatchFile();
         bool createProperties();
-        bool getProperties();
 
         INDI::PropertyText soloHostTP {1};
         INDI::PropertyText soloInfoTP {2};
