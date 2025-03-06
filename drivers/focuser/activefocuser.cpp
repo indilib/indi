@@ -147,37 +147,37 @@ bool ActiveFocuser::initProperties()
 
     // Adding version display
 
-    IUFillText(&HardwareVersionN[0], "Version infos", "", "1.04");
-    IUFillTextVector(&HardwareVersionNP, HardwareVersionN, 1, getDeviceName(), "HARDWARE_VERSION", "Hardware Version",
+    HardwareVersionNP[0].fill("Version infos", "", "1.04");
+    HardwareVersionNP.fill(getDeviceName(), "HARDWARE_VERSION", "Hardware Version",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     std::stringstream softwareVersionStream;
     softwareVersionStream << DRIVER_VERSION_MAJOR << "." << DRIVER_VERSION_MINOR;
 
-    IUFillText(&SoftwareVersionN[0], "Version infos", "", softwareVersionStream.str().c_str());
-    IUFillTextVector(&SoftwareVersionNP, SoftwareVersionN, 1, getDeviceName(), "SOFTWARE_VERSION", "Software Version",
+    SoftwareVersionNP[0].fill("Version infos", "", softwareVersionStream.str().c_str());
+    SoftwareVersionNP.fill(getDeviceName(), "SOFTWARE_VERSION", "Software Version",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding temperature sensor display
 
-    IUFillNumber(&AirTemperatureN[0], "AIR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&AirTemperatureNP, AirTemperatureN, 1, getDeviceName(), "AIR_TEMPERATURE", "Air Temperature",
+    AirTemperatureNP[0].fill("AIR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    AirTemperatureNP.fill(getDeviceName(), "AIR_TEMPERATURE", "Air Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&TubeTemperatureN[0], "TUBE TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&TubeTemperatureNP, TubeTemperatureN, 1, getDeviceName(), "TUBE_TEMPERATURE", "Tube Temperature",
+    TubeTemperatureNP[0].fill("TUBE TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TubeTemperatureNP.fill(getDeviceName(), "TUBE_TEMPERATURE", "Tube Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&MirrorTemperatureN[0], "MIRROR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&MirrorTemperatureNP, MirrorTemperatureN, 1, getDeviceName(), "MIRROR_TEMPERATURE",
+    MirrorTemperatureNP[0].fill("MIRROR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    MirrorTemperatureNP.fill(getDeviceName(), "MIRROR_TEMPERATURE",
                        "Mirror Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding FAN control button
 
-    IUFillSwitch(&FanS[0], "FAN_ON", "On", ISS_ON);
-    IUFillSwitch(&FanS[1], "FAN_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&FanSP, FanS, 2, getDeviceName(), "FAN_STATE", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+    FanSP[FAN_ON].fill("FAN_ON", "On", ISS_ON);
+    FanSP[FAN_OFF].fill("FAN_OFF", "Off", ISS_OFF);
+    FanSP.fill(getDeviceName(), "FAN_STATE", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
     // Setting focus max position constant
@@ -232,23 +232,23 @@ bool ActiveFocuser::updateProperties()
     if (hid_handle)
     {
 
-        defineProperty(&HardwareVersionNP);
-        defineProperty(&SoftwareVersionNP);
-        defineProperty(&AirTemperatureNP);
-        defineProperty(&TubeTemperatureNP);
-        defineProperty(&MirrorTemperatureNP);
-        defineProperty(&FanSP);
+        defineProperty(HardwareVersionNP);
+        defineProperty(SoftwareVersionNP);
+        defineProperty(AirTemperatureNP);
+        defineProperty(TubeTemperatureNP);
+        defineProperty(MirrorTemperatureNP);
+        defineProperty(FanSP);
 
     }
     else
     {
 
-        deleteProperty(HardwareVersionNP.name);
-        deleteProperty(SoftwareVersionNP.name);
-        deleteProperty(AirTemperatureNP.name);
-        deleteProperty(TubeTemperatureNP.name);
-        deleteProperty(MirrorTemperatureNP.name);
-        deleteProperty(FanSP.name);
+        deleteProperty(HardwareVersionNP);
+        deleteProperty(SoftwareVersionNP);
+        deleteProperty(AirTemperatureNP);
+        deleteProperty(TubeTemperatureNP);
+        deleteProperty(MirrorTemperatureNP);
+        deleteProperty(FanSP);
 
     }
 
@@ -262,12 +262,12 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (strcmp(FanSP.name, name) == 0)
+        if (FanSP.isNameMatch(name))
         {
 
-            IUUpdateSwitch(&FanSP, states, names, n);
+            FanSP.update(states, names, n);
 
-            if (FanS[0].s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn())
+            if (FanSP[FAN_ON].getState() == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn())
             {
 
                 if (hid_handle)
@@ -287,7 +287,7 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 }
 
             }
-            else if (FanS[0].s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn())
+            else if (FanSP[FAN_ON].getState() == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn())
             {
 
                 if (hid_handle)
@@ -308,8 +308,8 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
             }
 
-            FanSP.s = IPS_OK;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP.setState(IPS_OK);
+            FanSP.apply();
 
             return true;
 
@@ -453,30 +453,30 @@ void ActiveFocuser::TimerHit()
         PresetN[1].max = MAX_TICKS;
         PresetN[2].max = MAX_TICKS;
 
-        HardwareVersionN[0].text = ActiveFocuserUtils::SystemState::GetHardwareRevision();
-        IDSetText(&HardwareVersionNP, nullptr);
+        HardwareVersionNP[0].setText(ActiveFocuserUtils::SystemState::GetHardwareRevision());
+        HardwareVersionNP.apply();
 
         FocusAbsPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPositionStep();
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
         internalTicks = FocusAbsPosN[0].value;
 
-        AirTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetAirTemperature();
-        IDSetNumber(&AirTemperatureNP, nullptr);
-        TubeTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetTubeTemperature();
-        IDSetNumber(&TubeTemperatureNP, nullptr);
-        MirrorTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetMirrorTemperature();
-        IDSetNumber(&MirrorTemperatureNP, nullptr);
+        AirTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetAirTemperature());
+        AirTemperatureNP.apply();
+        TubeTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetTubeTemperature());
+        TubeTemperatureNP.apply();
+        MirrorTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetMirrorTemperature());
+        MirrorTemperatureNP.apply();
 
         if(ActiveFocuserUtils::SystemState::GetIsFanOn())
         {
-            FanS[0].s = ISS_ON;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP[FAN_ON].setState(ISS_ON);
+            FanSP.apply(nullptr);
         }
         else
         {
-            FanS[0].s = ISS_OFF;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP[FAN_ON].setState(ISS_OFF);
+            FanSP.apply(nullptr);
         }
 
         if(ActiveFocuserUtils::SystemState::GetIsMoving())
