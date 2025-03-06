@@ -86,8 +86,7 @@ class AAF2 : public INDI::Focuser
         bool isMoving();
 
         // Read Only Temperature Reporting
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 

@@ -45,8 +45,8 @@ bool AAF2::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Relative and absolute movement
@@ -71,13 +71,13 @@ bool AAF2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
+        defineProperty(TemperatureNP);
 
         LOG_INFO("Focuser ready.");
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(TemperatureNP);
     }
 
     return true;
@@ -159,7 +159,7 @@ bool AAF2::readTemperature()
     int rc = sscanf(res, "C%d:OK", &temp);
     if (rc > 0)
         // Hundredth of a degree
-        TemperatureN[0].value = temp / 100.0;
+        TemperatureNP[0].setValue(temp / 100.0);
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -283,10 +283,10 @@ void AAF2::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
