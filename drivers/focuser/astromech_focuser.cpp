@@ -91,8 +91,8 @@ bool astromechanics_foc::initProperties()
     FocusRelPosN[0].value = 0;
 
     // Aperture
-    IUFillNumber(&AppertureN[0], "LENS_APP", "Index", "%.f", 0, 22, 1, 0);
-    IUFillNumberVector(&AppertureNP, AppertureN, 1, getDeviceName(), "LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW,
+    AppertureNP[0].fill("LENS_APP", "Index", "%.f", 0, 22, 1, 0);
+    AppertureNP.fill(getDeviceName(), "LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW,
                        60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
@@ -111,11 +111,11 @@ bool astromechanics_foc::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&AppertureNP);
+        defineProperty(AppertureNP);
     }
     else
     {
-        deleteProperty(AppertureNP.name);
+        deleteProperty(AppertureNP);
     }
 
     return true;
@@ -154,10 +154,10 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
     {
         if (strcmp(name, "LENS_APP_SETTING") == 0)
         {
-            IUUpdateNumber(&AppertureNP, values, names, n);
-            AppertureNP.s = IPS_OK;
-            IDSetNumber(&AppertureNP, nullptr);
-            SetApperture(AppertureN[0].value);
+            AppertureNP.update(values, names, n);
+            AppertureNP.setState(IPS_OK);
+            AppertureNP.apply();
+            SetApperture(AppertureNP[0].getValue());
             return true;
         }
     }
