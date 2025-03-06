@@ -126,6 +126,11 @@ bool PegasusUPB::initProperties()
     IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
 
+    // Load saved auto dew settings
+    if (version == UPB_V2) {
+        loadConfig(true, "AUTO_DEW");
+    }
+
     // Dew Labels with custom labels
     DewControlsLabelsTP[DEW_LABEL_1].fill("DEW_LABEL_1", "Dew A", AutoDewV2S[0].label);
     DewControlsLabelsTP[DEW_LABEL_2].fill("DEW_LABEL_2", "Dew B", AutoDewV2S[1].label);
@@ -1765,7 +1770,12 @@ std::vector<std::string> PegasusUPB::split(const std::string &input, const std::
 bool PegasusUPB::setupParams()
 {
     if (version == UPB_V2)
+    {
         getPowerOnBoot();
+        // Restore auto dew settings after connection
+        loadConfig(true, "AUTO_DEW");
+        IDSetSwitch(&AutoDewV2SP, nullptr);
+    }
 
     sendFirmware();
 
