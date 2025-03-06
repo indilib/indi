@@ -72,13 +72,13 @@ bool CelestronSCT::initProperties()
     //                    MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // focuser calibration
-    IUFillSwitch(&CalibrateS[0], "START", "Start Calibration", ISS_OFF);
-    IUFillSwitch(&CalibrateS[1], "STOP", "Stop Calibration", ISS_OFF);
-    IUFillSwitchVector(&CalibrateSP, CalibrateS, 2, getDeviceName(), "CALIBRATE", "Calibrate control",
+    CalibrateSP[START].fill("START", "Start Calibration", ISS_OFF);
+    CalibrateSP[STOP].fill("STOP", "Stop Calibration", ISS_OFF);
+    CalibrateSP.fill(getDeviceName(), "CALIBRATE", "Calibrate control",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillText(&CalibrateStateT[0], "CALIBRATE_STATE", "Calibrate state", "");
-    IUFillTextVector(&CalibrateStateTP, CalibrateStateT, 1, getDeviceName(), "CALIBRATE_STATE", "Calibrate State",
+    CalibrateStateTP[0].fill("CALIBRATE_STATE", "Calibrate state", "");
+    CalibrateStateTP.fill(getDeviceName(), "CALIBRATE_STATE", "Calibrate State",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Speed range
@@ -136,8 +136,8 @@ bool CelestronSCT::updateProperties()
 
         // defineProperty(&FocusMinPosNP);
 
-        defineProperty(&CalibrateSP);
-        defineProperty(&CalibrateStateTP);
+        defineProperty(CalibrateSP);
+        defineProperty(CalibrateStateTP);
 
         if (getStartupParameters())
             LOG_INFO("Celestron SCT focuser parameters updated, focuser ready for use.");
@@ -149,8 +149,8 @@ bool CelestronSCT::updateProperties()
     {
         //deleteProperty(FocusBacklashNP.name);
         // deleteProperty(FocusMinPosNP.name);
-        deleteProperty(CalibrateSP.name);
-        deleteProperty(CalibrateStateTP.name);
+        deleteProperty(CalibrateSP);
+        deleteProperty(CalibrateStateTP);
     }
 
     return true;
@@ -312,10 +312,10 @@ bool CelestronSCT::ISNewSwitch(const char * dev, const char * name, ISState *sta
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, CalibrateSP.name))
+        if (CalibrateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&CalibrateSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&CalibrateSP);
+            CalibrateSP.update(states, names, n);
+            int index = CalibrateSP.findOnSwitchIndex();
             Aux::buffer data = {1};
             switch(index)
             {
@@ -335,8 +335,8 @@ bool CelestronSCT::ISNewSwitch(const char * dev, const char * name, ISState *sta
             }
             communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_CALIB_ENABLE, data);
             usleep(500000);
-            CalibrateSP.s = IPS_BUSY;
-            IDSetSwitch(&CalibrateSP, nullptr);
+            CalibrateSP.setState(IPS_BUSY);
+            CalibrateSP.apply();
             return true;
         }
     }
@@ -511,11 +511,11 @@ void CelestronSCT::TimerHit()
             const char *msg = complete ? "Calibrate complete" : "Calibrate aborted";
             LOG_INFO(msg);
             calibrateInProgress = false;
-            CalibrateS[1].s = ISS_OFF;
-            CalibrateSP.s = IPS_OK;
-            IUSaveText(&CalibrateStateT[0], msg);
-            IDSetSwitch(&CalibrateSP, nullptr);
-            IDSetText(&CalibrateStateTP, nullptr);
+            CalibrateSP[STOP].setState(ISS_OFF);
+            CalibrateSP.setState(IPS_OK);
+            CalibrateStateTP[0].setText(msg);
+            CalibrateSP.apply();
+            CalibrateStateTP.apply();
             // read the new limits
             if (complete && readLimits())
             {
@@ -531,8 +531,8 @@ void CelestronSCT::TimerHit()
                 calibrateState = state;
                 char str[20];
                 snprintf(str, 20, "Calibrate state %i", state);
-                IUSaveText(&CalibrateStateT[0], str);
-                IDSetText(&CalibrateStateTP, nullptr);
+                CalibrateStateTP[0].setText(str);
+                CalibrateStateTP.apply(nullptr);
             }
         }
     }
