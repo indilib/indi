@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2025 Jasem Mutlaq and Peter Englmaier. All rights reserved.
+  Copyright(c) 2025 Peter Englmaier. All rights reserved.
 
   INDI AAG Solo CloudWatcher Driver
 

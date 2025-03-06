@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2025 Jasem Mutlaq and Peter Englmaier. All rights reserved.
+  Copyright(c) 2025 Peter Englmaier. All rights reserved.
 
   INDI AAG Solo CloudWatcher Driver
 
@@ -56,7 +56,7 @@ bool AAGSolo::Connect()
     if (soloHostTP[0].getText() == nullptr
         || soloHostTP[0].getText()[0] == '\0')
     {
-        LOG_ERROR("AAG Solo Cloudwatcher host name or ip must be specified first in options. Example: aagsolo.local.net");
+        LOG_ERROR("AAG Solo Cloudwatcher host name or IP must be specified in options tab. Example: aagsolo.local.net");
         return false;
     }
     else

@@ -27,9 +27,9 @@ install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin)
 SET(aagsolo_SRC
     aagsolo.cpp)
 
-add_executable(indi_aagsolo ${aagsolo_SRC})
-target_link_libraries(indi_aagsolo indidriver ${CURL})
-install(TARGETS indi_aagsolo RUNTIME DESTINATION bin)
+add_executable(indi_aagsolo_weather ${aagsolo_SRC})
+target_link_libraries(indi_aagsolo_weather indidriver ${CURL})
+install(TARGETS indi_aagsolo_weather RUNTIME DESTINATION bin)
 
 # ########## Weather Safety Proxy ###############
 SET(weathersafetyproxy_SRC
