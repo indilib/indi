@@ -39,9 +39,12 @@
         - move Latitude/Longitude settings to more common Site Management Tab with Location settings
         - Location Snoop enabled by default for Telescope Simulator 
         - move to ActiveDevicesTP model for setting snoop devices
+    V1.2
+        - Add support for addtional Controller Pins supported in CheapoDC firmware 2.2.0. 
+        - Fix GET command processing to not throw a JSON error when an error response is received from device
 */
 #define CHEAPODC_VERSION_MAJOR 1
-#define CHEAPODC_VERSION_MINOR 1
+#define CHEAPODC_VERSION_MINOR 2
 
 // CheapoDC Commands used
 #define CDC_CMD_ATPQ "ATPQ" // ambient temperature - float %3.2f
@@ -74,6 +77,10 @@
 #define CDC_CMD_LWUD "LWUD" // date of last weather update (in Weather Staion time zone)
 #define CDC_CMD_LWUT "LWUT" // time of last weather update (in Weather Staion time zone)
 #define CDC_CMD_WQEN "WQEN" // Weather Query Enabled (false=0, true=1)
+// the following commands are stubs for the addtional controller output pins 2, 3, 4, 5. Inserting the 
+// pin number in the stub command string will form the correct CheapoDC command string.
+#define CDC_CMD_CPM "CPM%d"   // Controller Pin Mode for pin x  (0=Disabled, 1=Controller, 2=PWM, 3=Boolean)
+#define CDC_CMD_CPO "CPO%d"   // Controller Pin Output for pin x (0 to 100)
 
 #define CDC_GET_COMMAND "{\"GET\":\"%s\"}"
 #define CDC_SET_COMMAND "{\"SET\":{\"%s\":\"%s\"}}"
@@ -86,6 +93,9 @@
 #define CDC_DEFAULT_POLLING_PERIOD 30000 // in msec, 30 seconds is often enough for Dew Control
 #define CDC_DEFAULT_HOST "cheapodc.local" // default host for connection tab
 #define CDC_DEFAULT_PORT 58000 // default TCP port for connection tab
+#define CDC_MIN_ADDITIONAL_OUTPUT 2  // Addtional outputs start at 2
+#define CDC_TOTAL_ADDITIONAL_OUTPUTS 4  // 4 addtional outputs - 2, 3, 4 and 5
+
 
 // Snoop Device information
 #define CDC_SNOOP_LOCATION_PROPERTY "GEOGRAPHIC_COORD"
@@ -175,7 +185,20 @@ private:
             ACTIVE_WEATHER
         };
 
+    enum controllerPinModes
+        {
+            CONTROLLER_PIN_MODE_DISABLED = 0,
+            CONTROLLER_PIN_MODE_CONTROLLER,
+            CONTROLLER_PIN_MODE_PWM,
+            CONTROLLER_PIN_MODE_BOOLEAN,
+            MAX_PIN_MODES
+        };
+
+    const char* pinModeText[MAX_PIN_MODES] = {"Disabled", "Controller", "PWM", "Boolean"};
+    int lastControllerPinMode[CDC_TOTAL_ADDITIONAL_OUTPUTS];
+
     bool fwVOneDetected = false;
+    bool additionalOutputsSupported = false;
     int timerIndex;
     unsigned int previousControllerMode = MANUAL;
     unsigned int prevMinOutput = 0;
@@ -226,6 +249,9 @@ private:
     bool setSnoopTemperatureDevice(const char *device, const char *property, const char *attribute);
     bool setSnoopWeatherDevice(const char *device, const char *property, const char *temperatureAttribute, const char *humidityAttribute);
     void setActiveDevice(const char *telescopeDevice, const char *focuserDevice, const char *weatherDevice);
+    bool setAdditionalOutput( int outputPin, int output );
+    bool checkAddtionalOutputs();
+    bool checkForOutputModeChange();
     
 
     // Connection::Serial *serialConnection { nullptr };
@@ -261,5 +287,5 @@ private:
     INDI::PropertySwitch RefreshSP{1};
     INDI::PropertyText DeviceTimeTP{2};
     INDI::PropertyText ActiveDeviceTP{3};
-
+    INDI::PropertyNumber AdditionalOutputsNP[CDC_TOTAL_ADDITIONAL_OUTPUTS]={1,1,1,1};
 };
