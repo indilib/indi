@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
   WandererCover V4-EC
 
@@ -156,6 +156,18 @@ bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::getData()
 {
+    if (isSimulation)
+    {
+        // Simulate data
+        closesetread = 20.0;
+        opensetread = 150.0;
+        positionread = isCoverOpen ? 150.0 : 20.0;
+        voltageread = 12.0;
+        updateData(closesetread, opensetread, positionread, voltageread);
+        Ismoving = false;
+        return true;
+    }
+
     try
     {
         PortFD = serialConnection->getPortFD();
@@ -284,6 +296,24 @@ bool WandererCoverV4EC::ISNewSwitch(const char *dev, const char *name, ISState *
     if (DI::processSwitch(dev, name, states, names, n))
         return true;
 
+    // Handle simulation mode
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, "CONNECTION") == 0)
+        {
+            if (states[0] == ISS_ON)
+            {
+                setSimulation(true);
+                LOG_INFO("Simulation mode enabled");
+            }
+            else
+            {
+                setSimulation(false);
+                LOG_INFO("Simulation mode disabled");
+            }
+        }
+    }
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -365,6 +395,13 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::toggleCover(bool open)
 {
+    if (isSimulation)
+    {
+        isCoverOpen = open;
+        Ismoving = true;
+        return true;
+    }
+
     char cmd[128] = {0};
     snprintf(cmd, 128, "100%d", open ? 1 : 0);
     if (sendCommand(cmd))
@@ -408,6 +445,14 @@ IPState WandererCoverV4EC::UnParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
 {
+    if (isSimulation)
+    {
+        isLightOn = (value > 0);
+        LightIntensityNP[0].setValue(value);
+        LightIntensityNP.apply();
+        return true;
+    }
+
     auto rc = true;
     if(value > 0)
     {
@@ -432,6 +477,24 @@ bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::EnableLightBox(bool enable)
 {
+    if (isSimulation)
+    {
+        isLightOn = enable;
+        if (enable)
+        {
+            LightSP[INDI_ENABLED].setState(ISS_ON);
+            LightSP[INDI_DISABLED].setState(ISS_OFF);
+        }
+        else
+        {
+            LightSP[INDI_ENABLED].setState(ISS_OFF);
+            LightSP[INDI_DISABLED].setState(ISS_ON);
+        }
+        LightSP.setState(IPS_OK);
+        LightSP.apply();
+        return true;
+    }
+
     auto rc = false;
     if(!enable)
         rc = sendCommand("9999");
@@ -464,6 +527,14 @@ bool WandererCoverV4EC::sendCommand(std::string command)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setDewPWM(int id, int value)
 {
+    if (isSimulation)
+    {
+        SetHeaterNP[Heat].setValue(value);
+        SetHeaterNP.setState(IPS_OK);
+        SetHeaterNP.apply();
+        return true;
+    }
+
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d%03d", id, value);
     if (sendCommand(cmd))
@@ -479,6 +550,15 @@ bool WandererCoverV4EC::setDewPWM(int id, int value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setClose(double value)
 {
+    if (isSimulation)
+    {
+        closesetread = value;
+        CloseSetNP[CloseSet].setValue(value);
+        CloseSetNP.setState(IPS_OK);
+        CloseSetNP.apply();
+        return true;
+    }
+
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d", (int)(value * 100 + 10000));
     if (sendCommand(cmd))
@@ -494,6 +574,15 @@ bool WandererCoverV4EC::setClose(double value)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::setOpen(double value)
 {
+    if (isSimulation)
+    {
+        opensetread = value;
+        OpenSetNP[OpenSet].setValue(value);
+        OpenSetNP.setState(IPS_OK);
+        OpenSetNP.apply();
+        return true;
+    }
+
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d", (int)(value * 100 + 40000));
     if (sendCommand(cmd))
