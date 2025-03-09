@@ -134,26 +134,26 @@ bool DreamFocuser::initProperties()
     //    IUFillSwitchVector(&SyncSP, SyncS, 1, getDeviceName(), "SYNC", "Synchronize", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Focus Park
-    IUFillSwitch(&ParkS[PARK_PARK], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkS[PARK_UNPARK], "UNPARK", "Unpark", ISS_OFF);
-    IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "PARK", "Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    ParkSP[PARK_PARK].fill("PARK", "Park", ISS_OFF);
+    ParkSP[PARK_UNPARK].fill("UNPARK", "Unpark", ISS_OFF);
+    ParkSP.fill(getDeviceName(), "PARK", "Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     // Focuser humidity and dewpoint
-    IUFillNumber(&WeatherN[0], "FOCUS_HUMIDITY", "Humidity [%]", "%6.1f", 0, 100, 0, 0);
-    IUFillNumber(&WeatherN[1], "FOCUS_DEWPOINT", "Dew point [C]", "%6.1f", -100, 100, 0, 0);
-    IUFillNumberVector(&WeatherNP, WeatherN, 2, getDeviceName(), "FOCUS_WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0,
+    WeatherNP[FOCUS_HUMIDITY].fill("FOCUS_HUMIDITY", "Humidity [%]", "%6.1f", 0, 100, 0, 0);
+    WeatherNP[FOCUS_DEWPOINT].fill("FOCUS_DEWPOINT", "Dew point [C]", "%6.1f", -100, 100, 0, 0);
+    WeatherNP.fill(getDeviceName(), "FOCUS_WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
     // We init here the property we wish to "snoop" from the target device
-    IUFillSwitch(&StatusS[0], "ABSOLUTE", "Absolute", ISS_OFF);
-    IUFillSwitch(&StatusS[1], "MOVING", "Moving", ISS_OFF);
-    IUFillSwitch(&StatusS[2], "PARKED", "Parked", ISS_OFF);
-    IUFillSwitchVector(&StatusSP, StatusS, 3, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0,
+    StatusSP[ABSOLUTE].fill("ABSOLUTE", "Absolute", ISS_OFF);
+    StatusSP[MOVING].fill("MOVING", "Moving", ISS_OFF);
+    StatusSP[PARKED].fill("PARKED", "Parked", ISS_OFF);
+    StatusSP.fill(getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0,
                        IPS_IDLE);
 
     //    PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosNP[0].setMin(-MaxPositionN[0].value);
@@ -186,20 +186,20 @@ bool DreamFocuser::updateProperties()
     if (isConnected())
     {
         //defineProperty(&SyncSP);
-        defineProperty(&ParkSP);
-        defineProperty(&TemperatureNP);
-        defineProperty(&WeatherNP);
-        defineProperty(&StatusSP);
+        defineProperty(ParkSP);
+        defineProperty(TemperatureNP);
+        defineProperty(WeatherNP);
+        defineProperty(StatusSP);
         //defineProperty(&MaxPositionNP);
         //defineProperty(&MaxTravelNP);
     }
     else
     {
         //deleteProperty(SyncSP.name);
-        deleteProperty(ParkSP.name);
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(WeatherNP.name);
-        deleteProperty(StatusSP.name);
+        deleteProperty(ParkSP);
+        deleteProperty(TemperatureNP);
+        deleteProperty(WeatherNP);
+        deleteProperty(StatusSP);
         //deleteProperty(MaxPositionNP.name);
         //deleteProperty(MaxTravelNP.name);
     }
@@ -289,11 +289,11 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
     if(strcmp(dev, getDeviceName()) == 0)
     {
         // Park
-        if (!strcmp(ParkSP.name, name))
+        if (ParkSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&ParkSP);
-            IUResetSwitch(&ParkSP);
+            ParkSP.update(states, names, n);
+            int index = ParkSP.findOnSwitchIndex();
+            ParkSP.reset();
 
             if ( (isParked && (index == PARK_UNPARK)) || ( !isParked && (index == PARK_PARK)) )
             {
@@ -305,9 +305,9 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
                     FocusAbsPosNP.apply();
                 }
                 else
-                    ParkSP.s = IPS_ALERT;
+                    ParkSP.setState(IPS_ALERT);
             }
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.apply();
             return true;
         }
     }
@@ -541,42 +541,42 @@ void DreamFocuser::TimerHit()
     if ( getStatus() )
     {
 
-        StatusSP.s = IPS_OK;
+        StatusSP.setState(IPS_OK);
         if ( isMoving )
         {
             //LOG_INFO("Moving" );
             FocusAbsPosNP.setState(IPS_BUSY);
-            StatusS[1].s = ISS_ON;
+            StatusSP[MOVING].setState(ISS_ON);
         }
         else
         {
             if ( FocusAbsPosNP.getState() != IPS_IDLE )
                 FocusAbsPosNP.setState(IPS_OK);
-            StatusS[1].s = ISS_OFF;
+            StatusSP[MOVING].setState(ISS_OFF);
         };
 
         if ( isParked == 1 )
         {
-            ParkSP.s = IPS_BUSY;
-            StatusS[2].s = ISS_ON;
-            ParkS[0].s = ISS_ON;
+            ParkSP.setState(IPS_BUSY);
+            StatusSP[PARKED].s = ISS_ON;
+            ParkSP[PARK_PARK].setState(ISS_ON);
         }
         else if ( isParked == 2 )
         {
-            ParkSP.s = IPS_OK;
-            StatusS[2].s = ISS_ON;
-            ParkS[0].s = ISS_ON;
+            ParkSP.setState(IPS_OK);
+            StatusSP[PARKED].setState(ISS_ON);
+            ParkSP[PARK_PARK].setState(ISS_ON);
         }
         else
         {
-            StatusS[2].s = ISS_OFF;
-            ParkS[1].s = ISS_ON;
-            ParkSP.s = IPS_IDLE;
+            StatusSP[PARKED].setState(ISS_OFF);
+            ParkSP[PARK_UNPARK].setState(ISS_ON);
+            ParkSP.setState(IPS_IDLE);
         }
 
         if ( isAbsolute )
         {
-            StatusS[0].s = ISS_ON;
+            StatusSP[ABSOLUTE].setState(ISS_ON);
             if ( FocusAbsPosNP[0].getMin() != 0 )
             {
                 FocusAbsPosNP[0].setMin(0);
@@ -590,25 +590,25 @@ void DreamFocuser::TimerHit()
                 FocusAbsPosNP[0].setMin(-FocusAbsPosNP[0].getMax());
                 FocusAbsPosNP.apply();
             }
-            StatusS[0].s = ISS_OFF;
+            StatusSP[ABSOLUTE].setState(ISS_OFF);
         }
 
     }
     else
-        StatusSP.s = IPS_ALERT;
+        StatusSP.setState(IPS_ALERT);
 
     if ( getTemperature() )
     {
-        TemperatureNP.s = TemperatureN[0].value != currentTemperature ? IPS_BUSY : IPS_OK;
-        WeatherNP.s = WeatherN[1].value != currentHumidity ? IPS_BUSY : IPS_OK;
-        TemperatureN[0].value = currentTemperature;
-        WeatherN[0].value = currentHumidity;
-        WeatherN[1].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
+        TemperatureNP.setState(TemperatureNP[0].getValue() != currentTemperature ? IPS_BUSY : IPS_OK);
+        WeatherNP.setState(WeatherNP[FOCUS_DEWPOINT].getValue() != currentHumidity ? IPS_BUSY : IPS_OK);
+        TemperatureNP[0].setValue(currentTemperature);
+        WeatherNP[FOCUS_HUMIDITY].setValue(currentHumidity);
+        WeatherNP[FOCUS_DEWPOINT].setValue(pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112);
     }
     else
     {
-        TemperatureNP.s = IPS_ALERT;
-        WeatherNP.s = IPS_ALERT;
+        TemperatureNP.setState(IPS_ALERT);
+        WeatherNP.setState(IPS_ALERT);
     }
 
     if ( FocusAbsPosNP.getState() != IPS_IDLE )
@@ -618,12 +618,12 @@ void DreamFocuser::TimerHit()
             if ( oldPosition != currentPosition )
             {
                 FocusAbsPosNP.setState(IPS_BUSY);
-                StatusS[1].s = ISS_ON;
-                FocusAbsPosNP[0].setValue(currentPosition);
+                StatusSP[MOVING].setState(ISS_ON);
             }
-            else
+            else                FocusAbsPosNP[0].setValue(currentPosition);
+
             {
-                StatusS[1].s = ISS_OFF;
+                StatusSP[MOVING].setState(ISS_OFF);
                 FocusAbsPosNP.setState(IPS_OK);
             }
             //if ( currentPosition < 0 )
@@ -637,11 +637,11 @@ void DreamFocuser::TimerHit()
     if ((oldAbsStatus != FocusAbsPosNP.getState()) || (oldPosition != currentPosition))
         FocusAbsPosNP.apply();
 
-    IDSetNumber(&TemperatureNP, nullptr);
-    IDSetNumber(&WeatherNP, nullptr);
+    TemperatureNP.apply();
+    WeatherNP.apply();
     //IDSetSwitch(&SyncSP, nullptr);
-    IDSetSwitch(&StatusSP, nullptr);
-    IDSetSwitch(&ParkSP, NULL);
+    StatusSP.apply();
+    ParkSP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 
