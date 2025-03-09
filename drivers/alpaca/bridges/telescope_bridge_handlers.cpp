@@ -63,11 +63,11 @@ void TelescopeBridge::handleConnected(const httplib::Request &req, httplib::Resp
                     switchProperty[0].setState(ISS_ON);
                     // Request to send the switch to the device
                     requestNewSwitch(switchProperty);
-                    sendResponse(res, true);
+                    sendResponseValue(res, true);
                 }
                 else
                 {
-                    sendResponse(res, false, "Failed to connect device");
+                    sendResponseValue(res, false, "Failed to connect device");
                 }
             }
             else if (!connected && isConnected)
@@ -81,59 +81,63 @@ void TelescopeBridge::handleConnected(const httplib::Request &req, httplib::Resp
                     switchProperty[1].setState(ISS_ON);
                     // Request to send the switch to the device
                     requestNewSwitch(switchProperty);
-                    sendResponse(res, false);
+                    sendResponseValue(res, false);
                 }
                 else
                 {
-                    sendResponse(res, true, "Failed to disconnect device");
+                    sendResponseValue(res, true, "Failed to disconnect device");
                 }
             }
             else
             {
                 // No change needed
-                sendResponse(res, isConnected);
+                sendResponseValue(res, isConnected);
             }
         }
         catch (const std::exception &e)
         {
-            sendResponse(res, isConnected, std::string("Invalid request: ") + e.what());
+            sendResponseValue(res, isConnected, false, std::string("Invalid request: ") + e.what());
         }
     }
     else
     {
         // GET request
-        sendResponse(res, isConnected);
+        sendResponseValue(res, isConnected);
     }
 }
 
 void TelescopeBridge::handleName(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    sendResponse(res, m_Device.getDeviceName());
+    std::string deviceName = m_Device.getDeviceName();
+    sendResponseValue(res, deviceName);
 }
 
 void TelescopeBridge::handleDescription(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    sendResponse(res, std::string("INDI Telescope: ") + m_Device.getDeviceName());
+    std::string description = std::string("INDI Telescope: ") + m_Device.getDeviceName();
+    sendResponseValue(res, description);
 }
 
 void TelescopeBridge::handleDriverInfo(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    sendResponse(res, "INDI Alpaca Bridge");
+    std::string driverInfo = "INDI Alpaca Bridge";
+    sendResponseValue(res, driverInfo);
 }
 
 void TelescopeBridge::handleDriverVersion(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    sendResponse(res, "1.0");
+    std::string version = "1.0";
+    sendResponseValue(res, version);
 }
 
 void TelescopeBridge::handleInterfaceVersion(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    sendResponse(res, 1);
+    sendResponseValue(res, 1);
 }
 
 // Telescope-specific properties
@@ -141,99 +145,94 @@ void TelescopeBridge::handleAltitude(const httplib::Request &req, httplib::Respo
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_CurrentALT);
+    sendResponseValue(res, m_CurrentALT);
 }
 
 void TelescopeBridge::handleAzimuth(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_CurrentAZ);
+    sendResponseValue(res, m_CurrentAZ);
 }
 
 void TelescopeBridge::handleCanPark(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canPark = m_Device.getSwitch("TELESCOPE_PARK");
-    sendResponse(res, canPark);
+    sendResponseValue(res, m_Device.getProperty("TELESCOPE_PARK").isValid());
 }
 
 void TelescopeBridge::handleCanPulseGuide(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canPulseGuide = m_Device.getNumber("TELESCOPE_TIMED_GUIDE_NS") &&
-                         m_Device.getNumber("TELESCOPE_TIMED_GUIDE_WE");
-    sendResponse(res, canPulseGuide);
+    bool canPulseGuide = m_Device.getProperty("TELESCOPE_TIMED_GUIDE_NS").isValid() &&
+                         m_Device.getProperty("TELESCOPE_TIMED_GUIDE_WE").isValid();
+    sendResponseValue(res, canPulseGuide);
 }
 
 void TelescopeBridge::handleCanSetTracking(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canSetTracking = m_Device.getSwitch("TELESCOPE_TRACK_STATE");
-    sendResponse(res, canSetTracking);
+    sendResponseValue(res, m_Device.getProperty("TELESCOPE_TRACK_STATE").isValid());
 }
 
 void TelescopeBridge::handleCanSlew(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canSlew = m_Device.getNumber("EQUATORIAL_EOD_COORD");
-    sendResponse(res, canSlew);
+    sendResponseValue(res, m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid());
 }
 
 void TelescopeBridge::handleCanSlewAsync(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canSlewAsync = m_Device.getNumber("EQUATORIAL_EOD_COORD");
-    sendResponse(res, canSlewAsync);
+    sendResponseValue(res, m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid());
 }
 
 void TelescopeBridge::handleCanSync(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
-    bool canSync = m_Device.getSwitch("ON_COORD_SET");
-    sendResponse(res, canSync);
+    sendResponseValue(res, m_Device.getProperty("ON_COORD_SET").isValid());
 }
 
 void TelescopeBridge::handleDeclination(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_CurrentDEC);
+    sendResponseValue(res, m_CurrentDEC);
 }
 
 void TelescopeBridge::handleRightAscension(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_CurrentRA);
+    sendResponseValue(res, m_CurrentRA);
 }
 
 void TelescopeBridge::handleSideOfPier(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_PierSide);
+    sendResponseValue(res, m_PierSide);
 }
 
 void TelescopeBridge::handleSlewing(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_IsSlewing);
+    sendResponseValue(res, m_IsSlewing);
 }
 
 void TelescopeBridge::handleTracking(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_IsTracking);
+    sendResponseValue(res, m_IsTracking);
 }
 
 void TelescopeBridge::handleAtPark(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
-    sendResponse(res, m_IsParked);
+    sendResponseValue(res, m_IsParked);
 }
 
 // Telescope-specific actions
@@ -252,7 +251,7 @@ void TelescopeBridge::handleAbortSlew(const httplib::Request &req, httplib::Resp
         success = true;
     }
 
-    sendResponse(res, success, success ? "" : "Failed to abort slew");
+    sendResponseStatus(res, success, success ? "" : "Failed to abort slew");
 }
 
 void TelescopeBridge::handlePark(const httplib::Request &req, httplib::Response &res)
@@ -270,7 +269,7 @@ void TelescopeBridge::handlePark(const httplib::Request &req, httplib::Response 
         success = true;
     }
 
-    sendResponse(res, success, success ? "" : "Failed to park telescope");
+    sendResponseStatus(res, success, success ? "" : "Failed to park telescope");
 }
 
 void TelescopeBridge::handleUnpark(const httplib::Request &req, httplib::Response &res)
@@ -288,7 +287,7 @@ void TelescopeBridge::handleUnpark(const httplib::Request &req, httplib::Respons
         success = true;
     }
 
-    sendResponse(res, success, success ? "" : "Failed to unpark telescope");
+    sendResponseStatus(res, success, success ? "" : "Failed to unpark telescope");
 }
 
 void TelescopeBridge::handleSlewToCoordinates(const httplib::Request &req, httplib::Response &res)
@@ -334,7 +333,7 @@ void TelescopeBridge::handleSlewToCoordinates(const httplib::Request &req, httpl
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse SlewToCoordinates request: %s", e.what());
     }
 
-    sendResponse(res, success, success ? "" : "Failed to slew to coordinates");
+    sendResponseStatus(res, success, success ? "" : "Failed to slew to coordinates");
 }
 
 void TelescopeBridge::handleSlewToCoordinatesAsync(const httplib::Request &req, httplib::Response &res)
@@ -382,7 +381,7 @@ void TelescopeBridge::handleSyncToCoordinates(const httplib::Request &req, httpl
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse SyncToCoordinates request: %s", e.what());
     }
 
-    sendResponse(res, success, success ? "" : "Failed to sync to coordinates");
+    sendResponseStatus(res, success, success ? "" : "Failed to sync to coordinates");
 }
 
 void TelescopeBridge::handlePulseGuide(const httplib::Request &req, httplib::Response &res)
@@ -425,7 +424,7 @@ void TelescopeBridge::handlePulseGuide(const httplib::Request &req, httplib::Res
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse PulseGuide request: %s", e.what());
     }
 
-    sendResponse(res, success, success ? "" : "Failed to pulse guide");
+    sendResponseStatus(res, success, success ? "" : "Failed to pulse guide");
 }
 
 void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Response &res)
@@ -476,7 +475,7 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse MoveAxis request: %s", e.what());
     }
 
-    sendResponse(res, success, success ? "" : "Failed to move axis");
+    sendResponseStatus(res, success, success ? "" : "Failed to move axis");
 }
 
 void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Response &res)
@@ -503,5 +502,5 @@ void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Re
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse SetTracking request: %s", e.what());
     }
 
-    sendResponse(res, success, success ? "" : "Failed to set tracking state");
+    sendResponseStatus(res, success, success ? "" : "Failed to set tracking state");
 }

@@ -49,7 +49,8 @@ class IDeviceBridge
         // Handle Alpaca API request
         virtual void handleRequest(const std::string &method,
                                    const httplib::Request &req,
-                                   httplib::Response &res) = 0;
+                                   httplib::Response &res,
+                                   int clientID, int serverID) = 0;
 
         // Update from INDI property
         virtual void updateProperty(INDI::Property property) = 0;

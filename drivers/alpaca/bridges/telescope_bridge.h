@@ -50,7 +50,8 @@ class TelescopeBridge : public IDeviceBridge
 
         void handleRequest(const std::string &method,
                            const httplib::Request &req,
-                           httplib::Response &res) override;
+                           httplib::Response &res,
+                           int clientID, int serverID) override;
 
         void updateProperty(INDI::Property property) override;
 
@@ -141,13 +142,25 @@ class TelescopeBridge : public IDeviceBridge
         void requestNewNumber(const INDI::PropertyNumber &numberProperty);
         void requestNewSwitch(const INDI::PropertySwitch &switchProperty);
 
-        // Helper method for sending standard JSON responses
+        // Transaction IDs for the current request
+        int m_ClientID {0};
+        int m_ServerID {0};
+
+        // Helper methods for sending standard JSON responses
         void sendResponse(httplib::Response &res, bool success, const std::string &errorMessage);
-        void sendResponse(httplib::Response &res, const std::string &value, bool success = true,
-                          const std::string &errorMessage = "");
-        void sendResponse(httplib::Response &res, double value, bool success = true, const std::string &errorMessage = "");
-        void sendResponse(httplib::Response &res, int value, bool success = true, const std::string &errorMessage = "");
-        void sendResponse(httplib::Response &res, bool value, bool success = true, const std::string &errorMessage = "");
+
+        // Generic method for sending a response with a value of any type
+        template <typename T>
+        void sendResponse(httplib::Response &res, const T &value, bool success = true,
+                          const std::string &errorMessage = "", int clientID = 0, int serverID = 0);
+
+        // Simplified response methods that use stored transaction IDs
+        template <typename T>
+        void sendResponseValue(httplib::Response &res, const T &value,
+                               bool success = true, const std::string &errorMessage = "");
+
+        void sendResponseStatus(httplib::Response &res, bool success,
+                                const std::string &errorMessage = "");
 
         // Note: Implementation is split between telescope_bridge_base.cpp and telescope_bridge_handlers.cpp
 

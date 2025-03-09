@@ -63,9 +63,15 @@ std::string TelescopeBridge::getUniqueID() const
     return "INDI_" + std::string(m_Device.getDeviceName());
 }
 
-void TelescopeBridge::handleRequest(const std::string &method, const httplib::Request &req, httplib::Response &res)
+void TelescopeBridge::handleRequest(const std::string &method, const httplib::Request &req, httplib::Response &res,
+                                    int clientID, int serverID)
 {
     DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG, "Handling telescope request: %s", method.c_str());
+
+    // Store the transaction IDs for use in response methods
+    // This eliminates the need to extract them again in each handler
+    m_ClientID = clientID;
+    m_ServerID = serverID;
 
     // Common methods
     if (method == "connected")
@@ -133,6 +139,8 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
         // Unknown method
         json response =
         {
+            {"ClientTransactionID", clientID},
+            {"ServerTransactionID", serverID},
             {"ErrorNumber", 1025},
             {"ErrorMessage", "Method not implemented: " + method}
         };
@@ -258,68 +266,76 @@ void TelescopeBridge::requestNewSwitch(const INDI::PropertySwitch &switchPropert
     DeviceManager::getInstance()->sendNewSwitch(switchProperty);
 }
 
+
 // Helper methods for sending standard JSON responses
 void TelescopeBridge::sendResponse(httplib::Response &res, bool success, const std::string &errorMessage)
 {
+    // Use default transaction IDs (0) for backward compatibility
+    int clientID = 0;
+    int serverID = 0;
+
     json response =
     {
-        {"ClientTransactionID", 0},
-        {"ServerTransactionID", 0},
+        {"ClientTransactionID", clientID},
+        {"ServerTransactionID", serverID},
         {"ErrorNumber", success ? 0 : 1},
         {"ErrorMessage", success ? "" : errorMessage}
     };
     res.set_content(response.dump(), "application/json");
 }
 
-void TelescopeBridge::sendResponse(httplib::Response &res, const std::string &value, bool success,
-                                   const std::string &errorMessage)
+// Implementation of template methods
+template <typename T>
+void TelescopeBridge::sendResponse(httplib::Response &res, const T &value, bool success,
+                                   const std::string &errorMessage, int clientID, int serverID)
 {
     json response =
     {
         {"Value", value},
-        {"ClientTransactionID", 0},
-        {"ServerTransactionID", 0},
+        {"ClientTransactionID", clientID},
+        {"ServerTransactionID", serverID},
         {"ErrorNumber", success ? 0 : 1},
         {"ErrorMessage", success ? "" : errorMessage}
     };
     res.set_content(response.dump(), "application/json");
 }
 
-void TelescopeBridge::sendResponse(httplib::Response &res, double value, bool success, const std::string &errorMessage)
+template <typename T>
+void TelescopeBridge::sendResponseValue(httplib::Response &res, const T &value,
+                                        bool success, const std::string &errorMessage)
+{
+    sendResponse(res, value, success, errorMessage, m_ClientID, m_ServerID);
+}
+
+// Implementation of sendResponseStatus
+void TelescopeBridge::sendResponseStatus(httplib::Response &res, bool success,
+        const std::string &errorMessage)
 {
     json response =
     {
-        {"Value", value},
-        {"ClientTransactionID", 0},
-        {"ServerTransactionID", 0},
+        {"ClientTransactionID", m_ClientID},
+        {"ServerTransactionID", m_ServerID},
         {"ErrorNumber", success ? 0 : 1},
         {"ErrorMessage", success ? "" : errorMessage}
     };
     res.set_content(response.dump(), "application/json");
 }
 
-void TelescopeBridge::sendResponse(httplib::Response &res, int value, bool success, const std::string &errorMessage)
-{
-    json response =
-    {
-        {"Value", value},
-        {"ClientTransactionID", 0},
-        {"ServerTransactionID", 0},
-        {"ErrorNumber", success ? 0 : 1},
-        {"ErrorMessage", success ? "" : errorMessage}
-    };
-    res.set_content(response.dump(), "application/json");
-}
+// Explicit template instantiations for common types
+template void TelescopeBridge::sendResponse<std::string>(httplib::Response &res, const std::string &value, bool success,
+        const std::string &errorMessage, int clientID, int serverID);
+template void TelescopeBridge::sendResponse<double>(httplib::Response &res, const double &value, bool success,
+        const std::string &errorMessage, int clientID, int serverID);
+template void TelescopeBridge::sendResponse<int>(httplib::Response &res, const int &value, bool success,
+        const std::string &errorMessage, int clientID, int serverID);
+template void TelescopeBridge::sendResponse<bool>(httplib::Response &res, const bool &value, bool success,
+        const std::string &errorMessage, int clientID, int serverID);
 
-void TelescopeBridge::sendResponse(httplib::Response &res, bool value, bool success, const std::string &errorMessage)
-{
-    json response =
-    {
-        {"Value", value},
-        {"ClientTransactionID", 0},
-        {"ServerTransactionID", 0},
-        {"ErrorNumber", success ? 0 : 1},
-        {"ErrorMessage", success ? "" : errorMessage}
-    };
-    res.set_content(response.dump(), "application/json");
-}
+template void TelescopeBridge::sendResponseValue<std::string>(httplib::Response &res,
+        const std::string &value, bool success, const std::string &errorMessage);
+template void TelescopeBridge::sendResponseValue<double>(httplib::Response &res,
+        const double &value, bool success, const std::string &errorMessage);
+template void TelescopeBridge::sendResponseValue<int>(httplib::Response &res,
+        const int &value, bool success, const std::string &errorMessage);
+template void TelescopeBridge::sendResponseValue<bool>(httplib::Response &res,
+        const bool &value, bool success, const std::string &errorMessage);

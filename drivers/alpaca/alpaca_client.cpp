@@ -29,63 +29,64 @@
 AlpacaClient::AlpacaClient(DeviceManager* deviceManager)
     : m_DeviceManager(deviceManager)
 {
-    DEBUGDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Alpaca client initialized");
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Alpaca client initialized");
 }
 
 AlpacaClient::~AlpacaClient()
 {
-    DEBUGDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Alpaca client destroyed");
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Alpaca client destroyed");
 }
 
 bool AlpacaClient::connectServer()
 {
-    DEBUGDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Connecting to INDI server");
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Connecting to INDI server");
     return INDI::BaseClient::connectServer();
 }
 
 bool AlpacaClient::disconnectServer()
 {
-    DEBUGDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Disconnecting from INDI server");
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Disconnecting from INDI server");
     return INDI::BaseClient::disconnectServer();
 }
 
 void AlpacaClient::newDevice(INDI::BaseDevice dp)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "New device: %s", dp.getDeviceName());
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "New device: %s", dp.getDeviceName());
     m_DeviceManager->addDevice(dp);
 }
 
 void AlpacaClient::removeDevice(INDI::BaseDevice dp)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Remove device: %s", dp.getDeviceName());
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Remove device: %s", dp.getDeviceName());
     m_DeviceManager->removeDevice(dp);
 }
 
 void AlpacaClient::newProperty(INDI::Property property)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_DEBUG, "New property: %s.%s", property.getDeviceName(), property.getName());
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "New property: %s.%s", property.getDeviceName(),
+                 property.getName());
     m_DeviceManager->updateDeviceProperty(property);
 }
 
 void AlpacaClient::removeProperty(INDI::Property property)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_DEBUG, "Remove property: %s.%s", property.getDeviceName(),
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Remove property: %s.%s", property.getDeviceName(),
                  property.getName());
 }
 
 void AlpacaClient::updateProperty(INDI::Property property)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_DEBUG, "Update property: %s.%s", property.getDeviceName(),
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Update property: %s.%s", property.getDeviceName(),
                  property.getName());
     m_DeviceManager->updateDeviceProperty(property);
 }
 
 void AlpacaClient::serverConnected()
 {
-    DEBUGDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Connected to INDI server");
+    DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Connected to INDI server");
 }
 
 void AlpacaClient::serverDisconnected(int exitCode)
 {
-    DEBUGFDEVICE("Alpaca Client", INDI::Logger::DBG_SESSION, "Disconnected from INDI server (exit code: %d)", exitCode);
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "Disconnected from INDI server (exit code: %d)", exitCode);
 }

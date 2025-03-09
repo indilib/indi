@@ -38,6 +38,7 @@ class Server;
 
 class AlpacaClient;
 class DeviceManager;
+class AlpacaDiscovery;
 
 class INDIAlpacaServer : public INDI::DefaultDevice
 {
@@ -73,10 +74,13 @@ class INDIAlpacaServer : public INDI::DefaultDevice
         INDI::PropertyText INDIServerSettingsTP {2}; // Host and port for INDI server
         INDI::PropertySwitch ServerControlSP {2};    // Start/stop server
         INDI::PropertyNumber ConnectionSettingsNP {3}; // Timeout, retries, retry delay
+        INDI::PropertyNumber DiscoverySettingsNP {1}; // Discovery port
+        INDI::PropertyNumber StartupDelayNP {1}; // Delay before connecting to INDI server
 
         // Components
         std::shared_ptr<AlpacaClient> m_Client;
         std::unique_ptr<httplib::Server> m_Server;
+        std::unique_ptr<AlpacaDiscovery> m_Discovery;
         DeviceManager* m_DeviceManager;
         std::thread m_ServerThread;
         std::atomic<bool> m_ServerRunning {false};

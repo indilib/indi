@@ -84,6 +84,10 @@ class DeviceManager
         void sendNewNumber(const INDI::PropertyNumber &numberProperty);
         void sendNewSwitch(const INDI::PropertySwitch &switchProperty);
 
+    public:
+        // Helper method to extract transaction IDs from request
+        void extractTransactionIDs(const httplib::Request &req, int &clientID, int &serverID);
+
     private:
         // Create appropriate bridge for device type
         std::unique_ptr<IDeviceBridge> createBridge(INDI::BaseDevice device, int deviceNumber);
@@ -91,12 +95,14 @@ class DeviceManager
         // Route request to appropriate device
         void routeRequest(int deviceNumber, const std::string &deviceType,
                           const std::string &method,
-                          const httplib::Request &req, httplib::Response &res);
+                          const httplib::Request &req, httplib::Response &res,
+                          int clientID, int serverID);
 
         // Handle management API requests
         void handleManagementRequest(const std::string &endpoint,
                                      const httplib::Request &req,
-                                     httplib::Response &res);
+                                     httplib::Response &res,
+                                     int clientID, int serverID);
 
         // Maps to track devices and bridges
         std::map<std::string, INDI::BaseDevice> m_Devices;  // INDI device name -> device

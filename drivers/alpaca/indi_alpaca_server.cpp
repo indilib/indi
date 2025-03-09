@@ -25,7 +25,9 @@
 #include "indi_alpaca_server.h"
 #include "alpaca_client.h"
 #include "device_manager.h"
+#include "alpaca_discovery.h"
 #include "indilogger.h"
+#include "inditimer.h"
 
 #include <httplib.h>
 #include <memory>
@@ -59,12 +61,12 @@ bool INDIAlpacaServer::initProperties()
     // Server settings
     ServerSettingsTP[0].fill("HOST", "Host", "0.0.0.0");
     ServerSettingsTP[1].fill("PORT", "Port", "11111");
-    ServerSettingsTP.fill(getDeviceName(), "SERVER_SETTINGS", "Server", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    ServerSettingsTP.fill(getDeviceName(), "SERVER_SETTINGS", "Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // INDI server settings
     INDIServerSettingsTP[0].fill("HOST", "Host", "localhost");
     INDIServerSettingsTP[1].fill("PORT", "Port", "7624");
-    INDIServerSettingsTP.fill(getDeviceName(), "INDI_SERVER_SETTINGS", "INDI Server", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    INDIServerSettingsTP.fill(getDeviceName(), "INDI_SERVER_SETTINGS", "INDI Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Server control
     ServerControlSP[0].fill("START", "Start", ISS_OFF);
@@ -75,7 +77,15 @@ bool INDIAlpacaServer::initProperties()
     ConnectionSettingsNP[0].fill("TIMEOUT", "Timeout (sec)", "%.0f", 1, 30, 1, 5);
     ConnectionSettingsNP[1].fill("RETRIES", "Max Retries", "%.0f", 1, 10, 1, 3);
     ConnectionSettingsNP[2].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
-    ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", SITE_TAB, IP_RW, 60, IPS_IDLE);
+    ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Discovery settings
+    DiscoverySettingsNP[0].fill("PORT", "Discovery Port", "%.0f", 1, 65535, 1, 32227);
+    DiscoverySettingsNP.fill(getDeviceName(), "DISCOVERY_SETTINGS", "Discovery", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Startup delay settings
+    StartupDelayNP[0].fill("DELAY", "Startup Delay (sec)", "%.0f", 1, 60, 1, 3);
+    StartupDelayNP.fill(getDeviceName(), "STARTUP_DELAY", "Startup Delay", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Get device manager singleton
     m_DeviceManager = DeviceManager::getInstance();
@@ -99,6 +109,8 @@ void INDIAlpacaServer::ISGetProperties(const char *dev)
     defineProperty(INDIServerSettingsTP);
     defineProperty(ServerControlSP);
     defineProperty(ConnectionSettingsNP);
+    defineProperty(DiscoverySettingsNP);
+    defineProperty(StartupDelayNP);
 }
 
 bool INDIAlpacaServer::updateProperties()
@@ -156,6 +168,35 @@ bool INDIAlpacaServer::ISNewNumber(const char *dev, const char *name, double val
             ConnectionSettingsNP.setState(IPS_OK);
             ConnectionSettingsNP.apply();
             saveConfig(true, ConnectionSettingsNP.getName());
+            return true;
+        }
+
+        // Discovery settings
+        if (DiscoverySettingsNP.isNameMatch(name))
+        {
+            DiscoverySettingsNP.update(values, names, n);
+            DiscoverySettingsNP.setState(IPS_OK);
+            DiscoverySettingsNP.apply();
+
+            // Update discovery port if discovery server is running
+            if (m_Discovery && m_Discovery->isRunning())
+            {
+                m_Discovery->setDiscoveryPort(static_cast<int>(DiscoverySettingsNP[0].getValue()));
+                LOGF_INFO("Discovery port updated to %d", static_cast<int>(DiscoverySettingsNP[0].getValue()));
+            }
+
+            saveConfig(DiscoverySettingsNP);
+            return true;
+        }
+
+        // Startup delay settings
+        if (StartupDelayNP.isNameMatch(name))
+        {
+            StartupDelayNP.update(values, names, n);
+            StartupDelayNP.setState(IPS_OK);
+            StartupDelayNP.apply();
+            LOGF_INFO("Startup delay updated to %d seconds", static_cast<int>(StartupDelayNP[0].getValue()));
+            saveConfig(StartupDelayNP);
             return true;
         }
     }
@@ -245,26 +286,58 @@ bool INDIAlpacaServer::saveConfigItems(FILE *fp)
     ServerSettingsTP.save(fp);
     INDIServerSettingsTP.save(fp);
     ConnectionSettingsNP.save(fp);
+    DiscoverySettingsNP.save(fp);
+    StartupDelayNP.save(fp);
 
     return true;
 }
 
 bool INDIAlpacaServer::Connect()
 {
-    // Connect to INDI server
-    m_Client->setServer(INDIServerSettingsTP[0].getText(), std::stoi(INDIServerSettingsTP[1].getText()));
+    // Get the startup delay
+    int startupDelay = static_cast<int>(StartupDelayNP[0].getValue());
+    LOGF_INFO("Waiting %d seconds before connecting to INDI server...", startupDelay);
 
-    if (m_Client->connectServer())
+    // Use a single-shot timer to delay the connection
+    INDI::Timer::singleShot(startupDelay * 1000, [this]()
     {
-        LOG_INFO("Connected to INDI server");
-        SetTimer(getCurrentPollingPeriod());
-        return true;
-    }
-    else
-    {
-        LOG_ERROR("Failed to connect to INDI server");
-        return false;
-    }
+        // Connect to INDI server
+        m_Client->setServer(INDIServerSettingsTP[0].getText(), std::stoi(INDIServerSettingsTP[1].getText()));
+
+        if (m_Client->connectServer())
+        {
+            LOG_INFO("Connected to INDI server");
+
+            // Automatically start the Alpaca server when the driver is connected
+            if (!m_ServerRunning)
+            {
+                if (startAlpacaServer())
+                {
+                    ServerControlSP[0].setState(ISS_ON);
+                    ServerControlSP[1].setState(ISS_OFF);
+                    ServerControlSP.setState(IPS_OK);
+                    ServerControlSP.apply();
+                    LOG_INFO("Alpaca server started automatically");
+                }
+                else
+                {
+                    LOG_ERROR("Failed to start Alpaca server automatically");
+                }
+            }
+
+            SetTimer(getCurrentPollingPeriod());
+            setConnected(true);
+            updateProperties();
+        }
+        else
+        {
+            LOG_ERROR("Failed to connect to INDI server");
+            setConnected(false);
+            updateProperties();
+        }
+    });
+
+    return true;
 }
 
 bool INDIAlpacaServer::Disconnect()
@@ -303,6 +376,11 @@ bool INDIAlpacaServer::startAlpacaServer()
     // Create HTTP server
     m_Server = std::make_unique<httplib::Server>();
 
+    // Create discovery server
+    int discoveryPort = static_cast<int>(DiscoverySettingsNP[0].getValue());
+    int alpacaPort = std::stoi(ServerSettingsTP[1].getText());
+    m_Discovery = std::make_unique<AlpacaDiscovery>(discoveryPort, alpacaPort);
+
     // Set up routes
     m_Server->Get("/management/(.*)", [this](const httplib::Request & req, httplib::Response & res)
     {
@@ -325,6 +403,17 @@ bool INDIAlpacaServer::startAlpacaServer()
     // Wait a bit to make sure server starts
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    // Start discovery server
+    if (!m_Discovery->start())
+    {
+        LOG_ERROR("Failed to start Alpaca discovery server");
+        // Continue anyway, as the HTTP server is more important
+    }
+    else
+    {
+        LOGF_INFO("Alpaca discovery server started on port %d", discoveryPort);
+    }
+
     m_ServerRunning = true;
     return true;
 }
@@ -337,7 +426,25 @@ bool INDIAlpacaServer::stopAlpacaServer()
         return true;
     }
 
-    // Stop server
+    // Stop discovery server
+    if (m_Discovery)
+    {
+        if (m_Discovery->isRunning())
+        {
+            if (!m_Discovery->stop())
+            {
+                LOG_ERROR("Failed to stop Alpaca discovery server");
+                // Continue anyway to stop the HTTP server
+            }
+            else
+            {
+                LOG_INFO("Alpaca discovery server stopped");
+            }
+        }
+        m_Discovery.reset();
+    }
+
+    // Stop HTTP server
     if (m_Server)
     {
         m_Server->stop();
