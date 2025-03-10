@@ -436,7 +436,7 @@ bool Esatto::updateMaxLimit()
     FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
     FocusRelPosNP[0].setMin(0.);
-    FocusRelPosNP[0].setMax(FocusAbsPosNP.getStep() 10);
+    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep());
     FocusRelPosNP[0].setValue(0);
     FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
