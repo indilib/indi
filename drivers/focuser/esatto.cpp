@@ -91,9 +91,9 @@ bool Esatto::initProperties()
     FocusAbsPosNP[0].setStep(10000);
 
     FocusMaxPosNP[0].setValue(2097152);
-    PresetNP[0].setMax(FocusMaxPosN[0].getValue());
-    PresetNP[1].setMax(FocusMaxPosN[0].getValue());
-    PresetNP[2].setMax(FocusMaxPosN[0].getValue());
+    PresetNP[0].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[1].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[2].setMax(FocusMaxPosNP[0].getValue());
 
     addAuxControls();
 
@@ -269,7 +269,7 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState Esatto::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
@@ -440,12 +440,12 @@ bool Esatto::updateMaxLimit()
     FocusRelPosNP[0].setValue(0);
     FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-    PresetN[0].max = maxLimit;
-    PresetN[0].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-    PresetN[1].max = maxLimit;
-    PresetN[1].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-    PresetN[2].max = maxLimit;
-    PresetN[2].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
+    PresetNP[0].setMax(maxLimit);
+    PresetNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[1].setMax(maxLimit);
+    PresetNP[1].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[2].setMax(maxLimit);
+    PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
 
     FocusMaxPosNP.setState(IPS_OK);
