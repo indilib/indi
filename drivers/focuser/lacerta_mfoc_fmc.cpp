@@ -65,11 +65,11 @@ void lacerta_mfoc_fmc::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineProperty(&TempTrackDirSP);
-    loadConfig(true, TempTrackDirSP.name);
+    defineProperty(TempTrackDirSP);
+    TempTrackDirSP.load();
 
-    defineProperty(&StartSavedPositionSP);
-    loadConfig(true, StartSavedPositionSP.name);
+    defineProperty(StartSavedPositionSP);
+    StartSavedPositionSP.load();
 }
 
 /************************************************************************************
@@ -84,13 +84,13 @@ bool lacerta_mfoc_fmc::initProperties()
     FocusBacklashNP[0].setStep(1);
     FocusBacklashNP[0].setValue(12);
 
-    IUFillNumber(&CurrentHoldingN[0], "CURRHOLD", "holding current mA", "%4d", 0, 1200, 1, 160);
-    IUFillNumberVector(&CurrentHoldingNP, CurrentHoldingN, 1, getDeviceName(), "CURRHOLD_SETTINGS", "Curr. Hold", FOCUS_TAB,
+    CurrentHoldingNP[0].fill("CURRHOLD", "holding current mA", "%4d", 0, 1200, 1, 160);
+    CurrentHoldingNP.fill(getDeviceName(), "CURRHOLD_SETTINGS", "Curr. Hold", FOCUS_TAB,
                        IP_WO, 60,
                        IPS_IDLE);
 
-    IUFillNumber(&CurrentMovingN[0], "CURRMOVE", "moving current mA", "%4d", 0, 1200, 1, 400);
-    IUFillNumberVector(&CurrentMovingNP, CurrentMovingN, 1, getDeviceName(), "CURRMOVE_SETTINGS", "Curr. Move", FOCUS_TAB,
+    CurrentMovingNP[0].fill("CURRMOVE", "moving current mA", "%4d", 0, 1200, 1, 400);
+    CurrentMovingNP.fill(getDeviceName(), "CURRMOVE_SETTINGS", "Curr. Move", FOCUS_TAB,
                        IP_WO, 60,
                        IPS_IDLE);
 
@@ -103,16 +103,16 @@ bool lacerta_mfoc_fmc::initProperties()
     FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue());
     FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50.0);
 
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_OUT],  "Out",  "Out",  ISS_ON);
-    IUFillSwitchVector(&TempTrackDirSP, TempTrackDirS, MODE_COUNT_TEMP_DIR, getDeviceName(), "Temp. dir.", "Temp. dir.",
+    TempTrackDirSP[MODE_TDIR_BOTH].fill("Both", "Both", ISS_ON);
+    TempTrackDirSP[MODE_TDIR_IN].fill("In",   "In",   ISS_ON);
+    TempTrackDirSP[MODE_TDIR_OUT].fill("Out",  "Out",  ISS_ON);
+    TempTrackDirSP.fill(getDeviceName(), "Temp. dir.", "Temp. dir.",
                        MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_ON],  "Yes", "Yes", ISS_ON);
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_OFF], "No",  "No",  ISS_OFF);
-    IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.",
+    StartSavedPositionSP[MODE_SAVED_ON].fill( "Yes", "Yes", ISS_ON);
+    StartSavedPositionSP[MODE_SAVED_OFF].fill("No",  "No",  ISS_OFF);
+    StartSavedPositionSP.fill(getDeviceName(), "Start saved pos.",
                        "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -132,19 +132,19 @@ bool lacerta_mfoc_fmc::updateProperties()
     if (isConnected())
     {
         defineProperty(&TempCompNP);
-        defineProperty(&CurrentHoldingNP);
-        defineProperty(&CurrentMovingNP);
-        defineProperty(&TempTrackDirSP);
-        defineProperty(&StartSavedPositionSP);
+        defineProperty(CurrentHoldingNP);
+        defineProperty(CurrentMovingNP);
+        defineProperty(TempTrackDirSP);
+        defineProperty(StartSavedPositionSP);
 
     }
     else
     {
         deleteProperty(TempCompNP.name);
-        deleteProperty(CurrentHoldingNP.name);
-        deleteProperty(CurrentMovingNP.name);
-        deleteProperty(TempTrackDirSP.name);
-        deleteProperty(StartSavedPositionSP.name);
+        deleteProperty(CurrentHoldingNP);
+        deleteProperty(CurrentMovingNP);
+        deleteProperty(TempTrackDirSP);
+        deleteProperty(StartSavedPositionSP);
     }
 
     return true;
@@ -219,11 +219,11 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temp. Track Direction
-        if (strcmp(TempTrackDirSP.name, name) == 0)
+        if (TempTrackDirSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TempTrackDirSP, states, names, n);
+            TempTrackDirSP.update(states, names, n);
             int tdir = 0;
-            int index    = IUFindOnSwitchIndex(&TempTrackDirSP);
+            int index    = TempTrackDirSP.findOnSwitchIndex();
             char MFOC_cmd[32]  = ": W ";
             char MFOC_res[32]  = {0};
             int nbytes_read    = 0;
@@ -249,8 +249,8 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
                     break;
 
                 default:
-                    TempTrackDirSP.s = IPS_ALERT;
-                    IDSetSwitch(&TempTrackDirSP, "Unknown mode index %d", index);
+                    TempTrackDirSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown mode index %d", index);
                     return true;
             }
 
@@ -266,23 +266,23 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
 
             if  (MFOC_tdir_measd == tdir)
             {
-                TempTrackDirSP.s = IPS_OK;
+                TempTrackDirSP.setState(IPS_OK);
             }
             else
             {
-                TempTrackDirSP.s = IPS_ALERT;
+                TempTrackDirSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&TempTrackDirSP, nullptr);
+            TempTrackDirSP.apply();
             return true;
         }
 
         // Start at saved position
-        if (strcmp(StartSavedPositionSP.name, name) == 0)
+        if (StartSavedPositionSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&StartSavedPositionSP, states, names, n);
+            StartSavedPositionSP.update(states, names, n);
             int svstart = 0;
-            int index    = IUFindOnSwitchIndex(&StartSavedPositionSP);
+            int index    = StartSavedPositionSP.findOnSwitchIndex();
             char MFOC_cmd[32]  = ": N ";
             char MFOC_res[32]  = {0};
             int nbytes_read    = 0;
@@ -303,8 +303,8 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
                     break;
 
                 default:
-                    StartSavedPositionSP.s = IPS_ALERT;
-                    IDSetSwitch(&StartSavedPositionSP, "Unknown mode index %d", index);
+                    StartSavedPositionSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown mode index %d", index);
                     return true;
             }
 
@@ -319,14 +319,14 @@ bool lacerta_mfoc_fmc::ISNewSwitch(const char *dev, const char *name, ISState *s
             LOGF_DEBUG("RES [%s]", MFOC_res);
             if  (MFOC_svstart_measd == svstart)
             {
-                StartSavedPositionSP.s = IPS_OK;
+                StartSavedPositionSP.setState(IPS_OK);
             }
             else
             {
-                StartSavedPositionSP.s = IPS_ALERT;
+                StartSavedPositionSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&StartSavedPositionSP, nullptr);
+            StartSavedPositionSP.apply();
             return true;
         }
     }
@@ -345,29 +345,29 @@ bool lacerta_mfoc_fmc::ISNewNumber(const char *dev, const char *name, double val
 
         if (strcmp(name, "CURRHOLD_SETTINGS") == 0)
         {
-            IUUpdateNumber(&CurrentHoldingNP, values, names, n);
-            if (!SetCurrHold(CurrentHoldingN[0].value))
+            CurrentHoldingNP.update(values, names, n);
+            if (!SetCurrHold(CurrentHoldingNP[0].getValue()))
             {
-                CurrentHoldingNP.s = IPS_ALERT;
-                IDSetNumber(&CurrentHoldingNP, nullptr);
+                CurrentHoldingNP.setState(IPS_ALERT);
+                CurrentHoldingNP.apply();
                 return false;
             }
-            CurrentHoldingNP.s = IPS_OK;
-            IDSetNumber(&CurrentHoldingNP, nullptr);
+            CurrentHoldingNP.setState(IPS_OK);
+            CurrentHoldingNP.apply();
             return true;
         }
 
         if (strcmp(name, "CURRMOVE_SETTINGS") == 0)
         {
-            IUUpdateNumber(&CurrentMovingNP, values, names, n);
-            if (!SetCurrMove(CurrentMovingN[0].value))
+            CurrentMovingNP.update(values, names, n);
+            if (!SetCurrMove(CurrentMovingNP[0].getValue()))
             {
-                CurrentMovingNP.s = IPS_ALERT;
-                IDSetNumber(&CurrentMovingNP, nullptr);
+                CurrentMovingNP.setState(IPS_ALERT);
+                CurrentMovingNP.apply();
                 return false;
             }
-            CurrentMovingNP.s = IPS_OK;
-            IDSetNumber(&CurrentMovingNP, nullptr);
+            CurrentMovingNP.setState(IPS_OK);
+            CurrentMovingNP.apply();
             return true;
         }
     }
@@ -648,8 +648,8 @@ bool lacerta_mfoc_fmc::saveConfigItems(FILE *fp)
 
     // Save additional MFPC Config
     IUSaveConfigNumber(fp, &TempCompNP);
-    IUSaveConfigNumber(fp, &CurrentHoldingNP);
-    IUSaveConfigNumber(fp, &CurrentMovingNP);
+    CurrentHoldingNP.save(fp);
+    CurrentMovingNP.save(fp);
 
     return true;
 }
