@@ -77,7 +77,14 @@
     "cfenv": "cpp",
     "typeinfo": "cpp",
     "valarray": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "charconv": "cpp",
+    "source_location": "cpp",
+    "format": "cpp",
+    "span": "cpp",
+    "stdfloat": "cpp",
+    "text_encoding": "cpp",
+    "typeindex": "cpp"
   },
   // Pass any arguments to configure CMake here (e.g. -DINDI_BUILD_WEBSOCKET=On)
   "cmake.configureArgs": [],
