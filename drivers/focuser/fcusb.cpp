@@ -95,10 +95,10 @@ bool FCUSB::initProperties()
     FocusSpeedNP[0].setMax(255);
 
     // PWM Scaler
-    IUFillSwitch(&PWMScalerS[0], "PWM_1_1", "1:1", ISS_ON);
-    IUFillSwitch(&PWMScalerS[1], "PWM_1_4", "1:4", ISS_OFF);
-    IUFillSwitch(&PWMScalerS[2], "PWM_1_16", "1:16", ISS_OFF);
-    IUFillSwitchVector(&PWMScalerSP, PWMScalerS, 3, getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    PWMScalerSP[PWM_1_1].fill("PWM_1_1", "1:1", ISS_ON);
+    PWMScalerSP[PWM_1_4].fill("PWM_1_4", "1:4", ISS_OFF);
+    PWMScalerSP[PWM_1_16].fill("PWM_1_16", "1:16", ISS_OFF);
+    PWMScalerSP.fill(getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     addSimulationControl();
@@ -112,11 +112,11 @@ bool FCUSB::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&PWMScalerSP);
+        defineProperty(PWMScalerSP);
     }
     else
     {
-        deleteProperty(PWMScalerSP.name);
+        deleteProperty(PWMScalerSP);
     }
 
     return true;
@@ -156,15 +156,15 @@ bool FCUSB::ISNewSwitch(const char * dev, const char * name, ISState * states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(PWMScalerSP.name, name) == 0)
+        if (PWMScalerSP.isNameMatch(name) == 0)
         {
-            IUUpdateSwitch(&PWMScalerSP, states, names, n);
+            PWMScalerSP.update(states, names, n);
 
-            pwmStatus = static_cast<PWMBits>(IUFindOnSwitchIndex(&PWMScalerSP));
+            pwmStatus = static_cast<PWMBits>(PWMScalerSP.findOnSwitchIndex());
 
-            PWMScalerSP.s = setStatus() ? IPS_OK : IPS_ALERT;
+            PWMScalerSP.setState(setStatus() ? IPS_OK : IPS_ALERT);
 
-            IDSetSwitch(&PWMScalerSP, nullptr);
+            PWMScalerSP.apply();
 
             return true;
 
@@ -236,9 +236,9 @@ bool FCUSB::getStatus()
                 break;
         }
 
-        IUResetSwitch(&PWMScalerSP);
-        PWMScalerS[pwmStatus].s = ISS_ON;
-        IDSetSwitch(&PWMScalerSP, nullptr);
+        PWMScalerSP.reset();
+        PWMScalerSP[pwmStatus].setState(ISS_ON);
+        PWMScalerSP.apply();
     }
 
     // Update speed (PWM) if it was changed.
@@ -382,7 +382,7 @@ bool FCUSB::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &PWMScalerSP);
+    PWMScalerSP.save(fp);
 
     return true;
 }
