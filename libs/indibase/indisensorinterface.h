@@ -24,10 +24,6 @@
 #include "stream/streammanager.h"
 #include <fitsio.h>
 
-#ifdef HAVE_WEBSOCKET
-#include "indiwsserver.h"
-#endif
-
 #include <fitsio.h>
 
 #include <memory>

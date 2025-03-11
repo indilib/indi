@@ -1179,21 +1179,6 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     // Send as is, already encoded.
     if (PixelFormat == INDI_JPG)
     {
-        // Upload to client now
-#ifdef HAVE_WEBSOCKET
-        if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
-        {
-            if (Format != ".streajpg")
-            {
-                Format = ".streajpg";
-                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(Format);
-            }
-
-            dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
-            return true;
-        }
-#endif
         imageBP[0].setBlob(const_cast<uint8_t *>(buffer));
         imageBP[0].setBlobLen(nbytes);
         imageBP[0].setSize(nbytes);
@@ -1217,20 +1202,6 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     {
         if (encoder->upload(&imageBP[0], buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
-#ifdef HAVE_WEBSOCKET
-            if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
-            {
-                if (Format != ".stream")
-                {
-                    Format = ".stream";
-                    dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(Format);
-                }
-
-                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
-                return true;
-            }
-#endif
             // Upload to client now
             imageBP.setState(IPS_OK);
             imageBP.apply();

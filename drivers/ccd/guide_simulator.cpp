@@ -181,9 +181,7 @@ bool GuideSim::initProperties()
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
 
-#ifdef HAVE_WEBSOCKET
-    cap |= CCD_HAS_WEB_SOCKET;
-#endif
+
 
     SetCCDCapability(cap);
 
