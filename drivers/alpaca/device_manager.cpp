@@ -285,8 +285,8 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Handling Alpaca request: %s", req.path.c_str());
 
     // Extract transaction IDs from request - do this only once per request
-    int clientID, serverID;
-    extractTransactionIDs(req, clientID, serverID);
+    int clientTransactionID, serverTransactionID;
+    extractTransactionIDs(req, clientTransactionID, serverTransactionID);
 
     // Parse path to determine if it's a management or device API request
     std::string path = req.path;
@@ -294,7 +294,7 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
     // Management API
     if (path.find("/management/") == 0)
     {
-        handleManagementRequest(path.substr(12), req, res, clientID, serverID);
+        handleManagementRequest(path.substr(12), req, res, clientTransactionID, serverTransactionID);
         return;
     }
 
@@ -316,8 +316,8 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
         {
             json response =
             {
-                {"ClientTransactionID", clientID},
-                {"ServerTransactionID", serverID},
+                {"ClientTransactionID", clientTransactionID},
+                {"ServerTransactionID", serverTransactionID},
                 {"ErrorNumber", 1001},
                 {"ErrorMessage", "Invalid API request format"}
             };
@@ -335,8 +335,8 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
         {
             json response =
             {
-                {"ClientTransactionID", clientID},
-                {"ServerTransactionID", serverID},
+                {"ClientTransactionID", clientTransactionID},
+                {"ServerTransactionID", serverTransactionID},
                 {"ErrorNumber", 1002},
                 {"ErrorMessage", "Invalid device number"}
             };
@@ -345,15 +345,15 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
         }
 
         // Route to appropriate device - pass the transaction IDs
-        routeRequest(deviceNumber, deviceType, method, req, res, clientID, serverID);
+        routeRequest(deviceNumber, deviceType, method, req, res, clientTransactionID, serverTransactionID);
         return;
     }
 
     // Unknown API
     json response =
     {
-        {"ClientTransactionID", clientID},
-        {"ServerTransactionID", serverID},
+        {"ClientTransactionID", clientTransactionID},
+        {"ServerTransactionID", serverTransactionID},
         {"ErrorNumber", 1000},
         {"ErrorMessage", "Unknown API endpoint"}
     };
@@ -363,7 +363,7 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
 void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType,
                                  const std::string &method,
                                  const httplib::Request &req, httplib::Response &res,
-                                 int clientID, int serverID)
+                                 int clientTransactionID, int serverTransactionID)
 {
     std::lock_guard<std::mutex> lock(m_Mutex);
 
@@ -373,8 +373,8 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
     {
         json response =
         {
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 1003},
             {"ErrorMessage", "Device not found"}
         };
@@ -387,8 +387,8 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
     {
         json response =
         {
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 1004},
             {"ErrorMessage", "Device type mismatch"}
         };
@@ -397,47 +397,60 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
     }
 
     // Forward request to bridge with transaction IDs
-    it->second->handleRequest(method, req, res, clientID, serverID);
+    it->second->handleRequest(method, req, res, clientTransactionID, serverTransactionID);
 }
 
 // Helper method to extract transaction IDs from request
-void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clientID, int &serverID)
+void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clientTransactionID, int &serverTransactionID)
 {
     // Default values
-    clientID = 0;
-    serverID = 0;
+    clientTransactionID = 0;
+    serverTransactionID = 0;
 
-    // Extract client transaction ID from request parameters
-    if (req.has_param("clientid") || req.has_param("clienttransactionid"))
+    // Extract client ID and client transaction ID from request parameters
+    int clientID = 0;
+
+    // Extract ClientID - identifies the client application
+    if (req.has_param("clientid"))
     {
         try
         {
-            // Check both parameter names for compatibility
-            if (req.has_param("clientid"))
-                clientID = std::stoi(req.get_param_value("clientid"));
-            else
-                clientID = std::stoi(req.get_param_value("clienttransactionid"));
+            clientID = std::stoi(req.get_param_value("clientid"));
         }
         catch (const std::exception &e)
         {
-            DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
-                        "Invalid clienttransactionid format");
+            DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Invalid clientid format");
+        }
+    }
+
+    // Extract ClientTransactionID - identifies a specific transaction
+    if (req.has_param("clienttransactionid"))
+    {
+        try
+        {
+            clientTransactionID = std::stoi(req.get_param_value("clienttransactionid"));
+        }
+        catch (const std::exception &e)
+        {
+            DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Invalid clienttransactionid format");
         }
     }
 
     // For server transaction ID, we'll use a static counter
     static int transactionCounter = 1;
-    serverID = transactionCounter++;
+    serverTransactionID = transactionCounter++;
 
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
-                 "Transaction IDs - Client: %d, Server: %d", clientID, serverID);
+                 "Client ID: %d, Transaction IDs - Client: %d, Server: %d",
+                 clientID, clientTransactionID, serverTransactionID);
 }
 
 void DeviceManager::handleManagementRequest(const std::string &endpoint,
         const httplib::Request &req,
         httplib::Response &res,
-        int clientID, int serverID)
+        int clientTransactionID, int serverTransactionID)
 {
+    INDI_UNUSED(req);
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Handling management request: %s", endpoint.c_str());
 
     if (endpoint == "apiversions")
@@ -446,8 +459,8 @@ void DeviceManager::handleManagementRequest(const std::string &endpoint,
         json response =
         {
             {"Value", json::array({1})},
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 0},
             {"ErrorMessage", ""}
         };
@@ -459,8 +472,8 @@ void DeviceManager::handleManagementRequest(const std::string &endpoint,
         json response =
         {
             {"Value", "INDI Alpaca Server"},
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 0},
             {"ErrorMessage", ""}
         };
@@ -486,8 +499,8 @@ void DeviceManager::handleManagementRequest(const std::string &endpoint,
         json response =
         {
             {"Value", devices},
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 0},
             {"ErrorMessage", ""}
         };
@@ -498,8 +511,8 @@ void DeviceManager::handleManagementRequest(const std::string &endpoint,
         // Unknown management endpoint
         json response =
         {
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
             {"ErrorNumber", 1005},
             {"ErrorMessage", "Unknown management endpoint"}
         };
