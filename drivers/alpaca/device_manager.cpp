@@ -396,8 +396,32 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
         return;
     }
 
-    // Forward request to bridge with transaction IDs
-    it->second->handleRequest(method, req, res, clientTransactionID, serverTransactionID);
+    // Forward request to bridge
+    it->second->handleRequest(method, req, res);
+
+    // Add transaction IDs to the response
+    try
+    {
+        auto responseJson = json::parse(res.body);
+        responseJson["ClientTransactionID"] = clientTransactionID;
+        responseJson["ServerTransactionID"] = serverTransactionID;
+        res.set_content(responseJson.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // If parsing fails, create a new response with transaction IDs
+        DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR,
+                    "Failed to parse bridge response JSON, creating new response with transaction IDs");
+
+        json response =
+        {
+            {"ClientTransactionID", clientTransactionID},
+            {"ServerTransactionID", serverTransactionID},
+            {"ErrorNumber", 1006},
+            {"ErrorMessage", "Internal server error: Invalid response format"}
+        };
+        res.set_content(response.dump(), "application/json");
+    }
 }
 
 // Helper method to extract transaction IDs from request

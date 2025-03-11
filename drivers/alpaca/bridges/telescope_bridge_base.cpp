@@ -63,15 +63,9 @@ std::string TelescopeBridge::getUniqueID() const
     return "INDI_" + std::string(m_Device.getDeviceName());
 }
 
-void TelescopeBridge::handleRequest(const std::string &method, const httplib::Request &req, httplib::Response &res,
-                                    int clientID, int serverID)
+void TelescopeBridge::handleRequest(const std::string &method, const httplib::Request &req, httplib::Response &res)
 {
     DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG, "Handling telescope request: %s", method.c_str());
-
-    // Store the transaction IDs for use in response methods
-    // This eliminates the need to extract them again in each handler
-    m_ClientID = clientID;
-    m_ServerID = serverID;
 
     // Common methods
     if (method == "connected")
@@ -139,8 +133,6 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
         // Unknown method
         json response =
         {
-            {"ClientTransactionID", clientID},
-            {"ServerTransactionID", serverID},
             {"ErrorNumber", 1025},
             {"ErrorMessage", "Method not implemented: " + method}
         };
@@ -304,7 +296,7 @@ template <typename T>
 void TelescopeBridge::sendResponseValue(httplib::Response &res, const T &value,
                                         bool success, const std::string &errorMessage)
 {
-    sendResponse(res, value, success, errorMessage, m_ClientID, m_ServerID);
+    sendResponse(res, value, success, errorMessage, 0, 0);
 }
 
 // Implementation of sendResponseStatus
@@ -313,8 +305,6 @@ void TelescopeBridge::sendResponseStatus(httplib::Response &res, bool success,
 {
     json response =
     {
-        {"ClientTransactionID", m_ClientID},
-        {"ServerTransactionID", m_ServerID},
         {"ErrorNumber", success ? 0 : 1},
         {"ErrorMessage", success ? "" : errorMessage}
     };

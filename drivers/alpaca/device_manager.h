@@ -86,7 +86,7 @@ class DeviceManager
 
     public:
         // Helper method to extract transaction IDs from request
-        void extractTransactionIDs(const httplib::Request &req, int &clientID, int &serverID);
+        void extractTransactionIDs(const httplib::Request &req, int &clientTransactionID, int &serverTransactionID);
 
     private:
         // Create appropriate bridge for device type
@@ -96,13 +96,13 @@ class DeviceManager
         void routeRequest(int deviceNumber, const std::string &deviceType,
                           const std::string &method,
                           const httplib::Request &req, httplib::Response &res,
-                          int clientID, int serverID);
+                          int clientTransactionID, int serverTransactionID);
 
         // Handle management API requests
         void handleManagementRequest(const std::string &endpoint,
                                      const httplib::Request &req,
                                      httplib::Response &res,
-                                     int clientID, int serverID);
+                                     int clientTransactionID, int serverTransactionID);
 
         // Maps to track devices and bridges
         std::map<std::string, INDI::BaseDevice> m_Devices;  // INDI device name -> device

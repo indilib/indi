@@ -50,8 +50,7 @@ class TelescopeBridge : public IDeviceBridge
 
         void handleRequest(const std::string &method,
                            const httplib::Request &req,
-                           httplib::Response &res,
-                           int clientID, int serverID) override;
+                           httplib::Response &res) override;
 
         void updateProperty(INDI::Property property) override;
 
@@ -142,10 +141,6 @@ class TelescopeBridge : public IDeviceBridge
         void requestNewNumber(const INDI::PropertyNumber &numberProperty);
         void requestNewSwitch(const INDI::PropertySwitch &switchProperty);
 
-        // Transaction IDs for the current request
-        int m_ClientID {0};
-        int m_ServerID {0};
-
         // Helper methods for sending standard JSON responses
         void sendResponse(httplib::Response &res, bool success, const std::string &errorMessage);
 
@@ -154,7 +149,7 @@ class TelescopeBridge : public IDeviceBridge
         void sendResponse(httplib::Response &res, const T &value, bool success = true,
                           const std::string &errorMessage = "", int clientID = 0, int serverID = 0);
 
-        // Simplified response methods that use stored transaction IDs
+        // Simplified response methods without transaction IDs (added by DeviceManager)
         template <typename T>
         void sendResponseValue(httplib::Response &res, const T &value,
                                bool success = true, const std::string &errorMessage = "");
