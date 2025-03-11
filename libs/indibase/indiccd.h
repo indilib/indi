@@ -37,9 +37,6 @@
 #include "dsp/manager.h"
 #include "stream/streammanager.h"
 
-#ifdef HAVE_WEBSOCKET
-#include "indiwsserver.h"
-#endif
 
 #include <fitsio.h>
 
@@ -84,12 +81,7 @@ class XISFWrapper;
  *
  * Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
  *
- * Data binary transfers are supported using two methods:
- * # INDI BLOBs: This is the and recommended default configuration.
- * # Websockets: This requires INDI to be built with websocket support. There is marginal
- * improvement in throughput with Websockets when compared with INDI base64 BLOB encoding.
- * It requires the client to explicitly support websockets. It is not recommended to use this
- * approach unless for the most demanding and FPS sensitive tasks.
+ * Data binary transfers are supported using INDI BLOBs.
  *
  * INDI::CCD and INDI::StreamManager both upload frames asynchronously in a worker thread.
  * The CCD Buffer data is protected by the ccdBufferLock mutex. When reading the camera data
@@ -129,7 +121,6 @@ class CCD : public DefaultDevice, GuiderInterface
             CCD_HAS_COOLER     = 1 << 6, /*!< Does the CCD have a cooler and temperature control?  */
             CCD_HAS_BAYER      = 1 << 7, /*!< Does the CCD send color data in bayer format?  */
             CCD_HAS_STREAMING  = 1 << 8, /*!< Does the CCD support live video streaming?  */
-            CCD_HAS_WEB_SOCKET = 1 << 9, /*!< Does the CCD support web socket transfers?  */
             CCD_HAS_DSP        = 1 << 10 /*!< Does the CCD support image processing?  */
         } CCDCapability;
 
@@ -259,13 +250,6 @@ class CCD : public DefaultDevice, GuiderInterface
             return false;
         }
 
-        /**
-         * @return  True if the CCD supports native Web Socket transfers. False otherwise.
-         */
-        bool HasWebSocket()
-        {
-            return capability & CCD_HAS_WEB_SOCKET;
-        }
 
         /**
          * @return  True if the CCD wants DSP processing. False otherwise.
@@ -732,21 +716,6 @@ class CCD : public DefaultDevice, GuiderInterface
             APERTURE
         };
 
-        // Websocket Support
-        INDI::PropertySwitch WebSocketSP {2};
-        enum
-        {
-            WEBSOCKET_ENABLED,
-            WEBSOCKET_DISABLED,
-        };
-
-
-        // Websocket Settings
-        INDI::PropertyNumber WebSocketSettingsNP {1};
-        enum
-        {
-            WS_SETTINGS_PORT,
-        };
 
         // WCS
         INDI::PropertySwitch WorldCoordSP{2};
@@ -789,15 +758,8 @@ class CCD : public DefaultDevice, GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////
         bool uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double * min, double * max, CCDChip * targetChip);
-        int getFileIndex(const std::string & dir, const std::string & prefix, const std::string & ext);
+        int getFileIndex(const std::string &dir, const std::string &prefix, const std::string &ext);
         bool ExposureCompletePrivate(CCDChip * targetChip);
-
-        // Threading for Websocket
-#ifdef HAVE_WEBSOCKET
-        std::thread wsThread;
-        void wsThreadEntry();
-        INDIWSServer wsServer;
-#endif
 
         /////////////////////////////////////////////////////////////////////////////
         /// Misc.

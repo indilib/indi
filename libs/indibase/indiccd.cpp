@@ -64,9 +64,6 @@ const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
 //const char * RAPIDGUIDE_TAB     = "Rapid Guide";
 
-#ifdef HAVE_WEBSOCKET
-uint16_t INDIWSServer::m_global_port = 11623;
-#endif
 
 std::string join(std::vector<std::string> const &strings, std::string delim)
 {
@@ -458,19 +455,6 @@ bool CCD::initProperties()
                              OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /**********************************************/
-    /**************** Web Socket ******************/
-    /**********************************************/
-    WebSocketSP[WEBSOCKET_ENABLED].fill("WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
-    WebSocketSP[WEBSOCKET_DISABLED].fill("WEBSOCKET_DISABLED", "Disabled", ISS_ON);
-    WebSocketSP.fill(getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
-                     IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    WebSocketSettingsNP[WS_SETTINGS_PORT].fill("WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
-    WebSocketSettingsNP.fill(getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
-                             OPTIONS_TAB, IP_RW,
-                             60, IPS_IDLE);
-
-    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -641,11 +625,6 @@ bool CCD::updateProperties()
             UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
         defineProperty(UploadSettingsTP);
 
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket())
-            defineProperty(WebSocketSP);
-#endif
-
         defineProperty(FastExposureToggleSP);
         defineProperty(FastExposureCountNP);
     }
@@ -725,13 +704,6 @@ bool CCD::updateProperties()
         deleteProperty(UploadSP);
         deleteProperty(UploadSettingsTP);
 
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket())
-        {
-            deleteProperty(WebSocketSP);
-            deleteProperty(WebSocketSettingsNP);
-        }
-#endif
         deleteProperty(FastExposureToggleSP);
         deleteProperty(FastExposureCountNP);
     }
@@ -972,7 +944,8 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 else if (!std::isnan(RA))
                 {
                     LOG_DEBUG("No mount is set. Clearing all mount watchers.");
-                    RA = Dec = J2000RA = J2000DE = Latitude = Longitude = Airmass = Azimuth = Altitude = std::numeric_limits<double>::quiet_NaN();
+                    RA = Dec = J2000RA = J2000DE = Latitude = Longitude = Airmass = Azimuth = Altitude =
+                                                       std::numeric_limits<double>::quiet_NaN();
                 }
             }
 
@@ -1614,33 +1587,6 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             FastExposureToggleSP.apply();
             return true;
         }
-
-
-#ifdef HAVE_WEBSOCKET
-        // Websocket Enable/Disable
-        if (WebSocketSP.isNameMatch(name))
-        {
-            WebSocketSP.update(states, names, n);
-            WebSocketSP.setState(IPS_OK);
-
-            if (WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
-            {
-                wsThread = std::thread(&wsThreadHelper, this);
-                WebSocketSettingsNP[WS_SETTINGS_PORT].setValue(wsServer.generatePort());
-                WebSocketSettingsNP.setState(IPS_OK);
-                defineProperty(WebSocketSettingsNP);
-            }
-            else if (wsServer.is_running())
-            {
-                wsServer.stop();
-                wsThread.join();
-                deleteProperty(WebSocketSettingsNP);
-            }
-
-            WebSocketSP.apply();
-            return true;
-        }
-#endif
 
         // WCS Enable/Disable
         if (WorldCoordSP.isNameMatch(name))
@@ -2811,28 +2757,11 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (sendImage)
     {
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket() && WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-
-            // Send format/size/..etc first later
-            wsServer.send_text(std::string(targetChip->FitsBP[0].getFormat()));
-            wsServer.send_binary(targetChip->FitsBP[0].getBlob(), targetChip->FitsBP[0].getBlobLen());
-
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
-        }
-        else
-#endif
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-            targetChip->FitsBP.apply();
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
-        }
+        auto start = std::chrono::high_resolution_clock::now();
+        targetChip->FitsBP.apply();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end - start;
+        LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
     }
 
     if (compressedData)
@@ -3201,23 +3130,6 @@ bool CCD::StopStreaming()
     return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef HAVE_WEBSOCKET
-void CCD::wsThreadHelper(void * context)
-{
-    static_cast<CCD *>(context)->wsThreadEntry();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void CCD::wsThreadEntry()
-{
-    wsServer.run();
-}
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///

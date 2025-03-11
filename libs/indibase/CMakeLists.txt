@@ -33,12 +33,6 @@ if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD"))
     list(APPEND ${PROJECT_NAME}_LIBS ${Iconv_LIBRARIES})
 endif()
 
-# Add WebSocket
-if(HAVE_WEBSOCKET)
-    list(APPEND ${PROJECT_NAME}_LIBS ${Boost_LIBRARIES})
-    list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
-endif()
-
 # Add LibXISF
 find_package(LibXISF)
 if(LibXISF_FOUND)

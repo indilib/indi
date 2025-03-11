@@ -226,10 +226,6 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_STREAMING;
     cap |= CCD_HAS_DSP;
 
-#ifdef HAVE_WEBSOCKET
-    cap |= CCD_HAS_WEB_SOCKET;
-#endif
-
     SetCCDCapability(cap);
 
     // This should be called after the initial SetCCDCapability (above)

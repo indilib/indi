@@ -92,5 +92,6 @@
   "cmake.configureSettings": {
     "CMAKE_INSTALL_PREFIX": "/usr",
     "CMAKE_CURRENT_BINARY_DIR": "${workspaceFolder}/build"
-  }
+  },
+  "C_Cpp.errorSquiggles": "disabled"
 }
