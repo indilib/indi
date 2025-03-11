@@ -17,20 +17,24 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #pragma once
+#include <string_view>
+namespace indiserver::constants
+{
+constexpr unsigned indiPort {7624};
+constexpr unsigned maxStringBufferLength {512};
+constexpr unsigned maxReadBufferLength {49152};
+constexpr unsigned maxWriteBufferLength {49152};
+constexpr unsigned defaultMaxQueueSizeMB {128 * 1024 * 1024};
+constexpr unsigned defaultMaxStreamSizeMB {5 * 1024 * 1024};
+constexpr unsigned defaultMaximumRestarts {10};
+constexpr unsigned maxFDPerMessage {16}; /* No more than 16 buffer attached to a message */
 
-#define INDIPORT      7624    /* default TCP/IP port to listen */
-#define MAXSBUF       512
-#define MAXRBUF       49152 /* max read buffering here */
-#define MAXWSIZ       49152 /* max bytes/write */
-#define SHORTMSGSIZ   2048  /* buf size for most messages */
-#define DEFMAXQSIZ    128   /* default max q behind, MB */
-#define DEFMAXSSIZ    5     /* default max stream behind, MB */
-#define DEFMAXRESTART 10    /* default max restarts */
-#define MAXFD_PER_MESSAGE 16 /* No more than 16 buffer attached to a message */
 #ifdef OSX_EMBEDED_MODE
-#define LOGNAME  "/Users/%s/Library/Logs/indiserver.log"
-#define FIFONAME "/tmp/indiserverFIFO"
+constexpr std::string_view logNamePattern {"/Users/%s/Library/Logs/indiserver.log"};
+constexpr std::string_view fifoName {"/tmp/indiserverFIFO"}
 #endif
+} // namespace indiserver
+
 
 extern int verbose;
 extern unsigned int maxstreamsiz;

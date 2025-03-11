@@ -90,19 +90,21 @@
 #endif
 
 #include <ev++.h>
+using namespace indiserver::constants;
 
 static ev::default_loop loop;
 
-// these were static, i made them extern so they could be used in the component files
-Fifo * fifo = nullptr;
-const char *me;                                 /* our name */
-int verbose;                                    /* chattiness */
+const char *me; 
+int port = indiPort;                          /* public INDI port */
 
-static int port = INDIPORT;                            /* public INDI port */
-char *ldir;                                     /* where to log driver messages */
-unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
-unsigned int maxstreamsiz  = (DEFMAXSSIZ * 1024 * 1024); /* drop blobs if these bytes behind while streaming*/
-int maxrestarts   = DEFMAXRESTART;
+/* our name */
+// these were static, i made them extern so they could be used in the component files
+int verbose;                                    /* chattiness */
+unsigned int maxstreamsiz  = defaultMaxStreamSizeMB; /* drop blobs if these bytes behind while streaming*/
+unsigned int maxqsiz  = defaultMaxQueueSizeMB;       /* kill if these bytes behind */
+char *ldir;                                          /* where to log driver messages */
+int maxrestarts   = defaultMaximumRestarts;
+Fifo * fifo = nullptr;
 
 /* print usage message and exit (2) */
 void usage(void)
@@ -112,15 +114,15 @@ void usage(void)
     fprintf(stderr, "INDI Library: %s\nCode %s. Protocol %g.\n", CMAKE_INDI_VERSION_STRING, GIT_TAG_STRING, INDIV);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, " -l d     : log driver messages to <d>/YYYY-MM-DD.islog\n");
-    fprintf(stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", DEFMAXQSIZ);
+    fprintf(stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", defaultMaxQueueSizeMB);
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
-            DEFMAXSSIZ);
+            defaultMaxStreamSizeMB);
 #ifdef ENABLE_INDI_SHARED_MEMORY
     fprintf(stderr, " -u path  : Path for the local connection socket (abstract), default %s\n", INDIUNIXSOCK);
 #endif
-    fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
-    fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
+    fprintf(stderr, " -p p     : alternate IP port, default %d\n", indiPort);
+    fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", defaultMaximumRestarts);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
     fprintf(stderr, " -v       : show key events, no traffic\n");
     fprintf(stderr, " -vv      : -v + key message content\n");
@@ -141,12 +143,12 @@ int main(int ac, char *av[])
 #ifdef OSX_EMBEDED_MODE
 
     char logname[128];
-    snprintf(logname, 128, LOGNAME, getlogin());
+    snprintf(logname, 128, logNamePattern, getlogin());
     fprintf(stderr, "switching stderr to %s", logname);
     freopen(logname, "w", stderr);
 
     fifo = new Fifo();
-    fifo->name = FIFONAME;
+    fifo->name = fifoName;
     verbose   = 1;
     ac        = 0;
 

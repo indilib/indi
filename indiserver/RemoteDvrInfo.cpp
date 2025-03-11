@@ -25,13 +25,15 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+using namespace indiserver::constants;
+
 void RemoteDvrInfo::extractRemoteId(const std::string &name, std::string &o_host, int &o_port, std::string &o_dev) const
 {
     char dev[MAXINDIDEVICE] = {0};
-    char host[MAXSBUF] = {0};
+    char host[maxStringBufferLength] = {0};
 
     /* extract host and port from name*/
-    int indi_port = INDIPORT;
+    int indi_port = indiPort;
     if (sscanf(name.c_str(), "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
         // Device missing? Try a different syntax for all devices

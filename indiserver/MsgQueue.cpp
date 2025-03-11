@@ -25,6 +25,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+using namespace indiserver::constants;
+
 void MsgQueue::writeToFd()
 {
     ssize_t nw;
@@ -61,9 +63,9 @@ void MsgQueue::writeToFd()
     }
     while(nsend == 0);
 
-    /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    if (nsend > MAXWSIZ)
-        nsend = MAXWSIZ;
+    /* send next chunk, never more than maxWriteBufferLength to reduce blocking */
+    if (nsend > maxWriteBufferLength)
+        nsend = maxWriteBufferLength;
 
     if (!useSharedBuffer)
     {
@@ -76,10 +78,10 @@ void MsgQueue::writeToFd()
         int cmsghdrlength;
         struct cmsghdr * cmsgh;
 
-        int fdCount = sharedBuffers.size();
+        size_t fdCount = sharedBuffers.size();
         if (fdCount > 0)
         {
-            if (fdCount > MAXFD_PER_MESSAGE)
+            if (fdCount > maxFDPerMessage)
             {
                 log(fmt("attempt to send too many FD\n"));
                 close();
@@ -97,7 +99,7 @@ void MsgQueue::writeToFd()
             cmsgh->cmsg_type = SCM_RIGHTS;
             msgh.msg_control = cmsgh;
             msgh.msg_controllen = cmsghdrlength;
-            for(int i = 0; i < fdCount; ++i)
+            for(size_t i = 0; i < fdCount; ++i)
             {
                 ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = sharedBuffers[i];
             }
@@ -444,7 +446,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
         {
             struct cmsghdr cmsgh;
             /* Space large enough to hold an 'int' */
-            char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
+            char control[CMSG_SPACE(maxFDPerMessage * sizeof(int))];
         } control_un;
 
         iov.iov_base = buf;
@@ -500,7 +502,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
 
 void MsgQueue::readFromFd()
 {
-    char buf[MAXRBUF];
+    char buf[maxReadBufferLength];
     ssize_t nr;
 
     /* read client */

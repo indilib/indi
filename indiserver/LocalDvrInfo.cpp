@@ -104,21 +104,34 @@ void LocalDvrInfo::start()
         }
         dup2(ep[1], 2); /* driver stderr writes to e[]1] */
         for (fd = 3; fd < 100; fd++)
+        {
             (void)::close(fd);
-
+        }
         if (!envDev.empty())
+        {
             setenv("INDIDEV", envDev.c_str(), 1);
+        }
         /* Only reset environment variable in case of FIFO */
         else if (fifo)
+        {
             unsetenv("INDIDEV");
+        }
         if (!envConfig.empty())
+        {
             setenv("INDICONFIG", envConfig.c_str(), 1);
+        }
         else if (fifo)
+        {
             unsetenv("INDICONFIG");
+        }
         if (!envSkel.empty())
+        {
             setenv("INDISKEL", envSkel.c_str(), 1);
+        }
         else if (fifo)
+        {
             unsetenv("INDISKEL");
+        }
         std::string executable;
         if (!envPrefix.empty())
         {
