@@ -107,7 +107,7 @@ bool SestoSenso2::initProperties()
                      IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
+    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
 
     // Motor rate
@@ -155,9 +155,9 @@ bool SestoSenso2::initProperties()
     FocusAbsPosNP[0].setStep(1000);
 
     FocusMaxPosNP[0].setValue(2097152);
-    PresetN[0].max = FocusMaxPosNP[0].getValue();
-    PresetN[1].max = FocusMaxPosNP[0].getValue();
-    PresetN[2].max = FocusMaxPosNP[0].getValue();
+    PresetNP[0].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[1].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[2].setMax(FocusMaxPosNP[0].getValue());
 
     addAuxControls();
 
@@ -303,16 +303,16 @@ bool SestoSenso2::updateMaxLimit()
     FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
     FocusRelPosNP[0].setMin(0.);
-    FocusRelPosNP[0].setMax(FocusAbsPosNP.getStep() 10);
+    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep() * 10);
     FocusRelPosNP[0].setValue(0);
     FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-    PresetN[0].max = maxLimit;
-    PresetN[0].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-    PresetN[1].max = maxLimit;
-    PresetN[1].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-    PresetN[2].max = maxLimit;
-    PresetN[2].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
+    PresetNP[0].setMax(maxLimit);
+    PresetNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[1].setMax(maxLimit);
+    PresetNP[1].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[2].setMax(maxLimit);
+    PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
 
     FocusMaxPosNP.setState(IPS_OK);
@@ -596,22 +596,22 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
                     FocusRelPosNP[0].setMin(0.);
-                    FocusRelPosNP[0].setMax(FocusAbsPosNP.getStep() 10);
+                    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep() * 10);
                     FocusRelPosNP[0].setValue(0);
                     FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-                    PresetN[0].max = maxLimit;
-                    PresetN[0].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-                    PresetN[1].max = maxLimit;
-                    PresetN[1].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
-                    PresetN[2].max = maxLimit;
-                    PresetN[2].step = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0;
+                    PresetNP[0].setMax(maxLimit);
+                    PresetNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+                    PresetNP[1].setMax(maxLimit);
+                    PresetNP[1].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+                    PresetNP[2].setMax(maxLimit);
+                    PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
                     FocusMaxPosNP.setState(IPS_OK);
                     FocusAbsPosNP.updateMinMax();
                     FocusRelPosNP.updateMinMax();
-                    IUUpdateMinMax(&PresetNP);
-                    IUUpdateMinMax(&FocusMaxPosNP);
+                    PresetNP.updateMinMax();
+                    FocusMaxPosNP.updateMinMax();
 
                     CalibrationMessageTP[0].setText("Calibration Completed.");
                     CalibrationMessageTP.apply();
@@ -861,7 +861,7 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 

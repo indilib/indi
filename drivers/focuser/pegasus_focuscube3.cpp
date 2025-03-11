@@ -498,7 +498,7 @@ bool PegasusFocusCube3::updateFocusParams()
     int reverseStatus = atoi(result[4].c_str());
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
-        IUResetSwitch(&FocusReverseSP);
+        FocusReverseSP.reset();
         FocusReverseSP[INDI_ENABLED].setState((reverseStatus == 1) ? ISS_ON : ISS_OFF);
         FocusReverseSP[INDI_DISABLED].setState((reverseStatus == 0) ? ISS_ON : ISS_OFF);
         FocusReverseSP.setState(IPS_OK);
@@ -510,29 +510,29 @@ bool PegasusFocusCube3::updateFocusParams()
 
     int backlash = atoi(result[5].c_str());
     // If backlash is zero then compensation is disabled
-    if (backlash == 0 && FocusBacklashS[INDI_ENABLED].s == ISS_ON)
+    if (backlash == 0 && FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON)
     {
         LOG_WARN("Backlash value is zero, disabling backlash switch...");
 
         FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
         FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-        FocusBacklashSP.s = IPS_IDLE;
+        FocusBacklashSP.setState(IPS_IDLE);
         FocusBacklashSP.apply();
     }
-    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashNP.apply();))
+    else if (backlash > 0 && (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON || backlash != FocusBacklashNP[0].getValue()))
     {
-        if (backlash != FocusBacklashNP.apply();)
+        if (backlash != FocusBacklashNP[0].getValue())
         {
             FocusBacklashNP[0].setValue(backlash);
-            FocusBacklashNP.s = IPS_OK;
-            IDSetNumber(&FocusBacklashNP, nullptr);
+            FocusBacklashNP.setState(IPS_OK);
+            FocusBacklashNP.apply();
         }
 
-        if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
+        if (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON)
         {
             FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
             FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-            FocusBacklashSP.s = IPS_IDLE;
+            FocusBacklashSP.setState(IPS_IDLE);
             FocusBacklashSP.apply();
         }
     }

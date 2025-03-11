@@ -244,7 +244,7 @@ bool FocusLynxBase::updateProperties()
     }
     else
     {
-        FocusMaxPosNP.p = IP_RW;
+        FocusMaxPosNP.setPermission(IP_RW);
     }
 
     INDI::Focuser::updateProperties();
@@ -810,7 +810,7 @@ bool FocusLynxBase::getFocusConfig()
 
         FocusAbsPosNP.updateMinMax();
         FocusRelPosNP.updateMinMax();
-        IUUpdateMinMax(&FocusSyncNP);
+        FocusSyncNP.updateMinMax();
 
         FocusMaxPosNP.setState(IPS_OK);
         FocusMaxPosNP[0].setValue(maxPos);
@@ -860,13 +860,13 @@ bool FocusLynxBase::getFocusConfig()
             if(canHome)
             {
                 //Homing focusers can not sync
-                deleteProperty(FocusSyncNP.name);
+                deleteProperty(FocusSyncNP);
                 GotoSP.nsp = 2;
             }
             else
             {
                 //Non-Homing focusers can sync
-                defineProperty(&FocusSyncNP);
+                defineProperty(FocusSyncNP);
                 GotoSP.nsp = 1;
             }
 
@@ -959,7 +959,7 @@ bool FocusLynxBase::getFocusConfig()
     // Backlash Compensation
     if (isSimulation())
     {
-        snprintf(response, 32, "BLC En = %d\n", FocusBacklashS[INDI_ENABLED].s == ISS_ON ? 1 : 0);
+        snprintf(response, 32, "BLC En = %d\n", FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -976,10 +976,10 @@ bool FocusLynxBase::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&FocusBacklashSP);
-    FocusBacklashS[INDI_ENABLED].s  = BLCCompensate ? ISS_ON : ISS_OFF;
+    FocusBacklashSP.reset();
+    FocusBacklashSP[INDI_ENABLED].setState(BLCCompensate ? ISS_ON : ISS_OFF);
     FocusBacklashSP[INDI_DISABLED].setState(BLCCompensate ? ISS_OFF : ISS_ON);
-    FocusBacklashSP.s   = IPS_OK;
+    FocusBacklashSP.setState(IPS_OK);
     FocusBacklashSP.apply();
 
     // Backlash Value
@@ -1004,8 +1004,8 @@ bool FocusLynxBase::getFocusConfig()
         return false;
 
     FocusBacklashNP[0].setValue(BLCValue);
-    FocusBacklashNP.s       = IPS_OK;
-    IDSetNumber(&FocusBacklashNP, nullptr);
+    FocusBacklashNP.setState(IPS_OK);
+    FocusBacklashNP.apply();
 
     // Led brightness
     memset(response, 0, sizeof(response));
@@ -1432,11 +1432,11 @@ bool FocusLynxBase::getFocusStatus()
 
         // If reverse is enable and switch shows disabled, let's change that
         // same thing is reverse is disabled but switch is enabled
-        if ((reverse && FocusReverseS[1].s == ISS_ON) || (!reverse && FocusReverseS[0].s == ISS_ON))
+        if ((reverse && FocusReverseSP[1].getState() == ISS_ON) || (!reverse && FocusReverseSP[0].getState() == ISS_ON))
         {
-            IUResetSwitch(&FocusReverseSP);
-            FocusReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
-            FocusReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
+            FocusReverseSP.reset();
+            FocusReverseSP[0].setState((reverse == 1) ? ISS_ON : ISS_OFF);
+            FocusReverseSP[1].setState((reverse == 0) ? ISS_ON : ISS_OFF);
             FocusReverseSP.apply();
         }
 
@@ -3250,7 +3250,7 @@ void FocusLynxBase::TimerHit()
 
             if (std::abs(static_cast<int64_t>(simPosition) - static_cast<int64_t>(targetPosition)) < 100)
             {
-                FocusAbsPosNP[0].getValue()    = targetPosition;
+                FocusAbsPosNP[0].setValue(targetPosition);
                 simPosition              = FocusAbsPosNP[0].getValue();
                 simStatus[STATUS_MOVING] = ISS_OFF;
                 StatusL[STATUS_MOVING].s = IPS_IDLE;

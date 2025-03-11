@@ -1217,7 +1217,7 @@ bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 
 IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != static_cast<int>(FocusSpeedNPvalue))
+    if (speed != static_cast<int>(FocusSpeedNP[0].getValue()))
     {
         if (!setSpeed(speed))
         {

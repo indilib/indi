@@ -588,9 +588,9 @@ bool DMFC::updateFocusParams()
         FocusBacklashSP.setState(IPS_IDLE);
         FocusBacklashSP.apply();
     }
-    else if (backlash > 0 && (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON || backlash != FocusBacklashNP.apply()))
+    else if (backlash > 0 && (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON || backlash != FocusBacklashNP[0].getValue()))
     {
-        if (backlash != FocusBacklashNP.apply())
+        if (backlash != FocusBacklashNP[0].getValue())
         {
             FocusBacklashNP[0].setValue(backlash);
             FocusBacklashNP.setState(IPS_OK);
@@ -740,7 +740,7 @@ bool DMFC::SetFocuserBacklashEnabled(bool enabled)
     if (!enabled)
         return SetFocuserBacklash(0);
 
-    return SetFocuserBacklash(FocusBacklashNP.apply(); > 0 ? FocusBacklashNP.apply(); : 1);
+    return SetFocuserBacklash(FocusBacklashNP[0].getValue() > 0 ? FocusBacklashNP[0].getValue() : 1);
 }
 
 bool DMFC::setMotorType(uint8_t type)

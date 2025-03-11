@@ -1125,7 +1125,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "BLC En = %d\n", FocusBacklashS[INDI_ENABLED].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "BLC En = %d\n", FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1142,10 +1142,10 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&FocusBacklashSP);
+    FocusBacklashSP.reset();
     FocusBacklashSP[INDI_ENABLED].setState(BLCCompensate ? ISS_ON : ISS_OFF);
     FocusBacklashSP[INDI_DISABLED].setState(BLCCompensate ? ISS_OFF : ISS_ON);
-    FocusBacklashSP.s   = IPS_OK;
+    FocusBacklashSP.setState(IPS_OK);
     FocusBacklashSP.apply();
 
     // Backlash Value
@@ -1170,8 +1170,8 @@ bool Gemini::getFocusConfig()
         return false;
 
     FocusBacklashNP[0].setValue(BLCValue);
-    FocusBacklashNP.s       = IPS_OK;
-    IDSetNumber(&FocusBacklashNP, nullptr);
+    FocusBacklashNP.setState(IPS_OK);
+    FocusBacklashNP.apply();
 
     // Temperature Compensation on Start
     memset(response, 0, sizeof(response));
@@ -3022,7 +3022,7 @@ void Gemini::TimerHit()
 
             if (std::abs((int64_t)focuserSimPosition - (int64_t)targetFocuserPosition) < 100)
             {
-                FocusAbsPosNP[0].getValue()    = targetFocuserPosition;
+                FocusAbsPosNP[0].setValue(targetFocuserPosition);
                 focuserSimPosition              = FocusAbsPosNP[0].getValue();
                 focuserSimStatus[STATUS_MOVING] = ISS_OFF;
                 FocuserStatusLP[STATUS_MOVING].setState(IPS_IDLE);

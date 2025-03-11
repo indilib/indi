@@ -30,7 +30,6 @@
 #include <termios.h>
 
 #define mydev           "Optec TCF-S"
-#define currentPosition FocusAbsPosNP[0].getValue()
 
 // We declare an auto pointer to TCFS.
 static std::unique_ptr<TCFS> tcfs(new TCFS());
@@ -255,7 +254,7 @@ bool TCFS::Handshake()
     if (isSimulation())
     {
         LOG_INFO("TCF-S: Simulating connection.");
-        currentPosition = simulated_position;
+        FocusAbsPosNP[0].setValue(simulated_position);
         return true;
     }
     char response[TCFS_MAX_CMD] = { 0 };
@@ -412,7 +411,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         // In Auto mode only FMMODE can be accepted
         // In Sleep mode only FWAKUP can be accepted
         // While focuser is moving don't allow actions other than FMMODE
-        if (!strcmp(FocusMotionSP.name, name))
+        if (FocusMotionSP.isNameMatch(name))
         {
             if (FocusModeSP.sp[0].s != ISS_ON)
             {
@@ -637,8 +636,8 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             // Min
             if (!strcmp(sp->name, "FOCUS_MIN"))
             {
-                targetTicks = currentPosition;
-                MoveRelFocuser(FOCUS_INWARD, currentPosition);
+                targetTicks = FocusAbsPosNP[0].getValue();
+                MoveRelFocuser(FOCUS_INWARD, FocusAbsPosNP[0].getValue());
                 IDSetSwitch(&FocusGotoSP, "Moving focuser to minimum position...");
             }
             // Center
@@ -656,7 +655,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else if (!strcmp(sp->name, "FOCUS_MAX"))
             {
                 unsigned int delta = 0;
-                delta              = FocusAbsPosNP[0].getMax() - currentPosition;
+                delta              = FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getValue();
                 MoveRelFocuser(FOCUS_OUTWARD, delta);
                 IDSetSwitch(&FocusGotoSP, "Moving focuser to maximum position %g...", FocusAbsPosNP[0].getMax());
             }
@@ -744,7 +743,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 
 IPState TCFS::MoveAbsFocuser(uint32_t targetTicks)
 {
-    int delta = targetTicks - currentPosition;
+    int delta = targetTicks - FocusAbsPosNP[0].getValue();
     LOGF_DEBUG("Moving to absolute position %d using offset %d", targetTicks, delta);
     return MoveRelFocuser(delta < 0 ? FOCUS_INWARD : FOCUS_OUTWARD, std::abs(delta));
 }
@@ -761,7 +760,7 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     // an imaging sequence. So switch to manual mode, apply the offset then return
     // to auto mode.
     targetTicks    = ticks;
-    targetPosition = currentPosition;
+    targetPosition = FocusAbsPosNP[0].getValue();
 
     TCFSMode prevMode = currentMode;
     if(currentMode != MANUAL)
@@ -842,14 +841,14 @@ bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
 
         // Focuser In “nnnn”
         case FIN:
-            simulated_position = currentPosition;
+            simulated_position = FocusAbsPosNP[0].getValue();
 
             snprintf(command, TCFS_MAX_CMD, "FI%04u", targetTicks);
             break;
 
         // Focuser Out “nnnn”
         case FOUT:
-            simulated_position = currentPosition;
+            simulated_position = FocusAbsPosNP[0].getValue();
 
             snprintf(command, TCFS_MAX_CMD, "FO%04u", targetTicks);
             break;
@@ -1000,10 +999,10 @@ void TCFS::TimerHit()
             LOGF_DEBUG("%s Received %s", __FUNCTION__, response);
             if(sscanf(response, "P=%d", &f_position) == 1)
             {
-                currentPosition = f_position;
-                if (lastPosition != currentPosition)
+                FocusAbsPosNP[0].setValue(f_position);
+                if (lastPosition != FocusAbsPosNP[0].getValue())
                 {
-                    lastPosition = currentPosition;
+                    lastPosition = FocusAbsPosNP[0].getValue();
                     FocusAbsPosNP.apply();
                 }
             }
@@ -1053,7 +1052,7 @@ void TCFS::TimerHit()
         }
     }
 
-    switch (FocusAbsPosNP.s)
+    switch (FocusAbsPosNP.getState())
     {
         case IPS_OK:
             if (FocusModeSP.sp[0].s == ISS_ON)
@@ -1069,11 +1068,11 @@ void TCFS::TimerHit()
                 snprintf(response, TCFS_MAX_CMD, "P=%04d", (int)simulated_position);
 
             sscanf(response, "P=%d", &f_position);
-            currentPosition = f_position;
+            FocusAbsPosNP[0].setValue(f_position);
 
-            if (lastPosition != currentPosition)
+            if (lastPosition != FocusAbsPosNP[0].getValue())
             {
-                lastPosition = currentPosition;
+                lastPosition = FocusAbsPosNP[0].getValue();
                 FocusAbsPosNP.apply();
             }
             break;

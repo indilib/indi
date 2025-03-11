@@ -1077,7 +1077,7 @@ void USBFocusV3::TimerHit()
 
         if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
+            FocusTimerNP.setState(IPS_OK);
             FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }

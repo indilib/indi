@@ -424,7 +424,11 @@ bool IndiAstroLink4mini2::ISNewSwitch(const char *dev, const char *name, ISState
         {
             setFindex((strcmp(FocuserSelectSP[0].getName(), names[0])) ? 1 : 0);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser index set by switch to %i", getFindex());
-            FocuserSelectSP.setState(FocusMaxPosNP.s = FocusReverseSP.s = FocusAbsPosNP.setState(IPS_BUSY));
+            FocusAbsPosNP.setState(IPS_BUSY);   
+            FocusReverseSP.setState(FocusAbsPosNP.getState());
+            FocusMaxPosNP.setState(FocusReverseSP.getState());
+            FocuserSelectSP.setState(FocusMaxPosNP.getState()); 
+
             FocuserSelectSP.update(states, names, n);
             FocuserSelectSP.apply();
             FocusReverseSP.apply();
@@ -480,7 +484,7 @@ bool IndiAstroLink4mini2::ReverseFocuser(bool enabled)
     int index = getFindex() > 0 ? U_FOC2_REV : U_FOC1_REV;
     if (updateSettings("u", "U", index, (enabled) ? "1" : "0"))
     {
-        FocusReverseSP.s = IPS_BUSY;
+        FocusReverseSP.setState(IPS_BUSY);
         return true;
     }
     else
@@ -509,7 +513,7 @@ bool IndiAstroLink4mini2::SetFocuserMaxPosition(uint32_t ticks)
     int index = getFindex() > 0 ? U_FOC2_MAX : U_FOC1_MAX;
     if (updateSettings("u", "U", index, std::to_string(ticks).c_str()))
     {
-        FocusMaxPosNP.s = IPS_BUSY;
+        FocusMaxPosNP.setState(IPS_BUSY);
         return true;
     }
     else
@@ -673,7 +677,7 @@ bool IndiAstroLink4mini2::readDevice()
     }
 
     // update settings data if was changed
-    if (PowerDefaultOnSP.getState() != IPS_OK || FocusMaxPosNP.s != IPS_OK || FocusReverseSP.s != IPS_OK
+    if (PowerDefaultOnSP.getState() != IPS_OK || FocusMaxPosNP.getState() != IPS_OK || FocusReverseSP.getState() != IPS_OK
             || FocuserSelectSP.getState() != IPS_OK || Focuser1SettingsNP.getState() != IPS_OK
             || Focuser2SettingsNP.getState() != IPS_OK || Focuser1ModeSP.getState() != IPS_OK || Focuser2ModeSP.getState() != IPS_OK)
     {
@@ -743,7 +747,7 @@ bool IndiAstroLink4mini2::readDevice()
                 Focuser2ModeSP.apply();
             }
 
-            if (FocusMaxPosNP.s != IPS_OK)
+            if (FocusMaxPosNP.getState() != IPS_OK)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update maxpos, focuser %i, res %s", getFindex(), res);
                 int index = getFindex() > 0 ? U_FOC2_MAX : U_FOC1_MAX;
@@ -751,12 +755,12 @@ bool IndiAstroLink4mini2::readDevice()
                 FocusMaxPosNP.setState(IPS_OK);
                 FocusMaxPosNP.apply();
             }
-            if (FocusReverseSP.s != IPS_OK)
+            if (FocusReverseSP.getState() != IPS_OK)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update reverse, focuser %i, res %s", getFindex(), res);
                 int index = getFindex() > 0 ? U_FOC2_REV : U_FOC1_REV;
-                FocusReverseS[0].s = (std::stoi(result[index]) > 0) ? ISS_ON : ISS_OFF;
-                FocusReverseS[1].s = (std::stoi(result[index]) == 0) ? ISS_ON : ISS_OFF;
+                FocusReverseSP[0].setState((std::stoi(result[index]) > 0) ? ISS_ON : ISS_OFF);
+                FocusReverseSP[1].setState((std::stoi(result[index]) == 0) ? ISS_ON : ISS_OFF);
                 FocusReverseSP.setState(IPS_OK);
                 FocusReverseSP.apply();
             }

@@ -251,7 +251,7 @@ bool Integra::getFirmware()
 // Called from our ::Handshake
 bool Integra::getFocuserType()
 {
-    int Focus_max = int(FocusAbsPosNP[0].getMax());
+    int focus_max = int(FocusAbsPosNP[0].getMax());
     int rotator_max = int(RotatorAbsPosNP[0].getMax());
     if (focus_max != wellKnownIntegra85FocusMax)
     {

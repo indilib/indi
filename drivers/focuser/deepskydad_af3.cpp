@@ -721,7 +721,7 @@ IPState DeepSkyDadAF3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
-    double bcValue = FocusBacklashNP.apply();
+    double bcValue = FocusBacklashNP[0].getValue();
     int diff = targetTicks - FocusAbsPosNP[0].getValue();
     if ((diff > 0 && bcValue < 0) || (diff < 0 && bcValue > 0))
     {

@@ -623,7 +623,7 @@ void Microtouch::TimerHit()
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
         if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
+            FocusTimerNP.setState(IPS_OK);
             FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }

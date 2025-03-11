@@ -141,8 +141,8 @@ bool AllunaTCS2::updateProperties()
 
         // Focuser
         defineProperty(SteppingModeSP);
-        defineProperty(&FocusMaxPosNP);
-        defineProperty(&FocusAbsPosNP);
+        defineProperty(FocusMaxPosNP);
+        defineProperty(FocusAbsPosNP);
 
         // Climate
         defineProperty(TemperatureNP);
@@ -159,8 +159,8 @@ bool AllunaTCS2::updateProperties()
     else
     {
         deleteProperty(SteppingModeSP);
-        deleteProperty(FocusMaxPosNP.name);
-        deleteProperty(FocusAbsPosNP.name);
+        deleteProperty(FocusMaxPosNP);
+        deleteProperty(FocusAbsPosNP);
 
         deleteProperty(TemperatureNP);
         deleteProperty(ClimateControlSP);
@@ -392,11 +392,11 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             SetFocuserMaxPosition( FocusAbsPosNP[0].getMax() ); // 22400 in microstep mode, 1400 in speedstep mode
             // Update clients
             FocusAbsPosNP.apply(); // not sure if this is necessary, because not shown in driver panel
-            IDSetNumber(&FocusMaxPosNP, nullptr );
+            FocusMaxPosNP.apply();
             LOGF_INFO("Setting new max position to %d", (steppingMode == MICRO) ? 22400 : 1400 );
 
-            defineProperty(&FocusMaxPosNP);
-            defineProperty(&FocusAbsPosNP);
+            defineProperty(FocusMaxPosNP);
+            defineProperty(FocusAbsPosNP);
             // read focuser position (depends on stepping mode)
             getPosition();
             LOGF_INFO("Processed %s", name);

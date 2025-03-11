@@ -402,9 +402,9 @@ void SteelDriveII::TimerHit()
     if (FocusAbsPosNP.getState() != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
     {
         FocusMotionSP.reset();
-        FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
-        FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
-        FocusMotionSP.s = IPS_BUSY;
+        FocusMotionSP[FOCUS_INWARD].setState((m_State == GOING_DOWN) ? ISS_ON : ISS_OFF);
+        FocusMotionSP[FOCUS_OUTWARD].setState((m_State == GOING_DOWN) ? ISS_OFF : ISS_ON);
+        FocusMotionSP.setState(IPS_BUSY);
         FocusAbsPosNP.setState(IPS_BUSY);
         FocusRelPosNP.setState(IPS_BUSY);
         FocusAbsPosNP[0].setValue(summaryPosition);
@@ -430,7 +430,7 @@ void SteelDriveII::TimerHit()
             FocusRelPosNP.setState(IPS_OK);
             FocusRelPosNP.apply();
         }
-        if (FocusMotionSP.s == IPS_BUSY)
+        if (FocusMotionSP[0].getState() == IPS_BUSY)
         {
             FocusMotionSP.setState(IPS_IDLE);
             FocusMotionSP.apply();
