@@ -288,7 +288,7 @@ int ScopeDomeUSB21::writeBuf(Command cmd, uint8_t len, uint8_t *buff)
 
     // Write buffer
     LOGF_DEBUG("write buf: %x %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3], cbuf[4]);
-    if ((rc = tty_write(PortFD, (const char *)cbuf.data(), sizeof(cbuf), &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, (const char *)cbuf.data(), cbuf.size() * sizeof(cbuf[0]), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Error writing command: %s. Cmd %s (%d)", errstr, cmdToString(cmd), cmd);
@@ -331,7 +331,7 @@ int ScopeDomeUSB21::readBuf(Command &cmd, uint8_t len, uint8_t *buff)
     char errstr[MAXRBUF];
 
     // Read buffer
-    if ((rc = tty_read(PortFD, (char *)cbuf.data(), sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, (char *)cbuf.data(), cbuf.size() * sizeof(cbuf[0]), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Error reading: %s. Cmd: %s (%d)", errstr, cmdToString(prevcmd), prevcmd);
