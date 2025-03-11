@@ -469,6 +469,57 @@ void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clie
                  clientID, clientTransactionID, serverTransactionID);
 }
 
+// Helper method to parse form-urlencoded data from request body
+void DeviceManager::parseFormUrlEncodedBody(const std::string &body, std::map<std::string, std::string> &params)
+{
+    std::istringstream stream(body);
+    std::string pair;
+
+    while (std::getline(stream, pair, '&'))
+    {
+        size_t pos = pair.find('=');
+        if (pos != std::string::npos)
+        {
+            std::string key = pair.substr(0, pos);
+            std::string value = pair.substr(pos + 1);
+
+            // URL decode the key and value
+            auto decode = [](const std::string & s) -> std::string
+            {
+                std::string result;
+                for (size_t i = 0; i < s.length(); ++i)
+                {
+                    if (s[i] == '+')
+                    {
+                        result += ' ';
+                    }
+                    else if (s[i] == '%' && i + 2 < s.length())
+                    {
+                        int value;
+                        std::istringstream hex_stream(s.substr(i + 1, 2));
+                        if (hex_stream >> std::hex >> value)
+                        {
+                            result += static_cast<char>(value);
+                            i += 2;
+                        }
+                        else
+                        {
+                            result += s[i];
+                        }
+                    }
+                    else
+                    {
+                        result += s[i];
+                    }
+                }
+                return result;
+            };
+
+            params[decode(key)] = decode(value);
+        }
+    }
+}
+
 void DeviceManager::handleManagementRequest(const std::string &endpoint,
         const httplib::Request &req,
         httplib::Response &res,

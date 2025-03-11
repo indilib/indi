@@ -88,6 +88,9 @@ class DeviceManager
         // Helper method to extract transaction IDs from request
         void extractTransactionIDs(const httplib::Request &req, int &clientTransactionID, int &serverTransactionID);
 
+        // Helper method to parse form-urlencoded data from request body
+        static void parseFormUrlEncodedBody(const std::string &body, std::map<std::string, std::string> &params);
+
     private:
         // Create appropriate bridge for device type
         std::unique_ptr<IDeviceBridge> createBridge(INDI::BaseDevice device, int deviceNumber);

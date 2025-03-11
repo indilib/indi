@@ -24,6 +24,7 @@
 
 #include "telescope_bridge.h"
 #include "indilogger.h"
+#include "device_manager.h"
 
 #include <httplib.h>
 #include <cmath>
@@ -49,8 +50,20 @@ void TelescopeBridge::handleConnected(const httplib::Request &req, httplib::Resp
     {
         try
         {
-            json requestData = json::parse(req.body);
-            bool connected = requestData["Connected"].get<bool>();
+            // Parse form-urlencoded data from request body
+            std::map<std::string, std::string> formData;
+            DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+            // Check if Connected parameter exists
+            if (formData.find("Connected") == formData.end())
+            {
+                sendResponseValue(res, isConnected, false, "Missing Connected parameter");
+                return;
+            }
+
+            // Convert Connected value to bool
+            bool connected = (formData["Connected"] == "True" || formData["Connected"] == "true" ||
+                              formData["Connected"] == "1");
 
             if (connected && !isConnected)
             {
@@ -295,9 +308,20 @@ void TelescopeBridge::handleSlewToCoordinates(const httplib::Request &req, httpl
     bool success = false;
     try
     {
-        json requestData = json::parse(req.body);
-        double ra = requestData["RightAscension"].get<double>();
-        double dec = requestData["Declination"].get<double>();
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("RightAscension") == formData.end() || formData.find("Declination") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing RightAscension or Declination parameter");
+            return;
+        }
+
+        // Convert values to double
+        double ra = std::stod(formData["RightAscension"]);
+        double dec = std::stod(formData["Declination"]);
 
         auto coordSet = m_Device.getSwitch("ON_COORD_SET");
         auto eqCoord = m_Device.getNumber("EQUATORIAL_EOD_COORD");
@@ -347,9 +371,20 @@ void TelescopeBridge::handleSyncToCoordinates(const httplib::Request &req, httpl
     bool success = false;
     try
     {
-        json requestData = json::parse(req.body);
-        double ra = requestData["RightAscension"].get<double>();
-        double dec = requestData["Declination"].get<double>();
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("RightAscension") == formData.end() || formData.find("Declination") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing RightAscension or Declination parameter");
+            return;
+        }
+
+        // Convert values to double
+        double ra = std::stod(formData["RightAscension"]);
+        double dec = std::stod(formData["Declination"]);
 
         auto coordSet = m_Device.getSwitch("ON_COORD_SET");
         auto eqCoord = m_Device.getNumber("EQUATORIAL_EOD_COORD");
@@ -389,9 +424,20 @@ void TelescopeBridge::handlePulseGuide(const httplib::Request &req, httplib::Res
     bool success = false;
     try
     {
-        json requestData = json::parse(req.body);
-        int direction = requestData["Direction"].get<int>();
-        int duration = requestData["Duration"].get<int>();
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("Direction") == formData.end() || formData.find("Duration") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing Direction or Duration parameter");
+            return;
+        }
+
+        // Convert values to integers
+        int direction = std::stoi(formData["Direction"]);
+        int duration = std::stoi(formData["Duration"]);
 
         // Direction: 0=North, 1=South, 2=East, 3=West
         if (direction == 0 || direction == 1)
@@ -432,9 +478,20 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
     bool success = false;
     try
     {
-        json requestData = json::parse(req.body);
-        int axis = requestData["Axis"].get<int>();
-        double rate = requestData["Rate"].get<double>();
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("Axis") == formData.end() || formData.find("Rate") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing Axis or Rate parameter");
+            return;
+        }
+
+        // Convert values
+        int axis = std::stoi(formData["Axis"]);
+        double rate = std::stod(formData["Rate"]);
 
         // Axis: 0=Primary (RA/AZ), 1=Secondary (DEC/ALT)
         if (axis == 0)
@@ -483,8 +540,20 @@ void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Re
     bool success = false;
     try
     {
-        json requestData = json::parse(req.body);
-        bool tracking = requestData["Tracking"].get<bool>();
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("Tracking") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing Tracking parameter");
+            return;
+        }
+
+        // Convert Tracking value to bool
+        bool tracking = (formData["Tracking"] == "True" || formData["Tracking"] == "true" ||
+                         formData["Tracking"] == "1");
 
         auto trackState = m_Device.getSwitch("TELESCOPE_TRACK_STATE");
         if (trackState)
