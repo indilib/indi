@@ -86,7 +86,8 @@ class DeviceManager
 
     public:
         // Helper method to extract transaction IDs from request
-        void extractTransactionIDs(const httplib::Request &req, int &clientTransactionID, int &serverTransactionID);
+        bool extractTransactionIDs(const httplib::Request &req, httplib::Response &res, int &clientTransactionID,
+                                   int &serverTransactionID);
 
         // Helper method to parse form-urlencoded data from request body
         static void parseFormUrlEncodedBody(const std::string &body, std::map<std::string, std::string> &params);

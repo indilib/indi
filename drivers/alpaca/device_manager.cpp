@@ -286,7 +286,11 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
 
     // Extract transaction IDs from request - do this only once per request
     int clientTransactionID, serverTransactionID;
-    extractTransactionIDs(req, clientTransactionID, serverTransactionID);
+    if (!extractTransactionIDs(req, res, clientTransactionID, serverTransactionID))
+    {
+        // If extraction failed, response has already been set
+        return;
+    }
 
     // Parse path to determine if it's a management or device API request
     std::string path = req.path;
@@ -322,6 +326,24 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
                 {"ErrorMessage", "Invalid API request format"}
             };
             res.set_content(response.dump(), "application/json");
+            res.status = 400; // Bad Request
+            return;
+        }
+
+        // Check if device type is lowercase
+        std::string deviceTypeLower = deviceType;
+        std::transform(deviceTypeLower.begin(), deviceTypeLower.end(), deviceTypeLower.begin(), ::tolower);
+        if (deviceType != deviceTypeLower)
+        {
+            json response =
+            {
+                {"ClientTransactionID", clientTransactionID},
+                {"ServerTransactionID", serverTransactionID},
+                {"ErrorNumber", 1007},
+                {"ErrorMessage", "Device type must be lowercase"}
+            };
+            res.set_content(response.dump(), "application/json");
+            res.status = 400; // Bad Request
             return;
         }
 
@@ -341,6 +363,7 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
                 {"ErrorMessage", "Invalid device number"}
             };
             res.set_content(response.dump(), "application/json");
+            res.status = 400; // Bad Request
             return;
         }
 
@@ -358,6 +381,7 @@ void DeviceManager::handleAlpacaRequest(const httplib::Request &req, httplib::Re
         {"ErrorMessage", "Unknown API endpoint"}
     };
     res.set_content(response.dump(), "application/json");
+    res.status = 404; // Not Found
 }
 
 void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType,
@@ -379,6 +403,7 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
             {"ErrorMessage", "Device not found"}
         };
         res.set_content(response.dump(), "application/json");
+        res.status = 404; // Not Found
         return;
     }
 
@@ -393,6 +418,7 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
             {"ErrorMessage", "Device type mismatch"}
         };
         res.set_content(response.dump(), "application/json");
+        res.status = 400; // Bad Request
         return;
     }
 
@@ -425,7 +451,8 @@ void DeviceManager::routeRequest(int deviceNumber, const std::string &deviceType
 }
 
 // Helper method to extract transaction IDs from request
-void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clientTransactionID, int &serverTransactionID)
+bool DeviceManager::extractTransactionIDs(const httplib::Request &req, httplib::Response &res, int &clientTransactionID,
+        int &serverTransactionID)
 {
     // Default values
     clientTransactionID = 0;
@@ -434,12 +461,35 @@ void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clie
     // Extract client ID and client transaction ID from request parameters
     int clientID = 0;
 
+    // Case-insensitive parameter lookup helper
+    auto getParamValueCaseInsensitive = [&req](const std::string & paramName) -> std::string
+    {
+        // Try exact match first for efficiency
+        if (req.has_param(paramName))
+            return req.get_param_value(paramName);
+
+        // Try case-insensitive match
+        std::string lowerParamName = paramName;
+        std::transform(lowerParamName.begin(), lowerParamName.end(), lowerParamName.begin(), ::tolower);
+
+        for (const auto &param : req.params)
+        {
+            std::string lowerKey = param.first;
+            std::transform(lowerKey.begin(), lowerKey.end(), lowerKey.begin(), ::tolower);
+            if (lowerKey == lowerParamName)
+                return param.second;
+        }
+
+        return "";
+    };
+
     // Extract ClientID - identifies the client application
-    if (req.has_param("clientid"))
+    std::string clientIdStr = getParamValueCaseInsensitive("clientid");
+    if (!clientIdStr.empty())
     {
         try
         {
-            clientID = std::stoi(req.get_param_value("clientid"));
+            clientID = std::stoi(clientIdStr);
         }
         catch (const std::exception &e)
         {
@@ -448,15 +498,48 @@ void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clie
     }
 
     // Extract ClientTransactionID - identifies a specific transaction
-    if (req.has_param("clienttransactionid"))
+    std::string clientTransactionIdStr = getParamValueCaseInsensitive("clienttransactionid");
+    if (!clientTransactionIdStr.empty())
     {
         try
         {
-            clientTransactionID = std::stoi(req.get_param_value("clienttransactionid"));
+            // Check if the string is a valid uint32
+            long value = std::stol(clientTransactionIdStr);
+            if (value < 0 || value > UINT32_MAX)
+            {
+                // Invalid range for uint32
+                DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "clienttransactionid out of range for uint32");
+
+                // Set response to 400 Bad Request
+                res.status = 400;
+                json response =
+                {
+                    {"ClientTransactionID", 0},
+                    {"ServerTransactionID", 0},
+                    {"ErrorNumber", 1008},
+                    {"ErrorMessage", "Invalid clienttransactionid: must be a uint32 number"}
+                };
+                res.set_content(response.dump(), "application/json");
+                return false;
+            }
+            clientTransactionID = static_cast<int>(value);
         }
         catch (const std::exception &e)
         {
+            // Invalid format or out of range
             DEBUGDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Invalid clienttransactionid format");
+
+            // Set response to 400 Bad Request
+            res.status = 400;
+            json response =
+            {
+                {"ClientTransactionID", 0},
+                {"ServerTransactionID", 0},
+                {"ErrorNumber", 1008},
+                {"ErrorMessage", "Invalid clienttransactionid: must be a uint32 number"}
+            };
+            res.set_content(response.dump(), "application/json");
+            return false;
         }
     }
 
@@ -467,6 +550,8 @@ void DeviceManager::extractTransactionIDs(const httplib::Request &req, int &clie
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
                  "Client ID: %d, Transaction IDs - Client: %d, Server: %d",
                  clientID, clientTransactionID, serverTransactionID);
+
+    return true;
 }
 
 // Helper method to parse form-urlencoded data from request body
@@ -592,6 +677,7 @@ void DeviceManager::handleManagementRequest(const std::string &endpoint,
             {"ErrorMessage", "Unknown management endpoint"}
         };
         res.set_content(response.dump(), "application/json");
+        res.status = 404; // Not Found
     }
 }
 
