@@ -709,19 +709,13 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         // Max. position
         if (FocusMaxPosNP.isNameMatch(name))
         {
-            FocusMaxPosNP.update(values, names, n);
-            char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosNP[0].getValue()));
-            bool rc = sendCommandSet(cmd);
-            if (!rc)
+            uint32_t maxTravel = rint(values[0]);
+            if (SetFocuserMaxPosition(maxTravel))
             {
-                FocusMaxPosNP.setState(IPS_ALERT);
-                return false;
+                char cmd[DSD_RES] = {0};
+                snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(maxTravel));
+                return sendCommandSet(cmd);
             }
-
-            FocusMaxPosNP.setState(IPS_OK);
-            FocusMaxPosNP.apply( );
-            return true;
         }
 
         // Max. movement
