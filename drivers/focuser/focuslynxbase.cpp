@@ -1432,11 +1432,11 @@ bool FocusLynxBase::getFocusStatus()
 
         // If reverse is enable and switch shows disabled, let's change that
         // same thing is reverse is disabled but switch is enabled
-        if ((reverse && FocusReverseSP[1].getState() == ISS_ON) || (!reverse && FocusReverseSP[0].getState() == ISS_ON))
+        if ((reverse && FocusReverseSP[INDI_DISABLED].getState() == ISS_ON) || (!reverse && FocusReverseSP[INDI_ENABLED].getState() == ISS_ON))
         {
             FocusReverseSP.reset();
-            FocusReverseSP[0].setState((reverse == 1) ? ISS_ON : ISS_OFF);
-            FocusReverseSP[1].setState((reverse == 0) ? ISS_ON : ISS_OFF);
+            FocusReverseSP[INDI_ENABLED].setState((reverse == 1) ? ISS_ON : ISS_OFF);
+            FocusReverseSP[INDI_DISABLED].setState((reverse == 0) ? ISS_ON : ISS_OFF);
             FocusReverseSP.apply();
         }
 

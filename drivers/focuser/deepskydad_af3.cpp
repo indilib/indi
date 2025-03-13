@@ -886,10 +886,3 @@ bool DeepSkyDadAF3::SetFocuserMaxPosition(uint32_t ticks)
 
     return false;
 }
-
- bool DeepSkyDadAF3::SetFocuserMaxPosition(uint32_t ticks)
- {   
-    char cmd[DSD_RES] = {0};
-    snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(ticks));
-    return sendCommandSet(cmd);
- }

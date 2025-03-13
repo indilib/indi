@@ -762,8 +762,8 @@ bool TeenAstroFocuser::updateMotorConfig()
         return false;
     }
 
-    FocusReverseSP[0].setState((reverse == 0) ? ISS_OFF : ISS_ON);
-    FocusReverseSP[1].setState((reverse == 0) ? ISS_ON  : ISS_OFF);
+    FocusReverseSP[INDI_ENABLED].setState((reverse == 0) ? ISS_OFF : ISS_ON);
+    FocusReverseSP[INDI_DISABLED].setState((reverse == 0) ? ISS_ON  : ISS_OFF);
     FocusReverseSP.setState(IPS_OK);
     FocusReverseSP.apply();
 
