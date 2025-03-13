@@ -63,6 +63,11 @@ bool DeepSkyDadAF1::initProperties()
     FocusAbsPosNP[0].setValue(50000.);
     FocusAbsPosNP[0].setStep(500.);
 
+    FocusMaxPosNP[0].setMin(0.);
+    FocusMaxPosNP[0].setMax(9999999);
+    FocusMaxPosNP[0].setValue(9999999);
+    FocusMaxPosNP[0].setStep(500);
+
     // Max. movement
     FocusMaxMoveNP[0].fill("MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
     FocusMaxMoveNP.fill(getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
@@ -706,17 +711,6 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
             return true;
         }
 
-        // Max. position
-        if (FocusMaxPosNP.isNameMatch(name))
-        {
-            uint32_t maxTravel = rint(values[0]);
-            if (SetFocuserMaxPosition(maxTravel))
-            {
-                char cmd[DSD_RES] = {0};
-                snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(maxTravel));
-                return sendCommandSet(cmd);
-            }
-        }
 
         // Max. movement
         if (FocusMaxMoveNP.isNameMatch(name))
@@ -935,3 +929,10 @@ bool DeepSkyDadAF1::sendCommandSet(const char * cmd)
 
     return strcmp(res, "(OK)") == 0;
 }
+
+ bool DeepSkyDadAF1::SetFocuserMaxPosition(uint32_t ticks)
+ {   
+    char cmd[DSD_RES] = {0};
+    snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(ticks));
+    return sendCommandSet(cmd);
+ }

@@ -67,6 +67,8 @@ class DeepSkyDadAF3 : public INDI::Focuser
          */
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+
         /**
          * @brief MoveRelFocuser Move focuser for a relative amount of ticks in a specific direction
          * @param dir Directoin of motion

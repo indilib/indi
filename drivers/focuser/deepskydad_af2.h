@@ -62,6 +62,8 @@ class DeepSkyDadAF2 : public INDI::Focuser
          */
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+
         /**
          * @brief MoveAbsFocuser Move to an absolute target position
          * @param targetTicks target position

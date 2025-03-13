@@ -629,18 +629,6 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
             HoldCurrentMultiplierNP.apply();
             return true;
         }
-
-        // Max. position
-        if (FocusMaxPosNP.isNameMatch(name))
-        {
-            uint32_t maxTravel = rint(values[0]);
-            if (SetFocuserMaxPosition(maxTravel))
-            {
-                char cmd[DSD_RES] = {0};
-                snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(maxTravel));
-                return sendCommandSet(cmd);
-            }
-        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -898,3 +886,10 @@ bool DeepSkyDadAF3::SetFocuserMaxPosition(uint32_t ticks)
 
     return false;
 }
+
+ bool DeepSkyDadAF3::SetFocuserMaxPosition(uint32_t ticks)
+ {   
+    char cmd[DSD_RES] = {0};
+    snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(ticks));
+    return sendCommandSet(cmd);
+ }
