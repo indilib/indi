@@ -431,7 +431,7 @@ bool DMFC::updateFocusParams()
         return false;
     }
 
-    if (FirmwareVersionTP[0].getText() == nullptr || FirmwareVersionTP[0].isNameMatch(token))
+    if (FirmwareVersionTP[0].isEmpty() || FirmwareVersionTP[0].isNameMatch(token))
     {
         FirmwareVersionTP[0].setText(token);
         FirmwareVersionTP.setState(IPS_OK);
