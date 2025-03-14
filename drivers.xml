@@ -785,6 +785,10 @@
             <driver name="Light Panel Simulator">indi_simulator_lightpanel</driver>
             <version>1.0</version>
         </device>
+        <device label="Dust Cover Simulator" manufacturer="Simulator">
+            <driver name="Dust Cover Simulator">indi_simulator_dustcover</driver>
+            <version>1.0</version>
+        </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>
             <version>1.0</version>

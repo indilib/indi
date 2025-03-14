@@ -108,6 +108,14 @@ add_executable(indi_simulator_lightpanel ${lightpanelsimulator_SRC})
 target_link_libraries(indi_simulator_lightpanel indidriver)
 install(TARGETS indi_simulator_lightpanel RUNTIME DESTINATION bin)
 
+# ########## Dust Cover Simulator ###############
+SET(dustcoversimulator_SRC
+    dust_cover_simulator.cpp)
+
+add_executable(indi_simulator_dustcover ${dustcoversimulator_SRC})
+target_link_libraries(indi_simulator_dustcover indidriver)
+install(TARGETS indi_simulator_dustcover RUNTIME DESTINATION bin)
+
 # ########## Pegasus Ultimate Power Box Driver ###############
 SET(pegasus_upb_SRC
     pegasus_upb.cpp)
