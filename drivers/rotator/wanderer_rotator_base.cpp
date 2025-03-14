@@ -205,7 +205,7 @@ bool WandererRotatorBase::Handshake()
     char M_backlash[64] = {0};
     int nbytes_read_M_backlash= 0;
     tty_read_section(PortFD, M_backlash, 'A', 5, &nbytes_read_M_backlash);
-    M_backlash[nbytes_read_M_angle - 1] = '\0';
+    M_backlash[nbytes_read_M_backlash - 1] = '\0';
     M_backlashread = std::strtod(M_backlash,NULL);
 
     BacklashNP[BACKLASH].setValue(M_backlashread);
