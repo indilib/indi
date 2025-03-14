@@ -246,16 +246,16 @@ IPState WeatherInterface::updateWeather()
 ////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
 {
-    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f) ", name.c_str(), numMinOk, numMaxOk, percWarning);
+    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning, (flipWarning ? "true" : "false"));
 
     INDI::WidgetNumber oneParameter;
     oneParameter.fill(name.c_str(), label.c_str(), "%.2f", numMinOk, numMaxOk, 0, 0);
     ParametersNP.push(std::move(oneParameter));
 
     if (numMinOk != numMaxOk)
-        createParameterRange(name, label, numMinOk, numMaxOk, percWarning);
+        createParameterRange(name, label, numMinOk, numMaxOk, percWarning, flipWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -313,15 +313,30 @@ IPState WeatherInterface::checkParameterState(const std::string &name) const
     auto maxLimit = (*oneRange)[MAX_OK].getValue();
     auto percentageWarning = (*oneRange)[PERCENT_WARNING].getValue();
     auto rangeWarn = (maxLimit - minLimit) * (percentageWarning / 100);
+    auto flipRangeTest = (*oneRange)[FLIP_RANGE_TEST].getValue();
 
     auto value = oneParameter->getValue();
 
-    if (value < minLimit || value > maxLimit)
-        return IPS_ALERT;
-    else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
-        return IPS_BUSY;
+    if (flipRangeTest)
+    {
+	// flipped original range test, namely: outside limits = OK; outside percentage bounds = warning; inside percentage bounds = danger
+	if (value < minLimit || value > maxLimit)
+	    return IPS_OK;
+	else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
+	    return IPS_BUSY;
+	else
+	    return IPS_ALERT;
+    }
     else
-        return IPS_OK;
+    {
+	// originally there was only this range test, namely: outside limits = danger; outside percentage bounds = warning; inside percentage bounds = OK
+	if (value < minLimit || value > maxLimit)
+	    return IPS_ALERT;
+	else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
+	    return IPS_BUSY;
+	else
+	    return IPS_OK;
+    }
 
     return IPS_IDLE;
 }
@@ -383,17 +398,19 @@ bool WeatherInterface::syncCriticalParameters()
 ////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
 {
-    INDI::WidgetNumber minWidget, maxWidget, warnWidget;
+    INDI::WidgetNumber minWidget, maxWidget, warnWidget, typeWidget;
     minWidget.fill("MIN_OK", "OK range min", "%.2f", -1e6, 1e6, 0, numMinOk);
     maxWidget.fill("MAX_OK", "OK range max", "%.2f", -1e6, 1e6, 0, numMaxOk);
     warnWidget.fill("PERC_WARN", "% for Warning", "%.f", 0, 100, 5, percWarning);
+    typeWidget.fill("ALERT_TYPE", "Flip alerting to in-bounds", "%.f", 0, 1, 1, (flipWarning ? 1 : 0));
 
     INDI::PropertyNumber oneRange {0};
     oneRange.push(std::move(minWidget));
     oneRange.push(std::move(maxWidget));
     oneRange.push(std::move(warnWidget));
+    oneRange.push(std::move(typeWidget));
     oneRange.fill(getDeviceName(), name.c_str(), label.c_str(), m_ParametersGroup.c_str(), IP_RW, 60, IPS_IDLE);
 
     ParametersRangeNP.push_back(std::move(oneRange));
