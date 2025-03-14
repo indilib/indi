@@ -383,7 +383,7 @@ bool PegasusProdigyMF::updateFocusParams()
     int reverseStatus = atoi(token);
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
-        IUResetSwitch(&FocusReverseSP);
+        FocusReverseSP.reset();
         FocusReverseSP[INDI_ENABLED].setState((reverseStatus == 1) ? ISS_ON : ISS_OFF);
         FocusReverseSP[INDI_DISABLED].setState((reverseStatus == 0) ? ISS_ON : ISS_OFF);
         FocusReverseSP.setState(IPS_OK);

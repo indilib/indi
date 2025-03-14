@@ -2183,7 +2183,7 @@ void Lakeside::GetFocusParams ()
         IDSetNumber(&TemperatureKNP, nullptr);
 
     if (updateBacklash())
-        IDSetNumber(&FocusBacklashNP, nullptr);
+        FocusBacklashNP.apply();
 
     if (updateMaxTravel())
         FocusMaxPosNP.apply();

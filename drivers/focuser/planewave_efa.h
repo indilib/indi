@@ -126,8 +126,8 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
 
         // Focuser Information
-        ITextVectorProperty InfoTP;
-        IText InfoT[1] {};
+        INDI::PropertyText InfoTP {1};
+        // IText InfoT[1] {};
         enum
         {
             INFO_VERSION
@@ -135,8 +135,7 @@ class EFA : public INDI::Focuser
 
 
         // FAN State
-        ISwitchVectorProperty FanStateSP;
-        ISwitch FanStateS[2];
+        INDI::PropertySwitch FanStateSP {2};
         enum
         {
             FAN_ON,
@@ -144,8 +143,7 @@ class EFA : public INDI::Focuser
         };
 
         // Fan Control Mode
-        ISwitchVectorProperty FanControlSP;
-        ISwitch FanControlS[3];
+        INDI::PropertySwitch FanControlSP {3};
         enum
         {
             FAN_MANUAL,
@@ -154,8 +152,8 @@ class EFA : public INDI::Focuser
         };
 
         // Fan Control Parameters
-        INumberVectorProperty FanControlNP;
-        INumber FanControlN[3];
+        INDI::PropertyNumber FanControlNP {3};
+        // INumber FanControlN[3];
         enum
         {
             FAN_MAX_ABSOLUTE,
@@ -164,16 +162,14 @@ class EFA : public INDI::Focuser
         };
 
         // Fan Off on Disconnect
-        ISwitchVectorProperty FanDisconnectSP;
-        ISwitch FanDisconnectS[1];
+        INDI::PropertySwitch FanDisconnectSP {1};
         enum
         {
             FAN_OFF_ON_DISCONNECT
         };
 
         // Calibration State
-        ISwitchVectorProperty CalibrationStateSP;
-        ISwitch CalibrationStateS[2];
+        INDI::PropertySwitch CalibrationStateSP {2};
         enum
         {
             CALIBRATION_ON,
@@ -181,8 +177,7 @@ class EFA : public INDI::Focuser
         };
 
         // Read Only Temperature Reporting
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[2];
+        INDI::PropertyNumber TemperatureNP {2};
         enum
         {
             TEMPERATURE_PRIMARY,

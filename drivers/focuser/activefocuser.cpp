@@ -188,10 +188,10 @@ bool ActiveFocuser::initProperties()
 
     // Disabling focuser speed
 
-    FocusSpeedN\[0\]\.setMin()
+    FocusSpeedNP[0].setMin(0);
     FocusSpeedNP[0].setMax(0);
     FocusSpeedNP[0].setValue(1);
-    IUUpdateMinMax(&FocusSpeedNP);
+    FocusSpeedNP.updateMinMax();
 
     // Setting default absolute position values
 

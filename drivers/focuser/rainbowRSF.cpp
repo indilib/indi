@@ -203,13 +203,13 @@ bool RainbowRSF::updatePosition()
         // Move the focuser
         if (FocusAbsPosNP[0].getValue() > m_TargetPosition)
         {
-            FocusAbsPosNP[0].getValue() -= 500;
+            FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() - 500);
             if (FocusAbsPosNP[0].getValue() < m_TargetPosition)
                 FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
         else if (FocusAbsPosNP[0].getValue() < m_TargetPosition)
         {
-            FocusAbsPosNP[0].getValue() += 500;
+            FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() + 500);            
             if (FocusAbsPosNP[0].getValue() > m_TargetPosition)
                 FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
@@ -374,7 +374,7 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_MovementTimerActive = false;
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 

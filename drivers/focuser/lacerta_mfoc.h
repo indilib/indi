@@ -53,8 +53,7 @@ class lacerta_mfoc : public INDI::Focuser
         //        INumber BacklashN[1];
 
         // Temperature Compensation
-        INumberVectorProperty TempCompNP;
-        INumber TempCompN[1];
+        INDI::PropertyNumber TempCompNP {1};
 
         enum
         {
@@ -63,8 +62,7 @@ class lacerta_mfoc : public INDI::Focuser
             MODE_TDIR_OUT,
             MODE_COUNT_TEMP_DIR
         };
-        ISwitchVectorProperty TempTrackDirSP;
-        ISwitch TempTrackDirS[MODE_COUNT_TEMP_DIR];
+        INDI::PropertySwitch TempTrackDirSP {3};
 
         enum
         {
@@ -72,7 +70,7 @@ class lacerta_mfoc : public INDI::Focuser
             MODE_SAVED_OFF,
             MODE_COUNT_SAVED
         };
-        ISwitchVectorProperty StartSavedPositionSP;
-        ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
+        INDI::PropertySwitch StartSavedPositionSP {2};
+        // ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
 
 };

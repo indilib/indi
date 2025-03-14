@@ -62,7 +62,7 @@ bool SmartFocus::initProperties()
     FocusSpeedNP[0].setMin(1);
     FocusSpeedNP[0].setMax(1);
     FocusSpeedNP[0].setValue(1);
-    IUUpdateMinMax(&FocusSpeedNP);
+    FocusSpeedNP.updateMinMax();
 
     IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
     IUFillLight(&FlagsL[STATUS_SERIAL_OVERRUN_ERROR], "SERIAL_OVERRUN_ERROR", "Serial overrun error", IPS_OK);
@@ -77,18 +77,16 @@ bool SmartFocus::initProperties()
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     FocusRelPosNP[0].setMin(0.);
-    FocusRelPosNP[0].setMax(FocusMaxPosNP[0].getValue(); //MaxPositionN[0].value);
-                            FocusRelPosNP[0].setValue(10);
-                            FocusRelPosNP[0].setStep(1);
+    FocusRelPosNP[0].setMax(FocusMaxPosNP[0].getValue()); //MaxPositionN[0].value);
+    FocusRelPosNP[0].setValue(10);
+    FocusRelPosNP[0].setStep(1);
 
-                            FocusAbsPosNP[0].setMin(0.);
-                            FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue(); //MaxPositionN[0].value);
-                                    FocusAbsPosNP[0].setValue(0);
-                                    FocusAbsPosNP[0].setStep(1);
-
-                                    setCurrentPollingPeriod(TimerInterval);
-
-                                    return true;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue()); //MaxPositionN[0].value);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1);
+    setCurrentPollingPeriod(TimerInterval);
+    return true;
 }
 
                         bool SmartFocus::updateProperties()
@@ -368,12 +366,12 @@ void SmartFocus::SFgetState()
     if ((position = SFgetPosition()) == PositionInvalid)
     {
         FocusAbsPosNP.setState(IPS_ALERT);
-        IDSetNumber(&FocusAbsPosNP, "Error while reading SmartFocus position");
+        LOG_ERROR("Error while reading SmartFocus position");
     }
     else
     {
         FocusAbsPosNP[0].setValue(position);
-        FocusAbsPosNP.s       = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
         FocusAbsPosNP.apply();
     }
 }

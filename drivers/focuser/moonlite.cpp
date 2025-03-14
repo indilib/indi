@@ -463,7 +463,7 @@ bool MoonLite::SetFocuserSpeed(int speed)
 
 IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != static_cast<int>(FocusSpeedNPvalue))
+    if (speed != static_cast<int>(FocusSpeedNP[0].getValue()))
     {
         if (!setSpeed(speed))
             return IPS_ALERT;

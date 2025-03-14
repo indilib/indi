@@ -115,7 +115,7 @@ bool LX200Autostar::updateProperties()
 //                return false;
 
 //            if (!isSimulation())
-//                setGPSFocuserSpeed(PortFD, ((int)FocusSpeedNPvalue));
+//                setGPSFocuserSpeed(PortFD, ((int)FocusSpeedNP[0].getValue()));
 //            FocusSpeedNP.setState(IPS_OK);
 //            FocusSpeedNP.apply();
 //            return true;
@@ -135,7 +135,7 @@ bool LX200Autostar::updateProperties()
 //        if (!strcmp(name, FocusMotionSP.name))
 //        {
 //            // If speed is "halt"
-//            if (FocusSpeedNPvalue == 0)
+//            if (FocusSpeedNP[0].getValue() == 0)
 //            {
 //                FocusMotionSP.setState(IPS_IDLE);
 //                FocusMotionSP.apply();

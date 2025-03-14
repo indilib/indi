@@ -99,9 +99,9 @@ bool PegasusScopsOAG::updateProperties()
     if (isConnected())
     {
 
-        deleteProperty(FocusReverseSP.name);
-        deleteProperty(FocusBacklashSP.name);
-        deleteProperty(FocusBacklashNP.name);
+        deleteProperty(FocusReverseSP);
+        deleteProperty(FocusBacklashSP);
+        deleteProperty(FocusBacklashNP);
         defineProperty(&LEDSP);
         defineProperty(&FirmwareVersionTP);
     }
@@ -383,29 +383,29 @@ bool PegasusScopsOAG::updateFocusParams()
 
     int backlash = atoi(token);
     // If backlash is zero then compensation is disabled
-    if (backlash == 0 && FocusBacklashS[INDI_ENABLED].s == ISS_ON)
+    if (backlash == 0 && FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON)
     {
         LOG_WARN("Backlash value is zero, disabling backlash switch...");
 
         FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
         FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-        FocusBacklashSP.s = IPS_IDLE;
+        FocusBacklashSP.setState(IPS_IDLE);
         FocusBacklashSP.apply();
     }
-    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashNP.apply();))
+    else if (backlash > 0 && (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON || backlash != FocusBacklashNP[0].getValue()))
     {
-        if (backlash != FocusBacklashNP.apply();)
+        if (backlash != FocusBacklashNP[0].getValue())
         {
             FocusBacklashNP[0].setValue(backlash);
-            FocusBacklashNP.s = IPS_OK;
-            IDSetNumber(&FocusBacklashNP, nullptr);
+            FocusBacklashNP.setState(IPS_OK);
+            FocusBacklashNP.apply();
         }
 
-        if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
+        if (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON)
         {
             FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
             FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
-            FocusBacklashSP.s = IPS_IDLE;
+            FocusBacklashSP.setState(IPS_IDLE);
             FocusBacklashSP.apply();
         }
     }

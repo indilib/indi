@@ -1304,7 +1304,7 @@ IPState SteelDrive::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     FocusRelPosNP[0].setValue(ticks);
     FocusRelPosNP.setState(IPS_BUSY);
-    FocusAbsPosNP.s       = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1343,16 +1343,17 @@ void SteelDrive::TimerHit()
 
         if (sim)
         {
-            if (FocusMotionS[FOCUS_INWARD].s == ISS_ON)
+            if (FocusMotionSP[FOCUS_INWARD].getState() == ISS_ON)
             {
-                FocusAbsPosNP[0].getValue() -= FocusSpeedNPvalue;
+                FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() - FocusSpeedNP[0].getValue());
+
                 if (FocusAbsPosNP[0].getValue() <= 0)
                     FocusAbsPosNP[0].setValue(0);
                 simPosition = FocusAbsPosNP[0].getValue();
             }
             else
             {
-                FocusAbsPosNP[0].getValue() += FocusSpeedNPvalue;
+                FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() + FocusSpeedNP[0].getValue());
                 if (FocusAbsPosNP[0].getValue() >= FocusAbsPosNP[0].getMax())
                     FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getMax());
                 simPosition = FocusAbsPosNP[0].getValue();
@@ -1370,11 +1371,11 @@ void SteelDrive::TimerHit()
                 FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getMax());
 
             FocusTimerNP[0].setValue(0);
-            FocusTimerNP.s       = IPS_IDLE;
+            FocusTimerNP.setState(IPS_IDLE);
         }
         else if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
+            FocusTimerNP.setState(IPS_OK);
             FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
@@ -1477,7 +1478,7 @@ bool SteelDrive::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &TemperatureSettingNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
-    IUSaveConfigNumber(fp, &FocusSpeedNP);
+    FocusSpeedNP.save(fp);
     IUSaveConfigNumber(fp, &AccelerationNP);
     IUSaveConfigNumber(fp, &CustomSettingNP);
     IUSaveConfigSwitch(fp, &ModelSP);

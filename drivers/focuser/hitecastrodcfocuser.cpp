@@ -102,8 +102,8 @@ bool HitecAstroDCFocuser::initProperties()
     //    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "MAX_POSITION", "Max position",
     //                       FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&SlewSpeedN[0], "Steps/sec", "", "%.f", 1, 100, 0., 50);
-    IUFillNumberVector(&SlewSpeedNP, SlewSpeedN, 1, getDeviceName(), "SLEW_SPEED", "Slew speed", MAIN_CONTROL_TAB,
+    SlewSpeedNP[0].fill("Steps/sec", "", "%.f", 1, 100, 0., 50);
+    SlewSpeedNP.fill(getDeviceName(), "SLEW_SPEED", "Slew speed", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE);
 
     //    IUFillSwitch(&ReverseDirectionS[0], "ENABLED", "Reverse direction", ISS_OFF);
@@ -132,13 +132,13 @@ bool HitecAstroDCFocuser::updateProperties()
     if (isConnected())
     {
         //defineProperty(&MaxPositionNP);
-        defineProperty(&SlewSpeedNP);
+        defineProperty(SlewSpeedNP);
         //defineProperty(&ReverseDirectionSP);
     }
     else
     {
         //deleteProperty(MaxPositionNP.name);
-        deleteProperty(SlewSpeedNP.name);
+        deleteProperty(SlewSpeedNP);
         //deleteProperty(ReverseDirectionSP.name);
     }
 
@@ -179,16 +179,16 @@ bool HitecAstroDCFocuser::ISNewNumber(const char *dev, const char *name, double 
         //            IDSetNumber(&MaxPositionNP, nullptr);
         //            return true;
         //        }
-        if (strcmp(name, SlewSpeedNP.name) == 0)
+        if (SlewSpeedNP.isNameMatch(name))
         {
             if (values[0] > 100)
             {
-                SlewSpeedNP.s = IPS_ALERT;
+                SlewSpeedNP.setState(IPS_ALERT);
                 return false;
             }
-            IUUpdateNumber(&SlewSpeedNP, values, names, n);
-            SlewSpeedNP.s = IPS_OK;
-            IDSetNumber(&SlewSpeedNP, nullptr);
+            SlewSpeedNP.update(values, names, n);
+            SlewSpeedNP.setState(IPS_OK);
+            SlewSpeedNP.apply();
             return true;
         }
     }
@@ -197,7 +197,7 @@ bool HitecAstroDCFocuser::ISNewNumber(const char *dev, const char *name, double 
 
 IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int rc, speed = (int)SlewSpeedN[0].value;
+    int rc, speed = (int)SlewSpeedNP[0].getValue();
     //    int32_t iticks = ticks;
     unsigned char command[8] = {0};
     IPState rval;
@@ -339,7 +339,7 @@ bool HitecAstroDCFocuser::saveConfigItems(FILE *fp)
     INDI::Focuser::saveConfigItems(fp);
 
     //IUSaveConfigNumber(fp, &MaxPositionNP);
-    IUSaveConfigNumber(fp, &SlewSpeedNP);
+    SlewSpeedNP.save(fp);
     //IUSaveConfigSwitch(fp, &ReverseDirectionSP);
 
     return true;
