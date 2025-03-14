@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
+  Copyright(c) 2024 Frank Wang. All rights reserved.
 
   WandererCover V4-EC
 
@@ -61,18 +61,6 @@ protected:
     virtual bool saveConfigItems(FILE *fp) override;
     virtual void TimerHit() override;
 
-    // Cover state
-    bool isCoverOpen { false };
-    bool isCoverCurrentlyOpen() const { return isCoverOpen; }
-
-    // Light box state
-    bool isLightOn { false };
-    bool isLightCurrentlyOn() const { return isLightOn; }
-
-    // Simulation state
-    bool isSimulation { false };
-    void setSimulation(bool enabled) { isSimulation = enabled; }
-    bool getSimulation() const { return isSimulation; }
 
 private:
 
