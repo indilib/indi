@@ -62,7 +62,7 @@ bool WeatherSafetyAlpaca::initProperties()
     ConnectionSettingsNP[2].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
     ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
-    addParameter("WEATHER_SAFETY", "Weather Safety", 0, 1, 0);  // min=0, max=1, warning_value=0
+    addParameter("WEATHER_SAFETY", "Weather Safety", 0, 1, 0);  // min=0 (warning), max=1 (safe)
     setCriticalParameter("WEATHER_SAFETY");
 
     // Load config before setting any defaults
@@ -148,7 +148,7 @@ IPState WeatherSafetyAlpaca::updateWeather()
         bool isSafe = response["Value"].get<bool>();
         LOGF_DEBUG("Parsed safety status: %s", isSafe ? "SAFE" : "UNSAFE");
         
-        setParameterValue("WEATHER_SAFETY", isSafe ? 0 : 1);  // 0 pour safe, 1 pour unsafe
+        setParameterValue("WEATHER_SAFETY", isSafe ? 0 : 2);  // 0 for safe, 1 for warning, 2 for danger
         
         LastParseSuccess = true;
         return IPS_OK;
