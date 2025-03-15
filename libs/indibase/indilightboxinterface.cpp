@@ -48,11 +48,13 @@ void LightBoxInterface::initProperties(const char *group, uint32_t capabilities)
 {
     m_Capabilities = capabilities;
     // Turn on/off light
+    // @INDI_STANDARD_PROPERTY@
     LightSP[FLAT_LIGHT_ON].fill("FLAT_LIGHT_ON", "On", ISS_OFF);
     LightSP[FLAT_LIGHT_OFF].fill("FLAT_LIGHT_OFF", "Off", ISS_ON);
     LightSP.fill(m_DefaultDevice->getDeviceName(), "FLAT_LIGHT_CONTROL", "Flat Light", group, IP_RW,  ISR_1OFMANY, 0, IPS_IDLE);
 
     // Light Intensity
+    // @INDI_STANDARD_PROPERTY@
     LightIntensityNP[0].fill("FLAT_LIGHT_INTENSITY_VALUE", "Value", "%.f", 0, 255, 10, 0);
     LightIntensityNP.fill(m_DefaultDevice->getDeviceName(), "FLAT_LIGHT_INTENSITY", "Brightness", group, IP_RW, 0, IPS_IDLE);
 
@@ -62,6 +64,7 @@ void LightBoxInterface::initProperties(const char *group, uint32_t capabilities)
     ActiveDeviceTP.load();
 
     // Filter Intensities
+    // @INDI_STANDARD_PROPERTY@
     FilterIntensityNP.fill(m_DefaultDevice->getDeviceName(), "FLAT_LIGHT_FILTER_INTENSITY", "Filter Intensity", "Preset", IP_RW,
                            60, IPS_IDLE);
 
