@@ -33,19 +33,13 @@
 #define BACKLASH_READOUT  99999
 #define MAXTRAVEL_READOUT 99999
 
-#define currentSpeed            SpeedN[0].value
-#define currentPosition         FocusAbsPosN[0].value
-#define currentTemperature      TemperatureN[0].value
-#define currentBacklash         FocusBacklashN[0].value
 #define currentDuty             SettingsN[0].value
 #define currentDelay            SettingsN[1].value
 #define currentTicks            SettingsN[2].value
-#define currentRelativeMovement FocusRelPosN[0].value
-#define currentAbsoluteMovement FocusAbsPosN[0].value
-#define currentSetBacklash      SetBacklashN[0].value
+#define currentMaxTravel        MaxTravelN[0].value
 #define currentMinPosition      MinMaxPositionN[0].value
 #define currentMaxPosition      MinMaxPositionN[1].value
-#define currentMaxTravel        FocusMaxPosN[0].value
+
 
 #define SETTINGS_TAB "Settings"
 
@@ -92,34 +86,24 @@ bool RoboFocus::initProperties()
                        IP_RW, 0, IPS_IDLE);
 
     // Cannot change maximum position
-    FocusMaxPosNP.p = IP_RO;
-    FocusMaxPosN[0].value = 64000;
+    FocusMaxPosNP.setPermission(IP_RO);
+    FocusMaxPosNP[0].setValue(64000);
 
-    /* Set Robofocus position register to this position */
-    //    IUFillNumber(&SetRegisterPositionN[0], "SETPOS", "Position", "%6.0f", 0, 64000., 0., 0.);
-    //    IUFillNumberVector(&SetRegisterPositionNP, SetRegisterPositionN, 1, getDeviceName(), "FOCUS_REGISTERPOSITION",
-    //                       "Sync", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
-
-    /* Backlash */
-    //    IUFillNumber(&SetBacklashN[0], "SETBACKLASH", "Backlash", "%6.0f", -255., 255., 0., 0.);
-    //    IUFillNumberVector(&FocusBacklashNP, SetBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Set Register", SETTINGS_TAB,
-    //                       IP_RW, 0, IPS_IDLE);
-
-    FocusBacklashN[0].min = -255;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 10;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(-255);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(10);
+    FocusBacklashNP[0].setValue(0);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 5000.;
-    FocusRelPosN[0].value = 100;
-    FocusRelPosN[0].step  = 100;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000.);
+    FocusRelPosNP[0].setValue(100);
+    FocusRelPosNP[0].setStep(100);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 64000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(64000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     simulatedTemperature = 600.0;
     simulatedPosition    = 20000;
@@ -141,11 +125,6 @@ bool RoboFocus::updateProperties()
         defineProperty(&SettingsNP);
         defineProperty(&MinMaxPositionNP);
         defineProperty(&MaxTravelNP);
-        //        defineProperty(&SetRegisterPositionNP);
-        //defineProperty(&FocusBacklashNP);
-        //        defineProperty(&FocusRelPosNP);
-        //        defineProperty(&FocusAbsPosNP);
-
         GetFocusParams();
 
         LOG_DEBUG("RoboFocus parameters readout complete, focuser ready for use.");
@@ -157,10 +136,6 @@ bool RoboFocus::updateProperties()
         deleteProperty(PowerSwitchesSP.name);
         deleteProperty(MinMaxPositionNP.name);
         deleteProperty(MaxTravelNP.name);
-        //        deleteProperty(SetRegisterPositionNP.name);
-        //deleteProperty(FocusBacklashNP.name);
-        //        deleteProperty(FocusRelPosNP.name);
-        //        deleteProperty(FocusAbsPosNP.name);
     }
 
     return true;
@@ -174,7 +149,7 @@ bool RoboFocus::Handshake()
     {
         timerID = SetTimer(getCurrentPollingPeriod());
         LOG_INFO("Simulated Robofocus is online. Getting focus parameters...");
-        FocusAbsPosN[0].value = simulatedPosition;
+        FocusAbsPosNP[0].setValue(simulatedPosition);
         updateRFFirmware(firmeware);
         return true;
     }
@@ -286,11 +261,11 @@ int RoboFocus::ReadResponse(char *buf)
                     motion = 0x49;
                     LOG_INFO("Moving inward...");
 
-                    if (FocusAbsPosNP.s != IPS_BUSY)
+                    if (FocusAbsPosNP.getState() != IPS_BUSY)
                     {
                         externalMotion  = true;
-                        FocusAbsPosNP.s = IPS_BUSY;
-                        IDSetNumber(&FocusAbsPosNP, nullptr);
+                        FocusAbsPosNP.setState(IPS_BUSY);
+                        FocusAbsPosNP.apply();
                     }
                 }
                 //usleep(100000);
@@ -303,11 +278,11 @@ int RoboFocus::ReadResponse(char *buf)
                     motion = 0x4F;
                     LOG_INFO("Moving outward...");
 
-                    if (FocusAbsPosNP.s != IPS_BUSY)
+                    if (FocusAbsPosNP.getState() != IPS_BUSY)
                     {
                         externalMotion  = true;
-                        FocusAbsPosNP.s = IPS_BUSY;
-                        IDSetNumber(&FocusAbsPosNP, nullptr);
+                        FocusAbsPosNP.setState(IPS_BUSY);
+                        FocusAbsPosNP.apply();
                     }
                 }
                 //usleep(100000);
@@ -331,8 +306,8 @@ int RoboFocus::ReadResponse(char *buf)
                     // If we set it busy due to external motion, let's set it to OK
                     if (externalMotion)
                     {
-                        FocusAbsPosNP.s = IPS_OK;
-                        IDSetNumber(&FocusAbsPosNP, nullptr);
+                        FocusAbsPosNP.setState(IPS_OK);
+                        FocusAbsPosNP.apply();
                     }
                 }
 
@@ -418,7 +393,7 @@ int RoboFocus::updateRFBacklash(double *value)
 
     if (isSimulation())
     {
-        *value = FocusBacklashN[0].value;
+        *value = FocusBacklashNP[0].getValue();
         return 0;
     }
 
@@ -811,57 +786,6 @@ int RoboFocus::updateRFMaxPosition(double *value)
     return 0;
 }
 
-//int RoboFocus::updateRFSetPosition(const double *value)
-//{
-//    LOGF_DEBUG("Set Max position: %g", *value);
-
-//    char rf_cmd[32];
-//    char vl_tmp[6];
-//    int robofocus_rc;
-
-//    if (isSimulation())
-//    {
-//        simulatedPosition = *value;
-//        return 0;
-//    }
-
-//    rf_cmd[0] = 'F';
-//    rf_cmd[1] = 'S';
-//    rf_cmd[2] = '0';
-
-//    if (*value > 9999)
-//    {
-//        sprintf(vl_tmp, "%5d", (int)*value);
-//    }
-//    else if (*value > 999)
-//    {
-//        sprintf(vl_tmp, "0%4d", (int)*value);
-//    }
-//    else if (*value > 99)
-//    {
-//        sprintf(vl_tmp, "00%3d", (int)*value);
-//    }
-//    else if (*value > 9)
-//    {
-//        sprintf(vl_tmp, "000%2d", (int)*value);
-//    }
-//    else
-//    {
-//        sprintf(vl_tmp, "0000%1d", (int)*value);
-//    }
-//    rf_cmd[3] = vl_tmp[0];
-//    rf_cmd[4] = vl_tmp[1];
-//    rf_cmd[5] = vl_tmp[2];
-//    rf_cmd[6] = vl_tmp[3];
-//    rf_cmd[7] = vl_tmp[4];
-//    rf_cmd[8] = 0;
-
-//    if ((robofocus_rc = SendCommand(rf_cmd)) < 0)
-//        return robofocus_rc;
-
-//    return 0;
-//}
-
 bool RoboFocus::SyncFocuser(uint32_t ticks)
 {
     char rf_cmd[32];
@@ -870,7 +794,7 @@ bool RoboFocus::SyncFocuser(uint32_t ticks)
 
     if (isSimulation())
     {
-        currentPosition = ticks;
+        FocusAbsPosNP[0].setValue(ticks);
         return true;
     }
 
@@ -1059,55 +983,6 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
             }
         }
 
-        //        if (strcmp(name, FocusBacklashNP.name) == 0)
-        //        {
-        //            double new_back = 0;
-        //            int nset        = 0;
-        //            int ret         = -1;
-
-        //            for (nset = i = 0; i < n; i++)
-        //            {
-        //                /* Find numbers with the passed names in the FocusBacklashNP property */
-        //                INumber *eqp = IUFindNumber(&FocusBacklashNP, names[i]);
-
-        //                /* If the number found is SetBacklash (SetBacklashN[0]) then process it */
-        //                if (eqp == &SetBacklashN[0])
-        //                {
-        //                    new_back = (values[i]);
-
-        //                    /* limits */
-        //                    nset += static_cast<int>(new_back >= -0xff && new_back <= 0xff);
-        //                }
-
-        //                if (nset == 1)
-        //                {
-        //                    /* Set the robofocus state to BUSY */
-        //                    FocusBacklashNP.s = IPS_BUSY;
-        //                    IDSetNumber(&FocusBacklashNP, nullptr);
-
-        //                    if ((ret = updateRFBacklash(&new_back)) < 0)
-        //                    {
-        //                        FocusBacklashNP.s = IPS_IDLE;
-        //                        IDSetNumber(&FocusBacklashNP, "Setting new backlash failed.");
-
-        //                        return false;
-        //                    }
-
-        //                    currentSetBacklash = new_back;
-        //                    FocusBacklashNP.s    = IPS_OK;
-        //                    IDSetNumber(&FocusBacklashNP, "Backlash is now  %3.0f", currentSetBacklash);
-        //                    return true;
-        //                }
-        //                else
-        //                {
-        //                    FocusBacklashNP.s = IPS_IDLE;
-        //                    IDSetNumber(&FocusBacklashNP, "Need exactly one parameter.");
-
-        //                    return false;
-        //                }
-        //            }
-        //        }
-
         if (strcmp(name, MinMaxPositionNP.name) == 0)
         {
             /* new positions */
@@ -1201,101 +1076,6 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
                 return false;
             }
         }
-
-        //        if (strcmp(name, SetRegisterPositionNP.name) == 0)
-        //        {
-        //            double new_apos = 0;
-        //            int nset        = 0;
-        //            int ret         = -1;
-
-        //            for (nset = i = 0; i < n; i++)
-        //            {
-        //                /* Find numbers with the passed names in the SetRegisterPositionNP property */
-        //                INumber *srpp = IUFindNumber(&SetRegisterPositionNP, names[i]);
-
-        //                /* If the number found is SetRegisterPosition (SetRegisterPositionN[0]) then process it */
-        //                if (srpp == &SetRegisterPositionN[0])
-        //                {
-        //                    new_apos = (values[i]);
-
-        //                    /* limits are absolute */
-        //                    nset += static_cast<int>(new_apos >= 0 && new_apos <= 64000);
-        //                }
-
-        //                if (nset == 1)
-        //                {
-        //                    if ((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
-        //                    {
-        //                        SetRegisterPositionNP.s = IPS_ALERT;
-        //                        IDSetNumber(&SetRegisterPositionNP, "Value out of limits  %5.0f", new_apos);
-        //                        return false;
-        //                    }
-
-        //                    /* Set the robofocus state to BUSY */
-        //                    SetRegisterPositionNP.s = IPS_BUSY;
-        //                    IDSetNumber(&SetRegisterPositionNP, nullptr);
-
-        //                    if ((ret = updateRFSetPosition(&new_apos)) < 0)
-        //                    {
-        //                        SetRegisterPositionNP.s = IPS_OK;
-        //                        IDSetNumber(&SetRegisterPositionNP,
-        //                                    "Read out of the set position to %3d failed. Trying to recover the position", ret);
-
-        //                        if ((ret = updateRFPosition(&currentPosition)) < 0)
-        //                        {
-        //                            FocusAbsPosNP.s = IPS_ALERT;
-        //                            IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Robofocus position: %d", ret);
-
-        //                            SetRegisterPositionNP.s = IPS_IDLE;
-        //                            IDSetNumber(&SetRegisterPositionNP, "Relative movement failed.");
-        //                        }
-
-        //                        SetRegisterPositionNP.s = IPS_OK;
-        //                        IDSetNumber(&SetRegisterPositionNP, nullptr);
-
-        //                        FocusAbsPosNP.s = IPS_OK;
-        //                        IDSetNumber(&FocusAbsPosNP, "Robofocus position recovered %5.0f", currentPosition);
-        //                        LOG_DEBUG("Robofocus position recovered resuming normal operation");
-        //                        /* We have to leave here, because new_apos is not set */
-        //                        return true;
-        //                    }
-        //                    currentPosition         = new_apos;
-        //                    SetRegisterPositionNP.s = IPS_OK;
-        //                    IDSetNumber(&SetRegisterPositionNP, "Robofocus register set to %5.0f", currentPosition);
-
-        //                    FocusAbsPosNP.s = IPS_OK;
-        //                    IDSetNumber(&FocusAbsPosNP, "Robofocus position is now %5.0f", currentPosition);
-
-        //                    return true;
-        //                }
-        //                else
-        //                {
-        //                    SetRegisterPositionNP.s = IPS_IDLE;
-        //                    IDSetNumber(&SetRegisterPositionNP, "Need exactly one parameter.");
-
-        //                    return false;
-        //                }
-
-        //                if ((ret = updateRFPosition(&currentPosition)) < 0)
-        //                {
-        //                    FocusAbsPosNP.s = IPS_ALERT;
-        //                    LOGF_ERROR("Unknown error while reading  Robofocus position: %d", ret);
-        //                    IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        //                    return false;
-        //                }
-
-        //                SetRegisterPositionNP.s       = IPS_OK;
-        //                SetRegisterPositionN[0].value = currentPosition;
-        //                IDSetNumber(&SetRegisterPositionNP, "Robofocus has accepted new register setting");
-
-        //                FocusAbsPosNP.s = IPS_OK;
-        //                LOGF_INFO("Robofocus new position %5.0f", currentPosition);
-        //                IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        //                return true;
-        //            }
-        //        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -1309,16 +1089,21 @@ void RoboFocus::GetFocusParams()
     int cur_s3RL = 0;
     int cur_s4RR = 0;
 
+    double currentPosition = 0;
     if ((ret = updateRFPosition(&currentPosition)) < 0)
     {
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         LOGF_ERROR("Unknown error while reading  Robofocus position: %d", ret);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
         return;
     }
 
-    FocusAbsPosNP.s = IPS_OK;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP[0].setValue(currentPosition);
+    FocusAbsPosNP.setState(IPS_OK);
+    FocusAbsPosNP.apply();
+
+    double currentTemperature = 0;
+
 
     if ((ret = updateRFTemperature(&currentTemperature)) < 0)
     {
@@ -1328,19 +1113,23 @@ void RoboFocus::GetFocusParams()
         return;
     }
 
+    TemperatureN[0].value = currentTemperature;
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, nullptr);
 
-    currentBacklash = BACKLASH_READOUT;
+    double currentBacklash = 0;
+
+    FocusBacklashNP[0].setValue(BACKLASH_READOUT);
     if ((ret = updateRFBacklash(&currentBacklash)) < 0)
     {
-        FocusBacklashNP.s = IPS_ALERT;
+        FocusBacklashNP.setState(IPS_ALERT);
         LOG_ERROR("Unknown error while reading Robofocus backlash.");
-        IDSetNumber(&FocusBacklashNP, nullptr);
+        FocusBacklashNP.apply();
         return;
     }
-    FocusBacklashNP.s = IPS_OK;
-    IDSetNumber(&FocusBacklashNP, nullptr);
+    FocusBacklashNP[0].setValue(currentBacklash);
+    FocusBacklashNP.setState(IPS_OK);
+    FocusBacklashNP.apply();
 
     currentDuty = currentDelay = currentTicks = 0;
 
@@ -1383,17 +1172,6 @@ void RoboFocus::GetFocusParams()
     }
     PowerSwitchesSP.s = IPS_OK;
     IDSetSwitch(&PowerSwitchesSP, nullptr);
-
-    //    currentMaxTravel = MAXTRAVEL_READOUT;
-    //    if ((ret = updateRFMaxPosition(&currentMaxTravel)) < 0)
-    //    {
-    //        MaxTravelNP.s = IPS_ALERT;
-    //        LOG_ERROR("Unknown error while reading Robofocus maximum travel");
-    //        IDSetNumber(&MaxTravelNP, nullptr);
-    //        return;
-    //    }
-    //    MaxTravelNP.s = IPS_OK;
-    //    IDSetNumber(&MaxTravelNP, nullptr);
 }
 
 IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
@@ -1401,7 +1179,7 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
     int ret   = -1;
     targetPos = targetTicks;
 
-    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
+    if (targetTicks < FocusAbsPosNP[0].getMin() || targetTicks > FocusAbsPosNP[0].getMax())
     {
         LOG_DEBUG("Error, requested position is out of range.");
         return IPS_ALERT;
@@ -1420,13 +1198,13 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1)));
+    return MoveAbsFocuser(FocusAbsPosNP[0].getValue() + (ticks * (dir == FOCUS_INWARD ? -1 : 1)));
 }
 
 bool RoboFocus::saveConfigItems(FILE *fp)
 {
     IUSaveConfigNumber(fp, &SettingsNP);
-    IUSaveConfigNumber(fp, &FocusBacklashNP);
+    FocusBacklashNP.save(fp);
 
     return INDI::Focuser::saveConfigItems(fp);
 }
@@ -1436,20 +1214,20 @@ void RoboFocus::TimerHit()
     if (!isConnected())
         return;
 
-    double prevPos = currentPosition;
+    double prevPos = FocusAbsPosNP[0].getValue();
     double newPos  = 0;
 
-    if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
+    if (FocusAbsPosNP.getState() == IPS_OK || FocusAbsPosNP.getState() == IPS_IDLE)
     {
         int rc = updateRFPosition(&newPos);
         if (rc >= 0)
         {
-            currentPosition = newPos;
-            if (prevPos != currentPosition)
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP[0].setValue(newPos);
+            if (prevPos != FocusAbsPosNP[0].getValue())
+                FocusAbsPosNP.apply();
         }
     }
-    else if (FocusAbsPosNP.s == IPS_BUSY)
+    else if (FocusAbsPosNP.getState() == IPS_BUSY)
     {
         float newPos            = 0;
         int nbytes_read         = 0;
@@ -1472,27 +1250,27 @@ void RoboFocus::TimerHit()
         }
         else if (nbytes_read < 0)
         {
-            FocusAbsPosNP.s = IPS_ALERT;
+            FocusAbsPosNP.setState(IPS_ALERT);
             LOG_ERROR("Read error! Reconnect and try again.");
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP.apply();
             return;
         }
 
-        currentPosition = newPos;
+        FocusAbsPosNP[0].setValue(newPos);
 
-        if (currentPosition == targetPos)
+        if (FocusAbsPosNP[0].getValue() == targetPos)
         {
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
 
-            if (FocusRelPosNP.s == IPS_BUSY)
+            if (FocusRelPosNP.getState() == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
             }
         }
 
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        if (FocusAbsPosNP.s == IPS_BUSY)
+        FocusAbsPosNP.apply();
+        if (FocusAbsPosNP.getState() == IPS_BUSY)
         {
             timerID = SetTimer(250);
             return;

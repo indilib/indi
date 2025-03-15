@@ -55,7 +55,7 @@ const char *WeatherWatcher::getDefaultName()
 
 bool WeatherWatcher::Connect()
 {
-    if (watchFileTP[0].getText() == nullptr || watchFileTP[0].getText()[0] == '\0')
+    if (watchFileTP[0].isEmpty() || watchFileTP[0].getText()[0] == '\0')
     {
         LOG_ERROR("Watch file must be specified first in options.");
         return false;

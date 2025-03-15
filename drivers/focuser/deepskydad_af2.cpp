@@ -45,66 +45,71 @@ bool DeepSkyDadAF2::initProperties()
     INDI::Focuser::initProperties();
 
     // Step Mode
-    IUFillSwitch(&StepModeS[EIGHT], "EIGHT", "Eight Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[QUARTER], "QUARTER", "Quarter Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[HALF], "HALF", "Half Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FULL], "FULL", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 4, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    StepModeSP[EIGHT].fill("EIGHT", "Eight Step", ISS_OFF);
+    StepModeSP[QUARTER].fill("QUARTER", "Quarter Step", ISS_OFF);
+    StepModeSP[HALF].fill("HALF", "Half Step", ISS_OFF);
+    StepModeSP[FULL].fill("FULL", "Full Step", ISS_OFF);
+    StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 5000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 100000.;
-    FocusAbsPosN[0].value = 50000.;
-    FocusAbsPosN[0].step = 500.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(50000.);
+    FocusAbsPosNP[0].setStep(500.);
+
+    FocusMaxPosNP[0].setMin(0.);
+    FocusMaxPosNP[0].setMax(9999999);
+    FocusMaxPosNP[0].setValue(9999999);
+    FocusMaxPosNP[0].setStep(500);
 
     // Max. movement
-    IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
-    IUFillNumberVector(&FocusMaxMoveNP, FocusMaxMoveN, 1, getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
+    FocusMaxMoveNP[0].fill("MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
+    FocusMaxMoveNP.fill(getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Settle buffer
-    IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
-    IUFillNumberVector(&SettleBufferNP, SettleBufferN, 1, getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
+    SettleBufferNP[0].fill("SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
+    SettleBufferNP.fill(getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Idle coils timeout (ms)
-    IUFillNumber(&IdleCoilsTimeoutN[0], "IDLE_COILS_TIMEOUT", "Period (ms)", "%6.0f", 0, 999999, 1000, 60000);
-    IUFillNumberVector(&IdleCoilsTimeoutNP, IdleCoilsTimeoutN, 1, getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT",
+    IdleCoilsTimeoutNP[0].fill("IDLE_COILS_TIMEOUT", "Period (ms)", "%6.0f", 0, 999999, 1000, 60000);
+    IdleCoilsTimeoutNP.fill(getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT",
                        "Idle - coils timeout",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Coils mode
-    IUFillSwitch(&CoilsModeS[ALWAYS_ON], "ALWAYS_ON", "Always on", ISS_OFF);
-    IUFillSwitch(&CoilsModeS[IDLE_OFF], "IDLE_OFF", "Idle - off", ISS_OFF);
-    IUFillSwitch(&CoilsModeS[IDLE_COILS_TIMEOUT], "IDLE_COILS_TIMEOUT", "Idle - coils timeout (ms)", ISS_OFF);
-    IUFillSwitchVector(&CoilsModeSP, CoilsModeS, 3, getDeviceName(), "Coils mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    CoilsModeSP[ALWAYS_ON].fill("ALWAYS_ON", "Always on", ISS_OFF);
+    CoilsModeSP[IDLE_OFF].fill("IDLE_OFF", "Idle - off", ISS_OFF);
+    CoilsModeSP[IDLE_COILS_TIMEOUT].fill("IDLE_COILS_TIMEOUT", "Idle - coils timeout (ms)", ISS_OFF);
+    CoilsModeSP.fill(getDeviceName(), "Coils mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Current move
-    IUFillSwitch(&CurrentMoveS[CURRENT_25], "CMV_25", "25%", ISS_OFF);
-    IUFillSwitch(&CurrentMoveS[CURRENT_50], "CMV_50", "50%", ISS_OFF);
-    IUFillSwitch(&CurrentMoveS[CURRENT_75], "CMV_75", "75%", ISS_OFF);
-    IUFillSwitch(&CurrentMoveS[CURRENT_100], "CMV_100", "100%", ISS_OFF);
-    IUFillSwitchVector(&CurrentMoveSP, CurrentMoveS, 4, getDeviceName(), "Current - move", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    CurrentMoveSP[CURRENT_25].fill("CMV_25", "25%", ISS_OFF);
+    CurrentMoveSP[CURRENT_50].fill("CMV_50", "50%", ISS_OFF);
+    CurrentMoveSP[CURRENT_75].fill("CMV_75", "75%", ISS_OFF);
+    CurrentMoveSP[CURRENT_100].fill("CMV_100", "100%", ISS_OFF);
+    CurrentMoveSP.fill(getDeviceName(), "Current - move", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Current hold
-    IUFillSwitch(&CurrentHoldS[CURRENT_25], "CHD_25", "25%", ISS_OFF);
-    IUFillSwitch(&CurrentHoldS[CURRENT_50], "CHD_50", "50%", ISS_OFF);
-    IUFillSwitch(&CurrentHoldS[CURRENT_75], "CHD_75", "75%", ISS_OFF);
-    IUFillSwitch(&CurrentHoldS[CURRENT_100], "CHD_100", "100%", ISS_OFF);
-    IUFillSwitchVector(&CurrentHoldSP, CurrentHoldS, 4, getDeviceName(), "Current - hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    CurrentHoldSP[CURRENT_25].fill("CHD_25", "25%", ISS_OFF);
+    CurrentHoldSP[CURRENT_50].fill("CHD_50", "50%", ISS_OFF);
+    CurrentHoldSP[CURRENT_75].fill("CHD_75", "75%", ISS_OFF);
+    CurrentHoldSP[CURRENT_100].fill("CHD_100", "100%", ISS_OFF);
+    CurrentHoldSP.fill(getDeviceName(), "Current - hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     setDefaultPollingPeriod(500);
@@ -119,15 +124,15 @@ bool DeepSkyDadAF2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&FocusMaxMoveNP);
-        defineProperty(&StepModeSP);
-        defineProperty(&SettleBufferNP);
-        defineProperty(&CoilsModeSP);
-        defineProperty(&IdleCoilsTimeoutNP);
-        defineProperty(&CurrentMoveSP);
-        defineProperty(&CurrentHoldSP);
+        defineProperty(FocusMaxMoveNP);
+        defineProperty(StepModeSP);
+        defineProperty(SettleBufferNP);
+        defineProperty(CoilsModeSP);
+        defineProperty(IdleCoilsTimeoutNP);
+        defineProperty(CurrentMoveSP);
+        defineProperty(CurrentHoldSP);
 
-        defineProperty(&TemperatureNP);
+        defineProperty(TemperatureNP);
 
         GetFocusParams();
 
@@ -135,14 +140,14 @@ bool DeepSkyDadAF2::updateProperties()
     }
     else
     {
-        deleteProperty(FocusMaxMoveNP.name);
-        deleteProperty(StepModeSP.name);
-        deleteProperty(SettleBufferNP.name);
-        deleteProperty(CoilsModeSP.name);
-        deleteProperty(IdleCoilsTimeoutNP.name);
-        deleteProperty(CurrentMoveSP.name);
-        deleteProperty(CurrentHoldSP.name);
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(FocusMaxMoveNP);
+        deleteProperty(StepModeSP);
+        deleteProperty(SettleBufferNP);
+        deleteProperty(CoilsModeSP);
+        deleteProperty(IdleCoilsTimeoutNP);
+        deleteProperty(CurrentMoveSP);
+        deleteProperty(CurrentHoldSP);
+        deleteProperty(TemperatureNP);
     }
 
     return true;
@@ -197,13 +202,13 @@ bool DeepSkyDadAF2::readStepMode()
         return false;
 
     if (strcmp(res, "(1)") == 0)
-        StepModeS[FULL].s = ISS_ON;
+        StepModeSP[FULL].setState(ISS_ON);
     else if (strcmp(res, "(2)") == 0)
-        StepModeS[HALF].s = ISS_ON;
+        StepModeSP[HALF].setState(ISS_ON);
     else if (strcmp(res, "(4)") == 0)
-        StepModeS[QUARTER].s = ISS_ON;
+        StepModeSP[QUARTER].setState(ISS_ON);
     else if (strcmp(res, "(8)") == 0)
-        StepModeS[EIGHT].s = ISS_ON;
+        StepModeSP[EIGHT].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%s)", res);
@@ -224,7 +229,7 @@ bool DeepSkyDadAF2::readPosition()
     int rc = sscanf(res, "(%d)", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
@@ -245,8 +250,8 @@ bool DeepSkyDadAF2::readMaxMovement()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxMoveN[0].value = steps;
-        FocusMaxMoveNP.s = IPS_OK;
+        FocusMaxMoveNP[0].setValue(steps);
+        FocusMaxMoveNP.setState(IPS_OK);
     }
     else
     {
@@ -268,8 +273,8 @@ bool DeepSkyDadAF2::readMaxPosition()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxPosN[0].value = steps;
-        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosNP[0].setValue(steps);
+        FocusMaxPosNP.setState(IPS_OK);
     }
     else
     {
@@ -291,8 +296,8 @@ bool DeepSkyDadAF2::readSettleBuffer()
     int rc = sscanf(res, "(%d)", &settleBuffer);
     if (rc > 0)
     {
-        SettleBufferN[0].value = settleBuffer;
-        SettleBufferNP.s = settleBuffer > 0 ? IPS_OK : IPS_IDLE;
+        SettleBufferNP[0].setValue(settleBuffer);
+        SettleBufferNP.setState(settleBuffer > 0 ? IPS_OK : IPS_IDLE);
     }
     else
     {
@@ -314,8 +319,8 @@ bool DeepSkyDadAF2::readIdleCoilsTimeout()
     int rc = sscanf(res, "(%d)", &ms);
     if (rc > 0)
     {
-        IdleCoilsTimeoutN[0].value = ms;
-        IdleCoilsTimeoutNP.s = ms > 0 ? IPS_OK : IPS_IDLE;
+        IdleCoilsTimeoutNP[0].setValue(ms);
+        IdleCoilsTimeoutNP.setState(ms > 0 ? IPS_OK : IPS_IDLE);
     }
     else
     {
@@ -335,18 +340,18 @@ bool DeepSkyDadAF2::readCoilsMode()
 
     if (strcmp(res, "(0)") == 0)
     {
-        CoilsModeSP.s = IPS_IDLE;
-        CoilsModeS[IDLE_OFF].s = ISS_ON;
+        CoilsModeSP.setState(IPS_IDLE);
+        CoilsModeSP[IDLE_OFF].setState(ISS_ON);
     }
     else if (strcmp(res, "(1)") == 0)
     {
-        CoilsModeSP.s = IPS_OK;
-        CoilsModeS[ALWAYS_ON].s = ISS_ON;
+        CoilsModeSP.setState(IPS_OK);
+        CoilsModeSP[ALWAYS_ON].setState(ISS_ON);
     }
     else if (strcmp(res, "(2)") == 0)
     {
-        CoilsModeSP.s = IPS_IDLE;
-        CoilsModeS[IDLE_COILS_TIMEOUT].s = ISS_ON;
+        CoilsModeSP.setState(IPS_IDLE);
+        CoilsModeSP[IDLE_COILS_TIMEOUT].setState(ISS_ON);
     }
     else
     {
@@ -366,23 +371,23 @@ bool DeepSkyDadAF2::readCurrentMove()
 
     if (strcmp(res, "(25%)") == 0)
     {
-        CurrentMoveSP.s = IPS_OK;
-        CurrentMoveS[CURRENT_25].s = ISS_ON;
+        CurrentMoveSP.setState(IPS_OK);
+        CurrentMoveSP[CURRENT_25].setState(ISS_ON);
     }
     else if (strcmp(res, "(50%)") == 0)
     {
-        CurrentMoveSP.s = IPS_OK;
-        CurrentMoveS[CURRENT_50].s = ISS_ON;
+        CurrentMoveSP.setState(IPS_OK);
+        CurrentMoveSP[CURRENT_50].setState(ISS_ON);
     }
     else if (strcmp(res, "(75%)") == 0)
     {
-        CurrentMoveSP.s = IPS_OK;
-        CurrentMoveS[CURRENT_75].s = ISS_ON;
+        CurrentMoveSP.setState(IPS_OK);
+        CurrentMoveSP[CURRENT_75].setState(ISS_ON);
     }
     else if (strcmp(res, "(100%)") == 0)
     {
-        CurrentMoveSP.s = IPS_OK;
-        CurrentMoveS[CURRENT_100].s = ISS_ON;
+        CurrentMoveSP.setState(IPS_OK);
+        CurrentMoveSP[CURRENT_100].setState(ISS_ON);
     }
 
     else
@@ -403,23 +408,23 @@ bool DeepSkyDadAF2::readCurrentHold()
 
     if (strcmp(res, "(25%)") == 0)
     {
-        CurrentHoldSP.s = IPS_OK;
-        CurrentHoldS[CURRENT_25].s = ISS_ON;
+        CurrentHoldSP.setState(IPS_OK);
+        CurrentHoldSP[CURRENT_25].setState(ISS_ON);
     }
     else if (strcmp(res, "(50%)") == 0)
     {
-        CurrentHoldSP.s = IPS_OK;
-        CurrentHoldS[CURRENT_50].s = ISS_ON;
+        CurrentHoldSP.setState(IPS_OK);
+        CurrentHoldSP[CURRENT_50].setState(ISS_ON);
     }
     else if (strcmp(res, "(75%)") == 0)
     {
-        CurrentHoldSP.s = IPS_OK;
-        CurrentHoldS[CURRENT_75].s = ISS_ON;
+        CurrentHoldSP.setState(IPS_OK);
+        CurrentHoldSP[CURRENT_75].setState(ISS_ON);
     }
     else if (strcmp(res, "(100%)") == 0)
     {
-        CurrentHoldSP.s = IPS_OK;
-        CurrentHoldS[CURRENT_100].s = ISS_ON;
+        CurrentHoldSP.setState(IPS_OK);
+        CurrentHoldSP[CURRENT_100].setState(ISS_ON);
     }
 
     else
@@ -442,7 +447,7 @@ bool DeepSkyDadAF2::readTemperature()
     int rc = sscanf(res, "(%lf)", &temp);
     if (rc > 0)
     {
-        TemperatureN[0].value = temp;
+        TemperatureNP[0].setValue(temp);
     }
     else
     {
@@ -510,18 +515,18 @@ bool DeepSkyDadAF2::ISNewSwitch(const char * dev, const char * name, ISState * s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(StepModeSP.name, name) == 0)
+        if (StepModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int current_mode = StepModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&StepModeSP, states, names, n);
+            StepModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int target_mode = StepModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.setState(IPS_OK);
+                StepModeSP.apply();
                 return true;
             }
 
@@ -540,30 +545,30 @@ bool DeepSkyDadAF2::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
 
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
+            StepModeSP.setState(IPS_OK);
+            StepModeSP.apply();
             return true;
         }
 
         // Coils mode
-        if (strcmp(CoilsModeSP.name, name) == 0)
+        if (CoilsModeSP.isNameMatch(name))
         {
-            int coilsModeCurrent = IUFindOnSwitchIndex(&CoilsModeSP);
+            int coilsModeCurrent = CoilsModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&CoilsModeSP, states, names, n);
+            CoilsModeSP.update(states, names, n);
 
-            int coilsModeTarget = IUFindOnSwitchIndex(&CoilsModeSP);
+            int coilsModeTarget = CoilsModeSP.findOnSwitchIndex();
 
             if (coilsModeCurrent == coilsModeTarget)
             {
-                IDSetSwitch(&CoilsModeSP, nullptr);
+                CoilsModeSP.apply();
                 return true;
             }
 
@@ -580,30 +585,30 @@ bool DeepSkyDadAF2::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&CoilsModeSP);
-                CoilsModeS[coilsModeCurrent].s = ISS_ON;
-                CoilsModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&CoilsModeSP, nullptr);
+                CoilsModeSP.reset();
+                CoilsModeSP[coilsModeCurrent].setState(ISS_ON);
+                CoilsModeSP.setState(IPS_ALERT);
+                CoilsModeSP.apply();
                 return false;
             }
 
-            CoilsModeSP.s = coilsModeTarget == 1 ? IPS_OK : IPS_IDLE;
-            IDSetSwitch(&CoilsModeSP, nullptr);
+            CoilsModeSP.setState(coilsModeTarget == 1 ? IPS_OK : IPS_IDLE);
+            CoilsModeSP.apply();
             return true;
         }
 
         // Current - move
-        if (strcmp(CurrentMoveSP.name, name) == 0)
+        if (CurrentMoveSP.isNameMatch(name))
         {
-            int current = IUFindOnSwitchIndex(&CurrentMoveSP);
+            int current = CurrentMoveSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&CurrentMoveSP, states, names, n);
+            CurrentMoveSP.update(states, names, n);
 
-            int targetCurrent = IUFindOnSwitchIndex(&CurrentMoveSP);
+            int targetCurrent = CurrentMoveSP.findOnSwitchIndex();
 
             if (current == targetCurrent)
             {
-                IDSetSwitch(&CurrentMoveSP, nullptr);
+                CurrentMoveSP.apply();
                 return true;
             }
 
@@ -630,30 +635,30 @@ bool DeepSkyDadAF2::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&CurrentMoveSP);
-                CurrentMoveS[current].s = ISS_ON;
-                CurrentMoveSP.s              = IPS_ALERT;
-                IDSetSwitch(&CurrentMoveSP, nullptr);
+                CurrentMoveSP.reset();
+                CurrentMoveSP[current].setState(ISS_ON);
+                CurrentMoveSP.setState(IPS_ALERT);
+                CurrentMoveSP.apply();
                 return false;
             }
 
-            CurrentMoveSP.s = IPS_OK;
-            IDSetSwitch(&CurrentMoveSP, nullptr);
+            CurrentMoveSP.setState(IPS_OK);
+            CurrentMoveSP.apply();
             return true;
         }
 
         // Current - hold
-        if (strcmp(CurrentHoldSP.name, name) == 0)
+        if (CurrentHoldSP.isNameMatch(name))
         {
-            int current = IUFindOnSwitchIndex(&CurrentHoldSP);
+            int current = CurrentHoldSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&CurrentHoldSP, states, names, n);
+            CurrentHoldSP.update(states, names, n);
 
-            int targetCurrent = IUFindOnSwitchIndex(&CurrentHoldSP);
+            int targetCurrent = CurrentHoldSP.findOnSwitchIndex();
 
             if (current == targetCurrent)
             {
-                IDSetSwitch(&CurrentHoldSP, nullptr);
+                CurrentHoldSP.apply();
                 return true;
             }
 
@@ -680,15 +685,15 @@ bool DeepSkyDadAF2::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&CurrentHoldSP);
-                CurrentHoldS[current].s = ISS_ON;
-                CurrentHoldSP.s              = IPS_ALERT;
-                IDSetSwitch(&CurrentHoldSP, nullptr);
+                CurrentHoldSP.reset();
+                CurrentHoldSP[current].setState(ISS_ON);
+                CurrentHoldSP.setState(IPS_ALERT);
+                CurrentHoldSP.apply();
                 return false;
             }
 
-            CurrentHoldSP.s = IPS_OK;
-            IDSetSwitch(&CurrentHoldSP, nullptr);
+            CurrentHoldSP.setState(IPS_OK);
+            CurrentHoldSP.apply();
             return true;
         }
     }
@@ -701,74 +706,56 @@ bool DeepSkyDadAF2::ISNewNumber(const char * dev, const char * name, double valu
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Settle buffer Settings
-        if (strcmp(name, SettleBufferNP.name) == 0)
+        if (SettleBufferNP.isNameMatch(name))
         {
-            IUUpdateNumber(&SettleBufferNP, values, names, n);
+            SettleBufferNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SBUF%06d]", static_cast<int>(SettleBufferN[0].value));
+            snprintf(cmd, DSD_RES, "[SBUF%06d]", static_cast<int>(SettleBufferNP[0].getValue()));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                SettleBufferNP.s = IPS_ALERT;
+                SettleBufferNP.setState(IPS_ALERT);
                 return false;
             }
 
-            SettleBufferNP.s = IPS_OK;
-            IDSetNumber(&SettleBufferNP, nullptr);
+            SettleBufferNP.setState(IPS_OK);
+            SettleBufferNP.apply();
             return true;
         }
 
         // Idle coils timeout
-        if (strcmp(name, IdleCoilsTimeoutNP.name) == 0)
+        if (IdleCoilsTimeoutNP.isNameMatch(name))
         {
-            IUUpdateNumber(&IdleCoilsTimeoutNP, values, names, n);
+            IdleCoilsTimeoutNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SIDC%06d]", static_cast<int>(IdleCoilsTimeoutN[0].value));
+            snprintf(cmd, DSD_RES, "[SIDC%06d]", static_cast<int>(IdleCoilsTimeoutNP[0].getValue()));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IdleCoilsTimeoutNP.s = IPS_ALERT;
+                IdleCoilsTimeoutNP.setState(IPS_ALERT);
                 return false;
             }
 
-            IdleCoilsTimeoutNP.s = IPS_OK;
-            IDSetNumber(&IdleCoilsTimeoutNP, nullptr);
-            return true;
-        }
-
-        // Max. position
-        if (strcmp(name, FocusMaxPosNP.name) == 0)
-        {
-            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
-            char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosN[0].value));
-            bool rc = sendCommandSet(cmd);
-            if (!rc)
-            {
-                FocusMaxPosNP.s = IPS_ALERT;
-                return false;
-            }
-
-            FocusMaxPosNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxPosNP, nullptr);
+            IdleCoilsTimeoutNP.setState(IPS_OK);
+            IdleCoilsTimeoutNP.apply();
             return true;
         }
 
         // Max. movement
-        if (strcmp(name, FocusMaxMoveNP.name) == 0)
+        if (FocusMaxMoveNP.isNameMatch(name))
         {
-            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
+            FocusMaxMoveNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
+            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveNP[0].getValue()));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                FocusMaxMoveNP.s = IPS_ALERT;
+                FocusMaxMoveNP.setState(IPS_ALERT);
                 return false;
             }
 
-            FocusMaxMoveNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxMoveNP, nullptr);
+            FocusMaxMoveNP.setState(IPS_OK);
+            FocusMaxMoveNP.apply();
             return true;
         }
 
@@ -779,40 +766,40 @@ bool DeepSkyDadAF2::ISNewNumber(const char * dev, const char * name, double valu
 
 void DeepSkyDadAF2::GetFocusParams()
 {
-    IUResetSwitch(&StepModeSP);
-    IUResetSwitch(&CoilsModeSP);
-    IUResetSwitch(&CurrentMoveSP);
-    IUResetSwitch(&CurrentHoldSP);
+    StepModeSP.reset();
+    CoilsModeSP.reset();
+    CurrentMoveSP.reset();
+    CurrentHoldSP.reset();
 
     if (readPosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (readStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
+        StepModeSP.apply();
 
     if (readSettleBuffer())
-        IDSetNumber(&SettleBufferNP, nullptr);
+        SettleBufferNP.apply();
 
     if (readMaxPosition())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP.apply();
 
     if (readMaxMovement())
-        IDSetNumber(&FocusMaxMoveNP, nullptr);
+        FocusMaxMoveNP.apply();
 
     if (readIdleCoilsTimeout())
-        IDSetNumber(&IdleCoilsTimeoutNP, nullptr);
+        IdleCoilsTimeoutNP.apply();
 
     if (readCoilsMode())
-        IDSetSwitch(&CoilsModeSP, nullptr);
+        CoilsModeSP.apply();
 
     if (readCurrentMove())
-        IDSetSwitch(&CurrentMoveSP, nullptr);
+        CurrentMoveSP.apply();
 
     if (readCurrentHold())
-        IDSetSwitch(&CurrentHoldSP, nullptr);
+        CurrentHoldSP.apply();
 
     if (readTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 }
 
 IPState DeepSkyDadAF2::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
@@ -823,7 +810,7 @@ IPState DeepSkyDadAF2::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(FocusMaxPosNP[0].getValue());
 
     IEAddTimer(duration, &DeepSkyDadAF2::timedMoveHelper, this);
     return IPS_BUSY;
@@ -837,13 +824,13 @@ void DeepSkyDadAF2::timedMoveHelper(void * context)
 void DeepSkyDadAF2::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 
@@ -862,18 +849,18 @@ IPState DeepSkyDadAF2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()), newPosition));
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
-    //FocusRelPosN[0].value = ticks;
-    //FocusRelPosNP.s       = IPS_BUSY;
+    //FocusRelPosNP[0].setValue(ticks);
+    //FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -889,22 +876,22 @@ void DeepSkyDadAF2::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (std::abs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -912,10 +899,10 @@ void DeepSkyDadAF2::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (std::abs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (std::abs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
@@ -931,13 +918,13 @@ bool DeepSkyDadAF2::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StepModeSP);
-    IUSaveConfigNumber(fp, &FocusMaxMoveNP);
-    IUSaveConfigNumber(fp, &SettleBufferNP);
-    IUSaveConfigSwitch(fp, &CoilsModeSP);
-    IUSaveConfigNumber(fp, &IdleCoilsTimeoutNP);
-    IUSaveConfigSwitch(fp, &CurrentMoveSP);
-    IUSaveConfigSwitch(fp, &CurrentHoldSP);
+    StepModeSP.save(fp);
+    FocusMaxMoveNP.save(fp);
+    SettleBufferNP.apply();
+    CoilsModeSP.save(fp);
+    IdleCoilsTimeoutNP.save(fp);
+    CurrentMoveSP.save(fp);
+    CurrentHoldSP.save(fp);
 
     return true;
 }
@@ -985,3 +972,10 @@ bool DeepSkyDadAF2::sendCommandSet(const char * cmd)
 
     return strcmp(res, "(OK)") == 0;
 }
+
+ bool DeepSkyDadAF2::SetFocuserMaxPosition(uint32_t ticks)
+ {   
+    char cmd[DSD_RES] = {0};
+    snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(ticks));
+    return sendCommandSet(cmd);
+ }

@@ -58,12 +58,10 @@ class lacerta_mfoc_fmc : public INDI::Focuser
         INumber TempCompN[1];
 
         // current holding
-        INumberVectorProperty CurrentHoldingNP;
-        INumber CurrentHoldingN[1];
+        INDI::PropertyNumber CurrentHoldingNP {1};
 
         // current moving
-        INumberVectorProperty CurrentMovingNP;
-        INumber CurrentMovingN[1];
+        INDI::PropertyNumber CurrentMovingNP {1};
  
         enum
         {
@@ -72,8 +70,8 @@ class lacerta_mfoc_fmc : public INDI::Focuser
             MODE_TDIR_OUT,
             MODE_COUNT_TEMP_DIR
         };
-        ISwitchVectorProperty TempTrackDirSP;
-        ISwitch TempTrackDirS[MODE_COUNT_TEMP_DIR];
+        INDI::PropertySwitch TempTrackDirSP {3};
+        // ISwitch TempTrackDirS[MODE_COUNT_TEMP_DIR];
 
         enum
         {
@@ -81,6 +79,6 @@ class lacerta_mfoc_fmc : public INDI::Focuser
             MODE_SAVED_OFF,
             MODE_COUNT_SAVED
         };
-        ISwitchVectorProperty StartSavedPositionSP;
-        ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
+        INDI::PropertySwitch StartSavedPositionSP {2};
+        // ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
 };

@@ -21,7 +21,9 @@
 #pragma once
 
 #include "indibase.h"
-
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertytext.h"
 #include <stdint.h>
 
 // Alias
@@ -265,50 +267,39 @@ class FocuserInterface
         bool saveConfigItems(FILE * fp);
 
         // Focuser Speed (if variable speeds are supported)
-        INumberVectorProperty FocusSpeedNP;
-        INumber FocusSpeedN[1];
+        INDI::PropertyNumber FocusSpeedNP {1};
 
         // Focuser Motion switch.
         // For absolute focusers, this controls the directoin of FocusRelPos when updated.
         // For DC speed based focusers, this moves the focuser continues in the CW/CCW directions until stopped.
-        ISwitchVectorProperty FocusMotionSP;
-        ISwitch FocusMotionS[2];
+        INDI::PropertySwitch FocusMotionSP {2};
 
         // Timer for user with DC focusers to run focuser in specific direction for this duration
-        INumberVectorProperty FocusTimerNP;
-        INumber FocusTimerN[1];
+        INDI::PropertyNumber FocusTimerNP {1};
 
         // Absolute Focuser Position in steps
-        INumberVectorProperty FocusAbsPosNP;
-        INumber FocusAbsPosN[1];
+        INDI::PropertyNumber FocusAbsPosNP {1};
 
         // Relative Focuser position to be commanded
-        INumberVectorProperty FocusRelPosNP;
-        INumber FocusRelPosN[1];
+        INDI::PropertyNumber FocusRelPosNP {1};
 
         // Absolute Focuser position is 0 to this maximum limit. By Default, it is set to 200,000.
-        INumberVectorProperty FocusMaxPosNP;
-        INumber FocusMaxPosN[1];
+        INDI::PropertyNumber FocusMaxPosNP {1};
 
         // Sync
-        INumberVectorProperty FocusSyncNP;
-        INumber FocusSyncN[1];
+        INDI::PropertyNumber FocusSyncNP {1};
 
         // Abort Focuser
-        ISwitchVectorProperty FocusAbortSP;
-        ISwitch FocusAbortS[1];
+        INDI::PropertySwitch FocusAbortSP {1};
 
         // Reverse Focuser
-        ISwitchVectorProperty FocusReverseSP;
-        ISwitch FocusReverseS[2];
+        INDI::PropertySwitch FocusReverseSP {2};
 
         // Backlash toggle
-        ISwitchVectorProperty FocusBacklashSP;
-        ISwitch FocusBacklashS[2];
+        INDI::PropertySwitch FocusBacklashSP {2};
 
         // Backlash steps
-        INumberVectorProperty FocusBacklashNP;
-        INumber FocusBacklashN[1];
+        INDI::PropertyNumber FocusBacklashNP {1};
 
         uint32_t capability;
 

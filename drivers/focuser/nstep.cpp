@@ -99,17 +99,17 @@ bool NStep::initProperties()
     addDebugControl();
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = 999999;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(999999);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 999;
-    FocusRelPosN[0].step = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(999);
+    FocusRelPosNP[0].setStep(100);
 
-    FocusSpeedN[0].min  = 1;
-    FocusSpeedN[0].max  = 254;
-    FocusSpeedN[0].step = 10;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(254);
+    FocusSpeedNP[0].setStep(10);
 
     return true;
 }
@@ -319,8 +319,8 @@ bool NStep::ISNewNumber(const char *dev, const char *name, double values[], char
                 MaxSpeedNP.s = IPS_OK;
 
                 // We must update the Min/Max of focus speed
-                FocusSpeedN[0].max = values[0];
-                IUUpdateMinMax(&FocusSpeedNP);
+                FocusSpeedNP[0].setMax(values[0]);
+                FocusSpeedNP.updateMinMax();
             }
             else
             {
@@ -438,14 +438,14 @@ bool NStep::getStartupValues()
 
 IPState NStep::MoveAbsFocuser(uint32_t targetTicks)
 {
-    m_TargetDiff = targetTicks - FocusAbsPosN[0].value;
+    m_TargetDiff = targetTicks - FocusAbsPosNP[0].getValue();
     return IPS_BUSY;
 }
 
 IPState NStep::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
+    return MoveAbsFocuser(FocusAbsPosNP[0].getValue() + m_TargetDiff);
 }
 
 bool NStep::AbortFocuser()
@@ -458,21 +458,21 @@ void NStep::TimerHit()
     if (isConnected() == false)
         return;
 
-    double currentPosition = FocusAbsPosN[0].value;
+    double currentPosition = FocusAbsPosNP[0].getValue();
 
     readPosition();
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
+    if ( (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY) && isMoving() == false)
     {
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
         }
         else
         {
@@ -487,15 +487,15 @@ void NStep::TimerHit()
             if (sendCommand(cmd) == false)
             {
                 LOG_ERROR("Failed to issue motion command.");
-                if (FocusRelPosNP.s == IPS_BUSY)
+                if (FocusRelPosNP.getState() == IPS_BUSY)
                 {
-                    FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, nullptr);
+                    FocusRelPosNP.setState(IPS_ALERT);
+                    FocusRelPosNP.apply();
                 }
-                if (FocusAbsPosNP.s == IPS_BUSY)
+                if (FocusAbsPosNP.getState() == IPS_BUSY)
                 {
-                    FocusAbsPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_ALERT);
+                    FocusAbsPosNP.apply();
                 }
             }
             else
@@ -506,9 +506,9 @@ void NStep::TimerHit()
         }
         // Check if can update the absolute position in case it changed.
     }
-    else if (currentPosition != FocusAbsPosN[0].value)
+    else if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     // Read temperature
@@ -569,7 +569,7 @@ bool NStep::readPosition()
     if (pos == 1e6)
         return false;
 
-    FocusAbsPosN[0].value = pos;
+    FocusAbsPosNP[0].setValue(pos);
 
     return true;
 }
@@ -674,9 +674,9 @@ bool NStep::readSpeedInfo()
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = 254 - max_step + 1;
-    FocusSpeedN[0].value = 254 - current_step + 1;
-    FocusSpeedNP.s = IPS_OK;
+    FocusSpeedNP[0].setMax(254 - max_step + 1);
+    FocusSpeedNP[0].setValue(254 - current_step + 1);
+    FocusSpeedNP.setState(IPS_OK);
 
     return true;
 }

@@ -104,10 +104,8 @@ class Focuser : public DefaultDevice, public FocuserInterface
          */
         virtual void SyncPresets(uint32_t ticks);
 
-        INumber PresetN[3];
-        INumberVectorProperty PresetNP;
-        ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP;
+        INDI::PropertyNumber PresetNP {3};
+        INDI::PropertySwitch PresetGotoSP {3};
 
         void processButton(const char *button_n, ISState state);
 

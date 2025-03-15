@@ -89,14 +89,14 @@ bool FocusMaster::initProperties()
     IUFillSwitchVector(&FullMotionSP, FullMotionS, 2, getDeviceName(), "FULL_MOTION", "Full Motion", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    FocusAbsPosN[0].min = SyncN[0].min = 0;
-    FocusAbsPosN[0].max = SyncN[0].max;
-    FocusAbsPosN[0].step = SyncN[0].step;
-    FocusAbsPosN[0].value = 0;
+    FocusAbsPosNP[0].setMin(SyncNP[0].setMin(0));
+    FocusAbsPosNP[0].setMax(SyncNP[0].getMax());
+    FocusAbsPosNP[0].setStep(SyncN[0].step);
+    FocusAbsPosNP[0].setValue(0);
 
-    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
-    FocusRelPosN[0].value = 100;
+    FocusRelPosNP[0].setMax((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 2);
+    FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 100.0);
+    FocusRelPosNP[0].setValue(100);
 
     addSimulationControl();
 
@@ -128,44 +128,44 @@ void FocusMaster::TimerHit()
 
     //uint32_t currentTicks = 0;
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
 
         if (remaining <= 0)
         {
             FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
+            FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining * 1000.0;
+            FocusTimerNP[0].setValue(remaining * 1000.0);
 
-        IDSetNumber(&FocusTimerNP, nullptr);
+        FocusTimerNP.apply();
     }
 
 #if 0
     bool rc = getPosition(&currentTicks);
 
     if (rc)
-        FocusAbsPosN[0].value = currentTicks;
+        FocusAbsPosNP[0].setValue(currentTicks);
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
-        if (targetPosition == FocusAbsPosN[0].value)
+        if (targetPosition == FocusAbsPosNP[0].getValue())
         {
-            if (FocusRelPosNP.s == IPS_BUSY)
+            if (FocusRelPosNP.getState() == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
             }
 
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             LOG_DEBUG("Focuser reached target position.");
         }
     }
 
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.apply();
 #endif
 
     SetTimer(POLLMS_OVERRIDE);
@@ -246,14 +246,14 @@ IPState FocusMaster::MoveAbsFocuser(uint32_t targetTicks)
 {
     INDI_UNUSED(targetTicks);
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
 
 IPState FocusMaster::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t finalTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    uint32_t finalTicks = FocusAbsPosNP[0].getValue() + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
 
     return MoveAbsFocuser(finalTicks);
 }
@@ -309,9 +309,9 @@ bool FocusMaster::AbortFocuser()
 
         if (FocusMotionSP.s == IPS_BUSY)
         {
-            IUResetSwitch(&FocusMotionSP);
-            FocusMotionSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP.reset();
+            FocusMotionSP.setState(IPS_IDLE);
+            FocusMotionSP.apply();
         }
     }
 

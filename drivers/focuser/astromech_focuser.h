@@ -42,8 +42,7 @@ class astromechanics_foc : public INDI::Focuser
         virtual uint32_t GetAbsFocuserPosition();
         virtual bool SetApperture(uint32_t index);
 
-        INumberVectorProperty AppertureNP;
-        INumber AppertureN[1];
+        INDI::PropertyNumber AppertureNP {1};
 
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         void hexDump(char * buf, const char * data, int size);

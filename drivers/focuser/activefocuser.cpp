@@ -147,74 +147,74 @@ bool ActiveFocuser::initProperties()
 
     // Adding version display
 
-    IUFillText(&HardwareVersionN[0], "Version infos", "", "1.04");
-    IUFillTextVector(&HardwareVersionNP, HardwareVersionN, 1, getDeviceName(), "HARDWARE_VERSION", "Hardware Version",
+    HardwareVersionNP[0].fill("Version infos", "", "1.04");
+    HardwareVersionNP.fill(getDeviceName(), "HARDWARE_VERSION", "Hardware Version",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     std::stringstream softwareVersionStream;
     softwareVersionStream << DRIVER_VERSION_MAJOR << "." << DRIVER_VERSION_MINOR;
 
-    IUFillText(&SoftwareVersionN[0], "Version infos", "", softwareVersionStream.str().c_str());
-    IUFillTextVector(&SoftwareVersionNP, SoftwareVersionN, 1, getDeviceName(), "SOFTWARE_VERSION", "Software Version",
+    SoftwareVersionNP[0].fill("Version infos", "", softwareVersionStream.str().c_str());
+    SoftwareVersionNP.fill(getDeviceName(), "SOFTWARE_VERSION", "Software Version",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding temperature sensor display
 
-    IUFillNumber(&AirTemperatureN[0], "AIR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&AirTemperatureNP, AirTemperatureN, 1, getDeviceName(), "AIR_TEMPERATURE", "Air Temperature",
+    AirTemperatureNP[0].fill("AIR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    AirTemperatureNP.fill(getDeviceName(), "AIR_TEMPERATURE", "Air Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&TubeTemperatureN[0], "TUBE TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&TubeTemperatureNP, TubeTemperatureN, 1, getDeviceName(), "TUBE_TEMPERATURE", "Tube Temperature",
+    TubeTemperatureNP[0].fill("TUBE TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    TubeTemperatureNP.fill(getDeviceName(), "TUBE_TEMPERATURE", "Tube Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&MirrorTemperatureN[0], "MIRROR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&MirrorTemperatureNP, MirrorTemperatureN, 1, getDeviceName(), "MIRROR_TEMPERATURE",
+    MirrorTemperatureNP[0].fill("MIRROR TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    MirrorTemperatureNP.fill(getDeviceName(), "MIRROR_TEMPERATURE",
                        "Mirror Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Adding FAN control button
 
-    IUFillSwitch(&FanS[0], "FAN_ON", "On", ISS_ON);
-    IUFillSwitch(&FanS[1], "FAN_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&FanSP, FanS, 2, getDeviceName(), "FAN_STATE", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+    FanSP[FAN_ON].fill("FAN_ON", "On", ISS_ON);
+    FanSP[FAN_OFF].fill("FAN_OFF", "Off", ISS_OFF);
+    FanSP.fill(getDeviceName(), "FAN_STATE", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
     // Setting focus max position constant
 
-    FocusMaxPosN[0].value = MAX_TICKS;
-    FocusMaxPosNP.p = IP_RO;
-    strncpy(FocusMaxPosN[0].label, "Steps", MAXINDILABEL);
+    FocusMaxPosNP[0].setValue(MAX_TICKS);
+    FocusMaxPosNP.setPermission(IP_RO);
+    strncpy(FocusMaxPosNP[0].label, "Steps", MAXINDILABEL);
 
     // Disabling focuser speed
 
-    FocusSpeedN[0].min = 0;
-    FocusSpeedN[0].max = 0;
-    FocusSpeedN[0].value = 1;
-    IUUpdateMinMax(&FocusSpeedNP);
+    FocusSpeedNP[0].setMin(0);
+    FocusSpeedNP[0].setMax(0);
+    FocusSpeedNP[0].setValue(1);
+    FocusSpeedNP.updateMinMax();
 
     // Setting default absolute position values
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = MAX_TICKS;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000.;
-    strncpy(FocusAbsPosN[0].label, "Steps", MAXINDILABEL);
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(MAX_TICKS);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000.);
+    strncpy(FocusAbsPosNP[0].label, "Steps", MAXINDILABEL);
 
 
     // Setting default relative position values
 
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 5000;
-    FocusRelPosN[0].value = 100;
-    FocusRelPosN[0].step = 1;
-    strncpy(FocusRelPosN[0].label, "Steps", MAXINDILABEL);
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000);
+    FocusRelPosNP[0].setValue(100);
+    FocusRelPosNP[0].setStep(1);
+    strncpy(FocusRelPosNP[0].label, "Steps", MAXINDILABEL);
 
-    PresetN[0].max = MAX_TICKS;
-    PresetN[1].max = MAX_TICKS;
-    PresetN[2].max = MAX_TICKS;
+    PresetNP[0].setMax(MAX_TICKS);
+    PresetNP[1].setMax(MAX_TICKS);
+    PresetNP[2].setMax(MAX_TICKS);
 
-    internalTicks = FocusAbsPosN[0].value;
+    internalTicks = FocusAbsPosNP[0].getValue();
 
     setDefaultPollingPeriod(750);
 
@@ -232,23 +232,23 @@ bool ActiveFocuser::updateProperties()
     if (hid_handle)
     {
 
-        defineProperty(&HardwareVersionNP);
-        defineProperty(&SoftwareVersionNP);
-        defineProperty(&AirTemperatureNP);
-        defineProperty(&TubeTemperatureNP);
-        defineProperty(&MirrorTemperatureNP);
-        defineProperty(&FanSP);
+        defineProperty(HardwareVersionNP);
+        defineProperty(SoftwareVersionNP);
+        defineProperty(AirTemperatureNP);
+        defineProperty(TubeTemperatureNP);
+        defineProperty(MirrorTemperatureNP);
+        defineProperty(FanSP);
 
     }
     else
     {
 
-        deleteProperty(HardwareVersionNP.name);
-        deleteProperty(SoftwareVersionNP.name);
-        deleteProperty(AirTemperatureNP.name);
-        deleteProperty(TubeTemperatureNP.name);
-        deleteProperty(MirrorTemperatureNP.name);
-        deleteProperty(FanSP.name);
+        deleteProperty(HardwareVersionNP);
+        deleteProperty(SoftwareVersionNP);
+        deleteProperty(AirTemperatureNP);
+        deleteProperty(TubeTemperatureNP);
+        deleteProperty(MirrorTemperatureNP);
+        deleteProperty(FanSP);
 
     }
 
@@ -262,12 +262,12 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (strcmp(FanSP.name, name) == 0)
+        if (FanSP.isNameMatch(name))
         {
 
-            IUUpdateSwitch(&FanSP, states, names, n);
+            FanSP.update(states, names, n);
 
-            if (FanS[0].s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn())
+            if (FanSP[FAN_ON].getState() == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn())
             {
 
                 if (hid_handle)
@@ -287,7 +287,7 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 }
 
             }
-            else if (FanS[0].s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn())
+            else if (FanSP[FAN_ON].getState() == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn())
             {
 
                 if (hid_handle)
@@ -308,8 +308,8 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
             }
 
-            FanSP.s = IPS_OK;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP.setState(IPS_OK);
+            FanSP.apply();
 
             return true;
 
@@ -422,8 +422,8 @@ IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks)
 IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks)
 {
 
-    FocusRelPosN[0].value = ticks;
-    IDSetNumber(&FocusRelPosNP, nullptr);
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.apply();
 
     int relativeTicks = ((dir == FOCUS_INWARD ? ticks : -ticks));
 
@@ -446,48 +446,48 @@ void ActiveFocuser::TimerHit()
     {
 
         MAX_TICKS = ActiveFocuserUtils::SystemState::GetSpan();
-        FocusMaxPosN[0].value = MAX_TICKS;
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP[0].setValue(MAX_TICKS);
+        FocusMaxPosNP.apply();
 
-        PresetN[0].max = MAX_TICKS;
-        PresetN[1].max = MAX_TICKS;
-        PresetN[2].max = MAX_TICKS;
+        PresetNP[0].setMax(MAX_TICKS);
+        PresetNP[1].setMax(MAX_TICKS);
+        PresetNP[2].setMax(MAX_TICKS);
 
-        HardwareVersionN[0].text = ActiveFocuserUtils::SystemState::GetHardwareRevision();
-        IDSetText(&HardwareVersionNP, nullptr);
+        HardwareVersionNP[0].setText(ActiveFocuserUtils::SystemState::GetHardwareRevision());
+        HardwareVersionNP.apply();
 
-        FocusAbsPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPositionStep();
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(ActiveFocuserUtils::SystemState::GetCurrentPositionStep());
+        FocusAbsPosNP.apply();
 
-        internalTicks = FocusAbsPosN[0].value;
+        internalTicks = FocusAbsPosNP[0].getValue();
 
-        AirTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetAirTemperature();
-        IDSetNumber(&AirTemperatureNP, nullptr);
-        TubeTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetTubeTemperature();
-        IDSetNumber(&TubeTemperatureNP, nullptr);
-        MirrorTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetMirrorTemperature();
-        IDSetNumber(&MirrorTemperatureNP, nullptr);
+        AirTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetAirTemperature());
+        AirTemperatureNP.apply();
+        TubeTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetTubeTemperature());
+        TubeTemperatureNP.apply();
+        MirrorTemperatureNP[0].setValue(ActiveFocuserUtils::SystemState::GetMirrorTemperature());
+        MirrorTemperatureNP.apply();
 
         if(ActiveFocuserUtils::SystemState::GetIsFanOn())
         {
-            FanS[0].s = ISS_ON;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP[FAN_ON].setState(ISS_ON);
+            FanSP.apply(nullptr);
         }
         else
         {
-            FanS[0].s = ISS_OFF;
-            IDSetSwitch(&FanSP, nullptr);
+            FanSP[FAN_ON].setState(ISS_OFF);
+            FanSP.apply(nullptr);
         }
 
         if(ActiveFocuserUtils::SystemState::GetIsMoving())
         {
-            FocusAbsPosNP.s = IPS_BUSY;
-            FocusRelPosNP.s = IPS_BUSY;
+            FocusAbsPosNP.setState(IPS_BUSY);
+            FocusRelPosNP.setState(IPS_BUSY);
         }
         else
         {
-            FocusAbsPosNP.s = IPS_IDLE;
-            FocusRelPosNP.s = IPS_IDLE;
+            FocusAbsPosNP.setState(IPS_IDLE);
+            FocusRelPosNP.setState(IPS_IDLE);
         }
 
         SetTimer(getCurrentPollingPeriod());

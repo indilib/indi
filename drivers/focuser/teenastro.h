@@ -37,7 +37,7 @@ class TeenAstroFocuser : public INDI::Focuser
 
     protected:
         // Helper function to update NP with the values if res is true and display status IPS_OK, else display status IPS_ALERT. Returns res for convenience.
-        bool ISNewNumberHelper(INumberVectorProperty *NP, double values[], char *names[], int n, bool res);
+        bool ISNewNumberHelper(INDI::PropertyNumber &NP, double values[], char *names[], int n, bool res);
 
         virtual bool initProperties();
 
@@ -126,8 +126,7 @@ class TeenAstroFocuser : public INDI::Focuser
         //
 
         // Focuser park position
-        INumber CfgParkPosN[1];
-        INumberVectorProperty CfgParkPosNP;
+        INDI::PropertyNumber CfgParkPosNP {1};
 
         // Go to park button
         ISwitch GoToParkS[1];
@@ -157,20 +156,17 @@ class TeenAstroFocuser : public INDI::Focuser
         // Focuser goto speed: FocusSpeedNP and FocusSpeedN[1] from superclass
 
         // Focuser manual speed
-        INumber CfgManualSpeedN[1];
-        INumberVectorProperty CfgManualSpeedNP;
+        INDI::PropertyNumber CfgManualSpeedNP {1};
 
         // Go-to acceleration
-        INumber CfgGoToAccN[1];
-        INumberVectorProperty CfgGoToAccNP;
+        INDI::PropertyNumber CfgGoToAccNP {1};
+        // INumberVectorProperty CfgGoToAccNP;
 
         // Manual acceleration
-        INumber CfgManualAccN[1];
-        INumberVectorProperty CfgManualAccNP;
+        INDI::PropertyNumber CfgManualAccNP {1};
 
         // Manual deceleration
-        INumber CfgManualDecN[1];
-        INumberVectorProperty CfgManualDecNP;
+        INDI::PropertyNumber CfgManualDecNP {1};
 
 
         // Focuser configuration tab: motor configuration
@@ -187,16 +183,13 @@ class TeenAstroFocuser : public INDI::Focuser
         ISwitchVectorProperty CfgMotorMicrostepsSP;
 
         // Configuration element: Impulse resolution (???)
-        INumber CfgMotorResolutionN[1];
-        INumberVectorProperty CfgMotorResolutionNP;
+        INDI::PropertyNumber CfgMotorResolutionNP {1};
 
         // Configuration element: Motor current
-        INumber CfgMotorCurrentN[1];
-        INumberVectorProperty CfgMotorCurrentNP;
+        INDI::PropertyNumber CfgMotorCurrentNP {1};
 
         // Configuration element: Motor steps per revolution
-        INumber CfgMotorStepsPerRevolutionN[1];
-        INumberVectorProperty CfgMotorStepsPerRevolutionNP;
+        INDI::PropertyNumber CfgMotorStepsPerRevolutionNP {1};
 
         // Reboot device microcontroller button
         ISwitch RebootDeviceS[1];

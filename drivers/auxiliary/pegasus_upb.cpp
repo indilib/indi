@@ -753,7 +753,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         //                FocusBacklashSP.s = IPS_ALERT;
         //            }
 
-        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            FocusBacklashSP.apply();
         //            return true;
         //        }
 
@@ -1013,7 +1013,7 @@ IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 //////////////////////////////////////////////////////////////////////
 IPState PegasusUPB::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1303,10 +1303,12 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     WI::saveConfigItems(fp);
 
     PowerLEDSP.save(fp);
-    if (version == UPB_V1) {
+    if (version == UPB_V1)
+    {
         AutoDewSP.save(fp);
     }
-    if (version == UPB_V2) {
+    if (version == UPB_V2)
+    {
         IUSaveConfigSwitch(fp, &AutoDewV2SP);
         AutoDewAggNP.save(fp);
     }
@@ -1665,45 +1667,45 @@ bool PegasusUPB::getStepperData()
         if (result == lastStepperData)
             return true;
 
-        FocusAbsPosN[0].value = std::stoi(result[0]);
+        FocusAbsPosNP[0].setValue(std::stoi(result[0]));
         focusMotorRunning = (std::stoi(result[1]) == 1);
 
-        if (FocusAbsPosNP.s == IPS_BUSY && focusMotorRunning == false)
+        if (FocusAbsPosNP.getState() == IPS_BUSY && focusMotorRunning == false)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
         }
         else if (stepperUpdated(result, 0))
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP.apply();
 
-        FocusReverseS[INDI_ENABLED].s = (std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = (std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON;
+        FocusReverseSP[INDI_ENABLED].setState((std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF);
+        FocusReverseSP[INDI_DISABLED].setState((std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON);
 
         if (stepperUpdated(result, 1))
-            IDSetSwitch(&FocusReverseSP, nullptr);
+            FocusReverseSP.apply();
 
         uint16_t backlash = std::stoi(result[3]);
         if (backlash == 0)
         {
-            FocusBacklashN[0].value = backlash;
-            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
+            FocusBacklashNP[0].setValue(backlash);
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
             if (stepperUpdated(result, 3))
             {
-                IDSetSwitch(&FocusBacklashSP, nullptr);
+                FocusBacklashSP.apply();
                 FocuserSettingsNP.apply();
             }
         }
         else
         {
-            FocusBacklashS[INDI_ENABLED].s = ISS_ON;
-            FocusBacklashS[INDI_DISABLED].s = ISS_OFF;
-            FocusBacklashN[0].value = backlash;
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
+            FocusBacklashNP[0].setValue(backlash);
             if (stepperUpdated(result, 3))
             {
-                IDSetSwitch(&FocusBacklashSP, nullptr);
+                FocusBacklashSP.apply();
                 FocuserSettingsNP.apply();
             }
         }

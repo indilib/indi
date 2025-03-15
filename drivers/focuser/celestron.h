@@ -124,11 +124,14 @@ class CelestronSCT : public INDI::Focuser
         bool backlashMove;      // set if a final move is needed
         uint32_t finalPosition;
 
-        ISwitch CalibrateS[2];
-        ISwitchVectorProperty CalibrateSP;
+        INDI::PropertySwitch CalibrateSP {2};
+        enum
+        {
+            START,
+            STOP
+        };
 
-        IText CalibrateStateT[1] {};
-        ITextVectorProperty CalibrateStateTP;
+        INDI::PropertyText CalibrateStateTP {1};
 
         bool calibrateInProgress;
         int calibrateState;

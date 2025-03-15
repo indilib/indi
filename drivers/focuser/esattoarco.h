@@ -80,16 +80,14 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
 
         uint16_t m_TemperatureCounter { 0 };
 
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[2];
+        INDI::PropertyNumber TemperatureNP {2};
         enum
         {
             TEMPERATURE_EXTERNAL,
             TEMPERATURE_MOTOR,
         };
 
-        INumber SpeedN[1];
-        INumberVectorProperty SpeedNP;
+        INDI::PropertyNumber SpeedNP {1};
 
         INDI::PropertyText FirmwareTP {4};
         enum
@@ -108,8 +106,7 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         };
 
 
-        ISwitch FastMoveS[3];
-        ISwitchVectorProperty FastMoveSP;
+        INDI::PropertySwitch FastMoveSP {3};
         enum
         {
             FASTMOVE_IN,
@@ -117,21 +114,20 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
             FASTMOVE_STOP
         };
 
-        ISwitch BacklashMeasurementS[2];
-        ISwitchVectorProperty BacklashMeasurementSP;
+        INDI::PropertySwitch BacklashMeasurementSP {2};
         enum
         {
             BACKLASH_START,
             BACKLASH_NEXT
         };
-        IText BacklashMessageT[1] {};
-        ITextVectorProperty BacklashMessageTP;
+        INDI::PropertyText BacklashMessageTP {1};
+
+        // ITextVectorProperty BacklashMessageTP;
         typedef enum { BacklashIdle, BacklashMinimum, BacklashMaximum, BacklashComplete } BacklashStage;
         BacklashStage bStage { BacklashIdle };
 
         //Rotator
-        INumber RotatorAbsPosN[1];
-        INumberVectorProperty RotatorAbsPosNP;
+        INDI::PropertyNumber RotatorAbsPosNP {1};
         enum
         {
             ROTATOR_ABSOLUTE_POSITION
@@ -144,8 +140,8 @@ class EsattoArco : public INDI::Focuser, public INDI::RotatorInterface
         typedef enum { RotCalIdle, RotCalComplete } RotCalibrationStage;
         RotCalibrationStage rcStage { RotCalIdle };
 
-        ISwitch RotCalibrationS[1];
-        ISwitchVectorProperty RotatorCalibrationSP;
+        INDI::PropertySwitch RotatorCalibrationSP {1};
+        // ISwitchVectorProperty RotatorCalibrationSP;
         enum
         {
             ARCO_CALIBRATION_START

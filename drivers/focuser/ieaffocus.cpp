@@ -69,15 +69,15 @@ bool iEAFFocus::initProperties()
     SetZeroSP.fill(getDeviceName(), "Zero Position", "Zero Position", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 5000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(5000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 99999.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step = 10.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(99999.);
+    FocusAbsPosNP[0].setValue(0.);
+    FocusAbsPosNP[0].setStep(10.);
 
     return true;
 }
@@ -154,7 +154,7 @@ bool iEAFFocus::Ack()
     resp[nbytes_read] = '\0';
     sscanf(resp, "%6d%2d%4d", &ieafpos, &ieafmodel, &ieaflast);
     //add iAFS Focuser
-    if ((ieafmodel == 2)||(ieafmodel == 3))
+    if ((ieafmodel == 2) || (ieafmodel == 3))
     {
         return true;
     }
@@ -207,7 +207,7 @@ bool iEAFFocus::updateInfo()
     m_isMoving = ieafmove == 1;
     auto temperature = ieaftemp / 100.0 - 273.15;
     m_Reversed = (ieafdir == 0);
-    auto currentlyReversed = FocusReverseS[INDI_ENABLED].s == ISS_ON;
+    auto currentlyReversed = FocusReverseSP[INDI_ENABLED].getState() == ISS_ON;
 
     // Only update if there is change
     if (std::abs(temperature - TemperatureNP[0].getValue()) > TEMPERATURE_THRESHOLD)
@@ -219,32 +219,33 @@ bool iEAFFocus::updateInfo()
     // Only update if there is change
     if (m_Reversed != currentlyReversed)
     {
-        FocusReverseS[INDI_ENABLED].s = m_Reversed ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = m_Reversed ? ISS_OFF : ISS_ON;
-        FocusReverseSP.s = IPS_OK;
-        IDSetSwitch(&FocusReverseSP, nullptr);
+        FocusReverseSP[INDI_ENABLED].setState(m_Reversed ? ISS_ON : ISS_OFF);
+        FocusReverseSP[INDI_DISABLED].setState(m_Reversed ? ISS_OFF : ISS_ON);
+        FocusReverseSP.setState(IPS_OK);
+        FocusReverseSP.apply();
     }
 
     // If absolute position is different, let's update
-    if (ieafpos != FocusAbsPosN[0].value)
+    if (ieafpos != FocusAbsPosNP[0].getValue())
     {
-        FocusAbsPosN[0].value = ieafpos;
+        FocusAbsPosNP[0].setValue(ieafpos);
         // Check if we are busy or not.
-        if ((m_isMoving == false && FocusAbsPosNP.s == IPS_BUSY) || (m_isMoving && FocusAbsPosNP.s != IPS_BUSY))
+        if ((m_isMoving == false && FocusAbsPosNP.getState() == IPS_BUSY) || (m_isMoving && FocusAbsPosNP.getState() != IPS_BUSY))
         {
-            FocusAbsPosNP.s = m_isMoving ? IPS_BUSY : IPS_OK;
-            FocusRelPosNP.s = m_isMoving ? IPS_BUSY : IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(m_isMoving ? IPS_BUSY : IPS_OK);
+            FocusRelPosNP.setState(m_isMoving ? IPS_BUSY : IPS_OK);
+            FocusRelPosNP.apply();
         }
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
     // Update status if required
-    else  if ((m_isMoving == false && FocusAbsPosNP.s == IPS_BUSY) || (m_isMoving && FocusAbsPosNP.s != IPS_BUSY))
+    else  if ((m_isMoving == false && FocusAbsPosNP.getState() == IPS_BUSY) || (m_isMoving
+              && FocusAbsPosNP.getState() != IPS_BUSY))
     {
-        FocusAbsPosNP.s = m_isMoving ? IPS_BUSY : IPS_OK;
-        FocusRelPosNP.s = m_isMoving ? IPS_BUSY : IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.setState(m_isMoving ? IPS_BUSY : IPS_OK);
+        FocusRelPosNP.setState(m_isMoving ? IPS_BUSY : IPS_OK);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.apply();
     }
 
     return true;
@@ -363,7 +364,7 @@ IPState iEAFFocus::MoveAbsFocuser(uint32_t targetTicks)
     if (rc == false)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -374,16 +375,16 @@ IPState iEAFFocus::MoveAbsFocuser(uint32_t targetTicks)
 IPState iEAFFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * (m_Reversed ? -1 : 1);
-    uint32_t newPosition = FocusAbsPosN[0].value + relativeTicks;
-    newPosition = std::max(0u, std::min(static_cast<uint32_t>(FocusAbsPosN[0].max), newPosition));
+    uint32_t newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
+    newPosition = std::max(0u, std::min(static_cast<uint32_t>(FocusAbsPosNP[0].getMax()), newPosition));
 
     auto rc = MoveMyFocuser(newPosition);
 
     if (rc == false)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -409,10 +410,10 @@ bool iEAFFocus::AbortFocuser()
     tcflush(PortFD, TCIOFLUSH);
     if (tty_write(PortFD, ":FQ#", 4, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
         return true;
     }
     else

@@ -98,15 +98,15 @@ bool Lakeside::initProperties()
     // Backlash 0-255
     //    IUFillNumber(&FocusBacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
     //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 10;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(10);
+    FocusBacklashNP[0].setValue(0);
 
     // Maximum Travel - read only
     //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
     //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP.setPermission(IP_RO);
 
     // Step Size - read only
     IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
@@ -161,10 +161,10 @@ bool Lakeside::initProperties()
     IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB,
                        IP_RW, 0, IPS_IDLE );
 
-    FocusAbsPosN[0].min = 0.;
+    FocusAbsPosNP[0].setMin(0.);
 
     // shephpj - not used
-    //FocusAbsPosN[0].max = 65536.;
+    //FocusAbsPosNP[0].setMax(65536.);
 
     setDefaultPollingPeriod(1000);
 
@@ -407,12 +407,12 @@ bool Lakeside::updateMoveDirection()
 
     if ( temp == 0)
     {
-        FocusReverseS[INDI_DISABLED].s = ISS_ON;
+        FocusReverseSP[INDI_DISABLED].setState(ISS_ON);
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else if ( temp == 1)
     {
-        FocusReverseS[INDI_ENABLED].s = ISS_ON;
+        FocusReverseSP[INDI_ENABLED].setState(ISS_ON);
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
@@ -426,7 +426,7 @@ bool Lakeside::updateMoveDirection()
 
 // Decode contents of buffer
 // Returns:
-//          P : Position update found - FocusAbsPosN[0].value updated
+//          P : Position update found - FocusAbsPosNP[0].getValue() updated
 //          T : Temperature update found - TemperatureN[0].value
 //          K : Temperature in Kelvin update found - TemperatureKN[0].value
 //          D : DONE# received
@@ -492,8 +492,8 @@ char Lakeside::DecodeBuffer(char * in_response)
     // focuser position returned Pnnnnn#
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply();
 
         LOGF_DEBUG("DecodeBuffer: Returned position (%d)", pos);
         return 'P';
@@ -643,7 +643,7 @@ bool Lakeside::updateBacklash()
 
     if ( temp >= 0)
     {
-        FocusBacklashN[0].value = temp;
+        FocusBacklashNP[0].setValue(temp);
         LOGF_DEBUG("updateBacklash: Backlash is (%d)", temp);
     }
     else
@@ -966,7 +966,7 @@ bool Lakeside::updateMaxTravel()
 
     if ( temp > 0)
     {
-        FocusMaxPosN[0].value = temp;
+        FocusMaxPosNP[0].setValue(temp);
         LOGF_DEBUG("updateMaxTravel: MaxTravel is (%d)", temp);
     }
     else
@@ -1032,14 +1032,14 @@ bool Lakeside::gotoPosition(uint32_t position)
     // Lakeside only uses move NNNNN steps - goto step not available.
     // calculate as steps to move = current position - new position
     // if -ve then move out, else +ve moves in
-    calc_steps = FocusAbsPosN[0].value - position;
+    calc_steps = FocusAbsPosNP[0].getValue() - position;
 
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
-    if ( position > FocusMaxPosN[0].value )
+    if ( position > FocusMaxPosNP[0].getValue() )
     {
-        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min,
-                   FocusMaxPosN[0].value);
-        FocusAbsPosNP.s = IPS_ALERT;
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosNP[0].getMin(),
+                   FocusMaxPosNP[0].getValue());
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -1061,7 +1061,7 @@ bool Lakeside::gotoPosition(uint32_t position)
         {
             // Zero == no steps to move
             LOGF_DEBUG("MoveFocuser: No steps to move. calc_steps = %d", calc_steps);
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             return false;
         }
 
@@ -1070,14 +1070,14 @@ bool Lakeside::gotoPosition(uint32_t position)
 
     if (!SendCmd(cmd))
     {
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
     else
         LOGF_DEBUG("MoveFocuser: Sent cmd (%s)", cmd);
 
     // At this point, the move command has been sent, so set BUSY & return true
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
     return true;
 }
 
@@ -1813,7 +1813,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         //                    }
 
         //                    FocusBacklashNP.s = IPS_OK;
-        //                    FocusBacklashN[0].value = new_back;
+        //                    FocusBacklashNP[0].setValue(new_back);
         //                    IDSetNumber(&FocusBacklashNP, nullptr);
 
         //                    return true;
@@ -2173,7 +2173,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
 void Lakeside::GetFocusParams ()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
@@ -2183,16 +2183,16 @@ void Lakeside::GetFocusParams ()
         IDSetNumber(&TemperatureKNP, nullptr);
 
     if (updateBacklash())
-        IDSetNumber(&FocusBacklashNP, nullptr);
+        FocusBacklashNP.apply();
 
     if (updateMaxTravel())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP.apply();
 
     if (updateStepSize())
         IDSetNumber(&StepSizeNP, nullptr);
 
     if (updateMoveDirection())
-        IDSetSwitch(&FocusReverseSP, nullptr);
+        FocusReverseSP.apply();
 
     if (updateSlope1Inc())
         IDSetNumber(&Slope1IncNP, nullptr);
@@ -2222,7 +2222,7 @@ void Lakeside::GetFocusParams ()
 
 IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 //
@@ -2253,7 +2253,7 @@ void Lakeside::TimerHit()
     }
 
     // focuser supposedly moving...
-    if (FocusAbsPosNP.s == IPS_BUSY )
+    if (FocusAbsPosNP.getState() == IPS_BUSY )
     {
         // Get actual status from focuser
         // Note: GetLakesideStatus sends position count when moving.
@@ -2268,18 +2268,18 @@ void Lakeside::TimerHit()
         {
             // no longer moving, so reset state to IPS_OK or IDLE?
             // IPS_OK turns light green
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             // update position
             // This is necessary in case user clicks short step moves in quick succession
             // Lakeside will abort move if command received during move
             rc = updatePosition();
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_INFO("Focuser reached requested position %.f", FocusAbsPosN[0].value);
+            FocusAbsPosNP.apply();
+            LOGF_INFO("Focuser reached requested position %.f", FocusAbsPosNP[0].getValue());
         }
     }
 
     // focuser not moving, get temperature updates instead
-    if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
+    if (FocusAbsPosNP.getState() == IPS_OK || FocusAbsPosNP.getState() == IPS_IDLE)
     {
         // Get a temperature
         rc = updateTemperature();
@@ -2291,7 +2291,7 @@ void Lakeside::TimerHit()
     }
 
     // IPS_ALERT - any alert situation generated
-    //    if ( FocusAbsPosNP.s == IPS_ALERT )
+    //    if ( FocusAbsPosNP.getState() == IPS_ALERT )
     //    {
     //        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
     //    }
@@ -2361,7 +2361,7 @@ bool Lakeside::GetLakesideStatus()
         rc = updatePosition();
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         // return false as focuser is not known to be moving
         return false;
@@ -2375,8 +2375,8 @@ bool Lakeside::GetLakesideStatus()
         rc = sscanf(resp, "P%5d#", &pos);
         LOGF_INFO("Focuser Moving... position : %d", pos);
         // Update current position
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply();
 
         // return true as focuser IS moving
         return true;
@@ -2389,7 +2389,7 @@ bool Lakeside::GetLakesideStatus()
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         return false;
     }
@@ -2401,14 +2401,14 @@ bool Lakeside::GetLakesideStatus()
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         return false;
     }
 
     // At this point, something else is returned
     LOGF_DEBUG("GetLakesideStatus: Unknown response from buffer read : (%s)", resp);
-    FocusAbsPosNP.s = IPS_OK;
+    FocusAbsPosNP.setState(IPS_OK);
 
     // return false as focuser is not known to be moving
     return false;
@@ -2427,8 +2427,8 @@ bool Lakeside::AbortFocuser()
     if (SendCmd(cmd))
     {
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.setState(IPS_OK);
         LOG_INFO("Focuser Abort Sent");
         return true;
     }

@@ -61,11 +61,11 @@ void lacerta_mfoc::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineProperty(&TempTrackDirSP);
-    loadConfig(true, TempTrackDirSP.name);
+    defineProperty(TempTrackDirSP);
+    TempTrackDirSP.load();
 
-    defineProperty(&StartSavedPositionSP);
-    loadConfig(true, StartSavedPositionSP.name);
+    defineProperty(StartSavedPositionSP);
+    StartSavedPositionSP.load();
 }
 
 /************************************************************************************
@@ -75,38 +75,38 @@ bool lacerta_mfoc::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 12;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(12);
 
     //    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
     //    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
     //                       IPS_IDLE);
 
-    IUFillNumber(&TempCompN[0], "TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
-    IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
+    TempCompNP[0].fill("TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
+    TempCompNP.fill(getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    FocusMaxPosN[0].min = MFOC_POSMIN_HARDWARE;
-    FocusMaxPosN[0].max = MFOC_POSMAX_HARDWARE;
-    FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
-    FocusMaxPosN[0].value = 110000;
+    FocusMaxPosNP[0].setMin(MFOC_POSMIN_HARDWARE);
+    FocusMaxPosNP[0].setMax(MFOC_POSMAX_HARDWARE);
+    FocusMaxPosNP[0].setStep((FocusMaxPosNP[0].getMax() - FocusMaxPosNP[0].getMin()) / 20.0);
+    FocusMaxPosNP[0].setValue(110000);
 
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = FocusMaxPosN[0].value;
-    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50.0;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue());
+    FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50.0);
 
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_OUT],  "Out",  "Out",  ISS_ON);
-    IUFillSwitchVector(&TempTrackDirSP, TempTrackDirS, MODE_COUNT_TEMP_DIR, getDeviceName(), "Temp. dir.", "Temp. dir.",
+    TempTrackDirSP[MODE_TDIR_BOTH].fill("Both", "Both", ISS_ON);
+    TempTrackDirSP[MODE_TDIR_IN].fill("In",   "In",   ISS_ON);
+    TempTrackDirSP[MODE_TDIR_OUT].fill("Out",  "Out",  ISS_ON);
+    TempTrackDirSP.fill(getDeviceName(), "Temp. dir.", "Temp. dir.",
                        MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_ON],  "Yes", "Yes", ISS_ON);
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_OFF], "No",  "No",  ISS_OFF);
-    IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.",
+    StartSavedPositionSP[MODE_SAVED_ON].fill("Yes", "Yes", ISS_ON);
+    StartSavedPositionSP[MODE_SAVED_OFF].fill("No",  "No",  ISS_OFF);
+    StartSavedPositionSP.fill(getDeviceName(), "Start saved pos.",
                        "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -119,24 +119,24 @@ bool lacerta_mfoc::initProperties()
 bool lacerta_mfoc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
-    FocusAbsPosN[0].value = GetAbsFocuserPosition();
+    FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
 
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
         //defineProperty(&BacklashNP);
-        defineProperty(&TempCompNP);
-        defineProperty(&TempTrackDirSP);
-        defineProperty(&StartSavedPositionSP);
+        defineProperty(TempCompNP);
+        defineProperty(TempTrackDirSP);
+        defineProperty(StartSavedPositionSP);
 
     }
     else
     {
         //deleteProperty(BacklashNP.name);
-        deleteProperty(TempCompNP.name);
-        deleteProperty(TempTrackDirSP.name);
-        deleteProperty(StartSavedPositionSP.name);
+        deleteProperty(TempCompNP);
+        deleteProperty(TempTrackDirSP);
+        deleteProperty(StartSavedPositionSP);
     }
 
     return true;
@@ -164,8 +164,8 @@ bool lacerta_mfoc::Handshake()
 
     if (MFOC_res_type[0] == 'P')
     {
-        FocusAbsPosN[0].value = MFOC_pos_measd;
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(MFOC_pos_measd);
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
 
@@ -180,11 +180,11 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temp. Track Direction
-        if (strcmp(TempTrackDirSP.name, name) == 0)
+        if (TempTrackDirSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TempTrackDirSP, states, names, n);
+            TempTrackDirSP.update(states, names, n);
             int tdir = 0;
-            int index    = IUFindOnSwitchIndex(&TempTrackDirSP);
+            int index    = TempTrackDirSP.findOnSwitchIndex();
             char MFOC_cmd[32]  = ": I ";
             char MFOC_res[32]  = {0};
             int nbytes_read    = 0;
@@ -210,8 +210,8 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
                     break;
 
                 default:
-                    TempTrackDirSP.s = IPS_ALERT;
-                    IDSetSwitch(&TempTrackDirSP, "Unknown mode index %d", index);
+                    TempTrackDirSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown mode index %d", index);
                     return true;
             }
 
@@ -225,24 +225,24 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             if  (MFOC_tdir_measd == tdir)
             {
-                TempTrackDirSP.s = IPS_OK;
+                TempTrackDirSP.setState(IPS_OK);
             }
             else
             {
-                TempTrackDirSP.s = IPS_ALERT;
+                TempTrackDirSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&TempTrackDirSP, nullptr);
+            TempTrackDirSP.apply();
             return true;
         }
 
 
         // Start at saved position
-        if (strcmp(StartSavedPositionSP.name, name) == 0)
+        if (StartSavedPositionSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&StartSavedPositionSP, states, names, n);
+            StartSavedPositionSP.update(states, names, n);
             int svstart = 0;
-            int index    = IUFindOnSwitchIndex(&StartSavedPositionSP);
+            int index    = StartSavedPositionSP.findOnSwitchIndex();
             char MFOC_cmd[32]  = ": F ";
             char MFOC_res[32]  = {0};
             int nbytes_read    = 0;
@@ -263,8 +263,8 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
                     break;
 
                 default:
-                    StartSavedPositionSP.s = IPS_ALERT;
-                    IDSetSwitch(&StartSavedPositionSP, "Unknown mode index %d", index);
+                    StartSavedPositionSP.setState(IPS_ALERT);
+                    LOGF_ERROR("Unknown mode index %d", index);
                     return true;
             }
 
@@ -278,14 +278,14 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
             //            LOGF_DEBUG("Debug MFOC cmd sent %s", MFOC_cmd);
             if  (MFOC_svstart_measd == svstart)
             {
-                StartSavedPositionSP.s = IPS_OK;
+                StartSavedPositionSP.setState(IPS_OK);
             }
             else
             {
-                StartSavedPositionSP.s = IPS_ALERT;
+                StartSavedPositionSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&StartSavedPositionSP, nullptr);
+            StartSavedPositionSP.apply();
             return true;
         }
     }
@@ -360,9 +360,9 @@ bool lacerta_mfoc::SetTempComp(double values[], char *names[], int n)
     int tc_int = 0;
     char tc_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
-    TempCompNP.s = IPS_OK;
-    IUUpdateNumber(&TempCompNP, values, names, n);
-    tc_int = TempCompN[0].value;
+    TempCompNP.setState(IPS_OK);
+    TempCompNP.update(values, names, n);
+    tc_int = TempCompNP[0].getValue();
     sprintf(tc_char, "%d", tc_int);
     strcat(tc_char, " #");
     strcat(MFOC_cmd, tc_char);
@@ -377,7 +377,7 @@ bool lacerta_mfoc::SetTempComp(double values[], char *names[], int n)
 
     LOGF_DEBUG("RES <%s>", MFOC_res);
 
-    IDSetNumber(&TempCompNP, nullptr);
+    TempCompNP.apply();
 
     return true;
 }
@@ -424,7 +424,7 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD <%s>", MFOC_cmd);
-    FocusAbsPosN[0].value = targetTicks;
+    FocusAbsPosNP[0].setValue(targetTicks);
 
     GetAbsFocuserPosition();
     return IPS_OK;
@@ -436,20 +436,20 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    auto targetTicks = FocusAbsPosN[0].value;
+    auto targetTicks = FocusAbsPosNP[0].getValue();
     if (dir == FOCUS_INWARD) targetTicks -= ticks;
     else targetTicks += ticks;
-    targetTicks = std::clamp(targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+    targetTicks = std::clamp(targetTicks, FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
 
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
 
     return MoveAbsFocuser(targetTicks);
 }
-    //Waiting makes no sense - will be immediately interrupted by the ekos system...
-    //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
-    //LOGF_INFO("sleep for %d ms", ticks);
-    //usleep(ticks + 5000);
+//Waiting makes no sense - will be immediately interrupted by the ekos system...
+//int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
+//LOGF_INFO("sleep for %d ms", ticks);
+//usleep(ticks + 5000);
 
 
 bool lacerta_mfoc::saveConfigItems(FILE *fp)
@@ -459,7 +459,7 @@ bool lacerta_mfoc::saveConfigItems(FILE *fp)
 
     // Save additional MFPC Config
     //IUSaveConfigNumber(fp, &BacklashNP);
-    IUSaveConfigNumber(fp, &TempCompNP);
+    TempCompNP.save(fp);
 
     return true;
 }

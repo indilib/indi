@@ -45,9 +45,9 @@ bool Microtouch::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 5;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(5);
+    FocusSpeedNP[0].setValue(1);
 
     /* Step Mode */
     IUFillSwitch(&MotorSpeedS[0], "Normal", "", ISS_ON);
@@ -87,15 +87,15 @@ bool Microtouch::initProperties()
     //                       0, IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(30000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000.);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(60000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000.);
 
     addDebugControl();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -193,7 +193,7 @@ bool Microtouch::updatePosition()
 
     if (WriteCmdGetResponse(CMD_GET_POSITION, read, 3))
     {
-        FocusAbsPosN[0].value = static_cast<double>(static_cast<uint8_t>(read[2]) << 8 | static_cast<uint8_t>(read[1]));
+        FocusAbsPosNP[0].setValue(static_cast<double>(static_cast<uint8_t>(read[2]) << 8 | static_cast<uint8_t>(read[1])));
         return true;
     }
 
@@ -236,7 +236,7 @@ bool Microtouch::updateSpeed()
         }
 
         currentSpeed = focus_speed;
-        FocusSpeedN[0].value = focus_speed;
+        FocusSpeedNP[0].setValue(focus_speed);
     }
     else
     {
@@ -312,7 +312,7 @@ bool Microtouch::MoveFocuser(unsigned int position)
 {
     LOGF_DEBUG("MoveFocuser to Position: %d", position);
 
-    if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
+    if (position < FocusAbsPosNP[0].getMin() || position > FocusAbsPosNP[0].getMax())
     {
         LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
@@ -493,7 +493,7 @@ bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[],
 void Microtouch::GetFocusParams()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateTemperature())
     {
@@ -502,7 +502,7 @@ void Microtouch::GetFocusParams()
     }
 
     /*    if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP.apply();
     */
     if (updateMotorSpeed())
         IDSetSwitch(&MotorSpeedSP, nullptr);
@@ -519,8 +519,8 @@ bool Microtouch::SetFocuserSpeed(int speed)
 
     currentSpeed = speed;
 
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(IPS_OK);
+    FocusSpeedNP.apply();
 
     return true;
 }
@@ -541,7 +541,7 @@ IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusAbsPosN[0].value + FocusMaxPosN[0].value - 1);
+        MoveFocuser(FocusAbsPosNP[0].getValue() + FocusMaxPosNP[0].getValue() - 1);
 
     if (duration <= getCurrentPollingPeriod())
     {
@@ -564,7 +564,7 @@ IPState Microtouch::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -575,17 +575,17 @@ IPState Microtouch::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc            = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = MoveFocuser(newPosition);
 
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -601,10 +601,10 @@ void Microtouch::TimerHit()
 
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 1)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 1)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -618,29 +618,29 @@ void Microtouch::TimerHit()
         }
     }
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
         if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
+            FocusTimerNP.setState(IPS_OK);
+            FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining * 1000.0;
-        IDSetNumber(&FocusTimerNP, nullptr);
+            FocusTimerNP[0].setValue(remaining * 1000.0);
+        FocusTimerNP.apply();
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -651,10 +651,10 @@ void Microtouch::TimerHit()
 bool Microtouch::AbortFocuser()
 {
     WriteCmd(CMD_HALT);
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
     return true;
 }
 

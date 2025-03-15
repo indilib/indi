@@ -39,15 +39,15 @@ bool RBFOCUS::initProperties()
 
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
 
     return true;
@@ -227,7 +227,7 @@ bool RBFOCUS::readPosition()
     int rc = sscanf(res, "%d#", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         return false;
@@ -265,7 +265,7 @@ bool RBFOCUS::MaxPos()
     if (rc > 0)
     {
 
-        FocusMaxPosN[0].value = mPos;
+        FocusMaxPosNP[0].setValue(mPos);
         RBFOCUS::SyncPresets(mPos);
     }
     else
@@ -325,10 +325,10 @@ void RBFOCUS::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -342,13 +342,13 @@ void RBFOCUS::TimerHit()
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }

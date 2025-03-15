@@ -79,7 +79,7 @@ void OpenWeatherMap::ISGetProperties(const char *dev)
 
 bool OpenWeatherMap::Connect()
 {
-    if (owmAPIKeyTP[0].getText() == nullptr)
+    if (owmAPIKeyTP[0].isEmpty())
     {
         LOG_ERROR("OpenWeatherMap API Key is not available. Please register your API key at "
                   "www.openweathermap.org and save it under Options.");

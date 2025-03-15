@@ -114,21 +114,21 @@ bool SestoSenso::initProperties()
 
     //
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
+    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 2097152.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(2097152.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].value = 2097152;
+    FocusMaxPosNP[0].setValue(2097152);
 
     addAuxControls();
 
@@ -257,29 +257,29 @@ bool SestoSenso::updateMaxLimit()
 
     if (maxLimit > 0)
     {
-        FocusMaxPosN[0].max = maxLimit;
-        if (FocusMaxPosN[0].value > maxLimit)
-            FocusMaxPosN[0].value = maxLimit;
+        FocusMaxPosNP[0].setMax(maxLimit);
+        if (FocusMaxPosNP[0].getValue() > maxLimit)
+            FocusMaxPosNP[0].setValue(maxLimit);
 
-        FocusAbsPosN[0].min   = 0;
-        FocusAbsPosN[0].max   = maxLimit;
-        FocusAbsPosN[0].value = 0;
-        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        FocusAbsPosNP[0].setMin(0);
+        FocusAbsPosNP[0].setMax(maxLimit);
+        FocusAbsPosNP[0].setValue(0);
+        FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-        FocusRelPosN[0].min   = 0.;
-        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-        FocusRelPosN[0].value = 0;
-        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+        FocusRelPosNP[0].setMin(0.);
+        FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep() * 10);
+        FocusRelPosNP[0].setValue(0);
+        FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusRelPosNP);
+        FocusAbsPosNP.updateMinMax();
+        FocusRelPosNP.updateMinMax();
 
-        FocusMaxPosNP.s = IPS_OK;
-        IUUpdateMinMax(&FocusMaxPosNP);
+        FocusMaxPosNP.setState(IPS_OK);
+        FocusMaxPosNP.updateMinMax();
         return true;
     }
 
-    FocusMaxPosNP.s = IPS_ALERT;
+    FocusMaxPosNP.setState(IPS_ALERT);
     return false;
 }
 
@@ -287,20 +287,20 @@ bool SestoSenso::updatePosition()
 {
     char res[SESTO_LEN] = {0};
     if (isSimulation())
-        snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosN[0].value));
+        snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosNP[0].getValue()));
     else if (sendCommand("#QP!", res) == false)
         return false;
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(std::stoi(res));
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
     catch(...)
     {
         LOGF_WARN("Failed to process position response: %s (%d bytes)", res, strlen(res));
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 }
@@ -311,7 +311,7 @@ bool SestoSenso::isMotionComplete()
 
     if (isSimulation())
     {
-        int32_t nextPos = FocusAbsPosN[0].value;
+        int32_t nextPos = FocusAbsPosNP[0].getValue();
         int32_t targPos = static_cast<int32_t>(targetPos);
 
         if (targPos > nextPos)
@@ -323,8 +323,8 @@ bool SestoSenso::isMotionComplete()
             nextPos = targetPos;
         else if (nextPos < 0)
             nextPos = 0;
-        else if (nextPos > FocusAbsPosN[0].max)
-            nextPos = FocusAbsPosN[0].max;
+        else if (nextPos > FocusAbsPosNP[0].getMax())
+            nextPos = FocusAbsPosNP[0].getMax();
 
         snprintf(res, SESTO_LEN, "%d", nextPos);
     }
@@ -346,7 +346,7 @@ bool SestoSenso::isMotionComplete()
             try
             {
                 uint32_t newPos = std::stoi(res);
-                FocusAbsPosN[0].value = newPos;
+                FocusAbsPosNP[0].setValue(newPos);
             }
             catch (...)
             {
@@ -442,23 +442,23 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     sscanf(res, "SM;%d!", &maxLimit);
                     LOGF_INFO("MAX setting is %d", maxLimit);
 
-                    FocusMaxPosN[0].max = maxLimit;
-                    FocusMaxPosN[0].value = maxLimit;
+                    FocusMaxPosNP[0].setMax(maxLimit);
+                    FocusMaxPosNP[0].setValue(maxLimit);
 
-                    FocusAbsPosN[0].min   = 0;
-                    FocusAbsPosN[0].max   = maxLimit;
-                    FocusAbsPosN[0].value = maxLimit;
-                    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+                    FocusAbsPosNP[0].setMin(0);
+                    FocusAbsPosNP[0].setMax(maxLimit);
+                    FocusAbsPosNP[0].setValue(maxLimit);
+                    FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-                    FocusRelPosN[0].min   = 0.;
-                    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-                    FocusRelPosN[0].value = 0;
-                    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+                    FocusRelPosNP[0].setMin(0.);
+                    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep() * 10);
+                    FocusRelPosNP[0].setValue(0);
+                    FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-                    IUUpdateMinMax(&FocusAbsPosNP);
-                    IUUpdateMinMax(&FocusRelPosNP);
-                    FocusMaxPosNP.s = IPS_OK;
-                    IUUpdateMinMax(&FocusMaxPosNP);
+                    FocusAbsPosNP.updateMinMax();
+                    FocusRelPosNP.updateMinMax();
+                    FocusMaxPosNP.setState(IPS_OK);
+                    FocusMaxPosNP.updateMinMax();
 
                     IUSaveText(&CalibrationMessageT[0], "Calibration Completed.");
                     IDSetText(&CalibrationMessageTP, nullptr);
@@ -537,9 +537,9 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -565,25 +565,26 @@ void SestoSenso::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        lastPos = FocusAbsPosN[0].value;
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.apply();
+        lastPos = FocusAbsPosNP[0].getValue();
         LOG_INFO("Focuser reached requested position.");
         return;
     }
     else
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
-    lastPos = FocusAbsPosN[0].value;
+    lastPos = FocusAbsPosNP[0].getValue();
 
     m_MotionProgressTimer.start(250);
 }
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
+    if (!isConnected() || FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY
+            || CalibrationSP.s == IPS_BUSY)
     {
         SetTimer(getCurrentPollingPeriod());
         return;
@@ -592,10 +593,10 @@ void SestoSenso::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 0)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -620,7 +621,7 @@ bool SestoSenso::getStartupValues()
 {
     bool rc1 = updatePosition();
     if (rc1)
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateMaxLimit() == false)
         LOG_WARN("Check you have the latest SestoSenso firmware. Focuser requires calibration.");
