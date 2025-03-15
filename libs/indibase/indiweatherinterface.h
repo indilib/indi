@@ -120,8 +120,9 @@ class WeatherInterface
          * @param numMinOk minimum Ok range value.
          * @param numMaxOk maximum Ok range value.
          * @param percWarning percentage for Warning.
+         * @param flipWarning boolean indicating if range warning should be flipped to in-bounds, rather than out-of-bounds
          */
-        void addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
+        void addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning = false);
 
         /**
          * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
@@ -165,6 +166,7 @@ class WeatherInterface
             MIN_OK,
             MAX_OK,
             PERCENT_WARNING,
+	    FLIP_RANGE_TEST,
         };
 
         // Weather status
@@ -180,7 +182,7 @@ class WeatherInterface
 
 
     private:
-        void createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
+        void createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning);
         DefaultDevice *m_defaultDevice { nullptr };
         std::string m_ParametersGroup;
         INDI::Timer m_UpdateTimer;
