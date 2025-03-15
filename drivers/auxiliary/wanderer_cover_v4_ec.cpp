@@ -125,6 +125,10 @@ bool WandererCoverV4EC::updateProperties()
             LOG_INFO("New firmware available!");
         }
 
+        // Update the Close and Open position settings with the values from the device
+        CloseSetNP[CloseSet].setValue(closesetread);
+        OpenSetNP[OpenSet].setValue(opensetread);
+
         defineProperty(DataNP);
         defineProperty(FirmwareTP);
         defineProperty(SetHeaterNP);
@@ -285,6 +289,15 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
         
         // Update the UI with the parsed data
         updateData(closesetread, opensetread, positionread, voltageread);
+        
+        // Update the Close and Open position settings with the values from the device
+        CloseSetNP[CloseSet].setValue(closesetread);
+        CloseSetNP.setState(IPS_OK);
+        CloseSetNP.apply();
+        
+        OpenSetNP[OpenSet].setValue(opensetread);
+        OpenSetNP.setState(IPS_OK);
+        OpenSetNP.apply();
         
         return true;
     }
