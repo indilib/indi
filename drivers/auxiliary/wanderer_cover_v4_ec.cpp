@@ -332,7 +332,7 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
             if (CloseSetNP.getState() == IPS_OK)
             {
                 CloseSetNP.update(values, names, n);
-                saveConfig();
+                saveConfig(CloseSetNP);
             }
             CloseSetNP.apply();
             return true;
@@ -357,7 +357,7 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
             if (OpenSetNP.getState() == IPS_OK)
             {
                 OpenSetNP.update(values, names, n);
-                saveConfig();
+                saveConfig(OpenSetNP);
             }
             OpenSetNP.apply();
             return true;
