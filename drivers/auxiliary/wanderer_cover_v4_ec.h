@@ -113,5 +113,5 @@ private:
     Connection::Serial *serialConnection{ nullptr };
 
     // Mutex for thread safety
-    std::mutex serialPortMutex;
+    std::timed_mutex serialPortMutex;
 };

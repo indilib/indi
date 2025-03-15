@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <mutex>
+#include <chrono>
 
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
@@ -157,15 +158,17 @@ bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::getData()
 {
-    // Try to lock the mutex, but don't block if it's already locked
-    if (!serialPortMutex.try_lock())
+    // Try to lock the mutex with a short timeout
+    // This allows us to skip the status update if the device is busy
+    // but not wait too long which could cause the UI to freeze
+    if (!serialPortMutex.try_lock_for(std::chrono::milliseconds(100)))
     {
         LOG_DEBUG("Serial port is busy, skipping status update");
         return true;
     }
 
     // Use RAII to ensure the mutex is unlocked when we exit this function
-    std::lock_guard<std::mutex> lock(serialPortMutex, std::adopt_lock);
+    std::lock_guard<std::timed_mutex> lock(serialPortMutex, std::adopt_lock);
 
     try
     {
@@ -176,8 +179,16 @@ bool WandererCoverV4EC::getData()
         char buffer[512] = {0};
         int nbytes_read = 0, rc = -1;
         
-        if ((rc = tty_read_section(PortFD, buffer, '\n', 10, &nbytes_read)) != TTY_OK)
+        // Use a shorter timeout for reading to prevent blocking too long
+        if ((rc = tty_read_section(PortFD, buffer, '\n', 2, &nbytes_read)) != TTY_OK)
         {
+            // If we get a timeout, it's not necessarily an error - the device might just be busy
+            if (rc == TTY_TIME_OUT)
+            {
+                LOG_DEBUG("Timeout reading from device, will try again later");
+                return true;
+            }
+            
             char errorMessage[MAXRBUF];
             tty_error_msg(rc, errorMessage, MAXRBUF);
             LOGF_ERROR("Failed to read data from device. Error: %s", errorMessage);
@@ -203,7 +214,7 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
         std::vector<std::string> tokens;
         std::string token;
         std::istringstream tokenStream(data);
-        
+        LOGF_INFO("Data: %s", data);
         // Split the data by 'A' separator
         while (std::getline(tokenStream, token, 'A'))
         {
@@ -401,7 +412,8 @@ bool WandererCoverV4EC::toggleCover(bool open)
 {
     char cmd[128] = {0};
     snprintf(cmd, 128, "100%d", open ? 1 : 0);
-    // Wait for 'done' response when parking or unparking the cover
+    // No need to wait for 'done' response as we're handling the busy state in ParkCap/UnParkCap
+    // and the actual position is monitored through regular status updates
     if (sendCommand(cmd, true))
     {
         return true;
@@ -416,11 +428,18 @@ bool WandererCoverV4EC::toggleCover(bool open)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState WandererCoverV4EC::ParkCap()
 {
+    // Set park status to busy
+    ParkCapSP.setState(IPS_BUSY);
+    ParkCapSP.apply();
+    
     if (toggleCover(false))
     {
         return IPS_BUSY;
     }
 
+    // If toggleCover failed, set back to alert
+    ParkCapSP.setState(IPS_ALERT);
+    ParkCapSP.apply();
     return IPS_ALERT;
 }
 
@@ -429,11 +448,18 @@ IPState WandererCoverV4EC::ParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState WandererCoverV4EC::UnParkCap()
 {
+    // Set park status to busy
+    ParkCapSP.setState(IPS_BUSY);
+    ParkCapSP.apply();
+    
     if (toggleCover(true))
     {
         return IPS_BUSY;
     }
 
+    // If toggleCover failed, set back to alert
+    ParkCapSP.setState(IPS_ALERT);
+    ParkCapSP.apply();
     return IPS_ALERT;
 }
 
@@ -478,9 +504,10 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::sendCommand(std::string command, bool waitForDone = false)
+bool WandererCoverV4EC::sendCommand(std::string command, bool waitForDone)
 {
-    std::lock_guard<std::mutex> lock(serialPortMutex);
+    // Lock the mutex for the duration of this function
+    std::lock_guard<std::timed_mutex> lock(serialPortMutex);
     
     int nbytes_written = 0, rc = -1;
     std::string command_termination = "\n";
@@ -502,15 +529,16 @@ bool WandererCoverV4EC::sendCommand(std::string command, bool waitForDone = fals
         
         while (difftime(time(nullptr), startTime) < 30)
         {
+            LOGF_INFO("Waiting for 'done' response : %d seconds", difftime(time(nullptr), startTime));
             if ((rc = tty_read_section(PortFD, buffer, '\n', 1, &nbytes_read)) == TTY_OK)
             {
                 buffer[nbytes_read] = '\0';
-                LOGF_DEBUG("Response: %s", buffer);
+                LOGF_INFO("Response: %s", buffer);
                 
                 // Check if the response is 'done'
                 if (strstr(buffer, "done") != nullptr)
                 {
-                    LOGF_DEBUG("Received 'done' response");
+                    LOG_DEBUG("Received 'done' response");
                     return true;
                 }
                 else
