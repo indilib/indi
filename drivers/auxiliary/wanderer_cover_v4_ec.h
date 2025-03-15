@@ -27,6 +27,7 @@
 #include "defaultdevice.h"
 #include "indidustcapinterface.h"
 #include "indilightboxinterface.h"
+#include <mutex>
 
 namespace Connection
 {
@@ -66,14 +67,14 @@ private:
 
     int firmware=0;
     bool toggleCover(bool open);
-    bool sendCommand(std::string command);
+    bool sendCommand(std::string command, bool waitForDone = false);
     //Current Calibrate
     bool getData();
+    bool parseDeviceData(const char *data);
     double closesetread=0;
     double opensetread=0;
     double positionread=0;
     double voltageread=0;
-    bool Ismoving=false;
     bool setDewPWM(int id, int value);
     bool setClose(double value);
     bool setOpen(double value);
@@ -110,4 +111,7 @@ private:
     int PortFD{ -1 };
 
     Connection::Serial *serialConnection{ nullptr };
+
+    // Mutex for thread safety
+    std::mutex serialPortMutex;
 };
