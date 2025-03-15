@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
   WandererCover V4-EC
 
@@ -106,6 +106,13 @@ private:
     enum
     {
         OpenSet,
+    };
+
+    // Firmware information
+    INDI::PropertyText FirmwareTP{1};
+    enum
+    {
+        FIRMWARE_VERSION,
     };
 
     int PortFD{ -1 };

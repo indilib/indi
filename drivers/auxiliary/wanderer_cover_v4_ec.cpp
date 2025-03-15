@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
   WandererCover V4-EC
 
@@ -69,6 +69,10 @@ bool WandererCoverV4EC::initProperties()
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Firmware information
+    FirmwareTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware Version", "Unknown");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
     LightIntensityNP[0].setMax(255);
     LightIntensityNP[0].setValue(100);
 
@@ -106,6 +110,11 @@ bool WandererCoverV4EC::updateProperties()
 
     if (isConnected())
     {
+        // Update firmware information
+        char firmwareStr[16];
+        snprintf(firmwareStr, sizeof(firmwareStr), "%d", firmware);
+        FirmwareTP[FIRMWARE_VERSION].setText(firmwareStr);
+        
         if(firmware >= 20240101)
         {
             LOGF_INFO("Firmware version: %d", firmware);
@@ -116,8 +125,8 @@ bool WandererCoverV4EC::updateProperties()
             LOG_INFO("New firmware available!");
         }
 
-
         defineProperty(DataNP);
+        defineProperty(FirmwareTP);
         defineProperty(SetHeaterNP);
         defineProperty(CloseSetNP);
         defineProperty(OpenSetNP);
@@ -125,6 +134,7 @@ bool WandererCoverV4EC::updateProperties()
     else
     {
         deleteProperty(DataNP);
+        deleteProperty(FirmwareTP);
         deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
@@ -245,6 +255,13 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
         
         // Firmware version
         firmware = std::atoi(tokens[1].c_str());
+        
+        // Update firmware information in the UI
+        char firmwareStr[16];
+        snprintf(firmwareStr, sizeof(firmwareStr), "%d", firmware);
+        FirmwareTP[FIRMWARE_VERSION].setText(firmwareStr);
+        FirmwareTP.setState(IPS_OK);
+        FirmwareTP.apply();
         
         // Close position set
         closesetread = std::strtod(tokens[2].c_str(), NULL);
