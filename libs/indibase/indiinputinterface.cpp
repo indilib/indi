@@ -47,6 +47,8 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
 {
     m_DigitalInputLabelsConfig = false;
     m_AnalogInputLabelsConfig = false;
+
+    // @INDI_STANDARD_PROPERTY@
     DigitalInputLabelsTP.resize(0);
     // Digital labels
     for (size_t i = 0; i < digital; i++)
@@ -61,6 +63,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
 
     if (digital > 0)
     {
+        // @INDI_STANDARD_PROPERTY@
         DigitalInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_INPUT_LABELS", "Digital Labels", groupName, IP_RW, 60,
                                   IPS_IDLE);
         DigitalInputLabelsTP.shrink_to_fit();
@@ -68,6 +71,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
     }
 
     // Analog labels
+    // @INDI_STANDARD_PROPERTY@
     AnalogInputLabelsTP.resize(0);
     for (size_t i = 0; i < analog; i++)
     {
@@ -88,6 +92,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
     }
 
     // Analog inputs
+    // @INDI_STANDARD_PROPERTY@
     AnalogInputsNP.reserve(analog);
     for (size_t i = 0; i < analog; i++)
     {
@@ -103,6 +108,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         AnalogInputsNP.push_back(std::move(oneNumber));
     }
 
+    // @INDI_STANDARD_PROPERTY@
     DigitalInputsSP.reserve(digital);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < digital; i++)

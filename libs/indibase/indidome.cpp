@@ -127,12 +127,14 @@ bool Dome::initProperties()
         ActiveDevicesUpdated();
 
     // Use locking if telescope is unparked
+    // @INDI_STANDARD_PROPERTY@
     MountPolicySP[MOUNT_IGNORED].fill("MOUNT_IGNORED", "Mount ignored", ISS_ON);
     MountPolicySP[MOUNT_LOCKS].fill("MOUNT_LOCKS", "Mount locks", ISS_OFF);
     MountPolicySP.fill(getDeviceName(), "MOUNT_POLICY", "Mount Policy", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     MountPolicySP.load();
 
     // Shutter Policy
+    // @INDI_STANDARD_PROPERTY@
     ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].fill("SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
     ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].fill("SHUTTER_OPEN_ON_UNPARK", "Open On UnPark", ISS_OFF);
     ShutterParkPolicySP.fill(getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60,
@@ -140,6 +142,7 @@ bool Dome::initProperties()
     ShutterParkPolicySP.load();
 
     // Measurements
+    // @INDI_STANDARD_PROPERTY@
     DomeMeasurementsNP[DM_DOME_RADIUS].fill("DM_DOME_RADIUS", "Radius (m)", "%6.2f", 0.0, 50.0, 1.0, 0.0);
     DomeMeasurementsNP[DM_SHUTTER_WIDTH].fill("DM_SHUTTER_WIDTH", "Shutter width (m)", "%6.2f", 0.0, 10.0, 1.0, 0.0);
     DomeMeasurementsNP[DM_NORTH_DISPLACEMENT].fill("DM_NORTH_DISPLACEMENT", "N displacement (m)", "%6.2f", -10.0, 10.0, 1.0,
@@ -150,6 +153,7 @@ bool Dome::initProperties()
     DomeMeasurementsNP.fill(getDeviceName(), "DOME_MEASUREMENTS", "Measurements", DOME_SLAVING_TAB, IP_RW, 60, IPS_OK);
     DomeMeasurementsNP.load();
 
+    // @INDI_STANDARD_PROPERTY@
     OTASideSP[DM_OTA_SIDE_EAST].fill("DM_OTA_SIDE_EAST", "East", ISS_OFF);
     OTASideSP[DM_OTA_SIDE_WEST].fill("DM_OTA_SIDE_WEST", "West", ISS_OFF);
     OTASideSP[DM_OTA_SIDE_MOUNT].fill("DM_OTA_SIDE_MOUNT", "Mount", ISS_ON);
@@ -157,52 +161,65 @@ bool Dome::initProperties()
     OTASideSP[DM_OTA_SIDE_IGNORE].fill("DM_OTA_SIDE_IGNORE", "Ignore", ISS_OFF);
     OTASideSP.fill(getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeAutoSyncSP[INDI_ENABLED].fill("DOME_AUTOSYNC_ENABLE", "Enable", ISS_OFF);
     DomeAutoSyncSP[INDI_DISABLED].fill("DOME_AUTOSYNC_DISABLE", "Disable", ISS_ON);
     DomeAutoSyncSP.fill(getDeviceName(), "DOME_AUTOSYNC", "Slaving", DOME_SLAVING_TAB, IP_RW, ISR_1OFMANY, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeSpeedNP[0].fill("DOME_SPEED_VALUE", "RPM", "%6.2f", 0.0, 10, 0.1, 1.0);
     DomeSpeedNP.fill(getDeviceName(), "DOME_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeSyncNP[0].fill("DOME_SYNC_VALUE", "Az", "%.2f", 0.0, 360, 10, 0.0);
     DomeSyncNP.fill(getDeviceName(), "DOME_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeMotionSP[0].fill("DOME_CW", "Dome CW", ISS_OFF);
     DomeMotionSP[1].fill("DOME_CCW", "Dome CCW", ISS_OFF);
     DomeMotionSP.fill(getDeviceName(), "DOME_MOTION", "Motion", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     // Driver can define those to clients if there is support
+    // @INDI_STANDARD_PROPERTY@
     DomeAbsPosNP[0].fill("DOME_ABSOLUTE_POSITION", "Degrees", "%6.2f", 0.0, 360.0, 1.0, 0.0);
     DomeAbsPosNP.fill(getDeviceName(), "ABS_DOME_POSITION", "Absolute Position", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeRelPosNP[0].fill("DOME_RELATIVE_POSITION", "Degrees", "%6.2f", -180, 180.0, 10.0, 0.0);
     DomeRelPosNP.fill(getDeviceName(), "REL_DOME_POSITION", "Relative Position", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
     AbortSP.fill(getDeviceName(), "DOME_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     DomeParamNP[0].fill("AUTOSYNC_THRESHOLD", "Autosync threshold (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.5);
     DomeParamNP.fill(getDeviceName(), "DOME_PARAMS", "Params", DOME_SLAVING_TAB, IP_RW, 60, IPS_OK);
     DomeParamNP.load();
 
+    // @INDI_STANDARD_PROPERTY@
     ParkSP[0].fill("PARK", "Park(ed)", ISS_OFF);
     ParkSP[1].fill("UNPARK", "UnPark(ed)", ISS_OFF);
     ParkSP.fill(getDeviceName(), "DOME_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_OK);
 
     // Backlash Compensation
+    // @INDI_STANDARD_PROPERTY@
     DomeBacklashSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     DomeBacklashSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
     DomeBacklashSP.fill(getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
+    // @INDI_STANDARD_PROPERTY@
     DomeBacklashNP[0].fill("DOME_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
     DomeBacklashNP.fill(getDeviceName(), "DOME_BACKLASH_STEPS", "Backlash", OPTIONS_TAB, IP_RW, 60, IPS_OK);
     DomeBacklashNP.load();
 
+    // @INDI_STANDARD_PROPERTY@
     DomeShutterSP[0].fill("SHUTTER_OPEN", "Open", ISS_OFF);
     DomeShutterSP[1].fill("SHUTTER_CLOSE", "Close", ISS_ON);
     DomeShutterSP.fill(getDeviceName(), "DOME_SHUTTER", "Shutter", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
+    // @INDI_STANDARD_PROPERTY@
     ParkOptionSP[0].fill("PARK_CURRENT", "Current", ISS_OFF);
     ParkOptionSP[1].fill("PARK_DEFAULT", "Default", ISS_OFF);
     ParkOptionSP[2].fill("PARK_WRITE_DATA", "Write Data", ISS_OFF);

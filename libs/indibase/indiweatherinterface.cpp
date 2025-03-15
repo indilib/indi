@@ -45,24 +45,29 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     m_ParametersGroup = paramsGroup;
 
     // Update Period
+    // @INDI_STANDARD_PROPERTY@
     UpdatePeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60, 60);
     UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", statusGroup,
                         IP_RW, 60, IPS_IDLE);
 
     // Refresh
+    // @INDI_STANDARD_PROPERTY@
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
     RefreshSP.fill(getDeviceName(), "WEATHER_REFRESH", "Weather", statusGroup, IP_RW, ISR_ATMOST1, 0,
                    IPS_IDLE);
 
     // Override
+    // @INDI_STANDARD_PROPERTY@
     OverrideSP[0].fill("OVERRIDE", "Override Status", ISS_OFF);
     OverrideSP.fill(getDeviceName(), "WEATHER_OVERRIDE", "Safety", statusGroup, IP_RW,
                     ISR_NOFMANY, 0, IPS_IDLE);
 
     // Parameters
+    // @INDI_STANDARD_PROPERTY@
     ParametersNP.fill(getDeviceName(), "WEATHER_PARAMETERS", "Parameters", paramsGroup, IP_RO, 60, IPS_OK);
 
     // Weather Status
+    // @INDI_STANDARD_PROPERTY@
     critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
 }
 
@@ -246,7 +251,8 @@ IPState WeatherInterface::updateWeather()
 ////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk,
+                                    double percWarning)
 {
     LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f) ", name.c_str(), numMinOk, numMaxOk, percWarning);
 
@@ -383,7 +389,8 @@ bool WeatherInterface::syncCriticalParameters()
 ////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk,
+        double percWarning)
 {
     INDI::WidgetNumber minWidget, maxWidget, warnWidget;
     minWidget.fill("MIN_OK", "OK range min", "%.2f", -1e6, 1e6, 0, numMinOk);

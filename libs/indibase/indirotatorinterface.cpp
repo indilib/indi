@@ -35,26 +35,31 @@ RotatorInterface::RotatorInterface(DefaultDevice *defaultDevice) : m_defaultDevi
 void RotatorInterface::initProperties(const char *groupName)
 {
     // Rotator Angle
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&GotoRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
     IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, m_defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto",
                        groupName, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION",
                        "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Sync
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&SyncRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
     IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, m_defaultDevice->getDeviceName(), "SYNC_ROTATOR_ANGLE", "Sync",
                        groupName, IP_RW, 0, IPS_IDLE );
 
     // Home Rotator
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&HomeRotatorS[0], "HOME", "Start", ISS_OFF);
     IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Reverse Direction
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse",
@@ -62,6 +67,7 @@ void RotatorInterface::initProperties(const char *groupName)
                        0, IPS_IDLE);
 
     // Backlash Compensation
+    // @INDI_STANDARD_PROPERTY@
     IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&RotatorBacklashSP, RotatorBacklashS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE",
@@ -70,6 +76,7 @@ void RotatorInterface::initProperties(const char *groupName)
 
 
     // Backlash Compensation Value
+    // @INDI_STANDARD_PROPERTY@
     IUFillNumber(&RotatorBacklashN[0], "ROTATOR_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
     IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS",
                        "Backlash",
@@ -77,6 +84,7 @@ void RotatorInterface::initProperties(const char *groupName)
 
 
     // Rotator Limits
+    // @INDI_STANDARD_PROPERTY@
     RotatorLimitsNP[0].fill("ROTATOR_LIMITS_VALUE", "Max Range (degrees)", "%.f", 0, 360, 30, 0);
     RotatorLimitsNP.fill(m_defaultDevice->getDeviceName(), "ROTATOR_LIMITS", "Limits", groupName, IP_RW, 60, IPS_IDLE);
 }
