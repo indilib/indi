@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2025 Jérémie Klein. All rights reserved.
 
   Wanderer cover V3
 
@@ -63,6 +63,7 @@ WandererCover::WandererCover() : LightBoxInterface(this), DustCapInterface(this)
 
 bool WandererCover::initProperties()
 {
+    LOG_INFO("Initializing Wanderer Cover properties...");
     INDI::DefaultDevice::initProperties();
     DI::initProperties(MAIN_CONTROL_TAB);
     LI::initProperties(MAIN_CONTROL_TAB, CAN_DIM);
@@ -114,11 +115,13 @@ bool WandererCover::initProperties()
     });
     registerConnection(serialConnection);
 
+    LOG_INFO("Properties initialization complete");
     return true;
 }
 
 bool WandererCover::Handshake()
 {
+    LOG_INFO("Starting handshake with device...");
     if (isSimulation())
     {
         LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...", getDeviceName());
@@ -226,10 +229,12 @@ void WandererCover::updateCoverStatus(char* res)
 {
     if (strcmp(res, "0") == 0)
     {
+        isCoverOpen = false;
         setParkCapStatusAsClosed();
     }
     else if (strcmp(res, "1") == 0)
     {
+        isCoverOpen = true;
         setParkCapStatusAsOpen();
     }
     else if (strcmp(res, "255") == 0)
@@ -359,89 +364,137 @@ bool WandererCover::getStartupData()
 
 IPState WandererCover::ParkCap()
 {
+    LOG_DEBUG("=== Starting ParkCap() - Attempting to close dust cap ===");
+    
+    LOGF_DEBUG("Checking number of steps: %d", NumberOfStepsBeetweenOpenAndCloseState);
     if (NumberOfStepsBeetweenOpenAndCloseState == 0)
     {
-        LOGF_ERROR("The number of steps is 0 meaning the falt panel may hit an obstacle. You should define opening and closing position first.",
-                   "");
+        LOG_ERROR("Number of steps is 0 - Configuration required");
+        LOGF_ERROR("The number of steps is 0 meaning the flat panel may hit an obstacle. You should define opening and closing position first.", "");
         return IPS_ALERT;
     }
 
+    LOGF_DEBUG("Checking current cover state: isCoverOpen = %s", isCoverOpen ? "true" : "false");
+    if (!isCoverOpen)
+    {
+        LOG_INFO("Cover is already closed - No action needed");
+        return IPS_OK;
+    }
+
+    LOGF_DEBUG("Checking simulation mode: %s", isSimulation() ? "true" : "false");
     if (isSimulation())
     {
+        LOG_INFO("In simulation mode - Setting status to closed");
         setParkCapStatusAsClosed();
         return IPS_OK;
     }
 
-    // Not sure why the TTY sends crappy data there
+    LOG_DEBUG("Sending close command to device");
     char response[20];
     if (!sendCommand(CLOSE_COVER_COMMAND, response, true))
+    {
+        LOG_ERROR("Failed to send close command");
         return IPS_ALERT;
+    }
 
+    LOGF_DEBUG("Checking response for errors: %s", response);
     if (hasWandererSentAnError(response))
     {
+        LOG_ERROR("Device returned error - Configuration required");
         LOG_ERROR("You need to configure Open and closed position first in 'Dust cover configuration' tab.");
         return IPS_ALERT;
     }
+
+    LOG_DEBUG("Close command successful - Updating status");
     setParkCapStatusAsClosed();
 
+    LOG_DEBUG("=== ParkCap() completed successfully ===");
+    return IPS_OK;
+}
+
+IPState WandererCover::UnParkCap()
+{
+    LOG_DEBUG("=== Starting UnParkCap() - Attempting to open dust cap ===");
+
+    LOGF_DEBUG("Checking number of steps: %d", NumberOfStepsBeetweenOpenAndCloseState);
+    if (NumberOfStepsBeetweenOpenAndCloseState == 0)
+    {
+        LOG_ERROR("Number of steps is 0 - Configuration required");
+        LOG_ERROR("The number of steps is 0 meaning the flat panel may hit an obstacle. You should define opening and closing position first.");
+        return IPS_ALERT;
+    }
+
+    LOGF_DEBUG("Checking current cover state: isCoverOpen = %s", isCoverOpen ? "true" : "false");
+    if (isCoverOpen)
+    {
+        LOG_INFO("Cover is already open - No action needed");
+        return IPS_OK;
+    }
+
+    LOGF_DEBUG("Checking simulation mode: %s", isSimulation() ? "true" : "false");
+    if (isSimulation())
+    {
+        LOG_INFO("In simulation mode - Setting status to open");
+        setParkCapStatusAsOpen();
+        return IPS_OK;
+    }
+
+    LOG_DEBUG("Sending open command to device");
+    char response[20];
+    if (!sendCommand(OPEN_COVER_COMMAND, response, true))
+    {
+        LOG_ERROR("Failed to send open command");
+        return IPS_ALERT;
+    }
+
+    LOGF_DEBUG("Checking response for errors: %s", response);
+    if (hasWandererSentAnError(response))
+    {
+        LOG_ERROR("Device returned error - Displaying configuration message");
+        displayConfigurationMessage();
+        return IPS_ALERT;
+    }
+
+    LOG_DEBUG("Open command successful - Updating status");
+    setParkCapStatusAsOpen();
+
+    LOG_DEBUG("=== UnParkCap() completed successfully ===");
     return IPS_OK;
 }
 
 void WandererCover::setParkCapStatusAsClosed()
 {
     IUSaveText(&StatusT[0], "Closed");
+    IDSetText(&StatusTP, nullptr);
     ParkCapSP.reset();
     ParkCapSP[0].setState(ISS_ON);
+    ParkCapSP[1].setState(ISS_OFF);
     ParkCapSP.setState(IPS_OK);
+    isCoverOpen = false;
     LOG_INFO("Cover closed.");
     ParkCapSP.apply();
-}
-
-IPState WandererCover::UnParkCap()
-{
-    if (NumberOfStepsBeetweenOpenAndCloseState == 0)
-    {
-        LOG_ERROR("The number of steps is 0 meaning the falt panel may hit an obstacle. You should define opening and closing position first.");
-        return IPS_ALERT;
-    }
-
-    if (isSimulation())
-    {
-        setParkCapStatusAsOpen();
-        return IPS_OK;
-    }
-
-    // Not sure why the TTY sends crappy data there
-    char response[20];
-    if (!sendCommand(OPEN_COVER_COMMAND, response, true))
-        return IPS_ALERT;
-
-    if (hasWandererSentAnError(response))
-    {
-        displayConfigurationMessage();
-        return IPS_ALERT;
-    }
-
-    setParkCapStatusAsOpen();
-    return IPS_OK;
 }
 
 void WandererCover::setParkCapStatusAsOpen()
 {
     IUSaveText(&StatusT[0], "Open");
+    IDSetText(&StatusTP, nullptr);
     ParkCapSP.reset();
+    ParkCapSP[0].setState(ISS_OFF);
     ParkCapSP[1].setState(ISS_ON);
     ParkCapSP.setState(IPS_OK);
+    isCoverOpen = true;
     LOG_INFO("Cover open.");
     ParkCapSP.apply();
 }
 
 bool WandererCover::EnableLightBox(bool enable)
 {
-    if (ParkCapSP[1].getState() == ISS_ON)
+    LOGF_INFO("Setting light box state to: %s", enable ? "ON" : "OFF");
+    if (enable == isLightOn)
     {
-        LOG_ERROR("Cannot control light while cap is unparked.");
-        return false;
+        LOG_INFO(enable ? "Light box is already on." : "Light box is already off.");
+        return true;
     }
 
     if (enable)
@@ -475,17 +528,20 @@ bool WandererCover::switchOffLightBox()
 void WandererCover::setLightBoxStatusAsSwitchedOff()
 {
     IUSaveText(&StatusT[1], "Off");
+    IDSetText(&StatusTP, nullptr);
     LightSP[0].setState(ISS_OFF);
     LightSP[1].setState(ISS_ON);
     LightIntensityNP[0].setValue(0);
     LightIntensityNP.apply();
     LightSP.apply();
+    isLightOn = false;
     LOG_INFO("Light panel switched off");
 }
 
 
 bool WandererCover::SetLightBoxBrightness(uint16_t value)
 {
+    LOGF_INFO("Setting light box brightness to %d", value);
     if (isSimulation())
     {
         setLightBoxBrightnesStatusToValue(value);
@@ -504,6 +560,7 @@ bool WandererCover::SetLightBoxBrightness(uint16_t value)
 
 bool WandererCover::setCurrentPositionToOpenPosition()
 {
+    LOG_INFO("Setting current position as open position...");
     if (isSimulation())
     {
         LOG_INFO("Current position set to open position");
@@ -516,12 +573,15 @@ bool WandererCover::setCurrentPositionToOpenPosition()
 
     NumberOfDegreesSinceLastOpenPositionSet = 0;
 
+    LOG_INFO("Open position successfully set");
     return true;
 }
 
 bool WandererCover::setCurrentPositionToClosedPosition()
 {
+    LOG_INFO("Setting current position as closed position...");
     int cumulative_angle_value = ((abs(NumberOfDegreesSinceLastOpenPositionSet) * 222.22) / 10) + 10000;
+    LOGF_INFO("Calculated cumulative angle: %d", cumulative_angle_value);
 
     if (isSimulation())
     {
@@ -542,6 +602,7 @@ bool WandererCover::setCurrentPositionToClosedPosition()
 
     setParkCapStatusAsClosed();
 
+    LOG_INFO("Closed position successfully set");
     return true;
 }
 
@@ -549,6 +610,17 @@ void WandererCover::setLightBoxBrightnesStatusToValue(uint16_t value)
 {
     LightIntensityNP[0].setValue(value);
     LightIntensityNP.apply();
+    if (value == 0)
+    {
+        setLightBoxStatusAsSwitchedOff();
+    } else {
+        IUSaveText(&StatusT[1], "On");
+        IDSetText(&StatusTP, nullptr);
+        LightSP[0].setState(ISS_ON);
+        LightSP[1].setState(ISS_OFF);
+        LightSP.apply();
+        isLightOn = true;
+    }
     LOGF_INFO("Brightness set to %d.", value);
 }
 
@@ -563,6 +635,7 @@ void WandererCover::setNumberOfStepsStatusValue(int value)
 
 bool WandererCover::sendCommand(std::string command, char *response, bool waitForAnswer)
 {
+    LOGF_INFO("Sending command: %s", command.c_str());
     int nbytes_read = 0, nbytes_written = 0, rc = -1;
     std::string command_termination = "\n";
     LOGF_DEBUG("CMD: %s", command.c_str());
@@ -583,11 +656,16 @@ bool WandererCover::sendCommand(std::string command, char *response, bool waitFo
     }
     LOGF_DEBUG("RESPONSE: %s", response);
     SetTimer(150);
+    if (waitForAnswer)
+    {
+        LOGF_INFO("Received response: %s", response);
+    }
     return true;
 }
 
 IPState WandererCover::moveDustCap(int degrees)
 {
+    LOGF_INFO("Moving dust cap by %d degrees", degrees);
     if (degrees < -360 or degrees > 360)
     {
         LOGF_ERROR("Degrees must be between -360 and 360 :  %d", degrees);
@@ -615,12 +693,14 @@ IPState WandererCover::moveDustCap(int degrees)
 
     NumberOfDegreesSinceLastOpenPositionSet += degrees;
     LOGF_DEBUG("Number of degrees since last open position set : %d", NumberOfDegreesSinceLastOpenPositionSet);
+    LOG_INFO("Dust cap movement complete");
     return IPS_OK;
 }
 
 bool WandererCover::processConfigurationButtonSwitch(const char *dev, const char *name, ISState *states, char *names[],
         int n)
 {
+    LOG_INFO("Processing configuration button press...");
     if (strcmp(dev, getDeviceName()) == 0)
     {
         // configuration of open state clicked
@@ -644,6 +724,7 @@ bool WandererCover::processConfigurationButtonSwitch(const char *dev, const char
             }
             IDSetSwitch(&ControlPositionPositiveDegreesConfigurationVP, nullptr);
 
+            LOG_INFO("Configuration button processing complete");
             return true;
         }
 
@@ -667,6 +748,7 @@ bool WandererCover::processConfigurationButtonSwitch(const char *dev, const char
             }
             IDSetSwitch(&ControlPositionNegativeDegreesConfigurationVP, nullptr);
 
+            LOG_INFO("Configuration button processing complete");
             return true;
         }
 
@@ -684,10 +766,12 @@ bool WandererCover::processConfigurationButtonSwitch(const char *dev, const char
                 DefinePositionConfigurationV[SET_CURRENT_POSITION_CLOSE].s = ISS_OFF;
             }
             IDSetSwitch(&DefinePositionConfigurationVP, nullptr);
+            LOG_INFO("Configuration button processing complete");
             return true;
         }
     }
 
+    LOG_INFO("Configuration button processing complete");
     return false;
 }
 
