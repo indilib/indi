@@ -590,6 +590,8 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
 
     if (tty_gemini_udp_format)
     {
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+            return err;
         bytesRead = read(fd, readBuffer, 255);
 
         if (bytesRead < 0)
@@ -615,6 +617,8 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
     }
     else if (tty_generic_udp_format)
     {
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+            return err;
         bytesRead = read(fd, readBuffer, 255);
         if (bytesRead < 0)
             return TTY_READ_ERROR;
