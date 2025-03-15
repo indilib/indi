@@ -67,7 +67,7 @@ private:
 
     int firmware=0;
     bool toggleCover(bool open);
-    bool sendCommand(std::string command, bool waitForDone = false);
+    bool sendCommand(std::string command);
     //Current Calibrate
     bool getData();
     bool parseDeviceData(const char *data);

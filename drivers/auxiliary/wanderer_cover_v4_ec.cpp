@@ -214,7 +214,7 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
         std::vector<std::string> tokens;
         std::string token;
         std::istringstream tokenStream(data);
-        LOGF_INFO("Data: %s", data);
+        LOGF_DEBUG("Data: %s", data);
         // Split the data by 'A' separator
         while (std::getline(tokenStream, token, 'A'))
         {
@@ -225,7 +225,6 @@ bool WandererCoverV4EC::parseDeviceData(const char *data)
         // Check if we have enough tokens
         if (tokens.size() < 5)
         {
-            LOG_ERROR("Insufficient data received from device");
             return false;
         }
         
@@ -412,9 +411,7 @@ bool WandererCoverV4EC::toggleCover(bool open)
 {
     char cmd[128] = {0};
     snprintf(cmd, 128, "100%d", open ? 1 : 0);
-    // No need to wait for 'done' response as we're handling the busy state in ParkCap/UnParkCap
-    // and the actual position is monitored through regular status updates
-    if (sendCommand(cmd, true))
+    if (sendCommand(cmd))
     {
         return true;
     }
@@ -473,7 +470,7 @@ bool WandererCoverV4EC::SetLightBoxBrightness(uint16_t value)
     {
         // Only change if already enabled.
         if (LightSP[INDI_ENABLED].getState() == ISS_ON)
-            rc = sendCommand(std::to_string(value), false);
+            rc = sendCommand(std::to_string(value));
     }
     else
     {
@@ -494,9 +491,9 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
 {
     auto rc = false;
     if(!enable)
-        rc = sendCommand("9999", false);
+        rc = sendCommand("9999");
     else
-        rc = sendCommand(std::to_string(static_cast<int>(LightIntensityNP[0].getValue())), false);
+        rc = sendCommand(std::to_string(static_cast<int>(LightIntensityNP[0].getValue())));
 
     return rc;
 }
@@ -504,7 +501,7 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool WandererCoverV4EC::sendCommand(std::string command, bool waitForDone)
+bool WandererCoverV4EC::sendCommand(std::string command)
 {
     // Lock the mutex for the duration of this function
     std::lock_guard<std::timed_mutex> lock(serialPortMutex);
@@ -520,38 +517,6 @@ bool WandererCoverV4EC::sendCommand(std::string command, bool waitForDone)
         return false;
     }
     
-    if (waitForDone)
-    {
-        // Wait for 'done' response for at most 30 seconds
-        char buffer[512] = {0};
-        int nbytes_read = 0;
-        time_t startTime = time(nullptr);
-        
-        while (difftime(time(nullptr), startTime) < 30)
-        {
-            LOGF_INFO("Waiting for 'done' response : %d seconds", difftime(time(nullptr), startTime));
-            if ((rc = tty_read_section(PortFD, buffer, '\n', 1, &nbytes_read)) == TTY_OK)
-            {
-                buffer[nbytes_read] = '\0';
-                LOGF_INFO("Response: %s", buffer);
-                
-                // Check if the response is 'done'
-                if (strstr(buffer, "done") != nullptr)
-                {
-                    LOG_DEBUG("Received 'done' response");
-                    return true;
-                }
-                else
-                {
-                    // If not 'done', parse the data to update the GUI
-                    parseDeviceData(buffer);
-                }
-            }
-        }
-        
-        LOG_WARN("Timeout waiting for 'done' response");
-    }
-    
     return true;
 }
 
@@ -562,7 +527,7 @@ bool WandererCoverV4EC::setDewPWM(int id, int value)
 {
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d%03d", id, value);
-    if (sendCommand(cmd, false))
+    if (sendCommand(cmd))
     {
         return true;
     }
@@ -577,7 +542,7 @@ bool WandererCoverV4EC::setClose(double value)
 {
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d", (int)(value * 100 + 10000));
-    if (sendCommand(cmd, false))
+    if (sendCommand(cmd))
     {
         return true;
     }
@@ -592,7 +557,7 @@ bool WandererCoverV4EC::setOpen(double value)
 {
     char cmd[64] = {0};
     snprintf(cmd, 64, "%d", (int)(value * 100 + 40000));
-    if (sendCommand(cmd, false))
+    if (sendCommand(cmd))
     {
         return true;
     }
