@@ -33,7 +33,7 @@ class UnixServer
         void accept();
         void ioCb(ev::io &watcher, int revents);
 
-        virtual void log(const std::string &log) const;
+        void log(const std::string &log) const;
     public:
         UnixServer(const std::string &path);
 
