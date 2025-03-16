@@ -404,7 +404,10 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 
             CloseSetNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
             if (CloseSetNP.getState() == IPS_OK)
+            {
                 CloseSetNP.update(values, names, n);
+                saveConfig(CloseSetNP);
+            }
             CloseSetNP.apply();
             return true;
         }
@@ -426,7 +429,10 @@ bool WandererCoverV4EC::ISNewNumber(const char * dev, const char * name, double 
 
             OpenSetNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
             if (OpenSetNP.getState() == IPS_OK)
+            {
                 OpenSetNP.update(values, names, n);
+                saveConfig(OpenSetNP);
+            }
             OpenSetNP.apply();
             return true;
         }
