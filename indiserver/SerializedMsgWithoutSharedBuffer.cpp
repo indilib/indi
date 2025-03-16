@@ -122,7 +122,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
         ownBuffers.push_back(model);
 
         // Get the element offset
-        for(std::size_t i = 0; i < cdata.size(); ++i)
+        for(size_t i = 0; i < cdata.size(); ++i)
         {
             modelCdataOffset[i] = sprXMLCDataOffset(xmlContent, cdata[i], 0);
         }
@@ -134,7 +134,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
         std::vector<size_t> attachedSizes(cdata.size());
 
         // Attach all blobs
-        for(std::size_t i = 0; i < cdata.size(); ++i)
+        for(size_t i = 0; i < cdata.size(); ++i)
         {
             if (sharedBuffers[i] != -1)
             {
@@ -160,7 +160,7 @@ void SerializedMsgWithoutSharedBuffer::generateContent()
 
         // Copy from model or blob (streaming base64 encode)
         int modelOffset = 0;
-        for(std::size_t i = 0; i < cdata.size(); ++i)
+        for(size_t i = 0; i < cdata.size(); ++i)
         {
             int cdataOffset = modelCdataOffset[i];
             if (cdataOffset > modelOffset)

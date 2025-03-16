@@ -117,7 +117,7 @@ bool parseBlobSize(XMLEle * blobWithAttachedBuffer, ssize_t &size)
     {
         return false;
     }
-    std::size_t pos;
+    size_t pos;
     size = std::stoll(sizeStr, &pos, 10);
     if (pos != sizeStr.size())
     {
