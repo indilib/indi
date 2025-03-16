@@ -109,7 +109,7 @@ void LocalDvrInfo::start()
             setenv("INDIDEV", envDev.c_str(), 1);
         }
         /* Only reset environment variable in case of FIFO */
-        else if (updatedArgs->fifoHandle)
+        else if (userConfigurableArguments->fifoHandle)
         {
             unsetenv("INDIDEV");
         }
@@ -117,7 +117,7 @@ void LocalDvrInfo::start()
         {
             setenv("INDICONFIG", envConfig.c_str(), 1);
         }
-        else if (updatedArgs->fifoHandle)
+        else if (userConfigurableArguments->fifoHandle)
         {
             unsetenv("INDICONFIG");
         }
@@ -125,7 +125,7 @@ void LocalDvrInfo::start()
         {
             setenv("INDISKEL", envSkel.c_str(), 1);
         }
-        else if (updatedArgs->fifoHandle)
+        else if (userConfigurableArguments->fifoHandle)
         {
             unsetenv("INDISKEL");
         }
@@ -149,7 +149,7 @@ void LocalDvrInfo::start()
         {
             if (name[0] == '.')
             {
-                executable = updatedArgs->binaryName + "/" + name;
+                executable = userConfigurableArguments->binaryName + "/" + name;
                 execlp(executable.c_str(), name.c_str(), NULL);
             }
             else
@@ -201,7 +201,7 @@ void LocalDvrInfo::start()
     /* first message primes driver to report its properties -- dev known
      * if restarting
      */
-    if (updatedArgs->verbosity > 0)
+    if (userConfigurableArguments->verbosity > 0)
         log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 
     XMLEle *root = addXMLEle(NULL, "getProperties");

@@ -34,4 +34,4 @@ struct CommandLineArgs {
     int port{indiserver::constants::indiPortDefault};
 };
 
-extern CommandLineArgs* updatedArgs;
+extern CommandLineArgs* userConfigurableArguments;

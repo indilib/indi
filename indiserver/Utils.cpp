@@ -96,7 +96,7 @@ void logDMsg(XMLEle *root, const char *dev)
     }
 
     /* append to log file, name is date portion of time stamp */
-    sprintf(logfn, "%s/%.10s.islog", updatedArgs->loggingDir, ts);
+    sprintf(logfn, "%s/%.10s.islog", userConfigurableArguments->loggingDir, ts);
     fp = fopen(logfn, "a");
     if (!fp)
         return; /* oh well */

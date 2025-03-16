@@ -65,7 +65,7 @@ void Fifo::open()
 void Fifo::processLine(const char * line)
 {
 
-    if (updatedArgs->verbosity)
+    if (userConfigurableArguments->verbosity)
         log(fmt("FIFO: %s\n", line));
 
     char cmd[maxStringBufferLength];
@@ -123,7 +123,7 @@ void Fifo::processLine(const char * line)
             strncpy(tName, var[j], maxStringBufferLength - 1);
             tName[maxStringBufferLength - 1] = '\0';
 
-            if (updatedArgs->verbosity)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With name: %s\n", tName));
         }
         else if (arg[j][0] == 'c')
@@ -131,7 +131,7 @@ void Fifo::processLine(const char * line)
             strncpy(envConfig, var[j], maxStringBufferLength - 1);
             envConfig[maxStringBufferLength - 1] = '\0';
 
-            if (updatedArgs->verbosity)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With config: %s\n", envConfig));
         }
         else if (arg[j][0] == 's')
@@ -139,7 +139,7 @@ void Fifo::processLine(const char * line)
             strncpy(envSkel, var[j], maxStringBufferLength - 1);
             envSkel[maxStringBufferLength - 1] = '\0';
 
-            if (updatedArgs->verbosity)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With skeketon: %s\n", envSkel));
         }
         else if (arg[j][0] == 'p')
@@ -147,7 +147,7 @@ void Fifo::processLine(const char * line)
             strncpy(envPrefix, var[j], maxStringBufferLength - 1);
             envPrefix[maxStringBufferLength - 1] = '\0';
 
-            if (updatedArgs->verbosity)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With prefix: %s\n", envPrefix));
         }
     }
@@ -160,7 +160,7 @@ void Fifo::processLine(const char * line)
 
     if (startCmd)
     {
-        if (updatedArgs->verbosity)
+        if (userConfigurableArguments->verbosity)
             log(fmt("FIFO: Starting driver %s\n", tDriver));
 
         DvrInfo * dp;
@@ -192,7 +192,7 @@ void Fifo::processLine(const char * line)
                 /* If device name is given, check against it before shutting down */
                 if (tName[0] && !dp->isHandlingDevice(tName))
                     continue;
-                if (updatedArgs->verbosity)
+                if (userConfigurableArguments->verbosity)
                     log(fmt("FIFO: Shutting down driver: %s\n", tDriver));
 
                 dp->restart = false;

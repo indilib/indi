@@ -142,12 +142,12 @@ void MsgQueue::writeToFd()
     }
 
     /* trace */
-    if (updatedArgs->verbosity > 2)
+    if (userConfigurableArguments->verbosity > 2)
     {
         log(fmt("sending msg nq %ld:\n%.*s\n",
                 msgq.size(), (int)nw, data));
     }
-    else if (updatedArgs->verbosity > 1)
+    else if (userConfigurableArguments->verbosity > 1)
     {
         log(fmt("sending %.*s\n", (int)nw, data));
     }
@@ -515,7 +515,7 @@ void MsgQueue::readFromFd()
 
         if (nr < 0)
             log(fmt("read: %s\n", strerror(errno)));
-        else if (updatedArgs->verbosity > 0)
+        else if (userConfigurableArguments->verbosity > 0)
             log(fmt("read EOF\n"));
         close();
         return;
@@ -541,9 +541,9 @@ void MsgQueue::readFromFd()
     {
         if (hb.alive())
         {
-            if (updatedArgs->verbosity > 2)
+            if (userConfigurableArguments->verbosity > 2)
                 traceMsg("read ", root);
-            else if (updatedArgs->verbosity > 1)
+            else if (userConfigurableArguments->verbosity > 1)
             {
                 log(fmt("read <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));

@@ -96,12 +96,12 @@ using namespace indiserver::constants;
 
 static ev::default_loop loop;
 
-CommandLineArgs* updatedArgs{nullptr};
+CommandLineArgs* userConfigurableArguments{nullptr};
 
 /* print usage message and exit (2) */
 void usage(void)
 {
-    fprintf(stderr, "Usage: %s [options] driver [driver ...]\n", updatedArgs->binaryName.c_str());
+    fprintf(stderr, "Usage: %s [options] driver [driver ...]\n", userConfigurableArguments->binaryName.c_str());
     fprintf(stderr, "Purpose: server for local and remote INDI drivers\n");
     fprintf(stderr, "INDI Library: %s\nCode %s. Protocol %g.\n", CMAKE_INDI_VERSION_STRING, GIT_TAG_STRING, INDIV);
     fprintf(stderr, "Options:\n");
@@ -130,7 +130,7 @@ int main(int ac, char *av[])
     logStartup(ac, av);
 
     std::unique_ptr<CommandLineArgs> argValues = std::make_unique<CommandLineArgs>();
-    updatedArgs = argValues.get();
+    userConfigurableArguments = argValues.get();
 
     std::unique_ptr<Fifo> fifoHandle{};
     
@@ -165,7 +165,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-l requires log directory\n");
                         usage();
                     }
-                    updatedArgs->loggingDir = *++av;
+                    userConfigurableArguments->loggingDir = *++av;
                     ac--;
                     break;
                 case 'm':
@@ -174,7 +174,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-m requires max MB behind\n");
                         usage();
                     }
-                    updatedArgs->maxQueueSizeMB = 1024 * 1024 * atoi(*++av);
+                    userConfigurableArguments->maxQueueSizeMB = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
                 case 'p':
@@ -183,7 +183,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-p requires port value\n");
                         usage();
                     }
-                    updatedArgs->port = atoi(*++av);
+                    userConfigurableArguments->port = atoi(*++av);
                     ac--;
                     break;
                 case 'd':
@@ -192,7 +192,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-d requires max stream MB behind\n");
                         usage();
                     }
-                    updatedArgs->maxStreamSizeMB = 1024 * 1024 * atoi(*++av);
+                    userConfigurableArguments->maxStreamSizeMB = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
 #ifdef ENABLE_INDI_SHARED_MEMORY
@@ -214,7 +214,7 @@ int main(int ac, char *av[])
                     }
 
                     fifoHandle = std::make_unique<Fifo>(*++av);
-                    updatedArgs->fifoHandle = fifoHandle.get();
+                    userConfigurableArguments->fifoHandle = fifoHandle.get();
                     ac--;
                     break;
                 case 'r':
@@ -223,13 +223,13 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-r requires number of restarts\n");
                         usage();
                     }
-                    updatedArgs->maxRestartAttempts = atoi(*++av);
-                    if (updatedArgs->maxRestartAttempts < 0)
-                        updatedArgs->maxRestartAttempts = 0;
+                    userConfigurableArguments->maxRestartAttempts = atoi(*++av);
+                    if (userConfigurableArguments->maxRestartAttempts < 0)
+                        userConfigurableArguments->maxRestartAttempts = 0;
                     ac--;
                     break;
                 case 'v':
-                    updatedArgs->verbosity++;
+                    userConfigurableArguments->verbosity++;
                     break;
                 default:
                     usage();
@@ -238,7 +238,7 @@ int main(int ac, char *av[])
 #endif
 
     /* at this point there are ac args in av[] to name our drivers */
-    if (ac == 0 && !updatedArgs->fifoHandle)
+    if (ac == 0 && !userConfigurableArguments->fifoHandle)
         usage();
 
     /* take care of some unixisms */
@@ -263,7 +263,7 @@ int main(int ac, char *av[])
     }
 
     /* announce we are online */
-    const auto tcpServer = std::make_unique<TcpServer>(updatedArgs->port);
+    const auto tcpServer = std::make_unique<TcpServer>(userConfigurableArguments->port);
     tcpServer->listen();
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
@@ -272,13 +272,13 @@ int main(int ac, char *av[])
     unixServer->listen();
 #endif
     /* Load up FIFO, if available */
-    if (updatedArgs->fifoHandle)
+    if (userConfigurableArguments->fifoHandle)
     {
         // New started drivers will not inherit server's prefix anymore
 
         // JM 2022.07.23: This causes an issue on MacOS. Disabled for now until investigated further.
         //unsetenv("INDIPREFIX");
-        updatedArgs->fifoHandle->listen();
+        userConfigurableArguments->fifoHandle->listen();
     }
 
     /* handle new clients and all io */

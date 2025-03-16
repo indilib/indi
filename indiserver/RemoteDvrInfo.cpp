@@ -34,7 +34,7 @@ void RemoteDvrInfo::extractRemoteId(const std::string &name, std::string &o_host
     char host[maxStringBufferLength] = {0};
 
     /* extract host and port from name*/
-    int indi_port = updatedArgs->port;
+    int indi_port = userConfigurableArguments->port;
     if (sscanf(name.c_str(), "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
         // Device missing? Try a different syntax for all devices
@@ -66,7 +66,7 @@ void RemoteDvrInfo::start()
 
     this->setFds(sockfd, sockfd);
 
-    if (updatedArgs->verbosity > 0)
+    if (userConfigurableArguments->verbosity > 0)
         log(fmt("socket=%d\n", sockfd));
 
     /* N.B. storing name now is key to limiting outbound traffic to this
