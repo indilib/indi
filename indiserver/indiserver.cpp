@@ -244,29 +244,32 @@ int main(int ac, char *av[])
     /* take care of some unixisms */
     noSIGPIPE();
 
+    std::vector<std::unique_ptr<DvrInfo>> drivers(ac);
+
     /* start each driver */
     while (ac-- > 0)
     {
         std::string dvrName = *av++;
-        DvrInfo * dr;
         if (dvrName.find('@') != std::string::npos)
         {
-            dr = new RemoteDvrInfo();
+            drivers.push_back(std::make_unique<RemoteDvrInfo>());
         }
         else
         {
-            dr = new LocalDvrInfo();
+            drivers.push_back(std::make_unique<LocalDvrInfo>());
         }
-        dr->name = dvrName;
-        dr->start();
+        drivers.back()->name = dvrName;
+        drivers.back()->start();
     }
 
     /* announce we are online */
-    (new TcpServer(updatedArgs->port))->listen();
+    const auto tcpServer = std::make_unique<TcpServer>(updatedArgs->port);
+    tcpServer->listen();
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
     /* create a new unix server */
-    (new UnixServer(UnixServer::unixSocketPath))->listen();
+    const auto unixServer = std::make_unique<UnixServer>(UnixServer::unixSocketPath);
+    unixServer->listen();
 #endif
     /* Load up FIFO, if available */
     if (updatedArgs->fifoHandle)
