@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
   WandererCover V4-EC
 
@@ -31,6 +31,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <mutex>
+#include <chrono>
 
 static std::unique_ptr<WandererCoverV4EC> wanderercoverv4ec(new WandererCoverV4EC());
 
@@ -66,6 +68,10 @@ bool WandererCoverV4EC::initProperties()
     DataNP[position_read].fill( "Current_Position", "Current Position(°)", "%4.2f", 0, 999, 100, 0);
     DataNP[voltage_read].fill( "Voltage", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     DataNP.fill(getDeviceName(), "STATUS", "Real Time Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
+    // Firmware information
+    FirmwareTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware Version", "Unknown");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     LightIntensityNP[0].setMax(255);
     LightIntensityNP[0].setValue(100);
@@ -104,6 +110,11 @@ bool WandererCoverV4EC::updateProperties()
 
     if (isConnected())
     {
+        // Update firmware information
+        char firmwareStr[16];
+        snprintf(firmwareStr, sizeof(firmwareStr), "%d", firmware);
+        FirmwareTP[FIRMWARE_VERSION].setText(firmwareStr);
+        
         if(firmware >= 20240101)
         {
             LOGF_INFO("Firmware version: %d", firmware);
@@ -114,8 +125,12 @@ bool WandererCoverV4EC::updateProperties()
             LOG_INFO("New firmware available!");
         }
 
+        // Update the Close and Open position settings with the values from the device
+        CloseSetNP[CloseSet].setValue(closesetread);
+        OpenSetNP[OpenSet].setValue(opensetread);
 
         defineProperty(DataNP);
+        defineProperty(FirmwareTP);
         defineProperty(SetHeaterNP);
         defineProperty(CloseSetNP);
         defineProperty(OpenSetNP);
@@ -123,6 +138,7 @@ bool WandererCoverV4EC::updateProperties()
     else
     {
         deleteProperty(DataNP);
+        deleteProperty(FirmwareTP);
         deleteProperty(SetHeaterNP);
         deleteProperty(OpenSetNP);
         deleteProperty(CloseSetNP);
@@ -156,82 +172,140 @@ bool WandererCoverV4EC::ISSnoopDevice(XMLEle *root)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::getData()
 {
+    // Try to lock the mutex with a short timeout
+    // This allows us to skip the status update if the device is busy
+    // but not wait too long which could cause the UI to freeze
+    if (!serialPortMutex.try_lock_for(std::chrono::milliseconds(100)))
+    {
+        LOG_DEBUG("Serial port is busy, skipping status update");
+        return true;
+    }
+
+    // Use RAII to ensure the mutex is unlocked when we exit this function
+    std::lock_guard<std::timed_mutex> lock(serialPortMutex, std::adopt_lock);
+
     try
     {
         PortFD = serialConnection->getPortFD();
         tcflush(PortFD, TCIOFLUSH);
-        int nbytes_read_name = 0, rc = -1;
-        char name[64] = {0};
-
-        //Device Model//////////////////////////////////////////////////////////////////////////////////////////////////////
-        if ((rc = tty_read_section(PortFD, name, 'A', 3, &nbytes_read_name)) != TTY_OK)
+        
+        // Read all data from the device as a single line with 'A' separators
+        char buffer[512] = {0};
+        int nbytes_read = 0, rc = -1;
+        
+        // Use a shorter timeout for reading to prevent blocking too long
+        if ((rc = tty_read_section(PortFD, buffer, '\n', 2, &nbytes_read)) != TTY_OK)
         {
+            // If we get a timeout, it's not necessarily an error - the device might just be busy
+            if (rc == TTY_TIME_OUT)
+            {
+                LOG_DEBUG("Timeout reading from device, will try again later");
+                return true;
+            }
+            
             char errorMessage[MAXRBUF];
             tty_error_msg(rc, errorMessage, MAXRBUF);
-            if(Ismoving == false)
-            {
-                LOGF_ERROR("No data received, the device may not be WandererCover V4-EC, please check the serial port! Error: %s",
-                           errorMessage);
-            }
+            LOGF_ERROR("Failed to read data from device. Error: %s", errorMessage);
             return false;
         }
-        name[nbytes_read_name - 1] = '\0';
-        if(strcmp(name, "ZXWBProV3") == 0 || strcmp(name, "ZXWBPlusV3") == 0 || strcmp(name, "UltimateV2") == 0
-                || strcmp(name, "PlusV2") == 0)
-        {
-            LOG_WARN("The device is not WandererCover V4-EC!");
-            return false;
-        }
-
-        if(strcmp(name, "WandererCoverV4") != 0)
-            throw std::exception();
-        // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
-        int nbytes_read_version = 0;
-        char version[64] = {0};
-        tty_read_section(PortFD, version, 'A', 5, &nbytes_read_version);
-
-        version[nbytes_read_version - 1] = '\0';
-        firmware = std::atoi(version);
-        // Close position set//////////////////////////////////////////////////////////////////////////////////////////
-        char closeset[64] = {0};
-        int nbytes_read_closeset = 0;
-        tty_read_section(PortFD, closeset, 'A', 5, &nbytes_read_closeset);
-        closeset[nbytes_read_closeset - 1] = '\0';
-        closesetread = std::strtod(closeset, NULL);
-
-        // Open position set//////////////////////////////////////////////////////////////////////////////////////////
-        char openset[64] = {0};
-        int nbytes_read_openset = 0;
-        tty_read_section(PortFD, openset, 'A', 5, &nbytes_read_openset);
-        openset[nbytes_read_openset - 1] = '\0';
-        opensetread = std::strtod(openset, NULL);
-        // Current Position//////////////////////////////////////////////////////////////////////////////////////////
-        char position[64] = {0};
-        int nbytes_read_position = 0;
-        tty_read_section(PortFD, position, 'A', 5, &nbytes_read_position);
-        position[nbytes_read_position - 1] = '\0';
-        positionread = std::strtod(position, NULL);
-
-        // Voltage//////////////////////////////////////////////////////////////////////////////////////////
-        char voltage[64] = {0};
-        int nbytes_read_voltage = 0;
-        tty_read_section(PortFD, voltage, 'A', 5, &nbytes_read_voltage);
-        voltage[nbytes_read_voltage - 1] = '\0';
-        voltageread = std::strtod(voltage, NULL);
-        updateData(closesetread, opensetread, positionread, voltageread);
-
-        if(voltageread <= 7)
-        {
-            LOG_ERROR("No power input!");
-        }
-
-        Ismoving = false;
+        
+        // Parse the received data
+        return parseDeviceData(buffer);
     }
     catch(std::exception &e)
     {
-        //LOGF_INFO("Data read failed","failed");
+        LOG_ERROR("Exception occurred while reading data from device");
+        return false;
     }
+    
     return true;
+}
+
+bool WandererCoverV4EC::parseDeviceData(const char *data)
+{
+    try
+    {
+        std::vector<std::string> tokens;
+        std::string token;
+        std::istringstream tokenStream(data);
+        LOGF_DEBUG("Data: %s", data);
+        // Split the data by 'A' separator
+        while (std::getline(tokenStream, token, 'A'))
+        {
+            if (!token.empty())
+                tokens.push_back(token);
+        }
+        
+        // Check if we have enough tokens
+        if (tokens.size() < 5)
+        {
+            return false;
+        }
+        
+        // Device Model
+        if (tokens[0] != "WandererCoverV4")
+        {
+            if (tokens[0] == "ZXWBProV3" || tokens[0] == "ZXWBPlusV3" || 
+                tokens[0] == "UltimateV2" || tokens[0] == "PlusV2")
+            {
+                LOG_WARN("The device is not WandererCover V4-EC!");
+            }
+            else
+            {
+                LOG_ERROR("Unknown device model");
+            }
+            return false;
+        }
+        
+        // Firmware version
+        firmware = std::atoi(tokens[1].c_str());
+        
+        // Update firmware information in the UI
+        char firmwareStr[16];
+        snprintf(firmwareStr, sizeof(firmwareStr), "%d", firmware);
+        FirmwareTP[FIRMWARE_VERSION].setText(firmwareStr);
+        FirmwareTP.setState(IPS_OK);
+        FirmwareTP.apply();
+        
+        // Close position set
+        closesetread = std::strtod(tokens[2].c_str(), NULL);
+        
+        // Open position set
+        opensetread = std::strtod(tokens[3].c_str(), NULL);
+        
+        // Current Position
+        positionread = std::strtod(tokens[4].c_str(), NULL);
+        
+        // Voltage (if available)
+        if (tokens.size() > 5)
+        {
+            voltageread = std::strtod(tokens[5].c_str(), NULL);
+            
+            if (voltageread <= 7)
+            {
+                LOG_ERROR("No power input!");
+            }
+        }
+        
+        // Update the UI with the parsed data
+        updateData(closesetread, opensetread, positionread, voltageread);
+        
+        // Update the Close and Open position settings with the values from the device
+        CloseSetNP[CloseSet].setValue(closesetread);
+        CloseSetNP.setState(IPS_OK);
+        CloseSetNP.apply();
+        
+        OpenSetNP[OpenSet].setValue(opensetread);
+        OpenSetNP.setState(IPS_OK);
+        OpenSetNP.apply();
+        
+        return true;
+    }
+    catch(std::exception &e)
+    {
+        LOG_ERROR("Failed to parse device data");
+        return false;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -369,7 +443,6 @@ bool WandererCoverV4EC::toggleCover(bool open)
     snprintf(cmd, 128, "100%d", open ? 1 : 0);
     if (sendCommand(cmd))
     {
-        Ismoving = true;
         return true;
     }
 
@@ -382,11 +455,18 @@ bool WandererCoverV4EC::toggleCover(bool open)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState WandererCoverV4EC::ParkCap()
 {
+    // Set park status to busy
+    ParkCapSP.setState(IPS_BUSY);
+    ParkCapSP.apply();
+    
     if (toggleCover(false))
     {
         return IPS_BUSY;
     }
 
+    // If toggleCover failed, set back to alert
+    ParkCapSP.setState(IPS_ALERT);
+    ParkCapSP.apply();
     return IPS_ALERT;
 }
 
@@ -395,11 +475,18 @@ IPState WandererCoverV4EC::ParkCap()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState WandererCoverV4EC::UnParkCap()
 {
+    // Set park status to busy
+    ParkCapSP.setState(IPS_BUSY);
+    ParkCapSP.apply();
+    
     if (toggleCover(true))
     {
         return IPS_BUSY;
     }
 
+    // If toggleCover failed, set back to alert
+    ParkCapSP.setState(IPS_ALERT);
+    ParkCapSP.apply();
     return IPS_ALERT;
 }
 
@@ -446,6 +533,9 @@ bool WandererCoverV4EC::EnableLightBox(bool enable)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WandererCoverV4EC::sendCommand(std::string command)
 {
+    // Lock the mutex for the duration of this function
+    std::lock_guard<std::timed_mutex> lock(serialPortMutex);
+    
     int nbytes_written = 0, rc = -1;
     std::string command_termination = "\n";
     LOGF_DEBUG("CMD: %s", command.c_str());
@@ -456,6 +546,7 @@ bool WandererCoverV4EC::sendCommand(std::string command)
         LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
     }
+    
     return true;
 }
 
