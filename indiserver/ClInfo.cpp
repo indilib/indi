@@ -22,6 +22,7 @@
 #include "Constants.hpp"
 #include "Utils.hpp"
 #include "Property.hpp"
+#include "CommandLineArgs.hpp"
 
 ConcurrentSet<ClInfo> ClInfo::clients;
 
@@ -94,7 +95,7 @@ void ClInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
 
 void ClInfo::close()
 {
-    if (verbose > 0)
+    if (updatedArgs->verbosity > 0)
         log("shut down complete - bye!\n");
 
     delete(this);
@@ -146,7 +147,7 @@ void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string &dev, const 
 
         /* shut down this client if its q is already too large */
         unsigned long ql = cp->msgQSize();
-        if (isblob && maxstreamsiz > 0 && ql > maxstreamsiz)
+        if (isblob && updatedArgs->maxStreamSizeMB > 0 && ql > updatedArgs->maxStreamSizeMB)
         {
             // Drop frames for streaming blobs
             /* pull out each name/BLOB pair, decode */
@@ -167,20 +168,20 @@ void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string &dev, const 
             }
             if (streamFound)
             {
-                if (verbose > 1)
+                if (updatedArgs->verbosity > 1)
                     cp->log(fmt("%ld bytes behind. Dropping stream BLOB...\n", ql));
                 continue;
             }
         }
-        if (ql > maxqsiz)
+        if (ql > updatedArgs->maxQueueSizeMB)
         {
-            if (verbose)
+            if (updatedArgs->verbosity)
                 cp->log(fmt("%ld bytes behind, shutting down\n", ql));
             cp->close();
             continue;
         }
 
-        if (verbose > 1)
+        if (updatedArgs->verbosity > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
 
@@ -231,16 +232,16 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 
         /* shut down this client if its q is already too large */
         unsigned long ql = cp->msgQSize();
-        if (ql > maxqsiz)
+        if (ql > updatedArgs->maxQueueSizeMB)
         {
-            if (verbose)
+            if (updatedArgs->verbosity)
                 cp->log(fmt("%ld bytes behind, shutting down\n", ql));
             cp->close();
             continue;
         }
 
         /* ok: queue message to this client */
-        if (verbose > 1)
+        if (updatedArgs->verbosity > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
 

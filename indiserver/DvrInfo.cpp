@@ -22,6 +22,7 @@
 #include "Msg.hpp"
 #include "ClInfo.hpp"
 #include "Property.hpp"
+#include "CommandLineArgs.hpp"
 
 ConcurrentSet<DvrInfo> DvrInfo::drivers;
 
@@ -32,9 +33,9 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     const char *name = findXMLAttValu(root, "name");
     int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
 
-    if (verbose > 2)
+    if (updatedArgs->verbosity > 2)
         traceMsg("read ", root);
-    else if (verbose > 1)
+    else if (updatedArgs->verbosity > 1)
     {
         log(fmt("read <%s device='%s' name='%s'>\n",
                 tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
@@ -80,7 +81,7 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     }
 
     /* log messages if any and wanted */
-    if (loggingDir)
+    if (updatedArgs->loggingDir)
         logDMsg(root, dev);
 
     if (!strcmp(roottag, "pingRequest"))
@@ -142,7 +143,7 @@ void DvrInfo::close()
     }
     else
     {
-        if (restarts >= maxrestarts)
+        if (restarts >= updatedArgs->maxRestartAttempts)
         {
             log(fmt("Terminated after #%d restarts.\n", restarts));
             terminate = true;
@@ -164,7 +165,7 @@ void DvrInfo::close()
     if (terminate)
     {
         delete(this);
-        if ((!fifo) && (drivers.ids().empty()))
+        if ((!updatedArgs->fifoHandle) && (drivers.ids().empty()))
             Bye();
         return;
     }
@@ -214,7 +215,7 @@ void DvrInfo::q2RDrivers(const std::string &dev, Msg *mp, XMLEle *root)
             continue;
 
         /* ok: queue message to this driver */
-        if (verbose > 1)
+        if (updatedArgs->verbosity > 1)
         {
             dp->log(fmt("queuing responsible for <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
@@ -247,7 +248,7 @@ void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string &dev, const 
             continue;
 
         /* ok: queue message to this device */
-        if (verbose > 1)
+        if (updatedArgs->verbosity > 1)
         {
             dp->log(fmt("queuing snooped <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
@@ -272,7 +273,7 @@ void DvrInfo::addSDevice(const std::string &dev, const std::string &name)
     sp->blob = B_NEVER;
     sprops.push_back(sp);
 
-    if (verbose)
+    if (updatedArgs->verbosity)
         log(fmt("snooping on %s.%s\n", dev.c_str(), name.c_str()));
 }
 

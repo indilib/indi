@@ -21,6 +21,8 @@
 #include "Constants.hpp"
 #include "SerializedMsg.hpp"
 #include "Msg.hpp"
+#include "CommandLineArgs.hpp"
+
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -140,12 +142,12 @@ void MsgQueue::writeToFd()
     }
 
     /* trace */
-    if (verbose > 2)
+    if (updatedArgs->verbosity > 2)
     {
         log(fmt("sending msg nq %ld:\n%.*s\n",
                 msgq.size(), (int)nw, data));
     }
-    else if (verbose > 1)
+    else if (updatedArgs->verbosity > 1)
     {
         log(fmt("sending %.*s\n", (int)nw, data));
     }
@@ -513,7 +515,7 @@ void MsgQueue::readFromFd()
 
         if (nr < 0)
             log(fmt("read: %s\n", strerror(errno)));
-        else if (verbose > 0)
+        else if (updatedArgs->verbosity > 0)
             log(fmt("read EOF\n"));
         close();
         return;
@@ -539,9 +541,9 @@ void MsgQueue::readFromFd()
     {
         if (hb.alive())
         {
-            if (verbose > 2)
+            if (updatedArgs->verbosity > 2)
                 traceMsg("read ", root);
-            else if (verbose > 1)
+            else if (updatedArgs->verbosity > 1)
             {
                 log(fmt("read <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));

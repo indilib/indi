@@ -19,6 +19,7 @@
 
 #include "Utils.hpp"
 #include "Constants.hpp"
+#include "CommandLineArgs.hpp"
 
 #include <cstring>
 #include <csignal>
@@ -95,7 +96,7 @@ void logDMsg(XMLEle *root, const char *dev)
     }
 
     /* append to log file, name is date portion of time stamp */
-    sprintf(logfn, "%s/%.10s.islog", loggingDir, ts);
+    sprintf(logfn, "%s/%.10s.islog", updatedArgs->loggingDir, ts);
     fp = fopen(logfn, "a");
     if (!fp)
         return; /* oh well */

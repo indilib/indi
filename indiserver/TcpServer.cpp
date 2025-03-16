@@ -20,6 +20,7 @@
 #include "Constants.hpp"
 #include "Utils.hpp"
 #include "ClInfo.hpp"
+#include "CommandLineArgs.hpp"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -90,7 +91,7 @@ void TcpServer::listen()
     sfdev.start(sfd, EV_READ);
 
     /* ok */
-    if (verbose > 0)
+    if (updatedArgs->verbosity > 0)
         log(fmt("listening to port %d on fd %d\n", port, sfd));
 }
 
@@ -116,7 +117,7 @@ void TcpServer::accept()
     /* rig up new clinfo entry */
     cp->setFds(cli_fd, cli_fd);
 
-    if (verbose > 0)
+    if (updatedArgs->verbosity > 0)
     {
         cp->log(fmt("new arrival from %s:%d - welcome!\n",
                     inet_ntoa(cli_socket.sin_addr), ntohs(cli_socket.sin_port)));

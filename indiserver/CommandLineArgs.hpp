@@ -17,17 +17,21 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #pragma once
-#include <string_view>
-namespace indiserver::constants
-{
-constexpr unsigned indiPortDefault {7624};
-constexpr unsigned maxStringBufferLength {512};
-constexpr unsigned defaultMaxQueueSizeMB {128 * 1024 * 1024};
-constexpr unsigned defaultMaxStreamSizeMB {5 * 1024 * 1024};
-constexpr unsigned defaultMaximumRestarts {10};
+#include "Constants.hpp" 
 
-#ifdef OSX_EMBEDED_MODE
-constexpr std::string_view logNamePattern {"/Users/%s/Library/Logs/indiserver.log"};
-constexpr std::string_view fifoName {"/tmp/indiserverFIFO"}
-#endif
-} // namespace indiserver
+#include <string>
+
+class Fifo;
+
+struct CommandLineArgs {
+    size_t verbosity{0};
+    unsigned int maxStreamSizeMB{indiserver::constants::defaultMaxStreamSizeMB};
+    unsigned int maxQueueSizeMB{indiserver::constants::defaultMaxQueueSizeMB};
+    char *loggingDir{nullptr};
+    int maxRestartAttempts{indiserver::constants::defaultMaximumRestarts};
+    Fifo* fifoHandle{nullptr};
+    std::string binaryName{};
+    int port{indiserver::constants::indiPortDefault};
+};
+
+extern CommandLineArgs* updatedArgs;
