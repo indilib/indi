@@ -27,7 +27,7 @@ std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 ***************************************************************************************/
 bool RainDetector::Connect()
 {
-    IDMessage(getDeviceName(), "Rain Detector connected successfully!");
+    LOG_INFO("Rain Detector connected successfully!");
     return true;
 }
 
@@ -36,7 +36,7 @@ bool RainDetector::Connect()
 ***************************************************************************************/
 bool RainDetector::Disconnect()
 {
-    IDMessage(getDeviceName(), "Rain Detector disconnected successfully!");
+    LOG_INFO("Rain Detector disconnected successfully!");
     return true;
 }
 
