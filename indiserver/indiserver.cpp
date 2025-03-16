@@ -133,7 +133,7 @@ int main(int ac, char *av[])
     userConfigurableArguments = argValues.get();
 
     std::unique_ptr<Fifo> fifoHandle{};
-    
+
     /* save our name */
     argValues->binaryName = av[0];
 

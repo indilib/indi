@@ -17,13 +17,14 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #pragma once
-#include "Constants.hpp" 
+#include "Constants.hpp"
 
 #include <string>
 
 class Fifo;
 
-struct CommandLineArgs {
+struct CommandLineArgs
+{
     size_t verbosity{0};
     unsigned int maxStreamSizeMB{indiserver::constants::defaultMaxStreamSizeMB};
     unsigned int maxQueueSizeMB{indiserver::constants::defaultMaxQueueSizeMB};
