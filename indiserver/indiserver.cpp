@@ -94,15 +94,14 @@ using namespace indiserver::constants;
 
 static ev::default_loop loop;
 
-const char *me; 
+const char *me;
 int port = indiPort;                          /* public INDI port */
 
-/* our name */
 // these were static, i made them extern so they could be used in the component files
 int verbose;                                    /* chattiness */
 unsigned int maxstreamsiz  = defaultMaxStreamSizeMB; /* drop blobs if these bytes behind while streaming*/
 unsigned int maxqsiz  = defaultMaxQueueSizeMB;       /* kill if these bytes behind */
-char *ldir;                                          /* where to log driver messages */
+char *loggingDir;                                          /* where to log driver messages */
 int maxrestarts   = defaultMaximumRestarts;
 Fifo * fifo = nullptr;
 
@@ -167,7 +166,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-l requires log directory\n");
                         usage();
                     }
-                    ldir = *++av;
+                    loggingDir = *++av;
                     ac--;
                     break;
                 case 'm':

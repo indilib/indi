@@ -22,12 +22,9 @@ namespace indiserver::constants
 {
 constexpr unsigned indiPort {7624};
 constexpr unsigned maxStringBufferLength {512};
-constexpr unsigned maxReadBufferLength {49152};
-constexpr unsigned maxWriteBufferLength {49152};
 constexpr unsigned defaultMaxQueueSizeMB {128 * 1024 * 1024};
 constexpr unsigned defaultMaxStreamSizeMB {5 * 1024 * 1024};
 constexpr unsigned defaultMaximumRestarts {10};
-constexpr unsigned maxFDPerMessage {16}; /* No more than 16 buffer attached to a message */
 
 #ifdef OSX_EMBEDED_MODE
 constexpr std::string_view logNamePattern {"/Users/%s/Library/Logs/indiserver.log"};
@@ -39,7 +36,7 @@ constexpr std::string_view fifoName {"/tmp/indiserverFIFO"}
 extern int verbose;
 extern unsigned int maxstreamsiz;
 extern unsigned int maxqsiz;
-extern char *ldir;
+extern char *loggingDir;
 extern int maxrestarts;
 
 class Fifo;

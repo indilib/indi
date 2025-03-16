@@ -80,7 +80,7 @@ void DvrInfo::onMessage(XMLEle * root, std::list<int> &sharedBuffers)
     }
 
     /* log messages if any and wanted */
-    if (ldir)
+    if (loggingDir)
         logDMsg(root, dev);
 
     if (!strcmp(roottag, "pingRequest"))

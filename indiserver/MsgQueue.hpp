@@ -32,6 +32,10 @@ class Msg;
 
 class MsgQueue: public Collectable
 {
+        static constexpr unsigned maxFDPerMessage {16}; /* No more than 16 buffer attached to a message */
+        static constexpr unsigned maxReadBufferLength {49152};
+        static constexpr unsigned maxWriteBufferLength {49152};
+
         int rFd, wFd;
         LilXML * lp;         /* XML parsing context */
         ev::io   rio, wio;   /* Event loop io events */

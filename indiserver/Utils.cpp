@@ -72,7 +72,7 @@ char *indi_tstamp(char *s)
     return (s);
 }
 
-/* log message in root known to be from device dev to ldir, if any.
+/* log message in root known to be from device dev to loggingDir, if any.
 */
 void logDMsg(XMLEle *root, const char *dev)
 {
@@ -95,7 +95,7 @@ void logDMsg(XMLEle *root, const char *dev)
     }
 
     /* append to log file, name is date portion of time stamp */
-    sprintf(logfn, "%s/%.10s.islog", ldir, ts);
+    sprintf(logfn, "%s/%.10s.islog", loggingDir, ts);
     fp = fopen(logfn, "a");
     if (!fp)
         return; /* oh well */
