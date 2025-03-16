@@ -212,7 +212,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-f requires fifo node\n");
                         usage();
                     }
-
+                    assert(!fifoHandle);
                     fifoHandle = std::make_unique<Fifo>(*++av);
                     userConfigurableArguments->fifoHandle = fifoHandle.get();
                     ac--;
