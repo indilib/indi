@@ -16,24 +16,18 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#pragma once
-#include <set>
-class Msg;
-class SerializedMsg;
+#include "SerializationRequirement.hpp"
 
-class SerializationRequirement
+void SerializationRequirement::add(const SerializationRequirement &from)
 {
-        friend class Msg;
-        friend class SerializedMsg;
+    xml |= from.xml;
+    for(auto fd : from.sharedBuffers)
+    {
+        sharedBuffers.insert(fd);
+    }
+}
 
-        // If the xml is still required
-        bool xml{false};
-        // Set of sharedBuffer that are still required
-        std::set<int> sharedBuffers{};
-
-        SerializationRequirement() noexcept = default;
-
-        void add(const SerializationRequirement &from);
-
-        bool operator==(const SerializationRequirement   &sr) const;
-};
+bool SerializationRequirement::operator==(const SerializationRequirement   &sr) const
+{
+    return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
+}
