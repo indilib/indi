@@ -610,6 +610,12 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     SilentSlewMode = (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") != nullptr
                       && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON);
 
+    if(TrackState != SCOPE_SLEWING) {
+        long deltaAz  = DegreesToMicrosteps(AXIS1,AZ_BACKLASH_DEG);
+        long deltaAlt = DegreesToMicrosteps(AXIS2,ALT_BACKLASH_DEG);
+        AzimuthOffsetMicrosteps -= deltaAz;
+        AltitudeOffsetMicrosteps -= deltaAlt;
+    }
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
     SlewTo(AXIS2, AltitudeOffsetMicrosteps);
 
@@ -1937,16 +1943,21 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
     // Convert offsets from arcsecs to steps
     offsetSteps[AXIS_AZ] = offsetAngle[AXIS_AZ] * AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
     offsetSteps[AXIS_ALT] = offsetAngle[AXIS_ALT] * AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value;
-    // Only apply tracking IF we're still on the same side of the curve
-    // If we switch over, let's settle for a bit
-    // This seems to not be required. To be removed after extensive testing
-    // if (m_LastOffset[AXIS_AZ] * offsetSteps[AXIS_AZ] >= 0 || m_OffsetSwitchSettle[AXIS_AZ]++ > 3)
+    
+    /// AZ tracking 
     {
         m_OffsetSwitchSettle[AXIS_AZ] = 0;
         m_LastOffset[AXIS_AZ] = offsetSteps[AXIS_AZ];
         targetSteps[AXIS_AZ] = DegreesToMicrosteps(AXIS1, AzimuthToDegrees(targetMountAxisCoordinates.azimuth));
         // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
         trackRates[AXIS_AZ] = predRate[AXIS_AZ] + m_Controllers[AXIS_AZ]->calculate(0, -offsetAngle[AXIS_AZ]);
+        //
+        // make sure we never change direction of the trackRate - reduce to predRate * MIN_TRACK_RATE_FACTOR in same direction
+        // since tracking direction change can lead to poor tracking
+        //
+        double minTrackRate = predRate[AXIS_AZ] * MIN_TRACK_RATE_FACTOR;
+        if(trackRates[AXIS_AZ] * predRate[AXIS_AZ] < 0 || std::abs(trackRates[AXIS_AZ]) < std::abs(minTrackRate))
+            trackRates[AXIS_AZ] = minTrackRate;
 
         LOGF_DEBUG("Tracking AZ Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis1Steps, targetSteps[AXIS_AZ],
                    offsetSteps[AXIS_AZ], trackRates[AXIS_AZ]);
@@ -1962,16 +1973,21 @@ bool SkywatcherAPIMount::trackUsingPredictiveRates()
         trackByRate(AXIS1, trackRates[AXIS_AZ]);
     }
 
-    // Only apply tracking IF we're still on the same side of the curve
-    // If we switch over, let's settle for a bit
-    // This seems to not be required. To be removed after extensive testing
-    // if (m_LastOffset[AXIS_ALT] * offsetSteps[AXIS_ALT] >= 0 || m_OffsetSwitchSettle[AXIS_ALT]++ > 3)
+    /// Alt tracking 
     {
         m_OffsetSwitchSettle[AXIS_ALT] = 0;
         m_LastOffset[AXIS_ALT] = offsetAngle[AXIS_ALT];
         targetSteps[AXIS_ALT]  = DegreesToMicrosteps(AXIS2, targetMountAxisCoordinates.altitude);
         // Track rate: predicted + PID controlled correction based on tracking error: offsetSteps
         trackRates[AXIS_ALT] = predRate[AXIS_ALT] + m_Controllers[AXIS_ALT]->calculate(0, -offsetAngle[AXIS_ALT]);
+        
+        //
+        // make sure we never change direction of the trackRate - reduce to predRate * MIN_TRACK_RATE_FACTOR in same direction
+        // since tracking direction change can lead to poor tracking
+        //
+        double minTrackRate = predRate[AXIS_ALT] * MIN_TRACK_RATE_FACTOR;
+        if(trackRates[AXIS_ALT] * predRate[AXIS_ALT] < 0 || std::abs(trackRates[AXIS_ALT]) < std::abs(minTrackRate))
+            trackRates[AXIS_ALT] = minTrackRate;
 
         LOGF_DEBUG("Tracking AL Now: %8.f Target: %8d Offset: %8d Rate: %8.2f", Axis2Steps,
                    targetSteps[AXIS_ALT],
