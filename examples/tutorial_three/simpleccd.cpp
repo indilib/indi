@@ -34,7 +34,7 @@ std::unique_ptr<SimpleCCD> simpleCCD(new SimpleCCD());
 ***************************************************************************************/
 bool SimpleCCD::Connect()
 {
-    IDMessage(getDeviceName(), "Simple CCD connected successfully!");
+    LOG_INFO("Simple CCD connected successfully!");
 
     // Let's set a timer that checks teleCCDs status every POLLMS milliseconds.
     SetTimer(getCurrentPollingPeriod());
@@ -46,7 +46,7 @@ bool SimpleCCD::Connect()
 ***************************************************************************************/
 bool SimpleCCD::Disconnect()
 {
-    IDMessage(getDeviceName(), "Simple CCD disconnected successfully!");
+    LOG_INFO("Simple CCD disconnected successfully!");
     return true;
 }
 
@@ -174,7 +174,7 @@ void SimpleCCD::TimerHit()
         if (timeleft < 0.1)
         {
             /* We're done exposing */
-            IDMessage(getDeviceName(), "Exposure done, downloading image...");
+            LOG_INFO("Exposure done, downloading image...");
 
             // Set exposure left to zero
             PrimaryCCD.setExposureLeft(0);
@@ -241,7 +241,7 @@ void SimpleCCD::grabImage()
         for (int j = 0; j < width; j++)
             image[i * width + j] = rand() % 255;
 
-    IDMessage(getDeviceName(), "Download complete.");
+    LOG_INFO("Download complete.");
 
     // Let INDI::CCD know we're done filling the image buffer
     ExposureComplete(&PrimaryCCD);
