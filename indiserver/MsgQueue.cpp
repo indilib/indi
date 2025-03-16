@@ -66,8 +66,8 @@ void MsgQueue::writeToFd()
     while(nsend == 0);
 
     /* send next chunk, never more than maxWriteBufferLength to reduce blocking */
-    if (nsend > maxWriteBufferLength)
-        nsend = maxWriteBufferLength;
+    if (nsend > static_cast<ssize_t>(maxWriteBufferLength))
+        nsend = static_cast<ssize_t>(maxWriteBufferLength);
 
     if (!useSharedBuffer)
     {
