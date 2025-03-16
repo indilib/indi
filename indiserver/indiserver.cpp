@@ -97,6 +97,7 @@ using namespace indiserver::constants;
 static ev::default_loop loop;
 
 CommandLineArgs* userConfigurableArguments{nullptr};
+Fifo* fifoHandle{nullptr};
 
 /* print usage message and exit (2) */
 void usage(void)
@@ -132,7 +133,7 @@ int main(int ac, char *av[])
     std::unique_ptr<CommandLineArgs> argValues = std::make_unique<CommandLineArgs>();
     userConfigurableArguments = argValues.get();
 
-    std::unique_ptr<Fifo> fifoHandle{};
+    std::unique_ptr<Fifo> fifoHandleOwner{};
 
     /* save our name */
     argValues->binaryName = av[0];
@@ -144,8 +145,8 @@ int main(int ac, char *av[])
     fprintf(stderr, "switching stderr to %s", logname);
     freopen(logname, "w", stderr);
 
-    fifoHandle = std::make_unique<Fifo>();
-    updatedArgs->fifoHandle = fifoHandle.get();
+    fifoHandleOwner = std::make_unique<Fifo>();
+    fifoHandle = fifoHandleOwner.get();
     updatedArgs->fifoHandle->name = fifoName;
     updatedArgs->verbosity   = 1;
     ac        = 0;
@@ -213,8 +214,8 @@ int main(int ac, char *av[])
                         usage();
                     }
                     assert(!fifoHandle);
-                    fifoHandle = std::make_unique<Fifo>(*++av);
-                    userConfigurableArguments->fifoHandle = fifoHandle.get();
+                    fifoHandleOwner = std::make_unique<Fifo>(*++av);
+                    fifoHandle = fifoHandleOwner.get();
                     ac--;
                     break;
                 case 'r':
@@ -238,7 +239,7 @@ int main(int ac, char *av[])
 #endif
 
     /* at this point there are ac args in av[] to name our drivers */
-    if (ac == 0 && !userConfigurableArguments->fifoHandle)
+    if (ac == 0 && !fifoHandle)
         usage();
 
     /* take care of some unixisms */
@@ -272,13 +273,13 @@ int main(int ac, char *av[])
     unixServer->listen();
 #endif
     /* Load up FIFO, if available */
-    if (userConfigurableArguments->fifoHandle)
+    if (fifoHandle)
     {
         // New started drivers will not inherit server's prefix anymore
 
         // JM 2022.07.23: This causes an issue on MacOS. Disabled for now until investigated further.
         //unsetenv("INDIPREFIX");
-        userConfigurableArguments->fifoHandle->listen();
+        fifoHandle->listen();
     }
 
     /* handle new clients and all io */

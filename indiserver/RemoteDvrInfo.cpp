@@ -34,7 +34,7 @@ void RemoteDvrInfo::extractRemoteId(const std::string &name, std::string &o_host
     char host[maxStringBufferLength] = {0};
 
     /* extract host and port from name*/
-    int indi_port = userConfigurableArguments->port;
+    int indi_port = indiPortDefault;
     if (sscanf(name.c_str(), "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
         // Device missing? Try a different syntax for all devices

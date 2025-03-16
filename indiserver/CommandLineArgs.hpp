@@ -30,7 +30,6 @@ struct CommandLineArgs
     unsigned int maxQueueSizeMB{indiserver::constants::defaultMaxQueueSizeMB};
     char *loggingDir{nullptr};
     int maxRestartAttempts{indiserver::constants::defaultMaximumRestarts};
-    Fifo* fifoHandle{nullptr};
     std::string binaryName{};
     int port{indiserver::constants::indiPortDefault};
 };

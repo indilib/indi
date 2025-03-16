@@ -22,6 +22,7 @@
 #include "Msg.hpp"
 #include "ClInfo.hpp"
 #include "Property.hpp"
+#include "Fifo.hpp"
 #include "CommandLineArgs.hpp"
 
 ConcurrentSet<DvrInfo> DvrInfo::drivers;
@@ -165,7 +166,7 @@ void DvrInfo::close()
     if (terminate)
     {
         delete(this);
-        if ((!userConfigurableArguments->fifoHandle) && (drivers.ids().empty()))
+        if ((!fifoHandle) && (drivers.ids().empty()))
             Bye();
         return;
     }

@@ -109,7 +109,7 @@ void LocalDvrInfo::start()
             setenv("INDIDEV", envDev.c_str(), 1);
         }
         /* Only reset environment variable in case of FIFO */
-        else if (userConfigurableArguments->fifoHandle)
+        else if (fifoHandle)
         {
             unsetenv("INDIDEV");
         }
@@ -117,7 +117,7 @@ void LocalDvrInfo::start()
         {
             setenv("INDICONFIG", envConfig.c_str(), 1);
         }
-        else if (userConfigurableArguments->fifoHandle)
+        else if (fifoHandle)
         {
             unsetenv("INDICONFIG");
         }
@@ -125,7 +125,7 @@ void LocalDvrInfo::start()
         {
             setenv("INDISKEL", envSkel.c_str(), 1);
         }
-        else if (userConfigurableArguments->fifoHandle)
+        else if (fifoHandle)
         {
             unsetenv("INDISKEL");
         }
