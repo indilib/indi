@@ -238,14 +238,14 @@ void SimpleReceiver::TimerHit()
             /* If they're equal, stop updating */
             else
             {
-                TemperatureNP.setState(IPS_OK);
+                TemperatureNP.s = IPS_OK;
                 LOG_INFO("Target temperature reached.");
-                TemperatureNP.apply();
+                IDSetNumber(&TemperatureNP, nullptr);
 
                 break;
             }
 
-            TemperatureNP.apply();
+            IDSetNumber(&TemperatureNP, nullptr);
 
             break;
 
