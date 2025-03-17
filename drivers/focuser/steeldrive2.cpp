@@ -430,7 +430,7 @@ void SteelDriveII::TimerHit()
             FocusRelPosNP.setState(IPS_OK);
             FocusRelPosNP.apply();
         }
-        if (FocusMotionSP[0].getState() == IPS_BUSY)
+        if (FocusMotionSP.getState() == IPS_BUSY)
         {
             FocusMotionSP.setState(IPS_IDLE);
             FocusMotionSP.apply();
