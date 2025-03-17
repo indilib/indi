@@ -286,6 +286,9 @@ class SkywatcherAPIMount :
         // Maximum delta to track. If drift is above 5 degrees, we abort tracking.
         static constexpr double MAX_TRACKING_DELTA {5};
         static constexpr const char *TRACKING_TAB = "Tracking";
+        static constexpr double ALT_BACKLASH_DEG {0.5};
+        static constexpr double AZ_BACKLASH_DEG {0.5};
+        static constexpr double MIN_TRACK_RATE_FACTOR {0.1};
 
         INDI::ElapsedTimer m_TrackingRateTimer;
         int32_t m_LastTrackRate[2] = {-1, -1};

@@ -245,7 +245,7 @@ void SimpleReceiver::TimerHit()
                 break;
             }
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
 
             break;
 
