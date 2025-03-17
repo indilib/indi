@@ -41,11 +41,11 @@ class RemoteDvrInfo: public DvrInfo
         RemoteDvrInfo();
         virtual ~RemoteDvrInfo();
 
-        virtual void start();
+        void start() override;
 
-        virtual RemoteDvrInfo * clone() const;
+        RemoteDvrInfo * clone() const override;
 
-        virtual const std::string remoteServerUid() const
+        const std::string remoteServerUid() const override
         {
             return std::string(host) + ":" + std::to_string(port);
         }

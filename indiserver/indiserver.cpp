@@ -57,6 +57,7 @@
 #include "UnixServer.hpp"
 #include "Utils.hpp"
 #include "Constants.hpp"
+#include "CommandLineArgs.hpp"
 
 #include "config.h"
 #include <string>
@@ -65,6 +66,7 @@
 
 #include "indiapi.h"
 
+#include <memory>
 #include <fcntl.h>
 #include <libgen.h>
 #include <netdb.h>
@@ -90,37 +92,30 @@
 #endif
 
 #include <ev++.h>
+using namespace indiserver::constants;
 
 static ev::default_loop loop;
 
-// these were static, i made them extern so they could be used in the component files
-Fifo * fifo = nullptr;
-const char *me;                                 /* our name */
-int verbose;                                    /* chattiness */
-
-static int port = INDIPORT;                            /* public INDI port */
-char *ldir;                                     /* where to log driver messages */
-unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
-unsigned int maxstreamsiz  = (DEFMAXSSIZ * 1024 * 1024); /* drop blobs if these bytes behind while streaming*/
-int maxrestarts   = DEFMAXRESTART;
+CommandLineArgs* userConfigurableArguments{nullptr};
+Fifo* fifoHandle{nullptr};
 
 /* print usage message and exit (2) */
 void usage(void)
 {
-    fprintf(stderr, "Usage: %s [options] driver [driver ...]\n", me);
+    fprintf(stderr, "Usage: %s [options] driver [driver ...]\n", userConfigurableArguments->binaryName.c_str());
     fprintf(stderr, "Purpose: server for local and remote INDI drivers\n");
     fprintf(stderr, "INDI Library: %s\nCode %s. Protocol %g.\n", CMAKE_INDI_VERSION_STRING, GIT_TAG_STRING, INDIV);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, " -l d     : log driver messages to <d>/YYYY-MM-DD.islog\n");
-    fprintf(stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", DEFMAXQSIZ);
+    fprintf(stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", defaultMaxQueueSizeMB);
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
-            DEFMAXSSIZ);
+            defaultMaxStreamSizeMB);
 #ifdef ENABLE_INDI_SHARED_MEMORY
     fprintf(stderr, " -u path  : Path for the local connection socket (abstract), default %s\n", INDIUNIXSOCK);
 #endif
-    fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
-    fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
+    fprintf(stderr, " -p p     : alternate IP port, default %d\n", indiPortDefault);
+    fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", defaultMaximumRestarts);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
     fprintf(stderr, " -v       : show key events, no traffic\n");
     fprintf(stderr, " -vv      : -v + key message content\n");
@@ -135,19 +130,25 @@ int main(int ac, char *av[])
     /* log startup */
     logStartup(ac, av);
 
+    std::unique_ptr<CommandLineArgs> argValues = std::make_unique<CommandLineArgs>();
+    userConfigurableArguments = argValues.get();
+
+    std::unique_ptr<Fifo> fifoHandleOwner{};
+
     /* save our name */
-    me = av[0];
+    argValues->binaryName = av[0];
 
 #ifdef OSX_EMBEDED_MODE
 
     char logname[128];
-    snprintf(logname, 128, LOGNAME, getlogin());
+    snprintf(logname, 128, logNamePattern, getlogin());
     fprintf(stderr, "switching stderr to %s", logname);
     freopen(logname, "w", stderr);
 
-    fifo = new Fifo();
-    fifo->name = FIFONAME;
-    verbose   = 1;
+    fifoHandleOwner = std::make_unique<Fifo>();
+    fifoHandle = fifoHandleOwner.get();
+    updatedArgs->fifoHandle->name = fifoName;
+    updatedArgs->verbosity   = 1;
     ac        = 0;
 
 #else
@@ -165,7 +166,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-l requires log directory\n");
                         usage();
                     }
-                    ldir = *++av;
+                    userConfigurableArguments->loggingDir = *++av;
                     ac--;
                     break;
                 case 'm':
@@ -174,7 +175,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-m requires max MB behind\n");
                         usage();
                     }
-                    maxqsiz = 1024 * 1024 * atoi(*++av);
+                    userConfigurableArguments->maxQueueSizeMB = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
                 case 'p':
@@ -183,7 +184,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-p requires port value\n");
                         usage();
                     }
-                    port = atoi(*++av);
+                    userConfigurableArguments->port = atoi(*++av);
                     ac--;
                     break;
                 case 'd':
@@ -192,7 +193,7 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-d requires max stream MB behind\n");
                         usage();
                     }
-                    maxstreamsiz = 1024 * 1024 * atoi(*++av);
+                    userConfigurableArguments->maxStreamSizeMB = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
 #ifdef ENABLE_INDI_SHARED_MEMORY
@@ -212,7 +213,9 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-f requires fifo node\n");
                         usage();
                     }
-                    fifo = new Fifo(*++av);
+                    assert(!fifoHandle);
+                    fifoHandleOwner = std::make_unique<Fifo>(*++av);
+                    fifoHandle = fifoHandleOwner.get();
                     ac--;
                     break;
                 case 'r':
@@ -221,13 +224,13 @@ int main(int ac, char *av[])
                         fprintf(stderr, "-r requires number of restarts\n");
                         usage();
                     }
-                    maxrestarts = atoi(*++av);
-                    if (maxrestarts < 0)
-                        maxrestarts = 0;
+                    userConfigurableArguments->maxRestartAttempts = atoi(*++av);
+                    if (userConfigurableArguments->maxRestartAttempts < 0)
+                        userConfigurableArguments->maxRestartAttempts = 0;
                     ac--;
                     break;
                 case 'v':
-                    verbose++;
+                    userConfigurableArguments->verbosity++;
                     break;
                 default:
                     usage();
@@ -236,44 +239,47 @@ int main(int ac, char *av[])
 #endif
 
     /* at this point there are ac args in av[] to name our drivers */
-    if (ac == 0 && !fifo)
+    if (ac == 0 && !fifoHandle)
         usage();
 
     /* take care of some unixisms */
     noSIGPIPE();
 
+    std::vector<std::unique_ptr<DvrInfo>> drivers(ac);
+
     /* start each driver */
     while (ac-- > 0)
     {
         std::string dvrName = *av++;
-        DvrInfo * dr;
         if (dvrName.find('@') != std::string::npos)
         {
-            dr = new RemoteDvrInfo();
+            drivers.push_back(std::make_unique<RemoteDvrInfo>());
         }
         else
         {
-            dr = new LocalDvrInfo();
+            drivers.push_back(std::make_unique<LocalDvrInfo>());
         }
-        dr->name = dvrName;
-        dr->start();
+        drivers.back()->name = dvrName;
+        drivers.back()->start();
     }
 
     /* announce we are online */
-    (new TcpServer(port))->listen();
+    const auto tcpServer = std::make_unique<TcpServer>(userConfigurableArguments->port);
+    tcpServer->listen();
 
 #ifdef ENABLE_INDI_SHARED_MEMORY
     /* create a new unix server */
-    (new UnixServer(UnixServer::unixSocketPath))->listen();
+    const auto unixServer = std::make_unique<UnixServer>(UnixServer::unixSocketPath);
+    unixServer->listen();
 #endif
     /* Load up FIFO, if available */
-    if (fifo)
+    if (fifoHandle)
     {
         // New started drivers will not inherit server's prefix anymore
 
         // JM 2022.07.23: This causes an issue on MacOS. Disabled for now until investigated further.
         //unsetenv("INDIPREFIX");
-        fifo->listen();
+        fifoHandle->listen();
     }
 
     /* handle new clients and all io */

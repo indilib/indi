@@ -17,12 +17,11 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #pragma once
-#include <cctype> // remove this, why are they using std::size_t
 
 class MsgChunckIterator
 {
         friend class SerializedMsg;
-        std::size_t chunckId;
+        size_t chunckId;
         unsigned long chunckOffset;
         bool endReached;
     public:

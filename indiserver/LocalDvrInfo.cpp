@@ -21,16 +21,13 @@
 #include "Utils.hpp"
 #include "Msg.hpp"
 #include "Constants.hpp"
+#include "CommandLineArgs.hpp"
 
 #include "Fifo.hpp"
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <unistd.h>
-
-// these externs need to go
-extern Fifo * fifo;
-extern const char *me;
 
 /* start the given local INDI driver process.
  * exit if trouble.
@@ -104,21 +101,34 @@ void LocalDvrInfo::start()
         }
         dup2(ep[1], 2); /* driver stderr writes to e[]1] */
         for (fd = 3; fd < 100; fd++)
+        {
             (void)::close(fd);
-
+        }
         if (!envDev.empty())
+        {
             setenv("INDIDEV", envDev.c_str(), 1);
+        }
         /* Only reset environment variable in case of FIFO */
-        else if (fifo)
+        else if (fifoHandle)
+        {
             unsetenv("INDIDEV");
+        }
         if (!envConfig.empty())
+        {
             setenv("INDICONFIG", envConfig.c_str(), 1);
-        else if (fifo)
+        }
+        else if (fifoHandle)
+        {
             unsetenv("INDICONFIG");
+        }
         if (!envSkel.empty())
+        {
             setenv("INDISKEL", envSkel.c_str(), 1);
-        else if (fifo)
+        }
+        else if (fifoHandle)
+        {
             unsetenv("INDISKEL");
+        }
         std::string executable;
         if (!envPrefix.empty())
         {
@@ -139,7 +149,7 @@ void LocalDvrInfo::start()
         {
             if (name[0] == '.')
             {
-                executable = std::string(dirname((char*)me)) + "/" + name;
+                executable = userConfigurableArguments->binaryName + "/" + name;
                 execlp(executable.c_str(), name.c_str(), NULL);
             }
             else
@@ -191,7 +201,7 @@ void LocalDvrInfo::start()
     /* first message primes driver to report its properties -- dev known
      * if restarting
      */
-    if (verbose > 0)
+    if (userConfigurableArguments->verbosity > 0)
         log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 
     XMLEle *root = addXMLEle(NULL, "getProperties");

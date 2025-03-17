@@ -16,34 +16,18 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#pragma once
+#include "SerializationRequirement.hpp"
 
-#ifdef ENABLE_INDI_SHARED_MEMORY
-#define INDIUNIXSOCK "/tmp/indiserver" /* default unix socket path (local connections) */
-
-#include <string>
-#include <ev++.h>
-
-class UnixServer
+void SerializationRequirement::add(const SerializationRequirement &from)
 {
-        std::string path;
-        int sfd = -1;
-        ev::io sfdev;
+    xml |= from.xml;
+    for(auto fd : from.sharedBuffers)
+    {
+        sharedBuffers.insert(fd);
+    }
+}
 
-        void accept();
-        void ioCb(ev::io &watcher, int revents);
-
-        void log(const std::string &log) const;
-    public:
-        UnixServer(const std::string &path);
-
-        /* create the public INDI Driver endpoint over UNIX (local) domain.
-         * exit on failure
-         */
-        void listen();
-
-        static std::string unixSocketPath;
-};
-
-
-#endif
+bool SerializationRequirement::operator==(const SerializationRequirement   &sr) const
+{
+    return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
+}

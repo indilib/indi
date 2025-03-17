@@ -17,33 +17,21 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #pragma once
-
-#ifdef ENABLE_INDI_SHARED_MEMORY
-#define INDIUNIXSOCK "/tmp/indiserver" /* default unix socket path (local connections) */
+#include "Constants.hpp"
 
 #include <string>
-#include <ev++.h>
 
-class UnixServer
+class Fifo;
+
+struct CommandLineArgs
 {
-        std::string path;
-        int sfd = -1;
-        ev::io sfdev;
-
-        void accept();
-        void ioCb(ev::io &watcher, int revents);
-
-        void log(const std::string &log) const;
-    public:
-        UnixServer(const std::string &path);
-
-        /* create the public INDI Driver endpoint over UNIX (local) domain.
-         * exit on failure
-         */
-        void listen();
-
-        static std::string unixSocketPath;
+    size_t verbosity{0};
+    unsigned int maxStreamSizeMB{indiserver::constants::defaultMaxStreamSizeMB};
+    unsigned int maxQueueSizeMB{indiserver::constants::defaultMaxQueueSizeMB};
+    char *loggingDir{nullptr};
+    int maxRestartAttempts{indiserver::constants::defaultMaximumRestarts};
+    std::string binaryName{};
+    int port{indiserver::constants::indiPortDefault};
 };
 
-
-#endif
+extern CommandLineArgs* userConfigurableArguments;

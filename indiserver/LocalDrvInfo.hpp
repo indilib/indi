@@ -49,11 +49,11 @@ class LocalDvrInfo: public DvrInfo
         LocalDvrInfo();
         virtual ~LocalDvrInfo();
 
-        virtual void start();
+        void start() override;
 
-        virtual LocalDvrInfo * clone() const;
+        LocalDvrInfo * clone() const override;
 
-        virtual const std::string remoteServerUid() const
+        const std::string remoteServerUid() const override
         {
             return "";
         }
