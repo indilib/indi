@@ -64,29 +64,23 @@ class DMFC : public INDI::Focuser
         bool isMoving = false;
 
         // Temperature probe
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Motor Mode
-        ISwitch MotorTypeS[2];
-        ISwitchVectorProperty MotorTypeSP;
+        INDI::PropertySwitch MotorTypeSP {2};
         enum { MOTOR_DC, MOTOR_STEPPER };
 
         // Rotator Encoders
-        ISwitch EncoderS[2];
-        ISwitchVectorProperty EncoderSP;
+        INDI::PropertySwitch EncoderSP {2};
         enum { ENCODERS_ON, ENCODERS_OFF };
 
         // LED
-        ISwitch LEDS[2];
-        ISwitchVectorProperty LEDSP;
+        INDI::PropertySwitch LEDSP {2};
         enum { LED_OFF, LED_ON };
 
         // Maximum Speed
-        INumber MaxSpeedN[1];
-        INumberVectorProperty MaxSpeedNP;
+        INDI::PropertyNumber MaxSpeedNP {1};
 
         // Firmware Version
-        IText FirmwareVersionT[1] {};
-        ITextVectorProperty FirmwareVersionTP;
+        INDI::PropertyText FirmwareVersionTP {1};
 };

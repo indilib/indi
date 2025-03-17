@@ -686,9 +686,9 @@ IPState IndiAstrolink4::MoveAbsFocuser(uint32_t targetTicks)
     int32_t backlash = 0;
     if(backlashEnabled)
     {
-        if((targetTicks > FocusAbsPosN[0].value) == (backlashSteps > 0))
+        if((targetTicks > FocusAbsPosNP[0].getValue()) == (backlashSteps > 0))
         {
-            if(((int32_t)targetTicks + backlash) < 0 || (targetTicks + backlash) > FocusMaxPosN[0].value)
+            if(((int32_t)targetTicks + backlash) < 0 || (targetTicks + backlash) > FocusMaxPosNP[0].getValue())
             {
                 backlash = 0;
             }
@@ -706,7 +706,7 @@ IPState IndiAstrolink4::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState IndiAstrolink4::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 bool IndiAstrolink4::AbortFocuser()
@@ -826,8 +826,8 @@ bool IndiAstrolink4::sensorRead()
         std::vector<std::string> result = split(res, ":");
 
         float focuserPosition = std::stod(result[Q_STEPPER_POS]);
-        FocusAbsPosN[0].value = focuserPosition;
-        FocusPosMMN[0].value = focuserPosition * FocuserSettingsN[FS_STEP_SIZE].value / 1000.0;
+        FocusAbsPosNP[0].setValue(focuserPosition);
+        FocusPosMMNP[0].setValue(focuserPosition * FocuserSettingsN[FS_STEP_SIZE].value / 1000.0);
         float stepsToGo = std::stod(result[Q_STEPS_TO_GO]);
         if(stepsToGo == 0)
         {
@@ -836,15 +836,19 @@ bool IndiAstrolink4::sensorRead()
                 requireBacklashReturn = false;
                 MoveAbsFocuser(focuserPosition - backlashSteps);
             }
-            FocusAbsPosNP.s = FocusRelPosNP.s = FocusPosMMNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusPosMMNP.s = IPS_OK;
+            FocusRelPosNP.apply();
         }
         else
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = FocusPosMMNP.s = IPS_BUSY;
+            FocusAbsPosNP.setState(IPS_BUSY);
+            FocusRelPosNP.setState(IPS_BUSY);
+            FocusPosMMNP.s = IPS_BUSY;
         }
         IDSetNumber(&FocusPosMMNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
         PowerDataN[POW_ITOT].value = std::stod(result[Q_CURRENT]);
 
         if(result.size() > 5)
@@ -955,10 +959,10 @@ bool IndiAstrolink4::sensorRead()
 
             FocuserSettingsN[FS_SPEED].value = std::stod(result[U_SPEED]);
             FocuserSettingsN[FS_STEP_SIZE].value = std::stod(result[U_STEPSIZE]) / 100.0;
-            FocusMaxPosN[0].value = std::stod(result[U_MAX_POS]);
+            FocusMaxPosNP[0].setValue(std::stod(result[U_MAX_POS]));
             FocuserSettingsNP.s = IPS_OK;
             IDSetNumber(&FocuserSettingsNP, nullptr);
-            IDSetNumber(&FocusMaxPosNP, nullptr);
+            FocusMaxPosNP.apply();
         }
 
         if(sendCommand("j", res))

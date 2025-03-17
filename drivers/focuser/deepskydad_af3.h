@@ -117,27 +117,21 @@ class DeepSkyDadAF3 : public INDI::Focuser
         bool moveAborted = false;
 
         // Step mode
-        ISwitch StepModeS[9];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {9};
 
         // Speed mode
-        ISwitch SpeedModeS[5];
-        ISwitchVectorProperty SpeedModeSP;
+        INDI::PropertySwitch SpeedModeSP {5};
 
         //Current move
-        INumber MoveCurrentMultiplierN[1];
-        INumberVectorProperty MoveCurrentMultiplierNP;
+        INDI::PropertyNumber MoveCurrentMultiplierNP {1};
 
         //Current hold
-        INumber HoldCurrentMultiplierN[1];
-        INumberVectorProperty HoldCurrentMultiplierNP;
+        INDI::PropertyNumber HoldCurrentMultiplierNP {1};
 
         // Settle buffer
-        INumber SettleBufferN[1];
-        INumberVectorProperty SettleBufferNP;
+        INDI::PropertyNumber SettleBufferNP {1};
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Response Buffer
 

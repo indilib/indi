@@ -71,17 +71,24 @@ class DreamFocuser : public INDI::Focuser
 
     private:
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        INumber WeatherN[2];
-        INumberVectorProperty WeatherNP;
+        INDI::PropertyNumber WeatherNP {2};
+        enum
+        {
+            FOCUS_HUMIDITY,
+            FOCUS_DEWPOINT
+        };
 
-        ISwitch ParkS[2];
-        ISwitchVectorProperty ParkSP;
+        INDI::PropertySwitch ParkSP {2};
 
-        ISwitch StatusS[3];
-        ISwitchVectorProperty StatusSP;
+        INDI::PropertySwitch StatusSP {3};
+        enum
+        {
+          ABSOLUTE,
+          MOVING,
+          PARKED
+        };
 
         //INumber SetBacklashN[1];
         //INumberVectorProperty SetBacklashNP;

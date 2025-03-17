@@ -58,15 +58,15 @@ bool OnFocus::initProperties()
 
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 200.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(200.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 10000000.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step = 500.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(10000000.);
+    FocusAbsPosNP[0].setValue(0.);
+    FocusAbsPosNP[0].setStep(500.);
 
     addDebugControl();
 
@@ -176,8 +176,8 @@ bool OnFocus::updatePosition()
 
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply();
 
     }
     else
@@ -221,8 +221,8 @@ bool OnFocus::updateMaxPos()
     {
 
         MaxPosN[0].value = maxposition;
-        FocusAbsPosN[0].max = maxposition;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        FocusAbsPosNP[0].setMax(maxposition);
+        FocusAbsPosNP.apply();
         IDSetNumber(&MaxPosNP, NULL);
         return true;
     }
@@ -345,14 +345,14 @@ bool OnFocus::ISNewNumber (const char *dev, const char *name, double values[], c
     {
         if (!strcmp (name, MaxPosNP.name))
         {
-            if (values[0] < FocusAbsPosN[0].value)
+            if (values[0] < FocusAbsPosNP[0].getValue())
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )",
-                       FocusAbsPosN[0].value);
+                       FocusAbsPosNP[0].getValue());
                 return false;
             }
             IUUpdateNumber(&MaxPosNP, values, names, n);
-            FocusAbsPosN[0].max = MaxPosN[0].value;
+            FocusAbsPosNP[0].setMax(MaxPosN[0].value);
             setMaxPos(MaxPosN[0].value);
             MaxPosNP.s = IPS_OK;
             return true;
@@ -381,7 +381,7 @@ IPState OnFocus::MoveAbsFocuser(uint32_t targetTicks)
     if (rc == false)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -392,17 +392,17 @@ IPState OnFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = uint32_t(FocusAbsPosN[0].value) - ticks;
+        newPosition = uint32_t(FocusAbsPosNP[0].getValue()) - ticks;
     else
-        newPosition = uint32_t(FocusAbsPosN[0].value) + ticks;
+        newPosition = uint32_t(FocusAbsPosNP[0].getValue()) + ticks;
 
     rc = MoveMyFocuser(newPosition);
 
     if (rc == false)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -418,23 +418,23 @@ void OnFocus::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (isMoving() == false)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
     }
@@ -447,10 +447,10 @@ bool OnFocus::AbortFocuser()
     int nbytes_written;
     if (tty_write(PortFD, ":MH#", 4, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
         return true;
     }
     else

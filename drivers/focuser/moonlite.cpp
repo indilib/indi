@@ -44,15 +44,15 @@ bool MoonLite::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 5;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(5);
+    FocusSpeedNP[0].setValue(1);
 
     // Step Mode
     StepModeSP[FOCUS_HALF_STEP].fill("FOCUS_HALF_STEP", "Half Step", ISS_OFF);
     StepModeSP[FOCUS_FULL_STEP].fill("FOCUS_FULL_STEP", "Full Step", ISS_ON);
     StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+                    IPS_IDLE);
 
     // Focuser temperature
     TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
@@ -63,24 +63,24 @@ bool MoonLite::initProperties()
     TemperatureSettingNP[Calibration].fill("Calibration", "", "%6.2f", -100, 100, 0.5, 0);
     TemperatureSettingNP[Coefficient].fill("Coefficient", "", "%6.2f", -100, 100, 0.5, 0);
     TemperatureSettingNP.fill(getDeviceName(), "T. Settings", "",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+                              OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
     TemperatureCompensateSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
     TemperatureCompensateSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     TemperatureCompensateSP.fill(getDeviceName(), "T. Compensate",
-                       "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                                 "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     setDefaultPollingPeriod(500);
     addDebugControl();
@@ -237,7 +237,7 @@ bool MoonLite::readPosition()
     int rc = sscanf(res, "%X#", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
@@ -265,7 +265,7 @@ bool MoonLite::readSpeed()
             speed >>= 1;
             focus_speed++;
         }
-        FocusSpeedN[0].value = focus_speed;
+        FocusSpeedNP[0].setValue(focus_speed);
     }
     else
     {
@@ -422,7 +422,7 @@ bool MoonLite::ISNewNumber(const char * dev, const char * name, double values[],
         {
             TemperatureSettingNP.update(values, names, n);
             if (!setTemperatureCalibration(TemperatureSettingNP[Calibration].getValue()) ||
-                !setTemperatureCoefficient(TemperatureSettingNP[Coefficient].getValue()))
+                    !setTemperatureCoefficient(TemperatureSettingNP[Coefficient].getValue()))
             {
                 TemperatureSettingNP.setState(IPS_ALERT);
                 TemperatureSettingNP.apply();
@@ -441,7 +441,7 @@ bool MoonLite::ISNewNumber(const char * dev, const char * name, double values[],
 void MoonLite::GetFocusParams()
 {
     if (readPosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (readTemperature())
         TemperatureNP.apply();
@@ -450,7 +450,7 @@ void MoonLite::GetFocusParams()
         TemperatureSettingNP.apply();
 
     if (readSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP.apply();
 
     if (readStepMode())
         StepModeSP.apply();
@@ -463,7 +463,7 @@ bool MoonLite::SetFocuserSpeed(int speed)
 
 IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != static_cast<int>(FocusSpeedN[0].value))
+    if (speed != static_cast<int>(FocusSpeedNP[0].getValue()))
     {
         if (!setSpeed(speed))
             return IPS_ALERT;
@@ -474,7 +474,7 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(static_cast<uint32_t>(FocusMaxPosN[0].value));
+        MoveFocuser(static_cast<uint32_t>(FocusMaxPosNP[0].getValue()));
 
     IEAddTimer(duration, &MoonLite::timedMoveHelper, this);
     return IPS_BUSY;
@@ -488,13 +488,13 @@ void MoonLite::timedMoveHelper(void * context)
 void MoonLite::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
@@ -511,15 +511,16 @@ IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Clamp
     int32_t offset = ((dir == FOCUS_INWARD) ? -1 : 1) * static_cast<int32_t>(ticks);
-    int32_t newPosition = FocusAbsPosN[0].value + offset;
-    newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max),
-                           newPosition));
+    int32_t newPosition = FocusAbsPosNP[0].getValue() + offset;
+    newPosition = std::max(static_cast<int32_t>(FocusAbsPosNP[0].getMin()),
+                           std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()),
+                                    newPosition));
 
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -532,10 +533,10 @@ void MoonLite::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = static_cast<uint32_t>(FocusAbsPosN[0].value);
+            FocusAbsPosNP.apply();
+            lastPos = static_cast<uint32_t>(FocusAbsPosNP[0].getValue());
         }
     }
 
@@ -549,15 +550,15 @@ void MoonLite::TimerHit()
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = static_cast<uint32_t>(FocusAbsPosN[0].value);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = static_cast<uint32_t>(FocusAbsPosNP[0].getValue());
             LOG_INFO("Focuser reached requested position.");
         }
     }

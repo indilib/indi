@@ -622,7 +622,7 @@ bool CCD::updateProperties()
         defineProperty(WorldCoordSP);
         defineProperty(UploadSP);
 
-        if (UploadSettingsTP[UPLOAD_DIR].getText() == nullptr)
+        if (UploadSettingsTP[UPLOAD_DIR].isEmpty())
             UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
         defineProperty(UploadSettingsTP);
 

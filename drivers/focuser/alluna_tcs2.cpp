@@ -87,17 +87,17 @@ bool AllunaTCS2::initProperties()
 
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
-    FocusAbsPosN[0].step = 1;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax((steppingMode == MICRO) ? 22400 : 1400); // 22400 in microstep mode, 1400 in speedstep mode
+    FocusAbsPosNP[0].setStep(1);
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 1000;
-    FocusRelPosN[0].step = 1;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(1000);
+    FocusRelPosNP[0].setStep(1);
 
     // Maximum Position
-    FocusMaxPosN[0].value = FocusAbsPosN[0].max;
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP[0].setValue(FocusAbsPosNP[0].getMax());
+    FocusMaxPosNP.setPermission(IP_RO);
 
     setDriverInterface(FOCUSER_INTERFACE | DUSTCAP_INTERFACE);
     //addAuxControls();
@@ -141,8 +141,8 @@ bool AllunaTCS2::updateProperties()
 
         // Focuser
         defineProperty(SteppingModeSP);
-        defineProperty(&FocusMaxPosNP);
-        defineProperty(&FocusAbsPosNP);
+        defineProperty(FocusMaxPosNP);
+        defineProperty(FocusAbsPosNP);
 
         // Climate
         defineProperty(TemperatureNP);
@@ -159,8 +159,8 @@ bool AllunaTCS2::updateProperties()
     else
     {
         deleteProperty(SteppingModeSP);
-        deleteProperty(FocusMaxPosNP.name);
-        deleteProperty(FocusAbsPosNP.name);
+        deleteProperty(FocusMaxPosNP);
+        deleteProperty(FocusAbsPosNP);
 
         deleteProperty(TemperatureNP);
         deleteProperty(ClimateControlSP);
@@ -385,18 +385,18 @@ bool AllunaTCS2::ISNewSwitch(const char * dev, const char * name, ISState * stat
             // write new stepping mode to tcs2
             setStepping((SteppingModeSP[SPEED].s == ISS_ON) ? SPEED : MICRO);
             // update maximum stepping position
-            FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
+            FocusAbsPosNP[0].setMax((steppingMode == MICRO) ? 22400 : 1400); // 22400 in microstep mode, 1400 in speedstep mode
             // update max position value
-            FocusMaxPosN[0].value = FocusAbsPosN[0].max;
+            FocusMaxPosNP[0].setValue(FocusAbsPosNP[0].getMax());
             // update maximum stepping postion for presets
-            SetFocuserMaxPosition( FocusAbsPosN[0].max ); // 22400 in microstep mode, 1400 in speedstep mode
+            SetFocuserMaxPosition( FocusAbsPosNP[0].getMax() ); // 22400 in microstep mode, 1400 in speedstep mode
             // Update clients
-            IDSetNumber(&FocusAbsPosNP, nullptr); // not sure if this is necessary, because not shown in driver panel
-            IDSetNumber(&FocusMaxPosNP, nullptr );
+            FocusAbsPosNP.apply(); // not sure if this is necessary, because not shown in driver panel
+            FocusMaxPosNP.apply();
             LOGF_INFO("Setting new max position to %d", (steppingMode == MICRO) ? 22400 : 1400 );
 
-            defineProperty(&FocusMaxPosNP);
-            defineProperty(&FocusAbsPosNP);
+            defineProperty(FocusMaxPosNP);
+            defineProperty(FocusAbsPosNP);
             // read focuser position (depends on stepping mode)
             getPosition();
             LOGF_INFO("Processed %s", name);
@@ -558,7 +558,7 @@ IPState AllunaTCS2::MoveAbsFocuser(uint32_t targetTicks)
 IPState AllunaTCS2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
+    return MoveAbsFocuser(FocusAbsPosNP[0].getValue() + m_TargetDiff);
 }
 
 bool AllunaTCS2::AbortFocuser()
@@ -638,11 +638,11 @@ void AllunaTCS2::TimerHit()
                     //LOGF_INFO("TimerHit: new pos (%d)",pos);
                     if (pos != 1e6)
                     {
-                        FocusAbsPosN[0].value = pos;
+                        FocusAbsPosNP[0].setValue(pos);
                     }
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    FocusRelPosNP.s = IPS_BUSY;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_BUSY);
+                    FocusRelPosNP.setState(IPS_BUSY);
+                    FocusAbsPosNP.apply();
                     break;
                 case 'I': // starting to focus
                     LOG_DEBUG("TimerHit: starting to focus");
@@ -650,8 +650,8 @@ void AllunaTCS2::TimerHit()
                 case 'J': // end of focusing
                     LOG_DEBUG("TimetHit: end of focusing");
                     isFocuserMoving = false;
-                    FocusAbsPosNP.s = IPS_OK;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_OK);
+                    FocusAbsPosNP.apply();
                     receiveDone();
                     break;
                 case 'O': // cover started moving
@@ -677,22 +677,22 @@ void AllunaTCS2::TimerHit()
     }
 
     // What is the last read position?
-    double currentPosition = FocusAbsPosN[0].value;
+    double currentPosition = FocusAbsPosNP[0].getValue();
 
     // Check if we have a pending motion
     // if isMoving() is false, then we stopped, so we need to set the Focus Absolute
     // and relative properties to OK
-    if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) )
+    if ( (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY) )
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
     }
     // If there was a different between last and current positions, let's update all clients
-    else if (currentPosition != FocusAbsPosN[0].value)
+    else if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -786,10 +786,10 @@ bool AllunaTCS2::getPosition()
     if (pos == 1e6)
         return false;
 
-    FocusAbsPosN[0].value = pos;
+    FocusAbsPosNP[0].setValue(pos);
 
-    FocusAbsPosNP.s = IPS_OK;
-    IDSetNumber(&FocusAbsPosNP, nullptr); // display in user interface
+    FocusAbsPosNP.setState(IPS_OK);
+    FocusAbsPosNP.apply(); // display in user interface
 
     return true;
 }
@@ -821,7 +821,8 @@ IPState AllunaTCS2::ParkCap()
     if (ParkCapSP[CAP_PARK].getState() == ISS_ON)
     {
         LOG_DEBUG("Toggle");
-        if (setDustCover()) { // toggle state of dust cover
+        if (setDustCover())   // toggle state of dust cover
+        {
             isCoverMoving = true;
             return IPS_BUSY;
         }
@@ -840,7 +841,8 @@ IPState AllunaTCS2::UnParkCap()
     if (ParkCapSP[CAP_UNPARK].getState() == ISS_ON)
     {
         LOG_DEBUG("Toggle");
-        if (setDustCover()) { // toggle state of dust cover
+        if (setDustCover())   // toggle state of dust cover
+        {
             isCoverMoving = true;
             return IPS_BUSY;
         }
@@ -874,8 +876,8 @@ bool AllunaTCS2::getStepping()
     SteppingModeSP.setState(IPS_OK);
 
     // Set limits as per documentation
-    FocusAbsPosN[0].max  = (steppingMode == MICRO) ? 22400 : 1400; // 22400 in microstep mode, 1400 in speedstep mode
-    LOGF_DEBUG("readStepping: set max position to %d", (int)FocusAbsPosN[0].max);
+    FocusAbsPosNP[0].setMax((steppingMode == MICRO) ? 22400 : 1400); // 22400 in microstep mode, 1400 in speedstep mode
+    LOGF_DEBUG("readStepping: set max position to %d", (int)FocusAbsPosNP[0].getMax());
     return true;
 }
 

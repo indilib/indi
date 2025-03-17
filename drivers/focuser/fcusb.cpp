@@ -91,14 +91,14 @@ bool FCUSB::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min = 0;
-    FocusSpeedN[0].max = 255;
+    FocusSpeedNP[0].setMin(0);
+    FocusSpeedNP[0].setMax(255);
 
     // PWM Scaler
-    IUFillSwitch(&PWMScalerS[0], "PWM_1_1", "1:1", ISS_ON);
-    IUFillSwitch(&PWMScalerS[1], "PWM_1_4", "1:4", ISS_OFF);
-    IUFillSwitch(&PWMScalerS[2], "PWM_1_16", "1:16", ISS_OFF);
-    IUFillSwitchVector(&PWMScalerSP, PWMScalerS, 3, getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    PWMScalerSP[PWM_1_1].fill("PWM_1_1", "1:1", ISS_ON);
+    PWMScalerSP[PWM_1_4].fill("PWM_1_4", "1:4", ISS_OFF);
+    PWMScalerSP[PWM_1_16].fill("PWM_1_16", "1:16", ISS_OFF);
+    PWMScalerSP.fill(getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     addSimulationControl();
@@ -112,11 +112,11 @@ bool FCUSB::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&PWMScalerSP);
+        defineProperty(PWMScalerSP);
     }
     else
     {
-        deleteProperty(PWMScalerSP.name);
+        deleteProperty(PWMScalerSP);
     }
 
     return true;
@@ -127,7 +127,7 @@ void FCUSB::TimerHit()
     if (!isConnected())
         return;
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         struct timeval curtime, diff;
         gettimeofday(&curtime, nullptr);
@@ -137,8 +137,8 @@ void FCUSB::TimerHit()
         if (timeleft < 0)
             timeleft = 0;
 
-        FocusTimerN[0].value = timeleft;
-        IDSetNumber(&FocusTimerNP, nullptr);
+        FocusTimerNP[0].setValue(timeleft);
+        FocusTimerNP.apply();
 
         if (timeleft == 0)
             stop();
@@ -156,15 +156,15 @@ bool FCUSB::ISNewSwitch(const char * dev, const char * name, ISState * states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(PWMScalerSP.name, name) == 0)
+        if (PWMScalerSP.isNameMatch(name) == 0)
         {
-            IUUpdateSwitch(&PWMScalerSP, states, names, n);
+            PWMScalerSP.update(states, names, n);
 
-            pwmStatus = static_cast<PWMBits>(IUFindOnSwitchIndex(&PWMScalerSP));
+            pwmStatus = static_cast<PWMBits>(PWMScalerSP.findOnSwitchIndex());
 
-            PWMScalerSP.s = setStatus() ? IPS_OK : IPS_ALERT;
+            PWMScalerSP.setState(setStatus() ? IPS_OK : IPS_ALERT);
 
-            IDSetSwitch(&PWMScalerSP, nullptr);
+            PWMScalerSP.apply();
 
             return true;
 
@@ -236,17 +236,17 @@ bool FCUSB::getStatus()
                 break;
         }
 
-        IUResetSwitch(&PWMScalerSP);
-        PWMScalerS[pwmStatus].s = ISS_ON;
-        IDSetSwitch(&PWMScalerSP, nullptr);
+        PWMScalerSP.reset();
+        PWMScalerSP[pwmStatus].setState(ISS_ON);
+        PWMScalerSP.apply();
     }
 
     // Update speed (PWM) if it was changed.
-    if (fabs(FocusSpeedN[0].value - status[1]) > 0)
+    if (fabs(FocusSpeedNP[0].getValue() - status[1]) > 0)
     {
-        FocusSpeedN[0].value = status[1];
-        LOGF_DEBUG("PWM: %d%", FocusSpeedN[0].value);
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP[0].setValue(status[1]);
+        LOGF_DEBUG("PWM: %d%", FocusSpeedNP[0].getValue());
+        FocusSpeedNP.apply();
     }
 
     return true;
@@ -262,18 +262,18 @@ bool FCUSB::AbortFocuser()
 
     if (rc)
     {
-        if (FocusTimerNP.s != IPS_IDLE)
+        if (FocusTimerNP.getState() != IPS_IDLE)
         {
-            FocusTimerNP.s = IPS_IDLE;
-            FocusTimerN[0].value = 0;
-            IDSetNumber(&FocusTimerNP, nullptr);
+            FocusTimerNP.setState(IPS_IDLE);
+            FocusTimerNP[0].setValue(0);
+            FocusTimerNP.apply();
         }
 
-        if (FocusMotionSP.s != IPS_IDLE)
+        if (FocusMotionSP.getState() != IPS_IDLE)
         {
-            IUResetSwitch(&FocusMotionSP);
-            FocusMotionSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP.reset();
+            FocusMotionSP.setState(IPS_IDLE);
+            FocusMotionSP.apply();
         }
     }
 
@@ -290,18 +290,18 @@ bool FCUSB::stop()
 
     if (rc)
     {
-        if (FocusTimerNP.s != IPS_OK)
+        if (FocusTimerNP.getState() != IPS_OK)
         {
-            FocusTimerNP.s = IPS_OK;
-            FocusTimerN[0].value = 0;
-            IDSetNumber(&FocusTimerNP, nullptr);
+            FocusTimerNP.setState(IPS_OK);
+            FocusTimerNP[0].setValue(0);
+            FocusTimerNP.apply();
         }
 
-        if (FocusMotionSP.s != IPS_OK)
+        if (FocusMotionSP.getState() != IPS_OK)
         {
-            IUResetSwitch(&FocusMotionSP);
-            FocusMotionSP.s = IPS_OK;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP.reset();
+            FocusMotionSP.setState(IPS_OK);
+            FocusMotionSP.apply();
         }
     }
 
@@ -323,7 +323,7 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     FocusDirection targetDirection = dir;
 
-    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
+    if (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON)
         targetDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
 
     motorStatus = (targetDirection == FOCUS_INWARD) ? MOTOR_REV : MOTOR_FWD;
@@ -382,7 +382,7 @@ bool FCUSB::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &PWMScalerSP);
+    PWMScalerSP.save(fp);
 
     return true;
 }

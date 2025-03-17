@@ -46,17 +46,16 @@ bool Focuser::initProperties()
     FI::initProperties(MAIN_CONTROL_TAB);
 
     // Presets
-    IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
-    IUFillNumber(&PresetN[1], "PRESET_2", "Preset 2", "%.f", 0, 100000, 1000, 0);
-    IUFillNumber(&PresetN[2], "PRESET_3", "Preset 3", "%.f", 0, 100000, 1000, 0);
-    IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
+    PresetNP[0].fill("PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
+    PresetNP[1].fill("PRESET_2", "Preset 2", "%.f", 0, 100000, 1000, 0);
+    PresetNP[2].fill("PRESET_3", "Preset 3", "%.f", 0, 100000, 1000, 0);
+    PresetNP.fill(getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     //Preset GOTO
-    IUFillSwitch(&PresetGotoS[0], "Preset 1", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[1], "Preset 2", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
-    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    PresetGotoSP[0].fill("Preset 1", "", ISS_OFF);
+    PresetGotoSP[1].fill("Preset 2", "", ISS_OFF);
+    PresetGotoSP[2].fill("Preset 3", "", ISS_OFF);
+    PresetGotoSP.fill(getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addDebugControl();
     addPollPeriodControl();
@@ -109,16 +108,16 @@ bool Focuser::updateProperties()
     {
         if (CanAbsMove())
         {
-            defineProperty(&PresetNP);
-            defineProperty(&PresetGotoSP);
+            defineProperty(PresetNP);
+            defineProperty(PresetGotoSP);
         }
     }
     else
     {
         if (CanAbsMove())
         {
-            deleteProperty(PresetNP.name);
-            deleteProperty(PresetGotoSP.name);
+            deleteProperty(PresetNP);
+            deleteProperty(PresetGotoSP);
         }
     }
 
@@ -131,11 +130,11 @@ bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], ch
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, PresetNP.name))
+        if (PresetNP.isNameMatch(name))
         {
-            IUUpdateNumber(&PresetNP, values, names, n);
-            PresetNP.s = IPS_OK;
-            IDSetNumber(&PresetNP, nullptr);
+            PresetNP.update(values, names, n);
+            PresetNP.setState(IPS_OK);
+            PresetNP.apply();
 
             //saveConfig();
 
@@ -153,43 +152,43 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(PresetGotoSP.name, name))
+        if (PresetGotoSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PresetGotoSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&PresetGotoSP);
+            PresetGotoSP.update(states, names, n);
+            int index = PresetGotoSP.findOnSwitchIndex();
 
-            if (PresetN[index].value < FocusAbsPosN[0].min)
+            if (PresetNP[index].getValue() < FocusAbsPosNP[0].getMin())
             {
-                PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                PresetGotoSP.setState(IPS_ALERT);
+                PresetGotoSP.apply();
                 DEBUGFDEVICE(dev, Logger::DBG_ERROR,
-                             "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
+                             "Requested position out of bound. Focus minimum position is %g", FocusAbsPosNP[0].getMin());
                 return true;
             }
-            else if (PresetN[index].value > FocusAbsPosN[0].max)
+            else if (PresetNP[index].getValue() > FocusAbsPosNP[0].getMax())
             {
-                PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                PresetGotoSP.setState(IPS_ALERT);
+                PresetGotoSP.apply();
                 DEBUGFDEVICE(dev, Logger::DBG_ERROR,
-                             "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
+                             "Requested position out of bound. Focus maximum position is %g", FocusAbsPosNP[0].getMax());
                 return true;
             }
 
-            IPState rc = MoveAbsFocuser(PresetN[index].value);
+            IPState rc = MoveAbsFocuser(PresetNP[index].getValue());
             if (rc != IPS_ALERT)
             {
-                PresetGotoSP.s = IPS_OK;
+                PresetGotoSP.setState(IPS_OK);
                 DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1,
-                       PresetN[index].value);
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                       PresetNP[index].getValue());
+                PresetGotoSP.apply();
 
-                FocusAbsPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply();
                 return true;
             }
 
-            PresetGotoSP.s = IPS_ALERT;
-            IDSetSwitch(&PresetGotoSP, nullptr);
+            PresetGotoSP.setState(IPS_ALERT);
+            PresetGotoSP.apply();
             return true;
         }
 
@@ -228,7 +227,7 @@ bool Focuser::saveConfigItems(FILE *fp)
 
     FI::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
+    PresetNP.save(fp);
     controller->saveConfigItems(fp);
 
     return true;
@@ -245,7 +244,7 @@ void Focuser::processButton(const char *button_n, ISState state)
     if (state == ISS_OFF)
         return;
 
-    FocusTimerN[0].value = lastTimerValue;
+    FocusTimerNP[0].setValue(lastTimerValue);
 
     IPState rc = IPS_IDLE;
 
@@ -254,89 +253,89 @@ void Focuser::processButton(const char *button_n, ISState state)
     {
         if (AbortFocuser())
         {
-            FocusAbortSP.s = IPS_OK;
+            FocusAbortSP.setState(IPS_OK);
             DEBUG(Logger::DBG_SESSION, "Focuser aborted.");
-            if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
+            if (CanAbsMove() && FocusAbsPosNP.getState() != IPS_IDLE)
             {
-                FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_IDLE);
+                FocusAbsPosNP.apply();
             }
-            if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
+            if (CanRelMove() && FocusRelPosNP.getState() != IPS_IDLE)
             {
-                FocusRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_IDLE);
+                FocusRelPosNP.apply();
             }
         }
         else
         {
-            FocusAbortSP.s = IPS_ALERT;
+            FocusAbortSP.setState(IPS_ALERT);
             DEBUG(Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&FocusAbortSP, nullptr);
+        FocusAbortSP.apply();
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
     {
-        if (FocusMotionS[FOCUS_INWARD].s != ISS_ON)
+        if (FocusMotionSP[FOCUS_INWARD].getState() != ISS_ON)
         {
-            FocusMotionS[FOCUS_INWARD].s  = ISS_ON;
-            FocusMotionS[FOCUS_OUTWARD].s = ISS_OFF;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP[FOCUS_INWARD].setState(ISS_ON);
+            FocusMotionSP[FOCUS_OUTWARD].setState(ISS_OFF);
+            FocusMotionSP.apply();
         }
 
         if (CanRelMove())
         {
-            rc = MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
+            rc = MoveRelFocuser(FOCUS_INWARD, FocusRelPosNP[0].getValue());
             if (rc == IPS_OK)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int)FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply("Focuser moved %d steps inward", (int)FocusRelPosNP[0].getValue());
+                FocusAbsPosNP.apply();
             }
             else if (rc == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int)FocusRelPosN[0].value);
+                FocusRelPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply("Focuser is moving %d steps inward...", (int)FocusRelPosNP[0].getValue());
             }
         }
         else if (HasVariableSpeed())
         {
-            rc             = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, nullptr);
+            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedNP[0].getValue(), FocusTimerNP[0].getValue());
+            FocusTimerNP.setState(rc);
+            FocusTimerNP.apply();
         }
 
     }
     else if (!strcmp(button_n, "Focus Out"))
     {
-        if (FocusMotionS[FOCUS_OUTWARD].s != ISS_ON)
+        if (FocusMotionSP[FOCUS_OUTWARD].getState() != ISS_ON)
         {
-            FocusMotionS[FOCUS_INWARD].s  = ISS_OFF;
-            FocusMotionS[FOCUS_OUTWARD].s = ISS_ON;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP[FOCUS_INWARD].setState(ISS_OFF);
+            FocusMotionSP[FOCUS_OUTWARD].setState(ISS_ON);
+            FocusMotionSP.apply();
         }
 
         if (CanRelMove())
         {
-            rc = MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
+            rc = MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosNP[0].getValue());
             if (rc == IPS_OK)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int)FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply("Focuser moved %d steps outward", (int)FocusRelPosNP[0].getValue());
+                FocusAbsPosNP.apply();
             }
             else if (rc == IPS_BUSY)
             {
-                FocusRelPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int)FocusRelPosN[0].value);
+                FocusRelPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply("Focuser is moving %d steps outward...", (int)FocusRelPosNP[0].getValue());
             }
         }
         else if (HasVariableSpeed())
         {
-            rc             = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, nullptr);
+            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedNP[0].getValue(), FocusTimerNP[0].getValue());
+            FocusTimerNP.setState(rc);
+            FocusTimerNP.apply();
         }
     }
 }
@@ -375,12 +374,12 @@ bool Focuser::SetFocuserMaxPosition(uint32_t ticks)
 
 void Focuser::SyncPresets(uint32_t ticks)
 {
-    PresetN[0].max = ticks;
-    PresetN[0].step = PresetN[0].max / 50.0;
-    PresetN[1].max = ticks;
-    PresetN[1].step = PresetN[0].max / 50.0;
-    PresetN[2].max = ticks;
-    PresetN[2].step = PresetN[0].max / 50.0;
-    IUUpdateMinMax(&PresetNP);
+    PresetNP[0].setMax(ticks);
+    PresetNP[0].setStep(PresetNP[0].getMax() / 50.0);
+    PresetNP[1].setMax(ticks);
+    PresetNP[1].setStep(PresetNP[0].getMax() / 50.0);
+    PresetNP[2].setMax(ticks);
+    PresetNP[2].setStep(PresetNP[0].getMax() / 50.0);
+    PresetNP.updateMinMax();
 }
 }
