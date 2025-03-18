@@ -47,6 +47,14 @@
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
             <version>1.24</version>
         </device>
+        <device label="Juwei 14" manufacturer="Juwei">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
+        </device>
+        <device label="Juwei 17" manufacturer="Juwei">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
+        </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
             <version>0.9</version>
