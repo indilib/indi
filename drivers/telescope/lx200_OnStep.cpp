@@ -4180,11 +4180,11 @@ int LX200_OnStep::OSUpdateRotator()
         if (f_scansexa(value, &double_value))
         {
             // 0 = good, thus this is the bad
-            GotoRotatorNP.s = IPS_ALERT;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP.setState(IPS_ALERT);
+            GotoRotatorNP.apply();
             return -1;
         }
-        GotoRotatorN[0].value =  double_value;
+        GotoRotatorNP[0].setValue(double_value);
         double min_rotator, max_rotator;
         //NOTE: The following commands are only on V4, V5 & OnStepX, not V3
         //TODO: Psudo-state for V3 Rotator?
@@ -4196,19 +4196,19 @@ int LX200_OnStep::OSUpdateRotator()
             if (error_or_fail > 1)
             {
                 changed_minmax = true;
-                GotoRotatorN[0].min =  min_rotator;
+                GotoRotatorNP[0].setMin(min_rotator);
             }
             memset(value, 0, RB_MAX_LEN);
             error_or_fail = getCommandDoubleResponse(PortFD, &max_rotator, value, ":rM#");
             if (error_or_fail > 1)
             {
                 changed_minmax = true;
-                GotoRotatorN[0].max =  max_rotator;
+                GotoRotatorNP[0].setMax(max_rotator);
             }
             if (changed_minmax)
             {
-                IUUpdateMinMax(&GotoRotatorNP);
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.updateMinMax();
+                GotoRotatorNP.apply();
             }
             //GotoRotatorN
             memset(value, 0, RB_MAX_LEN);
@@ -4217,20 +4217,20 @@ int LX200_OnStep::OSUpdateRotator()
             {
                 if (value[0] == 'S') /*Stopped normal on EQ mounts */
                 {
-                    GotoRotatorNP.s = IPS_OK;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_OK);
+                    GotoRotatorNP.apply();
 
                 }
                 else if (value[0] == 'M') /* Moving, including de-rotation */
                 {
-                    GotoRotatorNP.s = IPS_BUSY;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_BUSY);
+                    GotoRotatorNP.apply();
                 }
                 else
                 {
                     //INVALID REPLY
-                    GotoRotatorNP.s = IPS_ALERT;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_ALERT);
+                    GotoRotatorNP.apply();
                 }
             }
             memset(value, 0, RB_MAX_LEN);
@@ -4238,9 +4238,9 @@ int LX200_OnStep::OSUpdateRotator()
             error_or_fail = getCommandIntResponse(PortFD, &backlash_value, value, ":rb#");
             if (error_or_fail > 1)
             {
-                RotatorBacklashN[0].value =  backlash_value;
-                RotatorBacklashNP.s = IPS_OK;
-                IDSetNumber(&RotatorBacklashNP, nullptr);
+                RotatorBacklashNP[0].setValue(backlash_value);
+                RotatorBacklashNP.setState(IPS_OK);
+                RotatorBacklashNP.apply();
             }
         }
     }

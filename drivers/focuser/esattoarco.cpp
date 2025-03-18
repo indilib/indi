@@ -92,26 +92,26 @@ bool EsattoArco::initProperties()
     // Current Speed
     SpeedNP[0].fill("SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
     SpeedNP.fill(getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
-                       IPS_IDLE);
+                 IPS_IDLE);
 
     // Backlash measurement
     BacklashMessageTP[0].fill("BACKLASH", "Backlash stage", "Press START to measure backlash.");
     BacklashMessageTP.fill(getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                           MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Backlash measurement stages
     BacklashMeasurementSP[BACKLASH_START].fill("BACKLASH_START", "Start", ISS_OFF);
     BacklashMeasurementSP[BACKLASH_NEXT].fill("BACKLASH_NEXT", "Next", ISS_OFF);
     BacklashMeasurementSP.fill(getDeviceName(), "FOCUS_BACKLASH", "Backlash",
-                       MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                               MAIN_CONTROL_TAB,
+                               IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
     FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
     FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
     FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
     FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+                    ISR_ATMOST1, 0, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
     FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
@@ -127,20 +127,14 @@ bool EsattoArco::initProperties()
     // Rotator Ticks
     RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
-                       0, IPS_IDLE );
+                         0, IPS_IDLE );
     // Rotator Calibration
     RotatorCalibrationSP[ARCO_CALIBRATION_START].fill("ARCO_CALIBRATION_START", "Start", ISS_OFF);
     RotatorCalibrationSP.fill(getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                              IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Read reverse rotator config
-    int index = -1;
-    IUGetConfigOnSwitchIndex(getDeviceName(), ReverseRotatorSP.name, &index);
-    if (index >= 0)
-    {
-        IUResetSwitch(&ReverseRotatorSP);
-        ReverseRotatorS[index].s = ISS_ON;
-    }
+    ReverseRotatorSP.load();
 
     //////////////////////////////////////////////////////
     // Defaults
@@ -348,11 +342,11 @@ bool EsattoArco::updatePosition()
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
         //Update Rotator Position
-        const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (isReversed)
-            GotoRotatorN[0].value = range360(360 - arcoPosition);
+            GotoRotatorNP[0].setValue(range360(360 - arcoPosition));
         else
-            GotoRotatorN[0].value = range360(arcoPosition);
+            GotoRotatorNP[0].setValue(range360(arcoPosition));
 
     }
 
@@ -503,10 +497,10 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
                 RotatorAbsPosNP.setState(IPS_BUSY);
-                GotoRotatorNP.s = IPS_BUSY;
+                GotoRotatorNP.setState(IPS_BUSY);
                 RotatorCalibrationSP.setState(IPS_BUSY);
                 RotatorCalibrationSP.apply();
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.apply();
                 RotatorAbsPosNP.apply();
             }
             else
@@ -540,9 +534,9 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
             RotatorAbsPosNP.setState(IPS_BUSY);
         else
             RotatorAbsPosNP.setState(IPS_ALERT);
-        GotoRotatorNP.s = RotatorAbsPosNP.getState();
+        GotoRotatorNP.setState(RotatorAbsPosNP.getState());
         RotatorAbsPosNP.apply();
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
         if (RotatorAbsPosNP.getState() == IPS_BUSY)
             LOGF_INFO("Rotator moving to %.f steps...", values[0]);
         return true;
@@ -627,7 +621,7 @@ void EsattoArco::TimerHit()
         if (std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0)
         {
             // Rotator was busy and now stopped?
-            if (GotoRotatorNP.s == IPS_BUSY && m_Arco->isBusy() == false)
+            if (GotoRotatorNP.getState() == IPS_BUSY && m_Arco->isBusy() == false)
             {
                 // Check if we were calibrating
                 if(RotatorCalibrationSP.getState() == IPS_BUSY)
@@ -638,14 +632,14 @@ void EsattoArco::TimerHit()
                     if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
                         LOG_INFO("Arco position synced to zero.");
                 }
-                GotoRotatorNP.s = IPS_OK;
+                GotoRotatorNP.setState(IPS_OK);
                 RotatorAbsPosNP.setState(IPS_OK);
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.apply();
                 RotatorAbsPosNP.apply();
             }
             else
             {
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.apply();
                 RotatorAbsPosNP.apply();
             }
         }
@@ -806,7 +800,7 @@ IPState EsattoArco::MoveRotator(double angle)
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);
@@ -827,9 +821,9 @@ bool EsattoArco::AbortRotator()
     if (rc && RotatorAbsPosNP.getState() != IPS_IDLE)
     {
         RotatorAbsPosNP.setState(IPS_IDLE);
-        GotoRotatorNP.s = IPS_IDLE;
+        GotoRotatorNP.setState(IPS_IDLE);
         RotatorAbsPosNP.apply();
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
     }
 
     return rc;
@@ -843,7 +837,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
     // Do not use Primaluca native reverse since it has some bugs
     //return m_Arco->reverse(enabled);
     INDI_UNUSED(enabled);
-    GotoRotatorN[0].value = range360(360 - GotoRotatorN[0].value);
+    GotoRotatorNP[0].setValue(range360(360 - GotoRotatorNP[0].getValue()));
     return true;
 }
 
@@ -852,7 +846,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
 *************************************************************************************************************/
 bool EsattoArco::SyncRotator(double angle)
 {
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);

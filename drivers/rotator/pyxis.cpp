@@ -137,13 +137,13 @@ void Pyxis::queryParams()
     int dir = getReverseStatus();
 
     IUResetSwitch(&ReverseRotatorSP);
-    ReverseRotatorSP.s = IPS_OK;
+    ReverseRotatorSP.setState(IPS_OK);
     if (dir == 0)
-        ReverseRotatorS[INDI_DISABLED].s = ISS_ON;
+        ReverseRotatorSP[INDI_DISABLED].setState(ISS_ON);
     else if (dir == 1)
-        ReverseRotatorS[INDI_ENABLED].s = ISS_ON;
+        ReverseRotatorSP[INDI_ENABLED].setState(ISS_ON);
     else
-        ReverseRotatorSP.s = IPS_ALERT;
+        ReverseRotatorSP.setState(IPS_ALERT);
 
     IDSetSwitch(&ReverseRotatorSP, nullptr);
 
@@ -465,7 +465,7 @@ IPState Pyxis::MoveRotator(double angle)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    uint16_t current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+    uint16_t current = static_cast<uint16_t>(GotoRotatorNP[0].getValue()) ;
 
     targetPA = static_cast<uint16_t>(round(angle));
 
@@ -538,8 +538,8 @@ void Pyxis::TimerHit()
         if (isMotionComplete())
         {
             currentState = IPS_OK;
-            HomeRotatorSP.s = IPS_OK;
-            HomeRotatorS[0].s = ISS_OFF;
+            HomeRotatorSP.setState(IPS_OK);
+            HomeRotatorSP[0].setState(ISS_OFF);
             IDSetSwitch(&HomeRotatorSP, nullptr);
             LOG_INFO("Homing is complete.");
         }
@@ -564,15 +564,15 @@ void Pyxis::TimerHit()
     }
 
     // Update PA
-    uint16_t PA = GotoRotatorN[0].value;
+    uint16_t PA = GotoRotatorNP[0].getValue();
     getPA(PA);
 
     // If either PA or state changed, update the property.
-    if ( (PA != static_cast<uint16_t>(GotoRotatorN[0].value)) || currentState != GotoRotatorNP.s)
+    if ( (PA != static_cast<uint16_t>(GotoRotatorNP[0].getValue())) || currentState != GotoRotatorNP.s)
     {
-        GotoRotatorN[0].value = PA;
+        GotoRotatorNP[0].setValue(PA);
         GotoRotatorNP.s = currentState;
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -596,14 +596,14 @@ bool Pyxis::isMotionComplete()
         {
             LOGF_DEBUG("RES <%s>", res);
 
-            int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+            int current = static_cast<uint16_t>(GotoRotatorNP[0].getValue()) ;
 
             current = current + direction ;
             if (current < 0) current = 359 ;
             if (current > 360) current = 1 ;
 
-            GotoRotatorN[0].value = current ;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(current );
+            GotoRotatorNP.apply();
 
             LOGF_DEBUG("ANGLE = %d", current) ;
             LOGF_DEBUG("TTY_OVERFLOW, nbytes_read = %d", nbytes_read) ;
@@ -615,8 +615,8 @@ bool Pyxis::isMotionComplete()
 
         if (HomeRotatorSP.s == IPS_BUSY)
         {
-            HomeRotatorS[0].s = ISS_OFF;
-            HomeRotatorSP.s = IPS_ALERT;
+            HomeRotatorSP[0].setState(ISS_OFF);
+            HomeRotatorSP.setState(IPS_ALERT);
             LOG_ERROR("Homing failed. Check possible jam.");
             tcflush(PortFD, TCIOFLUSH);
         }
@@ -653,8 +653,8 @@ bool Pyxis::isMotionComplete()
     // Error
     else if (HomeRotatorSP.s == IPS_BUSY)
     {
-        HomeRotatorS[0].s = ISS_OFF;
-        HomeRotatorSP.s = IPS_ALERT;
+        HomeRotatorSP[0].setState(ISS_OFF);
+        HomeRotatorSP.setState(IPS_ALERT);
         LOG_ERROR("Homing failed. Check possible jam.");
         tcflush(PortFD, TCIOFLUSH);
     }
