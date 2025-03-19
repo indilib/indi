@@ -51,7 +51,7 @@ bool WandererRotatorBase::initProperties()
     addAuxControls();
     // Calibrate
     SetZeroSP[0].fill("Set_Zero", "Mechanical Zero", ISS_OFF);
-    SetZeroSP.fill(getDeviceName(), "Set_Zero", "Set Current As", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,60, IPS_IDLE);
+    SetZeroSP.fill(getDeviceName(), "Set_Zero", "Set Current As", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // BACKLASH
     BacklashNP[BACKLASH].fill( "BACKLASH", "Degree", "%.2f", 0, 3, 0.1, 0);
@@ -89,8 +89,8 @@ bool WandererRotatorBase::ISNewSwitch(const char *dev, const char *name, ISState
         {
             SetZeroSP.setState(sendCommand("1500002") ? IPS_OK : IPS_ALERT);
             SetZeroSP.apply();
-            GotoRotatorN[0].value=0;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(0);
+            GotoRotatorNP.apply();
             LOG_INFO("Virtual Mechanical Angle is set to zero.");
             return true;
         }
@@ -107,11 +107,11 @@ bool WandererRotatorBase::ISNewNumber(const char * dev, const char * name, doubl
         {
             bool rc1 = false;
             BacklashNP.update(values, names, n);
-            backlash=BacklashNP[BACKLASH].value;
+            backlash = BacklashNP[BACKLASH].value;
 
             char cmd[16];
-            snprintf(cmd, 16, "%d", (int)(backlash*10+1600000));
-            rc1=sendCommand(cmd);
+            snprintf(cmd, 16, "%d", (int)(backlash * 10 + 1600000));
+            rc1 = sendCommand(cmd);
 
             BacklashNP.setState( (rc1) ? IPS_OK : IPS_ALERT);
             if (BacklashNP.getState() == IPS_OK)
@@ -129,7 +129,7 @@ bool WandererRotatorBase::Handshake()
 {
     PortFD = serialConnection->getPortFD();
     tcflush(PortFD, TCIOFLUSH);
-    int nbytes_read_name = 0,nbytes_written=0,rc=-1;
+    int nbytes_read_name = 0, nbytes_written = 0, rc = -1;
     char name[64] = {0};
 
     if ((rc = tty_write_string(PortFD, "1500001", &nbytes_written)) != TTY_OK)
@@ -155,16 +155,16 @@ bool WandererRotatorBase::Handshake()
         {
             char errorMessage[MAXRBUF];
             tty_error_msg(rc, errorMessage, MAXRBUF);
-            LOGF_INFO("No data received, the device may not be WandererRotator, please check the serial port!","Updated");
+            LOGF_INFO("No data received, the device may not be WandererRotator, please check the serial port!", "Updated");
             LOGF_ERROR("Device read error: %s", errorMessage);
             return false;
         }
     }
     name[nbytes_read_name - 1] = '\0';
-    if(strcmp(name, getRotatorHandshakeName())!=0)
+    if(strcmp(name, getRotatorHandshakeName()) != 0)
     {
         LOGF_ERROR("The device is not %s", getDefaultName());
-        LOGF_INFO("The device is %s.",name);
+        LOGF_INFO("The device is %s.", name);
         return false;
     }
     // Frimware version/////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,8 +174,8 @@ bool WandererRotatorBase::Handshake()
 
     version[nbytes_read_version - 1] = '\0';
     LOGF_INFO("Firmware Version:%s", version);
-    firmware=std::atoi(version);
-    if(firmware<getMinimumCompatibleFirmwareVersion())
+    firmware = std::atoi(version);
+    if(firmware < getMinimumCompatibleFirmwareVersion())
     {
         LOG_ERROR("The firmware is outdated, please upgrade to the latest firmware!");
         LOGF_ERROR("The current firmware is %s.", firmware);
@@ -184,40 +184,40 @@ bool WandererRotatorBase::Handshake()
 
     // Angle//////////////////////////////////////////////////////////////////////////////////////////
     char M_angle[64] = {0};
-    int nbytes_read_M_angle= 0;
+    int nbytes_read_M_angle = 0;
     tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
     M_angle[nbytes_read_M_angle - 1] = '\0';
-    M_angleread = std::strtod(M_angle,NULL);
+    M_angleread = std::strtod(M_angle, NULL);
 
-    if(abs(M_angleread)>400000)
+    if(abs(M_angleread) > 400000)
     {
-        rc=sendCommand("1500002");
+        rc = sendCommand("1500002");
         LOG_WARN("Virtual Mechanical Angle is too large, it is now set to zero!");
-        rc=sendCommand("1500001");
-        rc=tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
-        rc=tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
-        rc=tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+        rc = sendCommand("1500001");
+        rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+        rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+        rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
         M_angle[nbytes_read_M_angle - 1] = '\0';
-        M_angleread = std::strtod(M_angle,NULL);
+        M_angleread = std::strtod(M_angle, NULL);
     }
-    GotoRotatorN[0].value=abs(M_angleread/1000);
+    GotoRotatorNP[0].setValue(abs(M_angleread / 1000));
     //backlash/////////////////////////////////////////////////////////////////////
     char M_backlash[64] = {0};
-    int nbytes_read_M_backlash= 0;
+    int nbytes_read_M_backlash = 0;
     tty_read_section(PortFD, M_backlash, 'A', 5, &nbytes_read_M_backlash);
     M_backlash[nbytes_read_M_backlash - 1] = '\0';
-    M_backlashread = std::strtod(M_backlash,NULL);
+    M_backlashread = std::strtod(M_backlash, NULL);
 
     BacklashNP[BACKLASH].setValue(M_backlashread);
     BacklashNP.setState(IPS_OK);
     BacklashNP.apply();
     //reverse/////////////////////////////////////////////////////////////////////
     char M_reverse[64] = {0};
-    int nbytes_read_M_reverse= 0;
+    int nbytes_read_M_reverse = 0;
     tty_read_section(PortFD, M_reverse, 'A', 5, &nbytes_read_M_reverse);
     M_reverse[nbytes_read_M_angle - 1] = '\0';
-    M_reverseread = std::strtod(M_reverse,NULL);
-    if(M_reverseread==0)
+    M_reverseread = std::strtod(M_reverse, NULL);
+    if(M_reverseread == 0)
     {
         ReverseRotator(false);
     }
@@ -233,10 +233,10 @@ bool WandererRotatorBase::Handshake()
 
 IPState WandererRotatorBase::MoveRotator(double angle)
 {
-    angle = angle - GotoRotatorN[0].value;
+    angle = angle - GotoRotatorNP[0].getValue();
 
     char cmd[16];
-    int position = (int)(angle * getStepsPerDegree()+1000000);
+    int position = (int)(angle * getStepsPerDegree() + 1000000);
     positionhistory = angle;
     snprintf(cmd, 16, "%d", position);
     Move(cmd);
@@ -249,19 +249,19 @@ bool WandererRotatorBase::AbortRotator()
 {
 
 
-    if (GotoRotatorNP.s == IPS_BUSY)
+    if (GotoRotatorNP.getState() == IPS_BUSY)
     {
-            haltcommand = true;
-    int nbytes_written = 0, rc = -1;
-    tcflush(PortFD, TCIOFLUSH);
-    if ((rc = tty_write_string(PortFD, "Stop", &nbytes_written)) != TTY_OK)
-    {
-        char errorMessage[MAXRBUF];
-        tty_error_msg(rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
-        return false;
-    }
-    SetTimer(100);
+        haltcommand = true;
+        int nbytes_written = 0, rc = -1;
+        tcflush(PortFD, TCIOFLUSH);
+        if ((rc = tty_write_string(PortFD, "Stop", &nbytes_written)) != TTY_OK)
+        {
+            char errorMessage[MAXRBUF];
+            tty_error_msg(rc, errorMessage, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s", errorMessage);
+            return false;
+        }
+        SetTimer(100);
     }
     return true;
 }
@@ -272,16 +272,16 @@ bool WandererRotatorBase::AbortRotator()
 ///
 IPState WandererRotatorBase::HomeRotator()
 {
-    if(GotoRotatorN[0].value!=0)
+    if(GotoRotatorNP[0].getValue() != 0)
     {
-    double angle = -1 * GotoRotatorN[0].value;
-    positionhistory = angle;
-    char cmd[16];
-    int position = (int)(angle * getStepsPerDegree()+1000000);
-    snprintf(cmd, 16, "%d", position);
-    GotoRotatorNP.s = IPS_BUSY;
-    Move(cmd);
-    LOG_INFO("Moving to zero...");
+        double angle = -1 * GotoRotatorNP[0].getValue();
+        positionhistory = angle;
+        char cmd[16];
+        int position = (int)(angle * getStepsPerDegree() + 1000000);
+        snprintf(cmd, 16, "%d", position);
+        GotoRotatorNP.setState(IPS_BUSY);
+        Move(cmd);
+        LOG_INFO("Moving to zero...");
     }
     return IPS_OK;
 }
@@ -294,7 +294,7 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
     {
         char cmd[16];
         snprintf(cmd, 16, "%d", 1700001);
-        if (sendCommand(cmd)!= true)
+        if (sendCommand(cmd) != true)
         {
             LOG_ERROR("Serial write error.");
             return false;
@@ -306,7 +306,7 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
     {
         char cmd[16];
         snprintf(cmd, 16, "%d", 1700000);
-        if (sendCommand(cmd)!= true)
+        if (sendCommand(cmd) != true)
         {
             LOG_ERROR("Serial write error.");
             return false;
@@ -322,40 +322,40 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
 void WandererRotatorBase::TimerHit()
 {
 
-    if (GotoRotatorNP.s == IPS_BUSY || haltcommand == true)
+    if (GotoRotatorNP.getState() == IPS_BUSY || haltcommand == true)
     {
 
-        if(nowtime<estime&&haltcommand == false)
+        if(nowtime < estime && haltcommand == false)
         {
-            GotoRotatorN[0].value=GotoRotatorN[0].value+1*positionhistory/abs(positionhistory);
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            nowtime=nowtime+240;
+            GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + 1 * positionhistory / abs(positionhistory));
+            GotoRotatorNP.apply();
+            nowtime = nowtime + 240;
             SetTimer(240);
             return;
         }
         else
         {
-            int rc=-1;
-            estime=0;
-            nowtime=0;
+            int rc = -1;
+            estime = 0;
+            nowtime = 0;
             char M_angle[64] = {0};
-            int nbytes_read_M_angle= 0;
-            rc=tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
-            if(rc!=TTY_OK)
+            int nbytes_read_M_angle = 0;
+            rc = tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
+            if(rc != TTY_OK)
             {
                 LOG_ERROR("Rotator not powered!");
-                GotoRotatorN[0].value=initangle;
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP[0].setValue(initangle);
+                GotoRotatorNP.apply();
                 haltcommand = false;
                 return;
             }
             tty_read_section(PortFD, M_angle, 'A', 5, &nbytes_read_M_angle);
 
             M_angle[nbytes_read_M_angle - 1] = '\0';
-            M_angleread = std::strtod(M_angle,NULL);
-            GotoRotatorN[0].value=abs(M_angleread/1000);
-            GotoRotatorNP.s = IPS_OK;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            M_angleread = std::strtod(M_angle, NULL);
+            GotoRotatorNP[0].setValue(abs(M_angleread / 1000));
+            GotoRotatorNP.setState(IPS_OK);
+            GotoRotatorNP.apply();
             haltcommand = false;
         }
     }
@@ -368,7 +368,7 @@ void WandererRotatorBase::TimerHit()
 
 bool WandererRotatorBase::Move(const char *cmd)
 {
-    initangle=GotoRotatorN[0].value;
+    initangle = GotoRotatorNP[0].getValue();
     int nbytes_written = 0, rc = -1;
     LOGF_DEBUG("CMD <%s>", cmd);
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
@@ -379,8 +379,8 @@ bool WandererRotatorBase::Move(const char *cmd)
         return false;
     }
     SetTimer(2000);
-    nowtime=0;
-    estime=abs((std::atoi(cmd)-1000000)/getStepsPerDegree()*240);
+    nowtime = 0;
+    estime = abs((std::atoi(cmd) - 1000000) / getStepsPerDegree() * 240);
     return true;
 }
 

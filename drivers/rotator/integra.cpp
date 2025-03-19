@@ -647,17 +647,17 @@ void Integra::TimerHit()
         {
             LOG_DEBUG("Rotator stopped");
             RotatorAbsPosNP.setState(IPS_OK);
-            GotoRotatorNP.s = IPS_OK;
+            GotoRotatorNP.setState(IPS_OK);
             rc = getPosition(MOTOR_ROTATOR);
             if (rc)
             {
                 if (RotatorAbsPosNP[0].getValue() != lastRotatorPosition)
                 {
                     lastRotatorPosition = RotatorAbsPosNP[0].getValue();
-                    GotoRotatorN[0].value = rotatorTicksToDegrees(
-                                                lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
+                    GotoRotatorNP[0].setValue(rotatorTicksToDegrees(
+                                                lastRotatorPosition)); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
                     RotatorAbsPosNP.apply( );
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.apply();
                     if (haveReadRotatorPositionAtLeastOnce)
                         LOGF_INFO("Rotator reached requested angle %.2f, position %d",
                                   rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);

@@ -711,13 +711,13 @@ void NightCrawler::TimerHit()
     bool rc = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
-    if (FindHomeSP.getState() == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
+    if (FindHomeSP.getState() == IPS_BUSY || HomeRotatorSP.getState() == IPS_BUSY)
     {
         if (isHomingComplete())
         {
-            HomeRotatorS[0].s = ISS_OFF;
-            HomeRotatorSP.s = IPS_OK;
-            IDSetSwitch(&HomeRotatorSP, nullptr);
+            HomeRotatorSP[0].setState(ISS_OFF);
+            HomeRotatorSP.setState(IPS_OK);
+            HomeRotatorSP.apply();
 
             FindHomeSP[0].setState(ISS_OFF);
             FindHomeSP.setState(IPS_OK);
@@ -793,7 +793,7 @@ void NightCrawler::TimerHit()
         if (!isMotorMoving(MOTOR_ROTATOR))
         {
             RotatorAbsPosNP.setState(IPS_OK);
-            GotoRotatorNP.s = IPS_OK;
+            GotoRotatorNP.setState(IPS_OK);
             absRotatorUpdated = true;
             LOG_INFO("Rotator motion complete.");
         }
@@ -813,16 +813,16 @@ void NightCrawler::TimerHit()
     if (rc && std::abs(RotatorAbsPosNP[0].getValue() - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosNP[0].getValue();
-        if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
-            GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+        if (ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON)
+            GotoRotatorNP[0].setValue(range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree)));
         else
-            GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
+            GotoRotatorNP[0].setValue(range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
     {
         RotatorAbsPosNP.apply();
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
     }
 
     // #7 Aux Position & Status
@@ -1402,7 +1402,7 @@ IPState NightCrawler::MoveRotator(double angle)
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
         newAngle *= -1;
@@ -1427,7 +1427,7 @@ IPState NightCrawler::MoveRotator(double angle)
 
 bool NightCrawler::SyncRotator(double angle)
 {
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
         newAngle *= -1;
@@ -1457,9 +1457,9 @@ bool NightCrawler::ReverseRotator(bool enabled)
 {
     // Immediately update the angle after reverse is set.
     if (enabled)
-        GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+        GotoRotatorNP[0].setValue(range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree)));
     else
-        GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
-    IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP[0].setValue(range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+    GotoRotatorNP.apply();
     return true;
 }

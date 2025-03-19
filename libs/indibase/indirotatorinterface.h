@@ -22,6 +22,7 @@
 
 #include "indibase.h"
 #include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #include <stdint.h>
 
 using RI = INDI::RotatorInterface;
@@ -195,28 +196,26 @@ class RotatorInterface
         bool saveConfigItems(FILE * fp);
 
 
-        INumber GotoRotatorN[1];
-        INumberVectorProperty GotoRotatorNP;
+        // Goto rotator angle
+        INDI::PropertyNumber GotoRotatorNP {1};
 
-        INumber SyncRotatorN[1];
-        INumberVectorProperty SyncRotatorNP;
+        // Sync rotator angle
+        INDI::PropertyNumber SyncRotatorNP {1};
 
-        ISwitch AbortRotatorS[1];
-        ISwitchVectorProperty AbortRotatorSP;
+        // Abort rotator motion
+        INDI::PropertySwitch AbortRotatorSP {1};
 
-        ISwitch HomeRotatorS[1];
-        ISwitchVectorProperty HomeRotatorSP;
+        // Home rotator
+        INDI::PropertySwitch HomeRotatorSP {1};
 
-        ISwitch ReverseRotatorS[2];
-        ISwitchVectorProperty ReverseRotatorSP;
+        // Reverse rotator direction
+        INDI::PropertySwitch ReverseRotatorSP {2};
 
         // Backlash toggle
-        ISwitchVectorProperty RotatorBacklashSP;
-        ISwitch RotatorBacklashS[2];
+        INDI::PropertySwitch RotatorBacklashSP {2};
 
         // Backlash steps
-        INumberVectorProperty RotatorBacklashNP;
-        INumber RotatorBacklashN[1];
+        INDI::PropertyNumber RotatorBacklashNP {1};
 
         // Rotator Limits
         INDI::PropertyNumber RotatorLimitsNP {1};
