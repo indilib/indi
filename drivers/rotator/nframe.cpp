@@ -88,9 +88,9 @@ bool nFrameRotator::initProperties()
     addDebugControl();
 
     // Set limits as per documentation
-    GotoRotatorN[0].min  = 0;
-    GotoRotatorN[0].max  = 999999;
-    GotoRotatorN[0].step = 1000;
+    GotoRotatorNP[0].setMin(0);
+    GotoRotatorNP[0].setMax(999999);
+    GotoRotatorNP[0].setStep(1000);
 
     RotatorSpeedNP[0].setMin(1);
     RotatorSpeedNP[0].setMax(254);
@@ -114,14 +114,14 @@ bool nFrameRotator::updateProperties()
         defineProperty(RotatorAbsPosNP);
         defineProperty(SettingNP);
         defineProperty(RotatorSpeedNP);
-        defineProperty(&GotoRotatorNP);
+        defineProperty(GotoRotatorNP);
         SettingNP.load();
         readPosition();
         readSpeedInfo();
         RotatorAbsPosNP.apply();
         GotoRotatorNP.apply();
 
-        loadConfig(true, PresetNP.name);
+        PresetNP.load();
 
         bool rc = getStartupValues();
 
@@ -386,7 +386,7 @@ IPState nFrameRotator::MoveRotator(double angle)
     r = angle;
 
     r *= sign;
-    r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
+    r *= ReverseRotatorSP.findOnSwitchIndex() == INDI_ENABLED ? -1 : 1;
 
     double newTarget = r * SettingNP[PARAM_STEPS_DEGREE].getValue() + m_ZeroPosition;
     m_TargetDiff = (int)newTarget - (int)RotatorAbsPosNP[0].getValue();
@@ -414,7 +414,7 @@ void nFrameRotator::TimerHit()
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if ( ((RotatorAbsPosNP.getState() == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY) && isMoving() == false) || wantAbort == true)
+    if ( ((RotatorAbsPosNP.getState() == IPS_BUSY || GotoRotatorNP.getState() == IPS_BUSY) && isMoving() == false) || wantAbort == true)
     {
         LOGF_DEBUG("wantAbort = %d, diff = %d", wantAbort, m_TargetDiff);
         // Are we done moving?
@@ -439,7 +439,7 @@ void nFrameRotator::TimerHit()
             if (sendCommand(cmd) == false)
             {
                 LOG_ERROR("Failed to issue motion command.");
-                if (GotoRotatorNP.s == IPS_BUSY)
+                if (GotoRotatorNP.getState() == IPS_BUSY)
                 {
                     GotoRotatorNP.setState(IPS_ALERT);
                     GotoRotatorNP.apply();
@@ -588,7 +588,7 @@ bool nFrameRotator::SyncRotator(double angle)
     int sign = (angle >= 0 && angle <= 180) ? 1 : -1;
 
     r *= sign;
-    r *= IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1;
+    r *= ReverseRotatorSP.findOnSwitchIndex() == INDI_ENABLED ? -1 : 1;
     double newTarget = r * SettingNP[PARAM_STEPS_DEGREE].getValue() + m_ZeroPosition;
 
     char cmd[NFRAME_LEN] = {0};
@@ -646,7 +646,7 @@ bool nFrameRotator::saveConfigItems(FILE *fp)
 double nFrameRotator::calculateAngle(uint32_t steps)
 {
     int diff = (static_cast<int32_t>(steps) - m_ZeroPosition) *
-               (IUFindOnSwitchIndex(&ReverseRotatorSP) == INDI_ENABLED ? -1 : 1);
+               (ReverseRotatorSP.findOnSwitchIndex() == INDI_ENABLED ? -1 : 1);
     //    LOGF_DEBUG("RANGE=%f",(int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.);
     return range360((float(diff) + 0.5) / SettingNP[PARAM_STEPS_DEGREE].getValue());
     //   return (int)(range360((float(diff)+0.5) / SettingN[PARAM_STEPS_DEGREE].value)*100)/100.;

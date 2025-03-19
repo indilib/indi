@@ -136,7 +136,7 @@ void Pyxis::queryParams()
     ////////////////////////////////////////////
     int dir = getReverseStatus();
 
-    IUResetSwitch(&ReverseRotatorSP);
+    ReverseRotatorSP.reset();
     ReverseRotatorSP.setState(IPS_OK);
     if (dir == 0)
         ReverseRotatorSP[INDI_DISABLED].setState(ISS_ON);
@@ -145,7 +145,7 @@ void Pyxis::queryParams()
     else
         ReverseRotatorSP.setState(IPS_ALERT);
 
-    IDSetSwitch(&ReverseRotatorSP, nullptr);
+    ReverseRotatorSP.apply();
 
     // Firmware version parameter
     std::string sversion = getVersion() ;
@@ -531,16 +531,16 @@ void Pyxis::TimerHit()
     }
 
     // Record last state
-    auto currentState = GotoRotatorNP.s;
+    auto currentState = GotoRotatorNP.getState();
 
-    if (HomeRotatorSP.s == IPS_BUSY)
+    if (HomeRotatorSP.getState() == IPS_BUSY)
     {
         if (isMotionComplete())
         {
             currentState = IPS_OK;
             HomeRotatorSP.setState(IPS_OK);
             HomeRotatorSP[0].setState(ISS_OFF);
-            IDSetSwitch(&HomeRotatorSP, nullptr);
+            HomeRotatorSP.apply();
             LOG_INFO("Homing is complete.");
         }
         else
@@ -550,7 +550,7 @@ void Pyxis::TimerHit()
             return;
         }
     }
-    else if (GotoRotatorNP.s == IPS_BUSY)
+    else if (GotoRotatorNP.getState() == IPS_BUSY)
     {
         if (!isMotionComplete())
         {
@@ -568,10 +568,10 @@ void Pyxis::TimerHit()
     getPA(PA);
 
     // If either PA or state changed, update the property.
-    if ( (PA != static_cast<uint16_t>(GotoRotatorNP[0].getValue())) || currentState != GotoRotatorNP.s)
+    if ( (PA != static_cast<uint16_t>(GotoRotatorNP[0].getValue())) || currentState != GotoRotatorNP.getState())
     {
         GotoRotatorNP[0].setValue(PA);
-        GotoRotatorNP.s = currentState;
+        GotoRotatorNP.setState(currentState);
         GotoRotatorNP.apply();
     }
 
@@ -613,7 +613,7 @@ bool Pyxis::isMotionComplete()
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
 
-        if (HomeRotatorSP.s == IPS_BUSY)
+        if (HomeRotatorSP.getState() == IPS_BUSY)
         {
             HomeRotatorSP[0].setState(ISS_OFF);
             HomeRotatorSP.setState(IPS_ALERT);

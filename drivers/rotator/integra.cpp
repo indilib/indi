@@ -654,8 +654,8 @@ void Integra::TimerHit()
                 if (RotatorAbsPosNP[0].getValue() != lastRotatorPosition)
                 {
                     lastRotatorPosition = RotatorAbsPosNP[0].getValue();
-                    GotoRotatorN[0].value = rotatorTicksToDegrees(
-                                                lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
+                    GotoRotatorNP[0].setValue(rotatorTicksToDegrees(
+                                                lastRotatorPosition)); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
                     RotatorAbsPosNP.apply( );
                     GotoRotatorNP.apply();
                     if (haveReadRotatorPositionAtLeastOnce)

@@ -297,10 +297,10 @@ bool PegasusFalconV2::getStatusData()
         const IPState motionState = std::stoi(result[2]) == 1 ? IPS_BUSY : IPS_OK;
 
         // Update Absolute Position property if either position changes, or status changes.
-        if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.s != motionState)
+        if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
         {
             GotoRotatorNP[0].setValue(position);
-            GotoRotatorNP.s = motionState;
+            GotoRotatorNP.setState(motionState);
             GotoRotatorNP.apply();
         }
 
@@ -311,7 +311,7 @@ bool PegasusFalconV2::getStatusData()
         {
             ReverseRotatorSP[INDI_ENABLED].setState(reversed ? ISS_ON : ISS_OFF);
             ReverseRotatorSP[INDI_DISABLED].setState(reversed ? ISS_OFF : ISS_ON);
-            IDSetSwitch(&ReverseRotatorSP, nullptr);
+            ReverseRotatorSP.apply();
         }
 
         lastStatusData = result;
