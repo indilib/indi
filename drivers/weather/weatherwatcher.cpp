@@ -138,7 +138,7 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_CLOUDS",  labelTP[WEATHER_CLOUD].text, minOK, maxOK, percWarn);
+            addParameter("WEATHER_CLOUDS",  labelTP[WEATHER_CLOUD].text, minOK, maxOK, percWarn, true);
             if (criticalSP[WEATHER_CLOUD].getState())
                 setCriticalParameter("WEATHER_CLOUDS");
         }
