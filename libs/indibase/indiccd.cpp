@@ -459,6 +459,7 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
+    // @INDI_STANDARD_PROPERTY@
     ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
     ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
@@ -621,7 +622,7 @@ bool CCD::updateProperties()
         defineProperty(WorldCoordSP);
         defineProperty(UploadSP);
 
-        if (UploadSettingsTP[UPLOAD_DIR].getText() == nullptr)
+        if (UploadSettingsTP[UPLOAD_DIR].isEmpty())
             UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
         defineProperty(UploadSettingsTP);
 

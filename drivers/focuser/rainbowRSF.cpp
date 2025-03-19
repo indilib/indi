@@ -83,19 +83,19 @@ bool RainbowRSF::initProperties()
                        IP_RO, 0, IPS_IDLE);
 
     // Focuser Limits
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = 16000;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(16000);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].min = 0 ;
-    FocusMaxPosN[0].max = 16000;
-    FocusMaxPosN[0].step = 1000;
-    FocusMaxPosN[0].value = 16000;
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP[0].setMin(0 );
+    FocusMaxPosNP[0].setMax(16000);
+    FocusMaxPosNP[0].setStep(1000);
+    FocusMaxPosNP[0].setValue(16000);
+    FocusMaxPosNP.setPermission(IP_RO);
 
-    FocusRelPosN[0].min = 0;
-    FocusRelPosN[0].max = 8000;
-    FocusRelPosN[0].step = 1000;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(8000);
+    FocusRelPosNP[0].setStep(1000);
 
     addSimulationControl();
     addDebugControl();
@@ -201,39 +201,39 @@ bool RainbowRSF::updatePosition()
     if (isSimulation())
     {
         // Move the focuser
-        if (FocusAbsPosN[0].value > m_TargetPosition)
+        if (FocusAbsPosNP[0].getValue() > m_TargetPosition)
         {
-            FocusAbsPosN[0].value -= 500;
-            if (FocusAbsPosN[0].value < m_TargetPosition)
-                FocusAbsPosN[0].value = m_TargetPosition;
+            FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() - 500);
+            if (FocusAbsPosNP[0].getValue() < m_TargetPosition)
+                FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
-        else if (FocusAbsPosN[0].value < m_TargetPosition)
+        else if (FocusAbsPosNP[0].getValue() < m_TargetPosition)
         {
-            FocusAbsPosN[0].value += 500;
-            if (FocusAbsPosN[0].value > m_TargetPosition)
-                FocusAbsPosN[0].value = m_TargetPosition;
+            FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getValue() + 500);            
+            if (FocusAbsPosNP[0].getValue() > m_TargetPosition)
+                FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
 
         // update the states
-        if (FocusAbsPosN[0].value == m_TargetPosition)
+        if (FocusAbsPosNP[0].getValue() == m_TargetPosition)
         {
             if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
                 IDSetSwitch(&GoHomeSP, nullptr);
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached home position.");
             }
 
-            else if (FocusAbsPosNP.s == IPS_BUSY)
+            else if (FocusAbsPosNP.getState() == IPS_BUSY)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached target position.");
             }
         }
@@ -251,16 +251,16 @@ bool RainbowRSF::updatePosition()
     bool ok = parsePosition(res, &newPosition);
     if (ok)
     {
-        FocusAbsPosN[0].value = newPosition + 8000;
+        FocusAbsPosNP[0].setValue(newPosition + 8000);
 
         constexpr int TOLERANCE = 1;  // Off-by-one position is ok given the resolution of the response.
-        const int offset = std::abs(static_cast<int>(FocusAbsPosN[0].value - m_TargetPosition));
+        const int offset = std::abs(static_cast<int>(FocusAbsPosNP[0].getValue() - m_TargetPosition));
         bool focuserDone = offset <= TOLERANCE;
 
         // Try to hit the target position, but if it has been close for a while
         // then we believe the focuser movement is done. This is needed because it
         // sometimes stops 1 position away from the target, and occasionally 2 or 3.
-        if (!focuserDone && ((GoHomeSP.s == IPS_BUSY) || (FocusAbsPosNP.s == IPS_BUSY)))
+        if (!focuserDone && ((GoHomeSP.s == IPS_BUSY) || (FocusAbsPosNP.getState() == IPS_BUSY)))
         {
             if (!m_MovementTimerActive)
             {
@@ -277,7 +277,7 @@ bool RainbowRSF::updatePosition()
                 {
                     focuserDone = true;
                     LOGF_INFO("Rainbow focuser timed out: %.1f seconds, offset %d (target %d, position %d)",
-                              elapsedSeconds, offset, m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
+                              elapsedSeconds, offset, m_TargetPosition, static_cast<int>(FocusAbsPosNP[0].getValue()));
                 }
             }
         }
@@ -291,32 +291,32 @@ bool RainbowRSF::updatePosition()
                 GoHomeS[0].s = ISS_OFF;
                 IDSetSwitch(&GoHomeSP, nullptr);
 
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
 
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
 
                 LOG_INFO("Focuser reached home position.");
             }
 
-            else if (FocusAbsPosNP.s == IPS_BUSY)
+            else if (FocusAbsPosNP.getState() == IPS_BUSY)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
 
-                FocusRelPosNP.s = IPS_OK;
+                FocusRelPosNP.setState(IPS_OK);
 
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.apply();
                 LOGF_INFO("Focuser reached target position %d at %d.",
-                          m_TargetPosition, static_cast<int>(FocusAbsPosN[0].value));
+                          m_TargetPosition, static_cast<int>(FocusAbsPosNP[0].getValue()));
             }
         }
         return true;
     }
     else
     {
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -374,9 +374,9 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_MovementTimerActive = false;
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -391,14 +391,14 @@ bool RainbowRSF::findHome()
     if (isSimulation())
     {
         MoveAbsFocuser(homePosition);
-        FocusAbsPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.setState(IPS_BUSY);
         return true;
     }
     else
     {
         m_MovementTimerActive = false;
         m_TargetPosition = homePosition;
-        FocusAbsPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.setState(IPS_BUSY);
         char res[DRIVER_LEN] = {0};
         return sendCommand(":Fh#", res, DRIVER_LEN);
     }
@@ -413,12 +413,12 @@ void RainbowRSF::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (abs(m_LastPosition - FocusAbsPosN[0].value) > 0)
+        if (abs(m_LastPosition - FocusAbsPosNP[0].getValue()) > 0)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            m_LastPosition = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            m_LastPosition = FocusAbsPosNP[0].getValue();
 
-            if (GoHomeSP.s == IPS_BUSY && FocusAbsPosN[0].value == homePosition)
+            if (GoHomeSP.s == IPS_BUSY && FocusAbsPosNP[0].getValue() == homePosition)
             {
                 GoHomeSP.s = IPS_OK;
                 LOG_INFO("Focuser arrived at home position.");

@@ -116,25 +116,25 @@ bool TeenAstroFocuser::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    strcpy(FocusSyncN[0].label,  "Ticks"); // Rename unit of measure to ticks, to avoid confusion with motor steps,
-    strcpy(FocusMaxPosN[0].label, "Ticks"); // motor microsteps and the effect of the resolution setting.
-    strcpy(FocusRelPosN[0].label, "Ticks"); // Ticks are resolution units.
-    strcpy(FocusAbsPosN[0].label, "Ticks");
+    FocusSyncNP[0].setLabel("Ticks"); // Rename unit of measure to ticks, to avoid confusion with motor steps,
+    FocusMaxPosNP[0].setLabel("Ticks"); // motor microsteps and the effect of the resolution setting.
+    FocusRelPosNP[0].setLabel("Ticks"); // Ticks are resolution units.
+    FocusAbsPosNP[0].setLabel("Ticks");
 
-    strcpy(FocusReverseSP.group, FOCUS_TAB);
+    FocusReverseSP.setGroupName(FOCUS_TAB);
 
-    strcpy(FocusSpeedNP.label, "Go-to speed");
-    strcpy(FocusSpeedNP.group, FOCUS_TAB);
-    strcpy(FocusSpeedN[0].label, "Steps/s");
-    FocusSpeedN[0].min = TAF_speed_min;
-    FocusSpeedN[0].max = TAF_speed_max;
-    FocusSpeedN[0].step = TAF_STEP(TAF_speed_min, TAF_speed_max);
+    FocusSpeedNP[0].setLabel("Go-to speed");
+    FocusSpeedNP.setGroupName(FOCUS_TAB);
+    FocusSpeedNP[0].setLabel("Steps/s");
+    FocusSpeedNP[0].setMin(TAF_speed_min);
+    FocusSpeedNP[0].setMax(TAF_speed_max);
+    FocusSpeedNP[0].setStep(TAF_STEP(TAF_speed_min, TAF_speed_max));
 
     // Main control tab
     //
 
-    IUFillNumber(&CfgParkPosN[0], "VAL", "Ticks", "%.f", 0, 100000, 1000, 0);
-    IUFillNumberVector(&CfgParkPosNP, CfgParkPosN, 1, getDeviceName(), "PARK_POS", "Park position", MAIN_CONTROL_TAB, IP_RW, 60,
+    CfgParkPosNP[0].fill("VAL", "Ticks", "%.f", 0, 100000, 1000, 0);
+    CfgParkPosNP.fill(getDeviceName(), "PARK_POS", "Park position", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE );
 
     IUFillSwitch(&GoToParkS[0], "VAL", "Park", ISS_OFF);
@@ -159,9 +159,9 @@ bool TeenAstroFocuser::initProperties()
     // Focuser tab: Motor configuration
     //
 
-    IUFillNumber(&CfgMotorStepsPerRevolutionN[0], "VAL", "Steps", "%.f", TAF_steprot_min, TAF_steprot_max,
+    CfgMotorStepsPerRevolutionNP[0].fill("VAL", "Steps", "%.f", TAF_steprot_min, TAF_steprot_max,
                  TAF_STEP(TAF_steprot_min, TAF_steprot_max), TAF_steprot_default);
-    IUFillNumberVector(&CfgMotorStepsPerRevolutionNP, CfgMotorStepsPerRevolutionN, 1, getDeviceName(), "MOT_STEPS_REV",
+    CfgMotorStepsPerRevolutionNP.fill(getDeviceName(), "MOT_STEPS_REV",
                        "Steps/rev.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
     IUFillSwitch(&CfgMotorMicrostepsS[TAF_MICROS_4],   "4",   "4",   ISS_OFF);
@@ -173,37 +173,37 @@ bool TeenAstroFocuser::initProperties()
     IUFillSwitchVector(&CfgMotorMicrostepsSP, CfgMotorMicrostepsS, TAF_MICROS_N, getDeviceName(), "MOT_USTEPS", "Microsteps",
                        FOCUS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Microsteps/tick", "%.f", TAF_res_min, TAF_res_max, TAF_STEP(TAF_res_min,
+    CfgMotorResolutionNP[0].fill("VAL", "Microsteps/tick", "%.f", TAF_res_min, TAF_res_max, TAF_STEP(TAF_res_min,
                  TAF_res_max), TAF_res_default);
-    IUFillNumberVector(&CfgMotorResolutionNP, CfgMotorResolutionN, 1, getDeviceName(), "MOT_RES", "Resolution", FOCUS_TAB,
+    CfgMotorResolutionNP.fill(getDeviceName(), "MOT_RES", "Resolution", FOCUS_TAB,
                        IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorCurrentN[0], "VAL", "mA", "%.f", TAF_curr_min, TAF_curr_max, TAF_STEP(TAF_curr_min, TAF_curr_max),
+    CfgMotorCurrentNP[0].fill("VAL", "mA", "%.f", TAF_curr_min, TAF_curr_max, TAF_STEP(TAF_curr_min, TAF_curr_max),
                  TAF_curr_default);
-    IUFillNumberVector(&CfgMotorCurrentNP, CfgMotorCurrentN, 1, getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW,
+    CfgMotorCurrentNP.fill(getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW,
                        60, IPS_IDLE );
 
     // Focuser tab: Motion configuration
     //
 
-    IUFillNumber(&CfgGoToAccN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
+    CfgGoToAccNP[0].fill("VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
                  TAF_acc_default);
-    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 60,
+    CfgGoToAccNP.fill(getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 60,
                        IPS_IDLE );
 
-    IUFillNumber(&CfgManualSpeedN[0], "VAL", "Steps/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min,
+    CfgManualSpeedNP[0].fill("VAL", "Steps/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min,
                  TAF_speed_max), TAF_speed_default);
-    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW,
+    CfgManualSpeedNP.fill(getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW,
                        60, IPS_IDLE );
 
-    IUFillNumber(&CfgManualAccN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
+    CfgManualAccNP[0].fill("VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
                  TAF_acc_default);
-    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 60,
+    CfgManualAccNP.fill(getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 60,
                        IPS_IDLE );
 
-    IUFillNumber(&CfgManualDecN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
+    CfgManualDecNP[0].fill("VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max),
                  TAF_acc_default);
-    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 60,
+    CfgManualDecNP.fill(getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 60,
                        IPS_IDLE );
 
     // Focuser tab: Device actions
@@ -224,8 +224,16 @@ bool TeenAstroFocuser::initProperties()
 
 void TeenAstroFocuser::initPositionPropertiesRanges(uint32_t maxPos)
 {
-    FocusAbsPosN[0].max  = FocusRelPosN[0].max  = FocusSyncN[0].max  = CfgParkPosN[0].max  = maxPos;
-    FocusAbsPosN[0].step = FocusRelPosN[0].step = FocusSyncN[0].step = CfgParkPosN[0].step = maxPos / TAF_UI_STEPS;
+    FocusAbsPosNP[0].setMax(maxPos);
+    FocusRelPosNP[0].setMax(maxPos);
+    FocusSyncNP[0].setMax(maxPos);
+    CfgParkPosNP[0].setMax(maxPos);
+
+    auto step = maxPos / TAF_UI_STEPS;
+    FocusAbsPosNP[0].setStep(step);
+    FocusRelPosNP[0].setStep(step);
+    FocusSyncNP[0].setStep(step);
+    CfgParkPosNP[0].setStep(step);
 }
 
 bool TeenAstroFocuser::updateProperties()
@@ -257,19 +265,19 @@ bool TeenAstroFocuser::updateProperties()
 
 void TeenAstroFocuser::defineMainControlProperties()
 {
-    deleteProperty(FocusSyncNP.name);   // remove superclass controls to improve ordering of UI elements
-    deleteProperty(FocusMaxPosNP.name);
-    deleteProperty(FocusAbortSP.name);
-    deleteProperty(FocusRelPosNP.name);
-    deleteProperty(FocusAbsPosNP.name);
+    deleteProperty(FocusSyncNP);   // remove superclass controls to improve ordering of UI elements
+    deleteProperty(FocusMaxPosNP);
+    deleteProperty(FocusAbortSP);
+    deleteProperty(FocusRelPosNP);
+    deleteProperty(FocusAbsPosNP);
 
-    defineProperty(&FocusRelPosNP);
-    defineProperty(&FocusAbsPosNP);
-    defineProperty(&FocusAbortSP);
+    defineProperty(FocusRelPosNP);
+    defineProperty(FocusAbsPosNP);
+    defineProperty(FocusAbortSP);
     defineProperty(&GoToParkSP);
-    defineProperty(&CfgParkPosNP);
-    defineProperty(&FocusSyncNP);
-    defineProperty(&FocusMaxPosNP);
+    defineProperty(CfgParkPosNP);
+    defineProperty(FocusSyncNP);
+    defineProperty(FocusMaxPosNP);
     defineProperty(&CurSpeedNP);
     defineProperty(&TempNP);
 }
@@ -277,29 +285,29 @@ void TeenAstroFocuser::defineMainControlProperties()
 void TeenAstroFocuser::deleteMainControlProperties()
 {
     deleteProperty(GoToParkSP.name);
-    deleteProperty(CfgParkPosNP.name);
+    deleteProperty(CfgParkPosNP);
     deleteProperty(CurSpeedNP.name);
     deleteProperty(TempNP.name);
 }
 
 void TeenAstroFocuser::defineOtherProperties()
 {
-    deleteProperty(FocusReverseSP.name); // Place this on the focuser tab to avoid clutter
-    deleteProperty(FocusSpeedNP.name);
+    deleteProperty(FocusReverseSP); // Place this on the focuser tab to avoid clutter
+    deleteProperty(FocusSpeedNP);
 
     defineProperty(&DeviceVersionTP);
 
-    defineProperty(&FocusReverseSP);
-    defineProperty(&CfgMotorStepsPerRevolutionNP);
+    defineProperty(FocusReverseSP);
+    defineProperty(CfgMotorStepsPerRevolutionNP);
     defineProperty(&CfgMotorMicrostepsSP);
-    defineProperty(&CfgMotorResolutionNP);
-    defineProperty(&CfgMotorCurrentNP);
+    defineProperty(CfgMotorResolutionNP);
+    defineProperty(CfgMotorCurrentNP);
 
-    defineProperty(&FocusSpeedNP);
-    defineProperty(&CfgGoToAccNP);
-    defineProperty(&CfgManualSpeedNP);
-    defineProperty(&CfgManualAccNP);
-    defineProperty(&CfgManualDecNP);
+    defineProperty(FocusSpeedNP);
+    defineProperty(CfgGoToAccNP);
+    defineProperty(CfgManualSpeedNP);
+    defineProperty(CfgManualAccNP);
+    defineProperty(CfgManualDecNP);
 
     defineProperty(&RebootDeviceSP);
     defineProperty(&EraseEEPROMSP);
@@ -309,15 +317,15 @@ void TeenAstroFocuser::deleteOtherProperties()
 {
     deleteProperty(DeviceVersionTP.name);
 
-    deleteProperty(CfgMotorStepsPerRevolutionNP.name);
+    deleteProperty(CfgMotorStepsPerRevolutionNP);
     deleteProperty(CfgMotorMicrostepsSP.name);
-    deleteProperty(CfgMotorResolutionNP.name);
-    deleteProperty(CfgMotorCurrentNP.name);
+    deleteProperty(CfgMotorResolutionNP);
+    deleteProperty(CfgMotorCurrentNP);
 
-    deleteProperty(CfgGoToAccNP.name);
-    deleteProperty(CfgManualSpeedNP.name);
-    deleteProperty(CfgManualAccNP.name);
-    deleteProperty(CfgManualDecNP.name);
+    deleteProperty(CfgGoToAccNP);
+    deleteProperty(CfgManualSpeedNP);
+    deleteProperty(CfgManualAccNP);
+    deleteProperty(CfgManualDecNP);
 
     deleteProperty(EraseEEPROMSP.name);
     deleteProperty(EraseEEPROMSP.name);
@@ -377,12 +385,12 @@ bool TeenAstroFocuser::ISNewSwitch (const char *dev, const char *name, ISState *
         return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool TeenAstroFocuser::ISNewNumberHelper(INumberVectorProperty *NP, double values[], char *names[], int n, bool res)
+bool TeenAstroFocuser::ISNewNumberHelper(INDI::PropertyNumber &NP, double values[], char *names[], int n, bool res)
 {
     if(res)
-        IUUpdateNumber(NP, values, names, n);
-    NP->s = res ? IPS_OK : IPS_ALERT;
-    IDSetNumber(NP, NULL);
+        NP.update(values, names, n);
+    NP.setState(res ? IPS_OK : IPS_ALERT);
+    NP.apply();
     return res;
 }
 
@@ -391,67 +399,67 @@ bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double va
     if(dev == NULL || strcmp(dev, getDeviceName()))
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
-    if(!strcmp(name, FocusSyncNP.name))
+    if(FocusSyncNP.isNameMatch(name))
     {
         bool res = SyncFocuser((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&FocusSyncNP, values, names, n, res);
+        return ISNewNumberHelper(FocusSyncNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgParkPosNP.name))
+    else if(CfgParkPosNP.isNameMatch(name))
     {
         bool res = setParkPos((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgParkPosNP, values, names, n, res);
+        return ISNewNumberHelper(CfgParkPosNP, values, names, n, res);
     }
-    else if(!strcmp(name, FocusMaxPosNP.name))
+    else if(FocusMaxPosNP.isNameMatch(name))
     {
         uint32_t val = (uint32_t) rint(values[0]);
         bool res = SetFocuserMaxPosition(val);
-        if(res && FocusMaxPosN[0].value != val)
+        if(res && FocusMaxPosNP[0].getValue() != val)
         {
             initPositionPropertiesRanges(val);
             deleteMainControlProperties();      // Force redraw of UI controls as IUUpdateMinMax
             defineMainControlProperties();    	// does not reliably update the step size.
         }
-        return ISNewNumberHelper(&FocusMaxPosNP, values, names, n, res);
+        return ISNewNumberHelper(FocusMaxPosNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgManualSpeedNP.name))
+    else if(CfgManualSpeedNP.isNameMatch(name))
     {
         bool res = setManualSpeed((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgManualSpeedNP, values, names, n, res);
+        return ISNewNumberHelper(CfgManualSpeedNP, values, names, n, res);
     }
-    else if(!strcmp(name, FocusSpeedNP.name))
+    else if(FocusSpeedNP.isNameMatch(name))
     {
         bool res = SetFocuserSpeed(rint(values[0]));
-        return ISNewNumberHelper(&FocusSpeedNP, values, names, n, res);
+        return ISNewNumberHelper(FocusSpeedNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgGoToAccNP.name))
+    else if(CfgGoToAccNP.isNameMatch(name))
     {
         bool res = setGoToAcc((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgGoToAccNP, values, names, n, res);
+        return ISNewNumberHelper(CfgGoToAccNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgManualAccNP.name))
+    else if(CfgManualAccNP.isNameMatch(name))
     {
         bool res = setManualAcc((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgManualAccNP, values, names, n, res);
+        return ISNewNumberHelper(CfgManualAccNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgManualDecNP.name))
+    else if(CfgManualDecNP.isNameMatch(name))
     {
         bool res = setManualDec((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgManualDecNP, values, names, n, res);
+        return ISNewNumberHelper(CfgManualDecNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgMotorStepsPerRevolutionNP.name))
+    else if(CfgMotorStepsPerRevolutionNP.isNameMatch(name))
     {
         bool res = setMotorStepsPerRevolution((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgMotorStepsPerRevolutionNP, values, names, n, res);
+        return ISNewNumberHelper(CfgMotorStepsPerRevolutionNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgMotorResolutionNP.name))
+    else if(CfgMotorResolutionNP.isNameMatch(name))
     {
         bool res = setMotorResolution((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgMotorResolutionNP, values, names, n, res);
+        return ISNewNumberHelper(CfgMotorResolutionNP, values, names, n, res);
     }
-    else if(!strcmp(name, CfgMotorCurrentNP.name))
+    else if(CfgMotorCurrentNP.isNameMatch(name))
     {
         bool res = setMotorCurrent((uint32_t) rint(values[0]));
-        return ISNewNumberHelper(&CfgMotorCurrentNP, values, names, n, res);
+        return ISNewNumberHelper(CfgMotorCurrentNP, values, names, n, res);
     }
     else
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -460,17 +468,17 @@ bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double va
 
 IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 {
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-    FocusRelPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.setState(IPS_BUSY);
+    FocusRelPosNP.apply();
 
     if(!goTo(pos))
     {
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        FocusRelPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusRelPosNP, NULL);
+        FocusAbsPosNP.setState(IPS_ALERT);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.setState(IPS_ALERT);
+        FocusRelPosNP.apply();
 
         return IPS_ALERT;
     }
@@ -479,9 +487,9 @@ IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 
 IPState TeenAstroFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    FocusRelPosN[0].value = ticks;
+    FocusRelPosNP[0].setValue(ticks);
 
-    uint32_t pos = uint32_t(FocusAbsPosN[0].value);
+    uint32_t pos = uint32_t(FocusAbsPosNP[0].getValue());
     if (dir == FOCUS_INWARD)
         pos -= ticks;
     else
@@ -501,17 +509,17 @@ void TeenAstroFocuser::TimerHit()
 
 bool TeenAstroFocuser::AbortFocuser()
 {
-    FocusAbortSP.s = IPS_BUSY;
-    IDSetSwitch(&FocusAbortSP, NULL);
+    FocusAbortSP.setState(IPS_BUSY);
+    FocusAbortSP.apply();
 
     if(!stop())
     {
-        FocusAbortSP.s = IPS_ALERT;
-        IDSetSwitch(&FocusAbortSP, NULL);
+        FocusAbortSP.setState(IPS_ALERT);
+        FocusAbortSP.apply();
         return false;
     }
-    FocusAbortSP.s = IPS_OK;
-    IDSetSwitch(&FocusAbortSP, NULL);
+    FocusAbortSP.setState(IPS_OK);
+    FocusAbortSP.apply();
 
     return updateState();
 }
@@ -626,15 +634,15 @@ bool TeenAstroFocuser::updateState()
         return false;
     }
 
-    if(FocusAbsPosNP.s == IPS_BUSY && speed == 0)
+    if(FocusAbsPosNP.getState() == IPS_BUSY && speed == 0)
         DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached target position.");
 
-    FocusAbsPosN[0].value = pos;
-    FocusAbsPosNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    FocusAbsPosNP[0].setValue(pos);
+    FocusAbsPosNP.setState(speed > 0 ? IPS_BUSY : IPS_OK);
+    FocusAbsPosNP.apply();
 
-    FocusRelPosNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    FocusRelPosNP.setState(speed > 0 ? IPS_BUSY : IPS_OK);
+    FocusRelPosNP.apply();
 
     CurSpeedN[0].value = speed;
     CurSpeedNP.s = speed > 0 ? IPS_BUSY : IPS_OK;
@@ -669,30 +677,30 @@ bool TeenAstroFocuser::updateMotionConfig()
         return false;
     }
 
-    if(maxPos != FocusMaxPosN[0].value)
+    if(maxPos != FocusMaxPosNP[0].getValue())
         initPositionPropertiesRanges(maxPos);
 
-    CfgParkPosN[0].value = parkPos;
-    CfgParkPosNP.s = IPS_OK;
-    IDSetNumber(&CfgParkPosNP, NULL);
-    FocusMaxPosN[0].value = maxPos;
-    FocusMaxPosNP.s = IPS_OK;
-    IDSetNumber(&FocusMaxPosNP, NULL);
-    CfgManualSpeedN[0].value = manualSpeed;
-    CfgManualSpeedNP.s = IPS_OK;
-    IDSetNumber(&CfgManualSpeedNP, NULL);
-    FocusSpeedN[0].value = goToSpeed;
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, NULL);
-    CfgGoToAccN[0].value = gotoAcc;
-    CfgGoToAccNP.s = IPS_OK;
-    IDSetNumber(&CfgGoToAccNP, NULL);
-    CfgManualAccN[0].value = manAcc;
-    CfgManualAccNP.s = IPS_OK;
-    IDSetNumber(&CfgManualAccNP, NULL);
-    CfgManualDecN[0].value = manDec;
-    CfgManualDecNP.s = IPS_OK;
-    IDSetNumber(&CfgManualDecNP, NULL);
+    CfgParkPosNP[0].setValue(parkPos);
+    CfgParkPosNP.setState(IPS_OK);
+    CfgParkPosNP.apply();
+    FocusMaxPosNP[0].setValue(maxPos);
+    FocusMaxPosNP.setState(IPS_OK);
+    FocusMaxPosNP.apply();
+    CfgManualSpeedNP[0].setValue(manualSpeed);
+    CfgManualSpeedNP.setState(IPS_OK);
+    CfgManualSpeedNP.apply();
+    FocusSpeedNP[0].setValue(goToSpeed);
+    FocusSpeedNP.setState(IPS_OK);
+    FocusSpeedNP.apply();
+    CfgGoToAccNP[0].setValue(gotoAcc);
+    CfgGoToAccNP.setState(IPS_OK);
+    CfgGoToAccNP.apply();
+    CfgManualAccNP[0].setValue(manAcc);
+    CfgManualAccNP.setState(IPS_OK);
+    CfgManualAccNP.apply();
+    CfgManualDecNP[0].setValue(manDec);
+    CfgManualDecNP.setState(IPS_OK);
+    CfgManualDecNP.apply();
 
     return true;
 }
@@ -754,10 +762,10 @@ bool TeenAstroFocuser::updateMotorConfig()
         return false;
     }
 
-    FocusReverseS[0].s = (reverse == 0) ? ISS_OFF : ISS_ON;
-    FocusReverseS[1].s = (reverse == 0) ? ISS_ON  : ISS_OFF;
-    FocusReverseSP.s  = IPS_OK;
-    IDSetSwitch(&FocusReverseSP, NULL);
+    FocusReverseSP[INDI_ENABLED].setState((reverse == 0) ? ISS_OFF : ISS_ON);
+    FocusReverseSP[INDI_DISABLED].setState((reverse == 0) ? ISS_ON  : ISS_OFF);
+    FocusReverseSP.setState(IPS_OK);
+    FocusReverseSP.apply();
 
     uint32_t micro = (1 << log2_micro); // TeenAstro device returns and expects log_2(microsteps)
     bool microFound = false;
@@ -771,15 +779,15 @@ bool TeenAstroFocuser::updateMotorConfig()
     CfgMotorMicrostepsSP.s = microFound ? IPS_OK : IPS_ALERT;
     IDSetSwitch(&CfgMotorMicrostepsSP, NULL);
 
-    CfgMotorResolutionN[0].value = resolution;
-    CfgMotorResolutionNP.s = IPS_OK;
-    IDSetNumber(&CfgMotorResolutionNP, NULL);
-    CfgMotorCurrentN[0].value = curr_10ma * 10;    // TeenAstro device returns and expects units of 10 mA
-    CfgMotorCurrentNP.s = IPS_OK;
-    IDSetNumber(&CfgMotorCurrentNP, NULL);
-    CfgMotorStepsPerRevolutionN[0].value = steprot;
-    CfgMotorStepsPerRevolutionNP.s = IPS_OK;
-    IDSetNumber(&CfgMotorStepsPerRevolutionNP, NULL);
+    CfgMotorResolutionNP[0].setValue(resolution);
+    CfgMotorResolutionNP.setState(IPS_OK);
+    CfgMotorResolutionNP.apply();
+    CfgMotorCurrentNP[0].setValue(curr_10ma * 10);    // TeenAstro device returns and expects units of 10 mA
+    CfgMotorCurrentNP.setState(IPS_OK);
+    CfgMotorCurrentNP.apply();
+    CfgMotorStepsPerRevolutionNP[0].setValue(steprot);
+    CfgMotorStepsPerRevolutionNP.setState(IPS_OK);
+    CfgMotorStepsPerRevolutionNP.apply();
 
     return true;
 }
@@ -864,7 +872,7 @@ bool TeenAstroFocuser::saveConfigItems(FILE *fp)
     // Do not save focuser configuration items on INDI host, as they are stored on the focuser device.
     // FI::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
+    PresetNP.save(fp);
     this->controller->saveConfigItems(fp);
 
     return true;

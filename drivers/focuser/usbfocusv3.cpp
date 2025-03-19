@@ -63,9 +63,9 @@ bool USBFocusV3::initProperties()
 
     /*** init driver parameters ***/
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 3;
-    FocusSpeedN[0].value = 2;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(3);
+    FocusSpeedNP[0].setValue(2);
 
     // Step Mode
     StepModeSP[UFOPHSTEPS].fill("HALF", "Half Step", ISS_ON);
@@ -107,10 +107,10 @@ bool USBFocusV3::initProperties()
     TemperatureCompensateSP.fill(getDeviceName(), "TEMP_COMPENSATION",
                                  "Temp. Comp.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    FocusBacklashN[0].min = -65535.;
-    FocusBacklashN[0].max = 65535.;
-    FocusBacklashN[0].step = 1000.;
-    FocusBacklashN[0].value = 0.;
+    FocusBacklashNP[0].setMin(-65535.);
+    FocusBacklashNP[0].setMax(65535.);
+    FocusBacklashNP[0].setStep(1000.);
+    FocusBacklashNP[0].setValue(0.);
 
     // Reset
     ResetSP[0].fill("RESET", "Reset", ISS_OFF);
@@ -123,15 +123,15 @@ bool USBFocusV3::initProperties()
                      IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = float(maxpos);
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(float(maxpos));
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = float(maxpos);
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(float(maxpos));
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1);
 
     addDebugControl();
 
@@ -453,7 +453,7 @@ bool USBFocusV3::updatePosition()
 
             if (rc > 0)
             {
-                FocusAbsPosN[0].value = pos;
+                FocusAbsPosNP[0].setValue(pos);
                 break;
             }
             else
@@ -475,7 +475,7 @@ bool USBFocusV3::updatePosition()
 bool USBFocusV3::updateMaxPos()
 {
     MaxPositionNP[0].setValue(maxpos);
-    FocusAbsPosN[0].max   = maxpos;
+    FocusAbsPosNP[0].setMax(maxpos);
     return true;
 }
 
@@ -544,7 +544,7 @@ bool USBFocusV3::updateSpeed()
     if (drvspeed != 0)
     {
         currentSpeed         = drvspeed;
-        FocusSpeedN[0].value = drvspeed;
+        FocusSpeedNP[0].setValue(drvspeed);
     }
     else
     {
@@ -612,14 +612,14 @@ bool USBFocusV3::MoveFocuserUF(FocusDirection dir, unsigned int rticks)
 
     unsigned int ticks;
 
-    if ((dir == FOCUS_INWARD) && (rticks > FocusAbsPosN[0].value))
+    if ((dir == FOCUS_INWARD) && (rticks > FocusAbsPosNP[0].getValue()))
     {
-        ticks = FocusAbsPosN[0].value;
+        ticks = FocusAbsPosNP[0].getValue();
         LOGF_WARN("Requested %u ticks but inward movement has been limited to %u ticks", rticks, ticks);
     }
-    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + rticks) > MaxPositionNP[0].getValue()))
+    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosNP[0].getValue() + rticks) > MaxPositionNP[0].getValue()))
     {
-        ticks = MaxPositionNP[0].getValue() - FocusAbsPosN[0].value;
+        ticks = MaxPositionNP[0].getValue() - FocusAbsPosNP[0].getValue();
         LOGF_WARN("Requested %u ticks but outward movement has been limited to %u ticks", rticks, ticks);
     }
     else
@@ -706,7 +706,7 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
     if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
     {
         maxpos              = maxp;
-        FocusAbsPosN[0].max = maxpos;
+        FocusAbsPosNP[0].setMax(maxpos);
         return true;
     }
 
@@ -952,12 +952,12 @@ void USBFocusV3::GetFocusParams()
     getControllerStatus();
 
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateMaxPos())
     {
         MaxPositionNP.apply();
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     if (updateTemperature())
@@ -970,7 +970,7 @@ void USBFocusV3::GetFocusParams()
         TempCompSignSP.apply();
 
     if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP.apply();
 
     if (updateStepMode())
         StepModeSP.apply();
@@ -989,8 +989,8 @@ bool USBFocusV3::SetFocuserSpeed(int speed)
 
     currentSpeed = speed;
 
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(IPS_OK);
+    FocusSpeedNP.apply();
 
     return true;
 }
@@ -1001,7 +1001,7 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
 
     targetPos = targetTicks;
 
-    ticks = targetPos - FocusAbsPosN[0].value;
+    ticks = targetPos - FocusAbsPosNP[0].getValue();
 
     bool rc = false;
 
@@ -1013,7 +1013,7 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1022,16 +1022,16 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t aticks;
 
-    if ((dir == FOCUS_INWARD) && (ticks > FocusAbsPosN[0].value))
+    if ((dir == FOCUS_INWARD) && (ticks > FocusAbsPosNP[0].getValue()))
     {
-        aticks = FocusAbsPosN[0].value;
+        aticks = FocusAbsPosNP[0].getValue();
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Requested %u ticks but relative inward movement has been limited to %u ticks", ticks, aticks);
         ticks = aticks;
     }
-    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + ticks) > MaxPositionNP[0].getValue()))
+    else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosNP[0].getValue() + ticks) > MaxPositionNP[0].getValue()))
     {
-        aticks = MaxPositionNP[0].getValue() - FocusAbsPosN[0].value;
+        aticks = MaxPositionNP[0].getValue() - FocusAbsPosNP[0].getValue();
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Requested %u ticks but relative outward movement has been limited to %u ticks", ticks, aticks);
         ticks = aticks;
@@ -1040,8 +1040,8 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     if (!MoveFocuserUF(dir, (unsigned int)ticks))
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1055,10 +1055,10 @@ void USBFocusV3::TimerHit()
 
     if (updatePosition())
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -1071,25 +1071,25 @@ void USBFocusV3::TimerHit()
         }
     }
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
 
         if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
+            FocusTimerNP.setState(IPS_OK);
+            FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining * 1000.0;
+            FocusTimerNP[0].setValue(remaining * 1000.0);
 
-        IDSetNumber(&FocusTimerNP, nullptr);
+        FocusTimerNP.apply();
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
-        if (backlashMove && (fabs(backlashTargetPos - FocusAbsPosN[0].value) < 1))
+        if (backlashMove && (fabs(backlashTargetPos - FocusAbsPosNP[0].getValue()) < 1))
         {
             // Backlash target reached, now go to real target
             MoveAbsFocuser(targetPos);
@@ -1097,13 +1097,13 @@ void USBFocusV3::TimerHit()
         }
         else
         {
-            if (fabs(targetPos - FocusAbsPosN[0].value) < 1)
+            if (fabs(targetPos - FocusAbsPosNP[0].getValue()) < 1)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
-                lastPos = FocusAbsPosN[0].value;
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
+                lastPos = FocusAbsPosNP[0].getValue();
                 LOG_INFO("Focuser reached requested position.");
             }
         }
@@ -1118,10 +1118,10 @@ bool USBFocusV3::AbortFocuser()
     if (!sendCommand(UFOCABORT, resp))
         return false;
 
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
     backlashMove = false;
     moving       = false;
     return true;

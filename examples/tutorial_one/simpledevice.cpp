@@ -30,7 +30,7 @@ std::unique_ptr<SimpleDevice> simpleDevice(new SimpleDevice());
 ***************************************************************************************/
 bool SimpleDevice::Connect()
 {
-    IDMessage(getDeviceName(), "Simple device connected successfully!");
+    LOG_INFO("Simple device connected successfully!");
     return true;
 }
 
@@ -39,7 +39,7 @@ bool SimpleDevice::Connect()
 ***************************************************************************************/
 bool SimpleDevice::Disconnect()
 {
-    IDMessage(getDeviceName(), "Simple device disconnected successfully!");
+    LOG_INFO("Simple device disconnected successfully!");
     return true;
 }
 

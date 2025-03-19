@@ -48,10 +48,10 @@ bool Esatto::initProperties()
 
     INDI::Focuser::initProperties();
 
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 10000;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(10000);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(0);
 
     setConnectionParams();
 
@@ -77,24 +77,23 @@ bool Esatto::initProperties()
     FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
-                       0, IPS_IDLE);
+    FocusMaxPosNP.setPermission(IP_RO);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 10000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(10000);
 
-    FocusMaxPosN[0].value = 2097152;
-    PresetN[0].max = FocusMaxPosN[0].value;
-    PresetN[1].max = FocusMaxPosN[0].value;
-    PresetN[2].max = FocusMaxPosN[0].value;
+    FocusMaxPosNP[0].setValue(2097152);
+    PresetNP[0].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[1].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[2].setMax(FocusMaxPosNP[0].getValue());
 
     addAuxControls();
 
@@ -195,11 +194,11 @@ bool Esatto::updatePosition()
 {
     uint32_t steps = 0;
     if (isSimulation())
-        steps = static_cast<uint32_t>(FocusAbsPosN[0].value);
+        steps = static_cast<uint32_t>(FocusAbsPosNP[0].getValue());
     else if (m_Esatto->getAbsolutePosition(steps) == false)
         return false;
 
-    FocusAbsPosN[0].value = steps;
+    FocusAbsPosNP[0].setValue(steps);
     return true;
 }
 
@@ -270,9 +269,9 @@ IPState Esatto::MoveAbsFocuser(uint32_t targetTicks)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 IPState Esatto::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -295,28 +294,28 @@ bool Esatto::AbortFocuser()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Esatto::TimerHit()
 {
-    //if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    //if (!isConnected() || FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     if (!isConnected())
     {
         SetTimer(getCurrentPollingPeriod());
         return;
     }
 
-    auto lastPos = FocusAbsPosN[0].value;
+    auto lastPos = FocusAbsPosNP[0].getValue();
     bool rc = updatePosition();
-    if (rc && (std::abs(lastPos - FocusAbsPosN[0].value) > 0))
+    if (rc && (std::abs(lastPos - FocusAbsPosNP[0].getValue()) > 0))
     {
-        if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+        if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
         {
             // To prevent reporting a bit too old position as the final one
             updatePosition();
 
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
 
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
@@ -324,7 +323,8 @@ void Esatto::TimerHit()
         rc = updateTemperature();
 
         // Only update temperature if there is a change of 0.1 or more
-        if (rc && (std::abs(m_LastTemperature[TEMPERATURE_EXTERNAL] - TemperatureNP[TEMPERATURE_EXTERNAL].value) >= MEASUREMENT_THRESHOLD ||
+        if (rc && (std::abs(m_LastTemperature[TEMPERATURE_EXTERNAL] - TemperatureNP[TEMPERATURE_EXTERNAL].value) >=
+                   MEASUREMENT_THRESHOLD ||
                    std::abs(m_LastTemperature[TEMPERATURE_MOTOR] - TemperatureNP[TEMPERATURE_MOTOR].value) >= MEASUREMENT_THRESHOLD ))
         {
             m_LastTemperature[TEMPERATURE_EXTERNAL] = TemperatureNP[TEMPERATURE_EXTERNAL].value;
@@ -359,7 +359,7 @@ bool Esatto::getStartupValues()
     uint32_t steps {0};
     auto rc2 = m_Esatto->getBacklash(steps);
     if (rc2)
-        FocusBacklashN[0].value = steps;
+        FocusBacklashNP[0].setValue(steps);
 
     auto rc3 = updateMaxLimit();
 
@@ -426,28 +426,28 @@ bool Esatto::updateMaxLimit()
     if (m_Esatto->getMaxPosition(maxLimit) == false)
         return false;
 
-    FocusMaxPosN[0].max = maxLimit;
-    if (FocusMaxPosN[0].value > maxLimit)
-        FocusMaxPosN[0].value = maxLimit;
+    FocusMaxPosNP[0].setMax(maxLimit);
+    if (FocusMaxPosNP[0].getValue() > maxLimit)
+        FocusMaxPosNP[0].setValue(maxLimit);
 
-    FocusAbsPosN[0].min   = 0;
-    FocusAbsPosN[0].max   = maxLimit;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(maxLimit);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep());
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-    PresetN[0].max = maxLimit;
-    PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-    PresetN[1].max = maxLimit;
-    PresetN[1].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-    PresetN[2].max = maxLimit;
-    PresetN[2].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+    PresetNP[0].setMax(maxLimit);
+    PresetNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[1].setMax(maxLimit);
+    PresetNP[1].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+    PresetNP[2].setMax(maxLimit);
+    PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
 
-    FocusMaxPosNP.s = IPS_OK;
+    FocusMaxPosNP.setState(IPS_OK);
     return true;
 }

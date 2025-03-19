@@ -44,10 +44,10 @@ class DvrInfo: public MsgQueue
     protected:
         /* send message to each interested client
          */
-        virtual void onMessage(XMLEle *root, std::list<int> &sharedBuffers);
+        void onMessage(XMLEle *root, std::list<int> &sharedBuffers) override;
 
         /* override to kill driver that are not reachable anymore */
-        virtual void closeWritePart();
+        void closeWritePart() override;
 
 
         /* Construct an instance that will start the same driver */
@@ -72,12 +72,12 @@ class DvrInfo: public MsgQueue
         virtual void start() = 0;
 
         /* close down the given driver and restart if set*/
-        virtual void close();
+        void close() override;
 
         /* Allocate an instance that will start the same driver */
         virtual DvrInfo * clone() const = 0;
 
-        virtual void log(const std::string &log) const;
+        void log(const std::string &log) const override;
 
         virtual const std::string remoteServerUid() const = 0;
 
@@ -95,7 +95,7 @@ class DvrInfo: public MsgQueue
         static ConcurrentSet<DvrInfo> drivers;
 
         // decoding of attached blobs from driver is not supported ATM. Be conservative here
-        virtual bool acceptSharedBuffers() const
+        bool acceptSharedBuffers() const override
         {
             return false;
         }

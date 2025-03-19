@@ -101,14 +101,14 @@ bool LX200_OnStep::initProperties()
 
     //FocuserInterface
     //Initial, these will be updated later.
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 10;
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 10;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(30000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(10);
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(60000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(10);
 
 
     // ============== MAIN_CONTROL_TAB
@@ -3802,7 +3802,7 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks)
 {
     //  :FSsnnn#  Set focuser target position (in microns)
     //            Returns: Nothing
-    if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks))
+    if (FocusAbsPosNP[0].getMax() >= int(targetTicks) && FocusAbsPosNP[0].getMin() <= int(targetTicks))
     {
         char read_buffer[32];
         snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
@@ -3853,10 +3853,10 @@ int LX200_OnStep::OSUpdateFocuser()
         int error_or_fail = getCommandIntResponse(PortFD, &value_int, value, ":FG#");
         if (error_or_fail > 1)
         {
-            FocusAbsPosN[0].value =  value_int;
-            //         double current = FocusAbsPosN[0].value;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosN[0].value);
+            FocusAbsPosNP[0].setValue( value_int);
+            //         double current = FocusAbsPosNP[0].getValue();
+            FocusAbsPosNP.apply();
+            LOGF_DEBUG("Current focuser: %d, %f", value_int, FocusAbsPosNP[0].getValue());
         }
 
         //  :FT#  get status
@@ -3867,36 +3867,36 @@ int LX200_OnStep::OSUpdateFocuser()
         {
             if (valueStatus[0] == 'S')
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
             }
             else if (valueStatus[0] == 'M')
             {
-                FocusRelPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusRelPosNP, nullptr);
-                FocusAbsPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_BUSY);
+                FocusRelPosNP.apply();
+                FocusAbsPosNP.setState(IPS_BUSY);
+                FocusAbsPosNP.apply();
             }
             else
             {
                 LOG_WARN("Communication :FT# error, check connection.");
                 //INVALID REPLY
-                FocusRelPosNP.s = IPS_ALERT;
-                IDSetNumber(&FocusRelPosNP, nullptr);
-                FocusAbsPosNP.s = IPS_ALERT;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_ALERT);
+                FocusRelPosNP.apply();
+                FocusAbsPosNP.setState(IPS_ALERT);
+                FocusAbsPosNP.apply();
             }
         }
         else
         {
             //INVALID REPLY
             LOG_WARN("Communication :FT# error, check connection.");
-            FocusRelPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_ALERT);
+            FocusRelPosNP.apply();
+            FocusAbsPosNP.setState(IPS_ALERT);
+            FocusAbsPosNP.apply();
         }
 
         //  :FM#  Get max position (in microns)
@@ -3906,9 +3906,9 @@ int LX200_OnStep::OSUpdateFocuser()
         int fm_error = getCommandIntResponse(PortFD, &focus_max_int, focus_max, ":FM#");
         if (fm_error > 0)
         {
-            FocusAbsPosN[0].max   = focus_max_int;
-            IUUpdateMinMax(&FocusAbsPosNP);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP[0].setMax(focus_max_int);
+            FocusAbsPosNP.updateMinMax();
+            FocusAbsPosNP.apply();
             LOGF_DEBUG("focus_max: %s, %i, fm_nbchar: %i", focus_max, focus_max_int, fm_error);
         }
         else
@@ -3925,9 +3925,9 @@ int LX200_OnStep::OSUpdateFocuser()
         int fi_error = getCommandIntResponse(PortFD, &focus_min_int, focus_min, ":FI#");
         if (fi_error > 0)
         {
-            FocusAbsPosN[0].min =  focus_min_int;
-            IUUpdateMinMax(&FocusAbsPosNP);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP[0].setMin( focus_min_int);
+            FocusAbsPosNP.updateMinMax();
+            FocusAbsPosNP.apply();
             LOGF_DEBUG("focus_min: %s, %i fi_nbchar: %i", focus_min, focus_min_int, fi_error);
         }
         else
@@ -3943,7 +3943,7 @@ int LX200_OnStep::OSUpdateFocuser()
         int ft_error = getCommandDoubleResponse(PortFD, &focus_T_double, focus_T, ":Ft#");
         if (ft_error > 0)
         {
-            FocusTemperatureN[0].value =  atof(focus_T);
+            FocusTemperatureN[0].value = atof(focus_T);
             IDSetNumber(&FocusTemperatureNP, nullptr);
             LOGF_DEBUG("focus T°: %s, focus_T_double %i ft_nbcar: %i", focus_T, focus_T_double, ft_error);
         }
@@ -4034,7 +4034,7 @@ int LX200_OnStep::OSUpdateFocuser()
         }
 
         FI::updateProperties();
-        LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+        LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosNP[0].getMin(), FocusAbsPosNP[0].getMax());
     }
 
     if(OSFocuser2)
@@ -4180,11 +4180,11 @@ int LX200_OnStep::OSUpdateRotator()
         if (f_scansexa(value, &double_value))
         {
             // 0 = good, thus this is the bad
-            GotoRotatorNP.s = IPS_ALERT;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP.setState(IPS_ALERT);
+            GotoRotatorNP.apply();
             return -1;
         }
-        GotoRotatorN[0].value =  double_value;
+        GotoRotatorNP[0].setValue(double_value);
         double min_rotator, max_rotator;
         //NOTE: The following commands are only on V4, V5 & OnStepX, not V3
         //TODO: Psudo-state for V3 Rotator?
@@ -4196,19 +4196,19 @@ int LX200_OnStep::OSUpdateRotator()
             if (error_or_fail > 1)
             {
                 changed_minmax = true;
-                GotoRotatorN[0].min =  min_rotator;
+                GotoRotatorNP[0].setMin(min_rotator);
             }
             memset(value, 0, RB_MAX_LEN);
             error_or_fail = getCommandDoubleResponse(PortFD, &max_rotator, value, ":rM#");
             if (error_or_fail > 1)
             {
                 changed_minmax = true;
-                GotoRotatorN[0].max =  max_rotator;
+                GotoRotatorNP[0].setMax(max_rotator);
             }
             if (changed_minmax)
             {
-                IUUpdateMinMax(&GotoRotatorNP);
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.updateMinMax();
+                GotoRotatorNP.apply();
             }
             //GotoRotatorN
             memset(value, 0, RB_MAX_LEN);
@@ -4217,20 +4217,20 @@ int LX200_OnStep::OSUpdateRotator()
             {
                 if (value[0] == 'S') /*Stopped normal on EQ mounts */
                 {
-                    GotoRotatorNP.s = IPS_OK;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_OK);
+                    GotoRotatorNP.apply();
 
                 }
                 else if (value[0] == 'M') /* Moving, including de-rotation */
                 {
-                    GotoRotatorNP.s = IPS_BUSY;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_BUSY);
+                    GotoRotatorNP.apply();
                 }
                 else
                 {
                     //INVALID REPLY
-                    GotoRotatorNP.s = IPS_ALERT;
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    GotoRotatorNP.setState(IPS_ALERT);
+                    GotoRotatorNP.apply();
                 }
             }
             memset(value, 0, RB_MAX_LEN);
@@ -4238,9 +4238,9 @@ int LX200_OnStep::OSUpdateRotator()
             error_or_fail = getCommandIntResponse(PortFD, &backlash_value, value, ":rb#");
             if (error_or_fail > 1)
             {
-                RotatorBacklashN[0].value =  backlash_value;
-                RotatorBacklashNP.s = IPS_OK;
-                IDSetNumber(&RotatorBacklashNP, nullptr);
+                RotatorBacklashNP[0].setValue(backlash_value);
+                RotatorBacklashNP.setState(IPS_OK);
+                RotatorBacklashNP.apply();
             }
         }
     }

@@ -22,9 +22,12 @@
 #include "DvrInfo.hpp"
 #include "LocalDrvInfo.hpp"
 #include "RemoteDvrInfo.hpp"
+#include "CommandLineArgs.hpp"
 
 #include <fcntl.h>
 #include <unistd.h>
+
+using namespace indiserver::constants;
 
 Fifo::Fifo(const std::string &name) : name(name)
 {
@@ -62,17 +65,28 @@ void Fifo::open()
 void Fifo::processLine(const char * line)
 {
 
-    if (verbose)
+    if (userConfigurableArguments->verbosity)
         log(fmt("FIFO: %s\n", line));
 
-    char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF],
-         envSkel[MAXSBUF], envPrefix[MAXSBUF];
+    char cmd[maxStringBufferLength];
+    char arg[4][1];
+    char var[4][maxStringBufferLength];
 
-    memset(&tDriver[0], 0, sizeof(char) * MAXSBUF);
-    memset(&tName[0], 0, sizeof(char) * MAXSBUF);
-    memset(&envConfig[0], 0, sizeof(char) * MAXSBUF);
-    memset(&envSkel[0], 0, sizeof(char) * MAXSBUF);
-    memset(&envPrefix[0], 0, sizeof(char) * MAXSBUF);
+    char tDriver[maxStringBufferLength];
+    memset(&tDriver[0], 0, sizeof(char) * maxStringBufferLength);
+
+    char tName[maxStringBufferLength];
+    memset(&tName[0], 0, sizeof(char) * maxStringBufferLength);
+
+    char envConfig[maxStringBufferLength];
+    memset(&envConfig[0], 0, sizeof(char) * maxStringBufferLength);
+
+    char envSkel[maxStringBufferLength];
+    memset(&envSkel[0], 0, sizeof(char) * maxStringBufferLength);
+
+    char envPrefix[maxStringBufferLength];
+    memset(&envPrefix[0], 0, sizeof(char) * maxStringBufferLength);
+
 
     int n = 0;
 
@@ -106,34 +120,34 @@ void Fifo::processLine(const char * line)
     {
         if (arg[j][0] == 'n')
         {
-            strncpy(tName, var[j], MAXSBUF - 1);
-            tName[MAXSBUF - 1] = '\0';
+            strncpy(tName, var[j], maxStringBufferLength - 1);
+            tName[maxStringBufferLength - 1] = '\0';
 
-            if (verbose)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With name: %s\n", tName));
         }
         else if (arg[j][0] == 'c')
         {
-            strncpy(envConfig, var[j], MAXSBUF - 1);
-            envConfig[MAXSBUF - 1] = '\0';
+            strncpy(envConfig, var[j], maxStringBufferLength - 1);
+            envConfig[maxStringBufferLength - 1] = '\0';
 
-            if (verbose)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With config: %s\n", envConfig));
         }
         else if (arg[j][0] == 's')
         {
-            strncpy(envSkel, var[j], MAXSBUF - 1);
-            envSkel[MAXSBUF - 1] = '\0';
+            strncpy(envSkel, var[j], maxStringBufferLength - 1);
+            envSkel[maxStringBufferLength - 1] = '\0';
 
-            if (verbose)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With skeketon: %s\n", envSkel));
         }
         else if (arg[j][0] == 'p')
         {
-            strncpy(envPrefix, var[j], MAXSBUF - 1);
-            envPrefix[MAXSBUF - 1] = '\0';
+            strncpy(envPrefix, var[j], maxStringBufferLength - 1);
+            envPrefix[maxStringBufferLength - 1] = '\0';
 
-            if (verbose)
+            if (userConfigurableArguments->verbosity)
                 log(fmt("With prefix: %s\n", envPrefix));
         }
     }
@@ -146,7 +160,7 @@ void Fifo::processLine(const char * line)
 
     if (startCmd)
     {
-        if (verbose)
+        if (userConfigurableArguments->verbosity)
             log(fmt("FIFO: Starting driver %s\n", tDriver));
 
         DvrInfo * dp;
@@ -178,7 +192,7 @@ void Fifo::processLine(const char * line)
                 /* If device name is given, check against it before shutting down */
                 if (tName[0] && !dp->isHandlingDevice(tName))
                     continue;
-                if (verbose)
+                if (userConfigurableArguments->verbosity)
                     log(fmt("FIFO: Shutting down driver: %s\n", tDriver));
 
                 dp->restart = false;

@@ -27,26 +27,13 @@ class SerializationRequirement
         friend class SerializedMsg;
 
         // If the xml is still required
-        bool xml;
+        bool xml{false};
         // Set of sharedBuffer that are still required
-        std::set<int> sharedBuffers;
+        std::set<int> sharedBuffers{};
 
-        SerializationRequirement() : sharedBuffers()
-        {
-            xml = false;
-        }
+        SerializationRequirement() noexcept = default;
 
-        void add(const SerializationRequirement &from)
-        {
-            xml |= from.xml;
-            for(auto fd : from.sharedBuffers)
-            {
-                sharedBuffers.insert(fd);
-            }
-        }
+        void add(const SerializationRequirement &from);
 
-        bool operator==(const SerializationRequirement   &sr) const
-        {
-            return (xml == sr.xml) && (sharedBuffers == sr.sharedBuffers);
-        }
+        bool operator==(const SerializationRequirement   &sr) const;
 };

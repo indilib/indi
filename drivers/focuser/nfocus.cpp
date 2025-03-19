@@ -51,10 +51,10 @@ bool NFocus::initProperties()
     IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    FocusRelPosN[0].min = 0;
-    FocusRelPosN[0].max = 50000;
-    FocusRelPosN[0].step = 1000;
-    FocusRelPosN[0].value = 0;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(50000);
+    FocusRelPosNP[0].setStep(1000);
+    FocusRelPosNP[0].setValue(0);
 
     // Set polling to 500ms
     setDefaultPollingPeriod(500);
@@ -323,13 +323,13 @@ void NFocus::TimerHit()
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if (FocusRelPosNP.s == IPS_BUSY && isMoving() == false)
+    if (FocusRelPosNP.getState() == IPS_BUSY && isMoving() == false)
     {
         // Are we done moving?
         if (m_TargetPosition == 0)
         {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
         else
         {
@@ -337,14 +337,14 @@ void NFocus::TimerHit()
             // so we need to go 999 or LESS
             // therefore for larger movements, we break it down.
             int nextMotion = (m_TargetPosition > 999) ? 999 : m_TargetPosition;
-            int direction = IUFindOnSwitchIndex(&FocusMotionSP);
+            int direction = FocusMotionSP.findOnSwitchIndex();
             char cmd[NFOCUS_LEN] = {0};
             snprintf(cmd, NFOCUS_LEN, ":F%d0%03d#", direction, nextMotion);
             if (sendCommand(cmd) == false)
             {
-                FocusRelPosNP.s = IPS_ALERT;
+                FocusRelPosNP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to issue motion command.");
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.apply();
             }
             else
                 m_TargetPosition -= nextMotion;

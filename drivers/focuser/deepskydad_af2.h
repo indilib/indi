@@ -62,6 +62,8 @@ class DeepSkyDadAF2 : public INDI::Focuser
          */
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+
         /**
          * @brief MoveAbsFocuser Move to an absolute target position
          * @param targetTicks target position
@@ -116,35 +118,28 @@ class DeepSkyDadAF2 : public INDI::Focuser
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Step modes
-        ISwitch StepModeS[4];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {4};
 
         // Coils mode
-        ISwitch CoilsModeS[3];
-        ISwitchVectorProperty CoilsModeSP;
+        INDI::PropertySwitch CoilsModeSP {3};
+        // ISwitchVectorProperty CoilsModeSP;
 
         //Current move
-        ISwitch CurrentMoveS[4];
-        ISwitchVectorProperty CurrentMoveSP;
+        INDI::PropertySwitch CurrentMoveSP {4};
 
         //Current hold
-        ISwitch CurrentHoldS[4];
-        ISwitchVectorProperty CurrentHoldSP;
+        INDI::PropertySwitch CurrentHoldSP {4};
 
         // Max movement
-        INumber FocusMaxMoveN[1];
-        INumberVectorProperty FocusMaxMoveNP;
+        INDI::PropertyNumber FocusMaxMoveNP {1};
 
         // Settle buffer
-        INumber SettleBufferN[1];
-        INumberVectorProperty SettleBufferNP;
+        INDI::PropertyNumber SettleBufferNP {1};
 
         // Idle coils timeout (ms)
-        INumber IdleCoilsTimeoutN[1];
-        INumberVectorProperty IdleCoilsTimeoutNP;
+        INDI::PropertyNumber IdleCoilsTimeoutNP {1};
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Response Buffer
 

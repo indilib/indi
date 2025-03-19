@@ -19,6 +19,7 @@ else()
                                    SerializedMsg.cpp
                                    SerializedMsgWithoutSharedBuffer.cpp
                                    SerializedMsgWithSharedBuffer.cpp
+                                   SerializationRequirement.cpp
                                    MsgChunck.cpp
                                    Msg.cpp
                                    Utils.cpp)

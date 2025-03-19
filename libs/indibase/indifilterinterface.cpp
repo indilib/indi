@@ -37,6 +37,7 @@ FilterInterface::~FilterInterface()
 
 void FilterInterface::initProperties(const char *groupName)
 {
+    // @INDI_STANDARD_PROPERTY@
     FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
     FilterSlotNP.fill(m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60, IPS_IDLE);
 
@@ -134,6 +135,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
                 FilterNameTP.push(std::move(oneText));
             }
 
+            // @INDI_STANDARD_PROPERTY@
             FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
                               FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
             FilterNameTP.shrink_to_fit();

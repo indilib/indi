@@ -57,14 +57,14 @@ bool NightCrawler::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 1;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(1);
+    FocusSpeedNP[0].setValue(1);
 
     // Focus Sync
     SyncFocusNP[0].fill("FOCUS_SYNC_OFFSET", "Ticks", "%.f", 0, 100000., 0., 0.);
     SyncFocusNP.fill(getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0,
-                       IPS_IDLE );
+                     IPS_IDLE );
 
     // Voltage
     VoltageNP[0].fill("VALUE", "Value (v)", "%.2f", 0, 30., 1., 0.);
@@ -83,38 +83,38 @@ bool NightCrawler::initProperties()
     // Motor Step Delay
     FocusStepDelayNP[0].fill("FOCUS_STEP", "Value", "%.f", 7, 100., 1., 7.);
     FocusStepDelayNP.fill(getDeviceName(), "FOCUS_STEP_DELAY", "Step Rate", SETTINGS_TAB,
-                       IP_RW, 0, IPS_IDLE );
+                          IP_RW, 0, IPS_IDLE );
 
     // Limit Switch
     LimitSwitchLP[ROTATION_SWITCH].fill("ROTATION_SWITCH", "Rotation Home", IPS_OK);
     LimitSwitchLP[OUT_SWITCH].fill("OUT_SWITCH", "Focus Out Limit", IPS_OK);
     LimitSwitchLP[IN_SWITCH].fill("IN_SWITCH", "Focus In Limit", IPS_OK);
     LimitSwitchLP.fill(getDeviceName(), "LIMIT_SWITCHES", "Limit Switch", SETTINGS_TAB,
-                      IPS_IDLE);
+                       IPS_IDLE);
 
     // Home selection
     HomeSelectionSP[MOTOR_FOCUS].fill("FOCUS", "Focuser", ISS_ON);
     HomeSelectionSP[MOTOR_ROTATOR].fill( "ROTATOR", "Rotator", ISS_ON);
     HomeSelectionSP[MOTOR_AUX].fill("AUX", "Aux", ISS_OFF);
     HomeSelectionSP.fill(getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB,
-                       IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+                         IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Home Find
     FindHomeSP[0].fill("FIND", "Start", ISS_OFF);
     FindHomeSP.fill(getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
+                    0, IPS_IDLE);
 
     // Encoders
     EncoderSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
     EncoderSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     EncoderSP.fill(getDeviceName(), "ENCODERS", "Encoders", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+                   IPS_IDLE);
 
     // Brightness
     BrightnessNP[BRIGHTNESS_DISPLAY].fill("BRIGHTNESS_DISPLAY", "Display", "%.f", 0, 255., 10., 150.);
     BrightnessNP[BRIGHTNESS_SLEEP].fill("BRIGHTNESS_SLEEP", "Sleep", "%.f", 1, 255., 10., 16.);
     BrightnessNP.fill(getDeviceName(), "BRIGHTNESS", "Brightness", SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE );
+                      IPS_IDLE );
 
     //////////////////////////////////////////////////////
     // Rotator Properties
@@ -125,12 +125,12 @@ bool NightCrawler::initProperties()
     // Rotator Ticks
     RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
-                       0, IPS_IDLE );
+                         0, IPS_IDLE );
 
     // Rotator Step Delay
     RotatorStepDelayNP[0].fill("ROTATOR_STEP", "Value", "%.f", 7, 100., 1., 7.);
     RotatorStepDelayNP.fill(getDeviceName(), "ROTATOR_STEP_DELAY", "Step Rate",
-                       ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+                            ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // For custom focuser, set max steps
     CustomRotatorStepNP[0].fill("STEPS", "Steps", "%.f", 0, 5000000, 0, 0);
@@ -147,7 +147,7 @@ bool NightCrawler::initProperties()
     // Abort Aux
     AbortAuxSP[0].fill("ABORT", "Abort", ISS_OFF);
     AbortAuxSP.fill(getDeviceName(), "AUX_ABORT_MOTION", "Abort Motion", AUX_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+                    ISR_ATMOST1, 0, IPS_IDLE);
 
     // Aux Sync
     SyncAuxNP[0].fill("AUX_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
@@ -156,18 +156,18 @@ bool NightCrawler::initProperties()
     // Aux Step Delay
     AuxStepDelayNP[0].fill( "AUX_STEP", "Value", "%.f", 7, 100., 1., 7.);
     AuxStepDelayNP.fill(getDeviceName(), "AUX_STEP_DELAY", "Step Rate", AUX_TAB, IP_RW, 0,
-                       IPS_IDLE );
+                        IPS_IDLE );
 
     /* Relative and absolte movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     addDebugControl();
 
@@ -418,7 +418,7 @@ bool NightCrawler::getPosition(MotorType type)
     if (position != -1e6)
     {
         if (type == MOTOR_FOCUS)
-            FocusAbsPosN[0].value = position;
+            FocusAbsPosNP[0].setValue(position);
         else if (type == MOTOR_ROTATOR)
             RotatorAbsPosNP[0].setValue(position);
         else
@@ -674,7 +674,7 @@ IPState NightCrawler::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -685,17 +685,17 @@ IPState NightCrawler::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = gotoMotor(MOTOR_FOCUS, newPosition);
 
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -711,13 +711,13 @@ void NightCrawler::TimerHit()
     bool rc = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
-    if (FindHomeSP.getState() == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
+    if (FindHomeSP.getState() == IPS_BUSY || HomeRotatorSP.getState() == IPS_BUSY)
     {
         if (isHomingComplete())
         {
-            HomeRotatorS[0].s = ISS_OFF;
-            HomeRotatorSP.s = IPS_OK;
-            IDSetSwitch(&HomeRotatorSP, nullptr);
+            HomeRotatorSP[0].setState(ISS_OFF);
+            HomeRotatorSP.setState(IPS_OK);
+            HomeRotatorSP.apply();
 
             FindHomeSP[0].setState(ISS_OFF);
             FindHomeSP.setState(IPS_OK);
@@ -748,7 +748,8 @@ void NightCrawler::TimerHit()
 
     // #4 Get Limit Switch Status
     rc = getLimitSwitchStatus();
-    if (rc && (LimitSwitchLP[ROTATION_SWITCH].getState() != rotationLimit || LimitSwitchLP[OUT_SWITCH].getState() != outSwitchLimit
+    if (rc && (LimitSwitchLP[ROTATION_SWITCH].getState() != rotationLimit
+               || LimitSwitchLP[OUT_SWITCH].getState() != outSwitchLimit
                || LimitSwitchLP[IN_SWITCH].getState() != inSwitchLimit))
     {
         rotationLimit = LimitSwitchLP[ROTATION_SWITCH].getState();
@@ -760,28 +761,28 @@ void NightCrawler::TimerHit()
     // #5 Focus Position & Status
     bool absFocusUpdated = false;
 
-    if (FocusAbsPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY)
     {
         // Stopped moving
         if (!isMotorMoving(MOTOR_FOCUS))
         {
-            FocusAbsPosNP.s = IPS_OK;
-            if (FocusRelPosNP.s != IPS_OK)
+            FocusAbsPosNP.setState(IPS_OK);
+            if (FocusRelPosNP.getState() != IPS_OK)
             {
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
             }
             absFocusUpdated = true;
         }
     }
     rc = getPosition(MOTOR_FOCUS);
-    if (rc && std::abs(FocusAbsPosN[0].value - lastFocuserPosition) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(FocusAbsPosNP[0].getValue() - lastFocuserPosition) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastFocuserPosition = FocusAbsPosN[0].value;
+        lastFocuserPosition = FocusAbsPosNP[0].getValue();
         absFocusUpdated = true;
     }
     if (absFocusUpdated)
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     // #6 Rotator Position & Status
     bool absRotatorUpdated = false;
@@ -792,7 +793,7 @@ void NightCrawler::TimerHit()
         if (!isMotorMoving(MOTOR_ROTATOR))
         {
             RotatorAbsPosNP.setState(IPS_OK);
-            GotoRotatorNP.s = IPS_OK;
+            GotoRotatorNP.setState(IPS_OK);
             absRotatorUpdated = true;
             LOG_INFO("Rotator motion complete.");
         }
@@ -800,7 +801,8 @@ void NightCrawler::TimerHit()
     rc = getPosition(MOTOR_ROTATOR);
     // If absolute position is zero, we must sync to 180 degrees so we can rotate in both directions freely.
     // Also sometimes Rotator motor returns negative result, we must sync it to 180 degrees as well.
-    while (RotatorAbsPosNP[0].getValue() < -m_RotatorStepsPerRevolution || RotatorAbsPosNP[0].getValue() > m_RotatorStepsPerRevolution)
+    while (RotatorAbsPosNP[0].getValue() < -m_RotatorStepsPerRevolution
+            || RotatorAbsPosNP[0].getValue() > m_RotatorStepsPerRevolution)
     {
         // Update value to take care of multiple rotations.
         const auto newOffset = static_cast<int32_t>(RotatorAbsPosNP[0].getValue()) % m_RotatorStepsPerRevolution;
@@ -811,16 +813,16 @@ void NightCrawler::TimerHit()
     if (rc && std::abs(RotatorAbsPosNP[0].getValue() - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosNP[0].getValue();
-        if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
-            GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+        if (ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON)
+            GotoRotatorNP[0].setValue(range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree)));
         else
-            GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
+            GotoRotatorNP[0].setValue(range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
     {
         RotatorAbsPosNP.apply();
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
     }
 
     // #7 Aux Position & Status
@@ -1400,7 +1402,7 @@ IPState NightCrawler::MoveRotator(double angle)
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
         newAngle *= -1;
@@ -1425,7 +1427,7 @@ IPState NightCrawler::MoveRotator(double angle)
 
 bool NightCrawler::SyncRotator(double angle)
 {
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = ( angle > 180 ? angle - 360 : angle);
     if (isReversed)
         newAngle *= -1;
@@ -1455,9 +1457,9 @@ bool NightCrawler::ReverseRotator(bool enabled)
 {
     // Immediately update the angle after reverse is set.
     if (enabled)
-        GotoRotatorN[0].value = range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+        GotoRotatorNP[0].setValue(range360(360 - (RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree)));
     else
-        GotoRotatorN[0].value = range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree);
-    IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP[0].setValue(range360(RotatorAbsPosNP[0].getValue() / m_RotatorTicksPerDegree));
+    GotoRotatorNP.apply();
     return true;
 }

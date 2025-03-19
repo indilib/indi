@@ -20,18 +20,21 @@
 #include "Utils.hpp"
 #include "Constants.hpp"
 #include "Msg.hpp"
+#include "CommandLineArgs.hpp"
 
 #include <cstdio>
 #include <netinet/in.h>
 #include <netdb.h>
 
+using namespace indiserver::constants;
+
 void RemoteDvrInfo::extractRemoteId(const std::string &name, std::string &o_host, int &o_port, std::string &o_dev) const
 {
     char dev[MAXINDIDEVICE] = {0};
-    char host[MAXSBUF] = {0};
+    char host[maxStringBufferLength] = {0};
 
     /* extract host and port from name*/
-    int indi_port = INDIPORT;
+    int indi_port = indiPortDefault;
     if (sscanf(name.c_str(), "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
         // Device missing? Try a different syntax for all devices
@@ -63,7 +66,7 @@ void RemoteDvrInfo::start()
 
     this->setFds(sockfd, sockfd);
 
-    if (verbose > 0)
+    if (userConfigurableArguments->verbosity > 0)
         log(fmt("socket=%d\n", sockfd));
 
     /* N.B. storing name now is key to limiting outbound traffic to this

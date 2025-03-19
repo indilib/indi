@@ -44,3 +44,5 @@ class Fifo
             open();
         }
 };
+
+extern Fifo* fifoHandle;

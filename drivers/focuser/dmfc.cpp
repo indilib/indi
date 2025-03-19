@@ -54,56 +54,56 @@ bool DMFC::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Max Speed
-    IUFillNumber(&MaxSpeedN[0], "Value", "", "%6.2f", 100, 1000., 100., 400.);
-    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    MaxSpeedNP[0].fill("Value", "", "%6.2f", 100, 1000., 100., 400.);
+    MaxSpeedNP.fill(getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Encoders
-    IUFillSwitch(&EncoderS[ENCODERS_ON], "On", "", ISS_ON);
-    IUFillSwitch(&EncoderS[ENCODERS_OFF], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "Encoders", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
+    EncoderSP[ENCODERS_ON].fill("On", "", ISS_ON);
+    EncoderSP[ENCODERS_OFF].fill("Off", "", ISS_OFF);
+    EncoderSP.fill(getDeviceName(), "Encoders", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Motor Modes
-    IUFillSwitch(&MotorTypeS[MOTOR_DC], "DC", "DC", ISS_OFF);
-    IUFillSwitch(&MotorTypeS[MOTOR_STEPPER], "Stepper", "Stepper", ISS_ON);
-    IUFillSwitchVector(&MotorTypeSP, MotorTypeS, 2, getDeviceName(), "Motor Type", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
+    MotorTypeSP[MOTOR_DC].fill("DC", "DC", ISS_OFF);
+    MotorTypeSP[MOTOR_STEPPER].fill("Stepper", "Stepper", ISS_ON);
+    MotorTypeSP.fill(getDeviceName(), "Motor Type", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // LED
-    IUFillSwitch(&LEDS[LED_OFF], "Off", "", ISS_ON);
-    IUFillSwitch(&LEDS[LED_ON], "On", "", ISS_OFF);
-    IUFillSwitchVector(&LEDSP, LEDS, 2, getDeviceName(), "LED", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    LEDSP[LED_OFF].fill("Off", "", ISS_ON);
+    LEDSP[LED_ON].fill("On", "", ISS_OFF);
+    LEDSP.fill(getDeviceName(), "LED", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Firmware Version
-    IUFillText(&FirmwareVersionT[0], "Version", "Version", "");
-    IUFillTextVector(&FirmwareVersionTP, FirmwareVersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO,
+    FirmwareVersionTP[0].fill("Version", "Version", "");
+    FirmwareVersionTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO,
                      0, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     // Backlash compensation
-    FocusBacklashN[0].min   = 1; // 0 is off.
-    FocusBacklashN[0].max   = 1000;
-    FocusBacklashN[0].value = 1;
-    FocusBacklashN[0].step  = 1;
+    FocusBacklashNP[0].setMin(1); // 0 is off.
+    FocusBacklashNP[0].setMax(1000);
+    FocusBacklashNP[0].setValue(1);
+    FocusBacklashNP[0].setStep(1);
 
     //LED Default ON
-    LEDS[LED_ON].s = ISS_ON;
-    LEDS[LED_OFF].s = ISS_OFF;
+    LEDSP[LED_ON].setState(ISS_ON);
+    LEDSP[LED_OFF].setState(ISS_OFF);
 
     addDebugControl();
     setDefaultPollingPeriod(200);
@@ -119,7 +119,7 @@ void DMFC::ISGetProperties(const char *dev)
 
     // Try to read config value for motor type
     // If relative, then update the capability of the focuser as such.
-    if (IUGetConfigOnSwitchIndex(getDeviceName(), MotorTypeSP.name, &configSwitch) == 0)
+    if (IUGetConfigOnSwitchIndex(getDeviceName(), MotorTypeSP.getName(), &configSwitch) == 0)
     {
         // We are only relative focuser now.
         if (configSwitch == MOTOR_DC)
@@ -127,12 +127,12 @@ void DMFC::ISGetProperties(const char *dev)
         else
             FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
 
-        MotorTypeSP.s = IPS_OK;
+        MotorTypeSP.setState(IPS_OK);
     }
 
-    IUResetSwitch(&MotorTypeSP);
-    MotorTypeS[configSwitch].s = ISS_ON;
-    defineProperty(&MotorTypeSP);
+    MotorTypeSP.reset();
+    MotorTypeSP[configSwitch].setState(ISS_ON);
+    defineProperty(MotorTypeSP);
 }
 
 bool DMFC::updateProperties()
@@ -141,19 +141,19 @@ bool DMFC::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&EncoderSP);
-        defineProperty(&MaxSpeedNP);
-        defineProperty(&LEDSP);
-        defineProperty(&FirmwareVersionTP);
+        defineProperty(TemperatureNP);
+        defineProperty(EncoderSP);
+        defineProperty(MaxSpeedNP);
+        defineProperty(LEDSP);
+        defineProperty(FirmwareVersionTP);
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(EncoderSP.name);
-        deleteProperty(MaxSpeedNP.name);
-        deleteProperty(LEDSP.name);
-        deleteProperty(FirmwareVersionTP.name);
+        deleteProperty(TemperatureNP);
+        deleteProperty(EncoderSP);
+        deleteProperty(MaxSpeedNP);
+        deleteProperty(LEDSP);
+        deleteProperty(FirmwareVersionTP);
     }
 
     return true;
@@ -166,7 +166,7 @@ bool DMFC::Handshake()
         LOGF_INFO("%s is online. Getting focus parameters...", this->getDeviceName());
 
         // Set motor type on startup only.
-        setMotorType((MotorTypeS[MOTOR_DC].s == ISS_ON) ? MOTOR_DC : MOTOR_STEPPER);
+        setMotorType((MotorTypeSP[MOTOR_DC].getState() == ISS_ON) ? MOTOR_DC : MOTOR_STEPPER);
 
         return true;
     }
@@ -304,17 +304,17 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Motor Type
-        if (!strcmp(name, MotorTypeSP.name))
+        if (MotorTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MotorTypeSP, states, names, n);
-            MotorTypeSP.s = IPS_OK;
-            saveConfig(true, MotorTypeSP.name);
+            MotorTypeSP.update(states, names, n);
+            MotorTypeSP.setState(IPS_OK);
+            saveConfig(true, MotorTypeSP.getName());
 
             // If we're not connected, let's then set the capability now.
             if (!isConnected())
             {
                 // We are only relative focuser now.
-                if (MotorTypeS[MOTOR_DC].s == ISS_ON)
+                if (MotorTypeSP[MOTOR_DC].getState() == ISS_ON)
                     FI::SetCapability(GetCapability() & ~(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
                 else
                     FI::SetCapability(GetCapability() | (FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_SYNC));
@@ -322,27 +322,27 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else
                 LOG_INFO("Motor type changed. Please restart driver for this change to take effect.");
 
-            IDSetSwitch(&MotorTypeSP, nullptr);
+            MotorTypeSP.apply( );
             return true;
         }
 
         // Encoders
-        if (!strcmp(name, EncoderSP.name))
+        if (EncoderSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&EncoderSP, states, names, n);
-            bool rc = setEncodersEnabled(EncoderS[ENCODERS_ON].s == ISS_ON);
-            EncoderSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&EncoderSP, nullptr);
+            EncoderSP.update(states, names, n);
+            bool rc = setEncodersEnabled(EncoderSP[ENCODERS_ON].getState() == ISS_ON);
+            EncoderSP.setState(rc ? IPS_OK : IPS_ALERT);
+            EncoderSP.apply();
             return true;
         }
 
         // LED
-        if (!strcmp(name, LEDSP.name))
+        if (LEDSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&LEDSP, states, names, n);
-            bool rc = setLedEnabled(LEDS[LED_ON].s == ISS_ON);
-            LEDSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&LEDSP, nullptr);
+            LEDSP.update(states, names, n);
+            bool rc = setLedEnabled(LEDSP[LED_ON].getState() == ISS_ON);
+            LEDSP.setState(rc ? IPS_OK : IPS_ALERT);
+            LEDSP.apply();
             return true;
         }
     }
@@ -354,12 +354,12 @@ bool DMFC::ISNewNumber(const char *dev, const char *name, double values[], char 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // MaxSpeed
-        if (strcmp(name, MaxSpeedNP.name) == 0)
+        if (MaxSpeedNP.isNameMatch(name))
         {
-            IUUpdateNumber(&MaxSpeedNP, values, names, n);
-            bool rc = setMaxSpeed(MaxSpeedN[0].value);
-            MaxSpeedNP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&MaxSpeedNP, nullptr);
+            MaxSpeedNP.update(values, names, n);
+            bool rc = setMaxSpeed(MaxSpeedNP[0].getValue());
+            MaxSpeedNP.setState(rc ? IPS_OK : IPS_ALERT);
+            MaxSpeedNP.apply();
             return true;
         }
     }
@@ -431,11 +431,11 @@ bool DMFC::updateFocusParams()
         return false;
     }
 
-    if (FirmwareVersionT[0].text == nullptr || strcmp(FirmwareVersionT[0].text, token))
+    if (FirmwareVersionTP[0].isEmpty() || FirmwareVersionTP[0].isNameMatch(token))
     {
-        IUSaveText(&FirmwareVersionT[0], token);
-        FirmwareVersionTP.s = IPS_OK;
-        IDSetText(&FirmwareVersionTP, nullptr);
+        FirmwareVersionTP[0].setText(token);
+        FirmwareVersionTP.setState(IPS_OK);
+        FirmwareVersionTP.apply();
     }
 
     // #3 Motor Type
@@ -454,11 +454,11 @@ bool DMFC::updateFocusParams()
     {
         //1 stepper
         //0 dc
-        IUResetSwitch(&MotorTypeSP);
-        MotorTypeS[MOTOR_DC].s = (motorType == 0) ? ISS_ON : ISS_OFF;
-        MotorTypeS[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
-        MotorTypeSP.s = IPS_OK;
-        IDSetSwitch(&MotorTypeSP, nullptr);
+        MotorTypeSP.reset();
+        MotorTypeSP[MOTOR_DC].setState((motorType == 0) ? ISS_ON : ISS_OFF);
+        MotorTypeSP[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
+        MotorTypeSP.setState(IPS_OK);
+        MotorTypeSP.apply();
     }
 
     // #4 Temperature
@@ -473,16 +473,16 @@ bool DMFC::updateFocusParams()
     double temperature = atof(token);
     if (temperature == -127)
     {
-        TemperatureNP.s = IPS_ALERT;
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.setState(IPS_ALERT);
+        TemperatureNP.apply();
     }
     else
     {
-        if (fabs(temperature - TemperatureN[0].value) > TEMPERATURE_THRESHOLD)
+        if (fabs(temperature - TemperatureNP[0].getValue()) > TEMPERATURE_THRESHOLD)
         {
-            TemperatureN[0].value = temperature;
-            TemperatureNP.s = IPS_OK;
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP[0].setValue(temperature);
+            TemperatureNP.setState(IPS_OK);
+            TemperatureNP.apply();
         }
     }
 
@@ -496,10 +496,10 @@ bool DMFC::updateFocusParams()
     }
 
     currentPosition = atoi(token);
-    if (currentPosition != FocusAbsPosN[0].value)
+    if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        FocusAbsPosN[0].value = currentPosition;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(currentPosition);
+        FocusAbsPosNP.apply();
     }
 
     // #6 Moving Status
@@ -525,10 +525,10 @@ bool DMFC::updateFocusParams()
     int ledStatus = atoi(token);
     if (ledStatus >= 0 && ledStatus <= 1)
     {
-        IUResetSwitch(&LEDSP);
-        LEDS[ledStatus].s = ISS_ON;
-        LEDSP.s = IPS_OK;
-        IDSetSwitch(&LEDSP, nullptr);
+        LEDSP.reset();
+        LEDSP[ledStatus].setState(ISS_ON);
+        LEDSP.setState(IPS_OK);
+        LEDSP.apply();
     }
 
     // #8 Reverse Status
@@ -543,11 +543,11 @@ bool DMFC::updateFocusParams()
     int reverseStatus = atoi(token);
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
-        IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[INDI_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
-        FocusReverseSP.s = IPS_OK;
-        IDSetSwitch(&FocusReverseSP, nullptr);
+        FocusReverseSP.reset();
+        FocusReverseSP[INDI_ENABLED].setState((reverseStatus == 1) ? ISS_ON : ISS_OFF);
+        FocusReverseSP[INDI_DISABLED].setState((reverseStatus == 0) ? ISS_ON : ISS_OFF);
+        FocusReverseSP.setState(IPS_OK);
+        FocusReverseSP.apply();
     }
 
     // #9 Encoder status
@@ -562,10 +562,10 @@ bool DMFC::updateFocusParams()
     int encoderStatus = atoi(token);
     if (encoderStatus >= 0 && encoderStatus <= 1)
     {
-        IUResetSwitch(&EncoderSP);
-        EncoderS[encoderStatus].s = ISS_ON;
-        EncoderSP.s = IPS_OK;
-        IDSetSwitch(&EncoderSP, nullptr);
+        EncoderSP.reset();
+        EncoderSP[encoderStatus].setState(ISS_ON);
+        EncoderSP.setState(IPS_OK);
+        EncoderSP.apply();
     }
 
     // #10 Backlash
@@ -579,30 +579,30 @@ bool DMFC::updateFocusParams()
 
     int backlash = atoi(token);
     // If backlash is zero then compensation is disabled
-    if (backlash == 0 && FocusBacklashS[INDI_ENABLED].s == ISS_ON)
+    if (backlash == 0 && FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON)
     {
         LOG_WARN("Backlash value is zero, disabling backlash switch...");
 
-        FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-        FocusBacklashS[INDI_DISABLED].s = ISS_ON;
-        FocusBacklashSP.s = IPS_IDLE;
-        IDSetSwitch(&FocusBacklashSP, nullptr);
+        FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+        FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
+        FocusBacklashSP.setState(IPS_IDLE);
+        FocusBacklashSP.apply();
     }
-    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
+    else if (backlash > 0 && (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON || backlash != FocusBacklashNP[0].getValue()))
     {
-        if (backlash != FocusBacklashN[0].value)
+        if (backlash != FocusBacklashNP[0].getValue())
         {
-            FocusBacklashN[0].value = backlash;
-            FocusBacklashNP.s = IPS_OK;
-            IDSetNumber(&FocusBacklashNP, nullptr);
+            FocusBacklashNP[0].setValue(backlash);
+            FocusBacklashNP.setState(IPS_OK);
+            FocusBacklashNP.apply();
         }
 
-        if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
+        if (FocusBacklashSP[INDI_DISABLED].getState() == ISS_ON)
         {
-            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
-            FocusBacklashSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusBacklashSP, nullptr);
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
+            FocusBacklashSP.setState(IPS_IDLE);
+            FocusBacklashSP.apply();
         }
     }
 
@@ -740,7 +740,7 @@ bool DMFC::SetFocuserBacklashEnabled(bool enabled)
     if (!enabled)
         return SetFocuserBacklash(0);
 
-    return SetFocuserBacklash(FocusBacklashN[0].value > 0 ? FocusBacklashN[0].value : 1);
+    return SetFocuserBacklash(FocusBacklashNP[0].getValue() > 0 ? FocusBacklashNP[0].getValue() : 1);
 }
 
 bool DMFC::setMotorType(uint8_t type)
@@ -782,7 +782,7 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -805,14 +805,14 @@ void DMFC::TimerHit()
 
     if (rc)
     {
-        if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+        if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
         {
             if (isMoving == false)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached requested position.");
             }
         }
@@ -828,10 +828,10 @@ bool DMFC::AbortFocuser()
 
     if (tty_write(PortFD, cmd, 2, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
         this->ignoreResponse();
         return true;
     }
@@ -842,10 +842,10 @@ bool DMFC::AbortFocuser()
 bool DMFC::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &MotorTypeSP);
-    IUSaveConfigSwitch(fp, &EncoderSP);
-    IUSaveConfigNumber(fp, &MaxSpeedNP);
-    IUSaveConfigSwitch(fp, &LEDSP);
+    MotorTypeSP.save(fp);
+    EncoderSP.save(fp);
+    MaxSpeedNP.save(fp);
+    LEDSP.save(fp);
 
     return true;
 }

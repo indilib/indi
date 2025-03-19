@@ -20,6 +20,7 @@
 #include "Utils.hpp"
 #include "Constants.hpp"
 #include "ClInfo.hpp"
+#include "CommandLineArgs.hpp"
 
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -124,7 +125,7 @@ void UnixServer::listen()
     sfdev.start(sfd, EV_READ);
 
     /* ok */
-    if (verbose > 0)
+    if (userConfigurableArguments->verbosity > 0)
         log(fmt("listening on local domain at: @%s\n", path.c_str()));
 }
 
@@ -147,7 +148,7 @@ void UnixServer::accept()
     /* rig up new clinfo entry */
     cp->setFds(cli_fd, cli_fd);
 
-    if (verbose > 0)
+    if (userConfigurableArguments->verbosity > 0)
     {
 #ifdef SO_PEERCRED
 #ifdef __OpenBSD__

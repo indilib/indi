@@ -90,7 +90,7 @@ void Msg::releaseXmlContent()
 
 void Msg::releaseSharedBuffers(const std::set<int> &keep)
 {
-    for(std::size_t i = 0; i < sharedBuffers.size(); ++i)
+    for(size_t i = 0; i < sharedBuffers.size(); ++i)
     {
         auto fd = sharedBuffers[i];
         if (fd != -1 && keep.find(fd) == keep.end())

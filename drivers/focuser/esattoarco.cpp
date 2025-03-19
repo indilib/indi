@@ -84,37 +84,37 @@ bool EsattoArco::initProperties()
     VoltageNP.fill(getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumber(&TemperatureN[TEMPERATURE_EXTERNAL], "TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB,
+    TemperatureNP[TEMPERATURE_MOTOR].fill("TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
+    TemperatureNP[TEMPERATURE_EXTERNAL].fill("TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     // Current Speed
-    IUFillNumber(&SpeedN[0], "SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
-    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
-                       IPS_IDLE);
+    SpeedNP[0].fill("SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
+    SpeedNP.fill(getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
+                 IPS_IDLE);
 
     // Backlash measurement
-    IUFillText(&BacklashMessageT[0], "BACKLASH", "Backlash stage", "Press START to measure backlash.");
-    IUFillTextVector(&BacklashMessageTP, BacklashMessageT, 1, getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    BacklashMessageTP[0].fill("BACKLASH", "Backlash stage", "Press START to measure backlash.");
+    BacklashMessageTP.fill(getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
+                           MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Backlash measurement stages
-    IUFillSwitch(&BacklashMeasurementS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
-    IUFillSwitch(&BacklashMeasurementS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&BacklashMeasurementSP, BacklashMeasurementS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
-                       MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    BacklashMeasurementSP[BACKLASH_START].fill("BACKLASH_START", "Start", ISS_OFF);
+    BacklashMeasurementSP[BACKLASH_NEXT].fill("BACKLASH_NEXT", "Next", ISS_OFF);
+    BacklashMeasurementSP.fill(getDeviceName(), "FOCUS_BACKLASH", "Backlash",
+                               MAIN_CONTROL_TAB,
+                               IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
-    IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
-    IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
-    IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
-    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+    FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
+    FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
+    FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
+    FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
+                    ISR_ATMOST1, 0, IPS_IDLE);
 
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
+    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
 
     //////////////////////////////////////////////////////
@@ -125,47 +125,41 @@ bool EsattoArco::initProperties()
     setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
 
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
-                       0, IPS_IDLE );
+    RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
+    RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
+                         0, IPS_IDLE );
     // Rotator Calibration
-    IUFillSwitch(&RotCalibrationS[ARCO_CALIBRATION_START], "ARCO_CALIBRATION_START", "Start", ISS_OFF);
-    IUFillSwitchVector(&RotatorCalibrationSP, RotCalibrationS, 1, getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    RotatorCalibrationSP[ARCO_CALIBRATION_START].fill("ARCO_CALIBRATION_START", "Start", ISS_OFF);
+    RotatorCalibrationSP.fill(getDeviceName(), "ARCO_CALIBRATION", "Calibrate", ROTATOR_TAB,
+                              IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Read reverse rotator config
-    int index = -1;
-    IUGetConfigOnSwitchIndex(getDeviceName(), ReverseRotatorSP.name, &index);
-    if (index >= 0)
-    {
-        IUResetSwitch(&ReverseRotatorSP);
-        ReverseRotatorS[index].s = ISS_ON;
-    }
+    ReverseRotatorSP.load();
 
     //////////////////////////////////////////////////////
     // Defaults
     /////////////////////////////////////////////////////
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].value = 2097152;
-    PresetN[0].max = FocusMaxPosN[0].value;
-    PresetN[1].max = FocusMaxPosN[0].value;
-    PresetN[2].max = FocusMaxPosN[0].value;
+    FocusMaxPosNP[0].setValue(2097152);
+    PresetNP[0].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[1].setMax(FocusMaxPosNP[0].getValue());
+    PresetNP[2].setMax(FocusMaxPosNP[0].getValue());
 
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 10000;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(10000);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(0);
 
     addAuxControls();
 
@@ -192,21 +186,21 @@ bool EsattoArco::updateProperties()
         //Focuser
         INDI::Focuser::updateProperties();
 
-        defineProperty(&SpeedNP);
-        defineProperty(&BacklashMessageTP);
-        defineProperty(&BacklashMeasurementSP);
+        defineProperty(SpeedNP);
+        defineProperty(BacklashMessageTP);
+        defineProperty(BacklashMeasurementSP);
         defineProperty(FirmwareTP);
 
         if (updateTemperature())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
 
         if (updateVoltageIn())
             defineProperty(VoltageNP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
-        defineProperty(&RotatorAbsPosNP);
-        defineProperty(&RotatorCalibrationSP);
+        defineProperty(RotatorAbsPosNP);
+        defineProperty(RotatorCalibrationSP);
         defineProperty(&RotCalibrationMessageTP);
     }
     else
@@ -214,19 +208,19 @@ bool EsattoArco::updateProperties()
         //Focuser
         INDI::Focuser::updateProperties();
 
-        if (TemperatureNP.s == IPS_OK)
-            deleteProperty(TemperatureNP.name);
+        if (TemperatureNP.getState() == IPS_OK)
+            deleteProperty(TemperatureNP);
 
         deleteProperty(FirmwareTP.getName());
         deleteProperty(VoltageNP.getName());
-        deleteProperty(BacklashMessageTP.name);
-        deleteProperty(BacklashMeasurementSP.name);
-        deleteProperty(SpeedNP.name);
+        deleteProperty(BacklashMessageTP);
+        deleteProperty(BacklashMeasurementSP);
+        deleteProperty(SpeedNP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
-        deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotatorCalibrationSP.name);
+        deleteProperty(RotatorAbsPosNP);
+        deleteProperty(RotatorCalibrationSP);
         deleteProperty(RotCalibrationMessageTP.name);
     }
 
@@ -264,16 +258,16 @@ bool EsattoArco::updateTemperature()
     double temperature = 0;
     if (m_Esatto->getMotorTemp(temperature))
     {
-        TemperatureN[TEMPERATURE_MOTOR].value = temperature;
-        TemperatureNP.s = IPS_OK;
+        TemperatureNP[TEMPERATURE_MOTOR].setValue(temperature);
+        TemperatureNP.setState(IPS_OK);
     }
     else
-        TemperatureNP.s = IPS_ALERT;
+        TemperatureNP.setState(IPS_ALERT);
 
-    TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
+    TemperatureNP[TEMPERATURE_EXTERNAL].setValue(-273.15);
     if (m_Esatto->getExternalTemp(temperature) && temperature > -127)
     {
-        TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
+        TemperatureNP[TEMPERATURE_EXTERNAL].setValue(temperature);
     }
 
     return true;
@@ -288,33 +282,33 @@ bool EsattoArco::updateMaxLimit()
 
     if (m_Esatto->getMaxPosition(maxLimit) && maxLimit > 0)
     {
-        FocusMaxPosN[0].max = maxLimit;
-        if (FocusMaxPosN[0].value > maxLimit)
-            FocusMaxPosN[0].value = maxLimit;
+        FocusMaxPosNP[0].setMax(maxLimit);
+        if (FocusMaxPosNP[0].getValue() > maxLimit)
+            FocusMaxPosNP[0].setValue(maxLimit);
 
-        FocusAbsPosN[0].min   = 0;
-        FocusAbsPosN[0].max   = maxLimit;
-        FocusAbsPosN[0].value = 0;
-        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        FocusAbsPosNP[0].setMin(0);
+        FocusAbsPosNP[0].setMax(maxLimit);
+        FocusAbsPosNP[0].setValue(0);
+        FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
-        FocusRelPosN[0].min   = 0.;
-        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-        FocusRelPosN[0].value = 0;
-        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+        FocusRelPosNP[0].setMin(0.);
+        FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getStep());
+        FocusRelPosNP[0].setValue(0);
+        FocusRelPosNP[0].setStep(FocusAbsPosNP[0].getStep());
 
-        PresetN[0].max = maxLimit;
-        PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-        PresetN[1].max = maxLimit;
-        PresetN[1].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-        PresetN[2].max = maxLimit;
-        PresetN[2].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        PresetNP[0].setMax(maxLimit);
+        PresetNP[0].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+        PresetNP[1].setMax(maxLimit);
+        PresetNP[1].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
+        PresetNP[2].setMax(maxLimit);
+        PresetNP[2].setStep((FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 50.0);
 
 
-        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosNP.setState(IPS_OK);
         return true;
     }
 
-    FocusMaxPosNP.s = IPS_ALERT;
+    FocusMaxPosNP.setState(IPS_ALERT);
     return false;
 }
 
@@ -334,25 +328,25 @@ bool EsattoArco::updatePosition()
     uint32_t steps;
     // Update focuser position
     if (m_Esatto->getAbsolutePosition(steps))
-        FocusAbsPosN[0].value = steps;
+        FocusAbsPosNP[0].setValue(steps);
 
     double arcoPosition;
     // Update Arco steps position
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_STEPS, arcoPosition))
     {
         //Update Rotator Position
-        RotatorAbsPosN[0].value = arcoPosition;
+        RotatorAbsPosNP[0].setValue(arcoPosition);
     }
 
     // Update Arco degrees position
     if (m_Arco->getAbsolutePosition(PrimalucaLabs::UNIT_DEGREES, arcoPosition))
     {
         //Update Rotator Position
-        const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (isReversed)
-            GotoRotatorN[0].value = range360(360 - arcoPosition);
+            GotoRotatorNP[0].setValue(range360(360 - arcoPosition));
         else
-            GotoRotatorN[0].value = range360(arcoPosition);
+            GotoRotatorNP[0].setValue(range360(arcoPosition));
 
     }
 
@@ -395,14 +389,14 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Set backlash
-        if (!strcmp(name, BacklashMeasurementSP.name))
+        if (BacklashMeasurementSP.isNameMatch(name))
         {
-            BacklashMeasurementSP.s = IPS_BUSY;
-            IUUpdateSwitch(&BacklashMeasurementSP, states, names, n);
+            BacklashMeasurementSP.setState(IPS_BUSY);
+            BacklashMeasurementSP.update(states, names, n);
 
-            auto current_switch = IUFindOnSwitchIndex(&BacklashMeasurementSP);
-            BacklashMeasurementS[current_switch].s = ISS_ON;
-            IDSetSwitch(&BacklashMeasurementSP, nullptr);
+            auto current_switch = BacklashMeasurementSP.findOnSwitchIndex();
+            BacklashMeasurementSP[current_switch].setState(ISS_ON);
+            BacklashMeasurementSP.apply();
 
             if (current_switch == BACKLASH_START)
             {
@@ -410,11 +404,11 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 {
                     // Start the backlash measurement process
                     LOG_INFO("Start Backlash measurement.");
-                    BacklashMeasurementSP.s = IPS_BUSY;
-                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
+                    BacklashMeasurementSP.setState(IPS_BUSY);
+                    BacklashMeasurementSP.apply();
 
-                    IUSaveText(&BacklashMessageT[0], "Drive the focuser in any direction until focus changes.");
-                    IDSetText(&BacklashMessageTP, nullptr);
+                    BacklashMessageTP[0].setText("Drive the focuser in any direction until focus changes.");
+                    BacklashMessageTP.apply();
 
                     // Set next step
                     bStage = BacklashMinimum;
@@ -422,98 +416,98 @@ bool EsattoArco::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 else
                 {
                     LOG_INFO("Already started backlash measure. Proceed to next step.");
-                    IUSaveText(&BacklashMessageT[0], "Already started. Proceed to NEXT.");
-                    IDSetText(&BacklashMessageTP, nullptr);
+                    BacklashMessageTP[0].setText("Already started. Proceed to NEXT.");
+                    BacklashMessageTP.apply();
                 }
             }
             else if (current_switch == BACKLASH_NEXT)
             {
                 if (bStage == BacklashMinimum)
                 {
-                    FocusBacklashN[0].value = static_cast<int32_t>(FocusAbsPosN[0].value);
+                    FocusBacklashNP[0].setValue(static_cast<int32_t>(FocusAbsPosNP[0].getValue()));
 
-                    IUSaveText(&BacklashMessageT[0], "Drive the focuser in the opposite direction, then press NEXT to finish.");
-                    IDSetText(&BacklashMessageTP, nullptr);
+                    BacklashMessageTP[0].setText( "Drive the focuser in the opposite direction, then press NEXT to finish.");
+                    BacklashMessageTP.apply();
                     bStage = BacklashMaximum;
                 }
                 else if (bStage == BacklashMaximum)
                 {
-                    FocusBacklashN[0].value -= FocusAbsPosN[0].value;
+                    FocusBacklashNP[0].setValue(FocusBacklashNP[0].getValue() - FocusAbsPosNP[0].getValue());
 
                     // Set Esatto backlash
-                    SetFocuserBacklash(FocusBacklashN[0].value);
-                    IDSetNumber(&FocusBacklashNP, nullptr);
+                    SetFocuserBacklash(FocusBacklashNP[0].getValue());
+                    FocusBacklashNP.apply();
 
                     SetFocuserBacklashEnabled(true);
 
-                    IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
-                    IDSetText(&BacklashMessageTP, nullptr);
+                    BacklashMessageTP[0].setText("Backlash Measure Completed.");
+                    BacklashMessageTP.apply();
 
                     bStage = BacklashComplete;
 
                     LOG_INFO("Backlash measurement completed");
-                    BacklashMeasurementSP.s = IPS_OK;
-                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
-                    BacklashMeasurementS[current_switch].s = ISS_OFF;
-                    IDSetSwitch(&BacklashMeasurementSP, nullptr);
+                    BacklashMeasurementSP.setState(IPS_OK);
+                    BacklashMeasurementSP.apply();
+                    BacklashMeasurementSP[current_switch].setState(ISS_OFF);
+                    BacklashMeasurementSP.apply();
                 }
                 else
                 {
-                    IUSaveText(&BacklashMessageT[0], "Backlash not in progress.");
-                    IDSetText(&BacklashMessageTP, nullptr);
+                    BacklashMessageTP[0].setText("Backlash not in progress.");
+                    BacklashMessageTP.apply();
                 }
 
             }
             return true;
         }
         // Fast motion
-        else if (!strcmp(name, FastMoveSP.name))
+        else if (FastMoveSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&FastMoveSP, states, names, n);
-            auto current_switch = IUFindOnSwitchIndex(&FastMoveSP);
+            FastMoveSP.update(states, names, n);
+            auto current_switch = FastMoveSP.findOnSwitchIndex();
 
             switch (current_switch)
             {
                 case FASTMOVE_IN:
                     if (!m_Esatto->fastMoveIn())
                         return false;
-                    FastMoveSP.s = IPS_BUSY;
+                    FastMoveSP.setState(IPS_BUSY);
                     break;
                 case FASTMOVE_OUT:
                     if (!m_Esatto->fastMoveOut())
                         return false;
-                    FastMoveSP.s = IPS_BUSY;
+                    FastMoveSP.setState(IPS_BUSY);
                     break;
                 case FASTMOVE_STOP:
                     if (!m_Esatto->stop())
                         return false;
-                    FastMoveSP.s = IPS_IDLE;
+                    FastMoveSP.setState(IPS_IDLE);
                     break;
                 default:
                     break;
             }
 
-            IDSetSwitch(&FastMoveSP, nullptr);
+            FastMoveSP.apply();
             return true;
         }
         // Rotator Calibration
-        else if (!strcmp(name, RotatorCalibrationSP.name))
+        else if (RotatorCalibrationSP.isNameMatch(name))
         {
             if(m_Arco->calibrate())
             {
                 LOG_INFO("Calibrating Arco. Please wait.");
-                RotatorAbsPosNP.s = IPS_BUSY;
-                GotoRotatorNP.s = IPS_BUSY;
-                RotatorCalibrationSP.s = IPS_BUSY;
-                IDSetSwitch(&RotatorCalibrationSP, nullptr);
-                IDSetNumber(&GotoRotatorNP, nullptr);
-                IDSetNumber(&RotatorAbsPosNP, nullptr);
+                RotatorAbsPosNP.setState(IPS_BUSY);
+                GotoRotatorNP.setState(IPS_BUSY);
+                RotatorCalibrationSP.setState(IPS_BUSY);
+                RotatorCalibrationSP.apply();
+                GotoRotatorNP.apply();
+                RotatorAbsPosNP.apply();
             }
             else
             {
-                IUResetSwitch(&RotatorCalibrationSP);
-                RotatorCalibrationSP.s = IPS_ALERT;
-                IDSetSwitch(&RotatorCalibrationSP, nullptr);
+                RotatorCalibrationSP.reset();
+                RotatorCalibrationSP.setState(IPS_ALERT);
+                RotatorCalibrationSP.apply();
             }
             return true;
         }
@@ -534,16 +528,16 @@ bool EsattoArco::ISNewNumber(const char *dev, const char *name, double values[],
     if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
-    else if (strcmp(name, RotatorAbsPosNP.name) == 0)
+    else if (RotatorAbsPosNP.isNameMatch(name))
     {
         if (m_Arco->moveAbsolutePoition(PrimalucaLabs::UNIT_STEPS, values[0]))
-            RotatorAbsPosNP.s = IPS_BUSY;
+            RotatorAbsPosNP.setState(IPS_BUSY);
         else
-            RotatorAbsPosNP.s = IPS_ALERT;
-        GotoRotatorNP.s = RotatorAbsPosNP.s;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
-        IDSetNumber(&GotoRotatorNP, nullptr);
-        if (RotatorAbsPosNP.s == IPS_BUSY)
+            RotatorAbsPosNP.setState(IPS_ALERT);
+        GotoRotatorNP.setState(RotatorAbsPosNP.getState());
+        RotatorAbsPosNP.apply();
+        GotoRotatorNP.apply();
+        if (RotatorAbsPosNP.getState() == IPS_BUSY)
             LOGF_INFO("Rotator moving to %.f steps...", values[0]);
         return true;
     }
@@ -563,8 +557,8 @@ IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (m_Esatto->goAbsolutePosition(targetTicks))
     {
-        RotatorAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_BUSY);
+        RotatorAbsPosNP.apply();
         return IPS_BUSY;
     }
     return IPS_ALERT;
@@ -575,9 +569,9 @@ IPState EsattoArco::MoveAbsFocuser(uint32_t targetTicks)
 *************************************************************************************************************/
 IPState EsattoArco::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -603,61 +597,61 @@ void EsattoArco::TimerHit()
         return;
     }
 
-    auto currentFocusPosition = FocusAbsPosN[0].value;
-    auto currentRotatorPosition = RotatorAbsPosN[0].value;
+    auto currentFocusPosition = FocusAbsPosNP[0].getValue();
+    auto currentRotatorPosition = RotatorAbsPosNP[0].getValue();
     if (updatePosition())
     {
-        if (std::abs(currentFocusPosition - FocusAbsPosN[0].value) > 0)
+        if (std::abs(currentFocusPosition - FocusAbsPosNP[0].getValue()) > 0)
         {
             // Focuser State Machine
-            if (FocusAbsPosNP.s == IPS_BUSY && m_Esatto->isBusy() == false)
+            if (FocusAbsPosNP.getState() == IPS_BUSY && m_Esatto->isBusy() == false)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
             }
             else
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.apply();
         }
 
         // Rotator State Machine
 
         // Only check status if position changed.
-        if (std::abs(currentRotatorPosition - RotatorAbsPosN[0].value) > 0)
+        if (std::abs(currentRotatorPosition - RotatorAbsPosNP[0].getValue()) > 0)
         {
             // Rotator was busy and now stopped?
-            if (GotoRotatorNP.s == IPS_BUSY && m_Arco->isBusy() == false)
+            if (GotoRotatorNP.getState() == IPS_BUSY && m_Arco->isBusy() == false)
             {
                 // Check if we were calibrating
-                if(RotatorCalibrationSP.s == IPS_BUSY)
+                if(RotatorCalibrationSP.getState() == IPS_BUSY)
                 {
-                    RotatorCalibrationSP.s = IPS_IDLE;
-                    IDSetSwitch(&RotatorCalibrationSP, nullptr);
+                    RotatorCalibrationSP.setState(IPS_IDLE);
+                    RotatorCalibrationSP.apply();
                     LOG_INFO("Arco calibration complete.");
                     if(m_Arco->sync(PrimalucaLabs::UNIT_STEPS, 0))
                         LOG_INFO("Arco position synced to zero.");
                 }
-                GotoRotatorNP.s = IPS_OK;
-                RotatorAbsPosNP.s = IPS_OK;
-                IDSetNumber(&GotoRotatorNP, nullptr);
-                IDSetNumber(&RotatorAbsPosNP, nullptr);
+                GotoRotatorNP.setState(IPS_OK);
+                RotatorAbsPosNP.setState(IPS_OK);
+                GotoRotatorNP.apply();
+                RotatorAbsPosNP.apply();
             }
             else
             {
-                IDSetNumber(&GotoRotatorNP, nullptr);
-                IDSetNumber(&RotatorAbsPosNP, nullptr);
+                GotoRotatorNP.apply();
+                RotatorAbsPosNP.apply();
             }
         }
     }
 
     if (m_TemperatureCounter++ == TEMPERATURE_FREQUENCY)
     {
-        auto currentTemperature = TemperatureN[0].value;
+        auto currentTemperature = TemperatureNP[0].getValue();
         if (updateTemperature())
         {
-            if (std::abs(currentTemperature - TemperatureN[0].value) >= 0.1)
-                IDSetNumber(&TemperatureNP, nullptr);
+            if (std::abs(currentTemperature - TemperatureNP[0].getValue()) >= 0.1)
+                TemperatureNP.apply();
         }
 
         auto current12V = VoltageNP[VOLTAGE_12V].getValue();
@@ -701,9 +695,9 @@ bool EsattoArco::getStartupValues()
                        e.what(), e.id);
             return false;
         }
-        RotatorAbsPosN[0].min = calMin;
-        RotatorAbsPosN[0].max = calMax;
-        RotatorAbsPosN[0].step = std::abs(calMax - calMin) / 50.0;
+        RotatorAbsPosNP[0].setMin(calMin);
+        RotatorAbsPosNP[0].setMax(calMax);
+        RotatorAbsPosNP[0].setStep(std::abs(calMax - calMin) / 50.0);
     }
     return true;
 }
@@ -806,7 +800,7 @@ IPState EsattoArco::MoveRotator(double angle)
     // Rotator move 0 to +180 degrees CCW
     // Rotator move 0 to -180 degrees CW
     // This is from looking at rotator from behind.
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);
@@ -824,12 +818,12 @@ IPState EsattoArco::MoveRotator(double angle)
 bool EsattoArco::AbortRotator()
 {
     auto rc = m_Arco->stop();
-    if (rc && RotatorAbsPosNP.s != IPS_IDLE)
+    if (rc && RotatorAbsPosNP.getState() != IPS_IDLE)
     {
-        RotatorAbsPosNP.s = IPS_IDLE;
-        GotoRotatorNP.s = IPS_IDLE;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_IDLE);
+        GotoRotatorNP.setState(IPS_IDLE);
+        RotatorAbsPosNP.apply();
+        GotoRotatorNP.apply();
     }
 
     return rc;
@@ -843,7 +837,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
     // Do not use Primaluca native reverse since it has some bugs
     //return m_Arco->reverse(enabled);
     INDI_UNUSED(enabled);
-    GotoRotatorN[0].value = range360(360 - GotoRotatorN[0].value);
+    GotoRotatorNP[0].setValue(range360(360 - GotoRotatorNP[0].getValue()));
     return true;
 }
 
@@ -852,7 +846,7 @@ bool  EsattoArco::ReverseRotator(bool enabled)
 *************************************************************************************************************/
 bool EsattoArco::SyncRotator(double angle)
 {
-    const bool isReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool isReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     auto newAngle = 0;
     if (isReversed)
         newAngle = ( angle > 180 ? 360 - angle : angle * -1);

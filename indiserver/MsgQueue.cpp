@@ -21,9 +21,13 @@
 #include "Constants.hpp"
 #include "SerializedMsg.hpp"
 #include "Msg.hpp"
+#include "CommandLineArgs.hpp"
+
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+using namespace indiserver::constants;
 
 void MsgQueue::writeToFd()
 {
@@ -61,9 +65,9 @@ void MsgQueue::writeToFd()
     }
     while(nsend == 0);
 
-    /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    if (nsend > MAXWSIZ)
-        nsend = MAXWSIZ;
+    /* send next chunk, never more than maxWriteBufferLength to reduce blocking */
+    if (nsend > static_cast<ssize_t>(maxWriteBufferLength))
+        nsend = static_cast<ssize_t>(maxWriteBufferLength);
 
     if (!useSharedBuffer)
     {
@@ -76,10 +80,10 @@ void MsgQueue::writeToFd()
         int cmsghdrlength;
         struct cmsghdr * cmsgh;
 
-        int fdCount = sharedBuffers.size();
+        size_t fdCount = sharedBuffers.size();
         if (fdCount > 0)
         {
-            if (fdCount > MAXFD_PER_MESSAGE)
+            if (fdCount > maxFDPerMessage)
             {
                 log(fmt("attempt to send too many FD\n"));
                 close();
@@ -97,7 +101,7 @@ void MsgQueue::writeToFd()
             cmsgh->cmsg_type = SCM_RIGHTS;
             msgh.msg_control = cmsgh;
             msgh.msg_controllen = cmsghdrlength;
-            for(int i = 0; i < fdCount; ++i)
+            for(size_t i = 0; i < fdCount; ++i)
             {
                 ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = sharedBuffers[i];
             }
@@ -138,12 +142,12 @@ void MsgQueue::writeToFd()
     }
 
     /* trace */
-    if (verbose > 2)
+    if (userConfigurableArguments->verbosity > 2)
     {
         log(fmt("sending msg nq %ld:\n%.*s\n",
                 msgq.size(), (int)nw, data));
     }
-    else if (verbose > 1)
+    else if (userConfigurableArguments->verbosity > 1)
     {
         log(fmt("sending %.*s\n", (int)nw, data));
     }
@@ -444,7 +448,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
         {
             struct cmsghdr cmsgh;
             /* Space large enough to hold an 'int' */
-            char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
+            char control[CMSG_SPACE(maxFDPerMessage * sizeof(int))];
         } control_un;
 
         iov.iov_base = buf;
@@ -500,7 +504,7 @@ size_t MsgQueue::doRead(char * buf, size_t nr)
 
 void MsgQueue::readFromFd()
 {
-    char buf[MAXRBUF];
+    char buf[maxReadBufferLength];
     ssize_t nr;
 
     /* read client */
@@ -511,7 +515,7 @@ void MsgQueue::readFromFd()
 
         if (nr < 0)
             log(fmt("read: %s\n", strerror(errno)));
-        else if (verbose > 0)
+        else if (userConfigurableArguments->verbosity > 0)
             log(fmt("read EOF\n"));
         close();
         return;
@@ -537,9 +541,9 @@ void MsgQueue::readFromFd()
     {
         if (hb.alive())
         {
-            if (verbose > 2)
+            if (userConfigurableArguments->verbosity > 2)
                 traceMsg("read ", root);
-            else if (verbose > 1)
+            else if (userConfigurableArguments->verbosity > 1)
             {
                 log(fmt("read <%s device='%s' name='%s'>\n",
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));

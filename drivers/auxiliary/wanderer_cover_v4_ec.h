@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2024 Frank Wang/Jérémie Klein. All rights reserved.
 
   WandererCover V4-EC
 
@@ -27,6 +27,7 @@
 #include "defaultdevice.h"
 #include "indidustcapinterface.h"
 #include "indilightboxinterface.h"
+#include <mutex>
 
 namespace Connection
 {
@@ -69,11 +70,11 @@ private:
     bool sendCommand(std::string command);
     //Current Calibrate
     bool getData();
+    bool parseDeviceData(const char *data);
     double closesetread=0;
     double opensetread=0;
     double positionread=0;
     double voltageread=0;
-    bool Ismoving=false;
     bool setDewPWM(int id, int value);
     bool setClose(double value);
     bool setOpen(double value);
@@ -107,7 +108,17 @@ private:
         OpenSet,
     };
 
+    // Firmware information
+    INDI::PropertyText FirmwareTP{1};
+    enum
+    {
+        FIRMWARE_VERSION,
+    };
+
     int PortFD{ -1 };
 
     Connection::Serial *serialConnection{ nullptr };
+
+    // Mutex for thread safety
+    std::timed_mutex serialPortMutex;
 };

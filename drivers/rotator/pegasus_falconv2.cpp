@@ -297,21 +297,21 @@ bool PegasusFalconV2::getStatusData()
         const IPState motionState = std::stoi(result[2]) == 1 ? IPS_BUSY : IPS_OK;
 
         // Update Absolute Position property if either position changes, or status changes.
-        if (std::abs(position - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
+        if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
         {
-            GotoRotatorN[0].value = position;
-            GotoRotatorNP.s = motionState;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(position);
+            GotoRotatorNP.setState(motionState);
+            GotoRotatorNP.apply();
         }
 
 
         const bool reversed = std::stoi(result[5]) == 1;
-        const bool wasReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        const bool wasReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (reversed != wasReversed)
         {
-            ReverseRotatorS[INDI_ENABLED].s = reversed ? ISS_ON : ISS_OFF;
-            ReverseRotatorS[INDI_DISABLED].s = reversed ? ISS_OFF : ISS_ON;
-            IDSetSwitch(&ReverseRotatorSP, nullptr);
+            ReverseRotatorSP[INDI_ENABLED].setState(reversed ? ISS_ON : ISS_OFF);
+            ReverseRotatorSP[INDI_DISABLED].setState(reversed ? ISS_OFF : ISS_ON);
+            ReverseRotatorSP.apply();
         }
 
         lastStatusData = result;

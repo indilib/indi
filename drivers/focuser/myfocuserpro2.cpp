@@ -50,25 +50,25 @@ bool MyFocuserPro2::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 0;
-    FocusSpeedN[0].max   = 2;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(0);
+    FocusSpeedNP[0].setMax(2);
+    FocusSpeedNP[0].setValue(1);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0.);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].min   = 1024.;
-    FocusMaxPosN[0].max   = 200000.;
-    FocusMaxPosN[0].value = 0.;
-    FocusMaxPosN[0].step  = 1000;
+    FocusMaxPosNP[0].setMin(1024.);
+    FocusMaxPosNP[0].setMax(200000.);
+    FocusMaxPosNP[0].setValue(0.);
+    FocusMaxPosNP[0].setStep(1000);
 
     //Backlash
     BacklashInStepsN[0].min   = 0;
@@ -341,11 +341,11 @@ bool MyFocuserPro2::readReverseDirection()
     {
         if(temp == 0)
         {
-            FocusReverseS[INDI_DISABLED].s = ISS_ON;
+            FocusReverseSP[INDI_DISABLED].setState(ISS_ON);
         }
         else if (temp == 1)
         {
-            FocusReverseS[INDI_ENABLED].s = ISS_ON;
+            FocusReverseSP[INDI_ENABLED].setState(ISS_ON);
         }
         else
         {
@@ -492,7 +492,7 @@ bool MyFocuserPro2::readPosition()
 
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     }
     else
     {
@@ -540,7 +540,7 @@ bool MyFocuserPro2::readSpeed()
 
     if (rc > 0)
     {
-        FocusSpeedN[0].value = speed;
+        FocusSpeedNP[0].setValue(speed);
     }
     else
     {
@@ -564,7 +564,7 @@ bool MyFocuserPro2::readMaxPos()
 
     if (rc > 0)
     {
-        FocusMaxPosN[0].value = maxPos;
+        FocusMaxPosNP[0].setValue(maxPos);
         Focuser::SyncPresets(maxPos);
     }
     else
@@ -738,7 +738,7 @@ bool MyFocuserPro2::isMoving()
     char res[ML_RES] = {0};
 
     readPosition(); // Fix for Ekos autofocus
- 
+
     if (sendCommand(":01#", res) == false)
     {
         return false;
@@ -1217,7 +1217,7 @@ bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 
 IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != static_cast<int>(FocusSpeedN[0].value))
+    if (speed != static_cast<int>(FocusSpeedNP[0].getValue()))
     {
         if (!setSpeed(speed))
         {
@@ -1233,7 +1233,7 @@ IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     }
     else
     {
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(FocusMaxPosNP[0].getValue());
     }
 
     IEAddTimer(duration, &MyFocuserPro2::timedMoveHelper, this);
@@ -1248,13 +1248,13 @@ void MyFocuserPro2::timedMoveHelper(void * context)
 void MyFocuserPro2::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 IPState MyFocuserPro2::MoveAbsFocuser(uint32_t targetTicks)
@@ -1274,22 +1274,22 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     if (dir == FOCUS_INWARD)
     {
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     }
     else
     {
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
     }
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()), newPosition));
     if (!MoveFocuser(newPosition))
     {
         return IPS_ALERT;
     }
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1311,35 +1311,35 @@ void MyFocuserPro2::TimerHit()
         bool rc = readPosition();
         if (rc)
         {
-            if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+            if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
             {
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                lastPos = FocusAbsPosN[0].value;
+                FocusAbsPosNP.apply();
+                lastPos = FocusAbsPosNP[0].getValue();
             }
         }
-        if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+        if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
         {
             if (!isMoving())
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
-                lastPos = FocusAbsPosN[0].value;
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
+                lastPos = FocusAbsPosNP[0].getValue();
                 LOG_INFO("Focuser reached requested position.");
             }
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
