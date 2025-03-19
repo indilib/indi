@@ -284,10 +284,10 @@ bool DeepSkyDadFR1::getStatusData()
     const IPState motionState = motorStatus == 1 ? IPS_BUSY : IPS_OK;
 
     double motorPositionDouble = (double)motorPosition / (double)100;
-    if (std::abs(motorPositionDouble - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.s != motionState)
+    if (std::abs(motorPositionDouble - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
     {
         GotoRotatorNP[0].setValue(motorPositionDouble);
-        GotoRotatorNP.s = motionState;
+        GotoRotatorNP.setState(motionState);
         GotoRotatorNP.apply();
     }
 
@@ -317,7 +317,7 @@ bool DeepSkyDadFR1::getInitialStatusData()
     {
         ReverseRotatorSP[INDI_ENABLED].setState(motorReversed ? ISS_ON : ISS_OFF);
         ReverseRotatorSP[INDI_DISABLED].setState(motorReversed ? ISS_OFF : ISS_ON);
-        IDSetSwitch(&ReverseRotatorSP, nullptr);
+        ReverseRotatorSP.apply();
     }
 
     if (!sendCommand("[GSPD]", response))

@@ -249,7 +249,7 @@ bool WandererRotatorBase::AbortRotator()
 {
 
 
-    if (GotoRotatorNP.s == IPS_BUSY)
+    if (GotoRotatorNP.getState() == IPS_BUSY)
     {
         haltcommand = true;
         int nbytes_written = 0, rc = -1;
@@ -322,7 +322,7 @@ bool WandererRotatorBase::ReverseRotator(bool enabled)
 void WandererRotatorBase::TimerHit()
 {
 
-    if (GotoRotatorNP.s == IPS_BUSY || haltcommand == true)
+    if (GotoRotatorNP.getState() == IPS_BUSY || haltcommand == true)
     {
 
         if(nowtime < estime && haltcommand == false)
