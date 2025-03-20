@@ -64,7 +64,6 @@ bool LX200ZEQ25::initProperties()
     SlewRateSP[0].setLabel("1x");
     SlewRateSP[1].setLabel("2x");
     SlewRateSP[2].setLabel("8x");
-
     SlewRateSP[3].setLabel("16x");
     SlewRateSP[4].setLabel("64x");
     SlewRateSP[5].setLabel("128x");
@@ -367,7 +366,7 @@ void LX200ZEQ25::getBasicData()
 
 bool LX200ZEQ25::Sync(double ra, double dec)
 {
-    if (!isSimulation() && (setObjectRA(PortFD, ra, true) < 0 || (setObjectDEC(PortFD, dec, true)) < 0))
+    if (!isSimulation() && (setZEQ25ObjectRA(PortFD, ra) < 0 || (setZEQ25ObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.setState(IPS_ALERT);
         LOG_ERROR("Error setting RA/DEC. Unable to Sync.");
@@ -440,7 +439,7 @@ bool LX200ZEQ25::Goto(double r, double d)
 
     if (!isSimulation())
     {
-        if (setObjectRA(PortFD, targetRA, true) < 0 || (setObjectDEC(PortFD, targetDEC, true)) < 0)
+        if (setZEQ25ObjectRA(PortFD, targetRA) < 0 || (setZEQ25ObjectDEC(PortFD, targetDEC)) < 0)
         {
             EqNP.setState(IPS_ALERT);
             LOG_ERROR("Error setting RA/DEC.");
@@ -667,7 +666,7 @@ int LX200ZEQ25::setZEQ25Longitude(double Long)
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
@@ -685,7 +684,7 @@ int LX200ZEQ25::setZEQ25Latitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
@@ -713,6 +712,33 @@ int LX200ZEQ25::setZEQ25Date(int days, int months, int years)
     char command[16] = {0};
     snprintf(command, sizeof(command), ":SC %02d/%02d/%02d#", months, days, years % 100);
     return (setZEQ25StandardProcedure(PortFD, command));
+}
+
+int LX200ZEQ25::setZEQ25ObjectRA(int fd, double ra)
+{
+    int h, m, s;
+    char cmd[16] = {0};
+
+    getSexComponents(ra, &h, &m, &s);
+    snprintf(cmd, sizeof(cmd), ":Sr %02d:%02d:%02d#", h, m, s);
+
+    return (setStandardProcedure(fd, cmd));
+}
+
+int LX200ZEQ25::setZEQ25ObjectDEC(int fd, double dec)
+{
+    char cmd[16] = {0};
+    int d, m, s;
+    
+    getSexComponents(dec, &d, &m, &s);
+    
+    // case negative zero
+    if (!d && dec < 0)
+        snprintf(cmd, sizeof(cmd), ":Sd -%02d*%02d:%02d#", d, m,s);
+    else
+        snprintf(cmd, sizeof(cmd), ":Sd %+03d*%02d:%02d#", d, m, s);
+
+    return (setStandardProcedure(fd, cmd));
 }
 
 int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
@@ -1029,7 +1055,7 @@ bool LX200ZEQ25::Park()
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
     equatorialPos.rightascension /= 15.0;
 
-    if (setObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
+    if (setZEQ25ObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setZEQ25ObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
         LOG_ERROR("Error setting RA/Dec.");
         return false;
@@ -1091,7 +1117,7 @@ bool LX200ZEQ25::UnPark()
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
     equatorialPos.rightascension /= 15.0;
 
-    if (setObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
+    if (setZEQ25ObjectRA(PortFD, equatorialPos.rightascension) < 0 || (setZEQ25ObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
         LOG_ERROR("Error setting RA/DEC.");
         return false;

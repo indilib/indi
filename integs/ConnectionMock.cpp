@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <vector>
 
 #include "ConnectionMock.h"
 #include "SharedBuffer.h"
@@ -166,9 +167,9 @@ void ConnectionMock::expectBuffer(SharedBuffer &sb)
 void ConnectionMock::expect(const std::string &str)
 {
     ssize_t l = str.size();
-    char buff[l];
+    std::vector<char> buff(l);
 
-    char * in = buff;
+    char * in = buff.data();
     ssize_t left = l;
     while(left)
     {
@@ -186,9 +187,9 @@ void ConnectionMock::expect(const std::string &str)
         left -= rd;
         in += rd;
     }
-    if (strncmp(str.c_str(), buff, l))
+    if (strncmp(str.c_str(), buff.data(), l))
     {
-        throw std::runtime_error("Received unexpected content while expecting " + str + ": " + std::string(buff, l));
+        throw std::runtime_error("Received unexpected content while expecting " + str + ": " + std::string(buff.data(), l));
     }
 }
 

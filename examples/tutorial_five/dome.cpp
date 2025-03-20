@@ -37,7 +37,7 @@ std::unique_ptr<Dome> dome(new Dome());
 ***************************************************************************************/
 bool Dome::Connect()
 {
-    IDMessage(getDeviceName(), "Dome connected successfully!");
+    LOG_INFO("Dome connected successfully!");
     return true;
 }
 
@@ -46,7 +46,7 @@ bool Dome::Connect()
 ***************************************************************************************/
 bool Dome::Disconnect()
 {
-    IDMessage(getDeviceName(), "Dome disconnected successfully!");
+    LOG_INFO("Dome disconnected successfully!");
     return true;
 }
 
@@ -96,12 +96,12 @@ bool Dome::initProperties()
                 if (mShutterSwitch[0].getState() == ISS_ON)
                     closeShutter();
                 else
-                    IDMessage(getDeviceName(), "Rain Alert Detected! Dome is already closed.");
+                    LOG_INFO("Rain Alert Detected! Dome is already closed.");
             }
-            
+
             if (newRainState != IPS_ALERT && oldRainState == IPS_ALERT)
             {
-                IDMessage(getDeviceName(), "Rain threat passed. Opening the dome is now safe.");
+                LOG_INFO("Rain threat passed. Opening the dome is now safe.");
             }
 
             oldRainState = newRainState;
@@ -137,7 +137,8 @@ void Dome::closeShutter()
     mShutterSwitch.setState(IPS_BUSY);
     mShutterSwitch.apply("Shutter is closing...");
 
-    INDI::Timer::singleShot(5000 /* ms */, [this](){
+    INDI::Timer::singleShot(5000 /* ms */, [this]()
+    {
         mShutterSwitch[0].setState(ISS_OFF);
         mShutterSwitch[1].setState(ISS_ON);
 
@@ -163,7 +164,8 @@ void Dome::openShutter()
     mShutterSwitch.setState(IPS_BUSY);
     mShutterSwitch.apply("Shutter is opening...");
 
-    INDI::Timer::singleShot(5000 /* ms */, [this](){
+    INDI::Timer::singleShot(5000 /* ms */, [this]()
+    {
         mShutterSwitch[0].setState(ISS_ON);
         mShutterSwitch[1].setState(ISS_OFF);
 

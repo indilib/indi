@@ -27,16 +27,10 @@ list(APPEND ${PROJECT_NAME}_LIBS
     ${CURL}
 )
 
-# Add Iconv - FreeBSD needs to find the correct GNU iconv library.
-if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD"))
+# Add Iconv - FreeBSD/OpenBSD need to find the correct GNU iconv library.
+if(CYGWIN OR UNIX OR (CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD"))
     find_package(Iconv REQUIRED)
     list(APPEND ${PROJECT_NAME}_LIBS ${Iconv_LIBRARIES})
-endif()
-
-# Add WebSocket
-if(HAVE_WEBSOCKET)
-    list(APPEND ${PROJECT_NAME}_LIBS ${Boost_LIBRARIES})
-    list(APPEND ${PROJECT_NAME}_HEADERS indiwsserver.h)
 endif()
 
 # Add LibXISF
@@ -105,7 +99,7 @@ if(UNIX)
         COMPONENT Devel
     )
 
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD")
         list(APPEND ${PROJECT_NAME}_SOURCES
             webcam/v4l2_colorspace.c
             webcam/v4l2_base.cpp

@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["debian", "debian-buster", "debian-i386", "ubuntu", "fedora"]
+        container: ["debian", "debian-i386", "ubuntu", "fedora"]
 
     steps:
       - name: Login to Registry
@@ -32,4 +32,4 @@ jobs:
         with:
           file: ./.github/docker/Dockerfile.${{ matrix.container }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}
+          tags: ghcr.io/indilib/${{ matrix.container }}

@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2024 Frank Wang. All rights reserved.
+  Copyright(c) 2025 Frank Wang & Jérémie Klein. All rights reserved.
 
   WandererRotator Lite V2
 
@@ -24,59 +24,18 @@
 
 #pragma once
 
-#include "defaultdevice.h"
-#include "indirotator.h"
-#include "indirotatorinterface.h"
-#include "indipropertyswitch.h"
-class WandererRotatorLiteV2 : public INDI::Rotator
+#include "wanderer_rotator_base.h"
+
+class WandererRotatorLiteV2 : public WandererRotatorBase
 {
 public:
     WandererRotatorLiteV2();
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-
-
-
-
 protected:
     const char * getDefaultName() override;
-    virtual IPState MoveRotator(double angle) override;
-    virtual IPState HomeRotator() override;
-    virtual bool ReverseRotator(bool enabled) override;
-
-    virtual bool AbortRotator() override;
-    virtual void TimerHit() override;
-
-
-
-
-
-private:
-    int firmware=0;
-    double M_angleread=0;
-    double M_backlashread=0;
-    double M_reverseread=0;
-    double initangle=0;
-    bool Handshake() override;
-    INDI::PropertySwitch SetZeroSP{1};
-    bool sendCommand(std::string command);
-    bool Move(const char *cmd);
-    bool haltcommand = false;
-    bool ReverseState=false;
-    double backlash=0.5;
-    double positionhistory=0;
-    int estime=0;
-    int nowtime=0;
-
-    INDI::PropertyNumber BacklashNP{1};
-    enum
-    {
-        BACKLASH,
-    };
-
+    const char * getRotatorHandshakeName() override;
+    int getMinimumCompatibleFirmwareVersion() override;
+    int getStepsPerDegree() override;
 };
 
 

@@ -12,8 +12,7 @@
     "ms-vscode.cpptools-themes",
     "ms-vscode.cmake-tools",
     "webfreak.debug",
-    "ms-vscode.vscode-serial-monitor",
-    "twxs.cmake"
+    "ms-vscode.vscode-serial-monitor"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []

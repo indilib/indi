@@ -549,6 +549,10 @@ bool PMC8::ReadScopeStatus()
 
                     rc = get_pmc8_tracking_data(PortFD, track_rate, track_mode);
 
+                    // N.B. PMC8 rates are arcseconds per sidereal second
+                    // INDI uses arcseconds per solar second
+                    track_rate *= SOLAR_SECOND;
+
                     if (rc && ((int)track_rate > 0) && ((int)track_rate <= PMC8_MAX_TRACK_RATE))
                     {
                         TrackModeSP.reset();
@@ -579,6 +583,10 @@ bool PMC8::ReadScopeStatus()
                     uint8_t track_mode;
 
                     rc = get_pmc8_tracking_data(PortFD, track_rate, track_mode);
+
+                    // N.B. PMC8 rates are arcseconds per sidereal second
+                    // INDI uses arcseconds per solar second
+                    track_rate *= SOLAR_SECOND;
 
                     if (rc && ((int)track_rate == 0))
                     {
@@ -946,6 +954,9 @@ bool PMC8::ramp_movement(PMC8_DIRECTION dir)
     if (dir == PMC8_E) adjrate += round(TrackRateNP[AXIS_RA].getValue());
     else if (dir == PMC8_W) adjrate -= round(TrackRateNP[AXIS_RA].getValue());
 
+    // Solar second to Sideral second conversion
+    adjrate /= SOLAR_SECOND;
+
     LOGF_EXTRA3("Ramping: mount dir %d, ramping dir %d, iteration %d, step to %d", dir, moveInfo->rampDir,
                 moveInfo->rampIteration, adjrate);
 
@@ -1237,7 +1248,7 @@ IPState PMC8::GuideEast(uint32_t ms)
 
         isPulsingWE = true;
 
-        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, TrackRateNP[AXIS_RA].getValue());
+        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, TrackRateNP[AXIS_RA].getValue() / SOLAR_SECOND);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -1278,7 +1289,7 @@ IPState PMC8::GuideWest(uint32_t ms)
         }
 
         isPulsingWE = true;
-        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, TrackRateNP[AXIS_RA].getValue());
+        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, TrackRateNP[AXIS_RA].getValue() / SOLAR_SECOND);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -1550,7 +1561,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     if (pmc8_mode == PMC8_TRACK_CUSTOM)
     {
-        if (set_pmc8_ra_tracking(PortFD, TrackRateNP[AXIS_RA].getValue()))
+        if (set_pmc8_ra_tracking(PortFD, TrackRateNP[AXIS_RA].getValue() / SOLAR_SECOND))
         {
             return true;
         }
@@ -1572,7 +1583,7 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
     LOGF_INFO("Custom tracking rate set: raRate=%f  deRate=%f", raRate, deRate);
 
     // for now just send rate
-    pmc8RARate = raRate;
+    pmc8RARate = raRate / SOLAR_SECOND;
 
     if (deRate != 0 && deRateWarning)
     {

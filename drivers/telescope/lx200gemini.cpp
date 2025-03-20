@@ -235,6 +235,9 @@ bool LX200Gemini::initProperties()
     IUFillNumberVector(&SafetyLimitsNP, SafetyLimitsN, 3, getDeviceName(), "SAFETY_LIMITS",
                        "Limits", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    tcpConnection->setConnectionType(Connection::TCP::TYPE_UDP);
+    tcpConnection->setDefaultPort(11110);
+
     gemini_software_level_ = 0.0;
 
     return true;
@@ -282,7 +285,7 @@ bool LX200Gemini::getRefraction(bool &on)
     if (isSimulation())
         return true;
 
-    int data=0;
+    int data = 0;
 
     bool success = getRefractionJNOW(data);
 
@@ -294,9 +297,12 @@ bool LX200Gemini::getRefraction(bool &on)
             LOGF_WARN("Mount Precess being reset to JNOW: %i", data);
         }
         return setRefraction(2);
-    } else {
+    }
+    else
+    {
         on = false;
-        if((data != 2) && (data != 0)) {
+        if((data != 2) && (data != 0))
+        {
             LOGF_WARN("Mount Precess being reset to JNOW: %i", data);
         }
         return setRefraction(0);
@@ -338,21 +344,26 @@ bool LX200Gemini::setRefraction(bool on)
 
     getRefractionJNOW(data);
 
-    if(on) {
+    if(on)
+    {
         if((data != 2) && (data != 0))
         {
             LOGF_WARN("Mount Precess being reset to JNOW %i ", data);
         }
         return setRefraction(2);
-    } else {
-        if((data != 2) && (data != 0)) {
+    }
+    else
+    {
+        if((data != 2) && (data != 0))
+        {
             LOGF_WARN("Mount Precess being reset to JNOW %i", data);
         }
         return setRefraction(0);
     }
 }
 
-void LX200Gemini::syncState() {
+void LX200Gemini::syncState()
+{
     const int MAX_VALUE_LENGTH = 32;
     char value[MAX_VALUE_LENGTH] = {0};
     char value2[MAX_VALUE_LENGTH] = {0};
@@ -366,7 +377,9 @@ void LX200Gemini::syncState() {
             sscanf(value, "%f", &guiding_value);
             GuidingSpeedN[GUIDING_WE].value = guiding_value;
             IDSetNumber(&GuidingSpeedNP, nullptr);
-        } else {
+        }
+        else
+        {
             GuidingSpeedNP.s = IPS_ALERT;
             IDSetNumber(&GuidingSpeedNP, nullptr);
         }
@@ -376,7 +389,9 @@ void LX200Gemini::syncState() {
             sscanf(value, "%f", &guiding_value);
             GuidingSpeedN[GUIDING_NS].value = guiding_value;
             IDSetNumber(&GuidingSpeedNP, nullptr);
-        } else {
+        }
+        else
+        {
             GuidingSpeedNP.s = IPS_ALERT;
             IDSetNumber(&GuidingSpeedNP, nullptr);
         }
@@ -390,11 +405,15 @@ void LX200Gemini::syncState() {
             if(pec_at_boot_value)
             {
                 PECEnableAtBootS[0].s = ISS_ON;
-            } else {
+            }
+            else
+            {
                 PECEnableAtBootS[0].s = ISS_OFF;
             }
             PECEnableAtBootSP.s = IPS_OK;
-        } else {
+        }
+        else
+        {
             PECEnableAtBootSP.s = IPS_ALERT;
         }
         IDSetSwitch(&PECEnableAtBootSP, nullptr);
@@ -408,19 +427,25 @@ void LX200Gemini::syncState() {
             if(servo_value & RA_PRECISION_ENABLED)
             {
                 ServoPrecisionS[SERVO_RA].s = ISS_ON;
-            } else {
+            }
+            else
+            {
                 ServoPrecisionS[SERVO_RA].s = ISS_OFF;
             }
             if(servo_value & DEC_PRECISION_ENABLED)
             {
                 ServoPrecisionS[SERVO_DEC].s = ISS_ON;
-            } else {
+            }
+            else
+            {
                 ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
             }
             ServoPrecisionSP.s = IPS_OK;
             IDSetSwitch(&ServoPrecisionSP, nullptr);
 
-        } else {
+        }
+        else
+        {
             ServoPrecisionSP.s = IPS_ALERT;
             IDSetSwitch(&ServoPrecisionSP, nullptr);
         }
@@ -431,24 +456,35 @@ void LX200Gemini::syncState() {
             sscanf(value, "%u", &flip_value);
             snprintf(valueString, 32, "%i", flip_value);
 
-            if(flip_value) {
-                if(flip_value & FLIP_EAST) {
+            if(flip_value)
+            {
+                if(flip_value & FLIP_EAST)
+                {
                     FlipControlS[FLIP_EAST_CONTROL].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
                 }
-                if(flip_value & FLIP_WEST) {
+                if(flip_value & FLIP_WEST)
+                {
                     FlipControlS[FLIP_WEST_CONTROL].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
                 }
-            } else {
+            }
+            else
+            {
                 FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
                 FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
             }
             FlipControlSP.s = IPS_OK;
             IDSetSwitch(&FlipControlSP, nullptr);
-        } else {
+        }
+        else
+        {
             FlipControlSP.s = IPS_ALERT;
             IDSetSwitch(&FlipControlSP, nullptr);
         }
@@ -466,7 +502,9 @@ void LX200Gemini::syncState() {
 
             FlipPositionNP.s = IPS_OK;
             IDSetNumber(&FlipPositionNP, nullptr);
-        } else {
+        }
+        else
+        {
             FlipPositionNP.s = IPS_ALERT;
             IDSetNumber(&FlipPositionNP, nullptr);
         }
@@ -478,7 +516,9 @@ void LX200Gemini::syncState() {
         sscanf(value, "%f", &max_value);
         PECMaxStepsN[0].value = max_value;
         IDSetNumber(&PECMaxStepsNP, nullptr);
-    } else {
+    }
+    else
+    {
         PECMaxStepsNP.s = IPS_ALERT;
         IDSetNumber(&PECMaxStepsNP, nullptr);
     }
@@ -491,7 +531,9 @@ void LX200Gemini::syncState() {
 
         IUSaveText(&PECCounterT[0], valueString);
         IDSetText(&PECCounterTP, nullptr);
-    } else {
+    }
+    else
+    {
         PECCounterTP.s = IPS_ALERT;
         IDSetText(&PECCounterTP, nullptr);
     }
@@ -501,7 +543,9 @@ void LX200Gemini::syncState() {
         sscanf(value, "%f", &guiding_value);
         PECGuidingSpeedN[0].value = guiding_value;
         IDSetNumber(&PECGuidingSpeedNP, nullptr);
-    } else {
+    }
+    else
+    {
         PECGuidingSpeedNP.s = IPS_ALERT;
         IDSetNumber(&PECGuidingSpeedNP, nullptr);
     }
@@ -511,7 +555,9 @@ void LX200Gemini::syncState() {
         sscanf(value, "%f", &guiding_value);
         GuidingSpeedBothN[GUIDING_BOTH].value = guiding_value;
         IDSetNumber(&GuidingSpeedBothNP, nullptr);
-    } else {
+    }
+    else
+    {
         GuidingSpeedBothNP.s = IPS_ALERT;
         IDSetNumber(&GuidingSpeedBothNP, nullptr);
     }
@@ -519,40 +565,60 @@ void LX200Gemini::syncState() {
     {
         uint32_t pec_status = 0;
         sscanf(value, "%u", &pec_status);
-        if(pec_status & 1) { // PEC_ACTIVE
+        if(pec_status & 1)   // PEC_ACTIVE
+        {
             IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
             setPECState(PEC_ON);
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
             setPECState(PEC_OFF);
         }
-        if(pec_status & 2) { // Freshly_Trained
+        if(pec_status & 2)   // Freshly_Trained
+        {
             IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
         }
-        if(pec_status & 4) { // Training_In_Progress
+        if(pec_status & 4)   // Training_In_Progress
+        {
             IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
         }
-        if(pec_status & 8) { // Training_just_completed
+        if(pec_status & 8)   // Training_just_completed
+        {
             IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
         }
-        if(pec_status & 16) { // Training will start soon
+        if(pec_status & 16)   // Training will start soon
+        {
             IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
         }
-        if(pec_status & 32) { // PEC Data Available
+        if(pec_status & 32)   // PEC Data Available
+        {
             IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
-        } else {
+        }
+        else
+        {
             IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "No");
         }
         IDSetText(&PECStateTP, nullptr);
-    } else {
+    }
+    else
+    {
         PECStateTP.s = IPS_ALERT;
         IDSetText(&PECStateTP, nullptr);
     }
@@ -576,7 +642,9 @@ void LX200Gemini::syncState() {
 
         SafetyLimitsNP.s = IPS_OK;
         IDSetNumber(&SafetyLimitsNP, nullptr);
-    } else {
+    }
+    else
+    {
         SafetyLimitsNP.s = IPS_ALERT;
         IDSetNumber(&SafetyLimitsNP, nullptr);
     }
@@ -623,12 +691,16 @@ bool LX200Gemini::updateProperties()
                 if(pec_at_boot_value)
                 {
                     PECEnableAtBootS[0].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     PECEnableAtBootS[0].s = ISS_OFF;
                 }
                 PECEnableAtBootSP.s = IPS_OK;
                 IDSetSwitch(&PECEnableAtBootSP, nullptr);
-            } else {
+            }
+            else
+            {
                 PECEnableAtBootSP.s = IPS_ALERT;
                 IDSetSwitch(&PECEnableAtBootSP, nullptr);
             }
@@ -642,12 +714,15 @@ bool LX200Gemini::updateProperties()
             PECGuidingSpeedN[0].value = guiding_speed_value;
             PECGuidingSpeedNP.s = IPS_OK;
             IDSetNumber(&PECGuidingSpeedNP, nullptr);
-        } else {
+        }
+        else
+        {
             PECGuidingSpeedNP.s = IPS_ALERT;
             IDSetNumber(&PECGuidingSpeedNP, nullptr);
         }
         defineProperty(&PECGuidingSpeedNP);
-        if (gemini_software_level_ >= 5.0) {
+        if (gemini_software_level_ >= 5.0)
+        {
             if(getGeminiProperty(PEC_COUNTER_ID, value))
             {
                 char valueString[32] = {0};
@@ -657,7 +732,9 @@ bool LX200Gemini::updateProperties()
                 IUSaveText(&PECCounterT[0], valueString);
                 PECControlSP.s = IPS_OK;
                 IDSetSwitch(&PECControlSP, nullptr);
-            } else {
+            }
+            else
+            {
                 PECControlSP.s = IPS_ALERT;
                 IDSetSwitch(&PECControlSP, nullptr);
             }
@@ -671,7 +748,9 @@ bool LX200Gemini::updateProperties()
             PECMaxStepsN[0].value = max_steps_value;
             PECMaxStepsNP.s = IPS_OK;
             IDSetNumber(&PECMaxStepsNP, nullptr);
-        } else {
+        }
+        else
+        {
             PECMaxStepsNP.s = IPS_ALERT;
             IDSetNumber(&PECMaxStepsNP, nullptr);
         }
@@ -680,43 +759,63 @@ bool LX200Gemini::updateProperties()
         {
             uint32_t pec_status = 0;
             sscanf(value, "%u", &pec_status);
-            if(pec_status & 1) { // PEC_ACTIVE
+            if(pec_status & 1)   // PEC_ACTIVE
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "Yes");
                 setPECState(PEC_ON);
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_ACTIVE], "No");
                 setPECState(PEC_OFF);
             }
 
-            if(pec_status & 2) { // Freshly_Trained
+            if(pec_status & 2)   // Freshly_Trained
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "Yes");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_FRESH_TRAINED], "No");
             }
 
-            if(pec_status & 4) { // Training_In_Progress
+            if(pec_status & 4)   // Training_In_Progress
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "Yes");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_TRAINING_IN_PROGRESS], "No");
             }
-            if(pec_status & 6) { // Training_just_completed
+            if(pec_status & 6)   // Training_just_completed
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "Yes");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_TRAINING_COMPLETED], "No");
             }
-            if(pec_status & 16) { // Training will start soon
+            if(pec_status & 16)   // Training will start soon
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "Yes");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_WILL_TRAIN], "No");
             }
-            if(pec_status & 32) { // PEC Data Available
+            if(pec_status & 32)   // PEC Data Available
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
-            } else {
+            }
+            else
+            {
                 IUSaveText(&PECStateT[PEC_STATUS_DATA_AVAILABLE], "Yes");
             }
             PECStateTP.s = IPS_OK;
             IDSetText(&PECStateTP, nullptr);
-        } else {
+        }
+        else
+        {
             PECStateTP.s = IPS_ALERT;
             IDSetText(&PECStateTP, nullptr);
         }
@@ -730,24 +829,35 @@ bool LX200Gemini::updateProperties()
                 sscanf(value, "%u", &flip_value);
                 snprintf(valueString, 32, "%i", flip_value);
 
-                if(flip_value) {
-                    if(flip_value & FLIP_EAST) {
+                if(flip_value)
+                {
+                    if(flip_value & FLIP_EAST)
+                    {
                         FlipControlS[FLIP_EAST_CONTROL].s = ISS_ON;
-                    } else {
+                    }
+                    else
+                    {
                         FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
                     }
-                    if(flip_value & FLIP_WEST) {
+                    if(flip_value & FLIP_WEST)
+                    {
                         FlipControlS[FLIP_WEST_CONTROL].s = ISS_ON;
-                    } else {
+                    }
+                    else
+                    {
                         FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
                     }
-                } else {
+                }
+                else
+                {
                     FlipControlS[FLIP_EAST_CONTROL].s = ISS_OFF;
                     FlipControlS[FLIP_WEST_CONTROL].s = ISS_OFF;
                 }
                 FlipControlSP.s = IPS_OK;
                 IDSetSwitch(&FlipControlSP, nullptr);
-            } else {
+            }
+            else
+            {
                 FlipControlSP.s = IPS_ALERT;
                 IDSetSwitch(&FlipControlSP, nullptr);
             }
@@ -770,7 +880,9 @@ bool LX200Gemini::updateProperties()
 
                 FlipPositionNP.s = IPS_OK;
                 IDSetNumber(&FlipPositionNP, nullptr);
-            } else {
+            }
+            else
+            {
                 FlipPositionNP.s = IPS_ALERT;
                 IDSetNumber(&FlipPositionNP, nullptr);
             }
@@ -796,7 +908,9 @@ bool LX200Gemini::updateProperties()
 
             SafetyLimitsNP.s = IPS_OK;
             IDSetNumber(&SafetyLimitsNP, nullptr);
-        } else {
+        }
+        else
+        {
             SafetyLimitsNP.s = IPS_ALERT;
             IDSetNumber(&SafetyLimitsNP, nullptr);
         }
@@ -809,19 +923,27 @@ bool LX200Gemini::updateProperties()
             {
                 uint8_t servo_value;
                 sscanf(value, "%c", &servo_value);
-                if(servo_value &  RA_PRECISION_ENABLED) {
+                if(servo_value &  RA_PRECISION_ENABLED)
+                {
                     ServoPrecisionS[SERVO_RA].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     ServoPrecisionS[SERVO_RA].s = ISS_OFF;
                 }
-                if(servo_value & DEC_PRECISION_ENABLED) {
+                if(servo_value & DEC_PRECISION_ENABLED)
+                {
                     ServoPrecisionS[SERVO_DEC].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     ServoPrecisionS[SERVO_DEC].s = ISS_OFF;
                 }
                 ServoPrecisionSP.s = IPS_OK;
                 IDSetSwitch(&ServoPrecisionSP, nullptr);
-            } else {
+            }
+            else
+            {
                 ServoPrecisionSP.s = IPS_ALERT;
                 IDSetSwitch(&ServoPrecisionSP, nullptr);
             }
@@ -833,12 +955,16 @@ bool LX200Gemini::updateProperties()
                 if(refractionSetting)
                 {
                     RefractionControlS[0].s = ISS_ON;
-                } else {
+                }
+                else
+                {
                     RefractionControlS[0].s = ISS_OFF;
                 }
                 RefractionControlSP.s = IPS_OK;
                 IDSetSwitch(&RefractionControlSP, nullptr);
-            } else {
+            }
+            else
+            {
                 RefractionControlSP.s = IPS_ALERT;
                 IDSetSwitch(&RefractionControlSP, nullptr);
             }
@@ -851,7 +977,9 @@ bool LX200Gemini::updateProperties()
             ManualSlewingSpeedN[0].value = speed;
             ManualSlewingSpeedNP.s = IPS_OK;
             IDSetNumber(&ManualSlewingSpeedNP, nullptr);
-        } else {
+        }
+        else
+        {
             ManualSlewingSpeedNP.s = IPS_ALERT;
             IDSetNumber(&ManualSlewingSpeedNP, nullptr);
         }
@@ -861,7 +989,9 @@ bool LX200Gemini::updateProperties()
             sscanf(value, "%u", &speed);
             GotoSlewingSpeedN[0].value = speed;
             GotoSlewingSpeedNP.s = IPS_OK;
-        } else {
+        }
+        else
+        {
             GotoSlewingSpeedNP.s = IPS_ALERT;
             IDSetNumber(&GotoSlewingSpeedNP, nullptr);
         }
@@ -874,7 +1004,9 @@ bool LX200Gemini::updateProperties()
                 MoveSpeedN[0].value = speed;
                 MoveSpeedNP.s = IPS_OK;
                 IDSetNumber(&MoveSpeedNP, nullptr);
-            } else {
+            }
+            else
+            {
                 MoveSpeedNP.s = IPS_ALERT;
                 IDSetNumber(&MoveSpeedNP, nullptr);
             }
@@ -887,7 +1019,9 @@ bool LX200Gemini::updateProperties()
             GuidingSpeedBothN[GUIDING_BOTH].value = guidingSpeed;
             GuidingSpeedBothNP.s = IPS_OK;
             IDSetNumber(&GuidingSpeedBothNP, nullptr);
-        } else {
+        }
+        else
+        {
             GuidingSpeedBothNP.s = IPS_ALERT;
             IDSetNumber(&GuidingSpeedBothNP, nullptr);
         }
@@ -901,7 +1035,9 @@ bool LX200Gemini::updateProperties()
                 GuidingSpeedN[GUIDING_WE].value = guidingSpeed;
                 GuidingSpeedNP.s = IPS_OK;
                 IDSetNumber(&GuidingSpeedNP, nullptr);
-            } else {
+            }
+            else
+            {
                 GuidingSpeedNP.s = IPS_ALERT;
                 IDSetNumber(&GuidingSpeedNP, nullptr);
             }
@@ -915,7 +1051,9 @@ bool LX200Gemini::updateProperties()
                 GuidingSpeedN[GUIDING_NS].value = guidingSpeed;
                 GuidingSpeedNP.s = IPS_OK;
                 IDSetNumber(&GuidingSpeedNP, nullptr);
-            } else {
+            }
+            else
+            {
                 GuidingSpeedNP.s = IPS_ALERT;
                 IDSetNumber(&GuidingSpeedNP, nullptr);
             }
@@ -927,7 +1065,9 @@ bool LX200Gemini::updateProperties()
             CenteringSpeedN[0].value = speed;
             CenteringSpeedNP.s = IPS_OK;
             IDSetNumber(&CenteringSpeedNP, nullptr);
-        } else {
+        }
+        else
+        {
             CenteringSpeedNP.s = IPS_ALERT;
             IDSetNumber(&CenteringSpeedNP, nullptr);
         }
@@ -1006,7 +1146,7 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
         if (gemini_software_level_ >= 5.0 && PECStateSP.isNameMatch(name))
         {
             PECStateSP.update(states, names, n);
-            for(int i = 0; i<n; ++i)
+            for(int i = 0; i < n; ++i)
             {
                 // if (!strcmp(names[i], PECStateS[PEC_ON].name))
                 if (PECStateSP[PEC_ON].isNameMatch(name))
@@ -1020,7 +1160,9 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                             PECStateSP.setState(IPS_ALERT);
                             PECStateSP.apply();
                             return false;
-                        } else {
+                        }
+                        else
+                        {
                             return true;
                         }
 
@@ -1053,7 +1195,8 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             ServoPrecisionSP.s = IPS_BUSY;
 
             uint8_t precisionEnabled = 0;
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], ServoPrecisionS[SERVO_RA].name))
                 {
                     if(ServoPrecisionS[SERVO_RA].s == ISS_ON)
@@ -1062,8 +1205,10 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                     }
                 }
 
-                if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name)) {
-                    if(ServoPrecisionS[SERVO_DEC].s == ISS_ON) {
+                if (!strcmp(names[i], ServoPrecisionS[SERVO_DEC].name))
+                {
+                    if(ServoPrecisionS[SERVO_DEC].s == ISS_ON)
+                    {
                         precisionEnabled |= 2;
                     }
                 }
@@ -1075,14 +1220,18 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             if(precisionEnabled & 1)
             {
                 LOGF_INFO("ServoPrecision: RA ON  <%i>", (int)precisionEnabled);
-            } else {
+            }
+            else
+            {
                 LOGF_INFO("ServoPrecision: RA OFF  <%i>", (int)precisionEnabled);
             }
 
             if(precisionEnabled & 2)
             {
                 LOGF_INFO("ServoPrecision: DEC ON  <%i>", (int)precisionEnabled);
-            } else {
+            }
+            else
+            {
                 LOGF_INFO("ServoPrecision: DEC OFF  <%i>", (int)precisionEnabled);
             }
 
@@ -1091,7 +1240,9 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                 ServoPrecisionSP.s = IPS_ALERT;
                 IDSetSwitch(&ServoPrecisionSP, nullptr);
                 return false;
-            } else {
+            }
+            else
+            {
                 ServoPrecisionSP.s = IPS_OK;
                 IDSetSwitch(&ServoPrecisionSP, nullptr);
                 return true;
@@ -1101,7 +1252,8 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
         if (gemini_software_level_ >= 6.0 && !strcmp(name, RefractionControlSP.name))
         {
             IUUpdateSwitch(&RefractionControlSP, states, names, n);
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], RefractionControlS[0].name))
                 {
                     if(RefractionControlS[0].s == ISS_ON)
@@ -1111,18 +1263,24 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                             RefractionControlSP.s = IPS_ALERT;
                             IDSetSwitch(&RefractionControlSP, nullptr);
                             return false;
-                        } else {
+                        }
+                        else
+                        {
                             RefractionControlSP.s = IPS_OK;
                             IDSetSwitch(&RefractionControlSP, nullptr);
                             return true;
                         }
-                    } else if(RefractionControlS[0].s == ISS_OFF) {
+                    }
+                    else if(RefractionControlS[0].s == ISS_OFF)
+                    {
                         if(!setRefraction(false))
                         {
                             RefractionControlSP.s = IPS_ALERT;
                             IDSetSwitch(&RefractionControlSP, nullptr);
                             return false;
-                        } else {
+                        }
+                        else
+                        {
                             RefractionControlSP.s = IPS_OK;
                             IDSetSwitch(&RefractionControlSP, nullptr);
                             return true;
@@ -1138,25 +1296,31 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             FlipControlSP.s = IPS_OK;
             IDSetSwitch(&FlipControlSP, nullptr);
             int32_t flipEnabled = 0;
-            for(int i = 0; i<n; ++i)
+            for(int i = 0; i < n; ++i)
             {
-                if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name)) {
+                if (!strcmp(names[i], FlipControlS[FLIP_EAST_CONTROL].name))
+                {
                     if(FlipControlS[FLIP_EAST_CONTROL].s == ISS_ON)
                     {
                         flipEnabled |= 1;
                         LOGF_INFO("FlipControl: EAST ON  <%i>", flipEnabled);
-                    } else {
+                    }
+                    else
+                    {
                         flipEnabled &= 0xfffffffe;
                         LOGF_INFO("FlipControl: EAST OFF  <%i>", flipEnabled);
                     }
                 }
 
-                if (!strcmp(names[i], FlipControlS[FLIP_WEST_CONTROL].name)) {
+                if (!strcmp(names[i], FlipControlS[FLIP_WEST_CONTROL].name))
+                {
                     if(FlipControlS[FLIP_WEST_CONTROL].s == ISS_ON)
                     {
                         flipEnabled |= 2;
                         LOGF_INFO("FlipControl: WEST ON  <%i>", flipEnabled);
-                    } else {
+                    }
+                    else
+                    {
                         flipEnabled &= 0xfffffffd;
                         LOGF_INFO("FlipControl: WEST OFF  <%i>", flipEnabled);
                     }
@@ -1170,7 +1334,9 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                 FlipControlSP.s = IPS_ALERT;
                 IDSetSwitch(&FlipControlSP, nullptr);
                 return false;
-            } else {
+            }
+            else
+            {
                 FlipControlSP.s = IPS_OK;
                 IDSetSwitch(&FlipControlSP, nullptr);
                 return true;
@@ -1187,7 +1353,9 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                 SetSafetyLimitToCurrentSP.s = IPS_ALERT;
                 IDSetSwitch(&SetSafetyLimitToCurrentSP, nullptr);
                 return false;
-            } else {
+            }
+            else
+            {
                 SetSafetyLimitToCurrentSP.s = IPS_OK;
                 IDSetSwitch(&SetSafetyLimitToCurrentSP, nullptr);
             }
@@ -1197,7 +1365,8 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
         if (gemini_software_level_ >= 5.0 && !strcmp(name, PECControlSP.name))
         {
             IUUpdateSwitch(&PECControlSP, states, names, n);
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], PECControlS[PEC_START_TRAINING].name))
                 {
                     char valueString[16] = {0};
@@ -1207,7 +1376,8 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
                         IDSetSwitch(&PECControlSP, nullptr);
                         return false;
                     }
-                } else if (!strcmp(names[i], PECControlS[PEC_ABORT_TRAINING].name))
+                }
+                else if (!strcmp(names[i], PECControlS[PEC_ABORT_TRAINING].name))
                 {
                     char valueString[16] = {0};
                     if(!setGeminiProperty(PEC_ABORT_TRAINING_ID, valueString))
@@ -1291,7 +1461,8 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         {
             LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], GuidingSpeedBothN[GUIDING_BOTH].name))
                 {
                     // Special formatting for guiding speed
@@ -1316,12 +1487,14 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         if (!strcmp(name, GuidingSpeedNP.name))
         {
 
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], GuidingSpeedN[GUIDING_WE].name))
                 {
                     // Special formatting for guiding speed
                     snprintf(valueString, 16, "%1.1f", values[i]);
-                    if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_RA_ID, valueString)) {
+                    if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_RA_ID, valueString))
+                    {
                         GuidingSpeedN[GUIDING_WE].value = values[i];
                         GuidingSpeedNP.s = IPS_ALERT;
                         IDSetNumber(&GuidingSpeedNP, "Error Setting Guiding WE");
@@ -1355,7 +1528,8 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             double westSafeD = 0;
             double westGotoD = 0;
 
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], SafetyLimitsN[EAST_SAFETY].name))
                 {
                     eastSafeD = values[i];
@@ -1382,15 +1556,18 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             fs_sexa(westGoto, westGotoD, 2, 60);
 
             char *colon = strchr(eastSafe, ':');
-            if(colon) {
+            if(colon)
+            {
                 *colon = 'd';
             }
             colon = strchr(westSafe, ':');
-            if(colon) {
+            if(colon)
+            {
                 *colon = 'd';
             }
             colon = strchr(westGoto, ':');
-            if(colon) {
+            if(colon)
+            {
                 *colon = 'd';
             }
 
@@ -1412,7 +1589,8 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             double eastD = 0;
             double westD = 0;
 
-            for(int i = 0; i<n; ++i) {
+            for(int i = 0; i < n; ++i)
+            {
                 if (!strcmp(names[i], FlipPositionN[FLIP_EAST_VALUE].name))
                 {
                     eastD = values[i];
@@ -1431,11 +1609,13 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
             fs_sexa(west, westD, 2, 60);
 
             char *colon = strchr(east, ':');
-            if(colon) {
+            if(colon)
+            {
                 *colon = 'd';
             }
             colon = strchr(west, ':');
-            if(colon) {
+            if(colon)
+            {
                 *colon = 'd';
             }
             if (!isSimulation() &&
@@ -1611,7 +1791,8 @@ bool LX200Gemini::ReadScopeStatus()
             EqNP.setState(IPS_OK);
             EqNP.apply();
 
-            if (TrackState == SCOPE_IDLE) {
+            if (TrackState == SCOPE_IDLE)
+            {
                 SetTrackEnabled(true);
                 updateMovementState();
             }
@@ -1822,26 +2003,26 @@ void LX200Gemini::updateMovementState()
 
     switch (movementState)
     {
-    case NO_MOVEMENT:
-        if (priorParkingState == PARKED)
-            setTrackState(SCOPE_PARKED);
-        else
+        case NO_MOVEMENT:
+            if (priorParkingState == PARKED)
+                setTrackState(SCOPE_PARKED);
+            else
+                setTrackState(SCOPE_IDLE);
+            break;
+
+        case TRACKING:
+        case GUIDING:
+            setTrackState(SCOPE_TRACKING);
+            break;
+
+        case CENTERING:
+        case SLEWING:
+            setTrackState(SCOPE_SLEWING);
+            break;
+
+        case STALLED:
             setTrackState(SCOPE_IDLE);
-        break;
-
-    case TRACKING:
-    case GUIDING:
-        setTrackState(SCOPE_TRACKING);
-        break;
-
-    case CENTERING:
-    case SLEWING:
-        setTrackState(SCOPE_SLEWING);
-        break;
-
-    case STALLED:
-        setTrackState(SCOPE_IDLE);
-        break;
+            break;
     }
 }
 
@@ -1893,26 +2074,26 @@ LX200Gemini::MovementState LX200Gemini::getMovementState()
 
     switch (response[0])
     {
-    case 'N':
-        return LX200Gemini::MovementState::NO_MOVEMENT;
+        case 'N':
+            return LX200Gemini::MovementState::NO_MOVEMENT;
 
-    case 'T':
-        return LX200Gemini::MovementState::TRACKING;
+        case 'T':
+            return LX200Gemini::MovementState::TRACKING;
 
-    case 'G':
-        return LX200Gemini::MovementState::GUIDING;
+        case 'G':
+            return LX200Gemini::MovementState::GUIDING;
 
-    case 'C':
-        return LX200Gemini::MovementState::CENTERING;
+        case 'C':
+            return LX200Gemini::MovementState::CENTERING;
 
-    case 'S':
-        return LX200Gemini::MovementState::SLEWING;
+        case 'S':
+            return LX200Gemini::MovementState::SLEWING;
 
-    case '!':
-        return LX200Gemini::MovementState::STALLED;
+        case '!':
+            return LX200Gemini::MovementState::STALLED;
 
-    default:
-        return LX200Gemini::MovementState::NO_MOVEMENT;
+        default:
+            return LX200Gemini::MovementState::NO_MOVEMENT;
     }
 }
 
@@ -1950,17 +2131,17 @@ LX200Gemini::ParkingState LX200Gemini::getParkingState()
 
     switch (response[0])
     {
-    case '0':
-        return LX200Gemini::ParkingState::NOT_PARKED;
+        case '0':
+            return LX200Gemini::ParkingState::NOT_PARKED;
 
-    case '1':
-        return LX200Gemini::ParkingState::PARKED;
+        case '1':
+            return LX200Gemini::ParkingState::PARKED;
 
-    case '2':
-        return LX200Gemini::ParkingState::PARK_IN_PROGRESS;
+        case '2':
+            return LX200Gemini::ParkingState::PARK_IN_PROGRESS;
 
-    default:
-        return LX200Gemini::ParkingState::NOT_PARKED;
+        default:
+            return LX200Gemini::ParkingState::NOT_PARKED;
     }
 }
 
@@ -1981,40 +2162,41 @@ bool LX200Gemini::getGeminiProperty(uint32_t propertyNumber, char* value)
     char prefix[16] = {0};
     char cmd[16] = {0};
 
-    switch(propertyNumber) {
-    case MOVE_SPEED_ID:
-    case GUIDING_SPEED_RA_ID:
-    case GUIDING_SPEED_DEC_ID:
-    case PEC_START_TRAINING_ID:
-    case PEC_ABORT_TRAINING_ID:
-    case PEC_REPLAY_ON_ID:
-    case PEC_REPLAY_OFF_ID:
-        if(gemini_software_level_ < 5.0)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    case PEC_ENABLE_AT_BOOT_ID:
-        if(gemini_software_level_ < 5.2)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    case FLIP_POINT_EAST_ID:
-    case FLIP_POINT_WEST_ID:
-    case FLIP_POINTS_ENABLED_ID:
-    case SERVO_POINTING_PRECISION_ID:
-    case SERVO_FIRMWARE:
-        if(gemini_software_level_ < 6)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    default:
-        ;
+    switch(propertyNumber)
+    {
+        case MOVE_SPEED_ID:
+        case GUIDING_SPEED_RA_ID:
+        case GUIDING_SPEED_DEC_ID:
+        case PEC_START_TRAINING_ID:
+        case PEC_ABORT_TRAINING_ID:
+        case PEC_REPLAY_ON_ID:
+        case PEC_REPLAY_OFF_ID:
+            if(gemini_software_level_ < 5.0)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        case PEC_ENABLE_AT_BOOT_ID:
+            if(gemini_software_level_ < 5.2)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        case FLIP_POINT_EAST_ID:
+        case FLIP_POINT_WEST_ID:
+        case FLIP_POINTS_ENABLED_ID:
+        case SERVO_POINTING_PRECISION_ID:
+        case SERVO_FIRMWARE:
+            if(gemini_software_level_ < 6)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        default:
+            ;
     }
 
     snprintf(prefix, 16, "<%d:", propertyNumber);
@@ -2056,7 +2238,7 @@ int LX200Gemini::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 
 bool LX200Gemini::Flip(double ra, double dec)
 {
-    return GotoInternal(ra, dec, true);    
+    return GotoInternal(ra, dec, true);
 }
 
 bool LX200Gemini::Goto(double ra, double dec)
@@ -2071,7 +2253,7 @@ int  LX200Gemini::Flip(int fd)
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     const char *command = ":MM#";
-    
+
     DEBUGFDEVICE(getDeviceName(), DBG_SCOPE, "CMD <%s>", command);
 
     // Gemini Serial Command
@@ -2203,37 +2385,38 @@ bool LX200Gemini::setGeminiProperty(uint32_t propertyNumber, char* value)
     int nbytes_written = 0;
     char prefix[16] = {0};
     char cmd[16] = {0};
-    switch(propertyNumber) {
-    case MOVE_SPEED_ID:
-    case GUIDING_SPEED_RA_ID:
-    case GUIDING_SPEED_DEC_ID:
-    case PEC_START_TRAINING_ID:
-    case PEC_ABORT_TRAINING_ID:
-    case PEC_REPLAY_ON_ID:
-    case PEC_REPLAY_OFF_ID:
-        if(gemini_software_level_ < 5.0)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    case PEC_ENABLE_AT_BOOT_ID:
-        if(gemini_software_level_ < 5.2)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    case SERVO_POINTING_PRECISION_ID:
-    case SERVO_FIRMWARE:
-        if(gemini_software_level_ < 6)
-        {
-            LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
-            return false;
-        }
-        break;
-    default:
-        ;
+    switch(propertyNumber)
+    {
+        case MOVE_SPEED_ID:
+        case GUIDING_SPEED_RA_ID:
+        case GUIDING_SPEED_DEC_ID:
+        case PEC_START_TRAINING_ID:
+        case PEC_ABORT_TRAINING_ID:
+        case PEC_REPLAY_ON_ID:
+        case PEC_REPLAY_OFF_ID:
+            if(gemini_software_level_ < 5.0)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        case PEC_ENABLE_AT_BOOT_ID:
+            if(gemini_software_level_ < 5.2)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        case SERVO_POINTING_PRECISION_ID:
+        case SERVO_FIRMWARE:
+            if(gemini_software_level_ < 6)
+            {
+                LOGF_ERROR("Error Gemini Firmware Level %f does not support command %i ", gemini_software_level_, propertyNumber);
+                return false;
+            }
+            break;
+        default:
+            ;
     }
 
     snprintf(prefix, 16, ">%d:%s", propertyNumber, value);

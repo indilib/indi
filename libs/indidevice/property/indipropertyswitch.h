@@ -48,6 +48,7 @@ class PropertySwitch: public INDI::PropertyBasic<ISwitch>
 
     public:
         bool update(const ISState states[], const char * const names[], int n);
+        bool isUpdated(const ISState states[], const char * const names[], int n) const;
         bool hasUpdateCallback() const;
 
         void fill(

@@ -75,24 +75,24 @@ bool astromechanics_foc::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusMaxPosN[0].min = FOC_POSMIN_HARDWARE;
-    FocusMaxPosN[0].max = FOC_POSMAX_HARDWARE;
-    FocusMaxPosN[0].step = 500;
-    FocusMaxPosN[0].value = FOC_POSMAX_HARDWARE;
+    FocusMaxPosNP[0].setMin(FOC_POSMIN_HARDWARE);
+    FocusMaxPosNP[0].setMax(FOC_POSMAX_HARDWARE);
+    FocusMaxPosNP[0].setStep(500);
+    FocusMaxPosNP[0].setValue(FOC_POSMAX_HARDWARE);
 
-    FocusAbsPosN[0].min = FOC_POSMIN_HARDWARE;
-    FocusAbsPosN[0].max = FOC_POSMAX_HARDWARE;
-    FocusAbsPosN[0].step = 500;
-    FocusAbsPosN[0].value = 0;
+    FocusAbsPosNP[0].setMin(FOC_POSMIN_HARDWARE);
+    FocusAbsPosNP[0].setMax(FOC_POSMAX_HARDWARE);
+    FocusAbsPosNP[0].setStep(500);
+    FocusAbsPosNP[0].setValue(0);
 
-    FocusRelPosN[0].min = FocusAbsPosN[0].min;
-    FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
-    FocusRelPosN[0].step = 250;
-    FocusRelPosN[0].value = 0;
+    FocusRelPosNP[0].setMin(FocusAbsPosNP[0].getMin());
+    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].getMax() / 2);
+    FocusRelPosNP[0].setStep(250);
+    FocusRelPosNP[0].setValue(0);
 
     // Aperture
-    IUFillNumber(&AppertureN[0], "LENS_APP", "Index", "%.f", 0, 22, 1, 0);
-    IUFillNumberVector(&AppertureNP, AppertureN, 1, getDeviceName(), "LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW,
+    AppertureNP[0].fill("LENS_APP", "Index", "%.f", 0, 22, 1, 0);
+    AppertureNP.fill(getDeviceName(), "LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW,
                        60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
@@ -105,17 +105,17 @@ bool astromechanics_foc::initProperties()
 bool astromechanics_foc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
-    FocusAbsPosN[0].value = GetAbsFocuserPosition();
+    FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
 
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
-        defineProperty(&AppertureNP);
+        defineProperty(AppertureNP);
     }
     else
     {
-        deleteProperty(AppertureNP.name);
+        deleteProperty(AppertureNP);
     }
 
     return true;
@@ -135,8 +135,8 @@ bool astromechanics_foc::Handshake()
         else
         {
             sscanf(res, "%d", &position);
-            FocusAbsPosN[0].value = position;
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP[0].setValue(position);
+            FocusAbsPosNP.setState(IPS_OK);
             SetApperture(0);
             return true;
         }
@@ -154,10 +154,10 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
     {
         if (strcmp(name, "LENS_APP_SETTING") == 0)
         {
-            IUUpdateNumber(&AppertureNP, values, names, n);
-            AppertureNP.s = IPS_OK;
-            IDSetNumber(&AppertureNP, nullptr);
-            SetApperture(AppertureN[0].value);
+            AppertureNP.update(values, names, n);
+            AppertureNP.setState(IPS_OK);
+            AppertureNP.apply();
+            SetApperture(AppertureNP[0].getValue());
             return true;
         }
     }
@@ -174,7 +174,7 @@ IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
     snprintf(cmd, DRIVER_LEN, "M%u#", targetTicks);
     if (sendCommand(cmd))
     {
-        FocusAbsPosN[0].value = GetAbsFocuserPosition();
+        FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
         return IPS_OK;
     }
 
@@ -188,12 +188,13 @@ IPState astromechanics_foc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Clamp
     int32_t offset = ((dir == FOCUS_INWARD) ? -1 : 1) * static_cast<int32_t>(ticks);
-    int32_t newPosition = FocusAbsPosN[0].value + offset;
-    newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max),
-                           newPosition));
+    int32_t newPosition = FocusAbsPosNP[0].getValue() + offset;
+    newPosition = std::max(static_cast<int32_t>(FocusAbsPosNP[0].getMin()),
+                           std::min(static_cast<int32_t>(FocusAbsPosNP[0].getMax()),
+                                    newPosition));
 
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
 
     return MoveAbsFocuser(newPosition);
 }

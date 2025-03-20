@@ -25,6 +25,7 @@
 #include "indimacros.h"
 #include "indiproperty.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <functional>

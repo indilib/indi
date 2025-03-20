@@ -21,27 +21,25 @@
 #include "indifilterinterface.h"
 #include <cstring>
 #include "indilogger.h"
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
 
 namespace INDI
 {
 
 FilterInterface::FilterInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
-    FilterNameTP = new ITextVectorProperty;
-    FilterNameT  = nullptr;
 }
 
 FilterInterface::~FilterInterface()
 {
-    delete FilterNameTP;
 }
 
 void FilterInterface::initProperties(const char *groupName)
 {
-    IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName,
-                       IP_RW, 60,
-                       IPS_IDLE);
+    // @INDI_STANDARD_PROPERTY@
+    FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
+    FilterSlotNP.fill(m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60, IPS_IDLE);
 
     loadFilterNames();
 }
@@ -51,8 +49,8 @@ bool FilterInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         // Define the Filter Slot and name properties
-        m_defaultDevice->defineProperty(&FilterSlotNP);
-        if (FilterNameT == nullptr)
+        m_defaultDevice->defineProperty(FilterSlotNP);
+        if (FilterNameTP.size() == 0)
         {
             if (GetFilterNames() == true)
                 m_defaultDevice->defineProperty(FilterNameTP);
@@ -62,8 +60,8 @@ bool FilterInterface::updateProperties()
     }
     else
     {
-        m_defaultDevice->deleteProperty(FilterSlotNP.name);
-        m_defaultDevice->deleteProperty(FilterNameTP->name);
+        m_defaultDevice->deleteProperty(FilterSlotNP);
+        m_defaultDevice->deleteProperty(FilterNameTP);
     }
 
     return true;
@@ -73,39 +71,39 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
 {
     INDI_UNUSED(n);
 
-    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, FilterSlotNP.name))
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && FilterSlotNP.isNameMatch(name))
     {
         TargetFilter = values[0];
 
-        INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
+        auto np = FilterSlotNP.findWidgetByName(names[0]);
 
         if (!np)
         {
-            FilterSlotNP.s = IPS_ALERT;
+            FilterSlotNP.setState(IPS_ALERT);
             DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.",
-                         names[0], FilterSlotNP.name);
-            IDSetNumber(&FilterSlotNP, nullptr);
+                         names[0], FilterSlotNP.getName());
+            FilterSlotNP.apply();
             return false;
         }
 
-        if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
+        if (TargetFilter < FilterSlotNP[0].getMin() || TargetFilter > FilterSlotNP[0].getMax())
         {
-            FilterSlotNP.s = IPS_ALERT;
+            FilterSlotNP.setState(IPS_ALERT);
             DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g",
-                         FilterSlotN[0].min, FilterSlotN[0].max);
-            IDSetNumber(&FilterSlotNP, nullptr);
+                         FilterSlotNP[0].getMin(), FilterSlotNP[0].getMax());
+            FilterSlotNP.apply();
             return false;
         }
 
-        FilterSlotNP.s = IPS_BUSY;
+        FilterSlotNP.setState(IPS_BUSY);
         DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
 
         if (SelectFilter(TargetFilter) == false)
         {
-            FilterSlotNP.s = IPS_ALERT;
+            FilterSlotNP.setState(IPS_ALERT);
         }
 
-        IDSetNumber(&FilterSlotNP, nullptr);
+        FilterSlotNP.apply();
         return true;
     }
 
@@ -125,42 +123,39 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
             char filterName[MAXINDINAME];
             char filterLabel[MAXINDILABEL];
 
-            if (FilterNameT != nullptr)
-            {
-                for (int i = 0; i < FilterNameTP->ntp; i++)
-                    free(FilterNameT[i].text);
-                delete [] FilterNameT;
-            }
-
-            FilterNameT = new IText[n];
-            memset(FilterNameT, 0, sizeof(IText) * n);
+            FilterNameTP.resize(0);
 
             for (int i = 0; i < n; i++)
             {
                 snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
                 snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-                IUFillText(&FilterNameT[i], filterName, filterLabel, texts[i]);
+
+                INDI::WidgetText oneText;
+                oneText.fill(filterName, filterLabel, texts[i]);
+                FilterNameTP.push(std::move(oneText));
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
-                             FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            // @INDI_STANDARD_PROPERTY@
+            FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                              FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
+            FilterNameTP.shrink_to_fit();
             m_defaultDevice->defineProperty(FilterNameTP);
             return true;
         }
 
-        IUUpdateText(FilterNameTP, texts, names, n);
-        FilterNameTP->s = IPS_OK;
+        FilterNameTP.update(texts, names, n);
+        FilterNameTP.setState(IPS_OK);
 
         if (m_defaultDevice->isConfigLoading() || SetFilterNames() == true)
         {
-            IDSetText(FilterNameTP, nullptr);
+            FilterNameTP.apply();
             return true;
         }
         else
         {
-            FilterNameTP->s = IPS_ALERT;
+            FilterNameTP.setState(IPS_ALERT);
             DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error updating names of filters.");
-            IDSetText(FilterNameTP, nullptr);
+            FilterNameTP.apply();
             return false;
         }
     }
@@ -170,9 +165,9 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
 
 bool FilterInterface::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigNumber(fp, &FilterSlotNP);
-    if (FilterNameTP)
-        IUSaveConfigText(fp, FilterNameTP);
+    FilterSlotNP.save(fp);
+    if (FilterNameTP.size() > 0)
+        FilterNameTP.save(fp);
 
     return true;
 }
@@ -181,46 +176,42 @@ void FilterInterface::SelectFilterDone(int f)
 {
     //  The hardware has finished changing
     //  filters
-    FilterSlotN[0].value = f;
-    FilterSlotNP.s       = IPS_OK;
+    FilterSlotNP[0].setValue(f);
+    FilterSlotNP.setState(IPS_OK);
     // Tell the clients we are done, and
     //  filter is now useable
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.apply();
 }
 
 void FilterInterface::generateSampleFilters()
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
+    int MaxFilter = FilterSlotNP[0].getMax();
 
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminance" };
 
-    if (FilterNameT != nullptr)
-    {
-        for (int i = 0; i < FilterNameTP->ntp; i++)
-            free(FilterNameT[i].text);
-        delete [] FilterNameT;
-    }
-
-    FilterNameT = new IText[MaxFilter];
-    memset(FilterNameT, 0, sizeof(IText) * MaxFilter);
+    FilterNameTP.resize(0);
 
     for (int i = 0; i < MaxFilter; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
         snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, i < 8 ? filterDesignation[i] : filterLabel);
+
+        INDI::WidgetText oneText;
+        oneText.fill(filterName, filterLabel, i < 8 ? filterDesignation[i] : filterLabel);
+        FilterNameTP.push(std::move(oneText));
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
-                     FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                      FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
+    FilterNameTP.shrink_to_fit();
 }
 
 bool FilterInterface::GetFilterNames()
 {
     // Load from config
-    if (FilterNameT == nullptr)
+    if (FilterNameTP.size() == 0)
     {
         generateSampleFilters();
 
@@ -244,7 +235,7 @@ bool FilterInterface::SetFilterNames()
 
 bool FilterInterface::loadFilterNames()
 {
-    if (FilterNameT != nullptr)
+    if (FilterNameTP.size() > 0)
         return true;
 
     char *rname, *rdev;
@@ -252,7 +243,6 @@ bool FilterInterface::loadFilterNames()
     char filterName[MAXINDINAME] = {0};
     char errmsg[MAXRBUF];
     LilXML *lp = newLilXML();
-    int nelem = 0;
 
     FILE *fp = IUGetConfigFP(nullptr, m_defaultDevice->getDefaultName(), "r", errmsg);
 
@@ -288,9 +278,7 @@ bool FilterInterface::loadFilterNames()
 
         if (!strcmp("FILTER_NAME", rname))
         {
-            nelem = nXMLEle(root);
-            FilterNameT = new IText[nelem];
-            memset(FilterNameT, 0, sizeof(IText) * nelem);
+            FilterNameTP.resize(0);
 
             XMLEle *oneText = nullptr;
             uint8_t counter = 0;
@@ -299,7 +287,10 @@ bool FilterInterface::loadFilterNames()
             {
                 const char *filter = pcdataXMLEle(oneText);
                 snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", counter + 1);
-                IUFillText(&FilterNameT[counter], filterName, filter, filter);
+
+                INDI::WidgetText oneWidget;
+                oneWidget.fill(filterName, filter, filter);
+                FilterNameTP.push(std::move(oneWidget));
                 counter++;
             }
 
@@ -307,8 +298,9 @@ bool FilterInterface::loadFilterNames()
         }
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
-                     FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
+                      FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
+    FilterNameTP.shrink_to_fit();
 
     fclose(fp);
     delXMLEle(fproot);

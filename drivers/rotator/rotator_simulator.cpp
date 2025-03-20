@@ -50,7 +50,7 @@ bool RotatorSimulator::Disconnect()
 
 IPState RotatorSimulator::MoveRotator(double angle)
 {
-    if (ReverseRotatorS[INDI_ENABLED].s == ISS_ON)
+    if (ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON)
         m_TargetAngle = range360(360 - angle);
     else
         m_TargetAngle = range360(angle);
@@ -59,8 +59,8 @@ IPState RotatorSimulator::MoveRotator(double angle)
 
 bool RotatorSimulator::SyncRotator(double angle)
 {
-    GotoRotatorN[0].value = angle;
-    IDSetNumber(&GotoRotatorNP, nullptr);
+    GotoRotatorNP[0].setValue(angle);
+    GotoRotatorNP.apply();
     return true;
 }
 
@@ -83,25 +83,25 @@ void RotatorSimulator::TimerHit()
         return;
     }
 
-    if (GotoRotatorNP.s == IPS_BUSY)
+    if (GotoRotatorNP.getState() == IPS_BUSY)
     {
-        if (std::fabs(m_TargetAngle - GotoRotatorN[0].value) <= ROTATION_RATE)
+        if (std::fabs(m_TargetAngle - GotoRotatorNP[0].getValue()) <= ROTATION_RATE)
         {
-            GotoRotatorN[0].value = m_TargetAngle;
-            GotoRotatorNP.s = IPS_OK;
+            GotoRotatorNP[0].setValue(m_TargetAngle);
+            GotoRotatorNP.setState(IPS_OK);
         }
         else
         {
             // Find shortest distance given target degree
             double a = m_TargetAngle;
-            double b = GotoRotatorN[0].value;
+            double b = GotoRotatorNP[0].getValue();
             int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
             double diff = ROTATION_RATE * sign;
-            GotoRotatorN[0].value += diff;
-            GotoRotatorN[0].value = range360(GotoRotatorN[0].value);
+            GotoRotatorNP[0].setValue(GotoRotatorNP[0].getValue() + diff);
+            GotoRotatorNP[0].setValue(range360(GotoRotatorNP[0].getValue()));
         }
 
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());

@@ -64,9 +64,6 @@ const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
 //const char * RAPIDGUIDE_TAB     = "Rapid Guide";
 
-#ifdef HAVE_WEBSOCKET
-uint16_t INDIWSServer::m_global_port = 11623;
-#endif
 
 std::string join(std::vector<std::string> const &strings, std::string delim)
 {
@@ -458,23 +455,11 @@ bool CCD::initProperties()
                              OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /**********************************************/
-    /**************** Web Socket ******************/
-    /**********************************************/
-    WebSocketSP[WEBSOCKET_ENABLED].fill("WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
-    WebSocketSP[WEBSOCKET_DISABLED].fill("WEBSOCKET_DISABLED", "Disabled", ISS_ON);
-    WebSocketSP.fill(getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
-                     IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    WebSocketSettingsNP[WS_SETTINGS_PORT].fill("WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
-    WebSocketSettingsNP.fill(getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
-                             OPTIONS_TAB, IP_RW,
-                             60, IPS_IDLE);
-
-    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
     // Snooped Devices
+    // @INDI_STANDARD_PROPERTY@
     ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     ActiveDeviceTP[ACTIVE_ROTATOR].fill("ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
     ActiveDeviceTP[ACTIVE_FOCUSER].fill("ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
@@ -637,14 +622,9 @@ bool CCD::updateProperties()
         defineProperty(WorldCoordSP);
         defineProperty(UploadSP);
 
-        if (UploadSettingsTP[UPLOAD_DIR].getText() == nullptr)
+        if (UploadSettingsTP[UPLOAD_DIR].isEmpty())
             UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
         defineProperty(UploadSettingsTP);
-
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket())
-            defineProperty(WebSocketSP);
-#endif
 
         defineProperty(FastExposureToggleSP);
         defineProperty(FastExposureCountNP);
@@ -725,13 +705,6 @@ bool CCD::updateProperties()
         deleteProperty(UploadSP);
         deleteProperty(UploadSettingsTP);
 
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket())
-        {
-            deleteProperty(WebSocketSP);
-            deleteProperty(WebSocketSettingsNP);
-        }
-#endif
         deleteProperty(FastExposureToggleSP);
         deleteProperty(FastExposureCountNP);
     }
@@ -831,10 +804,10 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             newFilterSlot = atoi(pcdataXMLEle(ep));
         if (newFilterSlot != CurrentFilterSlot)
-    {
-        CurrentFilterSlot = newFilterSlot;
-        LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
-    }
+        {
+            CurrentFilterSlot = newFilterSlot;
+            LOGF_DEBUG("SNOOP: FILTER_SLOT is %d", CurrentFilterSlot);
+        }
     }
     else if (!strcmp(propName, "SKY_QUALITY") && deviceName == ActiveDeviceTP[ACTIVE_SKYQUALITY].getText())
     {
@@ -922,86 +895,119 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        //  This is for our device
         //  Now lets see if it's something we process here
         if (ActiveDeviceTP.isNameMatch(name))
         {
+            std::vector<std::string> prevValues;
+            prevValues.reserve(n);
+
+            // Store all previous values
+            for (int i = 0; i < n; i++)
+                prevValues.push_back(ActiveDeviceTP[i].getText());
+
+            // Check if any values actually changed
+            bool hasChanged = false;
+            for (int i = 0; i < n; i++)
+            {
+                if (prevValues[i] != texts[i])
+                {
+                    hasChanged = true;
+                    break;
+                }
+            }
+
+            if (!hasChanged)
+            {
+                ActiveDeviceTP.setState(IPS_OK);
+                ActiveDeviceTP.apply();
+                return true;
+            }
+
+            // Update the properties since we have changes
             ActiveDeviceTP.setState(IPS_OK);
             ActiveDeviceTP.update(texts, names, n);
             ActiveDeviceTP.apply();
 
-            // Update the property name!
-            // strncpy(EqNP.device, ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), MAXINDIDEVICE);
-            EqNP.setDeviceName(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
-            J2000EqNP.setDeviceName(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
-            if (strlen(ActiveDeviceTP[ACTIVE_TELESCOPE].getText()) > 0)
+            // Mount
+            auto newMount = ActiveDeviceTP[ACTIVE_TELESCOPE].getText();
+            if (newMount != prevValues[ACTIVE_TELESCOPE])
             {
-                LOGF_DEBUG("Snopping on Mount %s", ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_COORD");
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "TELESCOPE_INFO");
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "GEOGRAPHIC_COORD");
-            }
-            else
-            {
-                LOG_DEBUG("No mount is set. Clearing all mount watchers.");
-                RA = std::numeric_limits<double>::quiet_NaN();
-                Dec = std::numeric_limits<double>::quiet_NaN();
-                J2000RA = std::numeric_limits<double>::quiet_NaN();
-                J2000DE = std::numeric_limits<double>::quiet_NaN();
-                Latitude = std::numeric_limits<double>::quiet_NaN();
-                Longitude = std::numeric_limits<double>::quiet_NaN();
-                Airmass = std::numeric_limits<double>::quiet_NaN();
-                Azimuth = std::numeric_limits<double>::quiet_NaN();
-                Altitude = std::numeric_limits<double>::quiet_NaN();
+                EqNP.setDeviceName(newMount);
+                J2000EqNP.setDeviceName(newMount);
+                if (strlen(newMount) > 0)
+                {
+                    LOGF_DEBUG("Snopping on Mount %s", newMount);
+                    IDSnoopDevice(newMount, "EQUATORIAL_EOD_COORD");
+                    IDSnoopDevice(newMount, "EQUATORIAL_COORD");
+                    IDSnoopDevice(newMount, "TELESCOPE_INFO");
+                    IDSnoopDevice(newMount, "GEOGRAPHIC_COORD");
+                }
+                else if (!std::isnan(RA))
+                {
+                    LOG_DEBUG("No mount is set. Clearing all mount watchers.");
+                    RA = Dec = J2000RA = J2000DE = Latitude = Longitude = Airmass = Azimuth = Altitude =
+                                                       std::numeric_limits<double>::quiet_NaN();
+                }
             }
 
-            if (strlen(ActiveDeviceTP[ACTIVE_ROTATOR].getText()) > 0)
+            // Rotator
+            auto newRotator = ActiveDeviceTP[ACTIVE_ROTATOR].getText();
+            if (newRotator != prevValues[ACTIVE_ROTATOR])
             {
-                LOGF_DEBUG("Snopping on Rotator %s", ActiveDeviceTP[ACTIVE_ROTATOR].getText());
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_ROTATOR].getText(), "ABS_ROTATOR_ANGLE");
-            }
-            else
-            {
-                LOG_DEBUG("No rotator is set. Clearing all rotator watchers.");
-                MPSAS = std::numeric_limits<double>::quiet_NaN();
-            }
-
-            // JJ ed 2019-12-10
-            if (strlen(ActiveDeviceTP[ACTIVE_FOCUSER].getText()) > 0)
-            {
-                LOGF_DEBUG("Snopping on Focuser %s", ActiveDeviceTP[ACTIVE_FOCUSER].getText());
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "ABS_FOCUS_POSITION");
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FOCUS_TEMPERATURE");
-            }
-            else
-            {
-                LOG_DEBUG("No focuser is set. Clearing all focuser watchers.");
-                FocuserPos = -1;
-                FocuserTemp = std::numeric_limits<double>::quiet_NaN();
+                if (strlen(newRotator) > 0)
+                {
+                    LOGF_DEBUG("Snopping on Rotator %s", newRotator);
+                    IDSnoopDevice(newRotator, "ABS_ROTATOR_ANGLE");
+                }
+                else if (!std::isnan(MPSAS))
+                {
+                    LOG_DEBUG("No rotator is set. Clearing all rotator watchers.");
+                    MPSAS = std::numeric_limits<double>::quiet_NaN();
+                }
             }
 
-
-            if (strlen(ActiveDeviceTP[ACTIVE_FILTER].getText()) > 0)
+            // Focuser
+            auto newFocuser = ActiveDeviceTP[ACTIVE_FOCUSER].getText();
+            if (newFocuser != prevValues[ACTIVE_FOCUSER])
             {
-                LOGF_DEBUG("Snopping on Filter Wheel %s", ActiveDeviceTP[ACTIVE_FILTER].getText());
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceTP[ACTIVE_FILTER].getText(), "FILTER_NAME");
+                if (strlen(newFocuser) > 0)
+                {
+                    LOGF_DEBUG("Snopping on Focuser %s", newFocuser);
+                    IDSnoopDevice(newFocuser, "ABS_FOCUS_POSITION");
+                    IDSnoopDevice(newFocuser, "FOCUS_TEMPERATURE");
+                }
+                else if (!std::isnan(FocuserTemp))
+                {
+                    LOG_DEBUG("No focuser is set. Clearing all focuser watchers.");
+                    FocuserPos = -1;
+                    FocuserTemp = std::numeric_limits<double>::quiet_NaN();
+                }
             }
-            else
+
+            // Filter Wheel
+            auto newFilterWheel = ActiveDeviceTP[ACTIVE_FILTER].getText();
+            if (newFilterWheel != prevValues[ACTIVE_FILTER])
             {
-                LOG_DEBUG("No filter wheel is set. Clearing All filter wheel watchers.");
-                CurrentFilterSlot = -1;
+                if (strlen(newFilterWheel) > 0)
+                {
+                    LOGF_DEBUG("Snopping on Filter Wheel %s", newFilterWheel);
+                    IDSnoopDevice(newFilterWheel, "FILTER_SLOT");
+                    IDSnoopDevice(newFilterWheel, "FILTER_NAME");
+                }
+                else if (CurrentFilterSlot != -1)
+                {
+                    LOG_DEBUG("No filter wheel is set. Clearing All filter wheel watchers.");
+                    CurrentFilterSlot = -1;
+                }
             }
 
-            IDSnoopDevice(ActiveDeviceTP[ACTIVE_SKYQUALITY].getText(), "SKY_QUALITY");
+            // Sky Quality
+            auto newSkyQuality = ActiveDeviceTP[ACTIVE_SKYQUALITY].getText();
+            if (newSkyQuality != prevValues[ACTIVE_SKYQUALITY] && strlen(newSkyQuality) > 0)
+                IDSnoopDevice(newSkyQuality, "SKY_QUALITY");
 
-            // Tell children active devices was updated.
             activeDevicesUpdated();
-
             saveConfig(ActiveDeviceTP);
-
-            //  We processed this one, so, tell the world we did it
             return true;
         }
 
@@ -1582,33 +1588,6 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             FastExposureToggleSP.apply();
             return true;
         }
-
-
-#ifdef HAVE_WEBSOCKET
-        // Websocket Enable/Disable
-        if (WebSocketSP.isNameMatch(name))
-        {
-            WebSocketSP.update(states, names, n);
-            WebSocketSP.setState(IPS_OK);
-
-            if (WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
-            {
-                wsThread = std::thread(&wsThreadHelper, this);
-                WebSocketSettingsNP[WS_SETTINGS_PORT].setValue(wsServer.generatePort());
-                WebSocketSettingsNP.setState(IPS_OK);
-                defineProperty(WebSocketSettingsNP);
-            }
-            else if (wsServer.is_running())
-            {
-                wsServer.stop();
-                wsThread.join();
-                deleteProperty(WebSocketSettingsNP);
-            }
-
-            WebSocketSP.apply();
-            return true;
-        }
-#endif
 
         // WCS Enable/Disable
         if (WorldCoordSP.isNameMatch(name))
@@ -2779,28 +2758,11 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (sendImage)
     {
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket() && WebSocketSP[WEBSOCKET_ENABLED].getState() == ISS_ON)
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-
-            // Send format/size/..etc first later
-            wsServer.send_text(std::string(targetChip->FitsBP[0].getFormat()));
-            wsServer.send_binary(targetChip->FitsBP[0].getBlob(), targetChip->FitsBP[0].getBlobLen());
-
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
-        }
-        else
-#endif
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-            targetChip->FitsBP.apply();
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
-        }
+        auto start = std::chrono::high_resolution_clock::now();
+        targetChip->FitsBP.apply();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end - start;
+        LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
     }
 
     if (compressedData)
@@ -3169,23 +3131,6 @@ bool CCD::StopStreaming()
     return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef HAVE_WEBSOCKET
-void CCD::wsThreadHelper(void * context)
-{
-    static_cast<CCD *>(context)->wsThreadEntry();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void CCD::wsThreadEntry()
-{
-    wsServer.run();
-}
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///

@@ -51,13 +51,7 @@
 
 #pragma once
 
-#ifndef __FreeBSD__
-#include <linux/types.h>
-#else
 #include <stdint.h>
-typedef uint16_t __le16;
-typedef uint8_t __u8;
-#endif
 
 /* Enumeration of image sizes */
 #define PSZ_SQCIF 0x00
@@ -311,9 +305,9 @@ struct pwc_table_init_buffer
 
 struct pwc_raw_frame
 {
-    __le16 type;        /* type of the webcam */
-    __le16 vbandlength; /* Size of 4lines compressed (used by the decompressor) */
-    __u8 cmd[4];        /* the four byte of the command (in case of nala,
-			   only the first 3 bytes is filled) */
-    __u8 rawframe[0];   /* frame_size = H/4*vbandlength */
+    uint16_t type;        /* type of the webcam */
+    uint16_t vbandlength; /* Size of 4lines compressed (used by the decompressor) */
+    uint8_t cmd[4];       /* the four byte of the command (in case of nala,
+			     only the first 3 bytes is filled) */
+    uint8_t rawframe[0];  /* frame_size = H/4*vbandlength */
 } __attribute__((packed));

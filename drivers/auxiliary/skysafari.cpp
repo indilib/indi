@@ -39,7 +39,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <netinet/in.h>
 #endif
 

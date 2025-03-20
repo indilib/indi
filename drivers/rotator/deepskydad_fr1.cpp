@@ -61,7 +61,7 @@ bool DeepSkyDadFR1::initProperties()
     SpeedModeSP[Slow].fill("SLOW", "Slow", ISS_OFF);
     SpeedModeSP[Fast].fill( "FAST", "Fast", ISS_OFF);
     SpeedModeSP.fill(getDeviceName(), "Speed mode", "Speed mode", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+                     ISR_1OFMANY, 0, IPS_IDLE);
 
     // Step mode
     StepSizeSP[One].fill("1", "1", ISS_OFF);
@@ -69,7 +69,7 @@ bool DeepSkyDadFR1::initProperties()
     StepSizeSP[Four].fill( "4", "1/4", ISS_OFF);
     StepSizeSP[Eight].fill( "8", "1/8", ISS_OFF);
     StepSizeSP.fill(getDeviceName(), "Step mode", "Step mode", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+                    ISR_1OFMANY, 0, IPS_IDLE);
 
     // Firmware version
     FirmwareTP[0].fill("Version", "Version", nullptr);
@@ -284,11 +284,11 @@ bool DeepSkyDadFR1::getStatusData()
     const IPState motionState = motorStatus == 1 ? IPS_BUSY : IPS_OK;
 
     double motorPositionDouble = (double)motorPosition / (double)100;
-    if (std::abs(motorPositionDouble - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
+    if (std::abs(motorPositionDouble - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
     {
-        GotoRotatorN[0].value = motorPositionDouble;
-        GotoRotatorNP.s = motionState;
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP[0].setValue(motorPositionDouble);
+        GotoRotatorNP.setState(motionState);
+        GotoRotatorNP.apply();
     }
 
     return true;
@@ -312,12 +312,12 @@ bool DeepSkyDadFR1::getInitialStatusData()
     else
         sscanf(response, "(%d)", &motorReversed);
 
-    const bool wasReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    const bool wasReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
     if (motorReversed != wasReversed)
     {
-        ReverseRotatorS[INDI_ENABLED].s = motorReversed ? ISS_ON : ISS_OFF;
-        ReverseRotatorS[INDI_DISABLED].s = motorReversed ? ISS_OFF : ISS_ON;
-        IDSetSwitch(&ReverseRotatorSP, nullptr);
+        ReverseRotatorSP[INDI_ENABLED].setState(motorReversed ? ISS_ON : ISS_OFF);
+        ReverseRotatorSP[INDI_DISABLED].setState(motorReversed ? ISS_OFF : ISS_ON);
+        ReverseRotatorSP.apply();
     }
 
     if (!sendCommand("[GSPD]", response))

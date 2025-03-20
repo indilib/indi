@@ -59,10 +59,10 @@ bool SmartFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // No speed for SmartFocus
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 1;
-    FocusSpeedN[0].value = 1;
-    IUUpdateMinMax(&FocusSpeedNP);
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(1);
+    FocusSpeedNP[0].setValue(1);
+    FocusSpeedNP.updateMinMax();
 
     IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
     IUFillLight(&FlagsL[STATUS_SERIAL_OVERRUN_ERROR], "SERIAL_OVERRUN_ERROR", "Serial overrun error", IPS_OK);
@@ -76,22 +76,20 @@ bool SmartFocus::initProperties()
     IUFillNumberVector(&MotionErrorNP, MotionErrorN, 1, getDeviceName(), "MOTION_ERROR", "Motion error",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
-    FocusRelPosN[0].value = 10;
-    FocusRelPosN[0].step  = 1;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(FocusMaxPosNP[0].getValue()); //MaxPositionN[0].value);
+    FocusRelPosNP[0].setValue(10);
+    FocusRelPosNP[0].setStep(1);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1;
-
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].getValue()); //MaxPositionN[0].value);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1);
     setCurrentPollingPeriod(TimerInterval);
-
     return true;
 }
 
-bool SmartFocus::updateProperties()
+                        bool SmartFocus::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
@@ -367,14 +365,14 @@ void SmartFocus::SFgetState()
 
     if ((position = SFgetPosition()) == PositionInvalid)
     {
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, "Error while reading SmartFocus position");
+        FocusAbsPosNP.setState(IPS_ALERT);
+        LOG_ERROR("Error while reading SmartFocus position");
     }
     else
     {
-        FocusAbsPosN[0].value = position;
-        FocusAbsPosNP.s       = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(position);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
     }
 }
 

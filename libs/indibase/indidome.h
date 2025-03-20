@@ -647,7 +647,7 @@ class Dome : public DefaultDevice
         Controller * controller = nullptr;
 
         bool IsParked = false;
-        bool IsMountParked = false;
+        bool IsMountParked = true;
         bool IsLocked = true;
         bool AutoSyncWarning = false;
         bool UseHourAngle = false;

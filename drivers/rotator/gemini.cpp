@@ -96,13 +96,13 @@ bool Gemini::initProperties()
     TemperatureCompensateSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
     TemperatureCompensateSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     TemperatureCompensateSP.fill(getDeviceName(), "T. Compensation", "",
-                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                                 FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation on start
     TemperatureCompensateOnStartSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
     TemperatureCompensateOnStartSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     TemperatureCompensateOnStartSP.fill(getDeviceName(),
-                       "T. Compensation @Start", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                                        "T. Compensation @Start", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Temperature Coefficient
     TemperatureCoeffNP[A].fill("A", "", "%.f", -9999, 9999, 100., 0.);
@@ -111,13 +111,13 @@ bool Gemini::initProperties()
     TemperatureCoeffNP[D].fill("D", "", "%.f", -9999, 9999, 100., 0.);
     TemperatureCoeffNP[E].fill("E", "", "%.f", -9999, 9999, 100., 0.);
     TemperatureCoeffNP.fill(getDeviceName(), "T. Coeff", "", FOCUS_SETTINGS_TAB,
-                       IP_RW, 0, IPS_IDLE);
+                            IP_RW, 0, IPS_IDLE);
 
     // Enable/Disable Home on Start
     FocuserHomeOnStartSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
     FocuserHomeOnStartSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     FocuserHomeOnStartSP.fill(getDeviceName(), "FOCUSER_HOME_ON_START", "Home on Start",
-                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                              FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature Mode
     TemperatureCompensateModeSP[A].fill("A", "", ISS_OFF);
@@ -126,7 +126,7 @@ bool Gemini::initProperties()
     TemperatureCompensateModeSP[D].fill( "D", "", ISS_OFF);
     TemperatureCompensateModeSP[E].fill( "E", "", ISS_OFF);
     TemperatureCompensateModeSP.fill(getDeviceName(), "Compensate Mode",
-                       "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                                     "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     //    // Enable/Disable backlash
     //    IUFillSwitch(&FocusBacklashS[0], "Enable", "", ISS_OFF);
@@ -165,7 +165,7 @@ bool Gemini::initProperties()
     RotatorHomeOnStartSP[INDI_ENABLED].fill("Enable", "", ISS_OFF);
     RotatorHomeOnStartSP[INDI_DISABLED].fill("Disable", "", ISS_ON);
     RotatorHomeOnStartSP.fill(getDeviceName(), "ROTATOR_HOME_ON_START", "Home on Start",
-                       ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                              ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Rotator Status indicators
     RotatorStatusLP[STATUS_MOVING].fill("Is Moving", "", IPS_IDLE);
@@ -183,7 +183,7 @@ bool Gemini::initProperties()
     // Rotator Ticks
     RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
     RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
-                       0, IPS_IDLE );
+                         0, IPS_IDLE );
 #if 0
 
 
@@ -213,7 +213,7 @@ bool Gemini::initProperties()
     HFocusNameTP[DEVICE_FOCUSER].fill("FocusName", "Focuser name", "");
     HFocusNameTP[DEVICE_ROTATOR].fill("RotatorName", "Rotator name", "");
     HFocusNameTP.fill(getDeviceName(), "HUBNAMES", "HUB", HUB_TAB, IP_RW, 0,
-                     IPS_IDLE);
+                      IPS_IDLE);
 
     // Led intensity value
     LedNP[0].fill("Intensity", "", "%.f", 0, 100, 5., 0.);
@@ -222,7 +222,7 @@ bool Gemini::initProperties()
     // Reset to Factory setting
     ResetSP[0].fill("Factory", "", ISS_OFF);
     ResetSP.fill(getDeviceName(), "Reset", "", HUB_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
+                 IPS_IDLE);
 
     addAuxControls();
 
@@ -466,7 +466,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         //                FocusBacklashS[prevIndex].s = ISS_ON;
         //            }
 
-        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            FocusBacklashSP.apply();
         //            return true;
         //        }
 
@@ -493,8 +493,8 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 if (home(DEVICE_FOCUSER))
                 {
                     FocuserGotoSP.setState(IPS_BUSY);
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_BUSY);
+                    FocusAbsPosNP.apply();
                     isFocuserHoming = true;
                     LOG_INFO("Focuser moving to home position...");
                 }
@@ -507,8 +507,8 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 {
                     FocuserGotoSP.setState(IPS_BUSY);
                     LOG_INFO("Focuser moving to center position...");
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_BUSY);
+                    FocusAbsPosNP.apply();
                 }
                 else
                     FocuserGotoSP.setState(IPS_ALERT);
@@ -535,26 +535,26 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             {
                 if (home(DEVICE_ROTATOR))
                 {
-                    RotatorGotoSP.s = IPS_BUSY;
-                    RotatorAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&RotatorAbsPosNP, nullptr);
+                    RotatorGotoSP.setState(IPS_BUSY);
+                    RotatorAbsPosNP.setState(IPS_BUSY);
+                    RotatorAbsPosNP.apply();
                     isRotatorHoming = true;
                     LOG_INFO("Rotator moving to home position...");
                 }
                 else
-                    RotatorGotoSP.s = IPS_ALERT;
+                    RotatorGotoSP.setState(IPS_ALERT);
             }
             else
             {
                 if (center(DEVICE_ROTATOR))
                 {
-                    RotatorGotoSP.s = IPS_BUSY;
+                    RotatorGotoSP.setState(IPS_BUSY);
                     LOG_INFO("Rotator moving to center position...");
-                    RotatorAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&RotatorAbsPosNP, nullptr);
+                    RotatorAbsPosNP.setState(IPS_BUSY);
+                    RotatorAbsPosNP.apply();
                 }
                 else
-                    RotatorGotoSP.s = IPS_ALERT;
+                    RotatorGotoSP.setState(IPS_ALERT);
             }
 
             IDSetSwitch(&RotatorGotoSP, nullptr);
@@ -567,9 +567,9 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             IUUpdateSwitch(&ReverseRotatorSP, states, names, n);
 
             if (reverseRotator(ReverseRotatorS[0].s == ISS_ON))
-                ReverseRotatorSP.s = IPS_OK;
+                ReverseRotatorSP.setState(IPS_OK);
             else
-                ReverseRotatorSP.s = IPS_ALERT;
+                ReverseRotatorSP.setState(IPS_ALERT);
 
             IDSetSwitch(&ReverseRotatorSP, nullptr);
             return true;
@@ -580,16 +580,16 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             if (halt(DEVICE_ROTATOR))
             {
-                RotatorAbsPosNP.s = RotatorAbsAngleNP.s = RotatorGotoSP.s = IPS_IDLE;
-                IDSetNumber(&RotatorAbsPosNP, nullptr);
-                IDSetNumber(&RotatorAbsAngleNP, nullptr);
+                RotatorAbsPosNP.s = RotatorAbsAngleNP.s = RotatorGotoSP.setState(IPS_IDLE);
+                RotatorAbsPosNP.apply();
+                RotatorAbsAngleNP.apply();
                 IUResetSwitch(&RotatorGotoSP);
                 IDSetSwitch(&RotatorGotoSP, nullptr);
 
-                AbortRotatorSP.s = IPS_OK;
+                AbortRotatorSP.setState(IPS_OK);
             }
             else
-                AbortRotatorSP.s = IPS_ALERT;
+                AbortRotatorSP.setState(IPS_ALERT);
 
             IDSetSwitch(&AbortRotatorSP, nullptr);
             return true;
@@ -654,7 +654,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         //        if (!strcmp(FocusBacklashNP.name, name))
         //        {
         //            IUUpdateNumber(&FocusBacklashNP, values, names, n);
-        //            if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocusBacklashN[0].value) == false)
+        //            if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocusBacklashNP.apply();) == false)
         //            {
         //                LOG_ERROR("Failed to set focuser backlash value.");
         //                FocusBacklashNP.s = IPS_ALERT;
@@ -668,19 +668,19 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         //        }
 
         // Rotator Backlash Value
-        if (!strcmp(RotatorBacklashNP.name, name))
+        if (RotatorBacklashNP.isNameMatch(name))
         {
-            IUUpdateNumber(&RotatorBacklashNP, values, names, n);
-            if (setBacklashCompensationSteps(DEVICE_ROTATOR, RotatorBacklashN[0].value) == false)
+            RotatorBacklashNP.update(values, names, n);
+            if (setBacklashCompensationSteps(DEVICE_ROTATOR, RotatorBacklashNP[0].getValue()) == false)
             {
                 LOG_ERROR("Failed to set rotator backlash value.");
-                RotatorBacklashNP.s = IPS_ALERT;
-                IDSetNumber(&RotatorBacklashNP, nullptr);
+                RotatorBacklashNP.setState(IPS_ALERT);
+                RotatorBacklashNP.apply();
                 return false;
             }
 
-            RotatorBacklashNP.s = IPS_OK;
-            IDSetNumber(&RotatorBacklashNP, nullptr);
+            RotatorBacklashNP.setState(IPS_OK);
+            RotatorBacklashNP.apply();
             return true;
         }
 
@@ -718,7 +718,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&RotatorAbsPosNP, values, names, n);
             RotatorAbsPosNP.s = MoveAbsRotatorTicks(static_cast<uint32_t>(RotatorAbsPosN[0].value));
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            RotatorAbsPosNP.apply();
             return true;
         }
 
@@ -727,7 +727,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&RotatorAbsAngleNP, values, names, n);
             RotatorAbsAngleNP.s = MoveAbsRotatorAngle(RotatorAbsAngleN[0].value);
-            IDSetNumber(&RotatorAbsAngleNP, nullptr);
+            RotatorAbsAngleNP.apply();
             return true;
         }
 #endif
@@ -899,16 +899,16 @@ bool Gemini::getFocusConfig()
     rc = sscanf(response, "%15[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = maxPos;
-        FocusAbsPosN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = 0;
+        FocusAbsPosNP[0].setMax(maxPos);
+        FocusAbsPosNP[0].setStep(maxPos / 50.0);
+        FocusAbsPosNP[0].setMin(0);
 
-        FocusRelPosN[0].max  = maxPos / 2;
-        FocusRelPosN[0].step = maxPos / 100.0;
-        FocusRelPosN[0].min  = 0;
+        FocusRelPosNP[0].setMax(maxPos / 2);
+        FocusRelPosNP[0].setStep(maxPos / 100.0);
+        FocusRelPosNP[0].setMin(0);
 
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusRelPosNP);
+        FocusAbsPosNP.updateMinMax();
+        FocusRelPosNP.updateMinMax();
 
         maxControllerTicks = maxPos;
     }
@@ -1125,7 +1125,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "BLC En = %d\n", FocusBacklashS[INDI_ENABLED].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "BLC En = %d\n", FocusBacklashSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1142,11 +1142,11 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&FocusBacklashSP);
-    FocusBacklashS[INDI_ENABLED].s = BLCCompensate ? ISS_ON : ISS_OFF;
-    FocusBacklashS[INDI_DISABLED].s = BLCCompensate ? ISS_OFF : ISS_ON;
-    FocusBacklashSP.s   = IPS_OK;
-    IDSetSwitch(&FocusBacklashSP, nullptr);
+    FocusBacklashSP.reset();
+    FocusBacklashSP[INDI_ENABLED].setState(BLCCompensate ? ISS_ON : ISS_OFF);
+    FocusBacklashSP[INDI_DISABLED].setState(BLCCompensate ? ISS_OFF : ISS_ON);
+    FocusBacklashSP.setState(IPS_OK);
+    FocusBacklashSP.apply();
 
     // Backlash Value
     memset(response, 0, sizeof(response));
@@ -1169,15 +1169,16 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    FocusBacklashN[0].value = BLCValue;
-    FocusBacklashNP.s       = IPS_OK;
-    IDSetNumber(&FocusBacklashNP, nullptr);
+    FocusBacklashNP[0].setValue(BLCValue);
+    FocusBacklashNP.setState(IPS_OK);
+    FocusBacklashNP.apply();
 
     // Temperature Compensation on Start
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "TC Start = %d\n", TemperatureCompensateOnStartSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TC Start = %d\n",
+                 TemperatureCompensateOnStartSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1380,11 +1381,11 @@ bool Gemini::getRotatorStatus()
     if (rc == 2)
     {
         // Only send when above a threshold
-        double diffPA = fabs(GotoRotatorN[0].value - currPA / 1000.0);
+        double diffPA = fabs(GotoRotatorNP[0].getValue() - currPA / 1000.0);
         if (diffPA >= 0.01)
         {
-            GotoRotatorN[0].value = currPA / 1000.0;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(currPA / 1000.0);
+            GotoRotatorNP.apply();
         }
     }
     else
@@ -1666,7 +1667,7 @@ bool Gemini::getRotatorConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "BLCSteps = %d\n", RotatorBacklashS[INDI_ENABLED].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "BLCSteps = %d\n", RotatorBacklashSP[INDI_ENABLED].getState() == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1683,11 +1684,11 @@ bool Gemini::getRotatorConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&RotatorBacklashSP);
-    RotatorBacklashS[INDI_ENABLED].s = BLCCompensate ? ISS_ON : ISS_OFF;
-    RotatorBacklashS[INDI_DISABLED].s = BLCCompensate ? ISS_OFF : ISS_ON;
-    RotatorBacklashSP.s   = IPS_OK;
-    IDSetSwitch(&RotatorBacklashSP, nullptr);
+    RotatorBacklashSP.reset();
+    RotatorBacklashSP[INDI_ENABLED].setState(BLCCompensate ? ISS_ON : ISS_OFF);
+    RotatorBacklashSP[INDI_DISABLED].setState(BLCCompensate ? ISS_OFF : ISS_ON);
+    RotatorBacklashSP.setState(IPS_OK);
+    RotatorBacklashSP.apply();
 
     ////////////////////////////////////////////////////////////
     // Backlash Value
@@ -1712,9 +1713,9 @@ bool Gemini::getRotatorConfig()
     if (rc != 2)
         return false;
 
-    RotatorBacklashN[0].value = BLCValue;
-    RotatorBacklashNP.s       = IPS_OK;
-    IDSetNumber(&RotatorBacklashNP, nullptr);
+    RotatorBacklashNP[0].setValue(BLCValue);
+    RotatorBacklashNP.setState(IPS_OK);
+    RotatorBacklashNP.apply();
 
     ////////////////////////////////////////////////////////////
     // Home on start on?
@@ -1772,12 +1773,12 @@ bool Gemini::getRotatorConfig()
 
     // If reverse is enable and switch shows disabled, let's change that
     // same thing is reverse is disabled but switch is enabled
-    if ((reverse && ReverseRotatorS[1].s == ISS_ON) || (!reverse && ReverseRotatorS[0].s == ISS_ON))
+    if ((reverse && ReverseRotatorSP[1].getState() == ISS_ON) || (!reverse && ReverseRotatorSP[0].getState() == ISS_ON))
     {
-        IUResetSwitch(&ReverseRotatorSP);
-        ReverseRotatorS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
-        ReverseRotatorS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
-        IDSetSwitch(&ReverseRotatorSP, nullptr);
+        ReverseRotatorSP.reset();
+        ReverseRotatorSP[0].setState((reverse == 1) ? ISS_ON : ISS_OFF);
+        ReverseRotatorSP[1].setState((reverse == 0) ? ISS_ON : ISS_OFF);
+        ReverseRotatorSP.apply();
     }
 
     RotatorStatusLP.setState(IPS_OK);
@@ -1944,8 +1945,8 @@ bool Gemini::getFocusStatus()
     rc = sscanf(response, "%15[^=]=%d", key, &currPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].value = currPos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(currPos);
+        FocusAbsPosNP.apply();
     }
     else
         return false;
@@ -2441,7 +2442,7 @@ bool Gemini::center(DeviceType type)
         if (type == DEVICE_FOCUSER)
         {
             focuserSimStatus[STATUS_MOVING] = ISS_ON;
-            targetFocuserPosition = FocusAbsPosN[0].max / 2;
+            targetFocuserPosition = FocusAbsPosNP[0].getMax() / 2;
         }
         else
         {
@@ -2956,7 +2957,7 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
             return IPS_ALERT;
     }
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -2971,9 +2972,9 @@ IPState Gemini::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     uint32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     return MoveAbsFocuser(newPosition);
 }
@@ -3008,11 +3009,11 @@ void Gemini::TimerHit()
         return;
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (isSimulation())
         {
-            if (FocusAbsPosN[0].value < targetFocuserPosition)
+            if (FocusAbsPosNP[0].getValue() < targetFocuserPosition)
                 focuserSimPosition += 100;
             else
                 focuserSimPosition -= 100;
@@ -3021,8 +3022,8 @@ void Gemini::TimerHit()
 
             if (std::abs((int64_t)focuserSimPosition - (int64_t)targetFocuserPosition) < 100)
             {
-                FocusAbsPosN[0].value    = targetFocuserPosition;
-                focuserSimPosition              = FocusAbsPosN[0].value;
+                FocusAbsPosNP[0].setValue(targetFocuserPosition);
+                focuserSimPosition              = FocusAbsPosNP[0].getValue();
                 focuserSimStatus[STATUS_MOVING] = ISS_OFF;
                 FocuserStatusLP[STATUS_MOVING].setState(IPS_IDLE);
                 if (focuserSimStatus[STATUS_HOMING] == ISS_ON)
@@ -3040,16 +3041,16 @@ void Gemini::TimerHit()
             FocuserGotoSP.reset();
             FocuserGotoSP[GOTO_HOME].setState(ISS_ON);
             FocuserGotoSP.apply();
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
             LOG_INFO("Focuser reached home position.");
         }
         else if (FocuserStatusLP[STATUS_MOVING].getState() == IPS_IDLE)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
             if (FocuserGotoSP.getState() == IPS_BUSY)
             {
                 FocuserGotoSP.reset();
@@ -3081,7 +3082,7 @@ void Gemini::TimerHit()
         return;
     }
 
-    if (RotatorAbsPosNP.getState() == IPS_BUSY || GotoRotatorNP.s == IPS_BUSY)
+    if (RotatorAbsPosNP.getState() == IPS_BUSY || GotoRotatorNP.getState() == IPS_BUSY)
     {
         /*if (isSimulation())
         {
@@ -3097,10 +3098,10 @@ void Gemini::TimerHit()
                 RotatorAbsPosN[0].value    = targetRotatorPosition;
                 RotatorSimPosition              = RotatorAbsPosN[0].value;
                 RotatorSimStatus[STATUS_MOVING] = ISS_OFF;
-                RotatorStatusL[STATUS_MOVING].s = IPS_IDLE;
+                RotatorStatusL[STATUS_MOVING].setState(IPS_IDLE);
                 if (RotatorSimStatus[STATUS_HOMING] == ISS_ON)
                 {
-                    RotatorStatusL[STATUS_HOMED].s = IPS_OK;
+                    RotatorStatusL[STATUS_HOMED].setState(IPS_OK);
                     RotatorSimStatus[STATUS_HOMING] = ISS_OFF;
                 }
             }
@@ -3109,34 +3110,34 @@ void Gemini::TimerHit()
         if (isRotatorHoming && RotatorStatusLP[STATUS_HOMED].getState() == IPS_OK)
         {
             isRotatorHoming = false;
-            HomeRotatorSP.s = IPS_OK;
-            IUResetSwitch(&HomeRotatorSP);
-            IDSetSwitch(&HomeRotatorSP, nullptr);
+            HomeRotatorSP.setState(IPS_OK);
+            HomeRotatorSP.reset();
+            HomeRotatorSP.apply();
             RotatorAbsPosNP.setState(IPS_OK);
             RotatorAbsPosNP.apply();
-            GotoRotatorNP.s = IPS_OK;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP.setState(IPS_OK);
+            GotoRotatorNP.apply();
             LOG_INFO("Rotator reached home position.");
         }
         else if (RotatorStatusLP[STATUS_MOVING].getState() == IPS_IDLE)
         {
             RotatorAbsPosNP.setState(IPS_OK);
             RotatorAbsPosNP.apply();
-            GotoRotatorNP.s = IPS_OK;
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            if (HomeRotatorSP.s == IPS_BUSY)
+            GotoRotatorNP.setState(IPS_OK);
+            GotoRotatorNP.apply();
+            if (HomeRotatorSP.getState() == IPS_BUSY)
             {
-                IUResetSwitch(&HomeRotatorSP);
-                HomeRotatorSP.s = IPS_OK;
-                IDSetSwitch(&HomeRotatorSP, nullptr);
+                HomeRotatorSP.reset();
+                HomeRotatorSP.setState(IPS_OK);
+                HomeRotatorSP.apply();
             }
             LOG_INFO("Rotator reached requested position.");
         }
     }
-    if (RotatorStatusLP[STATUS_HOMING].getState() == IPS_BUSY && HomeRotatorSP.s != IPS_BUSY)
+    if (RotatorStatusLP[STATUS_HOMING].getState() == IPS_BUSY && HomeRotatorSP.getState() != IPS_BUSY)
     {
-        HomeRotatorSP.s = IPS_BUSY;
-        IDSetSwitch(&HomeRotatorSP, nullptr);
+        HomeRotatorSP.setState(IPS_BUSY);
+        HomeRotatorSP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -3179,17 +3180,17 @@ bool Gemini::AbortFocuser()
     }
 
 
-    if (FocusRelPosNP.s == IPS_BUSY)
+    if (FocusRelPosNP.getState() == IPS_BUSY)
     {
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.apply();
     }
 
-    FocusTimerNP.s = IPS_IDLE;
-    FocusAbsPosNP.s = IPS_IDLE;
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusAbsPosNP.setState(IPS_IDLE);
     FocuserGotoSP.setState(IPS_IDLE);
     FocuserGotoSP.reset();
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.apply();
     FocuserGotoSP.apply();
 
     tcflush(PortFD, TCIFLUSH);
@@ -3292,7 +3293,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
             return IPS_ALERT;
     }
 
-    GotoRotatorNP.s = IPS_BUSY;
+    GotoRotatorNP.setState(IPS_BUSY);
 
     tcflush(PortFD, TCIFLUSH);
 

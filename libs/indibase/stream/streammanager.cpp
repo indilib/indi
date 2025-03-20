@@ -95,6 +95,7 @@ const char * StreamManager::getDeviceName() const
 bool StreamManagerPrivate::initProperties()
 {
     /* Video Stream */
+    // @INDI_STANDARD_PROPERTY@
     StreamSP[0].fill("STREAM_ON",  "Stream On",  ISS_OFF);
     StreamSP[1].fill("STREAM_OFF", "Stream Off", ISS_ON);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
@@ -104,20 +105,24 @@ bool StreamManagerPrivate::initProperties()
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                       STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
     StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     StreamExposureNP[STREAM_EXPOSURE].fill("STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
     StreamExposureNP[STREAM_DIVISOR ].fill("STREAMING_DIVISOR_VALUE",  "Divisor",      "%.f",  1,        15, 1.0, 1.0);
     StreamExposureNP.fill(getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
+    // @INDI_STANDARD_PROPERTY@
     FpsNP[FPS_INSTANT].fill("EST_FPS", "Instant.",         "%.2f", 0.0, 999.0, 0.0, 30);
     FpsNP[FPS_AVERAGE].fill("AVG_FPS", "Average (1 sec.)", "%.2f", 0.0, 999.0, 0.0, 30);
     FpsNP.fill(getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
 
     /* Record Frames */
     /* File */
+    // @INDI_STANDARD_PROPERTY@
     std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/Videos/indi__D_");
     RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "indi_record__T_");
@@ -125,12 +130,14 @@ bool StreamManagerPrivate::initProperties()
                       STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Record Options */
+    // @INDI_STANDARD_PROPERTY@
     RecordOptionsNP[0].fill("RECORD_DURATION",    "Duration (sec)", "%.3f", 0.001,    999999.0, 0.0,  1.0);
     RecordOptionsNP[1].fill("RECORD_FRAME_TOTAL", "Frames",          "%.f", 1.0,   999999999.0, 1.0, 30.0);
     RecordOptionsNP.fill(getDeviceName(), "RECORD_OPTIONS",
                          "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
+    // @INDI_STANDARD_PROPERTY@
     RecordStreamSP[RECORD_ON   ].fill("RECORD_ON",          "Record On",         ISS_OFF);
     RecordStreamSP[RECORD_TIME ].fill("RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
     RecordStreamSP[RECORD_FRAME].fill("RECORD_FRAME_ON",    "Record (Frames)",   ISS_OFF);
@@ -140,6 +147,7 @@ bool StreamManagerPrivate::initProperties()
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         // CCD Streaming Frame
+        // @INDI_STANDARD_PROPERTY@
         StreamFrameNP[0].fill("X",      "Left",   "%.f", 0, 0, 0, 0);
         StreamFrameNP[1].fill("Y",      "Top",    "%.f", 0, 0, 0, 0);
         StreamFrameNP[2].fill("WIDTH",  "Width",  "%.f", 0, 0, 0, 0);
@@ -149,6 +157,7 @@ bool StreamManagerPrivate::initProperties()
     }
 
     // Encoder Selection
+    // @INDI_STANDARD_PROPERTY@
     EncoderSP[ENCODER_RAW  ].fill("RAW",   "RAW",   ISS_ON);
     EncoderSP[ENCODER_MJPEG].fill("MJPEG", "MJPEG", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
@@ -157,6 +166,7 @@ bool StreamManagerPrivate::initProperties()
         EncoderSP.fill(getDeviceName(), "CCD_STREAM_ENCODER",    "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
+    // @INDI_STANDARD_PROPERTY@
     RecorderSP[RECORDER_RAW].fill("SER", "SER", ISS_ON);
     RecorderSP[RECORDER_OGV].fill("OGV", "OGV", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
@@ -170,6 +180,7 @@ bool StreamManagerPrivate::initProperties()
 #endif
 
     // Limits
+    // @INDI_STANDARD_PROPERTY@
     LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024 * 64, 1, 512);
     LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
     LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
@@ -1179,21 +1190,6 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     // Send as is, already encoded.
     if (PixelFormat == INDI_JPG)
     {
-        // Upload to client now
-#ifdef HAVE_WEBSOCKET
-        if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
-        {
-            if (Format != ".streajpg")
-            {
-                Format = ".streajpg";
-                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(Format);
-            }
-
-            dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
-            return true;
-        }
-#endif
         imageBP[0].setBlob(const_cast<uint8_t *>(buffer));
         imageBP[0].setBlobLen(nbytes);
         imageBP[0].setSize(nbytes);
@@ -1217,20 +1213,6 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     {
         if (encoder->upload(&imageBP[0], buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
-#ifdef HAVE_WEBSOCKET
-            if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                    && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketSP[CCD::WEBSOCKET_ENABLED].getState() == ISS_ON)
-            {
-                if (Format != ".stream")
-                {
-                    Format = ".stream";
-                    dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(Format);
-                }
-
-                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
-                return true;
-            }
-#endif
             // Upload to client now
             imageBP.setState(IPS_OK);
             imageBP.apply();

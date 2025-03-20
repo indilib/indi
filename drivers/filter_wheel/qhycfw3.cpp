@@ -44,8 +44,8 @@ bool QHYCFW3::initProperties()
     INDI::FilterWheel::initProperties();
 
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 4;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(4);
 
     addAuxControls();
 
@@ -123,9 +123,9 @@ bool QHYCFW3::Handshake()
     LOGF_DEBUG("RES <%s>", res);
 
     if (res[0] == 'F')
-        FilterSlotN[0].max = 16;
+        FilterSlotNP[0].setMax(16);
     else
-        FilterSlotN[0].max = atoi(res);
+        FilterSlotNP[0].setMax(atoi(res));
 
     // Now get current position
     LOG_DEBUG("CMD <NOW>");
@@ -153,7 +153,7 @@ bool QHYCFW3::Handshake()
     LOGF_DEBUG("RES <%s>", res);
 
     CurrentFilter = atoi(res) + 1;
-    FilterSlotN[0].value = CurrentFilter;
+    FilterSlotNP[0].setValue(CurrentFilter);
 
     return true;
 }

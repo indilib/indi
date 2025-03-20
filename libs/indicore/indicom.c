@@ -50,7 +50,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(__linux__) || defined(__NetBSD__)
+#if defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/ioctl.h>
 #endif
 
@@ -590,6 +590,8 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
 
     if (tty_gemini_udp_format)
     {
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+            return err;
         bytesRead = read(fd, readBuffer, 255);
 
         if (bytesRead < 0)
@@ -615,6 +617,8 @@ int tty_read_section_expanded(int fd, char *buf, char stop_char, long timeout_se
     }
     else if (tty_generic_udp_format)
     {
+        if ((err = tty_timeout_microseconds(fd, timeout_seconds, timeout_microseconds)))
+            return err;
         bytesRead = read(fd, readBuffer, 255);
         if (bytesRead < 0)
             return TTY_READ_ERROR;
@@ -793,7 +797,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 57600:  bps = B57600;  break;
     case 115200: bps = B115200; break;
     case 230400: bps = B230400; break;
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__)
     case 460800: bps = B460800; break;
     case 576000: bps = B576000; break;
     case 921600: bps = B921600; break;

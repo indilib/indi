@@ -78,7 +78,7 @@ class TcpSocketPrivate
 {
     public:
         TcpSocketPrivate(TcpSocket *parent);
-        virtual ~TcpSocketPrivate() = default;
+        virtual ~TcpSocketPrivate();
 
     public: // platform dependent
         bool createSocket(int domain);

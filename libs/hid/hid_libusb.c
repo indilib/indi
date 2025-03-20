@@ -65,7 +65,7 @@ extern "C" {
     } while (0)
 #endif
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 #define DETACH_KERNEL_DRIVER
 #endif
 

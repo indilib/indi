@@ -42,7 +42,7 @@ set offset。nn =filter num , snnnnn=offset
 :WFnn#          Response:     snnnnn#
 get offset 。nn = filter num , snnnnn=offset
 
-“:DeviceInfo#”		Response: “nnnnnnnnnnnn#”
+":DeviceInfo#"		Response: "nnnnnnnnnnnn#"
 This command includes 12 digits.
 The 7th and 8th digit means model of filter wheel.
 Model number  99 is iEFW-15, 98 is iEFW18
@@ -70,10 +70,10 @@ const char *iEFW::getDefaultName()
 bool iEFW::initProperties()
 {
     INDI::FilterWheel::initProperties();
-//    serialConnection->setDefaultPort("/dev/ttyUSB3");
+    //    serialConnection->setDefaultPort("/dev/ttyUSB3");
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 8;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(8);
     FirmwareTP[0].fill("FIRMWARE", "Firmware", "240101240101");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_ID", "iEFW Firmware", FILTER_TAB, IP_RO, 60, IPS_IDLE);
     WheelIDTP[0].fill("MODEL", "Model", "iEFW");
@@ -86,21 +86,21 @@ bool iEFW::updateProperties()
     INDI::FilterWheel::updateProperties();
 
     if (isConnected())
-      {
+    {
         defineProperty(HomeSP);
         defineProperty(FirmwareTP);
         defineProperty(WheelIDTP);
-	bool rc1=getiEFWInfo();
-        bool rc2=getiEFWfirmwareInfo();
+        bool rc1 = getiEFWInfo();
+        bool rc2 = getiEFWfirmwareInfo();
         getFilterPos();
-	return (rc1 && rc2);
-      }
+        return (rc1 && rc2);
+    }
     else
-      {
+    {
         deleteProperty(HomeSP);
         deleteProperty(FirmwareTP);
         deleteProperty(WheelIDTP);
-      }
+    }
     return true;
 }
 
@@ -113,12 +113,12 @@ bool iEFW::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             if (getiEFWID())
             {
                 LOG_INFO("Filter is at home position");
-           	HomeSP.setState(IPS_OK);
-           	HomeSP.apply();
+                HomeSP.setState(IPS_OK);
+                HomeSP.apply();
             }
             else
-               HomeSP.setState(IPS_ALERT);
-                HomeSP.apply();
+                HomeSP.setState(IPS_ALERT);
+            HomeSP.apply();
             return true;
         }
     }
@@ -158,24 +158,24 @@ bool iEFW::getiEFWInfo()
     tcflush(PortFD, TCIOFLUSH);
     resp[nbytes_read] = '\0';
     sscanf(resp, "%6d%2d%4d", &iefwpos, &iefwmodel, &iefwlast);
-    if ((iefwmodel == 98)|| (iefwmodel == 99))
+    if ((iefwmodel == 98) || (iefwmodel == 99))
     {
-       if (iefwmodel==99)
- 	{
-	 FilterSlotN[0].max = 5;
-	 WheelIDTP.setState(IPS_OK);
-         WheelIDTP[0].setText("iEFW-15");
-         WheelIDTP.apply();
-	};
-       if (iefwmodel==98)
+        if (iefwmodel == 99)
         {
-         FilterSlotN[0].max = 8;
-         WheelIDTP.setState(IPS_OK);
-         WheelIDTP[0].setText("iEFW-18");
-         WheelIDTP.apply();
+            FilterSlotNP[0].setMax(5);
+            WheelIDTP.setState(IPS_OK);
+            WheelIDTP[0].setText("iEFW-15");
+            WheelIDTP.apply();
+        };
+        if (iefwmodel == 98)
+        {
+            FilterSlotNP[0].setMax(8);
+            WheelIDTP.setState(IPS_OK);
+            WheelIDTP[0].setText("iEFW-18");
+            WheelIDTP.apply();
 
         };
-	return true;
+        return true;
     }
     else
     {
@@ -237,18 +237,18 @@ int iEFW::getFilterPos()
     tcflush(PortFD, TCIOFLUSH);
     resp[nbytes_read] = '\0';
     LOGF_DEBUG("Success, response from iEFW is : %s", resp);
-    rc=sscanf(resp, "%2d", &iefwpos);
+    rc = sscanf(resp, "%2d", &iefwpos);
     if (rc > 0)
     {
-	if (iefwpos>=0)
-	  {
-	  CurrentFilter=iefwpos+1;
-          FilterSlotN[0].value = CurrentFilter;
-	  FilterSlotNP.s       = IPS_OK;
-          return CurrentFilter;
-	  }
-	else
-	  return -1;
+        if (iefwpos >= 0)
+        {
+            CurrentFilter = iefwpos + 1;
+            FilterSlotNP[0].setValue(CurrentFilter);
+            FilterSlotNP.setState(IPS_OK);
+            return CurrentFilter;
+        }
+        else
+            return -1;
     }
     else
         return 999;
@@ -265,10 +265,10 @@ bool iEFW::SelectFilter(int f)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-  //  char resp[16] = {0};
-  //  char iefwposinfo[16] = {0};
-    int  iefwpos=-1;
-    char cmd[7]={0};
+    //  char resp[16] = {0};
+    //  char iefwposinfo[16] = {0};
+    int  iefwpos = -1;
+    char cmd[7] = {0};
     if (CurrentFilter == f)
     {
         SelectFilterDone(CurrentFilter);
@@ -276,11 +276,11 @@ bool iEFW::SelectFilter(int f)
     }
     f = f - 1;
 
-    if (f < 0 || f > (FilterSlotN[0].max-1))
+    if (f < 0 || f > (FilterSlotNP[0].getMax() - 1))
         return false;
 
     tcflush(PortFD, TCIOFLUSH);
-    snprintf(cmd,7, ":WM0%d#", f);
+    snprintf(cmd, 7, ":WM0%d#", f);
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -291,14 +291,14 @@ bool iEFW::SelectFilter(int f)
     do
     {
         usleep(100 * 1000);
-        iefwpos=getFilterPos();
+        iefwpos = getFilterPos();
     }
     while (iefwpos == -1);
     // return current position to indi
     CurrentFilter = f + 1;
     SelectFilterDone(CurrentFilter);
-    FilterSlotNP.s = IPS_OK;
-    IDSetNumber(&FilterSlotNP, "Selected filter position reached");
+    FilterSlotNP.setState(IPS_OK);
+    FilterSlotNP.apply("Selected filter position reached");
     LOGF_DEBUG("CurrentFilter set to %d", CurrentFilter);
     return true;
 }
@@ -307,4 +307,3 @@ int iEFW::QueryFilter()
 {
     return CurrentFilter;
 }
-

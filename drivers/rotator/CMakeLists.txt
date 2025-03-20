@@ -64,6 +64,7 @@ install(TARGETS indi_falconv2_rotator RUNTIME DESTINATION bin)
 
 # ############### Wanderer Rotator Lite ################
 SET(WandererRotatorLite_SRC
+    wanderer_rotator_base.cpp
     wanderer_rotator_lite.cpp)
 
 add_executable(indi_wanderer_lite_rotator ${WandererRotatorLite_SRC})
@@ -72,6 +73,7 @@ install(TARGETS indi_wanderer_lite_rotator RUNTIME DESTINATION bin)
 
 # ############### Wanderer Rotator Mini ################
 SET(WandererRotatorMini_SRC
+    wanderer_rotator_base.cpp
     wanderer_rotator_mini.cpp)
 
 add_executable(indi_wanderer_rotator_mini ${WandererRotatorMini_SRC})
@@ -80,6 +82,7 @@ install(TARGETS indi_wanderer_rotator_mini RUNTIME DESTINATION bin)
 
 # ############### Wanderer Rotator Lite V2 ################
 SET(WandererRotatorLiteV2_SRC
+    wanderer_rotator_base.cpp
     wanderer_rotator_lite_v2.cpp)
 
 add_executable(indi_wanderer_rotator_lite_v2 ${WandererRotatorLiteV2_SRC})
