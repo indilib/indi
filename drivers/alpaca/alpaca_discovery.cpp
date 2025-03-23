@@ -42,6 +42,9 @@
 using json = nlohmann::json;
 
 // Discovery message
+// According to the ASCOM Alpaca API Reference, the discovery message should be "alpacadiscovery1"
+// where "1" is the version number. However, we check only for the prefix "alpacadiscovery"
+// to be more flexible and handle future versions.
 static const char* DISCOVERY_MESSAGE = "alpacadiscovery";
 
 AlpacaDiscovery::AlpacaDiscovery(int discoveryPort, int alpacaPort)
@@ -356,8 +359,8 @@ int AlpacaDiscovery::createIPv6Socket()
     struct ipv6_mreq mreq;
     memset(&mreq, 0, sizeof(mreq));
 
-    // Set the multicast address (ff02::1 - link-local all-nodes)
-    if (inet_pton(AF_INET6, "ff02::1", &mreq.ipv6mr_multiaddr) <= 0)
+    // Set the multicast address (ff12::a1:9aca - Alpaca IPv6 multicast address)
+    if (inet_pton(AF_INET6, "ff12::a1:9aca", &mreq.ipv6mr_multiaddr) <= 0)
     {
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_ERROR, "Failed to set multicast address: %s", strerror(errno));
         close(sock);
@@ -402,8 +405,14 @@ void AlpacaDiscovery::processDiscoveryRequest(int socket, const char* buffer, si
             port = ntohs(addr->sin6_port);
         }
 
+        // Extract version number if present
+        char version = '?';
+        if (length > strlen(DISCOVERY_MESSAGE))
+            version = buffer[strlen(DISCOVERY_MESSAGE)];
+
         DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG,
-                     "Received discovery request from %s:%d", addrStr, port);
+                     "Received discovery request from %s:%d (message: %s, version: %c)",
+                     addrStr, port, buffer, version);
 
         // Send response
         sendDiscoveryResponse(socket, senderAddr, senderAddrLen);
