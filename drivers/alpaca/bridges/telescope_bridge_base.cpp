@@ -128,6 +128,8 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
         handleMoveAxis(req, res);
     else if (method == "settracking")
         handleSetTracking(req, res);
+    else if (method == "equatorialsystem")
+        handleEquatorialSystem(req, res);
     else
     {
         // Unknown method

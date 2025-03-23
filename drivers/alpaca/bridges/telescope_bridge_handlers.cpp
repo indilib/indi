@@ -573,3 +573,11 @@ void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Re
 
     sendResponseStatus(res, success, success ? "" : "Failed to set tracking state");
 }
+
+// Equatorial System
+void TelescopeBridge::handleEquatorialSystem(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, 1);
+}
