@@ -397,6 +397,12 @@ bool INDIAlpacaServer::startAlpacaServer()
         m_DeviceManager->handleAlpacaRequest(req, res);
     });
 
+    // Setup API
+    m_Server->Get("/setup/v1/(.*)", [this](const httplib::Request & req, httplib::Response & res)
+    {
+        m_DeviceManager->handleSetupRequest(req, res);
+    });
+
     // Start server thread
     m_ServerThread = std::thread(&INDIAlpacaServer::serverThreadFunc, this);
 

@@ -168,6 +168,7 @@ class TelescopeBridge : public IDeviceBridge
         double m_CurrentRA {0}, m_CurrentDEC {0};
         double m_CurrentAZ {0}, m_CurrentALT {0};
         double m_TargetRA {0}, m_TargetDEC {0};
+        double m_RightAscensionRate {0}, m_DeclinationRate {0};
         bool m_IsTracking {false};
         bool m_IsParked {false};
         bool m_IsSlewing {false};

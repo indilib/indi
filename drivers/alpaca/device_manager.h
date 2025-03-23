@@ -77,6 +77,9 @@ class DeviceManager
         // Alpaca API request handling
         void handleAlpacaRequest(const httplib::Request &req, httplib::Response &res);
 
+        // Alpaca Setup API request handling
+        void handleSetupRequest(const httplib::Request &req, httplib::Response &res);
+
         // Get device information
         std::vector<AlpacaDeviceInfo> getDeviceList();
 

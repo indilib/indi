@@ -605,6 +605,120 @@ void DeviceManager::parseFormUrlEncodedBody(const std::string &body, std::map<st
     }
 }
 
+void DeviceManager::handleSetupRequest(const httplib::Request &req, httplib::Response &res)
+{
+    DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_DEBUG, "Handling setup request: %s", req.path.c_str());
+
+    // Parse path to determine device type and number
+    std::string path = req.path;
+
+    // Setup API format: /setup/v1/{deviceType}/{deviceNumber}/setup
+    if (path.find("/setup/v1/") == 0)
+    {
+        std::string setupPath = path.substr(10); // Remove "/setup/v1/"
+
+        // Parse device type, number, and method
+        std::istringstream ss(setupPath);
+        std::string deviceType, deviceNumberStr, method;
+
+        std::getline(ss, deviceType, '/');
+        std::getline(ss, deviceNumberStr, '/');
+        std::getline(ss, method, '/');
+
+        // Validate
+        if (deviceType.empty() || deviceNumberStr.empty() || method != "setup")
+        {
+            res.set_content("<html><body><h1>Invalid Setup Request</h1><p>Invalid URL format. Expected: /setup/v1/{deviceType}/{deviceNumber}/setup</p></body></html>",
+                            "text/html");
+            res.status = 400; // Bad Request
+            return;
+        }
+
+        // Check if device type is lowercase
+        std::string deviceTypeLower = deviceType;
+        std::transform(deviceTypeLower.begin(), deviceTypeLower.end(), deviceTypeLower.begin(), ::tolower);
+        if (deviceType != deviceTypeLower)
+        {
+            res.set_content("<html><body><h1>Invalid Setup Request</h1><p>Device type must be lowercase</p></body></html>",
+                            "text/html");
+            res.status = 400; // Bad Request
+            return;
+        }
+
+        // Convert device number
+        int deviceNumber;
+        try
+        {
+            deviceNumber = std::stoi(deviceNumberStr);
+        }
+        catch (const std::exception &e)
+        {
+            res.set_content("<html><body><h1>Invalid Setup Request</h1><p>Invalid device number</p></body></html>", "text/html");
+            res.status = 400; // Bad Request
+            return;
+        }
+
+        // Find bridge for device number
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        auto it = m_Bridges.find(deviceNumber);
+        if (it == m_Bridges.end())
+        {
+            res.set_content("<html><body><h1>Device Not Found</h1><p>The requested device was not found</p></body></html>",
+                            "text/html");
+            res.status = 404; // Not Found
+            return;
+        }
+
+        // Check if device type matches
+        if (it->second->getDeviceType() != deviceType)
+        {
+            res.set_content("<html><body><h1>Device Type Mismatch</h1><p>The requested device type does not match the device</p></body></html>",
+                            "text/html");
+            res.status = 400; // Bad Request
+            return;
+        }
+
+        // Generate setup page
+        std::string deviceName = it->second->getDeviceName();
+        std::string uniqueID = it->second->getUniqueID();
+
+        // Create a simple HTML setup page
+        std::stringstream html;
+        html << "<!DOCTYPE html>\n";
+        html << "<html>\n";
+        html << "<head>\n";
+        html << "    <title>Alpaca Setup - " << deviceName << "</title>\n";
+        html << "    <style>\n";
+        html << "        body { font-family: Arial, sans-serif; margin: 20px; }\n";
+        html << "        h1 { color: #333; }\n";
+        html << "        .info { margin-bottom: 20px; }\n";
+        html << "        .info div { margin-bottom: 5px; }\n";
+        html << "        label { display: inline-block; width: 150px; font-weight: bold; }\n";
+        html << "    </style>\n";
+        html << "</head>\n";
+        html << "<body>\n";
+        html << "    <h1>Alpaca Device Setup</h1>\n";
+        html << "    <div class=\"info\">\n";
+        html << "        <div><label>Device Name:</label> " << deviceName << "</div>\n";
+        html << "        <div><label>Device Type:</label> " << deviceType << "</div>\n";
+        html << "        <div><label>Device Number:</label> " << deviceNumber << "</div>\n";
+        html << "        <div><label>Unique ID:</label> " << uniqueID << "</div>\n";
+        html << "    </div>\n";
+        html << "    <p>This is a minimal setup page for the device. Additional device-specific setup options can be added here.</p>\n";
+        html << "</body>\n";
+        html << "</html>";
+
+        res.set_content(html.str(), "text/html");
+    }
+    else
+    {
+        // Unknown setup endpoint
+        res.set_content("<html><body><h1>Unknown Setup Endpoint</h1><p>The requested setup endpoint is not valid</p></body></html>",
+                        "text/html");
+        res.status = 404; // Not Found
+    }
+}
+
 void DeviceManager::handleManagementRequest(const std::string &endpoint,
         const httplib::Request &req,
         httplib::Response &res,

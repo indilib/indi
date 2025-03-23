@@ -81,6 +81,8 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
     else if (method == "interfaceversion")
         handleInterfaceVersion(req, res);
     // Telescope-specific properties
+    else if (method == "alignmentmode")
+        handleAlignmentMode(req, res);
     else if (method == "altitude")
         handleAltitude(req, res);
     else if (method == "azimuth")
@@ -91,16 +93,28 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
         handleCanPulseGuide(req, res);
     else if (method == "cansettracking")
         handleCanSetTracking(req, res);
+    else if (method == "cansetrightascensionrate")
+        handleCanSetRightAscensionRate(req, res);
+    else if (method == "cansetdeclinationrate")
+        handleCanSetDeclinationRate(req, res);
     else if (method == "canslew")
         handleCanSlew(req, res);
+    else if (method == "canmoveaxis")
+        handleCanMoveAxis(req, res);
     else if (method == "canslewasync")
         handleCanSlewAsync(req, res);
+    else if (method == "canslewaltazasync")
+        handleCanSlewAltAzAsync(req, res);
     else if (method == "cansync")
         handleCanSync(req, res);
     else if (method == "declination")
         handleDeclination(req, res);
+    else if (method == "declinationrate")
+        handleDeclinationRate(req, res);
     else if (method == "rightascension")
         handleRightAscension(req, res);
+    else if (method == "rightascensionrate")
+        handleRightAscensionRate(req, res);
     else if (method == "sideofpier")
         handleSideOfPier(req, res);
     else if (method == "slewing")
@@ -126,10 +140,22 @@ void TelescopeBridge::handleRequest(const std::string &method, const httplib::Re
         handlePulseGuide(req, res);
     else if (method == "moveaxis")
         handleMoveAxis(req, res);
+    else if (method == "axisrates")
+        handleAxisRates(req, res);
     else if (method == "settracking")
         handleSetTracking(req, res);
+    else if (method == "setrightascensionrate")
+        handleSetRightAscensionRate(req, res);
+    else if (method == "setdeclinationrate")
+        handleSetDeclinationRate(req, res);
     else if (method == "equatorialsystem")
         handleEquatorialSystem(req, res);
+    else if (method == "sitelatitude")
+        handleSiteLatitude(req, res);
+    else if (method == "sitelongitude")
+        handleSiteLongitude(req, res);
+    else if (method == "siteelevation")
+        handleSiteElevation(req, res);
     else
     {
         // Unknown method
@@ -240,6 +266,20 @@ void TelescopeBridge::updateProperty(INDI::Property property)
             m_PierSide = -1; // PIER_UNKNOWN in Alpaca
         DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG, "Updated pier side: %d", m_PierSide);
     }
+    else if (property.isNameMatch("TELESCOPE_TRACK_RATE"))
+    {
+        // Update tracking rates
+        INDI::PropertyNumber numberProperty(property);
+        for (auto &num : numberProperty)
+        {
+            if (num.isNameMatch("TRACK_RATE_RA"))
+                m_RightAscensionRate = num.getValue();
+            else if (num.isNameMatch("TRACK_RATE_DE"))
+                m_DeclinationRate = num.getValue();
+        }
+        DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG, "Updated tracking rates: RA=%f, DEC=%f",
+                     m_RightAscensionRate, m_DeclinationRate);
+    }
 }
 
 // Helper methods for sending commands to INDI server
@@ -323,6 +363,8 @@ template void TelescopeBridge::sendResponse<int>(httplib::Response &res, const i
         const std::string &errorMessage, int clientID, int serverID);
 template void TelescopeBridge::sendResponse<bool>(httplib::Response &res, const bool &value, bool success,
         const std::string &errorMessage, int clientID, int serverID);
+template void TelescopeBridge::sendResponse<json>(httplib::Response &res, const json &value, bool success,
+        const std::string &errorMessage, int clientID, int serverID);
 
 template void TelescopeBridge::sendResponseValue<std::string>(httplib::Response &res,
         const std::string &value, bool success, const std::string &errorMessage);
@@ -332,3 +374,5 @@ template void TelescopeBridge::sendResponseValue<int>(httplib::Response &res,
         const int &value, bool success, const std::string &errorMessage);
 template void TelescopeBridge::sendResponseValue<bool>(httplib::Response &res,
         const bool &value, bool success, const std::string &errorMessage);
+template void TelescopeBridge::sendResponseValue<json>(httplib::Response &res,
+        const json &value, bool success, const std::string &errorMessage);

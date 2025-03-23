@@ -51,6 +51,9 @@ bool AlpacaClient::disconnectServer()
 
 void AlpacaClient::newDevice(INDI::BaseDevice dp)
 {
+    // Do not process our own driver at all
+    if (!strcmp(dp.getDeviceName(), "INDI Alpaca Server"))
+        return;
     DEBUGFDEVICE("INDI Alpaca Server", INDI::Logger::DBG_SESSION, "New device: %s", dp.getDeviceName());
     m_DeviceManager->addDevice(dp);
 }

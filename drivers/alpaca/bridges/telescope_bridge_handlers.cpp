@@ -154,6 +154,42 @@ void TelescopeBridge::handleInterfaceVersion(const httplib::Request &req, httpli
 }
 
 // Telescope-specific properties
+void TelescopeBridge::handleAlignmentMode(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+
+    // Check if the telescope has a mount type property
+    auto mountTypeSw = m_Device.getSwitch("TELESCOPE_MOUNT_TYPE");
+    if (mountTypeSw)
+    {
+        INDI::PropertySwitch switchProperty(mountTypeSw);
+
+        // ASCOM AlignmentMode values:
+        // 0 = Alt/Az alignment
+        // 1 = Polar (equatorial) alignment
+        // 2 = German polar alignment
+
+        // Check which mount type is active
+        sendResponseValue(res, switchProperty.findOnSwitchIndex());
+    }
+    else
+    {
+        // If no mount type property is available, check if the telescope has horizontal coordinates
+        bool hasHorizontalCoord = m_Device.getProperty("HORIZONTAL_COORD").isValid();
+        bool hasEquatorialCoord = m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid();
+
+        if (hasHorizontalCoord && !hasEquatorialCoord)
+        {
+            sendResponseValue(res, 0); // Alt/Az alignment
+        }
+        else
+        {
+            // Default to German equatorial alignment
+            sendResponseValue(res, 2);
+        }
+    }
+}
+
 void TelescopeBridge::handleAltitude(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
@@ -188,7 +224,25 @@ void TelescopeBridge::handleCanSetTracking(const httplib::Request &req, httplib:
     sendResponseValue(res, m_Device.getProperty("TELESCOPE_TRACK_STATE").isValid());
 }
 
+void TelescopeBridge::handleCanSetRightAscensionRate(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    sendResponseValue(res, m_Device.getProperty("TELESCOPE_TRACK_RATE").isValid());
+}
+
+void TelescopeBridge::handleCanSetDeclinationRate(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    sendResponseValue(res, m_Device.getProperty("TELESCOPE_TRACK_RATE").isValid());
+}
+
 void TelescopeBridge::handleCanSlew(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    sendResponseValue(res, m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid());
+}
+
+void TelescopeBridge::handleCanMoveAxis(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     sendResponseValue(res, m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid());
@@ -198,6 +252,12 @@ void TelescopeBridge::handleCanSlewAsync(const httplib::Request &req, httplib::R
 {
     INDI_UNUSED(req);
     sendResponseValue(res, m_Device.getProperty("EQUATORIAL_EOD_COORD").isValid());
+}
+
+void TelescopeBridge::handleCanSlewAltAzAsync(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    sendResponseValue(res, m_Device.getProperty("HORIZONTAL_COORD").isValid());
 }
 
 void TelescopeBridge::handleCanSync(const httplib::Request &req, httplib::Response &res)
@@ -213,11 +273,25 @@ void TelescopeBridge::handleDeclination(const httplib::Request &req, httplib::Re
     sendResponseValue(res, m_CurrentDEC);
 }
 
+void TelescopeBridge::handleDeclinationRate(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, m_DeclinationRate);
+}
+
 void TelescopeBridge::handleRightAscension(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
     sendResponseValue(res, m_CurrentRA);
+}
+
+void TelescopeBridge::handleRightAscensionRate(const httplib::Request &req, httplib::Response &res)
+{
+    INDI_UNUSED(req);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    sendResponseValue(res, m_RightAscensionRate);
 }
 
 void TelescopeBridge::handleSideOfPier(const httplib::Request &req, httplib::Response &res)
@@ -493,6 +567,115 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
         int axis = std::stoi(formData["Axis"]);
         double rate = std::stod(formData["Rate"]);
 
+        // Get the slew rate property
+        auto slewRateSP = m_Device.getSwitch("TELESCOPE_SLEW_RATE");
+
+        // Try to set an appropriate slew rate based on the magnitude of the rate
+        // Only if we can determine a good conversion
+        if (slewRateSP)
+        {
+            INDI::PropertySwitch slewRateProperty(slewRateSP);
+            int numRates = slewRateProperty.count();
+
+            // Only attempt to set slew rate if we have a non-zero rate
+            if (numRates > 0 && std::fabs(rate) > 0)
+            {
+                // The sidereal rate is approximately 0.004178 degrees/second
+                const double SIDEREAL_RATE_DEG_SEC = 0.004178;
+
+                // Calculate how many times the sidereal rate this is
+                double rateMultiple = std::fabs(rate) / SIDEREAL_RATE_DEG_SEC;
+
+                // Try to find the best matching slew rate
+                int bestRateIndex = -1;
+                double bestRateDiff = std::numeric_limits<double>::max();
+
+                // First, try to extract rate multiples from the labels (e.g., "200x", "400x", etc.)
+                std::vector<double> rateMultiples;
+                rateMultiples.resize(numRates, 0);
+                bool hasExplicitMultiples = false;
+
+                for (int i = 0; i < numRates; i++)
+                {
+                    std::string label = slewRateProperty[i].getLabel();
+                    // Look for patterns like "200x" or "400x" in the label
+                    std::size_t xPos = label.find('x');
+                    if (xPos != std::string::npos && xPos > 0)
+                    {
+                        // Try to extract the number before the 'x'
+                        std::string numStr = label.substr(0, xPos);
+                        // Remove any non-numeric characters
+                        numStr.erase(std::remove_if(numStr.begin(), numStr.end(),
+                                                    [](char c)
+                        {
+                            return !std::isdigit(c);
+                        }),
+                        numStr.end());
+
+                        if (!numStr.empty())
+                        {
+                            try
+                            {
+                                double multiple = std::stod(numStr);
+                                rateMultiples[i] = multiple;
+                                hasExplicitMultiples = true;
+
+                                // Calculate how close this rate is to our target
+                                double diff = std::fabs(multiple - rateMultiple);
+                                if (diff < bestRateDiff)
+                                {
+                                    bestRateDiff = diff;
+                                    bestRateIndex = i;
+                                }
+
+                                DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG,
+                                             "Found slew rate multiple in label: %s = %.0fx",
+                                             label.c_str(), multiple);
+                            }
+                            catch (const std::exception &e)
+                            {
+                                // Failed to convert to number, ignore this label
+                            }
+                        }
+                    }
+                }
+
+                // If we couldn't extract multiples from labels, use our default mapping
+                if (!hasExplicitMultiples)
+                {
+                    // Common slew rate multiples for different mounts
+                    // Guide: ~1x, Centering: ~8x, Find: ~16x, Max: ~64x or higher
+                    // These are approximate and vary by mount
+
+                    // Select appropriate slew rate based on the multiple
+                    if (rateMultiple <= 2)
+                        bestRateIndex = 0; // Guide rate (slowest)
+                    else if (rateMultiple <= 10)
+                        bestRateIndex = std::min(1, numRates - 1); // Centering rate
+                    else if (rateMultiple <= 30)
+                        bestRateIndex = std::min(2, numRates - 1); // Find rate
+                    else
+                        bestRateIndex = numRates - 1; // Max rate (fastest)
+
+                    DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG,
+                                 "Using default slew rate mapping for %.1fx sidereal", rateMultiple);
+                }
+
+                // Only set the slew rate if we determined a valid index
+                if (bestRateIndex >= 0)
+                {
+                    slewRateProperty.reset();
+                    slewRateProperty[bestRateIndex].setState(ISS_ON);
+                    requestNewSwitch(slewRateProperty);
+
+                    DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_DEBUG,
+                                 "Setting slew rate to index %d (%s) for rate %.4f deg/sec (%.1fx sidereal)",
+                                 bestRateIndex, slewRateProperty[bestRateIndex].getLabel(),
+                                 std::fabs(rate), rateMultiple);
+                }
+            }
+        }
+
         // Axis: 0=Primary (RA/AZ), 1=Secondary (DEC/ALT)
         if (axis == 0)
         {
@@ -505,6 +688,12 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
                     switchProperty[0].setState(ISS_ON); // West
                 else if (rate < 0)
                     switchProperty[1].setState(ISS_ON); // East
+                else
+                {
+                    // If rate is 0, stop motion
+                    switchProperty[0].setState(ISS_OFF);
+                    switchProperty[1].setState(ISS_OFF);
+                }
                 // Request to send the switch to the device
                 requestNewSwitch(switchProperty);
                 success = true;
@@ -521,6 +710,12 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
                     switchProperty[0].setState(ISS_ON); // North
                 else if (rate < 0)
                     switchProperty[1].setState(ISS_ON); // South
+                else
+                {
+                    // If rate is 0, stop motion
+                    switchProperty[0].setState(ISS_OFF);
+                    switchProperty[1].setState(ISS_OFF);
+                }
                 // Request to send the switch to the device
                 requestNewSwitch(switchProperty);
                 success = true;
@@ -533,6 +728,49 @@ void TelescopeBridge::handleMoveAxis(const httplib::Request &req, httplib::Respo
     }
 
     sendResponseStatus(res, success, success ? "" : "Failed to move axis");
+}
+
+void TelescopeBridge::handleAxisRates(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        // Check if the Axis parameter exists in the query
+        auto axisIt = req.params.find("Axis");
+        if (axisIt == req.params.end())
+        {
+            sendResponseValue(res, json::array(), false, "Missing Axis parameter");
+            return;
+        }
+
+        // Convert Axis value to int
+        int axis = std::stoi(axisIt->second);
+
+        // Validate axis value (0 = Primary/RA/AZ, 1 = Secondary/DEC/ALT)
+        if (axis < 0 || axis > 1)
+        {
+            sendResponseValue(res, json::array(), false, "Invalid Axis value. Must be 0 (Primary/RA/AZ) or 1 (Secondary/DEC/ALT)");
+            return;
+        }
+
+        // Create a JSON array of rate objects
+        json ratesArray = json::array();
+
+        // 1x to 800x sidereal
+        // hardcoded for now
+        ratesArray.push_back(
+        {
+            {"Minimum", 0.00418}, // degrees/sec
+            {"Maximum", 3.344}
+        });
+
+        // Send the response
+        sendResponseValue(res, ratesArray);
+    }
+    catch (const std::exception &e)
+    {
+        DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to process AxisRates request: %s", e.what());
+        sendResponseValue(res, json::array(), false, std::string("Error processing request: ") + e.what());
+    }
 }
 
 void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Response &res)
@@ -574,10 +812,287 @@ void TelescopeBridge::handleSetTracking(const httplib::Request &req, httplib::Re
     sendResponseStatus(res, success, success ? "" : "Failed to set tracking state");
 }
 
+void TelescopeBridge::handleSetRightAscensionRate(const httplib::Request &req, httplib::Response &res)
+{
+    bool success = false;
+    try
+    {
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("RightAscensionRate") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing RightAscensionRate parameter");
+            return;
+        }
+
+        // Convert RightAscensionRate value to double
+        double raRate = std::stod(formData["RightAscensionRate"]);
+
+        auto trackRate = m_Device.getNumber("TELESCOPE_TRACK_RATE");
+        if (trackRate)
+        {
+            INDI::PropertyNumber numberProperty(trackRate);
+            for (auto &num : numberProperty)
+            {
+                if (num.isNameMatch("TRACK_RATE_RA"))
+                    num.setValue(raRate);
+            }
+            // Request to send the rate to the device
+            requestNewNumber(numberProperty);
+
+            // Update the member variable
+            m_RightAscensionRate = raRate;
+            success = true;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse SetRightAscensionRate request: %s",
+                     e.what());
+    }
+
+    sendResponseStatus(res, success, success ? "" : "Failed to set right ascension rate");
+}
+
+void TelescopeBridge::handleSetDeclinationRate(const httplib::Request &req, httplib::Response &res)
+{
+    bool success = false;
+    try
+    {
+        // Parse form-urlencoded data from request body
+        std::map<std::string, std::string> formData;
+        DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+        // Check if required parameters exist
+        if (formData.find("DeclinationRate") == formData.end())
+        {
+            sendResponseStatus(res, false, "Missing DeclinationRate parameter");
+            return;
+        }
+
+        // Convert DeclinationRate value to double
+        double decRate = std::stod(formData["DeclinationRate"]);
+
+        auto trackRate = m_Device.getNumber("TELESCOPE_TRACK_RATE");
+        if (trackRate)
+        {
+            INDI::PropertyNumber numberProperty(trackRate);
+            for (auto &num : numberProperty)
+            {
+                if (num.isNameMatch("TRACK_RATE_DE"))
+                    num.setValue(decRate);
+            }
+            // Request to send the rate to the device
+            requestNewNumber(numberProperty);
+
+            // Update the member variable
+            m_DeclinationRate = decRate;
+            success = true;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        DEBUGFDEVICE(m_Device.getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to parse SetDeclinationRate request: %s",
+                     e.what());
+    }
+
+    sendResponseStatus(res, success, success ? "" : "Failed to set declination rate");
+}
+
 // Equatorial System
 void TelescopeBridge::handleEquatorialSystem(const httplib::Request &req, httplib::Response &res)
 {
     INDI_UNUSED(req);
     std::lock_guard<std::mutex> lock(m_Mutex);
     sendResponseValue(res, 1);
+}
+
+// Site Information
+void TelescopeBridge::handleSiteLatitude(const httplib::Request &req, httplib::Response &res)
+{
+    auto geoCoord = m_Device.getNumber("GEOGRAPHIC_COORD");
+    if (!geoCoord.isValid())
+    {
+        sendResponseValue(res, 0.0, false, "GEOGRAPHIC_COORD property not found");
+        return;
+    }
+
+    // Handle PUT request to set site latitude
+    if (req.method == "PUT")
+    {
+        try
+        {
+            // Parse form-urlencoded data from request body
+            std::map<std::string, std::string> formData;
+            DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+            // Check if SiteLatitude parameter exists
+            if (formData.find("SiteLatitude") == formData.end())
+            {
+                sendResponseValue(res, 0.0, false, "Missing SiteLatitude parameter");
+                return;
+            }
+
+            // Convert SiteLatitude value to double
+            double latitude = std::stod(formData["SiteLatitude"]);
+
+            // Update the GEOGRAPHIC_COORD property
+            INDI::PropertyNumber numberProperty(geoCoord);
+            for (auto &num : numberProperty)
+            {
+                if (num.isNameMatch("LAT"))
+                    num.setValue(latitude);
+            }
+
+            // Request to send the updated property to the device
+            requestNewNumber(numberProperty);
+            sendResponseValue(res, latitude);
+        }
+        catch (const std::exception &e)
+        {
+            sendResponseValue(res, 0.0, false, std::string("Invalid request: ") + e.what());
+        }
+    }
+    else
+    {
+        // GET request - return current latitude
+        double latitude = 0.0;
+        INDI::PropertyNumber numberProperty(geoCoord);
+        for (auto &num : numberProperty)
+        {
+            if (num.isNameMatch("LAT"))
+            {
+                latitude = num.getValue();
+                break;
+            }
+        }
+        sendResponseValue(res, latitude);
+    }
+}
+
+void TelescopeBridge::handleSiteLongitude(const httplib::Request &req, httplib::Response &res)
+{
+    auto geoCoord = m_Device.getNumber("GEOGRAPHIC_COORD");
+    if (!geoCoord.isValid())
+    {
+        sendResponseValue(res, 0.0, false, "GEOGRAPHIC_COORD property not found");
+        return;
+    }
+
+    // Handle PUT request to set site longitude
+    if (req.method == "PUT")
+    {
+        try
+        {
+            // Parse form-urlencoded data from request body
+            std::map<std::string, std::string> formData;
+            DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+            // Check if SiteLongitude parameter exists
+            if (formData.find("SiteLongitude") == formData.end())
+            {
+                sendResponseValue(res, 0.0, false, "Missing SiteLongitude parameter");
+                return;
+            }
+
+            // Convert SiteLongitude value to double
+            double longitude = std::stod(formData["SiteLongitude"]);
+
+            // Update the GEOGRAPHIC_COORD property
+            INDI::PropertyNumber numberProperty(geoCoord);
+            for (auto &num : numberProperty)
+            {
+                if (num.isNameMatch("LONG"))
+                    num.setValue(longitude);
+            }
+
+            // Request to send the updated property to the device
+            requestNewNumber(numberProperty);
+            sendResponseValue(res, longitude);
+        }
+        catch (const std::exception &e)
+        {
+            sendResponseValue(res, 0.0, false, std::string("Invalid request: ") + e.what());
+        }
+    }
+    else
+    {
+        // GET request - return current longitude
+        double longitude = 0.0;
+        INDI::PropertyNumber numberProperty(geoCoord);
+        for (auto &num : numberProperty)
+        {
+            if (num.isNameMatch("LONG"))
+            {
+                longitude = num.getValue();
+                break;
+            }
+        }
+        sendResponseValue(res, longitude);
+    }
+}
+
+void TelescopeBridge::handleSiteElevation(const httplib::Request &req, httplib::Response &res)
+{
+    auto geoCoord = m_Device.getNumber("GEOGRAPHIC_COORD");
+    if (!geoCoord.isValid())
+    {
+        sendResponseValue(res, 0.0, false, "GEOGRAPHIC_COORD property not found");
+        return;
+    }
+
+    // Handle PUT request to set site elevation
+    if (req.method == "PUT")
+    {
+        try
+        {
+            // Parse form-urlencoded data from request body
+            std::map<std::string, std::string> formData;
+            DeviceManager::parseFormUrlEncodedBody(req.body, formData);
+
+            // Check if SiteElevation parameter exists
+            if (formData.find("SiteElevation") == formData.end())
+            {
+                sendResponseValue(res, 0.0, false, "Missing SiteElevation parameter");
+                return;
+            }
+
+            // Convert SiteElevation value to double
+            double elevation = std::stod(formData["SiteElevation"]);
+
+            // Update the GEOGRAPHIC_COORD property
+            INDI::PropertyNumber numberProperty(geoCoord);
+            for (auto &num : numberProperty)
+            {
+                if (num.isNameMatch("ELEV"))
+                    num.setValue(elevation);
+            }
+
+            // Request to send the updated property to the device
+            requestNewNumber(numberProperty);
+            sendResponseValue(res, elevation);
+        }
+        catch (const std::exception &e)
+        {
+            sendResponseValue(res, 0.0, false, std::string("Invalid request: ") + e.what());
+        }
+    }
+    else
+    {
+        // GET request - return current elevation
+        double elevation = 0.0;
+        INDI::PropertyNumber numberProperty(geoCoord);
+        for (auto &num : numberProperty)
+        {
+            if (num.isNameMatch("ELEV"))
+            {
+                elevation = num.getValue();
+                break;
+            }
+        }
+        sendResponseValue(res, elevation);
+    }
 }
