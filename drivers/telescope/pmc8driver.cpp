@@ -77,10 +77,16 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
 #define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
-#define PMC8_RATE_SIDEREAL 15.041067
-#define PMC8_RATE_LUNAR 14.685
-#define PMC8_RATE_SOLAR 15.000
-#define PMC8_RATE_KING 15.037
+// Thanks to John Wells who contributed to this issue: https://github.com/indilib/indi/issues/2132
+// and PMC8 documentation: https://02d3287.netsolhost.com/pmc-eight/PMC_Eight_ProgrammersReferenceManual_Release2_2019_February_01.pdf
+// and confirmation: https://espmc-eight.groups.io/g/MAIN/topic/96696552?p=Created,,,20,2,0,0
+// The rate is communicated as "arcsecs per sidereal second" NOT per second so it should be 15.000
+// not 15.041067
+// The INDI Driver uses arcsecs per SOLAR second, so it needs to be converted.
+#define PMC8_RATE_SIDEREAL 15.000
+#define PMC8_RATE_LUNAR 14.451
+#define PMC8_RATE_SOLAR 14.959
+#define PMC8_RATE_KING 14.996
 
 PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
 bool pmc8_debug                 = false;

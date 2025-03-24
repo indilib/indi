@@ -13,7 +13,7 @@
         </device>
         <device label="LX200 10micron" manufacturer="10 Micron">
             <driver name="LX200 10micron">indi_lx200_10micron</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>
@@ -33,15 +33,27 @@
         </device>
         <device label="LX200 OnStep" manufacturer="OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
         </device>
         <device label="WARPDRIVE" manufacturer="WarpAstron">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
         </device>
         <device label="UMi" manufacturer="ProxiSky">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.23</version>
+            <version>1.24</version>
+        </device>
+        <device label="EM31Pro" manufacturer="Emcan Astro">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
+        </device>
+        <device label="Juwei 14" manufacturer="Juwei">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
+        </device>
+        <device label="Juwei 17" manufacturer="Juwei">
+            <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
+            <version>1.24</version>
         </device>
         <device label="LX200 OpenAstroTech" manufacturer="OpenAstroTech">
             <driver name="LX200 OpenAstroTech">indi_lx200_OpenAstroTech</driver>
@@ -85,11 +97,19 @@
         </device>
         <device label="ZWO AM5 WiFi" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="ZWO AM5 USB" manufacturer="ZWO">
             <driver name="ZWO AM5">indi_lx200am5</driver>
-            <version>1.2</version>
+            <version>1.3</version>
+        </device>
+        <device label="ZWO AM3 WiFi" manufacturer="ZWO">
+            <driver name="ZWO AM5">indi_lx200am5</driver>
+            <version>1.3</version>
+        </device>
+        <device label="ZWO AM3 USB" manufacturer="ZWO">
+            <driver name="ZWO AM5">indi_lx200am5</driver>
+            <version>1.3</version>
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
@@ -773,6 +793,10 @@
             <driver name="Light Panel Simulator">indi_simulator_lightpanel</driver>
             <version>1.0</version>
         </device>
+        <device label="Dust Cover Simulator" manufacturer="Simulator">
+            <driver name="Dust Cover Simulator">indi_simulator_dustcover</driver>
+            <version>1.0</version>
+        </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>
             <version>1.0</version>
@@ -845,9 +869,13 @@
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
         </device>
-        <device label="IPX800" manufacturer="GCE">
-            <driver name="IPX800">indi_ipx800</driver>
-            <version>0.7</version>
+        <device label="IPX800v4" manufacturer="CGE Electronics">
+            <driver name="IPX800v4">indi_ipx800v4</driver>
+            <version>1.1</version>
+        </device>
+        <device label="Simulator IO" manufacturer="Simulator">
+            <driver name="Simulator IO">indi_simulator_io</driver>
+            <version>1.0</version>
         </device>
     </devGroup>
     <devGroup group="Domes">
@@ -895,6 +923,10 @@
             <driver name="Universal ROR">indi_universalror_dome</driver>
             <version>0.1</version>
         </device>
+        <device label="Alpaca Dome" manufacturer="Alpaca">
+            <driver name="Alpaca Dome">indi_alpaca_dome</driver>
+            <version>0.1</version>
+        </device>
     </devGroup>
     <devGroup group="Weather">
         <device label="Weather Simulator" manufacturer="Simulator">
@@ -929,12 +961,20 @@
             <driver name="Weather Watcher">indi_watcher_weather</driver>
             <version>1.1</version>
         </device>
+        <device label="AAG Solo CloudWatcher" manufacturer="Lunático Astronomía">
+            <driver name="AAG Solo CloudWatcher">indi_aagsolo</driver>
+            <version>0.1</version>
+        </device>
         <device label="Weather Safety Proxy" manufacturer="Others">
             <driver name="Weather Safety Proxy">indi_weather_safety_proxy</driver>
             <version>1.0</version>
         </device>
         <device label="Uranus Meteo Sensor" manufacturer="Pegasus Astro">
             <driver name="Uranus Meteo Sensor">indi_uranus_weather</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Weather Safety Alpaca" manufacturer="Alpaca">
+            <driver name="Weather Safety Alpaca">indi_weather_safety_alpaca</driver>
             <version>1.0</version>
         </device>
     </devGroup>

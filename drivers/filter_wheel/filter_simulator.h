@@ -29,10 +29,16 @@ class FilterSim : public INDI::FilterWheel
         FilterSim() = default;
         virtual ~FilterSim() = default;
 
-        const char *getDefaultName();
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual const char *getDefaultName() override;
 
-        bool Connect();
-        bool Disconnect();
-        bool SelectFilter(int);
-        void TimerHit();
+        bool Connect() override;
+        bool Disconnect() override;
+        bool SelectFilter(int) override;
+        void TimerHit() override;
+
+    private:
+        INDI::PropertyNumber DelayNP {1};
 };

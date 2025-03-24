@@ -24,6 +24,7 @@
 
 #include "v4l2_decode.h"
 
+#include <cstdint>
 #include <map>
 
 class V4L2_Builtin_Decoder : public V4L2_Decoder
@@ -44,7 +45,7 @@ class V4L2_Builtin_Decoder : public V4L2_Decoder
         virtual void resetcrop();
         virtual void usesoftcrop(bool c);
         virtual void setformat(struct v4l2_format f, bool use_ext_pix_format);
-        virtual __u32 getFormat();
+        virtual uint32_t getFormat();
         virtual bool issupportedformat(unsigned int format);
         virtual const std::vector<unsigned int> &getsupportedformats();
         virtual void decode(unsigned char *frame, struct v4l2_buffer *buf, bool native);

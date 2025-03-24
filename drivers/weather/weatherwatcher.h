@@ -31,6 +31,19 @@
 class WeatherWatcher : public INDI::Weather
 {
     public:
+        // Enum for weather parameters
+        enum WeatherParamIndex
+        {
+            WEATHER_RAIN = 0,
+            WEATHER_TEMP = 1,
+            WEATHER_WIND = 2,
+            WEATHER_GUST = 3,
+            WEATHER_CLOUD = 4,
+            WEATHER_HUM = 5,
+            WEATHER_PRESS = 6,
+            WEATHER_FORECAST = 7
+        };
+
         WeatherWatcher();
 
         //  Generic indi device entries

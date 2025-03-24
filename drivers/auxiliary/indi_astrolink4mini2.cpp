@@ -156,7 +156,8 @@ bool IndiAstroLink4mini2::initProperties()
     Focuser1SettingsNP[FS1_HOLD].fill("FS1_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
     Focuser1SettingsNP[FS1_STEP_SIZE].fill("FS1_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
     Focuser1SettingsNP[FS1_COMPENSATION].fill("FS1_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
-    Focuser1SettingsNP[FS1_COMP_THRESHOLD].fill("FS1_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
+    Focuser1SettingsNP[FS1_COMP_THRESHOLD].fill("FS1_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10,
+            10);
     Focuser1SettingsNP.fill(getDeviceName(), "FOCUSER1_SETTINGS", "Focuser 1 settings", FOC1_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     Focuser2SettingsNP[FS2_SPEED].fill("FS2_SPEED", "Speed [pps]", "%.0f", 10, 200, 1, 100);
@@ -164,7 +165,8 @@ bool IndiAstroLink4mini2::initProperties()
     Focuser2SettingsNP[FS2_HOLD].fill("FS2_HOLD", "Hold torque [%]", "%.0f", 0, 100, 10, 0);
     Focuser2SettingsNP[FS2_STEP_SIZE].fill("FS2_STEP_SIZE", "Step size [um]", "%.2f", 0, 100, 0.1, 5.0);
     Focuser2SettingsNP[FS2_COMPENSATION].fill("FS2_COMPENSATION", "Compensation [steps/C]", "%.2f", -1000, 1000, 1, 0);
-    Focuser2SettingsNP[FS2_COMP_THRESHOLD].fill("FS2_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10, 10);
+    Focuser2SettingsNP[FS2_COMP_THRESHOLD].fill("FS2_COMP_THRESHOLD", "Compensation threshold [steps]", "%.0f", 1, 1000, 10,
+            10);
     Focuser2SettingsNP.fill(getDeviceName(), "FOCUSER2_SETTINGS", "Focuser 2 settings", FOC2_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     Focuser1ModeSP[FS1_MODE_UNI].fill("FS1_MODE_UNI", "Unipolar", ISS_ON);
@@ -273,7 +275,8 @@ bool IndiAstroLink4mini2::ISNewNumber(const char *dev, const char *name, double 
                 Focuser1SettingsNP.setState(IPS_BUSY);
                 Focuser1SettingsNP.update(values, names, n);
                 Focuser1SettingsNP.apply();
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 1 temperature compensation is %s", (values[FS1_COMPENSATION] > 0) ? "enabled" : "disabled");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 1 temperature compensation is %s",
+                       (values[FS1_COMPENSATION] > 0) ? "enabled" : "disabled");
                 return true;
             }
             Focuser1SettingsNP.setState(IPS_ALERT);
@@ -298,7 +301,8 @@ bool IndiAstroLink4mini2::ISNewNumber(const char *dev, const char *name, double 
                 Focuser2SettingsNP.setState(IPS_BUSY);
                 Focuser2SettingsNP.update(values, names, n);
                 Focuser2SettingsNP.apply();
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 2 temperature compensation is %s", (values[FS2_COMPENSATION] > 0) ? "enabled" : "disabled");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser 2 temperature compensation is %s",
+                       (values[FS2_COMPENSATION] > 0) ? "enabled" : "disabled");
                 return true;
             }
             Focuser2SettingsNP.setState(IPS_ALERT);
@@ -420,12 +424,16 @@ bool IndiAstroLink4mini2::ISNewSwitch(const char *dev, const char *name, ISState
         {
             setFindex((strcmp(FocuserSelectSP[0].getName(), names[0])) ? 1 : 0);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser index set by switch to %i", getFindex());
-            FocuserSelectSP.setState(FocusMaxPosNP.s = FocusReverseSP.s = FocusAbsPosNP.s = IPS_BUSY);
+            FocusAbsPosNP.setState(IPS_BUSY);   
+            FocusReverseSP.setState(FocusAbsPosNP.getState());
+            FocusMaxPosNP.setState(FocusReverseSP.getState());
+            FocuserSelectSP.setState(FocusMaxPosNP.getState()); 
+
             FocuserSelectSP.update(states, names, n);
             FocuserSelectSP.apply();
-            IDSetSwitch(&FocusReverseSP, nullptr);
-            IDSetNumber(&FocusMaxPosNP, nullptr);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusReverseSP.apply();
+            FocusMaxPosNP.apply();
+            FocusAbsPosNP.apply();
 
             return true;
         }
@@ -461,7 +469,7 @@ IPState IndiAstroLink4mini2::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState IndiAstroLink4mini2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 bool IndiAstroLink4mini2::AbortFocuser()
@@ -476,7 +484,7 @@ bool IndiAstroLink4mini2::ReverseFocuser(bool enabled)
     int index = getFindex() > 0 ? U_FOC2_REV : U_FOC1_REV;
     if (updateSettings("u", "U", index, (enabled) ? "1" : "0"))
     {
-        FocusReverseSP.s = IPS_BUSY;
+        FocusReverseSP.setState(IPS_BUSY);
         return true;
     }
     else
@@ -491,7 +499,7 @@ bool IndiAstroLink4mini2::SyncFocuser(uint32_t ticks)
     snprintf(cmd, ASTROLINK4_LEN, "P:%i:%u", getFindex(), ticks);
     if (sendCommand(cmd, res))
     {
-        FocusAbsPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.setState(IPS_BUSY);
         return true;
     }
     else
@@ -505,7 +513,7 @@ bool IndiAstroLink4mini2::SetFocuserMaxPosition(uint32_t ticks)
     int index = getFindex() > 0 ? U_FOC2_MAX : U_FOC1_MAX;
     if (updateSettings("u", "U", index, std::to_string(ticks).c_str()))
     {
-        FocusMaxPosNP.s = IPS_BUSY;
+        FocusMaxPosNP.setState(IPS_BUSY);
         return true;
     }
     else
@@ -539,13 +547,15 @@ bool IndiAstroLink4mini2::sendCommand(const char *cmd, char *res)
         if (strncmp(cmd, "#", 1) == 0)
             sprintf(res, "%s\n", "#:AstroLink4mini");
         if (strncmp(cmd, "q", 1) == 0)
-            sprintf(res, "%s\n", "q:AL4MII:1234:0:5678:0:3.14:1:23.12:45:9.11:1:19.19:35:80:1:0:1:12.11:7.62:20.01:132.11:33:0:0:0:1:-10.1:7.7:1:19.19:35:8.22:1:1:18.11");
+            sprintf(res, "%s\n",
+                    "q:AL4MII:1234:0:5678:0:3.14:1:23.12:45:9.11:1:19.19:35:80:1:0:1:12.11:7.62:20.01:132.11:33:0:0:0:1:-10.1:7.7:1:19.19:35:8.22:1:1:18.11");
         if (strncmp(cmd, "p", 1) == 0)
             sprintf(res, "%s\n", "p:1234");
         if (strncmp(cmd, "i", 1) == 0)
             sprintf(res, "%s\n", "i:0");
         if (strncmp(cmd, "u", 1) == 0)
-            sprintf(res, "%s\n", "u:1:1:80:120:30:50:200:800:200:800:0:2:10000:80000:0:0:50:18:30:15:5:10:10:0:1:0:0:0:0:0:0:0:40:90:10:1100:14000:10000:100:0");
+            sprintf(res, "%s\n",
+                    "u:1:1:80:120:30:50:200:800:200:800:0:2:10000:80000:0:0:50:18:30:15:5:10:10:0:1:0:0:0:0:0:0:0:40:90:10:1100:14000:10000:100:0");
         if (strncmp(cmd, "A", 1) == 0)
             sprintf(res, "%s\n", "A:4.5.0 mini II");
         if (strncmp(cmd, "R", 1) == 0)
@@ -577,7 +587,8 @@ bool IndiAstroLink4mini2::sendCommand(const char *cmd, char *res)
             return true;
         }
 
-        if ((tty_rc = tty_nread_section(PortFD, res, ASTROLINK4_LEN, stopChar, ASTROLINK4_TIMEOUT, &nbytes_read)) != TTY_OK || nbytes_read == 1)
+        if ((tty_rc = tty_nread_section(PortFD, res, ASTROLINK4_LEN, stopChar, ASTROLINK4_TIMEOUT, &nbytes_read)) != TTY_OK
+                || nbytes_read == 1)
             return false;
 
         tcflush(PortFD, TCIOFLUSH);
@@ -604,17 +615,19 @@ bool IndiAstroLink4mini2::readDevice()
 
         int focuserPosition = std::stoi(result[getFindex() == 1 ? Q_FOC2_POS : Q_FOC1_POS]);
         int stepsToGo = std::stod(result[getFindex() == 1 ? Q_FOC2_TO_GO : Q_FOC1_TO_GO]);
-        FocusAbsPosN[0].value = focuserPosition;
+        FocusAbsPosNP[0].setValue(focuserPosition);
         if (stepsToGo == 0)
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
         else
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+            FocusAbsPosNP.setState(IPS_BUSY);
+            FocusRelPosNP.setState(IPS_BUSY);
         }
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
         if (result.size() > 5)
         {
@@ -664,7 +677,9 @@ bool IndiAstroLink4mini2::readDevice()
     }
 
     // update settings data if was changed
-    if (PowerDefaultOnSP.getState() != IPS_OK || FocusMaxPosNP.s != IPS_OK || FocusReverseSP.s != IPS_OK || FocuserSelectSP.getState() != IPS_OK || Focuser1SettingsNP.getState() != IPS_OK || Focuser2SettingsNP.getState() != IPS_OK || Focuser1ModeSP.getState() != IPS_OK || Focuser2ModeSP.getState() != IPS_OK)
+    if (PowerDefaultOnSP.getState() != IPS_OK || FocusMaxPosNP.getState() != IPS_OK || FocusReverseSP.getState() != IPS_OK
+            || FocuserSelectSP.getState() != IPS_OK || Focuser1SettingsNP.getState() != IPS_OK
+            || Focuser2SettingsNP.getState() != IPS_OK || Focuser1ModeSP.getState() != IPS_OK || Focuser2ModeSP.getState() != IPS_OK)
     {
         if (sendCommand("u", res))
         {
@@ -732,22 +747,22 @@ bool IndiAstroLink4mini2::readDevice()
                 Focuser2ModeSP.apply();
             }
 
-            if (FocusMaxPosNP.s != IPS_OK)
+            if (FocusMaxPosNP.getState() != IPS_OK)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update maxpos, focuser %i, res %s", getFindex(), res);
                 int index = getFindex() > 0 ? U_FOC2_MAX : U_FOC1_MAX;
-                FocusMaxPosN[0].value = std::stod(result[index]);
-                FocusMaxPosNP.s = IPS_OK;
-                IDSetNumber(&FocusMaxPosNP, nullptr);
+                FocusMaxPosNP[0].setValue(std::stod(result[index]));
+                FocusMaxPosNP.setState(IPS_OK);
+                FocusMaxPosNP.apply();
             }
-            if (FocusReverseSP.s != IPS_OK)
+            if (FocusReverseSP.getState() != IPS_OK)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Update reverse, focuser %i, res %s", getFindex(), res);
                 int index = getFindex() > 0 ? U_FOC2_REV : U_FOC1_REV;
-                FocusReverseS[0].s = (std::stoi(result[index]) > 0) ? ISS_ON : ISS_OFF;
-                FocusReverseS[1].s = (std::stoi(result[index]) == 0) ? ISS_ON : ISS_OFF;
-                FocusReverseSP.s = IPS_OK;
-                IDSetSwitch(&FocusReverseSP, nullptr);
+                FocusReverseSP[INDI_ENABLED].setState((std::stoi(result[index]) > 0) ? ISS_ON : ISS_OFF);
+                FocusReverseSP[INDI_DISABLED].setState((std::stoi(result[index]) == 0) ? ISS_ON : ISS_OFF);
+                FocusReverseSP.setState(IPS_OK);
+                FocusReverseSP.apply();
             }
             FocuserSelectSP.setState(IPS_OK);
             FocuserSelectSP.apply();

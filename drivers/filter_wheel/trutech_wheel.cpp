@@ -80,8 +80,8 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             {
                 LOG_INFO("Filter set to home position.");
                 HomeSP.s = IPS_OK;
-                FilterSlotNP.s = IPS_OK;
-                IDSetNumber(&FilterSlotNP, nullptr);
+                FilterSlotNP.setState(IPS_OK);
+                FilterSlotNP.apply();
             }
             else
                 HomeSP.s = IPS_ALERT;
@@ -129,9 +129,9 @@ bool TruTech::home()
     if (static_cast<uint8_t>(filter_response[0]) == COMM_INIT)
     {
         CurrentFilter = 1;
-        FilterSlotN[0].value = 1;
-        FilterSlotN[0].min = 1;
-        FilterSlotN[0].max = filter_response[2] - 0x30;
+        FilterSlotNP[0].setValue(1);
+        FilterSlotNP[0].setMin(1);
+        FilterSlotNP[0].setMax(filter_response[2] - 0x30);
     }
 
     return true;
@@ -170,7 +170,7 @@ int TruTech::QueryFilter()
 
 void TruTech::TimerHit()
 {
-    if (FilterSlotNP.s == IPS_BUSY)
+    if (FilterSlotNP.getState() == IPS_BUSY)
     {
         int rc = 0, nbytes_written = 0, nbytes_read = 0;
         uint8_t type   = 0x02;

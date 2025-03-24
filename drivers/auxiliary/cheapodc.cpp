@@ -101,7 +101,7 @@ bool CheapoDC::initProperties()
     SetPointModeSP[TEMPERATURE].fill("TEMPERATURE", "Temperature", ISS_OFF);
     SetPointModeSP[MIDPOINT].fill("MIDPOINT", "Midpoint", ISS_OFF);
     SetPointModeSP.fill(getDeviceName(), "SETPOINT_MODE", "Set Point Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+ 
     /*  Update Output Every 1 to 20 minutes */
     UpdateOutputEveryNP[0].fill("UPDATE_PERIOD", "Period (min)", "%2.0f", 1, 20, 1, 1);
     UpdateOutputEveryNP.fill(getDeviceName(), "UPDATE_OUTPUT", "Update Output", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
@@ -209,6 +209,12 @@ bool CheapoDC::updateProperties()
         defineProperty(HumidityNP);
         defineProperty(DewpointNP);
         defineProperty(SetPointTemperatureNP);
+        if (checkAddtionalOutputs()) 
+        {
+            for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+                if (lastControllerPinMode[i] != CONTROLLER_PIN_MODE_DISABLED)   
+                    defineProperty(AdditionalOutputsNP[i]);
+        }
         defineProperty(RefreshSP);
         // Options Tab
         defineProperty(MinimumOutputNP);
@@ -259,6 +265,11 @@ bool CheapoDC::updateProperties()
         deleteProperty(HumidityNP);
         deleteProperty(DewpointNP);
         deleteProperty(SetPointTemperatureNP);
+        if (additionalOutputsSupported)
+        {
+            for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+                deleteProperty(AdditionalOutputsNP[i]);
+        }
         deleteProperty(RefreshSP);
         deleteProperty(TrackPointOffsetNP);
         deleteProperty(TrackingRangeNP);
@@ -295,6 +306,11 @@ void CheapoDC::redrawMainControl()
     deleteProperty(HumidityNP);
     deleteProperty(DewpointNP);
     deleteProperty(SetPointTemperatureNP);
+    if (additionalOutputsSupported)
+    {
+        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+            deleteProperty(AdditionalOutputsNP[i]);
+    }
     deleteProperty(RefreshSP);
 
     // Main Control Tab re-define properties to pick up changes and maintain order
@@ -306,6 +322,12 @@ void CheapoDC::redrawMainControl()
     defineProperty(HumidityNP);
     defineProperty(DewpointNP);
     defineProperty(SetPointTemperatureNP);
+    if (additionalOutputsSupported)
+    {
+        for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+            if (lastControllerPinMode[i] != CONTROLLER_PIN_MODE_DISABLED)   
+                defineProperty(AdditionalOutputsNP[i]);
+    }
     defineProperty(RefreshSP);
 
     doMainControlRedraw = false;
@@ -434,8 +456,19 @@ bool CheapoDC::sendGetCommand(const char *cmd, char *resp)
             }
             catch (const std::exception &e)
             {
-                LOGF_ERROR("Error parsing GET %s response for value: %s Error: %s", cmd, getResponse, e.what());
-                return false;
+                try
+                {
+                    int errorCode;
+                    jsonResponse["RESULT"].get_to(errorCode);
+                    LOGF_DEBUG("GET command %s not supported.", cmd);
+                    return false;
+                }
+                catch(const std::exception& e)
+                {
+                    LOGF_ERROR("Error parsing GET %s response for value: %s Error: %s", cmd, getResponse, e.what());
+                    return false;
+                }
+                
             }
         }
         catch (json::exception &e)
@@ -526,9 +559,92 @@ bool CheapoDC::Ack()
 
     fwVOneDetected = resp[0] == '1';
 
-
     return true;
 }
+
+bool CheapoDC::checkAddtionalOutputs()
+{
+    additionalOutputsSupported = false;
+
+    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+    {
+        char resp[CDC_RESPONSE_LENGTH] = {};
+        char command[CDC_COMMAND_LENGTH] = {};
+        int mode, ok;
+        int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
+
+        snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPM, pin);
+        if (!this->sendGetCommand(command, resp))
+            return false;
+
+        ok = sscanf(resp, "%d", &mode);
+
+        if (ok == 1) {
+            char name[MAXINDILABEL] = {};
+            char labelM[MAXINDILABEL] = {};
+            char labelS[MAXINDILABEL] = {};
+            snprintf(name, MAXINDILABEL, "OUTPUT_PIN%d", pin);
+            snprintf(labelM, MAXINDILABEL, "Output %d", pin);
+            snprintf(labelS, MAXINDILABEL, "%s (%%)", pinModeText[mode]);
+            
+            switch (mode)
+            {
+                case CONTROLLER_PIN_MODE_DISABLED:
+                    // Do nothing since we don't show Disabled Outputs
+                    break;
+                case CONTROLLER_PIN_MODE_CONTROLLER:
+                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 1, 0.);
+                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                    break;
+                case CONTROLLER_PIN_MODE_PWM:
+                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 1, 0.);
+                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+                    break;
+                case CONTROLLER_PIN_MODE_BOOLEAN:
+                    AdditionalOutputsNP[i][0].fill(name, labelS, "%3.0f", 0, 100, 100, 0.);
+                    AdditionalOutputsNP[i].fill(getDeviceName(), name, labelM, MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+                    break;
+                default:
+                    LOGF_ERROR("Get Output Mode Pin %d: Response <%s> for Command <%s> not valid.", pin, resp, command);
+            }
+
+            lastControllerPinMode[i] = mode;
+
+        }
+        else
+            LOGF_ERROR("Get Output Mode Pin %d: Response <%s> for Command <%s> not valid.", pin, resp, command);
+        
+    }
+
+    additionalOutputsSupported = true;
+    return true;
+   
+}
+
+bool CheapoDC::checkForOutputModeChange()
+{
+    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+    {   
+        char resp[CDC_RESPONSE_LENGTH] = {};
+        char command[CDC_COMMAND_LENGTH] = {};
+        int mode, ok;
+        int pin = i + CDC_MIN_ADDITIONAL_OUTPUT;
+
+        snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPM, pin);
+        if (!this->sendGetCommand(command, resp))
+            return false;
+
+        ok = sscanf(resp, "%d", &mode);
+
+        if (ok == 1)
+        {
+            if (lastControllerPinMode[i] != mode)
+                return true;
+        }
+    }
+    return false;
+}
+
 
 void CheapoDC::getWeatherSource()
 {
@@ -734,6 +850,21 @@ bool CheapoDC::setOutput(int value)
 
         sprintf(valBuf, CDC_INT_VALUE, value);
         return sendSetCommand(CDC_CMD_DCO, valBuf);
+    }
+}
+
+bool CheapoDC::setAdditionalOutput(int pin, int value)
+{
+    if ((value < 0) || (value > 100))
+        return false;
+    else
+    {
+        char command[CDC_COMMAND_LENGTH] = {};
+        char valBuf[CDC_SET_VALUE_LENGTH] = {};
+
+        sprintf(valBuf, CDC_INT_VALUE, value);
+        snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPO, pin);
+        return sendSetCommand(command, valBuf);
     }
 }
 
@@ -1005,6 +1136,19 @@ bool CheapoDC::ISNewNumber(const char *dev, const char *name, double values[], c
         result = setLocation(LocationNP[LOCATION_LATITUDE].getValue(), LocationNP[LOCATION_LONGITUDE].getValue());
         return result && readSettings();
     }
+
+    for (int i = 0; i < CDC_TOTAL_ADDITIONAL_OUTPUTS; i++)
+    {
+        if ((additionalOutputsSupported) && (AdditionalOutputsNP[i].isNameMatch(name)))
+        {
+            AdditionalOutputsNP[i].update(values, names, n);
+            AdditionalOutputsNP[i].setState(IPS_BUSY);
+            AdditionalOutputsNP[i].apply();
+            result = setAdditionalOutput(i + CDC_MIN_ADDITIONAL_OUTPUT, AdditionalOutputsNP[i][0].getValue());
+            return result && readSettings();
+        }
+    }
+
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1623,6 +1767,39 @@ bool CheapoDC::readSettings()
     RefreshSP[0].setState(ISS_OFF);
     RefreshSP.setState(IPS_OK);
     RefreshSP.apply();
+
+    // Addtional Outputs added in release 2.20 FW
+    if (additionalOutputsSupported)
+    {
+        if (checkForOutputModeChange())
+        {
+            additionalOutputsSupported = checkAddtionalOutputs();
+            doMainControlRedraw = true;
+        }
+        
+        for (int p = 0; p < CDC_TOTAL_ADDITIONAL_OUTPUTS; p++)
+        {
+            if (lastControllerPinMode[p] != CONTROLLER_PIN_MODE_DISABLED)
+            {
+                char resp[CDC_RESPONSE_LENGTH] = {};
+                char command[CDC_COMMAND_LENGTH] = {};
+                int pin = p + CDC_MIN_ADDITIONAL_OUTPUT;
+        
+                snprintf(command, CDC_COMMAND_LENGTH, CDC_CMD_CPO, pin);
+                if (!this->sendGetCommand(command, resp))
+                    return false;
+                
+                ok = sscanf(resp, "%d", &output);
+
+                if (ok == 1)
+                {
+                    AdditionalOutputsNP[p][0].setValue(output);
+                    AdditionalOutputsNP[p].setState(IPS_OK);
+                    AdditionalOutputsNP[p].apply();
+                }
+            }
+        }
+    }
 
     // Check for Snoop and settings alignment
     // For Temperature Device

@@ -67,7 +67,7 @@ bool PegasusPPBA::initProperties()
     QuadOutSP[INDI_ENABLED].fill("QUADOUT_ON", "Enable", ISS_OFF);
     QuadOutSP[INDI_DISABLED].fill("QUADOUT_OFF", "Disable", ISS_OFF);
     QuadOutSP.fill(getDeviceName(), "QUADOUT_POWER", "Quad Output", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                   IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Adjustable Power
     //    IUFillSwitch(&AdjOutS[INDI_ENABLED], "ADJOUT_ON", "Enable", ISS_OFF);
@@ -83,12 +83,12 @@ bool PegasusPPBA::initProperties()
     AdjOutVoltSP[ADJOUT_9V].fill("ADJOUT_9V", "9V", ISS_OFF);
     AdjOutVoltSP[ADJOUT_12V].fill("ADJOUT_12V", "12V", ISS_OFF);
     AdjOutVoltSP.fill(getDeviceName(), "ADJOUT_VOLTAGE", "Adj voltage", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+                      ISR_1OFMANY, 60, IPS_IDLE);
 
     // Reboot
     RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
     RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
-                       60, IPS_IDLE);
+                  60, IPS_IDLE);
 
     // Power Sensors
     PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
@@ -101,7 +101,7 @@ bool PegasusPPBA::initProperties()
     PowerSensorsNP[SENSOR_DEWA_CURRENT].fill("SENSOR_DEWA_CURRENT", "DewA current (A)", "%4.2f", 0, 999, 100, 0);
     PowerSensorsNP[SENSOR_DEWB_CURRENT].fill("SENSOR_DEWB_CURRENT", "DewB current (A)", "%4.2f", 0, 999, 100, 0);
     PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
-                       60, IPS_IDLE);
+                        60, IPS_IDLE);
 
     PowerWarnLP[0].fill("POWER_WARN_ON", "Current Overload", IPS_IDLE);
     PowerWarnLP.fill(getDeviceName(), "POWER_WARM", "Power Warn", MAIN_CONTROL_TAB, IPS_IDLE);
@@ -110,8 +110,8 @@ bool PegasusPPBA::initProperties()
     LedIndicatorSP[INDI_ENABLED].fill("LED_ON", "Enable", ISS_ON);
     LedIndicatorSP[INDI_DISABLED].fill("LED_OFF", "Disable", ISS_OFF);
     LedIndicatorSP.fill(getDeviceName(), "LED_INDICATOR", "LED Indicator", MAIN_CONTROL_TAB,
-                       IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+                        IP_RW,
+                        ISR_1OFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -133,7 +133,7 @@ bool PegasusPPBA::initProperties()
     AutoDewSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
     AutoDewSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
     AutoDewSP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
-                       IPS_IDLE);
+                   IPS_IDLE);
 
     AutoDewSettingsNP[AUTO_DEW_AGGRESSION].fill("AGGRESSION", "Aggresiveness (%)", "%.2f", 0, 100, 10, 0);
     AutoDewSettingsNP.fill(getDeviceName(), "AUTO_DEW_SETTINGS", "Auto Dew Settings", DEW_TAB, IP_RW, 60, IPS_IDLE);
@@ -150,7 +150,7 @@ bool PegasusPPBA::initProperties()
     FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
     FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
     FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
-                     IPS_IDLE);
+                    IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -167,7 +167,7 @@ bool PegasusPPBA::initProperties()
     // Max Speed
     FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     FocuserSettingsNP.fill(getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
-                       IP_RW, 60, IPS_IDLE);
+                           IP_RW, 60, IPS_IDLE);
 
     // Stepping
     FocuserDriveSP[STEP_FULL].fill("STEP_FULL", "Full", ISS_OFF);
@@ -175,7 +175,7 @@ bool PegasusPPBA::initProperties()
     FocuserDriveSP[STEP_FORTH].fill("STEP_FORTH", "1/4", ISS_OFF);
     FocuserDriveSP[STEP_EIGHTH].fill("STEP_EIGHTH", "1/8", ISS_OFF);
     FocuserDriveSP.fill(getDeviceName(), "FOCUSER_DRIVE", "Microstepping", FOCUS_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
@@ -517,7 +517,8 @@ bool PegasusPPBA::ISNewNumber(const char * dev, const char * name, double values
         // Auto Dew Settings
         if (AutoDewSettingsNP.isNameMatch(name))
         {
-            AutoDewSettingsNP.setState(setAutoDewAggression(static_cast<uint8_t>(values[AUTO_DEW_AGGRESSION] / 100.0 * 255.0)) ? IPS_OK : IPS_ALERT);
+            AutoDewSettingsNP.setState(setAutoDewAggression(static_cast<uint8_t>(values[AUTO_DEW_AGGRESSION] / 100.0 * 255.0)) ?
+                                       IPS_OK : IPS_ALERT);
             if (AutoDewSettingsNP.getState() == IPS_OK)
                 AutoDewSettingsNP.update(values, names, n);
             AutoDewSettingsNP.apply();
@@ -827,14 +828,14 @@ bool PegasusPPBA::getAutoDewAggression()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("DA", res))
     {
-        
+
         uint32_t value = 0;
         sscanf(res, "%*[^:]:%d", &value);
         AutoDewSettingsNP[AUTO_DEW_AGGRESSION].setValue(100 * value / 255);
     }
     else
         AutoDewSettingsNP.setState(IPS_ALERT);
-        
+
     AutoDewSettingsNP.apply();
     return AutoDewSettingsNP.getState() != IPS_ALERT;
 }
@@ -901,7 +902,7 @@ IPState PegasusPPBA::MoveAbsFocuser(uint32_t targetTicks)
 //////////////////////////////////////////////////////////////////////
 IPState PegasusPPBA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -981,7 +982,7 @@ bool PegasusPPBA::getXMCStartupData()
     {
         uint32_t position = 0;
         sscanf(res, "%*[^#]#%d", &position);
-        FocusAbsPosN[0].value = position;
+        FocusAbsPosNP[0].setValue(position);
     }
 
     // Max speed
@@ -1011,18 +1012,18 @@ void PegasusPPBA::queryXMC()
     if (sendCommand("XS:2", res))
         sscanf(res, "%*[^#]#%d", &position);
 
-    uint32_t lastPosition = FocusAbsPosN[0].value;
-    FocusAbsPosN[0].value = position;
+    uint32_t lastPosition = FocusAbsPosNP[0].getValue();
+    FocusAbsPosNP[0].setValue(position);
 
-    if (FocusAbsPosNP.s == IPS_BUSY && motorRunning == 0)
+    if (FocusAbsPosNP.getState() == IPS_BUSY && motorRunning == 0)
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
     }
     else if (lastPosition != position)
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
 }
 //////////////////////////////////////////////////////////////////////

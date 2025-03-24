@@ -1,3 +1,72 @@
++ From 2.1.1 to 2.1.2
+
+      d3473444a 2025-01-31 Jérémie Klein        Update wanderer rotator lite v1 to latest firmware version and correct a bug when homing with rotator mini and lite v2 (#2166)                        
+      b9066d67b 2025-01-27 Jasem Mutlaq         Fix crash in case connection fails                                                                                                                    
+      d9b37f9f5 2025-01-26 Jasem Mutlaq         Add more protections against invalid mount coordinates in Dome class.                                                                                 
+      ecc15afdc 2025-01-22 Jasem Mutlaq         Do not process snoop if not for our active device                                                                                                     
+      01b147be9 2025-01-22 Mattia Verga         Add includes to fix build with GCC15-C++23 (#2165)                                                                                                    
+      17229559e 2025-01-22 Jasem Mutlaq         Use consistent config load variables for both input and output interfaces                                                                             
+      6500b91a5 2025-01-22 Jasem Mutlaq         Add isUpdated property function to know if a property would be updated by the passed parameters or not. It is convenient as sometimes we need to kno..
+      a92f8d6a8 2025-01-21 Jasem Mutlaq         Only load from config when we have outputs                                                                                                            
+      27b0e9fe7 2025-01-20 Jasem Mutlaq         Update limit max to 360 degrees                                                                                                                       
+      4aa175ee6 2025-01-20 Paweł Soja           Feature for ZWO AM5 - Heavy Duty Mode and Fix slew rate (#2161)                                                                                       
+      c95525d24 2025-01-20 Paweł Soja           Fix MacOS build (#2162)                                                                                                                               
+      625d34cc6 2025-01-14 Brad Smith           Use C99 integer types (#2160)                                                                                                                         
+      8d4c42538 2025-01-14 Jasem Mutlaq         Add more logging to cliernt to dianogse connection issues                                                                                             
+      1ea230094 2025-01-14 Jasem Mutlaq         Preliminary driver for IPX800v4 controller. Not tested yet.                                                                                           
+      f2631149b 2025-01-13 Brad Smith           Fix usage of SO_PEERCRED on OpenBSD (#2159)                                                                                                           
+      e14f96ceb 2025-01-13 Jasem Mutlaq         Add preliminary PowerInterface to serve as the unified interface for all power drivers. Need to slowly migrate all existing power drivers to use thi..
+      b6f7f3c75 2025-01-13 Jasem Mutlaq         Support for meridian flip settings in ZWO AM mounts                                                                                                   
+      eed62b062 2025-01-12 Brad Smith           Various build fixes for OpenBSD (#2154)                                                                                                               
+      972c8d8e1 2025-01-12 Brad Smith           OpenBSD uses sys/videoio.h for its V4L2 header (#2155)                                                                                                
+      05417ce21 2025-01-11 Jasem Mutlaq         Fix issue on OnStep fast mounts where we need to send rapid RA/DE updates during manual motion. Without this change, the updates lag behind by sever..
+      76b5329c1 2024-12-24 escribana            Draft: Reuse calibration after rotation (#2153)                                                                                                       
+      c6483e5b0 2024-12-23 Jasem Mutlaq         Ensure we only snoop updated values                                                                                                                   
+      c68e12bf5 2024-12-22 Peter Englmaier      Fix DustCover open/close (#2152)                                                                                                                      
+      fb54605ac 2024-12-13 Jim                  spec_2.1.0: update spec to 2.1.0 (#2151)                                                                                                              
+      1be1d68c9 2024-12-08 Jasem Mutlaq         Set UDP type and default port                                                                                                                         
+      5067762cb 2024-12-08 Jasem Mutlaq         Add Filter Wheel delay parameter for simulation purposes                                                                                              
+      7738cc76d 2024-12-04 Jasem Mutlaq         Fix typo and add dbg packages as well                                                                                                                 
+      f0dd6a270 2024-12-04 Jasem Mutlaq         Fix indentation issue from vscode                                                                                                                     
+      8b197d67d 2024-12-04 Jasem Mutlaq         Avoid conflict with removed indi-3rdparty drivers                                                                                                     
+      b025be96f 2024-12-03 Jasem Mutlaq         INDI uses tracking rates in solar seconds while PMC8 uses rates in sidereal seconds so we need to convert between the two units                       
+      1c92c97ef 2024-12-03 Jasem Mutlaq         Use rates as defined by the PMC8 manual.                                                                                                              
+      a2165530c 2024-12-03 Jasem Mutlaq         Revert rate to 15.000 and add comments so that this does not happen again. Fixes iexos-100 pmc-8 mount has wrong tracking rates #2132                 
+      
++ From 2.1.0 to 2.1.1
+
+      daaa7a44c 2024-12-01 Jasem Mutlaq         Terminate string to remove delimeter at the end                                                                                                       
+      436d7c5f6 2024-11-28 Jasem Mutlaq         Fix bug when processing longitude due to regression                                                                                                   
+      aabf46a21 2024-11-24 Jasem Mutlaq         Add speed controls to account for different dome speed scenarios                                                                                      
+      28bf89a1d 2024-11-23 Jasem Mutlaq         Reduce spam in logs                                                                                                                                   
+      4af322800 2024-11-20 Jasem Mutlaq         When aborting dust cap, update the parking status as well. Clarify the Parked, Unparked, and Unknown states.                                          
+      0c9294363 2024-11-10 Jasem Mutlaq         Bump version to 1.1                                                                                                                                   
+      cef7d28fc 2024-11-06 Artyom Beilis        Sim crash fix - looks like found root cause (#2147)                                                                                                   
+      220efb42c 2024-11-04 Jasem Mutlaq         Add verbose logging to iOptron driver                                                                                                                 
+      4d2d652a2 2024-11-03 hcomet               Upgrade CheapoDC driver for new device firmware features (#2142)                                                                                      
+      b41b4c7d7 2024-11-03 Jasem Mutlaq         possible fix for pyrix status issue                                                                                                                   
+      12d6291a2 2024-11-02 Artyom Beilis        Fixed crash due not checking boundary values of the axis in telescope_simulator (#2144)                                                               
+      870ad2ce3 2024-11-01 Jasem Mutlaq         Do not load config twice                                                                                                                              
+      9d6e87abf 2024-10-28 joe13905179063       Update ieaffocus.cpp (#2141)                                                                                                                          
+      d4c96d836 2024-10-19 naheedsa             Migrate Astromech focuser (#2134)                                                                                                                     
+      8b9da900d 2024-10-19 naheedsa             Migrate INDI Astrolink4 (#2133)                                                                                                                       
+      3b6e51454 2024-10-16 Pavle Gartner        FP2 motor status (#2139)                                                                                                                              
+      ab5f6dae8 2024-10-13 Jasem Mutlaq         Use                                                                                                                                                   
+      02f31b81f 2024-10-11 Jasem Mutlaq         Correct tracking rates as submitted by Andreas Schneider                                                                                              
+      3a0d0a8f3 2024-10-11 Jasem Mutlaq         Add missing models and change PEC command                                                                                                             
+      e09b94530 2024-10-10 Jarno Paananen       Miscellaneous ScopeDome driver updates. (#2137)                                                                                                       
+      c2530d100 2024-10-10 Jarno Paananen       Update SnapCap driver to use common abort capability from DustCapInterface instead of doing it manually. (#2136)                                      
+      3c35e7565 2024-10-09 Jasem Mutlaq         Fix image file name path. Fixes #2135                                                                                                                 
+      abf12b440 2024-10-09 Jasem Mutlaq         Fix crash in LX200 OnStep                                                                                                                             
+      5ffb3f651 2024-10-08 Jasem Mutlaq         Use Current tracking mode                                                                                                                             
+      68b456e87 2024-10-08 Jasem Mutlaq         Fix setting custom track rates. Fixes #2128                                                                                                           
+      e110e617d 2024-10-08 Jasem Mutlaq         Slew rate labels can be reset after setTelescopeCapability. This should be fixed in 2.1.1. For now, we need to reset labels after each call           
+      930881030 2024-10-07 Jasem Mutlaq         Add missing update properties for Guider Interface                                                                                                    
+      4c52a14cd 2024-10-07 Anthony Hinsinger    Fixed missing apply() on TrackStateSP property (#2130)                                                                                                
+      b5a6eab9e 2024-10-06 Jasem Mutlaq         Fix order of interfaces. Default device must always come first                                                                                        
+      c7cb615f0 2024-10-02 Jasem Mutlaq         allow for source buffer to be larger than srcFrameInfo size since some drivers do not reallocate after binning the frame                              
+      d122fb137 2024-10-02 Jasem Mutlaq         Find WebsocketSP Property                                                                                                                             
+
 + From 2.0.9 to 2.1.0
 
       eca176463 2024-09-30 Jasem Mutlaq         Fix pier side as proposed by Colin McGill                                                                                                             

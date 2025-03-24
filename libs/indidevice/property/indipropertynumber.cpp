@@ -62,4 +62,10 @@ void PropertyNumber::updateMinMax()
     d->typedProperty.updateMinMax();
 }
 
+bool PropertyNumber::isUpdated(const double values[], const char * const names[], int n) const
+{
+    D_PTR(const PropertyNumber);
+    return d->typedProperty.isUpdated(values, names, n);
+}
+
 }

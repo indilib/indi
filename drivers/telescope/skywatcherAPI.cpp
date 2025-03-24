@@ -915,7 +915,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, SkywatcherCommand Command, std::st
         {
             memset(response, '\0', SKYWATCHER_MAX_CMD);
             // If we get less than 2 bytes then it must be an error (=\r is a valid response).
-            if ( (errorCode = tty_read_section(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT, &bytesRead)) != TTY_OK
+            if ( (errorCode = tty_read_section_expanded(MyPortFD, response, 0x0D, SKYWATCHER_TIMEOUT_S, SKYWATCHER_TIMEOUT_US, &bytesRead)) != TTY_OK
                     || bytesRead < 2)
             {
                 if (retries == SKYWATCHER_MAX_RETRTY - 1)

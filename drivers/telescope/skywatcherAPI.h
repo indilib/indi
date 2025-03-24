@@ -409,9 +409,10 @@ class SkywatcherAPI
 
     private:
         int MyPortFD { 0 };
-        // In seconds.
-        static constexpr uint8_t SKYWATCHER_MAX_RETRTY {3};
-        static constexpr uint8_t SKYWATCHER_TIMEOUT {5};
+        /// default timeout in synscan app os 200ms and 2 retransmissions, so put there little bit more
+        static constexpr uint8_t SKYWATCHER_MAX_RETRTY {5};
+        static constexpr uint8_t SKYWATCHER_TIMEOUT_S  {0};
+        static constexpr long    SKYWATCHER_TIMEOUT_US {300000}; 
         static constexpr uint8_t SKYWATCHER_MAX_CMD {16};
 
         static const std::map<int, std::string> errorCodes;

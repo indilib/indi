@@ -44,10 +44,12 @@ GuiderInterface::~GuiderInterface()
 /////////////////////////////////////////////////////////////////////////////////////////////
 void GuiderInterface::initProperties(const char *groupName)
 {
+    // @INDI_STANDARD_PROPERTY@
     GuideNSNP[DIRECTION_NORTH].fill("TIMED_GUIDE_N", "North (ms)", "%.f", 0, 60000, 100, 0);
     GuideNSNP[DIRECTION_SOUTH].fill("TIMED_GUIDE_S", "South (ms)", "%.f", 0, 60000, 100, 0);
     GuideNSNP.fill(m_defaultDevice->getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide N/S", groupName, IP_RW, 60, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     GuideWENP[DIRECTION_WEST].fill("TIMED_GUIDE_W", "West (ms)", "%.f", 0, 60000, 100, 0);
     GuideWENP[DIRECTION_EAST].fill("TIMED_GUIDE_E", "East (ms)", "%.f", 0, 60000, 100, 0);
     GuideWENP.fill(m_defaultDevice->getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide E/W", groupName, IP_RW, 60, IPS_IDLE);

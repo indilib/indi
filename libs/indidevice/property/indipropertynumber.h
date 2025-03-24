@@ -34,6 +34,7 @@ class PropertyNumber: public INDI::PropertyBasic<INumber>
 
     public:
         bool update(const double values[], const char * const names[], int n);
+        bool isUpdated(const double values[], const char * const names[], int n) const;
 
         void fill(
             const char *device, const char *name, const char *label, const char *group,

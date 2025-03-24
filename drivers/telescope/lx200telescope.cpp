@@ -137,9 +137,9 @@ bool LX200Telescope::initProperties()
         //                           ISR_1OFMANY, 0, IPS_IDLE);
 
         // Classical speeds slow or fast
-        FocusSpeedN[0].min = 1;
-        FocusSpeedN[0].max = 2;
-        FocusSpeedN[0].value = 1;
+        FocusSpeedNP[0].setMin(1);
+        FocusSpeedNP[0].setMax(2);
+        FocusSpeedNP[0].setValue(1);
         setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
     }
 
@@ -949,19 +949,19 @@ void LX200Telescope::updateFocusTimer()
     //                    return;
     //                }
 
-    //                FocusMotionSP.s = IPS_IDLE;
+    //                FocusMotionSP.setState(IPS_IDLE);
     //                FocusTimerNP.s  = IPS_OK;
     //                FocusModeSP.s   = IPS_OK;
 
-    //                IUResetSwitch(&FocusMotionSP);
+    //                FocusMotionSP.reset();
     //                IUResetSwitch(&FocusModeSP);
     //                FocusModeS[0].s = ISS_ON;
 
     //                IDSetSwitch(&FocusModeSP, nullptr);
-    //                IDSetSwitch(&FocusMotionSP, nullptr);
+    //                FocusMotionSP.apply();
     //            }
 
-    //            IDSetNumber(&FocusTimerNP, nullptr);
+    //            FocusTimerNP.apply();
 
     //            if (FocusTimerN[0].value > 0)
     //                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
@@ -975,9 +975,9 @@ void LX200Telescope::updateFocusTimer()
     //    }
 
     AbortFocuser();
-    FocusTimerNP.s = IPS_OK;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusTimerNP.setState(IPS_OK);
+    FocusTimerNP[0].setValue(0);
+    FocusTimerNP.apply();
 }
 
 void LX200Telescope::mountSim()
@@ -1349,16 +1349,9 @@ bool LX200Telescope::sendScopeLocation()
         double value = 0;
         snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
         f_scansexa(lng_sexagesimal, &value);
+        value = range360(value);
         LocationNP[LOCATION_LONGITUDE].setValue(value);
-
-        // JM 2024.02.05: INDI Longitude MUST be 0 to +360 eastward
-        // We cannot use cartographic format in the INDI drivers!
-        if (LocationNP[LOCATION_LONGITUDE].getValue() < 0)
-        {
-
-            LocationNP[LOCATION_LONGITUDE].setValue(360);
-            fs_sexa(lng_sexagesimal, LocationNP[LOCATION_LONGITUDE].getValue(), 2, 36000);
-        }
+        fs_sexa(lng_sexagesimal, LocationNP[LOCATION_LONGITUDE].getValue(), 2, 36000);
     }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude (0 to +360 Eastwards) %s (%g)",
@@ -1606,7 +1599,7 @@ IPState LX200Telescope::MoveFocuser(FocusDirection dir, int speed, uint16_t dura
 {
     FocusDirection finalDirection = dir;
     // Reverse final direction if necessary
-    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
+    if (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON)
         finalDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
 
     SetFocuserSpeed(speed);

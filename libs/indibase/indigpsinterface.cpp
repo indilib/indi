@@ -44,18 +44,22 @@ void GPSInterface::initProperties(const char * groupName)
 {
     time(&m_GPSTime);
 
+    // @INDI_STANDARD_PROPERTY@
     PeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
     PeriodNP.fill(m_DefaultDevice->getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", groupName, IP_RW, 0, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     RefreshSP[0].fill("REFRESH", "GPS", ISS_OFF);
     RefreshSP.fill(m_DefaultDevice->getDeviceName(), "GPS_REFRESH", "Refresh", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    // @INDI_STANDARD_PROPERTY@
     LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
     LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     LocationNP.fill(m_DefaultDevice->getDeviceName(), "GEOGRAPHIC_COORD", "Location", groupName, IP_RO, 60, IPS_IDLE);
 
     // System Time Settings
+    // @INDI_STANDARD_PROPERTY@
     SystemTimeUpdateSP[UPDATE_NEVER].fill("UPDATE_NEVER", "Never", ISS_OFF);
     SystemTimeUpdateSP[UPDATE_ON_STARTUP].fill("UPDATE_ON_STARTUP", "On Startup", ISS_ON);
     SystemTimeUpdateSP[UPDATE_ON_REFRESH].fill("UPDATE_ON_REFRESH", "On Refresh", ISS_OFF);
@@ -64,6 +68,7 @@ void GPSInterface::initProperties(const char * groupName)
                             IPS_IDLE);
     SystemTimeUpdateSP.load();
 
+    // @INDI_STANDARD_PROPERTY@
     TimeTP[0].fill("UTC", "UTC Time", nullptr);
     TimeTP[1].fill("OFFSET", "UTC Offset", nullptr);
     TimeTP.fill(m_DefaultDevice->getDeviceName(), "TIME_UTC", "UTC", groupName, IP_RO, 60, IPS_IDLE);

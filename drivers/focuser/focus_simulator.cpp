@@ -103,14 +103,14 @@ bool FocusSim::initProperties()
 
     initTicks = sqrt(FWHMNP[0].getValue() - SeeingNP[0].getValue()) / 0.75;
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 5;
-    FocusSpeedN[0].step  = 1;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(5);
+    FocusSpeedNP[0].setStep(1);
+    FocusSpeedNP[0].setValue(1);
 
-    FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;
+    FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].getMax() / 2);
 
-    internalTicks = FocusAbsPosN[0].value;
+    internalTicks = FocusAbsPosNP[0].getValue();
 
     return true;
 }
@@ -156,27 +156,27 @@ bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             switch (index)
             {
-            case MODE_ALL:
-                cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
-                break;
+                case MODE_ALL:
+                    cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
+                    break;
 
-            case MODE_ABSOLUTE:
-                cap = FOCUSER_CAN_ABS_MOVE;
-                break;
+                case MODE_ABSOLUTE:
+                    cap = FOCUSER_CAN_ABS_MOVE;
+                    break;
 
-            case MODE_RELATIVE:
-                cap = FOCUSER_CAN_REL_MOVE;
-                break;
+                case MODE_RELATIVE:
+                    cap = FOCUSER_CAN_REL_MOVE;
+                    break;
 
-            case MODE_TIMER:
-                cap = FOCUSER_HAS_VARIABLE_SPEED;
-                break;
+                case MODE_TIMER:
+                    cap = FOCUSER_HAS_VARIABLE_SPEED;
+                    break;
 
-            default:
-                ModeSP.setState(IPS_ALERT);
-                LOG_INFO("Unknown mode index");
-                ModeSP.apply();
-                return true;
+                default:
+                    ModeSP.setState(IPS_ALERT);
+                    LOG_INFO("Unknown mode index");
+                    ModeSP.apply();
+                    return true;
             }
 
             FI::SetCapability(cap);
@@ -234,7 +234,7 @@ bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], c
 ************************************************************************************/
 IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    double mid         = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    double mid         = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 2;
     int mode           = ModeSP.findOnSwitchIndex();
     double targetTicks = ((dir == FOCUS_INWARD) ? -1 : 1) * (speed * duration);
 
@@ -242,7 +242,7 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     if (mode == MODE_ALL)
     {
-        if (internalTicks < FocusAbsPosN[0].min || internalTicks > FocusAbsPosN[0].max)
+        if (internalTicks < FocusAbsPosNP[0].getMin() || internalTicks > FocusAbsPosNP[0].getMax())
         {
             internalTicks -= targetTicks;
             LOG_ERROR("Cannot move focuser in this direction any further.");
@@ -262,8 +262,8 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     if (mode == MODE_ALL)
     {
-        FocusAbsPosN[0].value = internalTicks;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(internalTicks);
+        FocusAbsPosNP.apply();
     }
 
     if (FWHMNP[0].getValue() < SeeingNP[0].getValue())
@@ -279,7 +279,7 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 ************************************************************************************/
 IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    double mid = (FocusAbsPosNP[0].getMax() - FocusAbsPosNP[0].getMin()) / 2;
 
     internalTicks = targetTicks;
 
@@ -287,9 +287,9 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
     double ticks = initTicks + (targetTicks - mid) / 5000.0;
 
     // simulate delay in motion as the focuser moves to the new position
-    usleep(std::abs((targetTicks - FocusAbsPosN[0].value) * DelayNP[0].getValue()));
+    usleep(std::abs((targetTicks - FocusAbsPosNP[0].getValue()) * DelayNP[0].getValue()));
 
-    FocusAbsPosN[0].value = targetTicks;
+    FocusAbsPosNP[0].setValue(targetTicks);
 
     FWHMNP[0].setValue(0.5625 * ticks * ticks + SeeingNP[0].getValue());
 
@@ -309,9 +309,9 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 ************************************************************************************/
 IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    uint32_t targetTicks = FocusAbsPosNP[0].getValue() + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
     return MoveAbsFocuser(targetTicks);
 }
 

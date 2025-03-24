@@ -48,28 +48,27 @@ void QHYCFW2::ISGetProperties(const char *dev)
     {
         double maxCount = 5;
         IUGetConfigNumber(getDeviceName(), "MAX_FILTER", "Count", &maxCount);
-        FilterSlotN[0].max = maxCount;
-        if (FilterNameTP->ntp != maxCount)
+        FilterSlotNP[0].setMax(maxCount);
+        if (FilterNameTP.size() != maxCount)
         {
             char filterName[MAXINDINAME];
             char filterLabel[MAXINDILABEL];
-            if (FilterNameT != nullptr)
-            {
-                for (int i = 0; i < FilterNameTP->ntp; i++)
-                    free(FilterNameT[i].text);
-                delete [] FilterNameT;
-            }
 
-            FilterNameT = new IText[static_cast<int>(maxCount)];
-            memset(FilterNameT, 0, sizeof(IText) * maxCount);
+            FilterNameTP.resize(0);
+
             for (int i = 0; i < maxCount; i++)
             {
                 snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
                 snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-                IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+
+                INDI::WidgetText oneText;
+                oneText.fill(filterName, filterLabel, filterLabel);
+                FilterNameTP.push(std::move(oneText));
             }
-            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
-                             FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+
+            FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filter",
+                              FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
+            FilterNameTP.shrink_to_fit();
         }
     }
     defineProperty(&MaxFilterNP);
@@ -84,8 +83,8 @@ bool QHYCFW2::initProperties()
                        IPS_IDLE);
 
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(5);
 
     addAuxControls();
 

@@ -113,7 +113,7 @@ bool FilterIFW::updateProperties()
         if (isSimulation())
             defineProperty(&FilterNbrSP);
         defineProperty(&CharSetSP);
-        defineProperty(&FilterSlotNP);
+        defineProperty(FilterSlotNP);
         controller->updateProperties();
 
         GetFirmware(); // Try to get Firmware version of the IFW. NOt all Firmware support this function
@@ -126,8 +126,8 @@ bool FilterIFW::updateProperties()
         deleteProperty(WheelIDTP.name);
         deleteProperty(CharSetSP.name);
         deleteProperty(FilterNbrSP.name);
-        deleteProperty(FilterSlotNP.name);
-        deleteProperty(FilterNameTP->name);
+        deleteProperty(FilterSlotNP);
+        deleteProperty(FilterNameTP);
         controller->updateProperties();
     }
 
@@ -272,7 +272,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // User has changed one or more names from filter related to the Wheel ID present in the IFW
-        if (strcmp(FilterNameTP->name, name) == 0)
+        if (FilterNameTP.isNameMatch(name))
         {
             // Only these chars are allowed to be able to the IFW display to show names correctly
             std::regex rx("^[A-Z0-9=.#/%[:space:]-]{1,8}$");
@@ -292,14 +292,14 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
 
             if (match)
             {
-                IUUpdateText(FilterNameTP, texts, names, n);
-                FilterNameTP->s = SetFilterNames() ? IPS_OK : IPS_ALERT;
-                IDSetText(FilterNameTP, nullptr);
+                FilterNameTP.update(texts, names, n);
+                FilterNameTP.setState(SetFilterNames() ? IPS_OK : IPS_ALERT);
+                FilterNameTP.apply();
             }
             else
             {
-                FilterNameTP->s = IPS_ALERT;
-                IDSetText(FilterNameTP, nullptr);
+                FilterNameTP.setState(IPS_ALERT);
+                FilterNameTP.apply();
                 LOG_INFO("WARNING *****************************************************");
                 LOG_INFO(
                     "One of the filter name is not valid. It should not have more than 8 chars");
@@ -328,8 +328,8 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IUResetSwitch(&HomeSP);
             LOG_INFO("Executing Home command...");
 
-            FilterNameTP->s = IPS_BUSY;
-            IDSetText(FilterNameTP, nullptr);
+            FilterNameTP.setState(IPS_BUSY);
+            FilterNameTP.apply();
 
             if (!moveHome())
             {
@@ -365,22 +365,22 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             // Is simulation active, User can change from 5 positions wheel to 6, 8 or 9 ones
             // Check if selection is different from active one
 
-            if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotN[0].max != 5))
+            if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotNP[0].getMax() != 5))
             {
                 strncpy(filterSim, filterSim5, sizeof(filterSim));
                 FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
-            else if ((FilterNbrS[1].s == ISS_ON) & (FilterSlotN[0].max != 6))
+            else if ((FilterNbrS[1].s == ISS_ON) & (FilterSlotNP[0].getMax() != 6))
             {
                 strncpy(filterSim, filterSim6, sizeof(filterSim));
                 FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
-            else if ((FilterNbrS[2].s == ISS_ON) & (FilterSlotN[0].max != 8))
+            else if ((FilterNbrS[2].s == ISS_ON) & (FilterSlotNP[0].getMax() != 8))
             {
                 strncpy(filterSim, filterSim8, sizeof(filterSim));
                 FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
-            else if ((FilterNbrS[3].s == ISS_ON) & (FilterSlotN[0].max != 9))
+            else if ((FilterNbrS[3].s == ISS_ON) & (FilterSlotNP[0].getMax() != 9))
             {
                 strncpy(filterSim, filterSim9, sizeof(filterSim));
                 FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
@@ -451,8 +451,8 @@ bool FilterIFW::SelectFilter(int f)
     memset(response, 0, sizeof(response));
     snprintf(cmd, 32, "%s%d", "WGOTO", f);
 
-    FilterSlotNP.s = IPS_BUSY;
-    IDSetNumber(&FilterSlotNP, "*** Moving to filter n° %d ***", f);
+    FilterSlotNP.setState(IPS_BUSY);
+    FilterSlotNP.apply("*** Moving to filter n° %d ***", f);
 
     if (!WriteTTY(cmd))
     {
@@ -464,7 +464,7 @@ bool FilterIFW::SelectFilter(int f)
         if (isSimulation())
         {
             // Time depend of rotation direction. Goes via shortest way
-            int maxFilter = FilterSlotN[0].max;
+            int maxFilter = FilterSlotNP[0].getMax();
             int way1, way2;
             if (f > actualSimFilter)
             {
@@ -505,16 +505,16 @@ bool FilterIFW::SelectFilter(int f)
 
     if (!result)
     {
-        FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, "*** UNABLE TO SELECT THE FILTER ***");
+        FilterSlotNP.setState(IPS_ALERT);
+        FilterSlotNP.apply("*** UNABLE TO SELECT THE FILTER ***");
         return false;
     }
 
     // As to be called when filter has moved to new position:
     SelectFilterDone(GetFilterPos());
 
-    FilterSlotNP.s = IPS_OK;
-    IDSetNumber(&FilterSlotNP, "Selected filter position reached");
+    FilterSlotNP.setState(IPS_OK);
+    FilterSlotNP.apply("Selected filter position reached");
     return true;
 }
 
@@ -534,8 +534,8 @@ bool FilterIFW::GetFilterNames()
 
     memset(response, 0, sizeof(response));
 
-    FilterNameTP->s = IPS_BUSY;
-    IDSetText(FilterNameTP, nullptr);
+    FilterNameTP.setState(IPS_BUSY);
+    FilterNameTP.apply();
 
     if (!WriteTTY((char *)"WREAD"))
     {
@@ -595,33 +595,29 @@ bool FilterIFW::GetFilterNames()
 
             LOG_DEBUG("Redo filters name list");
             // Set new max value on the filter_slot property
-            FilterSlotN[0].max = maxFilter;
+            FilterSlotNP[0].setMax(maxFilter);
             if (isSimulation())
-                FilterSlotN[0].value = actualSimFilter = 1;
-            IUUpdateMinMax(&FilterSlotNP);
-            IDSetNumber(&FilterSlotNP, nullptr);
+                FilterSlotNP[0].setValue(actualSimFilter = 1);
+            FilterSlotNP.updateMinMax();
+            FilterSlotNP.apply();
 
-            deleteProperty(FilterNameTP->name);
+            deleteProperty(FilterNameTP);
 
-            if (FilterNameT != nullptr)
-            {
-                for (int i = 0; i < FilterNameTP->ntp; i++)
-                    free(FilterNameT[i].text);
-                delete [] FilterNameT;
-            }
-
-            FilterNameT = new IText[maxFilter];
-            memset(FilterNameT, 0, sizeof(IText) * maxFilter);
+            FilterNameTP.resize(0);
 
             for (int i = 0; i < maxFilter; i++)
             {
                 snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
                 snprintf(filterLabel, MAXINDILABEL, "Filter n° %d", i + 1);
-                IUFillText(&FilterNameT[i], filterName, filterLabel, filterNameIFW[i]);
+
+                INDI::WidgetText oneText;
+                oneText.fill(filterName, filterLabel, filterNameIFW[i]);
+                FilterNameTP.push(std::move(oneText));
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.group,
-                             IP_RW, 0, IPS_OK);
+            FilterNameTP.fill(getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.getGroupName(),
+                              IP_RW, 0, IPS_OK);
+            FilterNameTP.shrink_to_fit();
             defineProperty(FilterNameTP);
 
             // filterList only use for purpose information
@@ -639,16 +635,16 @@ bool FilterIFW::GetFilterNames()
             }
             *withoutSpace = '\0';
 
-            IDSetText(FilterNameTP, "IFW Filters name -> %s", filterList);
+            FilterNameTP.apply("IFW Filters name -> %s", filterList);
             return true;
         }
         else
             LOGF_ERROR("List of filters name is wrong Nbr char red are: %s", lenResponse);
     }
 
-    FilterNameTP->s = IPS_ALERT;
+    FilterNameTP.setState(IPS_ALERT);
     LOG_ERROR("Failed to read filter names!");
-    IDSetText(FilterNameTP, nullptr);
+    FilterNameTP.apply();
     return false;
 }
 
@@ -665,29 +661,27 @@ bool FilterIFW::SetFilterNames()
     int tempolen;
     memset(response, 0, sizeof(response));
 
-    FilterNameTP->s = IPS_BUSY;
-    FilterSlotNP.s = IPS_BUSY;
+    FilterNameTP.setState(IPS_BUSY);
+    FilterSlotNP.setState(IPS_BUSY);
     WheelIDTP.s = IPS_BUSY;
-    IDSetText(FilterNameTP, "*** Saving filters name to IFW... ***");
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterNameTP.apply("*** Saving filters name to IFW... ***");
+    FilterSlotNP.apply();
     IDSetText(&WheelIDTP, nullptr);
 
     snprintf(cmd, 8, "WLOAD%s*", WheelIDT[0].text);
 
-    for (int i = 0; i < FilterSlotN[0].max; i++)
+    for (int i = 0; i < FilterSlotNP[0].getMax(); i++)
     {
         // Prepare string in tempo with blank space at right to complete to 8 chars for each filter name
         memset(tempo, ' ', sizeof(tempo));
         //Check max len of 8 char for the filter name
-        tempolen = strlen(FilterNameT[i].text);
+        tempolen = strlen(FilterNameTP[i].getText());
         if (tempolen > OPTEC_LEN_FLTNAME)
             tempolen = OPTEC_LEN_FLTNAME;
         //memcpy(tempo + (8 - tempolen), FilterNameT[i].text, tempolen);    // spaces at begin of name
-        memcpy(tempo, FilterNameT[i].text, tempolen); // spaces at the end of name
+        memcpy(tempo, FilterNameTP[i].getText(), tempolen); // spaces at the end of name
         tempo[8] = '\0';
         strcat(cmd, tempo);
-        strncpy(FilterNameT[i].text, tempo, OPTEC_LEN_FLTNAME);
-        FilterNameT[i].text[OPTEC_LEN_FLTNAME] = '\0';
 
         LOGF_DEBUG("Value of the command :%s", cmd);
         //memset(response, 0, sizeof(tempo));
@@ -704,8 +698,8 @@ bool FilterIFW::SetFilterNames()
     if (!WriteTTY(cmd))
     {
         LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
-        FilterNameTP->s = IPS_ALERT;
-        IDSetText(FilterNameTP, nullptr);
+        FilterNameTP.setState(IPS_ALERT);
+        FilterNameTP.apply();
         result = false;
         // Have to wait at least 10 ms for EEPROM writing before next command
         // Wait 50 mS to be safe
@@ -731,8 +725,8 @@ bool FilterIFW::SetFilterNames()
 
     if (!result)
     {
-        FilterNameTP->s = IPS_ALERT;
-        IDSetText(FilterNameTP, "*** UNABLE TO WRITE FILTERS NAME ***");
+        FilterNameTP.setState(IPS_ALERT);
+        FilterNameTP.apply("*** UNABLE TO WRITE FILTERS NAME ***");
         return false;
     }
 
@@ -746,8 +740,8 @@ bool FilterIFW::SetFilterNames()
     }
 
     // Do HOME command to load EEProm new names and getFilter to read new value to validate
-    FilterNameTP->s = moveHome() ? IPS_OK : IPS_ALERT;
-    IDSetText(FilterNameTP, nullptr);
+    FilterNameTP.setState(moveHome() ? IPS_OK : IPS_ALERT);
+    FilterNameTP.apply();
 
     return true;
 }
@@ -811,8 +805,8 @@ int FilterIFW::GetFilterPos()
 
     memset(response, 0, sizeof(response));
 
-    FilterSlotNP.s = IPS_BUSY;
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.setState(IPS_BUSY);
+    FilterSlotNP.apply();
 
     if (!WriteTTY((char *)"WFILTR"))
     {
@@ -832,16 +826,17 @@ int FilterIFW::GetFilterPos()
     }
 
     if (result == -1)
-    {
-        FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, "*** UNABLE TO GET ACTIVE FILTER ***");
-        return result;
-    }
+        if (result == -1)
+        {
+            FilterSlotNP.setState(IPS_ALERT);
+            FilterSlotNP.apply("*** UNABLE TO GET ACTIVE FILTER ***");
+            return result;
+        }
 
     result               = atoi(response);
-    FilterSlotN[0].value = result;
-    FilterSlotNP.s       = IPS_OK;
-    IDSetNumber(&FilterSlotNP, "IFW filter active is n° %s -> %s", response, FilterNameT[result - 1].text);
+    FilterSlotNP[0].setValue(result);
+    FilterSlotNP.setState(IPS_OK);
+    FilterSlotNP.apply("IFW filter active is n° %s -> %s", response, FilterNameTP[result - 1].getText());
     return result;
 }
 
@@ -858,10 +853,10 @@ bool FilterIFW::moveHome()
 
     HomeSP.s = IPS_BUSY;
     WheelIDTP.s = IPS_BUSY;
-    FilterSlotNP.s = IPS_BUSY;
+    FilterSlotNP.setState(IPS_BUSY);
     IDSetSwitch(&HomeSP, "*** Initialisation of the IFW. Please wait... ***");
     IDSetText(&WheelIDTP, nullptr);
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.apply();
 
     if (!WriteTTY((char *)"WHOME"))
     {
@@ -994,3 +989,4 @@ bool FilterIFW::loadConfig(bool silent, const char *property)
 
     return result;
 }
+

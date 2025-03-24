@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <cmath>
+#include <cstdint>
 #include <linux/joystick.h>
 #include <vector>
 #include <unistd.h>
@@ -80,10 +81,10 @@ class JoyStickDriver
         void setPoll(int ms);
 
         const char *getName();
-        __u32 getVersion();
-        __u8 getNumOfJoysticks();
-        __u8 getNumOfAxes();
-        __u8 getNumrOfButtons();
+        uint32_t getVersion();
+        uint8_t getNumOfJoysticks();
+        uint8_t getNumOfAxes();
+        uint8_t getNumrOfButtons();
 
         joystick_position joystickPosition(int n);
         bool buttonPressed(int n);
@@ -110,9 +111,9 @@ class JoyStickDriver
         int joystick_fd;
         js_event *joystick_ev;
         joystick_state *joystick_st;
-        __u32 version;
-        __u8 axes;
-        __u8 buttons;
+        uint32_t version;
+        uint8_t axes;
+        uint8_t buttons;
         char name[256];
         char dev_path[256];
         int pollMS;

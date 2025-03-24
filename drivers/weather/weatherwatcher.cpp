@@ -55,7 +55,7 @@ const char *WeatherWatcher::getDefaultName()
 
 bool WeatherWatcher::Connect()
 {
-    if (watchFileTP[0].getText() == nullptr || watchFileTP[0].getText()[0] == '\0')
+    if (watchFileTP[0].isEmpty() || watchFileTP[0].getText()[0] == '\0')
     {
         LOG_ERROR("Watch file must be specified first in options.");
         return false;
@@ -76,7 +76,7 @@ bool WeatherWatcher::createProperties()
     double minOK = 0, maxOK = 0, percWarn = 15;
     for (auto const &x : weatherMap)
     {
-        if (x.first == keywordTP[0].getText())
+        if (x.first == keywordTP[WEATHER_RAIN].getText())
         {
             // Caution: If both OK=0 the parameter never (re)appears in UI! (-> WeatherInterface::addParameter())
             minOK = -1;
@@ -86,11 +86,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_RAIN_HOUR",  labelTP[0].text, minOK, maxOK, percWarn);
-            if (criticalSP[0].getState())
+            addParameter("WEATHER_RAIN_HOUR",  labelTP[WEATHER_RAIN].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_RAIN].getState())
                 setCriticalParameter("WEATHER_RAIN_HOUR");
         }
-        else if (x.first == keywordTP[1].getText())
+        else if (x.first == keywordTP[WEATHER_TEMP].getText())
         {
             minOK = -10;
             maxOK = 30;
@@ -99,11 +99,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_TEMPERATURE", labelTP[1].text, minOK, maxOK, percWarn);
-            if (criticalSP[1].getState())
+            addParameter("WEATHER_TEMPERATURE", labelTP[WEATHER_TEMP].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_TEMP].getState())
                 setCriticalParameter("WEATHER_TEMPERATURE");
         }
-        else if (x.first == keywordTP[2].getText())
+        else if (x.first == keywordTP[WEATHER_WIND].getText())
         {
             minOK = 0;
             maxOK = 20;
@@ -112,11 +112,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_WIND_SPEED", labelTP[2].text, minOK, maxOK, percWarn);
-            if (criticalSP[2].getState())
+            addParameter("WEATHER_WIND_SPEED", labelTP[WEATHER_WIND].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_WIND].getState())
                 setCriticalParameter("WEATHER_WIND_SPEED");
         }
-        else if (x.first == keywordTP[3].getText())
+        else if (x.first == keywordTP[WEATHER_GUST].getText())
         {
             minOK = 0;
             maxOK = 20;
@@ -125,11 +125,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_WIND_GUST", labelTP[3].text, minOK, maxOK, percWarn);
-            if (criticalSP[3].getState())
+            addParameter("WEATHER_WIND_GUST", labelTP[WEATHER_GUST].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_GUST].getState())
                 setCriticalParameter("WEATHER_WIND_GUST");
         }
-        else if (x.first == keywordTP[4].getText())
+        else if (x.first == keywordTP[WEATHER_CLOUD].getText())
         {
             minOK = 0;
             maxOK = 20;
@@ -138,11 +138,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_CLOUDS", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_CLOUDS",  labelTP[4].text, minOK, maxOK, percWarn);
-            if (criticalSP[4].getState())
+            addParameter("WEATHER_CLOUDS",  labelTP[WEATHER_CLOUD].text, minOK, maxOK, percWarn, true);
+            if (criticalSP[WEATHER_CLOUD].getState())
                 setCriticalParameter("WEATHER_CLOUDS");
         }
-        else if (x.first == keywordTP[5].getText())
+        else if (x.first == keywordTP[WEATHER_HUM].getText())
         {
             minOK = 0;
             maxOK = 100;
@@ -151,11 +151,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_HUMIDITY", labelTP[5].text, minOK, maxOK, percWarn);
-            if (criticalSP[5].getState())
+            addParameter("WEATHER_HUMIDITY", labelTP[WEATHER_HUM].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_HUM].getState())
                 setCriticalParameter("WEATHER_HUMIDITY");
         }
-        else if (x.first == keywordTP[6].getText())
+        else if (x.first == keywordTP[WEATHER_PRESS].getText())
         {
             minOK = 983;
             maxOK = 1043;
@@ -164,11 +164,11 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_PRESSURE", labelTP[6].text, minOK, maxOK, percWarn);
-            if (criticalSP[6].getState())
+            addParameter("WEATHER_PRESSURE", labelTP[WEATHER_PRESS].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_PRESS].getState())
                 setCriticalParameter("WEATHER_PRESSURE");
         }
-        else if (x.first == keywordTP[7].getText())
+        else if (x.first == keywordTP[WEATHER_FORECAST].getText())
         {
             minOK = -1;
             maxOK = 0;
@@ -177,8 +177,8 @@ bool WeatherWatcher::createProperties()
             IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "MAX_OK", &maxOK);
             IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "PERC_WARN", &percWarn);
 
-            addParameter("WEATHER_FORECAST", labelTP[7].text, minOK, maxOK, percWarn);
-            if (criticalSP[7].getState())
+            addParameter("WEATHER_FORECAST", labelTP[WEATHER_FORECAST].text, minOK, maxOK, percWarn);
+            if (criticalSP[WEATHER_FORECAST].getState())
                 setCriticalParameter("WEATHER_FORECAST");
         }
     }
@@ -224,40 +224,40 @@ bool WeatherWatcher::updateProperties()
 bool WeatherWatcher::getProperties()
 {
     // Labels for Parameters-------------------------------------------------------------------------------------
-    labelTP[0].fill("LABEL_1", "WEATHER_RAIN_HOUR", "Rain");
-    labelTP[1].fill("LABEL_2", "WEATHER_TEMPERATURE", "Temperature");
-    labelTP[2].fill("LABEL_3", "WEATHER_WIND_SPEED", "Wind");
-    labelTP[3].fill("LABEL_4", "WEATHER_WIND_GUST", "Gust");
-    labelTP[4].fill("LABEL_5", "WEATHER_CLOUDS", "Clouds");
-    labelTP[5].fill("LABEL_6", "WEATHER_HUMIDITY", "Humidity");
-    labelTP[6].fill("lABEL_7", "WEATHER_PRESSURE", "Pressure");
-    labelTP[7].fill("LABEL_8", "WEATHER_FORECAST", "Forecast");
+    labelTP[WEATHER_RAIN].fill("LABEL_1", "WEATHER_RAIN_HOUR", "Rain");
+    labelTP[WEATHER_TEMP].fill("LABEL_2", "WEATHER_TEMPERATURE", "Temperature");
+    labelTP[WEATHER_WIND].fill("LABEL_3", "WEATHER_WIND_SPEED", "Wind");
+    labelTP[WEATHER_GUST].fill("LABEL_4", "WEATHER_WIND_GUST", "Gust");
+    labelTP[WEATHER_CLOUD].fill("LABEL_5", "WEATHER_CLOUDS", "Clouds");
+    labelTP[WEATHER_HUM].fill("LABEL_6", "WEATHER_HUMIDITY", "Humidity");
+    labelTP[WEATHER_PRESS].fill("lABEL_7", "WEATHER_PRESSURE", "Pressure");
+    labelTP[WEATHER_FORECAST].fill("LABEL_8", "WEATHER_FORECAST", "Forecast");
     labelTP.fill(getDeviceName(), "LABELS", "Property Label", LABELS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(labelTP);
     loadConfig(true, "LABELS");
 
     // Keywords for Parameters with dynamic labels ----------------------------------------------------------------
-    keywordTP[0].fill("KEY_1", labelTP[0].text, "precip");
-    keywordTP[1].fill("KEY_2", labelTP[1].text, "temperature");
-    keywordTP[2].fill("KEY_3", labelTP[2].text, "wind");
-    keywordTP[3].fill("KEY_4", labelTP[3].text, "gust");
-    keywordTP[4].fill("KEY_5", labelTP[4].text, "clouds");
-    keywordTP[5].fill("KEY_6", labelTP[5].text, "humidity");
-    keywordTP[6].fill("KEY_7", labelTP[6].text, "pressure");
-    keywordTP[7].fill("KEY_8", labelTP[7].text, "forecast");
+    keywordTP[WEATHER_RAIN].fill("KEY_1", labelTP[WEATHER_RAIN].text, "precip");
+    keywordTP[WEATHER_TEMP].fill("KEY_2", labelTP[WEATHER_TEMP].text, "temperature");
+    keywordTP[WEATHER_WIND].fill("KEY_3", labelTP[WEATHER_WIND].text, "wind");
+    keywordTP[WEATHER_GUST].fill("KEY_4", labelTP[WEATHER_GUST].text, "gust");
+    keywordTP[WEATHER_CLOUD].fill("KEY_5", labelTP[WEATHER_CLOUD].text, "clouds");
+    keywordTP[WEATHER_HUM].fill("KEY_6", labelTP[WEATHER_HUM].text, "humidity");
+    keywordTP[WEATHER_PRESS].fill("KEY_7", labelTP[WEATHER_PRESS].text, "pressure");
+    keywordTP[WEATHER_FORECAST].fill("KEY_8", labelTP[WEATHER_FORECAST].text, "forecast");
     keywordTP.fill(getDeviceName(), "KEYWORDS", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
     defineProperty(keywordTP);
     loadConfig(true, "KEYWORDS");
 
     // Critical Parameters with dynamic labels --------------------------------------------------------------------
-    criticalSP[0].fill("CRITICAL_1", labelTP[0].text, ISS_OFF);
-    criticalSP[1].fill("CRITICAL_2", labelTP[1].text, ISS_OFF);
-    criticalSP[2].fill("CRITICAL_3", labelTP[2].text, ISS_OFF);
-    criticalSP[3].fill("CRITICAL_4", labelTP[3].text, ISS_OFF);
-    criticalSP[4].fill("CRITICAL_5", labelTP[4].text, ISS_OFF);
-    criticalSP[5].fill("CRITICAL_6", labelTP[5].text, ISS_OFF);
-    criticalSP[6].fill("CRITICAL_7", labelTP[6].text, ISS_OFF);
-    criticalSP[7].fill("CRITICAL_8", labelTP[7].text, ISS_OFF);
+    criticalSP[WEATHER_RAIN].fill("CRITICAL_1", labelTP[WEATHER_RAIN].text, ISS_OFF);
+    criticalSP[WEATHER_TEMP].fill("CRITICAL_2", labelTP[WEATHER_TEMP].text, ISS_OFF);
+    criticalSP[WEATHER_WIND].fill("CRITICAL_3", labelTP[WEATHER_WIND].text, ISS_OFF);
+    criticalSP[WEATHER_GUST].fill("CRITICAL_4", labelTP[WEATHER_GUST].text, ISS_OFF);
+    criticalSP[WEATHER_CLOUD].fill("CRITICAL_5", labelTP[WEATHER_CLOUD].text, ISS_OFF);
+    criticalSP[WEATHER_HUM].fill("CRITICAL_6", labelTP[WEATHER_HUM].text, ISS_OFF);
+    criticalSP[WEATHER_PRESS].fill("CRITICAL_7", labelTP[WEATHER_PRESS].text, ISS_OFF);
+    criticalSP[WEATHER_FORECAST].fill("CRITICAL_8", labelTP[WEATHER_FORECAST].text, ISS_OFF);
     criticalSP.fill(getDeviceName(), "CRITICALS", "Criticals", PARAMETERS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
     defineProperty(criticalSP);
     loadConfig(true, "CRITICALS");
@@ -342,35 +342,35 @@ IPState WeatherWatcher::updateWeather()
 
     for (auto const &x : weatherMap)
     {
-        if (x.first == keywordTP[0].getText())
+        if (x.first == keywordTP[WEATHER_RAIN].getText())
         {
             setParameterValue("WEATHER_RAIN_HOUR", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[1].getText())
+        else if (x.first == keywordTP[WEATHER_TEMP].getText())
         {
             setParameterValue("WEATHER_TEMPERATURE", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[2].getText())
+        else if (x.first == keywordTP[WEATHER_WIND].getText())
         {
             setParameterValue("WEATHER_WIND_SPEED", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[3].getText())
+        else if (x.first == keywordTP[WEATHER_GUST].getText())
         {
             setParameterValue("WEATHER_WIND_GUST", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[4].getText())
+        else if (x.first == keywordTP[WEATHER_CLOUD].getText())
         {
             setParameterValue("WEATHER_CLOUDS", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[5].getText())
+        else if (x.first == keywordTP[WEATHER_HUM].getText())
         {
             setParameterValue("WEATHER_HUMIDITY", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[6].getText())
+        else if (x.first == keywordTP[WEATHER_PRESS].getText())
         {
             setParameterValue("WEATHER_PRESSURE", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordTP[8].getText())
+        else if (x.first == keywordTP[WEATHER_FORECAST].getText())
         {
             setParameterValue("WEATHER_FORECAST", std::strtod(x.second.c_str(), nullptr));
         }
@@ -438,4 +438,3 @@ std::map<std::string, std::string> WeatherWatcher::createMap(std::string const &
 
     return m;
 }
-

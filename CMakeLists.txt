@@ -45,7 +45,7 @@ endif()
 # ####################################  INDI version  ################################################
 set(CMAKE_INDI_VERSION_MAJOR 2)
 set(CMAKE_INDI_VERSION_MINOR 1)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 2)
 
 set(INDI_SOVERSION ${CMAKE_INDI_VERSION_MAJOR})
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
@@ -90,7 +90,6 @@ OPTION(INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
 OPTION(INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION(INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION(INDI_BUILD_INTEGTESTS "Build INDI integration tests" OFF)
-OPTION(INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION(INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION(INDI_BUILD_SHARED "Build shared library" ON)
 OPTION(INDI_BUILD_STATIC "Build static library" ON)
@@ -261,20 +260,6 @@ if(INDI_BUILD_QT5_CLIENT)
     add_subdirectory(libs/indiclientqt)
 endif(INDI_BUILD_QT5_CLIENT)
 
-# ##################################################################################################
-#
-# Component   : Websocket
-# Dependencies: libwebsocketpp, libboost, asio
-# Supported OS: Linux, BSD, MacOS, Cygwin
-#
-# ##################################################################################################
-if(INDI_BUILD_WEBSOCKET)
-    find_package(websocketpp REQUIRED)
-    find_package(Boost COMPONENTS system thread)
-    include_directories(${Boost_INCLUDE_DIRS})
-    add_definitions(-DHAVE_WEBSOCKET)
-    set(HAVE_WEBSOCKET 1)
-endif(INDI_BUILD_WEBSOCKET)
 
 # ##################################################################################################
 #

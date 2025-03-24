@@ -33,6 +33,9 @@
 typedef enum { PMC8_MOVE_INACTIVE, PMC8_MOVE_RAMPING, PMC8_MOVE_ACTIVE } PMC8_MOVE_STATE;
 typedef enum { PMC8_RAMP_UP, PMC8_RAMP_DOWN } PMC8_RAMP_DIRECTION;
 
+// JM 2024.12.03: Since INDI tracking rate is defined as arcsecs per second (SOLAR second), we need to convert from solar to sidereal
+#define SOLAR_SECOND 1.00278551532
+
 typedef struct PMC8MoveInfo
 {
     PMC8_MOVE_STATE state = PMC8_MOVE_INACTIVE;

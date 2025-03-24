@@ -48,9 +48,9 @@ bool MoonLiteDRO::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 5;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(5);
+    FocusSpeedNP[0].setValue(1);
 
     // Step Delay
     IUFillNumber(&StepDelayN[0], "STEP_DELAY", "Delay", "%.f", 1, 5, 1., 1.);
@@ -84,15 +84,15 @@ bool MoonLiteDRO::initProperties()
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
     setDefaultPollingPeriod(500);
     addDebugControl();
@@ -469,7 +469,7 @@ bool MoonLiteDRO::updatePosition()
 
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     }
     else
     {
@@ -512,7 +512,7 @@ bool MoonLiteDRO::isMoving()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[3] = '\0';
+    resp[2] = '\0';
 
     LOGF_DEBUG("RES <%s>", resp);
 
@@ -600,7 +600,7 @@ bool MoonLiteDRO::gotoAbsPosition(unsigned int position)
     char errstr[MAXRBUF];
     char cmd[DRO_CMD] = {0};
 
-    if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
+    if (position < FocusAbsPosNP[0].getMin() || position > FocusAbsPosNP[0].getMax())
     {
         LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
@@ -836,7 +836,7 @@ bool MoonLiteDRO::ISNewNumber(const char *dev, const char *name, double values[]
 void MoonLiteDRO::GetFocusParams()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
@@ -859,7 +859,7 @@ IPState MoonLiteDRO::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -870,17 +870,17 @@ IPState MoonLiteDRO::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc            = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = gotoAbsPosition(newPosition);
 
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -896,10 +896,10 @@ void MoonLiteDRO::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -917,15 +917,15 @@ void MoonLiteDRO::TimerHit()
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -944,10 +944,10 @@ bool MoonLiteDRO::AbortFocuser()
 
     if (tty_write_string(PortFD, cmd, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
         return true;
     }
     else

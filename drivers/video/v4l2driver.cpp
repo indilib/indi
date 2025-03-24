@@ -103,7 +103,7 @@ V4L2_Driver::V4L2_Driver(std::string label, std::string path)
     lx       = new Lx();
     lxtimer  = -1;
     stdtimer = -1;
-    
+
     ioptron_watchdog_timer.callOnTimeout(std::bind(&V4L2_Driver::iOptronWatchdogCallback, this));
     ioptron_watchdog_timer.setInterval(IOPTRON_WATCHDOG_PERIOD_IN_MS);
 }
@@ -248,11 +248,7 @@ bool V4L2_Driver::initProperties()
     if (!lx->initProperties(this))
         LOG_WARN("Can not init Long Exposure");
 
-#ifdef HAVE_WEBSOCKET
-    SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT | CCD_HAS_WEB_SOCKET);
-#else
     SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT);
-#endif
 
     v4l_base->setDeviceName(getDeviceName());
     return true;
@@ -745,7 +741,7 @@ int findIndexOfNearestValue(double value, const double allowed_values[])
     int n = 1;
     while (allowed_values[n] != -1)
     {
-        if (value < (allowed_values[n-1] + allowed_values[n]) / 2.0) 
+        if (value < (allowed_values[n - 1] + allowed_values[n]) / 2.0)
         {
             return n - 1;
         }
@@ -815,7 +811,7 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
             unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
 
             // iOptron cameras only accept some tick values. Round the value to the nearest one.
-            if (isIOptron() && ctrl_id == IOPTRON_ABS_EXPOSURE_CTRL_ID) 
+            if (isIOptron() && ctrl_id == IOPTRON_ABS_EXPOSURE_CTRL_ID)
             {
                 int n = 0;
                 if (strstr(getDeviceName(), "iGuider"))
@@ -854,7 +850,7 @@ bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values
     }
 
     // Ensure duration is set to one of the allowed durations, or, if we're going to stack, a value greater than the maximum
-    if (isIOptron() && strcmp(name, "CCD_EXPOSURE") == 0 && values[0] < MAX_IOPTRON_DURATION) 
+    if (isIOptron() && strcmp(name, "CCD_EXPOSURE") == 0 && values[0] < MAX_IOPTRON_DURATION)
     {
         values[0] = IOptronDurations[findIndexOfNearestValue(values[0], IOptronDurations)];
     }
@@ -1011,7 +1007,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     bool ioptron_maximum_duration_exceeded = false;
     if (isIOptron())
     {
-        if (duration <= MAX_IOPTRON_DURATION) 
+        if (duration <= MAX_IOPTRON_DURATION)
         {
             if (strstr(getDeviceName(), "iGuider"))
                 ticks = iGuiderTicks[findIndexOfNearestValue(duration, IOptronDurations)];
@@ -1220,7 +1216,7 @@ void V4L2_Driver::iOptronWatchdogCallback()
     ioptron_watchdog_timer.stop();
     if (valid_frame_has_arrived)
         return;
-    
+
     stop_capturing();
     PrimaryCCD.setExposureFailed();
 }
@@ -1571,11 +1567,11 @@ void V4L2_Driver::newFrame()
         timeradd(&elapsed_exposure, &frame_duration, &elapsed_exposure);
 
         LOGF_INFO("Frame took %ld.%06ld s, e = %ld.%06ld s, t = %ld.%06ld s., cfd = %ld.%06ld s.",
-                   current_frame_duration.tv_sec, current_frame_duration.tv_usec,
-                   elapsed_exposure.tv_sec, elapsed_exposure.tv_usec,
-                   exposure_duration.tv_sec, exposure_duration.tv_usec,
-                   capture_frame_dif.tv_sec, capture_frame_dif.tv_usec
-                  );
+                  current_frame_duration.tv_sec, current_frame_duration.tv_usec,
+                  elapsed_exposure.tv_sec, elapsed_exposure.tv_usec,
+                  exposure_duration.tv_sec, exposure_duration.tv_usec,
+                  capture_frame_dif.tv_sec, capture_frame_dif.tv_usec
+                 );
 
 
         float remaining = getRemainingExposure();
@@ -1762,7 +1758,7 @@ void V4L2_Driver::newFrame()
                 stop_capturing();
 
             //if (PrimaryCCD.getExposureDuration() >= 3)
-                LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
+            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
         }
         else

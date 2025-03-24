@@ -104,6 +104,23 @@ class LX200AM5 : public LX200Generic
             High
         };
 
+        // Heavy duty control
+        INDI::PropertySwitch HeavyDutyModeSP {2};
+
+        // Meridian Flip Control
+        INDI::PropertySwitch MeridianFlipSP {2};
+
+        // Post Meridian Track Control
+        INDI::PropertySwitch PostMeridianTrackSP {2};
+        enum
+        {
+            TRACK,
+            STOP
+        };
+
+        // Meridian Limit
+        INDI::PropertyNumber MeridianLimitNP {1};
+
 
         //////////////////////////////////////////////////////////////////////////////////
         /// AM5 Specific
@@ -122,6 +139,10 @@ class LX200AM5 : public LX200Generic
         bool getBuzzer();
         bool setBuzzer(int value);
 
+        // Heavy Duty Mode
+        bool getHeavyDutyMode();
+        bool setHeavyDutyMode(bool enable);
+
         // Mount type
         bool setMountType(int type);
         bool getMountType();
@@ -129,6 +150,10 @@ class LX200AM5 : public LX200Generic
         // Track Mode
         bool getTrackMode();
         bool isTracking();
+
+        // Meridian Flip
+        bool setMeridianFlipSettings(bool enabled, bool track, double limit);
+        bool getMeridianFlipSettings();
 
 
         //////////////////////////////////////////////////////////////////////////////////
@@ -141,7 +166,6 @@ class LX200AM5 : public LX200Generic
         // Maximum buffer for sending/receiving.
         static constexpr const uint8_t DRIVER_LEN {64};
         // Slew Modes
-        static constexpr const uint8_t SLEW_MODES {10};
+        static constexpr const uint8_t SLEW_MODES {9};
+        static constexpr const char * MERIDIAN_FLIP_TAB {"Meridian Flip"};
 };
-
-

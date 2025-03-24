@@ -71,7 +71,7 @@ void ProcessController::start(const std::string & path, const std::vector<std::s
 
     int argCount = 0;
     argCount = args.size();
-    const char * fullArgs[argCount + 2];
+    std::vector<const char *> fullArgs(argCount + 2);
     fullArgs[0] = path.c_str();
     for(int i = 0; i < argCount ; i++) {
         fullArgs[i + 1] = args[i].c_str();
@@ -90,7 +90,7 @@ void ProcessController::start(const std::string & path, const std::vector<std::s
     if (pid == 0) {
         std::string error = "exec " + path;
         // TODO : Close all file descriptor
-        execv(fullArgs[0], (char * const *) fullArgs);
+        execv(fullArgs[0], (char * const *) fullArgs.data());
 
         // Child goes here....
         perror(error.c_str());

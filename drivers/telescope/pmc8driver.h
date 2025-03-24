@@ -39,6 +39,9 @@
 // set max settable slew rate as 833x sidereal
 #define PMC8_MAX_MOVE_RATE (833*15)
 
+// JM 2024.12.03: Since INDI tracking rate is defined as arcsecs per second (SOLAR second), we need to convert from solar to sidereal
+#define SOLAR_SECOND 1.00278551532
+
 typedef enum
 {
     ST_STOPPED,

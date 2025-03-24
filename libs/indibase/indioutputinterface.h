@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include "indipropertyswitch.h"
 #include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "inditimer.h"
 
 /**
  * \class OutputInterface
@@ -97,6 +99,9 @@ class OutputInterface
         /** \brief Process text properties */
         bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
+        /** \brief Process number properties */
+        bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
         /**
          * @brief saveConfigItems save Filter Names in config file
          * @param fp pointer to config file
@@ -108,6 +113,12 @@ class OutputInterface
         std::vector<INDI::PropertySwitch> DigitalOutputsSP;
         // Output Labels
         INDI::PropertyText DigitalOutputLabelsTP {0};
+        // Pulse Duration
+        std::vector<INDI::PropertyNumber> PulseDurationNP;
+
+        // Indicates whether we loaded the labels from configuration file successfully.
+        // If loaded from config file, then we do not need to overwrite.
+        bool m_DigitalOutputLabelsConfig {false};
 
         DefaultDevice *m_defaultDevice { nullptr };
 };

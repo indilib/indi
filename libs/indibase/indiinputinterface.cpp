@@ -45,8 +45,10 @@ InputInterface::~InputInterface()
 void InputInterface::initProperties(const char *groupName, uint8_t digital, uint8_t analog,
                                     const std::string &digitalPrefix, const std::string &analogPrefix)
 {
-    m_DigitalLabelConfig = false;
-    m_AnalogLabelConfig = false;
+    m_DigitalInputLabelsConfig = false;
+    m_AnalogInputLabelsConfig = false;
+
+    // @INDI_STANDARD_PROPERTY@
     DigitalInputLabelsTP.resize(0);
     // Digital labels
     for (size_t i = 0; i < digital; i++)
@@ -61,13 +63,15 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
 
     if (digital > 0)
     {
+        // @INDI_STANDARD_PROPERTY@
         DigitalInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_INPUT_LABELS", "Digital Labels", groupName, IP_RW, 60,
                                   IPS_IDLE);
         DigitalInputLabelsTP.shrink_to_fit();
-        m_DigitalLabelConfig = DigitalInputLabelsTP.load();
+        m_DigitalInputLabelsConfig = DigitalInputLabelsTP.load();
     }
 
     // Analog labels
+    // @INDI_STANDARD_PROPERTY@
     AnalogInputLabelsTP.resize(0);
     for (size_t i = 0; i < analog; i++)
     {
@@ -84,10 +88,11 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         AnalogInputLabelsTP.fill(m_defaultDevice->getDeviceName(), "ANALOG_INPUT_LABELS", "Analog Labels", groupName, IP_RW, 60,
                                  IPS_IDLE);
         AnalogInputLabelsTP.shrink_to_fit();
-        m_AnalogLabelConfig = AnalogInputLabelsTP.load();
+        m_AnalogInputLabelsConfig = AnalogInputLabelsTP.load();
     }
 
     // Analog inputs
+    // @INDI_STANDARD_PROPERTY@
     AnalogInputsNP.reserve(analog);
     for (size_t i = 0; i < analog; i++)
     {
@@ -103,6 +108,7 @@ void InputInterface::initProperties(const char *groupName, uint8_t digital, uint
         AnalogInputsNP.push_back(std::move(oneNumber));
     }
 
+    // @INDI_STANDARD_PROPERTY@
     DigitalInputsSP.reserve(digital);
     // Initialize switches, use labels if loaded.
     for (size_t i = 0; i < digital; i++)

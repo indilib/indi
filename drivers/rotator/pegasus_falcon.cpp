@@ -144,10 +144,10 @@ bool PegasusFalcon::ISNewNumber(const char *dev, const char *name, double values
         // If new angle differs 0.01° the rotator sometimes reports success even though there was no movement!
         else if (!strcmp(name, "ABS_ROTATOR_ANGLE"))
         {
-            if (std::abs(values[0] - GotoRotatorN[0].value) <= 0.01)
+            if (std::abs(values[0] - GotoRotatorNP[0].getValue()) <= 0.01)
             {
-                GotoRotatorNP.s = IPS_OK;
-                IDSetNumber(&GotoRotatorNP, nullptr);
+                GotoRotatorNP.setState(IPS_OK);
+                GotoRotatorNP.apply();
                 return true;
             }
         }
@@ -308,11 +308,11 @@ bool PegasusFalcon::getStatusData()
         const IPState motionState = std::stoi(result[3]) == 1 ? IPS_BUSY : IPS_OK;
 
         // Update Absolute Position property if either position changes, or status changes.
-        if (std::abs(position - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
+        if (std::abs(position - GotoRotatorNP[0].getValue()) > 0.01 || GotoRotatorNP.getState() != motionState)
         {
-            GotoRotatorN[0].value = position;
-            GotoRotatorNP.s = motionState;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(position);
+            GotoRotatorNP.setState(motionState);
+            GotoRotatorNP.apply();
         }
 
         // TODO add this later to properties (Light?)
@@ -328,12 +328,12 @@ bool PegasusFalcon::getStatusData()
         }
 
         const bool reversed = std::stoi(result[6]) == 1;
-        const bool wasReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+        const bool wasReversed = ReverseRotatorSP[INDI_ENABLED].getState() == ISS_ON;
         if (reversed != wasReversed)
         {
-            ReverseRotatorS[INDI_ENABLED].s = reversed ? ISS_ON : ISS_OFF;
-            ReverseRotatorS[INDI_DISABLED].s = reversed ? ISS_OFF : ISS_ON;
-            IDSetSwitch(&ReverseRotatorSP, nullptr);
+            ReverseRotatorSP[INDI_ENABLED].setState(reversed ? ISS_ON : ISS_OFF);
+            ReverseRotatorSP[INDI_DISABLED].setState(reversed ? ISS_OFF : ISS_ON);
+            ReverseRotatorSP.apply();
         }
 
         lastStatusData = result;

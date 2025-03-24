@@ -32,34 +32,43 @@
  */
 class DomeSim : public INDI::Dome
 {
-    public:
-        DomeSim();
-        virtual ~DomeSim() = default;
+public:
+    DomeSim();
+    virtual ~DomeSim() = default;
 
-        virtual bool initProperties() override;
-        const char *getDefaultName() override;
-        bool updateProperties() override;
+    virtual bool initProperties() override;
+    virtual const char *getDefaultName() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    protected:
-        bool Connect() override;
-        bool Disconnect() override;
+    virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
 
-        void TimerHit() override;
+protected:
+    bool Connect() override;
+    bool Disconnect() override;
 
-        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
-        virtual IPState MoveRel(double azDiff) override;
-        virtual IPState MoveAbs(double az) override;
-        virtual IPState Park() override;
-        virtual IPState UnPark() override;
-        virtual IPState ControlShutter(ShutterOperation operation) override;
-        virtual bool Abort() override;
+    void TimerHit() override;
 
-        // Parking
-        virtual bool SetCurrentPark() override;
-        virtual bool SetDefaultPark() override;
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+    virtual IPState MoveRel(double azDiff) override;
+    virtual IPState MoveAbs(double az) override;
+    virtual IPState Park() override;
+    virtual IPState UnPark() override;
+    virtual IPState ControlShutter(ShutterOperation operation) override;
+    virtual bool Abort() override;
 
-    private:
-        double targetAz;
-        double shutterTimer;
-        bool SetupParms();
+    // Parking
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
+
+private:
+    double targetAz;
+    double m_ShutterDistance {0};
+    INDI::PropertyNumber SpeedNP {2};
+    enum
+    {
+        Dome,
+        Shutter
+    };
+    bool SetupParms();
 };

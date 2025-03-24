@@ -44,7 +44,23 @@ OutputInterface::~OutputInterface()
 /////////////////////////////////////////////////////////////////////////////////////////////
 void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, const std::string &prefix)
 {
+    m_DigitalOutputLabelsConfig = false;
     DigitalOutputLabelsTP.resize(0);
+
+    // Initialize pulse duration properties
+    PulseDurationNP.clear();
+    PulseDurationNP.reserve(Outputs);
+    for (size_t i = 0; i < Outputs; i++)
+    {
+        auto label = prefix + " #" + std::to_string(i + 1);
+        INDI::PropertyNumber oneDuration {1};
+        oneDuration[0].fill("DURATION", "Duration (ms)", "%.0f", 0, 60000, 100, 0);
+        oneDuration.fill(m_defaultDevice->getDeviceName(), ("PULSE_" + std::to_string(i)).c_str(),
+                         label.c_str(), "Pulse Mode", IP_RW, 60, IPS_IDLE);
+        oneDuration.load();
+        PulseDurationNP.push_back(std::move(oneDuration));
+    }
+    PulseDurationNP.shrink_to_fit();
 
     // Initialize labels
     for (auto i = 0; i < Outputs; i++)
@@ -60,7 +76,8 @@ void OutputInterface::initProperties(const char *groupName, uint8_t Outputs, con
     DigitalOutputLabelsTP.fill(m_defaultDevice->getDeviceName(), "DIGITAL_OUTPUT_LABELS", "Labels", groupName, IP_RW, 60,
                                IPS_IDLE);
     DigitalOutputLabelsTP.shrink_to_fit();
-    DigitalOutputLabelsTP.load();
+    if (Outputs > 0)
+        m_DigitalOutputLabelsConfig = DigitalOutputLabelsTP.load();
 
     DigitalOutputsSP.reserve(Outputs);
     // Initialize switches, use labels if loaded.
@@ -91,6 +108,8 @@ bool OutputInterface::updateProperties()
             m_defaultDevice->defineProperty(oneOutput);
         if (DigitalOutputsSP.size() > 0)
             m_defaultDevice->defineProperty(DigitalOutputLabelsTP);
+        for (auto &oneDuration : PulseDurationNP)
+            m_defaultDevice->defineProperty(oneDuration);
     }
     else
     {
@@ -98,6 +117,8 @@ bool OutputInterface::updateProperties()
             m_defaultDevice->deleteProperty(oneOutput);
         if (DigitalOutputsSP.size() > 0)
             m_defaultDevice->deleteProperty(DigitalOutputLabelsTP);
+        for (auto &oneDuration : PulseDurationNP)
+            m_defaultDevice->deleteProperty(oneDuration);
     }
 
     return true;
@@ -123,6 +144,24 @@ bool OutputInterface::processSwitch(const char *dev, const char *name, ISState s
                     if (CommandOutput(i, static_cast<OutputState>(newState)))
                     {
                         DigitalOutputsSP[i].setState(IPS_OK);
+
+                        // If turning on and pulse duration is set, start the pulse
+                        if (newState == On && i < PulseDurationNP.size() && PulseDurationNP[i][0].getValue() > 0)
+                        {
+                            INDI::Timer::singleShot(static_cast<uint32_t>(PulseDurationNP[i][0].getValue()),
+                                                    [this, i]()
+                            {
+                                CommandOutput(i, Off);
+                                DigitalOutputsSP[i].reset();
+                                DigitalOutputsSP[i][Off].setState(ISS_ON);
+                                DigitalOutputsSP[i].setState(IPS_OK);
+                                DigitalOutputsSP[i].apply();
+                                PulseDurationNP[i].setState(IPS_OK);
+                                PulseDurationNP[i].apply();
+                            });
+                            PulseDurationNP[i].setState(IPS_BUSY);
+                            PulseDurationNP[i].apply();
+                        }
                     }
                     else
                     {
@@ -143,7 +182,26 @@ bool OutputInterface::processSwitch(const char *dev, const char *name, ISState s
                     return true;
                 }
             }
+        }
+    }
 
+    return false;
+}
+
+bool OutputInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()))
+    {
+        for (size_t i = 0; i < PulseDurationNP.size(); i++)
+        {
+            if (PulseDurationNP[i].isNameMatch(name))
+            {
+                PulseDurationNP[i].update(values, names, n);
+                PulseDurationNP[i].setState(IPS_OK);
+                PulseDurationNP[i].apply();
+                m_defaultDevice->saveConfig(PulseDurationNP[i]);
+                return true;
+            }
         }
     }
 
@@ -177,6 +235,8 @@ bool OutputInterface::processText(const char *dev, const char *name, char *texts
 bool OutputInterface::saveConfigItems(FILE *fp)
 {
     DigitalOutputLabelsTP.save(fp);
+    for (auto &oneDuration : PulseDurationNP)
+        oneDuration.save(fp);
     return true;
 }
 

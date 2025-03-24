@@ -538,7 +538,7 @@ void V4L2_Builtin_Decoder::setformat(struct v4l2_format f, bool use_ext_pix_form
     allocBuffers();
 }
 
-__u32 V4L2_Builtin_Decoder::getFormat()
+uint32_t V4L2_Builtin_Decoder::getFormat()
 {
     return fmt.fmt.pix.pixelformat;
 }

@@ -70,6 +70,15 @@ TcpSocketPrivate::TcpSocketPrivate(TcpSocket *parent)
     : parent(parent)
 { }
 
+TcpSocketPrivate::~TcpSocketPrivate()
+{
+    aboutToClose();
+    if (thread.joinable())
+    {
+        thread.join();
+    }
+}
+
 TcpSocket::TcpSocket(std::unique_ptr<TcpSocketPrivate> &&d)
     : d_ptr(std::move(d))
 { }

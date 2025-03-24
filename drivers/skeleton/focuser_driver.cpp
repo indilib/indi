@@ -61,17 +61,17 @@ bool FocuserDriver::initProperties()
     addDebugControl();
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = 999999;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(999999);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 999;
-    FocusRelPosN[0].step = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(999);
+    FocusRelPosNP[0].setStep(100);
 
-    FocusSpeedN[0].min  = 1;
-    FocusSpeedN[0].max  = 254;
-    FocusSpeedN[0].step = 10;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(254);
+    FocusSpeedNP[0].setStep(10);
 
     return true;
 }
@@ -241,7 +241,7 @@ IPState FocuserDriver::MoveAbsFocuser(uint32_t targetTicks)
 IPState FocuserDriver::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
+    return MoveAbsFocuser(FocusAbsPosNP[0].getValue() + m_TargetDiff);
 }
 
 bool FocuserDriver::AbortFocuser()
@@ -255,7 +255,7 @@ void FocuserDriver::TimerHit()
         return;
 
     // What is the last read position?
-    double currentPosition = FocusAbsPosN[0].value;
+    double currentPosition = FocusAbsPosNP[0].getValue();
 
     // Read the current position
     readPosition();
@@ -263,17 +263,17 @@ void FocuserDriver::TimerHit()
     // Check if we have a pending motion
     // if isMoving() is false, then we stopped, so we need to set the Focus Absolute
     // and relative properties to OK
-    if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
+    if ( (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY) && isMoving() == false)
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
     }
     // If there was a different between last and current positions, let's update all clients
-    else if (currentPosition != FocusAbsPosN[0].value)
+    else if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     // Read temperature periodically
@@ -344,7 +344,7 @@ bool FocuserDriver::readPosition()
     if (pos == 1e6)
         return false;
 
-    FocusAbsPosN[0].value = pos;
+    FocusAbsPosNP[0].setValue(pos);
 
     return true;
 }

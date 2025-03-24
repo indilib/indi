@@ -376,11 +376,11 @@ IPState SteelDriveII::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     uint32_t limit = std::stoul(m_Summary[LIMIT]);
 
     int direction = (dir == FOCUS_INWARD) ? -1 : 1;
-    int reversed = (FocusReverseS[INDI_ENABLED].s == ISS_ON) ? -1 : 1;
+    int reversed = (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON) ? -1 : 1;
     int relative = static_cast<int>(ticks);
-    int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);
+    int targetAbsPosition = FocusAbsPosNP[0].getValue() + (relative * direction * reversed);
 
-    targetAbsPosition = std::min(limit, static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min),
+    targetAbsPosition = std::min(limit, static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosNP[0].getMin()),
                                  targetAbsPosition)));
 
     return MoveAbsFocuser(targetAbsPosition);
@@ -399,21 +399,21 @@ void SteelDriveII::TimerHit()
     uint32_t summaryPosition = std::max(0, std::stoi(m_Summary[POSITION]));
 
     // Check if we're idle but the focuser is in motion
-    if (FocusAbsPosNP.s != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
+    if (FocusAbsPosNP.getState() != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
     {
-        IUResetSwitch(&FocusMotionSP);
-        FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
-        FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
-        FocusMotionSP.s = IPS_BUSY;
-        FocusAbsPosNP.s = IPS_BUSY;
-        FocusRelPosNP.s = IPS_BUSY;
-        FocusAbsPosN[0].value = summaryPosition;
+        FocusMotionSP.reset();
+        FocusMotionSP[FOCUS_INWARD].setState((m_State == GOING_DOWN) ? ISS_ON : ISS_OFF);
+        FocusMotionSP[FOCUS_OUTWARD].setState((m_State == GOING_DOWN) ? ISS_OFF : ISS_ON);
+        FocusMotionSP.setState(IPS_BUSY);
+        FocusAbsPosNP.setState(IPS_BUSY);
+        FocusRelPosNP.setState(IPS_BUSY);
+        FocusAbsPosNP[0].setValue(summaryPosition);
 
-        IDSetSwitch(&FocusMotionSP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusMotionSP.apply();
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.apply();
     }
-    else if (FocusAbsPosNP.s == IPS_BUSY && (m_State == STOPPED || m_State == ZEROED))
+    else if (FocusAbsPosNP.getState() == IPS_BUSY && (m_State == STOPPED || m_State == ZEROED))
     {
         if (OperationSP.s == IPS_BUSY)
         {
@@ -423,31 +423,31 @@ void SteelDriveII::TimerHit()
             IDSetSwitch(&OperationSP, nullptr);
         }
 
-        FocusAbsPosNP.s = IPS_OK;
-        FocusAbsPosN[0].value = summaryPosition;
-        if (FocusRelPosNP.s == IPS_BUSY)
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP[0].setValue(summaryPosition);
+        if (FocusRelPosNP.getState() == IPS_BUSY)
         {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
-        if (FocusMotionSP.s == IPS_BUSY)
+        if (FocusMotionSP.getState() == IPS_BUSY)
         {
-            FocusMotionSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP.setState(IPS_IDLE);
+            FocusMotionSP.apply();
         }
 
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
-    else if (std::fabs(FocusAbsPosN[0].value - summaryPosition) > 0)
+    else if (std::fabs(FocusAbsPosNP[0].getValue() - summaryPosition) > 0)
     {
-        FocusAbsPosN[0].value = summaryPosition;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(summaryPosition);
+        FocusAbsPosNP.apply();
     }
 
-    if (std::fabs(FocusMaxPosN[0].value - std::stoul(m_Summary[LIMIT])) > 0)
+    if (std::fabs(FocusMaxPosNP[0].getValue() - std::stoul(m_Summary[LIMIT])) > 0)
     {
-        FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP[0].setValue(std::stoul(m_Summary[LIMIT]));
+        FocusMaxPosNP.apply();
     }
 
     double temp0 = std::stod(m_Summary[TEMP0]);
@@ -557,8 +557,8 @@ void SteelDriveII::getStartupValues()
 
     getSummary();
 
-    FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
-    IDSetNumber(&FocusMaxPosNP, nullptr);
+    FocusMaxPosNP[0].setValue(std::stoul(m_Summary[LIMIT]));
+    FocusMaxPosNP.apply();
 
     TemperatureSensorN[TEMP_0].value = std::stod(m_Summary[TEMP0]);
     TemperatureSensorN[TEMP_1].value = std::stod(m_Summary[TEMP1]);

@@ -45,24 +45,29 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     m_ParametersGroup = paramsGroup;
 
     // Update Period
+    // @INDI_STANDARD_PROPERTY@
     UpdatePeriodNP[0].fill("PERIOD", "Period (s)", "%.f", 0, 3600, 60, 60);
     UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", statusGroup,
                         IP_RW, 60, IPS_IDLE);
 
     // Refresh
+    // @INDI_STANDARD_PROPERTY@
     RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
     RefreshSP.fill(getDeviceName(), "WEATHER_REFRESH", "Weather", statusGroup, IP_RW, ISR_ATMOST1, 0,
                    IPS_IDLE);
 
     // Override
+    // @INDI_STANDARD_PROPERTY@
     OverrideSP[0].fill("OVERRIDE", "Override Status", ISS_OFF);
     OverrideSP.fill(getDeviceName(), "WEATHER_OVERRIDE", "Safety", statusGroup, IP_RW,
                     ISR_NOFMANY, 0, IPS_IDLE);
 
     // Parameters
+    // @INDI_STANDARD_PROPERTY@
     ParametersNP.fill(getDeviceName(), "WEATHER_PARAMETERS", "Parameters", paramsGroup, IP_RO, 60, IPS_OK);
 
     // Weather Status
+    // @INDI_STANDARD_PROPERTY@
     critialParametersLP.fill(getDeviceName(), "WEATHER_STATUS", "Status", statusGroup, IPS_IDLE);
 }
 
@@ -243,24 +248,44 @@ IPState WeatherInterface::updateWeather()
     return IPS_ALERT;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+/**
+ * @brief Add a physical weather measurable parameter to the weather driver.
+ *
+ * The weather value has three zones:
+ * - OK: Set minimum and maximum values for acceptable values.
+ * - Warning: Set minimum and maximum values for values outside of Ok range and in the dangerous warning zone.
+ * - Alert: Any value outside of Ok and Warning zone is marked as Alert.
+ *
+ * The warning zone is calculated as a percentage of the range between min and max values.
+ * For example, if min=0, max=100, and percWarning=10, then:
+ * - Warning zone near min: 0-10
+ * - OK zone: 10-90
+ * - Warning zone near max: 90-100
+ *
+ * @param name Name of parameter
+ * @param label Label of parameter (in GUI)
+ * @param numMinOk minimum Ok range value.
+ * @param numMaxOk maximum Ok range value.
+ * @param percWarning percentage for Warning.
+ * @param flipWarning boolean indicating if range warning should be flipped to in-bounds, rather than out-of-bounds
+ */
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
 {
-    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f) ", name.c_str(), numMinOk, numMaxOk, percWarning);
+    LOGF_DEBUG("Parameter %s is added. Ok (%.2f,%.2f,%.2f,%s) ", name.c_str(), numMinOk, numMaxOk, percWarning, (flipWarning ? "true" : "false"));
 
     INDI::WidgetNumber oneParameter;
     oneParameter.fill(name.c_str(), label.c_str(), "%.2f", numMinOk, numMaxOk, 0, 0);
     ParametersNP.push(std::move(oneParameter));
 
     if (numMinOk != numMaxOk)
-        createParameterRange(name, label, numMinOk, numMaxOk, percWarning);
+        createParameterRange(name, label, numMinOk, numMaxOk, percWarning, flipWarning);
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Update weather parameter value
+ * @param name name of weather parameter
+ * @param value new value of weather parameter
+ */
 void WeatherInterface::setParameterValue(std::string name, double value)
 {
     auto oneParameter = ParametersNP.findWidgetByName(name.c_str());
@@ -268,9 +293,15 @@ void WeatherInterface::setParameterValue(std::string name, double value)
         oneParameter->setValue(value);
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Set parameter that is considered critical to the operation of the observatory.
+ *
+ * The parameter state can affect the overall weather driver state which signals
+ * the client to take appropriate action depending on the severity of the state.
+ *
+ * @param name Name of critical parameter.
+ * @return True if critical parameter was set, false if parameter is not found.
+ */
 bool WeatherInterface::setCriticalParameter(std::string name)
 {
     auto oneParameter = ParametersNP.findWidgetByName(name.c_str());
@@ -286,9 +317,47 @@ bool WeatherInterface::setCriticalParameter(std::string name)
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Checks the given parameter against the defined bounds
+ *
+ * This method evaluates a parameter's value against its defined ranges and determines its state.
+ * The state can be one of:
+ * - IPS_IDLE: The parameter is not found or not configured
+ * - IPS_OK: The parameter value is in the safe zone
+ * - IPS_BUSY: The parameter value is in the warning zone
+ * - IPS_ALERT: The parameter value is in the danger zone
+ *
+ * There are two models for parameter evaluation:
+ *
+ * 1. Standard model (flipRangeTest = false):
+ *    min--+         +-low-%    high-%-+        +--max
+ *         |         |                 |        |
+ *         v         v                 v        v
+ *         [         (                 )        ]
+ *    danger     warning       good         warning   danger
+ *
+ *    - Values outside min/max limits = DANGER (IPS_ALERT)
+ *    - Values in warning zones = WARNING (IPS_BUSY)
+ *    - Values in the middle safe zone = GOOD (IPS_OK)
+ *
+ * 2. Flipped model (flipRangeTest = true):
+ *    min--+         +-low-%    high-%-+        +--max
+ *         |         |                 |        |
+ *         v         v                 v        v
+ *         [         (                 )        ]
+ *    good       warning      danger        warning   good
+ *
+ *    - Values outside min/max limits = GOOD (IPS_OK)
+ *    - Values in warning zones = WARNING (IPS_BUSY)
+ *    - Values in the middle zone = DANGER (IPS_ALERT)
+ *
+ * The flipped model is useful for parameters where values below minimum or above maximum
+ * are actually good conditions (e.g., certain atmospheric measurements where extreme values
+ * indicate clear conditions).
+ *
+ * @param name Name of parameter to check
+ * @return IPS_IDLE if parameter not found, otherwise the state based on parameter value
+ */
 IPState WeatherInterface::checkParameterState(const std::string &name) const
 {
     auto oneRange = std::find_if(ParametersRangeNP.begin(), ParametersRangeNP.end(), [name](auto & oneElement)
@@ -313,22 +382,43 @@ IPState WeatherInterface::checkParameterState(const std::string &name) const
     auto maxLimit = (*oneRange)[MAX_OK].getValue();
     auto percentageWarning = (*oneRange)[PERCENT_WARNING].getValue();
     auto rangeWarn = (maxLimit - minLimit) * (percentageWarning / 100);
+    auto flipRangeTest = (*oneRange)[FLIP_RANGE_TEST].getValue();
 
     auto value = oneParameter->getValue();
 
-    if (value < minLimit || value > maxLimit)
-        return IPS_ALERT;
-    else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
-        return IPS_BUSY;
+    if (flipRangeTest)
+    {
+        // flipped original range test, namely: outside limits = OK; outside percentage bounds = warning; inside percentage bounds = danger
+        if (value < minLimit || value > maxLimit)
+            return IPS_OK;
+        else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
+            return IPS_BUSY;
+        else
+            return IPS_ALERT;
+    }
     else
-        return IPS_OK;
+    {
+        // originally there was only this range test, namely: outside limits = danger; outside percentage bounds = warning; inside percentage bounds = OK
+        if (value < minLimit || value > maxLimit)
+            return IPS_ALERT;
+        else if (((value < (minLimit + rangeWarn)) && minLimit != 0) || ((value > (maxLimit - rangeWarn)) && maxLimit != 0))
+            return IPS_BUSY;
+        else
+            return IPS_OK;
+    }
 
     return IPS_IDLE;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Synchronize and update the state of all critical parameters
+ *
+ * This method checks the state of all critical parameters and updates their
+ * individual states as well as the overall state of the weather system.
+ * The overall state is determined by the worst individual state.
+ *
+ * @return True if any parameter state changed, false otherwise
+ */
 bool WeatherInterface::syncCriticalParameters()
 {
     if (critialParametersLP.count() == 0)
@@ -380,28 +470,48 @@ bool WeatherInterface::syncCriticalParameters()
     return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
-void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+/**
+ * @brief Create a parameter range with min/max values and warning percentage
+ *
+ * This method creates a property for configuring the acceptable ranges and warning
+ * thresholds for a weather parameter. It includes:
+ * - Minimum and maximum values for the "OK" range
+ * - Percentage for warning zone calculation
+ * - Flip warning flag to invert the alert logic
+ *
+ * @param name Name of parameter
+ * @param label Label of parameter (in GUI)
+ * @param numMinOk Minimum OK range value
+ * @param numMaxOk Maximum OK range value
+ * @param percWarning Percentage for warning zone calculation
+ * @param flipWarning Boolean indicating if range warning should be flipped
+ */
+void WeatherInterface::createParameterRange(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning, bool flipWarning)
 {
-    INDI::WidgetNumber minWidget, maxWidget, warnWidget;
+    INDI::WidgetNumber minWidget, maxWidget, warnWidget, typeWidget;
     minWidget.fill("MIN_OK", "OK range min", "%.2f", -1e6, 1e6, 0, numMinOk);
     maxWidget.fill("MAX_OK", "OK range max", "%.2f", -1e6, 1e6, 0, numMaxOk);
     warnWidget.fill("PERC_WARN", "% for Warning", "%.f", 0, 100, 5, percWarning);
+    typeWidget.fill("ALERT_TYPE", "Flip alerting to in-bounds", "%.f", 0, 1, 1, (flipWarning ? 1 : 0));
 
     INDI::PropertyNumber oneRange {0};
     oneRange.push(std::move(minWidget));
     oneRange.push(std::move(maxWidget));
     oneRange.push(std::move(warnWidget));
+    oneRange.push(std::move(typeWidget));
     oneRange.fill(getDeviceName(), name.c_str(), label.c_str(), m_ParametersGroup.c_str(), IP_RW, 60, IPS_IDLE);
 
     ParametersRangeNP.push_back(std::move(oneRange));
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Save parameters ranges in the config file
+ *
+ * This method saves the update period and all parameter ranges to the configuration file.
+ *
+ * @param fp Pointer to open config file
+ * @return True if successful, false otherwise
+ */
 bool WeatherInterface::saveConfigItems(FILE *fp)
 {
     UpdatePeriodNP.save(fp);

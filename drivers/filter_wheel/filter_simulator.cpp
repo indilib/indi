@@ -28,14 +28,39 @@ std::unique_ptr<FilterSim> filter_sim(new FilterSim());
 
 const char *FilterSim::getDefaultName()
 {
-    return (const char *)"Filter Simulator";
+    return "Filter Simulator";
+}
+
+bool FilterSim::initProperties()
+{
+    INDI::FilterWheel::initProperties();
+
+    DelayNP[0].fill("VALUE", "Seconds", "%.f", -1, 30, 1, 1);
+    DelayNP.fill(getDeviceName(), "DELAY", "Filter Delay", FILTER_TAB, IP_RW, 60, IPS_IDLE);
+    return true;
+}
+
+bool FilterSim::updateProperties()
+{
+    INDI::FilterWheel::updateProperties();
+
+    if (isConnected())
+    {
+        defineProperty(DelayNP);
+    }
+    else
+    {
+        deleteProperty(DelayNP);
+    }
+
+    return true;
 }
 
 bool FilterSim::Connect()
 {
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 8;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(8);
     return true;
 }
 
@@ -44,16 +69,33 @@ bool FilterSim::Disconnect()
     return true;
 }
 
+bool FilterSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (DelayNP.isNameMatch(name))
+        {
+            DelayNP.update(values, names, n);
+            DelayNP.setState(IPS_OK);
+            DelayNP.apply();
+            return true;
+        }
+    }
+
+    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+
+}
+
 bool FilterSim::SelectFilter(int f)
 {
-    // Sleep randomly between 1500 and 2000ms to simulate filter selection
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(1500, 2000);
-    std::this_thread::sleep_for(std::chrono::milliseconds(dist(gen)));
+    int delay = DelayNP[0].getValue();
+    if (delay < 0)
+        return false;
+
+    std::this_thread::sleep_for(std::chrono::seconds(delay));
 
     CurrentFilter = f;
-    SetTimer(500);
+    SetTimer(10);
     return true;
 }
 
