@@ -36,7 +36,7 @@ static std::unique_ptr<IPX800> device(new IPX800());
 
 IPX800::IPX800() : InputInterface(this), OutputInterface(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool IPX800::initProperties()
@@ -74,6 +74,9 @@ bool IPX800::initProperties()
     ModelVersionTP.fill(getDeviceName(), "MODEL", "Model", "Main Control", IP_RO, 60, IPS_IDLE);
 
     setDefaultPollingPeriod(1000);
+	
+	// Ensure properties are updated
+	updateProperties();
 
     return true;
 }
@@ -83,16 +86,15 @@ bool IPX800::updateProperties()
     INDI::DefaultDevice::updateProperties();
     InputInterface::updateProperties();
     OutputInterface::updateProperties();
-
+    defineProperty(APIKeyTP);
+    
     if (isConnected())
-    {
-        defineProperty(APIKeyTP);
+    {      
         defineProperty(ModelVersionTP);
         SetTimer(getCurrentPollingPeriod());
     }
     else
     {
-        deleteProperty(APIKeyTP);
         deleteProperty(ModelVersionTP);
     }
 
@@ -106,28 +108,27 @@ const char *IPX800::getDefaultName()
 
 bool IPX800::Handshake()
 {
-    if (strlen(APIKeyTP[0].getText()) == 0)
-    {
-        LOG_ERROR("API Key is not set");
-        return false;
-    }
-
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
 
-    // Get relay status as a simple test
-    std::string endpoint = "/api/xdevices.json";
-    endpoint += "?key=" + std::string(APIKeyTP[0].getText());
-    endpoint += "&Get=D";
+    // Get digital input status as a simple test
+    std::string endpoint = "/api/xdevices.json?";
+	std::string apiKey = std::string(APIKeyTP[0].getText());
+	if (!apiKey.empty()) {
+		endpoint += "key=" + apiKey + "&" ;
+    }
+	endpoint += "Get=D";
     auto result = cli.Get(endpoint);
+	
     if (!result)
     {
         LOG_ERROR("Failed to connect to device");
         return false;
     }
-
+	
     try
     {
         auto j = json::parse(result->body);
+
         if (j.contains("product"))
         {
             std::string product = j["product"].get<std::string>();
@@ -165,25 +166,27 @@ bool IPX800::UpdateDigitalInputs()
 {
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
 
-    std::string endpoint = "/api/xdevices.json";
-    endpoint += "?key=" + std::string(APIKeyTP[0].getText());
-    endpoint += "&Get=D";
+    std::string endpoint = "/api/xdevices.json?";
+	std::string apiKey = std::string(APIKeyTP[0].getText());
+	if (!apiKey.empty()) {
+		endpoint += "key=" + apiKey + "&" ;
+    }
+	endpoint += "Get=D";
     auto result = cli.Get(endpoint);
     if (!result)
     {
         LOG_ERROR("Failed to get digital inputs");
         return false;
     }
-
     try
     {
-        auto j = json::parse(result->body);
-
-        // Parse digital inputs
-        auto inputs = j.get<std::vector<int>>();
-        for (size_t i = 0; i < DIGITAL_INPUTS && i < inputs.size(); i++)
+        auto j = json::parse(result->body);				
+        //Parse digital inputs
+        for (size_t i = 0; i < DIGITAL_INPUTS ; i++)
         {
-            auto state = inputs[i] ? ISS_ON : ISS_OFF;
+			// Construisez la clé dynamiquement
+            std::string key = "D" + std::to_string(i + 1);
+            int state = j[key].get<int>() ? ISS_ON : ISS_OFF;
             if (DigitalInputsSP[i].findOnSwitchIndex() != state)
             {
                 DigitalInputsSP[i].reset();
@@ -205,10 +208,12 @@ bool IPX800::UpdateDigitalInputs()
 bool IPX800::UpdateAnalogInputs()
 {
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
-
-    std::string endpoint = "/api/xdevices.json";
-    endpoint += "?key=" + std::string(APIKeyTP[0].getText());
-    endpoint += "&Get=A";
+    std::string endpoint = "/api/xdevices.json?";
+	std::string apiKey = std::string(APIKeyTP[0].getText());
+	if (!apiKey.empty()) {
+		endpoint += "key=" + apiKey + "&" ;
+    }
+	endpoint += "Get=A";
     auto result = cli.Get(endpoint);
     if (!result)
     {
@@ -219,11 +224,10 @@ bool IPX800::UpdateAnalogInputs()
     try
     {
         auto j = json::parse(result->body);
-
         // Parse analog inputs
-        for (int i = 0; i < ANALOG_INPUTS; i++)
+        for (size_t i = 0; i < ANALOG_INPUTS; i++)
         {
-            std::string key = "AN" + std::to_string(i + 1);
+            std::string key = "A" + std::to_string(i + 1);
             if (j.contains(key))
             {
                 double value = j[key].get<double>();
@@ -249,9 +253,12 @@ bool IPX800::UpdateDigitalOutputs()
 {
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
 
-    std::string endpoint = "/api/xdevices.json";
-    endpoint += "?key=" + std::string(APIKeyTP[0].getText());
-    endpoint += "&Get=R";
+    std::string endpoint = "/api/xdevices.json?";
+    std::string apiKey = std::string(APIKeyTP[0].getText());
+	if (!apiKey.empty()) {
+		endpoint += "key=" + apiKey + "&" ;
+    }
+	endpoint += "Get=R";
     auto result = cli.Get(endpoint);
     if (!result)
     {
@@ -262,19 +269,19 @@ bool IPX800::UpdateDigitalOutputs()
     try
     {
         auto j = json::parse(result->body);
-
+		
         // Parse digital outputs
-        auto outputs = j.get<std::vector<int>>();
-        for (size_t i = 0; i < DIGITAL_OUTPUTS && i < outputs.size(); i++)
+        for (size_t i = 0; i < DIGITAL_OUTPUTS; i++)
         {
-            auto state = outputs[i] ? ISS_ON : ISS_OFF;
-            if (DigitalOutputsSP[i].findOnSwitchIndex() != state)
-            {
-                DigitalOutputsSP[i].reset();
-                DigitalOutputsSP[i][state].setState(ISS_ON);
-                DigitalOutputsSP[i].setState(IPS_OK);
-                DigitalOutputsSP[i].apply();
-            }
+			std::string key = "R" + std::to_string(i + 1);
+			int state = j[key].get<int>() ? ISS_ON : ISS_OFF;
+                if (DigitalOutputsSP[i].findOnSwitchIndex() != state)
+                {
+					DigitalOutputsSP[i].reset();
+					DigitalOutputsSP[i][state].setState(ISS_ON);
+					DigitalOutputsSP[i].setState(IPS_OK);
+					DigitalOutputsSP[i].apply();
+                }
         }
         return true;
     }
@@ -291,9 +298,12 @@ bool IPX800::CommandOutput(uint32_t index, OutputState command)
     httplib::Client cli(tcpConnection->host(), tcpConnection->port());
 
     // IPX800 uses 1-based indexing for outputs
-    std::string endpoint = "/api/xdevices.json";
-    endpoint += "?key=" + std::string(APIKeyTP[0].getText());
-    endpoint += "&" + std::string(command == OutputState::On ? "SetR=" : "ClearR=") + std::to_string(index + 1);
+    std::string endpoint = "/api/xdevices.json?";
+	std::string apiKey = std::string(APIKeyTP[0].getText());
+	if (!apiKey.empty())
+		endpoint += "key=" + apiKey + "&" ;
+    
+    endpoint += std::string(command == OutputState::On ? "SetR=" : "ClearR=") + std::to_string(index + 1);
 
     auto result = cli.Get(endpoint);
     if (!result)
