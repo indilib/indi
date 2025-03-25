@@ -869,7 +869,7 @@
             <driver name="Waveshare Relay">indi_wavesharemodbus_relay</driver>
             <version>1.0</version>
         </device>
-        <device label="IPX800v4" manufacturer="CGE Electronics">
+        <device label="IPX800v4" manufacturer="GCE Electronics">
             <driver name="IPX800v4">indi_ipx800v4</driver>
             <version>1.0</version>
         </device>
