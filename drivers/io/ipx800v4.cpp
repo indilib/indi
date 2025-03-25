@@ -39,6 +39,19 @@ IPX800::IPX800() : InputInterface(this), OutputInterface(this)
     setVersion(1, 1);
 }
 
+void IPX800::ISGetProperties(const char *dev)
+{
+   	
+        INDI::DefaultDevice::ISGetProperties(dev);
+        //Define the APIKeyTP property
+        APIKeyTP[0].fill("API_KEY", "API Key", "");
+        APIKeyTP.fill(getDeviceName(), "API_KEY", "API Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+        APIKeyTP.load();
+        defineProperty(APIKeyTP);
+
+
+}
+
 bool IPX800::initProperties()
 {
     INDI::DefaultDevice::initProperties();
@@ -64,20 +77,12 @@ bool IPX800::initProperties()
 
     registerConnection(tcpConnection);
 
-    // API Key
-    APIKeyTP[0].fill("API_KEY", "API Key", "");
-    APIKeyTP.fill(getDeviceName(), "API_KEY", "API Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-    APIKeyTP.load();
-
     // Model version
     ModelVersionTP[0].fill("VERSION", "Version", "");
     ModelVersionTP.fill(getDeviceName(), "MODEL", "Model", "Main Control", IP_RO, 60, IPS_IDLE);
 
     setDefaultPollingPeriod(1000);
 	
-	// Ensure properties are updated
-	updateProperties();
-
     return true;
 }
 
@@ -86,7 +91,7 @@ bool IPX800::updateProperties()
     INDI::DefaultDevice::updateProperties();
     InputInterface::updateProperties();
     OutputInterface::updateProperties();
-    defineProperty(APIKeyTP);
+	
     
     if (isConnected())
     {      
@@ -129,7 +134,7 @@ bool IPX800::Handshake()
     {
         auto j = json::parse(result->body);
 
-        if (j.contains("product"))
+        if (j.contains("product") && j.contains("status") && j["status"] == "Success")
         {
             std::string product = j["product"].get<std::string>();
             // Extract version (e.g. "IPX800_V3" -> "V3")
@@ -139,8 +144,13 @@ bool IPX800::Handshake()
                 ModelVersionTP[0].setText(product.substr(pos + 1).c_str());
                 ModelVersionTP.setState(IPS_OK);
             }
+			return true;
         }
-        return true;
+		else {
+            LOG_ERROR("Failed to connect to device");
+            return false;
+		}
+        
     }
     catch (json::parse_error &e)
     {
