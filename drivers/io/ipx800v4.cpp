@@ -41,15 +41,8 @@ IPX800::IPX800() : InputInterface(this), OutputInterface(this)
 
 void IPX800::ISGetProperties(const char *dev)
 {
-   	
         INDI::DefaultDevice::ISGetProperties(dev);
-        //Define the APIKeyTP property
-        APIKeyTP[0].fill("API_KEY", "API Key", "");
-        APIKeyTP.fill(getDeviceName(), "API_KEY", "API Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-        APIKeyTP.load();
         defineProperty(APIKeyTP);
-
-
 }
 
 bool IPX800::initProperties()
@@ -76,6 +69,12 @@ bool IPX800::initProperties()
     });
 
     registerConnection(tcpConnection);
+
+    //Define the APIKeyTP property
+    APIKeyTP[0].fill("API_KEY", "API Key", "");
+    APIKeyTP.fill(getDeviceName(), "API_KEY", "API Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    APIKeyTP.load();
+
 
     // Model version
     ModelVersionTP[0].fill("VERSION", "Version", "");
