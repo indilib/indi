@@ -388,7 +388,10 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
         WidgetView(const WidgetView<Type> &other): Type(other)
         {
             this->text = nullptr;
-            setText(other.text);
+            if (other.text != nullptr)
+            {
+                setText(other.text);
+            }
         }
         WidgetView(WidgetView<Type> &&other): Type(other)
         {
