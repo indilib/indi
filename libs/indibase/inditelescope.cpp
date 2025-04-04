@@ -682,7 +682,9 @@ void Telescope::NewRaDec(double ra, double dec)
         TrackStateSP.apply();
     }
 
-    if (std::abs(EqNP[AXIS_RA].getValue() - ra) > EQ_NOTIFY_THRESHOLD ||
+    // RA is in hours, so change the arc-second threshold accordingly.
+    constexpr double RA_NOTIFY_THRESHOLD = EQ_NOTIFY_THRESHOLD/15.0;
+    if (std::abs(EqNP[AXIS_RA].getValue() - ra) > RA_NOTIFY_THRESHOLD ||
             std::abs(EqNP[AXIS_DE].getValue() - dec) > EQ_NOTIFY_THRESHOLD ||
             EqNP.getState() != lastEqState)
     {

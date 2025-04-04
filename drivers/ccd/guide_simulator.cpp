@@ -130,9 +130,9 @@ bool GuideSim::initProperties()
     SimulatorSettingsNP[SIM_NOISE].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
     SimulatorSettingsNP[SIM_SKYGLOW].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
     SimulatorSettingsNP[SIM_OAGOFFSET].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
-    SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
+    SimulatorSettingsNP[SIM_POLAR].fill("SIM_POLAR", "PAE (arcminutes)", "%4.3f", -600, 600, 0,
                                         0); /* PAE = Polar Alignment Error */
-    SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
+    SimulatorSettingsNP[SIM_POLARDRIFT].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.3f", 0, 6000, 0, 0);
     SimulatorSettingsNP[SIM_ROTATION].fill("SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
     SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
@@ -849,18 +849,10 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
 int GuideSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time)
 {
-    //float d;
-    //float r;
-    int sx, sy;
-    int drew     = 0;
-    //int boxsizex = 5;
-    int boxsizey = 5;
-    float flux;
-
-    int subX = targetChip->getSubX();
-    int subY = targetChip->getSubY();
-    int subW = targetChip->getSubW() + subX;
-    int subH = targetChip->getSubH() + subY;
+    const int subX = targetChip->getSubX();
+    const int subY = targetChip->getSubY();
+    const int subW = targetChip->getSubW() + subX;
+    const int subH = targetChip->getSubH() + subY;
 
     if ((x < subX) || (x > subW || (y < subY) || (y > subH)))
     {
@@ -868,42 +860,31 @@ int GuideSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, floa
         return 0;
     }
 
-    //  calculate flux from our zero point and gain values
-    flux = pow(10, ((mag - z) * k / -2.5));
+    //  Calculate flux from our zero point and gain values
+    //  Mag represents one second, scale up linearly for exposure time.
+    const double flux = exposure_time * pow(10, ((mag - z) * k / -2.5));
 
-    //  ok, flux represents one second now
-    //  scale up linearly for exposure time
-    flux = flux * exposure_time;
+    const double seeingSquared = seeing * seeing;
+    const double pixelPartX = x - static_cast<int>(x);
+    const double pixelPartY = y - static_cast<int>(y);
 
-    auto qx = seeing / ImageScaley;
-    qx = qx * 3;
-    boxsizey = static_cast<int>(qx);
-    boxsizey++;
-
-    //IDLog("BoxSize %d %d\n",boxsizex,boxsizey);
-
-    for (sy = -boxsizey; sy <= boxsizey; sy++)
+    int drew     = 0;
+    const int boxSize = static_cast<int>(3 * seeing / ImageScaley) + 1;
+    for (int sy = -boxSize; sy <= boxSize; sy++)
     {
-        for (sx = -boxsizey; sx <= boxsizey; sx++)
+        for (int sx = -boxSize; sx <= boxSize; sx++)
         {
-            int rc;
-            float dc; //  distance from center
-            float fp; //  flux this pixel;
+            //  Need to make this account for actual pixel size
+            const double dx = ImageScalex * (sx - pixelPartX);
+            const double dy = ImageScaley * (sy - pixelPartY);
+             //  Distance from center (arcseconds).
+            const float distanceSquared = dx * dx  + dy * dy;
+            float pixelFlux = flux * exp(-2.0 * 0.7 * distanceSquared / seeingSquared);
 
-            //  need to make this account for actual pixel size
-            dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
-            //  now we have the distance from center, in arcseconds
-            //  This should be gaussian, but, for now we'll just go with
-            //  a simple linear function
-            float fa = exp(-2.0 * 0.7 * (dc * dc) / seeing / seeing);
+            if (pixelFlux < 0)
+                pixelFlux = 0;
 
-            fp = fa * flux;
-
-            if (fp < 0)
-                fp = 0;
-
-            rc = AddToPixel(targetChip, x + sx, y + sy, fp);
-            if (rc != 0)
+            if (AddToPixel(targetChip, x + sx, y + sy, pixelFlux) != 0)
                 drew = 1;
         }
     }
