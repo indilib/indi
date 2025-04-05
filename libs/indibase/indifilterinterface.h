@@ -127,7 +127,6 @@ class FilterInterface
 
         int CurrentFilter = 1;
         int TargetFilter = 1;
-        bool loadingFromConfig = false;
 
         DefaultDevice *m_defaultDevice { nullptr };
 

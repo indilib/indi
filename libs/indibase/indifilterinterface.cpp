@@ -38,7 +38,7 @@ FilterInterface::~FilterInterface()
 void FilterInterface::initProperties(const char *groupName)
 {
     // @INDI_STANDARD_PROPERTY@
-    FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
+    FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%.f", 1.0, 12, 1.0, 1.0);
     FilterSlotNP.fill(m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60, IPS_IDLE);
 
     loadFilterNames();
@@ -114,35 +114,6 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, "FILTER_NAME"))
     {
-        // If this call due to config loading, let's delete existing dummy property and define the full one
-        if (loadingFromConfig)
-        {
-            loadingFromConfig = false;
-            m_defaultDevice->deleteProperty("FILTER_NAME");
-
-            char filterName[MAXINDINAME];
-            char filterLabel[MAXINDILABEL];
-
-            FilterNameTP.resize(0);
-
-            for (int i = 0; i < n; i++)
-            {
-                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-                snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-
-                INDI::WidgetText oneText;
-                oneText.fill(filterName, filterLabel, texts[i]);
-                FilterNameTP.push(std::move(oneText));
-            }
-
-            // @INDI_STANDARD_PROPERTY@
-            FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
-                              FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
-            FilterNameTP.shrink_to_fit();
-            m_defaultDevice->defineProperty(FilterNameTP);
-            return true;
-        }
-
         FilterNameTP.update(texts, names, n);
         FilterNameTP.setState(IPS_OK);
 
@@ -174,12 +145,9 @@ bool FilterInterface::saveConfigItems(FILE *fp)
 
 void FilterInterface::SelectFilterDone(int f)
 {
-    //  The hardware has finished changing
-    //  filters
+    //  The hardware has finished changing  filters
     FilterSlotNP[0].setValue(f);
     FilterSlotNP.setState(IPS_OK);
-    // Tell the clients we are done, and
-    //  filter is now useable
     FilterSlotNP.apply();
 }
 
@@ -210,27 +178,16 @@ void FilterInterface::generateSampleFilters()
 
 bool FilterInterface::GetFilterNames()
 {
-    // Load from config
-    if (FilterNameTP.size() == 0)
-    {
+    // Generate sample filters if nothing available.
+    if (FilterNameTP.isEmpty())
         generateSampleFilters();
-
-        //        // JM 2018-07-09: Set loadingFromConfig to true here before calling loadConfig
-        //        // since if loadConfig is successful, ISNewText could be executed _before_ we have a chance
-        //        // to set loadFromConfig below
-        //        loadingFromConfig = true;
-
-        //        // If property is found, let's define it once loaded to the client and delete
-        //        // the generate sample filters above
-        //        loadingFromConfig = m_defaultDevice->loadConfig(true, "FILTER_NAME");
-    }
 
     return true;
 }
 
 bool FilterInterface::SetFilterNames()
 {
-    return m_defaultDevice->saveConfig(true, "FILTER_NAME");
+    return m_defaultDevice->saveConfig(FilterNameTP);
 }
 
 bool FilterInterface::loadFilterNames()
@@ -301,6 +258,10 @@ bool FilterInterface::loadFilterNames()
     FilterNameTP.fill(m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter",
                       FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
     FilterNameTP.shrink_to_fit();
+
+    // Filter Slot must match and agree with filter name if it was loaded successfully.
+    if (FilterNameTP.count() > 0)
+        FilterSlotNP[0].setMax(FilterNameTP.count());
 
     fclose(fp);
     delXMLEle(fproot);
