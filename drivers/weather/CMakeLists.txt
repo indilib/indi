@@ -79,5 +79,5 @@ SET(WeatherSafetyAlpaca_SRC
     weather_safety_alpaca.cpp)
 
 add_executable(indi_weather_safety_alpaca ${WeatherSafetyAlpaca_SRC})
-target_link_libraries(indi_weather_safety_alpaca indidriver indiclient)
+target_link_libraries(indi_weather_safety_alpaca indidriver indiclient ${HTTPLIB_LIBRARY})
 install(TARGETS indi_weather_safety_alpaca RUNTIME DESTINATION bin)

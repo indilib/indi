@@ -99,5 +99,5 @@ SET(alpaca_dome_SRC
     )
 
 add_executable(indi_alpaca_dome ${alpaca_dome_SRC})
-target_link_libraries(indi_alpaca_dome indidriver indiclient)
+target_link_libraries(indi_alpaca_dome indidriver indiclient ${HTTPLIB_LIBRARY})
 install(TARGETS indi_alpaca_dome RUNTIME DESTINATION bin)
