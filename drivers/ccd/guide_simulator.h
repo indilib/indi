@@ -41,171 +41,187 @@
  */
 class GuideSim : public INDI::CCD
 {
-public:
+    public:
 
-    GuideSim();
-    virtual ~GuideSim() override = default;
+        GuideSim();
+        virtual ~GuideSim() override = default;
 
-    const char *getDefaultName() override;
+        const char *getDefaultName() override;
 
-    bool initProperties() override;
-    bool updateProperties() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    void ISGetProperties(const char *dev) override;
+        void ISGetProperties(const char *dev) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
+        static void *streamVideoHelper(void *context);
+        void *streamVideo();
 
-protected:
+    protected:
 
-    bool Connect() override;
-    bool Disconnect() override;
+        bool Connect() override;
+        bool Disconnect() override;
 
-    bool StartExposure(float duration) override;
+        bool StartExposure(float duration) override;
 
-    bool AbortExposure() override;
+        bool AbortExposure() override;
 
-    void TimerHit() override;
+        void TimerHit() override;
 
-    int DrawCcdFrame(INDI::CCDChip *targetChip);
+        int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
-    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
+        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+        int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-    virtual IPState GuideNorth(uint32_t) override;
-    virtual IPState GuideSouth(uint32_t) override;
-    virtual IPState GuideEast(uint32_t) override;
-    virtual IPState GuideWest(uint32_t) override;
+        virtual IPState GuideNorth(uint32_t) override;
+        virtual IPState GuideSouth(uint32_t) override;
+        virtual IPState GuideEast(uint32_t) override;
+        virtual IPState GuideWest(uint32_t) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
-    virtual void activeDevicesUpdated() override;
-    virtual int SetTemperature(double temperature) override;
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
-    virtual bool UpdateCCDBin(int hor, int ver) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void addFITSKeywords(INDI::CCDChip *targetChip, std::vector<INDI::FITSRecord> &fitsKeywords) override;
+        virtual void activeDevicesUpdated() override;
+        virtual int SetTemperature(double temperature) override;
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        virtual bool UpdateCCDBin(int hor, int ver) override;
 
-    virtual bool StartStreaming() override;
-    virtual bool StopStreaming() override;
+        virtual bool StartStreaming() override;
+        virtual bool StopStreaming() override;
 
-private:
+    private:
 
-    float CalcTimeLeft(timeval, float);
-    bool SetupParms();
+        float CalcTimeLeft(timeval, float);
+        bool SetupParms();
 
-    // Turns on/off Bayer RGB simulation.
-    void setRGB(bool onOff);
+        // Turns on/off Bayer RGB simulation.
+        void setRGB(bool onOff);
 
-    double TemperatureRequest { 0 };
+        double TemperatureRequest { 0 };
 
-    float ExposureRequest { 0 };
-    struct timeval ExpStart
-    {
-        0, 0
-    };
+        float ExposureRequest { 0 };
+        struct timeval ExpStart
+        {
+            0, 0
+        };
 
 
-    int testvalue { 0 };
-    bool ShowStarField { true };
-    int bias { 1500 };
-    int maxnoise { 20 };
-    int maxval { 65000 };
-    int maxpix { 0 };
-    int minpix { 65000 };
-    float skyglow { 40 };
-    float limitingmag { 11.5 };
-    float saturationmag { 2 };
-    float seeing { 3.5 };
-    float ImageScalex { 1.0 };
-    float ImageScaley { 1.0 };
-    //  An oag is offset this much from center of scope position (arcminutes)
-    float OAGoffset { 0 };
-    double rotationCW { 0 };
-    float TimeFactor { 1 };
+        int testvalue { 0 };
+        bool ShowStarField { true };
+        int bias { 1500 };
+        int maxnoise { 20 };
+        int maxval { 65000 };
+        int maxpix { 0 };
+        int minpix { 65000 };
+        float skyglow { 40 };
+        float limitingmag { 11.5 };
+        float saturationmag { 2 };
+        float seeing { 3.5 };
+        float ImageScalex { 1.0 };
+        float ImageScaley { 1.0 };
+        //  An oag is offset this much from center of scope position (arcminutes)
+        float OAGoffset { 0 };
+        double rotationCW { 0 };
+        float TimeFactor { 1 };
 
-    bool simulateRGB { false };
+        bool simulateRGB { false };
 
-    //  our zero point calcs used for drawing stars
-    float k { 0 };
-    float z { 0 };
+        //  our zero point calcs used for drawing stars
+        float k { 0 };
+        float z { 0 };
 
-    bool AbortPrimaryFrame { false };
+        bool AbortPrimaryFrame { false };
 
-    /// Guide rate is 7 arcseconds per second
-    float GuideRate { 7 };
+        /// Guide rate is 7 arcseconds per second
+        float GuideRate { 7 };
 
-    /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
-    float PEPeriod { 8 * 60 };
-    float PEMax { 11 };
+        float PEPeriod { 8 * 60 };
+        float PEMax { 11 };
 
-    double currentRA { 0 };
-    double currentDE { 0 };
-    bool usePE { false };
-    time_t RunStart;
+        // Random values added to ra and dec
+        float raRand { 0 };
+        float decRand { 0 };
 
-    float guideNSOffset {0};
-    float guideWEOffset {0};
+        // linear drift (multiplied by seconds since start) in arcsec/sec.
+        float raTimeDrift { 0 };
+        float decTimeDrift { 0 };
 
-    float polarError { 0 };
-    float polarDrift { 0 };
-    float king_gamma = { 0 };
-    float king_theta = { 0 };
+        double currentRA { 0 };
+        double currentDE { 0 };
+        bool usePE { false };
+        time_t RunStart;
+        bool runStartInitialized = false;
 
-    int streamPredicate;
-    pthread_t primary_thread;
-    bool terminateThread;
+        float guideNSOffset {0};
+        float guideWEOffset {0};
 
-    //  And this lives in our simulator settings page
+        float polarError { 0 };
+        float polarDrift { 0 };
+        float king_gamma = { 0 };
+        float king_theta = { 0 };
 
-    INDI::PropertyNumber SimulatorSettingsNP {17};
-    enum
-    {
-        SIM_XRES,
-        SIM_YRES,
-        SIM_XSIZE,
-        SIM_YSIZE,
-        SIM_MAXVAL,
-        SIM_BIAS,
-        SIM_SATURATION,
-        SIM_LIMITINGMAG,
-        SIM_NOISE,
-        SIM_SKYGLOW,
-        SIM_OAGOFFSET,
-        SIM_POLAR,
-        SIM_POLARDRIFT,
-        SIM_ROTATION,
-        SIM_KING_GAMMA,
-        SIM_KING_THETA,
-        SIM_TIME_FACTOR
-    };
+        int streamPredicate;
+        pthread_t primary_thread;
+        bool terminateThread;
 
-    INDI::PropertySwitch SimulateRgbSP {2};
-    enum
-    {
-        SIMULATE_YES,
-        SIMULATE_NO
-    };
+        //  And this lives in our simulator settings page
 
-    INDI::PropertyNumber EqPENP {2};
-    enum
-    {
-        RA_PE,
-        DEC_PE
-    };
+        enum
+        {
+            SIM_XRES = 0,
+            SIM_YRES,
+            SIM_XSIZE,
+            SIM_YSIZE,
+            SIM_MAXVAL,
+            SIM_BIAS,
+            SIM_SATURATION,
+            SIM_LIMITINGMAG,
+            SIM_NOISE,
+            SIM_SKYGLOW,
+            SIM_OAGOFFSET,
+            SIM_POLAR,
+            SIM_POLARDRIFT,
+            SIM_ROTATION,
+            SIM_KING_GAMMA,
+            SIM_KING_THETA,
+            SIM_TIME_FACTOR,
+            SIM_SEEING,
+            SIM_RA_DRIFT,
+            SIM_DEC_DRIFT,
+            SIM_RA_RAND,
+            SIM_DEC_RAND,
+            SIM_PE_PERIOD,
+            SIM_PE_MAX,
+            SIM_NUM_PROPERTIES
+        };
+        INDI::PropertyNumber SimulatorSettingsNP {SIM_NUM_PROPERTIES};
 
-    INDI::PropertySwitch CoolerSP {2};
-    enum
-    {
-        COOLER_ON,
-        COOLER_OFF
-    };
+        INDI::PropertySwitch SimulateRgbSP {2};
+        enum
+        {
+            SIMULATE_YES,
+            SIMULATE_NO
+        };
 
-    INDI::PropertyNumber GainNP {1};
+        INDI::PropertyNumber EqPENP {2};
+        enum
+        {
+            RA_PE,
+            DEC_PE
+        };
 
-    INDI::PropertySwitch ToggleTimeoutSP {2};
+        INDI::PropertySwitch CoolerSP {2};
+        enum
+        {
+            COOLER_ON,
+            COOLER_OFF
+        };
 
-    static constexpr const char *SIMULATOR_TAB {"Simulator Settings"};
+        INDI::PropertyNumber GainNP {1};
+
+        INDI::PropertySwitch ToggleTimeoutSP {2};
+
+        static constexpr const char *SIMULATOR_TAB {"Simulator Settings"};
 };
