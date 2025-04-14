@@ -16,6 +16,34 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+
+/************************************************************************************
+This simulator is useful for simulating the images sent to a guiding program such as the
+Ekos guider or PHD2.
+
+There are many adjustments to the image needing comments.  An important one is:
+
+  Seeing: make this reasonably large so that single pixels stars aren't generated and the
+          guider can track sub-pixel. 5 is a good start.
+
+Use the below INDI properties to simulate imperfections in real-world mounts.
+
+  RA drift: Simulates a drift in arcseconds/second of the RA angle, e.g. due to bad tracking
+            or refraction
+  DEC drift: Similar, useful to simulate polar alignment error, etc.
+
+  Periodic error period (secs):
+  Periodic error maxval (arcsecs): These add a sinusoid of the given period, going from
+            -maxval to maxval arcseconds onto the RA.
+
+  Max random RA add (arcsecs):
+  Max random DEC add (arcsecs): These add random RA or DEC offsets each frame to the RA or
+           dec values. The random values are linearly distributed between -value to + value.
+
+Another interesting guide hardware simulation is found in the telescope simulator,
+which can simulate backlash to the guiding pulses. See its Dec Backlash parameter.
+************************************************************************************/
+
 #include "guide_simulator.h"
 #include "indicom.h"
 #include "stream/streammanager.h"
@@ -31,18 +59,18 @@
 static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
+constexpr double DEGREES_TO_RADIANS = 0.0174532925;
+
 // We declare an auto pointer to GuideSim.
 static std::unique_ptr<GuideSim> ccd(new GuideSim());
 
 GuideSim::GuideSim()
 {
-    currentRA  = RA;
-    currentDE = Dec;
+    m_CurrentRA  = RA;
+    m_CurrentDEC = Dec;
 
-    streamPredicate = 0;
-    terminateThread = false;
-
-    time(&RunStart);
+    m_StreamPredicate = 0;
+    m_TerminateThread = false;
 }
 
 bool GuideSim::SetupParms()
@@ -58,22 +86,45 @@ bool GuideSim::SetupParms()
         TemperatureNP.apply();
     }
 
-    //  Kwiq
-    maxnoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
-    skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
-    maxval        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
-    bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
-    limitingmag   = SimulatorSettingsNP[SIM_BIAS].getValue();
-    saturationmag = SimulatorSettingsNP[SIM_SATURATION].getValue();
-    OAGoffset =
-        SimulatorSettingsNP[SIM_OAGOFFSET].getValue(); //  An oag is offset this much from center of scope position (arcminutes);
-    polarError = SimulatorSettingsNP[SIM_POLAR].getValue();
-    polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
-    rotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
+    //  Random number added to each pixel up to this value.
+    m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
+    // A "glow" added to all frames, stronger at the center and less so further from the center.
+    m_SkyGlow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
+    // Clipping ADU value. Nothing is allowed to get brighter.
+    m_MaxVal        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
+    //  Fixed bias added to each pixel. Useful when negative and half of m_MaxNoise.
+    // This only gets added if m_MaxNoise is > 0.
+    m_Bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
+    //  A saturation mag star saturates in one second
+    //  and a limiting mag produces a one adu level in one second
+    m_LimitingMag   = SimulatorSettingsNP[SIM_LIMITINGMAG].getValue();
+    m_SaturationMag = SimulatorSettingsNP[SIM_SATURATION].getValue();
+    // offset the dec (in minutes) by the guide head offset
+    m_OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue();
+    // Doesn't make much sense to me.
+    // The dec is offset by (m_PolarError * polarDrift * cos(dec)) / 3.81
+    // This (locally at least) is a constant offset to dec, so won't show
+    // up much in guiding error.
+    m_PolarError = SimulatorSettingsNP[SIM_POLAR].getValue();
+    m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
+    // Camera rotation
+    m_RotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
     //  Kwiq++
-    king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * 0.0174532925;
-    king_theta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * 0.0174532925;
-    TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
+    m_KingGamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * DEGREES_TO_RADIANS;
+    m_KingTheta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * DEGREES_TO_RADIANS;
+    // Reduce the simulator "wait time" for exposures by this factor.
+    // That is, we can say exposure duration = 10s, and m_TimeFactor = 0.05
+    // and the system will simulate a 10s exposure, but it will only take 0.5 seconds.
+    m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
+
+    m_Seeing = SimulatorSettingsNP[SIM_SEEING].getValue();
+    m_RaTimeDrift = SimulatorSettingsNP[SIM_RA_DRIFT].getValue();
+    m_DecTimeDrift = SimulatorSettingsNP[SIM_DEC_DRIFT].getValue();
+    m_RaRand = SimulatorSettingsNP[SIM_RA_RAND].getValue();
+    m_DecRand = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
+    m_PEPeriod = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
+    m_PEMax = SimulatorSettingsNP[SIM_PE_MAX].getValue();
+
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -87,9 +138,9 @@ bool GuideSim::SetupParms()
 
 bool GuideSim::Connect()
 {
-    streamPredicate = 0;
-    terminateThread = false;
-    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    m_StreamPredicate = 0;
+    m_TerminateThread = false;
+    pthread_create(&m_PrimaryThread, nullptr, &streamVideoHelper, this);
     SetTimer(getCurrentPollingPeriod());
     return true;
 }
@@ -97,8 +148,8 @@ bool GuideSim::Connect()
 bool GuideSim::Disconnect()
 {
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 1;
-    terminateThread = true;
+    m_StreamPredicate = 1;
+    m_TerminateThread = true;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
 
@@ -137,6 +188,15 @@ bool GuideSim::initProperties()
     SimulatorSettingsNP[SIM_KING_GAMMA].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     SimulatorSettingsNP[SIM_KING_THETA].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     SimulatorSettingsNP[SIM_TIME_FACTOR].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
+
+    SimulatorSettingsNP[SIM_SEEING].fill("SIM_SEEING", "Seeing (a-s)", "%4.1f", 0, 20, 0, 6);
+    SimulatorSettingsNP[SIM_RA_DRIFT].fill("SIM_RA_DRIFT", "RA drift (a-s/second)", "%5.3f", -2, 2, 0, 0.05);
+    SimulatorSettingsNP[SIM_DEC_DRIFT].fill("SIM_DEC_DRIFT", "DEC drift (a-s/second)", "%5.3f", -2, 2, 0, -0.05);
+    SimulatorSettingsNP[SIM_RA_RAND].fill("SIM_RA_RAND", "Max random RA add (a-s)", "%5.3f", -2, 2, 0, 0.2);
+    SimulatorSettingsNP[SIM_DEC_RAND].fill("SIM_DEC_RAND", "Max random DEC add (a-s)", "%5.3f", -2, 2, 0,
+                                           0.3);
+    SimulatorSettingsNP[SIM_PE_PERIOD].fill("SIM_PE_PERIOD", "Periodic error period (secs)", "%4.1f", 0, 1000, 0, 120);
+    SimulatorSettingsNP[SIM_PE_MAX].fill("SIM_PE_MAX", "Periodic error maxval (a-s)", "%4.1f", 0, 100, 0, 3);
 
     SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                              "Config", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
@@ -187,7 +247,7 @@ bool GuideSim::initProperties()
 
     // This should be called after the initial SetCCDCapability (above)
     // as it modifies the capabilities.
-    setRGB(simulateRGB);
+    setRGB(m_SimulateRGB);
 
     addDebugControl();
 
@@ -253,7 +313,7 @@ bool GuideSim::updateProperties()
 
 int GuideSim::SetTemperature(double temperature)
 {
-    TemperatureRequest = temperature;
+    m_TemperatureRequest = temperature;
     if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
     {
         TemperatureNP[0].setValue(temperature);
@@ -272,15 +332,15 @@ bool GuideSim::StartExposure(float duration)
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
-    AbortPrimaryFrame = false;
-    ExposureRequest   = duration;
+    m_AbortPrimaryFrame = false;
+    m_ExposureRequest   = duration;
 
     PrimaryCCD.setExposureDuration(duration);
-    gettimeofday(&ExpStart, nullptr);
+    gettimeofday(&m_ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
     DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
-    ExposureRequest = duration * TimeFactor;
+    m_ExposureRequest = duration * m_TimeFactor;
     InExposure      = true;
 
     return true;
@@ -291,7 +351,7 @@ bool GuideSim::AbortExposure()
     if (!InExposure)
         return true;
 
-    AbortPrimaryFrame = true;
+    m_AbortPrimaryFrame = true;
 
     return true;
 }
@@ -323,17 +383,17 @@ void GuideSim::TimerHit()
 
     if (InExposure && ToggleTimeoutSP.findOnSwitchIndex() == INDI_DISABLED)
     {
-        if (AbortPrimaryFrame)
+        if (m_AbortPrimaryFrame)
         {
             InExposure        = false;
-            AbortPrimaryFrame = false;
+            m_AbortPrimaryFrame = false;
         }
         else
         {
             float timeleft;
-            timeleft = CalcTimeLeft(ExpStart, ExposureRequest);
+            timeleft = CalcTimeLeft(m_ExpStart, m_ExposureRequest);
 
-            //IDLog("CCD Exposure left: %g - Request: %g\n", timeleft, ExposureRequest);
+            //IDLog("CCD Exposure left: %g - Request: %g\n", timeleft, m_ExposureRequest);
             if (timeleft < 0)
                 timeleft = 0;
 
@@ -358,10 +418,10 @@ void GuideSim::TimerHit()
 
     if (TemperatureNP.getState() == IPS_BUSY)
     {
-        if (TemperatureRequest < TemperatureNP[0].getValue())
-            TemperatureNP[0].setValue(std::max(TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
+        if (m_TemperatureRequest < TemperatureNP[0].getValue())
+            TemperatureNP[0].setValue(std::max(m_TemperatureRequest, TemperatureNP[0].getValue() - 0.5));
         else
-            TemperatureNP[0].setValue(std::min(TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
+            TemperatureNP[0].setValue(std::min(m_TemperatureRequest, TemperatureNP[0].getValue() + 0.5));
 
 
         TemperatureNP.apply();
@@ -388,39 +448,44 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
     if (Streamer->isStreaming())
-        exposure_time = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
+        exposure_time = (m_ExposureRequest < 1) ? (m_ExposureRequest * 100) : m_ExposureRequest * 2;
     else
-        exposure_time = ExposureRequest;
+        exposure_time = m_ExposureRequest;
 
     exposure_time *= (1 + sqrt(GainNP[0].getValue()));
 
     auto targetFocalLength = ScopeInfoNP[FOCAL_LENGTH].getValue() > 0 ? ScopeInfoNP[FOCAL_LENGTH].getValue() :
                              snoopedFocalLength;
 
-    if (ShowStarField)
+    if (m_ShowStarField)
     {
         float PEOffset;
-        float PESpot;
-        float decDrift;
         double rad;  //  telescope ra in degrees
         double rar;  //  telescope ra in radians
         double decr; //  telescope dec in radians;
         int nwidth = 0, nheight = 0;
 
-        double timesince;
         time_t now;
         time(&now);
+        if (!m_RunStartInitialized || difftime(now, m_LastSim) > 30)
+        {
+            // Start the clock when the first image is produced or if we haven't sim'd in a while.
+            m_RunStartInitialized = true;
+            time(&m_RunStart);
+        }
+        m_LastSim = now;
 
         //  Lets figure out where we are on the pe curve
-        timesince = difftime(now, RunStart);
-        //  This is our spot in the curve
-        PESpot = timesince / PEPeriod;
-        //  Now convert to radians
-        PESpot = PESpot * 2.0 * 3.14159;
+        const double timesince = difftime(now, m_RunStart);
 
-        PEOffset = PEMax * std::sin(PESpot);
-        PEOffset = PEOffset / 3600; //  convert to degrees
-        //PeOffset=PeOffset/15;       //  ra is in h:mm
+        //  This is our spot in the periodic error curve
+        if (m_PEPeriod != 0 && m_PEMax != 0)
+        {
+            const double PESpot = 2.0 * 3.14159 * timesince / m_PEPeriod;
+            PEOffset = m_PEMax * std::sin(PESpot) / 3600.0; //  convert to degrees
+        }
+        else
+            PEOffset = 0;
 
         //  Spin up a set of plate constants that will relate
         //  ra/dec of stars, to our fictitious ccd layout
@@ -457,7 +522,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = rotationCW + 270;
+        double theta = m_RotationCW + 270;
         if (theta > 360)
             theta -= 360;
         if (pierSide == 1)
@@ -478,79 +543,89 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         nheight = targetChip->getYRes();
         pf      = nheight / 2;
 
-        ImageScalex = Scalex;
-        ImageScaley = Scaley;
+        m_ImageScaleX = Scalex;
+        m_ImageScaleY = Scaley;
 
 #ifdef USE_EQUATORIAL_PE
-        if (!usePE)
+        if (!m_UsePE)
         {
 #endif
-            currentRA  = RA;
-            currentDE = Dec;
+            m_CurrentRA  = RA;
+            m_CurrentDEC = Dec;
 
-            if (std::isnan(currentRA))
+            if (std::isnan(m_CurrentRA))
             {
-                currentRA = 0;
-                currentDE = 0;
+                m_CurrentRA = 0;
+                m_CurrentDEC = 0;
             }
 
-            INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { m_CurrentRA, m_CurrentDEC }, J2000Pos { 0, 0 };
             // Convert from JNow to J2000
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            currentRA  = J2000Pos.rightascension;
-            currentDE = J2000Pos.declination;
-            currentDE += guideNSOffset;
-            currentRA += guideWEOffset;
+            m_CurrentRA  = J2000Pos.rightascension;
+            m_CurrentDEC = J2000Pos.declination;
+            m_CurrentDEC += m_GuideNSOffset;
+            m_CurrentRA += m_GuideWEOffset;
 #ifdef USE_EQUATORIAL_PE
         }
 #endif
 
-        //  calc this now, we will use it a lot later
-        rad = currentRA * 15.0  + PEOffset;
-        rar = rad * 0.0174532925;
-        //  offsetting the dec by the guide head offset
-        float cameradec;
-        cameradec = currentDE + OAGoffset / 60;
-        decr      = cameradec * 0.0174532925;
+        // Linear drift, number of seconds multiplied by drift/sec in arcsec.
+        const float raTDrift = timesince * m_RaTimeDrift / 3600.0;
+        const float decTDrift = timesince * m_DecTimeDrift / 3600.0;
 
-        decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
+        // Random offsets for RA and DEC. The random drifts will be small, so multiply by
+        // scale as random() produces an integer. Drifts are in degrees.
+        constexpr int scale = 1000000;
+        const int raScale = scale * m_RaRand;
+        const int decScale = scale * m_DecRand;
+        const double raRandomDrift = ((random() % (2 * raScale)) - raScale) / (3600.0 * scale);
+        const double decRandomDrift = ((random() % (2 * decScale)) - decScale) / (3600.0 * scale);
+
+        //  calc this now, we will use it a lot later
+        rad = m_CurrentRA * 15.0  + PEOffset + raTDrift + raRandomDrift;
+        rar = rad * DEGREES_TO_RADIANS;
+
+        //  offsetting the dec by the guide head offset
+        float cameradec = m_CurrentDEC + m_OAGoffset / 60;
+        decr = cameradec * DEGREES_TO_RADIANS;
+
+        const double decDrift = (m_PolarDrift * m_PolarError * cos(decr)) / 3.81;
 
         // Add declination drift, if any.
-        decr += decDrift / 3600.0 * 0.0174532925;
+        decr += (decRandomDrift + decTDrift + decDrift / 3600.0) * DEGREES_TO_RADIANS;
 
-        //  now lets calculate the radius we need to fetch
-        float radius;
-
-        radius = sqrt((Scalex * Scalex * targetChip->getXRes() / 2.0 * targetChip->getXRes() / 2.0) +
-                      (Scaley * Scaley * targetChip->getYRes() / 2.0 * targetChip->getYRes() / 2.0));
+        //  Calculate the radius we need to fetch
+        float radius = sqrt((Scalex * Scalex * targetChip->getXRes() / 2.0 * targetChip->getXRes() / 2.0) +
+                            (Scaley * Scaley * targetChip->getYRes() / 2.0 * targetChip->getYRes() / 2.0));
         //  we have radius in arcseconds now
         radius = radius / 60; //  convert to arcminutes
 #if 0
         LOGF_DEBUG("Lookup radius %4.2f", radius);
 #endif
 
-        //  A saturationmag star saturates in one second
+        //  A m_SaturationMag star saturates in one second
         //  and a limitingmag produces a one adu level in one second
         //  solve for zero point and system gain
 
-        k = (saturationmag - limitingmag) / ((-2.5 * log(maxval)) - (-2.5 * log(1.0 / 2.0)));
-        z = saturationmag - k * (-2.5 * log(maxval));
-        //z=z+saturationmag;
+        double zeroPointK = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
+        double zeroPointZ = m_SaturationMag - zeroPointK * (-2.5 * log(m_MaxVal));
+        //zeroPointZ = zeroPointZ + m_SaturationMag;
 
-        //IDLog("K=%4.2f  Z=%4.2f\n",k,z);
+        //IDLog("K=%4.2f  Z=%4.2f\n",zeroPointK,zeroPointZ);
 
         //  Should probably do some math here to figure out the dimmest
         //  star we can see on this exposure
         //  and only fetch to that magnitude
         //  for now, just use the limiting mag number with some room to spare
-        float lookuplimit = limitingmag;
+        float lookuplimit = m_LimitingMag;
 
         if (radius > 60)
             lookuplimit = 11;
 
-        if (king_gamma > 0.)
+        if (m_KingGamma > 0.)
         {
-            // wildi, make sure there are always stars, e.g. in case where king_gamma is set to 1 degree.
+            // wildi, make sure there are always stars, e.g. in case where m_KingGamma is set to 1 degree.
             // Otherwise the solver will fail.
             radius = 60.;
 
@@ -559,13 +634,13 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // https://ui.adsabs.harvard.edu/link_gateway/1902AnHar..41..153K/ADS_PDF
             // Currently it is not possible to enable the logging in simulator devices (tested with ccd and telescope)
             // Replace LOGF_DEBUG by IDLog
-            //IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", king_gamma); // without variable, macro expansion fails
+            //IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", m_KingGamma); // without variable, macro expansion fails
             char JnRAStr[64] = {0};
             fs_sexa(JnRAStr, RA, 2, 360000);
             char JnDecStr[64] = {0};
             fs_sexa(JnDecStr, Dec, 2, 360000);
             //            IDLog("Longitude      : %8.3f, Latitude    : %8.3f\n", this->Longitude, this->Latitude);
-            //            IDLog("King gamma     : %8.3f, King theta  : %8.3f\n", king_gamma / 0.0174532925, king_theta / 0.0174532925);
+            //            IDLog("King gamma     : %8.3f, King theta  : %8.3f\n", m_KingGamma / DEGREES_TO_RADIANS, m_KingTheta / DEGREES_TO_RADIANS);
             //            IDLog("Jnow RA        : %11s,       dec: %11s\n", JnRAStr, JnDecStr );
             //            IDLog("Jnow RA        : %8.3f, Dec         : %8.3f\n", RA * 15., Dec);
             //            IDLog("J2000    Pos.ra: %8.3f,      Pos.dec: %8.3f\n", J2000Pos.ra, J2000Pos.dec);
@@ -575,61 +650,61 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
             double J2dec = J2000Pos.declination;
 
-            //double J2rar = J2ra * 0.0174532925;
-            double J2decr = J2dec * 0.0174532925;
+            //double J2rar = J2ra * DEGREES_TO_RADIANS;
+            double J2decr = J2dec * DEGREES_TO_RADIANS;
             double sid  = get_local_sidereal_time(this->Longitude);
             // HA is what is observed, that is Jnow
             // ToDo check if mean or apparent
-            double JnHAr  = get_local_hour_angle(sid, RA) * 15. * 0.0174532925;
+            double JnHAr  = get_local_hour_angle(sid, RA) * 15. * DEGREES_TO_RADIANS;
 
             char sidStr[64] = {0};
             fs_sexa(sidStr, sid, 2, 3600);
             char JnHAStr[64] = {0};
-            fs_sexa(JnHAStr, JnHAr / 15. / 0.0174532925, 2, 360000);
+            fs_sexa(JnHAStr, JnHAr / 15. / DEGREES_TO_RADIANS, 2, 360000);
 
             //            IDLog("sid            : %s\n", sidStr);
-            //            IDLog("Jnow                               JnHA: %8.3f degree\n", JnHAr / 0.0174532925);
+            //            IDLog("Jnow                               JnHA: %8.3f degree\n", JnHAr / DEGREES_TO_RADIANS);
             //            IDLog("                                JnHAStr: %11s hms\n", JnHAStr);
-            // king_theta is the HA of the great circle where the HA axis is in.
+            // m_KingTheta is the HA of the great circle where the HA axis is in.
             // RA is a right and HA a left handed coordinate system.
             // apparent or J2000? apparent, since we live now :-)
 
             // Transform to the mount coordinate system
             // remember it is the center of the simulated image
-            double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr);
+            double J2_mnt_d_rar = m_KingGamma * sin(J2decr) * sin(JnHAr - m_KingTheta) / cos(J2decr);
             double J2_mnt_rar = rar - J2_mnt_d_rar
-                                ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
+                                ; // rad = m_CurrentRA * 15.0; rar = rad * DEGREES_TO_RADIANS; m_CurrentRA  = J2000Pos.ra / 15.0;
 
             // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
             // system a star at true dec = 88 is seen at 89 deg in the mount's system
             // Or in other words: if one uses the setting circle, that is the mount system,
             // and set it to 87 deg then the real location is at 88 deg.
-            double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
+            double J2_mnt_d_decr = m_KingGamma * cos(JnHAr - m_KingTheta);
             double J2_mnt_decr = decr + J2_mnt_d_decr
-                                 ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
-            //            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
+                                 ; // decr      = cameradec * DEGREES_TO_RADIANS; cameradec = m_CurrentDEC + m_OAGoffset / 60; m_CurrentDEC = J2000Pos.dec;
+            //            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / DEGREES_TO_RADIANS, J2_mnt_decr / DEGREES_TO_RADIANS );
             if (J2_mnt_decr > M_PI / 2.)
             {
                 J2_mnt_decr = M_PI / 2. - (J2_mnt_decr - M_PI / 2.);
                 J2_mnt_rar -= M_PI;
             }
             J2_mnt_rar = fmod(J2_mnt_rar, 2. * M_PI) ;
-            //            IDLog("mod sin        : %8.3f,          cos: %8.3f\n", sin(JnHAr - king_theta), cos(JnHAr - king_theta));
-            //            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar / 0.0174532925, J2_mnt_d_decr / 0.0174532925 );
-            //            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
+            //            IDLog("mod sin        : %8.3f,          cos: %8.3f\n", sin(JnHAr - m_KingTheta), cos(JnHAr - m_KingTheta));
+            //            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar / DEGREES_TO_RADIANS, J2_mnt_d_decr / DEGREES_TO_RADIANS );
+            //            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / DEGREES_TO_RADIANS, J2_mnt_decr / DEGREES_TO_RADIANS );
             //IDLog("mod ra         : %11s,       dec: %11s\n",  );
             char J2RAStr[64] = {0};
-            fs_sexa(J2RAStr, J2_mnt_rar / 15. / 0.0174532925, 2, 360000);
+            fs_sexa(J2RAStr, J2_mnt_rar / 15. / DEGREES_TO_RADIANS, 2, 360000);
             char J2DecStr[64] = {0};
-            fs_sexa(J2DecStr, J2_mnt_decr / 0.0174532925, 2, 360000);
+            fs_sexa(J2DecStr, J2_mnt_decr / DEGREES_TO_RADIANS, 2, 360000);
             //            IDLog("mod ra         : %s,       dec: %s\n", J2RAStr, J2DecStr );
             //            IDLog("PEOffset       : %10.5f setting it to ZERO\n", PEOffset);
             PEOffset = 0.;
             // feed the result to the original variables
             rar = J2_mnt_rar ;
-            rad = rar / 0.0174532925;
+            rad = rar / DEGREES_TO_RADIANS;
             decr = J2_mnt_decr;
-            cameradec = decr / 0.0174532925;
+            cameradec = decr / DEGREES_TO_RADIANS;
             //            IDLog("mod ra      rad: %8.3f (degree)\n", rad);
         }
         //  if this is a light frame, we need a star field drawn
@@ -653,7 +728,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     radius,
                     lookuplimit);
 
-            if (!Streamer->isStreaming() || (king_gamma > 0.))
+            if (!Streamer->isStreaming() || (m_KingGamma > 0.))
                 LOGF_DEBUG("GSC Command: %s", gsccmd);
 
             pp = popen(gsccmd, "r");
@@ -689,8 +764,8 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         double ccdx;
                         double ccdy;
 
-                        srar  = ra * 0.0174532925;
-                        sdecr = dec * 0.0174532925;
+                        srar  = ra * DEGREES_TO_RADIANS;
+                        sdecr = dec * DEGREES_TO_RADIANS;
                         //  Handbook of astronomical image processing
                         //  page 253
                         //  equations 9.1 and 9.2
@@ -708,7 +783,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time);
+                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time, zeroPointK, zeroPointZ);
                         drawn += rc;
                         if (rc == 1)
                         {
@@ -738,23 +813,23 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         {
             float skyflux;
             //  calculate flux from our zero point and gain values
-            float glow = skyglow;
+            float glow = m_SkyGlow;
 
             if (ftype == INDI::CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
                 //  is much brighter than at night
-                glow = skyglow / 10;
+                glow = m_SkyGlow / 10;
             }
 
             //fprintf(stderr,"Using glow %4.2f\n",glow);
 
-            skyflux = pow(10, ((glow - z) * k / -2.5));
+            skyflux = pow(10, ((glow - zeroPointZ) * zeroPointK / -2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
             skyflux = skyflux * exposure_time;
-            //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,exposure_time);
+            //IDLog("SkyFlux = %g m_ExposureRequest %g\n",skyflux,exposure_time);
 
             uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -774,9 +849,9 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     sy = nheight / 2 - y;
 
                     vig = nwidth;
-                    vig = vig * ImageScalex;
+                    vig = vig * m_ImageScaleX;
                     //  need to make this account for actual pixel size
-                    dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
+                    dc = std::sqrt(sx * sx * m_ImageScaleX * m_ImageScaleX + sy * sy * m_ImageScaleY * m_ImageScaleY);
                     //  now we have the distance from center, in arcseconds
                     //  now lets plot a gaussian falloff to the edges
                     //
@@ -793,12 +868,12 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     fp = fa * fp;
 
                     //  clamp to limits
-                    if (fp > maxval)
-                        fp = maxval;
-                    if (fp > maxpix)
-                        maxpix = fp;
-                    if (fp < minpix)
-                        minpix = fp;
+                    if (fp > m_MaxVal)
+                        fp = m_MaxVal;
+                    if (fp > m_MaxPix)
+                        m_MaxPix = fp;
+                    if (fp < m_MinPix)
+                        m_MinPix = fp;
                     //  and put it back
                     pt[0] = fp;
                     pt++;
@@ -812,7 +887,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         int subW = targetChip->getSubW() + subX;
         int subH = targetChip->getSubH() + subY;
 
-        if (maxnoise > 0)
+        if (m_MaxNoise > 0)
         {
             for (int x = subX; x < subW; x++)
             {
@@ -821,20 +896,20 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     int noise;
 
                     noise = random();
-                    noise = noise % maxnoise; //
+                    noise = noise % m_MaxNoise; //
 
                     //IDLog("noise is %d\n", noise);
-                    AddToPixel(targetChip, x, y, bias + noise);
+                    AddToPixel(targetChip, x, y, m_Bias + noise);
                 }
             }
         }
     }
     else
     {
-        testvalue++;
-        if (testvalue > 255)
-            testvalue = 0;
-        uint16_t val = testvalue;
+        m_TestValue++;
+        if (m_TestValue > 255)
+            m_TestValue = 0;
+        uint16_t val = m_TestValue;
 
         int nbuf = targetChip->getSubW() * targetChip->getSubH();
 
@@ -847,7 +922,8 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     return 0;
 }
 
-int GuideSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time)
+int GuideSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time, double zeroPointK,
+                            double zeroPointZ)
 {
     const int subX = targetChip->getSubX();
     const int subY = targetChip->getSubY();
@@ -862,22 +938,22 @@ int GuideSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, floa
 
     //  Calculate flux from our zero point and gain values
     //  Mag represents one second, scale up linearly for exposure time.
-    const double flux = exposure_time * pow(10, ((mag - z) * k / -2.5));
+    const double flux = exposure_time * pow(10, ((mag - zeroPointZ) * zeroPointK / -2.5));
 
-    const double seeingSquared = seeing * seeing;
+    const double seeingSquared = m_Seeing * m_Seeing;
     const double pixelPartX = x - static_cast<int>(x);
     const double pixelPartY = y - static_cast<int>(y);
 
     int drew     = 0;
-    const int boxSize = static_cast<int>(3 * seeing / ImageScaley) + 1;
+    const int boxSize = static_cast<int>(3 * m_Seeing / m_ImageScaleY) + 1;
     for (int sy = -boxSize; sy <= boxSize; sy++)
     {
         for (int sx = -boxSize; sx <= boxSize; sx++)
         {
             //  Need to make this account for actual pixel size
-            const double dx = ImageScalex * (sx - pixelPartX);
-            const double dy = ImageScaley * (sy - pixelPartY);
-             //  Distance from center (arcseconds).
+            const double dx = m_ImageScaleX * (sx - pixelPartX);
+            const double dy = m_ImageScaleY * (sy - pixelPartY);
+            //  Distance from center (arcseconds).
             const float distanceSquared = dx * dx  + dy * dy;
             float pixelFlux = flux * exp(-2.0 * 0.7 * distanceSquared / seeingSquared);
 
@@ -918,12 +994,12 @@ int GuideSim::AddToPixel(INDI::CCDChip * targetChip, int x, int y, int val)
                     pt += x;
                     newval = pt[0];
                     newval += val;
-                    if (newval > maxval)
-                        newval = maxval;
-                    if (newval > maxpix)
-                        maxpix = newval;
-                    if (newval < minpix)
-                        minpix = newval;
+                    if (newval > m_MaxVal)
+                        newval = m_MaxVal;
+                    if (newval > m_MaxPix)
+                        m_MaxPix = newval;
+                    if (newval < m_MinPix)
+                        m_MinPix = newval;
                     pt[0] = newval;
                 }
             }
@@ -934,34 +1010,34 @@ int GuideSim::AddToPixel(INDI::CCDChip * targetChip, int x, int y, int val)
 
 IPState GuideSim::GuideNorth(uint32_t v)
 {
-    guideNSOffset    += v / 1000.0 * GuideRate / 3600;
+    m_GuideNSOffset    += v / 1000.0 * m_GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState GuideSim::GuideSouth(uint32_t v)
 {
-    guideNSOffset    += v / -1000.0 * GuideRate / 3600;
+    m_GuideNSOffset    += v / -1000.0 * m_GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState GuideSim::GuideEast(uint32_t v)
 {
-    float c   = v / 1000.0 * GuideRate;
+    float c   = v / 1000.0 * m_GuideRate;
     c   = c / 3600.0 / 15.0;
-    c   = c / (cos(currentDE * 0.0174532925));
+    c   = c / (cos(m_CurrentDEC * DEGREES_TO_RADIANS));
 
-    guideWEOffset += c;
+    m_GuideWEOffset += c;
 
     return IPS_OK;
 }
 
 IPState GuideSim::GuideWest(uint32_t v)
 {
-    float c   = v / -1000.0 * GuideRate;
+    float c   = v / -1000.0 * m_GuideRate;
     c   = c / 3600.0 / 15.0;
-    c   = c / (cos(currentDE * 0.0174532925));
+    c   = c / (cos(m_CurrentDEC * DEGREES_TO_RADIANS));
 
-    guideWEOffset += c;
+    m_GuideWEOffset += c;
 
     return IPS_OK;
 }
@@ -988,20 +1064,28 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             SetupParms();
             SimulatorSettingsNP.apply();
 
-            maxnoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
-            skyglow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
-            maxval        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
-            bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
-            limitingmag   = SimulatorSettingsNP[SIM_LIMITINGMAG].getValue();
-            saturationmag = SimulatorSettingsNP[SIM_SATURATION].getValue();
-            OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue();
-            polarError = SimulatorSettingsNP[SIM_POLAR].getValue();
-            polarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
-            rotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
+            m_MaxNoise      = SimulatorSettingsNP[SIM_NOISE].getValue();
+            m_SkyGlow       = SimulatorSettingsNP[SIM_SKYGLOW].getValue();
+            m_MaxVal        = SimulatorSettingsNP[SIM_MAXVAL].getValue();
+            m_Bias          = SimulatorSettingsNP[SIM_BIAS].getValue();
+            m_LimitingMag   = SimulatorSettingsNP[SIM_LIMITINGMAG].getValue();
+            m_SaturationMag = SimulatorSettingsNP[SIM_SATURATION].getValue();
+            m_OAGoffset = SimulatorSettingsNP[SIM_OAGOFFSET].getValue();
+            m_PolarError = SimulatorSettingsNP[SIM_POLAR].getValue();
+            m_PolarDrift = SimulatorSettingsNP[SIM_POLARDRIFT].getValue();
+            m_RotationCW = SimulatorSettingsNP[SIM_ROTATION].getValue();
             //  Kwiq++
-            king_gamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * 0.0174532925;
-            king_theta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * 0.0174532925;
-            TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
+            m_KingGamma = SimulatorSettingsNP[SIM_KING_GAMMA].getValue() * DEGREES_TO_RADIANS;
+            m_KingTheta = SimulatorSettingsNP[SIM_KING_THETA].getValue() * DEGREES_TO_RADIANS;
+            m_TimeFactor = SimulatorSettingsNP[SIM_TIME_FACTOR].getValue();
+
+            m_Seeing       = SimulatorSettingsNP[SIM_SEEING].getValue();
+            m_RaTimeDrift  = SimulatorSettingsNP[SIM_RA_DRIFT].getValue();
+            m_DecTimeDrift = SimulatorSettingsNP[SIM_DEC_DRIFT].getValue();
+            m_RaRand       = SimulatorSettingsNP[SIM_RA_RAND].getValue();
+            m_DecRand      = SimulatorSettingsNP[SIM_DEC_RAND].getValue();
+            m_PEPeriod     = SimulatorSettingsNP[SIM_PE_PERIOD].getValue();
+            m_PEMax        = SimulatorSettingsNP[SIM_PE_MAX].getValue();
 
             return true;
         }
@@ -1015,9 +1099,9 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
 
             INDI::IEquatorialCoordinates epochPos { EqPENP[AXIS_RA].getValue(), EqPENP[AXIS_DE].getValue() }, J2000Pos { 0, 0 };
             INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            currentRA  = J2000Pos.rightascension;
-            currentDE = J2000Pos.declination;
-            usePE = true;
+            m_CurrentRA  = J2000Pos.rightascension;
+            m_CurrentDEC = J2000Pos.declination;
+            m_UsePE = true;
             EqPENP.apply();
             return true;
         }
@@ -1043,11 +1127,11 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
                 return false;
             }
 
-            simulateRGB = index == 0;
-            setRGB(simulateRGB);
+            m_SimulateRGB = index == 0;
+            setRGB(m_SimulateRGB);
 
-            SimulateRgbSP[SIMULATE_YES].setState(simulateRGB ? ISS_ON : ISS_OFF);
-            SimulateRgbSP[SIMULATE_NO].setState(simulateRGB ? ISS_OFF : ISS_ON);
+            SimulateRgbSP[SIMULATE_YES].setState(m_SimulateRGB ? ISS_ON : ISS_OFF);
+            SimulateRgbSP[SIMULATE_NO].setState(m_SimulateRGB ? ISS_OFF : ISS_ON);
             SimulateRgbSP.setState(IPS_OK);
             SimulateRgbSP.apply();
 
@@ -1063,7 +1147,7 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
             else
             {
                 CoolerSP.setState(IPS_IDLE);
-                TemperatureRequest = 20;
+                m_TemperatureRequest = 20;
                 TemperatureNP.setState(IPS_BUSY);
             }
 
@@ -1123,7 +1207,7 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
             raPE  = J2000Pos.ra / 15.0;
             decPE = J2000Pos.dec;
-            usePE = true;
+            m_UsePE = true;
 
             EqPEN[AXIS_RA].value = newra;
             EqPEN[AXIS_DE].value = newdec;
@@ -1159,9 +1243,9 @@ bool GuideSim::saveConfigItems(FILE * fp)
 
 bool GuideSim::StartStreaming()
 {
-    ExposureRequest = 1.0 / Streamer->getTargetExposure();
+    m_ExposureRequest = 1.0 / Streamer->getTargetExposure();
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 1;
+    m_StreamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
 
@@ -1171,7 +1255,7 @@ bool GuideSim::StartStreaming()
 bool GuideSim::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 0;
+    m_StreamPredicate = 0;
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
 
@@ -1224,13 +1308,13 @@ void * GuideSim::streamVideo()
     {
         pthread_mutex_lock(&condMutex);
 
-        while (streamPredicate == 0)
+        while (m_StreamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            ExposureRequest = Streamer->getTargetExposure();
+            m_ExposureRequest = Streamer->getTargetExposure();
         }
 
-        if (terminateThread)
+        if (m_TerminateThread)
             break;
 
         // release condMutex
@@ -1245,8 +1329,8 @@ void * GuideSim::streamVideo()
         finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
 
-        if (elapsed.count() < ExposureRequest)
-            usleep(fabs(ExposureRequest - elapsed.count()) * 1e6);
+        if (elapsed.count() < m_ExposureRequest)
+            usleep(fabs(m_ExposureRequest - elapsed.count()) * 1e6);
 
         uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY());
         Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);

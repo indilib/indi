@@ -93,6 +93,11 @@ bool ScopeSim::initProperties()
     mountAxisNP[SECONDARY].fill("SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
     mountAxisNP.fill(getDeviceName(), "MOUNT_AXES", "Mount Axes",
                      "Simulation", IP_RO, 0, IPS_IDLE);
+
+    decBacklashNP[0].fill("DEC_BACKLASH", "DEC Backlash (ms)", "%.0f", 0, 5000, 0, 0);
+    decBacklashNP.fill(getDeviceName(), "DEC_BACKLASH", "DEC Backlash",
+                       "Simulation", IP_RW, 0, IPS_IDLE);
+
 #endif
 
     /* How fast do we guide compared to sidereal rate */
@@ -144,6 +149,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineProperty(mountAxisNP);
     defineProperty(flipHourAngleNP);
     flipHourAngleNP.load();
+    defineProperty(decBacklashNP);
+    decBacklashNP.load();
 #endif
 }
 
@@ -430,6 +437,14 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             alignment.setFlipHourAngle(flipHourAngleNP[0].getValue());
             return true;
         }
+        if (decBacklashNP.isNameMatch(name))
+        {
+            decBacklashNP.update(values, names, n);
+            decBacklashNP.setState(IPS_OK);
+            decBacklashNP.apply();
+            m_DecGuideBacklashMs = decBacklashNP[0].getValue();
+            return true;
+        }
 #endif
     }
 
@@ -525,11 +540,56 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
+uint32_t ScopeSim::backlashComputation(uint32_t ms)
+{
+    if (m_DecGuideRemainingBacklash <= 0)
+    {
+        m_DecGuideRemainingBacklash = 0;
+    }
+    else if (m_DecGuideRemainingBacklash >= ms)
+    {
+        m_DecGuideRemainingBacklash -= ms;
+        ms = 0;
+    }
+    else
+    {
+        ms -= m_DecGuideRemainingBacklash;
+        m_DecGuideRemainingBacklash = 0;
+    }
+    return ms;
+}
+
+uint32_t ScopeSim::applyDecBacklash(double rate, uint32_t ms)
+{
+    const bool changingDirections = (rate < 0 && m_GuideDecLastNorth) ||
+                                    (rate > 0 && !m_GuideDecLastNorth);
+    m_GuideDecLastNorth = rate >= 0;
+
+    if (!changingDirections)
+    {
+        ms = backlashComputation(ms);
+        return ms;
+    }
+    else
+    {
+        if (m_DecGuideRemainingBacklash <= 0)
+            m_DecGuideRemainingBacklash = m_DecGuideBacklashMs;
+        else if (m_DecGuideRemainingBacklash >= m_DecGuideBacklashMs)
+            m_DecGuideRemainingBacklash = 0;
+        else
+            m_DecGuideRemainingBacklash = m_DecGuideBacklashMs - m_DecGuideRemainingBacklash;
+
+        ms = backlashComputation(ms);
+        return ms;
+    }
+}
+
 IPState ScopeSim::GuideNorth(uint32_t ms)
 {
     double rate = GuideRateNP[DEC_AXIS].getValue();
     if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
         rate = -rate;
+    ms = applyDecBacklash(rate, ms);
     axisSecondary.StartGuide(rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -540,6 +600,7 @@ IPState ScopeSim::GuideSouth(uint32_t ms)
     double rate = GuideRateNP[DEC_AXIS].getValue();
     if (HasPierSide() & (currentPierSide == PIER_WEST)) // see scopsim_helper.cpp: alignment
         rate = -rate;
+    ms = applyDecBacklash(-rate, ms);
     axisSecondary.StartGuide(-rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -628,6 +689,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     simPierSideSP.save(fp);
     mountModelNP.save(fp);
     flipHourAngleNP.save(fp);
+    decBacklashNP.save(fp);
 
 #endif
     return true;
