@@ -73,7 +73,8 @@ class GuideSim : public INDI::CCD
 
         int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime,
+                          double zeroPointK, double zeroPointZ);
         int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
         virtual IPState GuideNorth(uint32_t) override;
@@ -99,72 +100,69 @@ class GuideSim : public INDI::CCD
         // Turns on/off Bayer RGB simulation.
         void setRGB(bool onOff);
 
-        double TemperatureRequest { 0 };
+        double m_TemperatureRequest { 0 };
 
-        float ExposureRequest { 0 };
-        struct timeval ExpStart
+        float m_ExposureRequest { 0 };
+        struct timeval m_ExpStart
         {
             0, 0
         };
 
 
-        int testvalue { 0 };
-        bool ShowStarField { true };
-        int bias { 1500 };
-        int maxnoise { 20 };
-        int maxval { 65000 };
-        int maxpix { 0 };
-        int minpix { 65000 };
-        float skyglow { 40 };
-        float limitingmag { 11.5 };
-        float saturationmag { 2 };
-        float seeing { 3.5 };
-        float ImageScalex { 1.0 };
-        float ImageScaley { 1.0 };
+        int m_TestValue { 0 };
+        bool m_ShowStarField { true };
+        int m_Bias { 1500 };
+        int m_MaxNoise { 20 };
+        int m_MaxVal { 65000 };
+        int m_MaxPix { 0 };
+        int m_MinPix { 65000 };
+        float m_SkyGlow { 40 };
+        float m_LimitingMag { 11.5 };
+        float m_SaturationMag { 2 };
+        float m_Seeing { 3.5 };
+        float m_ImageScaleX { 1.0 };
+        float m_ImageScaleY { 1.0 };
         //  An oag is offset this much from center of scope position (arcminutes)
-        float OAGoffset { 0 };
-        double rotationCW { 0 };
-        float TimeFactor { 1 };
+        float m_OAGoffset { 0 };
+        double m_RotationCW { 0 };
+        float m_TimeFactor { 1 };
 
-        bool simulateRGB { false };
+        bool m_SimulateRGB { false };
 
-        //  our zero point calcs used for drawing stars
-        float k { 0 };
-        float z { 0 };
-
-        bool AbortPrimaryFrame { false };
+        bool m_AbortPrimaryFrame { false };
 
         /// Guide rate is 7 arcseconds per second
-        float GuideRate { 7 };
+        float m_GuideRate { 7 };
 
-        float PEPeriod { 8 * 60 };
-        float PEMax { 11 };
+        float m_PEPeriod { 8 * 60 };
+        float m_PEMax { 11 };
 
         // Random values added to ra and dec
-        float raRand { 0 };
-        float decRand { 0 };
+        float m_RaRand { 0 };
+        float m_DecRand { 0 };
 
         // linear drift (multiplied by seconds since start) in arcsec/sec.
-        float raTimeDrift { 0 };
-        float decTimeDrift { 0 };
+        float m_RaTimeDrift { 0 };
+        float m_DecTimeDrift { 0 };
 
-        double currentRA { 0 };
-        double currentDE { 0 };
-        bool usePE { false };
-        time_t RunStart;
-        bool runStartInitialized = false;
+        double m_CurrentRA { 0 };
+        double m_CurrentDEC { 0 };
+        bool m_UsePE { false };
+        time_t m_RunStart;
+        time_t m_LastSim;
+        bool m_RunStartInitialized { false };
 
-        float guideNSOffset {0};
-        float guideWEOffset {0};
+        float m_GuideNSOffset {0};
+        float m_GuideWEOffset {0};
 
-        float polarError { 0 };
-        float polarDrift { 0 };
-        float king_gamma = { 0 };
-        float king_theta = { 0 };
+        float m_PolarError { 0 };
+        float m_PolarDrift { 0 };
+        float m_KingGamma = { 0 };
+        float m_KingTheta = { 0 };
 
-        int streamPredicate;
-        pthread_t primary_thread;
-        bool terminateThread;
+        int m_StreamPredicate;
+        pthread_t m_PrimaryThread;
+        bool m_TerminateThread;
 
         //  And this lives in our simulator settings page
 
