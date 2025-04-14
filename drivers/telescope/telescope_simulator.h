@@ -106,6 +106,19 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         bool guidingNS = false;
         bool guidingEW = false;
 
+        uint32_t applyDecBacklash(double rate, uint32_t ms);
+        uint32_t backlashComputation(uint32_t ms);
+
+        // In milliseconds. Doesn't depend on guide rate.
+        uint32_t m_DecGuideBacklashMs { 30 };
+        // True if last dec guide pulse was north. Actually a little more complicated
+        // than that because of pier side...
+        bool m_GuideDecLastNorth = false;
+        // Will be between 0 and decGuideBacklash. When guide pulses change directions,
+        // a pulse may not completely clear the backlash. This is how much is left
+        // after that pulse.
+        uint32_t m_DecGuideRemainingBacklash { 0 };
+
         INDI::PropertyNumber GuideRateNP {2};
         enum
         {
@@ -161,6 +174,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         };
 
         INDI::PropertyNumber flipHourAngleNP {1};
+        INDI::PropertyNumber decBacklashNP {1};
 
 #endif
 
