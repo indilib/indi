@@ -459,7 +459,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     if (m_ShowStarField)
     {
-        float PEOffset;
+        double PEOffset = 0;
         double rad;  //  telescope ra in degrees
         double rar;  //  telescope ra in radians
         double decr; //  telescope dec in radians;
@@ -484,8 +484,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             const double PESpot = 2.0 * 3.14159 * timesince / m_PEPeriod;
             PEOffset = m_PEMax * std::sin(PESpot) / 3600.0; //  convert to degrees
         }
-        else
-            PEOffset = 0;
 
         //  Spin up a set of plate constants that will relate
         //  ra/dec of stars, to our fictitious ccd layout
@@ -576,11 +574,19 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         // Random offsets for RA and DEC. The random drifts will be small, so multiply by
         // scale as random() produces an integer. Drifts are in degrees.
+        double raRandomDrift = 0;
+        double decRandomDrift = 0;
         constexpr int scale = 1000000;
-        const int raScale = scale * m_RaRand;
-        const int decScale = scale * m_DecRand;
-        const double raRandomDrift = ((random() % (2 * raScale)) - raScale) / (3600.0 * scale);
-        const double decRandomDrift = ((random() % (2 * decScale)) - decScale) / (3600.0 * scale);
+        if (m_RaRand > 0)
+        {
+            const int raScale = scale * m_RaRand;
+            raRandomDrift = ((random() % (2 * raScale)) - raScale) / (3600.0 * scale);
+        }
+        if (m_DecRand > 0)
+        {
+            const int decScale = scale * m_DecRand;
+            decRandomDrift = ((random() % (2 * decScale)) - decScale) / (3600.0 * scale);
+        }
 
         //  calc this now, we will use it a lot later
         rad = m_CurrentRA * 15.0  + PEOffset + raTDrift + raRandomDrift;
