@@ -15,6 +15,11 @@ OS=$(uname -s)
 
 case "$OS" in
     Darwin)
+        BREW="/usr/local/bin/brew"
+        if [[ $(uname -m) == "arm64" ]]
+        then
+            BREW="/opt/homebrew/bin/brew"
+        fi
         brew install \
             git \
             cfitsio libnova libusb curl \
