@@ -21,7 +21,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v46
 
       - name: Check codestyle of all changed files with suffix cpp,cxx,c,h
         run: |
