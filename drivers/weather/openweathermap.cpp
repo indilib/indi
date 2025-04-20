@@ -38,6 +38,7 @@
 
 #include <memory>
 #include <cstring>
+#include <limits> // Needed for std::numeric_limits
 
 using json = nlohmann::json;
 
@@ -56,6 +57,7 @@ OpenWeatherMap::OpenWeatherMap()
 
     owmLat  = std::numeric_limits<double>::quiet_NaN();
     owmLong = std::numeric_limits<double>::quiet_NaN();
+    previousForecast = std::numeric_limits<double>::quiet_NaN(); // Initialize previous forecast
 
     setWeatherConnection(CONNECTION_NONE);
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -201,12 +203,15 @@ IPState OpenWeatherMap::updateWeather()
     double snow = 0;
     double clouds = 0;
     int code = 0;
+    std::string description; // To store weather description
 
     try
     {
         json weatherReport = json::parse(readBuffer);
 
         weatherReport["weather"][0]["id"].get_to(code);
+        weatherReport["weather"][0]["description"].get_to(description); // Get description
+
         if (code >= 200 && code < 300)
         {
             // Thunderstorm
@@ -284,6 +289,13 @@ IPState OpenWeatherMap::updateWeather()
         // output exception information
         LOGF_ERROR("Error parsing weather report %s id: %d", e.what(), e.id);
         return IPS_ALERT;
+    }
+
+    // Log forecast change if it differs from the previous value
+    if (std::isnan(previousForecast) || forecast != previousForecast)
+    {
+        LOGF_INFO("Forecast changed: %s (Code: %d)", description.c_str(), code);
+        previousForecast = forecast; // Update previous forecast
     }
 
     setParameterValue("WEATHER_FORECAST", forecast);

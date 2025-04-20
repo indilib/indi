@@ -55,4 +55,5 @@ class OpenWeatherMap : public INDI::Weather
         INDI::PropertyText owmAPIKeyTP{1};
 
         double owmLat, owmLong;
+        double previousForecast; // Store the previous forecast value
 };
