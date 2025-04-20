@@ -91,6 +91,10 @@
             <driver name="AstroPhysics V2">indi_lx200ap_v2</driver>
             <version>1.1</version>
         </device>
+        <device label="AstroPhysics GTOCP2" manufacturer="Astrophysics">
+            <driver name="AstroPhysics GTOCP2">indi_lx200ap_legacy</driver>
+            <version>1.1</version>
+        </device>
         <device label="Pegasus NYX-101" manufacturer="Pegasus Astro">
             <driver name="Pegasus NYX-101">indi_lx200_pegasus_nyx101</driver>
             <version>2.2</version>
