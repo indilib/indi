@@ -43,9 +43,9 @@ protected:
     bool EnableLightBox(bool enable) override;
 
     // From DustCapInterface
-    virtual IPState ParkCap();
-    virtual IPState UnParkCap();
-    virtual IPState AbortCap();
+    virtual IPState ParkCap() override;
+    virtual IPState UnParkCap() override;
+    virtual IPState AbortCap() override;
 
     // UI interactions
     void startConfiguration();
