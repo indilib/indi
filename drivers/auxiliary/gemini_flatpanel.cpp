@@ -31,7 +31,9 @@ bool GeminiFlatpanel::initProperties()
     serialConnection = new Connection::Serial(this);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
     serialConnection->registerHandshake([&]()
-                                        { return Handshake(); });
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
 
     return true;
@@ -173,7 +175,9 @@ void GeminiFlatpanel::initStatusProperties()
     BeepSP[0].fill("BEEP_OFF", "Off", ISS_ON);
     BeepSP[1].fill("BEEP_ON", "On", ISS_OFF);
     BeepSP.onUpdate([this]()
-                    { onBeepChange(); });
+    {
+        onBeepChange();
+    });
 
     // Add brightness mode control
     BrightnessModeSP.fill(
@@ -188,7 +192,9 @@ void GeminiFlatpanel::initStatusProperties()
     BrightnessModeSP[0].fill("MODE_LOW", "Low", ISS_ON);
     BrightnessModeSP[1].fill("MODE_HIGH", "High", ISS_OFF);
     BrightnessModeSP.onUpdate([this]()
-                              { onBrightnessModeChange(); });
+    {
+        onBrightnessModeChange();
+    });
 }
 
 void GeminiFlatpanel::onBeepChange()
@@ -232,7 +238,7 @@ void GeminiFlatpanel::initLimitsProperties()
         IPS_IDLE);
     ConfigureSP[0].fill("CONFIGURE", "Configure", ISS_OFF);
     ConfigureSP.onUpdate([this]
-                         { startConfiguration(); });
+    { startConfiguration(); });
 
     ClosedPositionSP.fill(
         getDeviceName(),
@@ -247,7 +253,7 @@ void GeminiFlatpanel::initLimitsProperties()
     ClosedPositionSP[MOVEMENT_LIMITS_10].fill("10", "-10", ISS_OFF);
     ClosedPositionSP[MOVEMENT_LIMITS_01].fill("1", "-1", ISS_OFF);
     ClosedPositionSP.onUpdate([this]
-                              { onMove(GEMINI_DIRECTION_CLOSE); });
+    { onMove(GEMINI_DIRECTION_CLOSE); });
 
     SetClosedSP.fill(
         getDeviceName(),
@@ -260,7 +266,7 @@ void GeminiFlatpanel::initLimitsProperties()
         IPS_IDLE);
     SetClosedSP[0].fill("SET_CLOSED", "Set closed", ISS_OFF);
     SetClosedSP.onUpdate([this]
-                         { onSetPosition(GEMINI_DIRECTION_CLOSE); });
+    { onSetPosition(GEMINI_DIRECTION_CLOSE); });
 
     OpenPositionSP.fill(
         getDeviceName(),
@@ -275,7 +281,7 @@ void GeminiFlatpanel::initLimitsProperties()
     OpenPositionSP[MOVEMENT_LIMITS_10].fill("10", "10", ISS_OFF);
     OpenPositionSP[MOVEMENT_LIMITS_01].fill("1", "1", ISS_OFF);
     OpenPositionSP.onUpdate([this]
-                            { onMove(GEMINI_DIRECTION_OPEN); });
+    { onMove(GEMINI_DIRECTION_OPEN); });
 
     SetOpenSP.fill(
         getDeviceName(),
@@ -288,7 +294,7 @@ void GeminiFlatpanel::initLimitsProperties()
         IPS_IDLE);
     SetOpenSP[0].fill("SET_OPEN", "Set open", ISS_OFF);
     SetOpenSP.onUpdate([this]
-                       { onSetPosition(GEMINI_DIRECTION_OPEN); });
+    { onSetPosition(GEMINI_DIRECTION_OPEN); });
 }
 
 void GeminiFlatpanel::TimerHit()
@@ -324,8 +330,8 @@ void GeminiFlatpanel::TimerHit()
         LightIntensityNP.apply();
     }
 
-    bool statusUpdated = updateCoverStatus(coverStatus) |
-                         updateLightStatus(lightStatus) |
+    bool statusUpdated = updateCoverStatus(coverStatus) ||
+                         updateLightStatus(lightStatus) ||
                          updateMotorStatus(motorStatus);
 
     if (statusUpdated)
@@ -333,7 +339,8 @@ void GeminiFlatpanel::TimerHit()
         StatusTP.apply();
     }
 
-    if (motorStatus == GEMINI_MOTOR_STATUS_RUNNING && (coverStatus == GEMINI_COVER_STATUS_TIMED_OUT || coverStatus == GEMINI_COVER_STATUS_MOVING))
+    if (motorStatus == GEMINI_MOTOR_STATUS_RUNNING && (coverStatus == GEMINI_COVER_STATUS_TIMED_OUT
+            || coverStatus == GEMINI_COVER_STATUS_MOVING))
     {
         LOG_WARN("Motor running with unknown cover status.");
         configStatus = GEMINI_CONFIG_NOTREADY;
@@ -1037,41 +1044,41 @@ bool GeminiFlatpanel::updateCoverStatus(char coverStatus)
 
         switch (coverStatus)
         {
-        case GEMINI_COVER_STATUS_MOVING:
-            StatusTP[STATUS_COVER].setText("Moving");
-            ParkCapSP.reset();
-            ParkCapSP.setState(IPS_BUSY);
-            ParkCapSP.apply();
-            break;
-        case GEMINI_COVER_STATUS_CLOSED:
-            StatusTP[STATUS_COVER].setText("Closed");
-            if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
-            {
+            case GEMINI_COVER_STATUS_MOVING:
+                StatusTP[STATUS_COVER].setText("Moving");
                 ParkCapSP.reset();
-                ParkCapSP[CAP_PARK].setState(ISS_ON);
-                ParkCapSP.setState(IPS_OK);
-                LOG_INFO("Cover closed.");
+                ParkCapSP.setState(IPS_BUSY);
                 ParkCapSP.apply();
-            }
-            break;
-        case GEMINI_COVER_STATUS_OPEN:
-            StatusTP[STATUS_COVER].setText("Open");
-            if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
-            {
+                break;
+            case GEMINI_COVER_STATUS_CLOSED:
+                StatusTP[STATUS_COVER].setText("Closed");
+                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                {
+                    ParkCapSP.reset();
+                    ParkCapSP[CAP_PARK].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
+                    LOG_INFO("Cover closed.");
+                    ParkCapSP.apply();
+                }
+                break;
+            case GEMINI_COVER_STATUS_OPEN:
+                StatusTP[STATUS_COVER].setText("Open");
+                if (ParkCapSP.getState() == IPS_BUSY || ParkCapSP.getState() == IPS_IDLE)
+                {
+                    ParkCapSP.reset();
+                    ParkCapSP[CAP_UNPARK].setState(ISS_ON);
+                    ParkCapSP.setState(IPS_OK);
+                    LOG_INFO("Cover open.");
+                    ParkCapSP.apply();
+                }
+                break;
+            case GEMINI_COVER_STATUS_TIMED_OUT:
+                StatusTP[STATUS_COVER].setText("Timed Out");
                 ParkCapSP.reset();
-                ParkCapSP[CAP_UNPARK].setState(ISS_ON);
-                ParkCapSP.setState(IPS_OK);
-                LOG_INFO("Cover open.");
+                ParkCapSP.setState(IPS_ALERT);
+                LOG_ERROR("Cover operation timed out.");
                 ParkCapSP.apply();
-            }
-            break;
-        case GEMINI_COVER_STATUS_TIMED_OUT:
-            StatusTP[STATUS_COVER].setText("Timed Out");
-            ParkCapSP.reset();
-            ParkCapSP.setState(IPS_ALERT);
-            LOG_ERROR("Cover operation timed out.");
-            ParkCapSP.apply();
-            break;
+                break;
         }
     }
 
@@ -1089,24 +1096,24 @@ bool GeminiFlatpanel::updateLightStatus(char lightStatus)
 
         switch (lightStatus)
         {
-        case GEMINI_LIGHT_STATUS_OFF:
-            StatusTP[STATUS_LIGHT].setText("Off");
-            if (LightSP[0].getState() == ISS_ON)
-            {
-                LightSP.reset();
-                LightSP[FLAT_LIGHT_OFF].setState(ISS_ON);
-                LightSP.apply();
-            }
-            break;
-        case GEMINI_LIGHT_STATUS_ON:
-            StatusTP[STATUS_LIGHT].setText("On");
-            if (LightSP[1].getState() == ISS_ON)
-            {
-                LightSP.reset();
-                LightSP[FLAT_LIGHT_ON].setState(ISS_ON);
-                LightSP.apply();
-            }
-            break;
+            case GEMINI_LIGHT_STATUS_OFF:
+                StatusTP[STATUS_LIGHT].setText("Off");
+                if (LightSP[0].getState() == ISS_ON)
+                {
+                    LightSP.reset();
+                    LightSP[FLAT_LIGHT_OFF].setState(ISS_ON);
+                    LightSP.apply();
+                }
+                break;
+            case GEMINI_LIGHT_STATUS_ON:
+                StatusTP[STATUS_LIGHT].setText("On");
+                if (LightSP[1].getState() == ISS_ON)
+                {
+                    LightSP.reset();
+                    LightSP[FLAT_LIGHT_ON].setState(ISS_ON);
+                    LightSP.apply();
+                }
+                break;
         }
     }
 
@@ -1124,12 +1131,12 @@ bool GeminiFlatpanel::updateMotorStatus(char motorStatus)
 
         switch (motorStatus)
         {
-        case GEMINI_MOTOR_STATUS_STOPPED:
-            StatusTP[STATUS_MOTOR].setText("Stopped");
-            break;
-        case GEMINI_MOTOR_STATUS_RUNNING:
-            StatusTP[STATUS_MOTOR].setText("Running");
-            break;
+            case GEMINI_MOTOR_STATUS_STOPPED:
+                StatusTP[STATUS_MOTOR].setText("Stopped");
+                break;
+            case GEMINI_MOTOR_STATUS_RUNNING:
+                StatusTP[STATUS_MOTOR].setText("Running");
+                break;
         }
     }
 
@@ -1155,18 +1162,18 @@ void GeminiFlatpanel::updateConfigStatus()
     const char *configStatusText = nullptr;
     switch (configStatus)
     {
-    case GEMINI_CONFIG_NOTREADY:
-        configStatusText = "Not ready";
-        break;
-    case GEMINI_CONFIG_READY:
-        configStatusText = "Ready";
-        break;
-    case GEMINI_CONFIG_OPEN:
-        configStatusText = "Open";
-        break;
-    case GEMINI_CONFIG_CLOSED:
-        configStatusText = "Closed";
-        break;
+        case GEMINI_CONFIG_NOTREADY:
+            configStatusText = "Not ready";
+            break;
+        case GEMINI_CONFIG_READY:
+            configStatusText = "Ready";
+            break;
+        case GEMINI_CONFIG_OPEN:
+            configStatusText = "Open";
+            break;
+        case GEMINI_CONFIG_CLOSED:
+            configStatusText = "Closed";
+            break;
     }
     ConfigurationTP[0].setText(configStatusText);
     ConfigurationTP.apply();
@@ -1257,15 +1264,15 @@ void GeminiFlatpanel::onMove(int direction)
     int steps = 0;
     switch (currentSwitch.findOnSwitchIndex())
     {
-    case MOVEMENT_LIMITS_45:
-        steps = 45;
-        break;
-    case MOVEMENT_LIMITS_10:
-        steps = 10;
-        break;
-    case MOVEMENT_LIMITS_01:
-        steps = 1;
-        break;
+        case MOVEMENT_LIMITS_45:
+            steps = 45;
+            break;
+        case MOVEMENT_LIMITS_10:
+            steps = 10;
+            break;
+        case MOVEMENT_LIMITS_01:
+            steps = 1;
+            break;
     }
 
     if (isSimulation())
@@ -1294,22 +1301,22 @@ void GeminiFlatpanel::onSetPosition(int direction)
     // Set the position based on the given direction.
     switch (direction)
     {
-    case GEMINI_DIRECTION_CLOSE:
-        LOG_INFO("Close position set.");
-        if (!isSimulation())
-        {
-            setClosePosition();
-        }
-        configStatus = GEMINI_CONFIG_OPEN;
-        break;
-    case GEMINI_DIRECTION_OPEN:
-        LOG_INFO("Setting open position.");
-        if (!isSimulation())
-        {
-            setOpenPosition();
-        }
-        endConfiguration();
-        break;
+        case GEMINI_DIRECTION_CLOSE:
+            LOG_INFO("Close position set.");
+            if (!isSimulation())
+            {
+                setClosePosition();
+            }
+            configStatus = GEMINI_CONFIG_OPEN;
+            break;
+        case GEMINI_DIRECTION_OPEN:
+            LOG_INFO("Setting open position.");
+            if (!isSimulation())
+            {
+                setOpenPosition();
+            }
+            endConfiguration();
+            break;
     }
 
     cleanupSwitch(currentSwitch, switchIndex);
