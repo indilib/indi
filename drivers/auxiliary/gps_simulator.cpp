@@ -32,7 +32,7 @@ std::unique_ptr<GPSSimulator> gpsSimulator(new GPSSimulator());
 
 GPSSimulator::GPSSimulator()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     setDriverInterface(GPS_INTERFACE);
 }
 
@@ -50,6 +50,41 @@ bool GPSSimulator::Disconnect()
 {
     return true;
 }
+
+bool GPSSimulator::initProperties()
+{
+    INDI::GPS::initProperties();
+
+    // Location property must be RW.
+    LocationNP.fill(m_DefaultDevice->getDeviceName(), "GEOGRAPHIC_COORD", "Location",
+                    MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Original default values.
+    LocationNP[LOCATION_LATITUDE].setValue(51.0);
+    LocationNP[LOCATION_LONGITUDE].setValue(357.7);
+    LocationNP[LOCATION_ELEVATION].setValue(72);
+
+    return true;
+}
+
+bool GPSSimulator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (LocationNP.isNameMatch(name))
+        {
+            LocationNP.update(values, names, n);
+            LocationNP.setState(IPS_OK);
+            LocationNP.apply();
+            LOG_INFO("Values are updated and should be active on the next GPS update.");
+
+            return true;
+        }
+    }
+
+    return INDI::GPS::ISNewNumber(dev, name, values, names, n);
+}
+
 
 IPState GPSSimulator::updateGPS()
 {
@@ -71,11 +106,15 @@ IPState GPSSimulator::updateGPS()
 
     TimeTP.setState(IPS_OK);
 
-    LocationNP[LOCATION_LATITUDE].setValue(51.0);
-    LocationNP[LOCATION_LONGITUDE].setValue(357.7);
-    LocationNP[LOCATION_ELEVATION].setValue(72);
-
     LocationNP.setState(IPS_OK);
 
     return IPS_OK;
+}
+
+bool GPSSimulator::saveConfigItems(FILE *fp)
+{
+    INDI::GPS::saveConfigItems(fp);
+    LocationNP.save(fp);
+
+    return true;
 }
