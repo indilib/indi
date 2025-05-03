@@ -32,10 +32,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <termios.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include <fcntl.h>
 #include "ups.h"
 #include "indicom.h"
 
@@ -45,8 +42,20 @@ std::unique_ptr<UPS> ups(new UPS());
 UPS::UPS()
 {
     setVersion(1, 0);
-    setWeatherConnection(CONNECTION_NONE);
-    socketFd = -1;
+    
+    // Setup for TCP Connection
+    setWeatherConnection(CONNECTION_TCP);
+    
+    // Create TCP Connection
+    tcpConnection = new Connection::TCP(this);
+    // Set default values for TCP connection
+    tcpConnection->setDefaultHost("localhost");
+    tcpConnection->setDefaultPort(3493); // Default NUT port
+    // Register the handshake function
+    tcpConnection->registerHandshake([&]() { return Handshake(); });
+    
+    // Register connection
+    registerConnection(tcpConnection);
 }
 
 const char *UPS::getDefaultName()
@@ -58,20 +67,13 @@ bool UPS::initProperties()
 {
     INDI::Weather::initProperties();
 
-    // Setup server address properties
-    ServerAddressTP[0].fill("HOST", "Host", "localhost");
-    ServerAddressTP[1].fill("PORT", "Port", "3493");  // Default NUT port
-    ServerAddressTP.fill(getDeviceName(), "SERVER_ADDRESS", "NUT Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-
     // Setup UPS name property
     UPSNameTP[0].fill("NAME", "UPS Name", "ups");  // Default UPS name
     UPSNameTP.fill(getDeviceName(), "UPS_NAME", "UPS", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Setup connection settings properties
-    ConnectionSettingsNP[0].fill("TIMEOUT", "Timeout (sec)", "%.0f", 1, 30, 1, 5);
-    ConnectionSettingsNP[1].fill("RETRIES", "Max Retries", "%.0f", 1, 10, 1, 3);
-    ConnectionSettingsNP[2].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
-    ConnectionSettingsNP[3].fill("RECONNECT_ATTEMPTS", "Max Reconnect Attempts", "%.0f", 0, 10, 1, 3);
+    ConnectionSettingsNP[0].fill("RETRIES", "Max Retries", "%.0f", 1, 10, 1, 3);
+    ConnectionSettingsNP[1].fill("RETRY_DELAY", "Retry Delay (ms)", "%.0f", 100, 5000, 100, 1000);
     ConnectionSettingsNP.fill(getDeviceName(), "CONNECTION_SETTINGS", "Connection", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Setup update period
@@ -98,164 +100,82 @@ void UPS::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
 
-    // Always define these properties
-    defineProperty(ServerAddressTP);
+    // Define UPS name property
     defineProperty(UPSNameTP);
     defineProperty(ConnectionSettingsNP);
 }
 
-bool UPS::Connect()
+bool UPS::Handshake()
 {
-    if (ServerAddressTP[0].getText() == nullptr || ServerAddressTP[1].getText() == nullptr)
-    {
-        LOG_ERROR("Server address or port is not set.");
-        return false;
-    }
-
-    // Ensure socket is closed before reconnecting
-    if (socketFd >= 0)
-    {
-        close(socketFd);
-        socketFd = -1;
-    }
-
-    // Create socket
-    socketFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketFd < 0)
-    {
-        LOGF_ERROR("Failed to create socket: %s", strerror(errno));
-        return false;
-    }
-
-    // Setup address structure
-    struct sockaddr_in serverAddr;
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(std::stoi(ServerAddressTP[1].getText()));
-
-    // Convert hostname to IP
-    struct hostent *he = gethostbyname(ServerAddressTP[0].getText());
-    if (he == nullptr)
-    {
-        LOGF_ERROR("Failed to resolve hostname: %s", ServerAddressTP[0].getText());
-        close(socketFd);
-        socketFd = -1;
-        return false;
-    }
-    memcpy(&serverAddr.sin_addr, he->h_addr_list[0], he->h_length);
-
-    // Set timeout for connect
-    struct timeval tv;
-    tv.tv_sec = static_cast<int>(ConnectionSettingsNP[0].getValue());
-    tv.tv_usec = 0;
-    setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-    // Enable keep-alive
-    int keepalive = 1;
-    setsockopt(socketFd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-
-    // Connect to server with retries
-    int retries = ConnectionSettingsNP[1].getValue();
-    int retryDelay = ConnectionSettingsNP[2].getValue();
+    LOG_INFO("Starting handshake with NUT server...");
     
-    while (retries > 0)
+    PortFD = tcpConnection->getPortFD();
+    if (PortFD == -1)
     {
-        if (connect(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == 0)
-        {
-            // Test connection by querying UPS status
-            if (queryUPSStatus())
-            {
-                LOG_INFO("Successfully connected to NUT server.");
-                
-                // Mettre à jour l'état immédiatement
-                IPState state = updateWeather();
-                if (state == IPS_OK || state == IPS_BUSY)
-                {
-                    LOG_INFO("UPS status successfully updated.");
-                }
-                else
-                {
-                    LOG_WARN("Connected to NUT server but failed to update UPS status.");
-                }
-                
-                SetTimer(getCurrentPollingPeriod());
-                return true;
-            }
-            else
-            {
-                LOG_ERROR("Failed to query UPS status");
-            }
-        }
-        
-        LOGF_WARN("Failed to connect to NUT server: %s. Retrying in %d ms...", strerror(errno), retryDelay);
-        
-        // Close socket before retrying
-        close(socketFd);
-        
-        // Create new socket for retry
-        socketFd = socket(AF_INET, SOCK_STREAM, 0);
-        if (socketFd < 0)
-        {
-            LOGF_ERROR("Failed to create socket: %s", strerror(errno));
-            return false;
-        }
-        
-        // Reapply socket options
-        setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-        setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-        setsockopt(socketFd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-
-        retries--;
-        if (retries > 0)
-            std::this_thread::sleep_for(std::chrono::milliseconds(retryDelay));
-    }
-
-    if (socketFd >= 0)
-    {
-        close(socketFd);
-        socketFd = -1;
+        LOG_ERROR("Invalid port file descriptor during handshake.");
+        return false;
     }
     
-    LOG_ERROR("Failed to connect to NUT server after all retries");
-    return false;
+    LOGF_DEBUG("Handshake: Using file descriptor %d", PortFD);
+    
+    // Vérifier si le socket est valide avec un test simple
+    int socket_test = 0;
+    if (fcntl(PortFD, F_GETFL, &socket_test) < 0) {
+        LOGF_ERROR("Socket test failed: %s", strerror(errno));
+        return false;
+    }
+    
+    // Attendre un peu pour que la connexion soit bien établie
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    // Attempt a simple command first to test communication
+    std::string response = makeNUTRequest("VER");
+    if (response.empty())
+    {
+        LOG_ERROR("Handshake failed: NUT server did not respond to VER command");
+        return false;
+    }
+    
+    LOGF_DEBUG("Handshake: VER command response: %s", response.c_str());
+    
+    // Liste des UPS disponibles pour vérification
+    response = makeNUTRequest("LIST UPS");
+    if (response.empty())
+    {
+        LOG_ERROR("Handshake failed: NUT server did not respond to LIST UPS command");
+        return false;
+    }
+    
+    LOGF_DEBUG("Handshake: LIST UPS command response: %s", response.c_str());
+    
+    // Try to communicate with the NUT server using the configured UPS
+    if (!queryUPSStatus())
+    {
+        LOG_ERROR("Handshake failed: could not query UPS status for the configured UPS name");
+        return false;
+    }
+    
+    LOG_INFO("Handshake successful, connected to NUT server");
+    return true;
 }
 
-bool UPS::checkConnection()
+bool UPS::Connect()
 {
-    if (socketFd < 0)
+    if (!INDI::Weather::Connect())
         return false;
-
-    // Try to read from socket to check if it's still alive
-    char buffer[1];
-    ssize_t result = recv(socketFd, buffer, 1, MSG_PEEK | MSG_DONTWAIT);
     
-    if (result == 0)  // Connection closed by peer
-    {
-        LOG_WARN("Connection to NUT server was closed by peer");
-        return false;
-    }
-    else if (result < 0)
-    {
-        if (errno != EAGAIN && errno != EWOULDBLOCK)  // Real error, not just no data
-        {
-            LOGF_WARN("Connection error: %s", strerror(errno));
-            return false;
-        }
-    }
-
+    // Connection is now managed by the tcpConnection object
+    // After successful connection, set timer for polling
+    SetTimer(UpdatePeriodNP[0].getValue() * 1000);
+    
     return true;
 }
 
 bool UPS::Disconnect()
 {
-    if (socketFd >= 0)
-    {
-        close(socketFd);
-        socketFd = -1;
-    }
+    // The tcpConnection object will handle closing the socket
     LOG_INFO("Disconnected from NUT server.");
-    return true;
+    return INDI::Weather::Disconnect();
 }
 
 bool UPS::updateProperties()
@@ -264,7 +184,7 @@ bool UPS::updateProperties()
     
     if (isConnected())
     {
-        // Si on vient de se connecter, on vérifie que le statut est à jour
+        // If we've just connected, ensure status is up to date
         if (LastParseSuccess == false)
         {
             LOG_INFO("Initial connection established, updating UPS status...");
@@ -277,28 +197,13 @@ bool UPS::updateProperties()
 
 IPState UPS::updateWeather()
 {
-    if (!checkConnection())
+    // Get the file descriptor from the TCP connection
+    PortFD = tcpConnection->getPortFD();
+    
+    if (PortFD == -1)
     {
-        LOG_WARN("Connection lost, attempting to reconnect...");
-        if (reconnectAttempts < ConnectionSettingsNP[3].getValue())
-        {
-            reconnectAttempts++;
-            if (attemptReconnect())
-            {
-                LOG_INFO("Successfully reconnected to NUT server");
-                reconnectAttempts = 0;
-            }
-            else
-            {
-                LOGF_WARN("Reconnection attempt %d failed", reconnectAttempts);
-                return IPS_ALERT;
-            }
-        }
-        else
-        {
-            LOG_ERROR("Maximum reconnection attempts reached");
-            return IPS_ALERT;
-        }
+        LOG_ERROR("Connection lost, invalid file descriptor");
+        return IPS_ALERT;
     }
 
     if (!queryUPSStatus())
@@ -347,14 +252,24 @@ bool UPS::queryUPSStatus()
     // Clear previous parameters
     upsParameters.clear();
 
+    LOGF_DEBUG("Querying UPS status for '%s'", UPSNameTP[0].getText());
+    
     // Get UPS variables
     std::string response = makeNUTRequest("LIST VAR " + std::string(UPSNameTP[0].getText()));
     if (response.empty())
     {
         LOG_ERROR("Failed to get UPS variables");
+        
+        // Try a LIST UPS command to verify if the UPS exists
+        std::string upsListResponse = makeNUTRequest("LIST UPS");
+        if (!upsListResponse.empty()) {
+            LOGF_DEBUG("Available UPS units: %s", upsListResponse.c_str());
+        }
+        
         return false;
     }
 
+    LOGF_DEBUG("Response from LIST VAR: %s", response.c_str());
     return parseUPSResponse(response);
 }
 
@@ -362,12 +277,35 @@ bool UPS::parseUPSResponse(const std::string& response)
 {
     std::istringstream iss(response);
     std::string line;
+    int lineCount = 0;
+
+    LOGF_DEBUG("Parsing response of %d bytes", response.length());
+
+    // Vérifions d'abord si la réponse contient une erreur
+    if (response.find("ERR ") != std::string::npos) {
+        size_t pos = response.find("ERR ");
+        size_t end = response.find('\n', pos);
+        std::string errorMsg = (end != std::string::npos) ? 
+                              response.substr(pos, end - pos) : 
+                              response.substr(pos);
+                              
+        LOGF_ERROR("NUT server returned error: %s", errorMsg.c_str());
+        return false;
+    }
 
     while (std::getline(iss, line))
     {
+        lineCount++;
+        // Ignorer les lignes vides ou les fins de message
+        if (line.empty() || line == "END") {
+            continue;
+        }
+        
         // Parse NUT response format: VAR ups variablename "value"
         if (line.substr(0, 4) == "VAR ")
         {
+            LOGF_DEBUG("Processing line: %s", line.c_str());
+            
             std::istringstream lineStream(line);
             std::string var, ups, name, value;
             lineStream >> var >> ups >> name;
@@ -379,42 +317,53 @@ bool UPS::parseUPSResponse(const std::string& response)
             {
                 value = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
                 upsParameters[name] = value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "UPS Parameter: %s = %s", name.c_str(), value.c_str());
+                LOGF_DEBUG("UPS Parameter: %s = %s", name.c_str(), value.c_str());
             }
+            else {
+                LOGF_DEBUG("Could not extract quoted value from line: %s", line.c_str());
+            }
+        }
+        else {
+            LOGF_DEBUG("Ignoring non-VAR line: %s", line.c_str());
         }
     }
 
+    LOGF_DEBUG("Parsed %d lines, found %d parameters", lineCount, upsParameters.size());
     return !upsParameters.empty();
 }
 
 std::string UPS::makeNUTRequest(const std::string& command)
 {
-    int retries = ConnectionSettingsNP[1].getValue();
-    int retryDelay = ConnectionSettingsNP[2].getValue();
+    int retries = ConnectionSettingsNP[0].getValue();
+    int retryDelay = ConnectionSettingsNP[1].getValue();
+    
+    LOGF_DEBUG("NUT Command: %s", command.c_str());
 
     while (retries > 0)
     {
-        // Check if socket is valid
-        if (socketFd < 0)
+        // Check if port is valid
+        if (PortFD == -1)
         {
-            if (!Connect())  // Try to reconnect
-            {
-                LOG_ERROR("Socket disconnected and reconnection failed");
-                return "";
-            }
+            LOG_ERROR("Invalid port file descriptor");
+            return "";
         }
 
         try
         {
             // Send command with newline
             std::string request = command + "\n";
-            ssize_t sent = send(socketFd, request.c_str(), request.length(), 0);
-            if (sent != static_cast<ssize_t>(request.length()))
+            int nbytes_written = 0;
+            
+            // Flush any lingering data before sending new command
+            tcflush(PortFD, TCIOFLUSH);
+            
+            int rc = tty_write_string(PortFD, request.c_str(), &nbytes_written);
+            
+            if (rc != TTY_OK)
             {
-                LOGF_ERROR("Failed to send complete command: %s", strerror(errno));
-                // Socket might be broken, close it and try to reconnect
-                close(socketFd);
-                socketFd = -1;
+                char errorMsg[MAXRBUF];
+                tty_error_msg(rc, errorMsg, MAXRBUF);
+                LOGF_ERROR("Error sending command: %s", errorMsg);
                 retries--;
                 if (retries > 0)
                 {
@@ -423,38 +372,70 @@ std::string UPS::makeNUTRequest(const std::string& command)
                 }
                 return "";
             }
+            
+            LOGF_DEBUG("Sent %d bytes to NUT server", nbytes_written);
 
-            // Read response
-            char buffer[4096];
-            std::string response;
-            ssize_t received;
-
-            // Read until we get a complete response (ends with newline)
-            while ((received = recv(socketFd, buffer, sizeof(buffer) - 1, 0)) > 0)
-            {
-                buffer[received] = '\0';
-                response += buffer;
-                if (response.find('\n') != std::string::npos)
-                    break;
+            // Pour collecter une réponse multiligne complète
+            std::string fullResponse;
+            char buffer[4096] = {0};
+            
+            // Contrôle du timeout et des tentatives de lecture
+            int readAttempts = 3;
+            int timeout = 2; // secondes
+            
+            // Lire les données jusqu'à timeout ou réception d'un "END" spécifique au protocole NUT
+            while(readAttempts > 0) {
+                int nbytes_read = 0;
+                memset(buffer, 0, sizeof(buffer));
+                
+                // Lire une ligne à la fois
+                rc = tty_read_section(PortFD, buffer, '\n', timeout, &nbytes_read);
+                
+                if (rc == TTY_OK && nbytes_read > 0) {
+                    buffer[nbytes_read] = '\0';
+                    LOGF_DEBUG("Read line: %s", buffer);
+                    
+                    fullResponse += buffer;
+                    
+                    // Si la ligne contient "END" ou "ERR", c'est généralement la fin d'une commande NUT
+                    if (strstr(buffer, "END") != nullptr || strstr(buffer, "ERR") != nullptr) {
+                        break;
+                    }
+                    
+                    // Continuer à lire plus de données
+                    continue;
+                }
+                else if (rc == TTY_TIME_OUT) {
+                    // Si nous avons déjà des données mais plus rien à lire, on a probablement tout
+                    if (!fullResponse.empty()) {
+                        LOGF_DEBUG("Read timeout after receiving %d bytes total", fullResponse.length());
+                        break;
+                    }
+                }
+                else {
+                    // Erreur de lecture
+                    char errorMsg[MAXRBUF];
+                    tty_error_msg(rc, errorMsg, MAXRBUF);
+                    LOGF_ERROR("Error reading response: %s (error code: %d)", errorMsg, rc);
+                    readAttempts--;
+                    continue;
+                }
+                
+                readAttempts--;
             }
-
-            if (received < 0)
-            {
-                LOGF_ERROR("Failed to receive response: %s", strerror(errno));
-                // Socket might be broken, close it and try to reconnect
-                close(socketFd);
-                socketFd = -1;
+            
+            if (fullResponse.empty()) {
+                LOGF_WARN("No response received from NUT server for command: %s", command.c_str());
                 retries--;
-                if (retries > 0)
-                {
+                if (retries > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(retryDelay));
                     continue;
                 }
                 return "";
             }
-
-            if (!response.empty())
-                return response;
+            
+            LOGF_DEBUG("Received full response (%d bytes): %s", fullResponse.length(), fullResponse.c_str());
+            return fullResponse;
         }
         catch (const std::exception& e)
         {
@@ -475,15 +456,7 @@ bool UPS::ISNewText(const char *dev, const char *name, char *texts[], char *name
 {
     if (isDeviceNameMatch(dev))
     {
-        if (ServerAddressTP.isNameMatch(name))
-        {
-            ServerAddressTP.update(texts, names, n);
-            ServerAddressTP.setState(IPS_OK);
-            ServerAddressTP.apply();
-            saveConfig();
-            return true;
-        }
-        else if (UPSNameTP.isNameMatch(name))
+        if (UPSNameTP.isNameMatch(name))
         {
             UPSNameTP.update(texts, names, n);
             UPSNameTP.setState(IPS_OK);
@@ -526,7 +499,6 @@ bool UPS::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
     
-    ServerAddressTP.save(fp);
     UPSNameTP.save(fp);
     ConnectionSettingsNP.save(fp);
     UpdatePeriodNP.save(fp);
@@ -540,7 +512,6 @@ bool UPS::loadConfig(bool silent, const char *property)
 
     if (property == nullptr)
     {
-        result &= ServerAddressTP.load();
         result &= UPSNameTP.load();
         result &= ConnectionSettingsNP.load();
         result &= UpdatePeriodNP.load();
@@ -555,23 +526,4 @@ IPState UPS::checkParameterState(const std::string &name) const
 {
     // Use the parent class implementation which already handles thresholds correctly
     return INDI::Weather::checkParameterState(name);
-}
-
-bool UPS::attemptReconnect()
-{
-    if (socketFd >= 0)
-    {
-        close(socketFd);
-        socketFd = -1;
-    }
-
-    // Wait before attempting to reconnect
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(ConnectionSettingsNP[2].getValue())));
-
-    // Attempt to establish a new connection
-    bool connected = Connect();
-    
-    // La méthode Connect() gère déjà l'appel à updateWeather()
-    
-    return connected;
 } 

@@ -27,6 +27,7 @@
 #pragma once
 
 #include "indiweather.h"
+#include "connectionplugins/connectiontcp.h"
 #include <string>
 #include <functional>
 #include <map>
@@ -57,26 +58,33 @@ class UPS : public INDI::Weather
         bool Disconnect() override;
         virtual IPState updateWeather() override;
         IPState checkParameterState(const std::string &name) const;
+        
+        // Handshake will be called by the Connection::TCP class
+        bool Handshake();
 
     private:
         // NUT helper methods
         bool queryUPSStatus();
         bool parseUPSResponse(const std::string& response);
         std::string makeNUTRequest(const std::string& command);
-        bool checkConnection();
-        bool attemptReconnect();
 
-        // Properties
-        INDI::PropertyText ServerAddressTP {2};  // Host and port
+        // UPS name property
         INDI::PropertyText UPSNameTP {1};  // UPS name in NUT
-        INDI::PropertyNumber ConnectionSettingsNP {4};  // Timeout, retries, retry delay, reconnect attempts
+        
+        // Connection settings property
+        INDI::PropertyNumber ConnectionSettingsNP {2};  // Retries, retry delay
+        
+        // Update period
         INDI::PropertyNumber UpdatePeriodNP {1};  // Update period in seconds
 
         // UPS status parameters mapping
         std::map<std::string, std::string> upsParameters;
 
+        // TCP Connection
+        Connection::TCP *tcpConnection {nullptr};
+
         // State variables
         bool LastParseSuccess {false};
-        int socketFd;  // Socket file descriptor for NUT connection
         int reconnectAttempts {0};  // Current number of reconnect attempts
+        int PortFD {-1};
 }; 
