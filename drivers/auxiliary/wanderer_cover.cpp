@@ -227,12 +227,12 @@ bool WandererCover::Handshake()
 
 void WandererCover::updateCoverStatus(char* res)
 {
-    if (strcmp(res, "0") == 0)
+    if (strcmp(res, "0") == 0 && isCoverOpen == true)
     {
         isCoverOpen = false;
         setParkCapStatusAsClosed();
     }
-    else if (strcmp(res, "1") == 0)
+    else if (strcmp(res, "1") == 0 && isCoverOpen == false)
     {
         isCoverOpen = true;
         setParkCapStatusAsOpen();
@@ -773,6 +773,11 @@ bool WandererCover::processConfigurationButtonSwitch(const char *dev, const char
 
     LOG_INFO("Configuration button processing complete");
     return false;
+}
+
+void WandererCover::TimerHit()
+{
+    SetTimer(getPollingPeriod());
 }
 
 bool WandererCover::hasWandererSentAnError(char* response)
