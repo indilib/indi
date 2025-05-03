@@ -29,19 +29,22 @@
 /**
  * @brief The GPSSimulator class provides a simple simulator that provide GPS Time and Location services.
  *
- * The time is fetched from the system time while the location is hard-coded to Latitude: 29.1 and Longitude: 48.5
+ * The time is fetched from the system time and the location has default Lat/Long values and can be modified.
  */
 class GPSSimulator : public INDI::GPS
 {
-    public:
-        GPSSimulator();
-        virtual ~GPSSimulator() = default;
+public:
+    GPSSimulator();
+    virtual ~GPSSimulator() = default;
 
-    protected:
-        //  Generic indi device entries
-        bool Connect();
-        bool Disconnect();
-        const char *getDefaultName();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 
-        IPState updateGPS();
+    virtual bool initProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+
+protected:
+    virtual IPState updateGPS() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 };
