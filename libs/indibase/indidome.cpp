@@ -1488,8 +1488,8 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         fs_sexa(targetAltStr, Alt, 2, 3600);
         fs_sexa(minAzStr, minAz, 2, 3600);
         fs_sexa(maxAzStr, maxAz, 2, 3600);
-        LOGF_DEBUG("Result - Current Az:%s , Target Az: %s, Alt: %s --> Range Min: %s, Max: %s", targetAzStr, targetAltStr,
-                   minAzStr, maxAzStr);
+        LOGF_DEBUG("Result - Current Az:%s , Target Az: %s, Alt: %s --> Range Min: %s, Max: %s", currentAzStr, targetAzStr,
+                   targetAltStr, minAzStr, maxAzStr);
 
         return true;
     }
