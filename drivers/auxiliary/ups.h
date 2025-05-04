@@ -60,7 +60,7 @@ class UPS : public INDI::Weather
         IPState checkParameterState(const std::string &name) const;
         
         // Handshake will be called by the Connection::TCP class
-        bool Handshake();
+        bool Handshake() override;
 
     private:
         // NUT helper methods
@@ -85,6 +85,5 @@ class UPS : public INDI::Weather
 
         // State variables
         bool LastParseSuccess {false};
-        int reconnectAttempts {0};  // Current number of reconnect attempts
         int PortFD {-1};
 }; 
