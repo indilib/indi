@@ -358,7 +358,6 @@ add_executable(indi_dragon_light ${dragonlight_SRC})
 target_link_libraries(indi_dragon_light indidriver ${HTTPLIB_LIBRARY})
 install(TARGETS indi_dragon_light RUNTIME DESTINATION bin)
 
-
 # ########## Gemini Flatpanel ###############
 SET(gemini_flatpanel_SRC
     gemini_flatpanel.cpp)
@@ -366,3 +365,11 @@ SET(gemini_flatpanel_SRC
 add_executable(indi_gemini_flatpanel ${gemini_flatpanel_SRC})
 target_link_libraries(indi_gemini_flatpanel indidriver)
 install(TARGETS indi_gemini_flatpanel RUNTIME DESTINATION bin)
+
+# ########## UPS ###############
+SET(ups_SRC
+    ups.cpp)
+
+add_executable(indi_ups_safety ${ups_SRC})
+target_link_libraries(indi_ups_safety indidriver)
+install(TARGETS indi_ups_safety RUNTIME DESTINATION bin)
