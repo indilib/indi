@@ -113,7 +113,7 @@ bool WaveshareRelay::Handshake()
     // Check if we have input support
     {
         nmbs_bitfield inputs_buffer = {0};
-        m_HaveInput = nmbs_read_discrete_inputs(&nmbs, 0, 8, inputs_buffer) != NMBS_ERROR_NONE;
+        m_HaveInput = nmbs_read_discrete_inputs(&nmbs, 0, 8, inputs_buffer) == NMBS_ERROR_NONE;
         if (m_HaveInput)
         {
             setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE | INPUT_INTERFACE);
