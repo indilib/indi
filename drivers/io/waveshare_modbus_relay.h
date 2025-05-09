@@ -73,6 +73,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface,
         Connection::TCP *tcpConnection {nullptr};
         INDI::PropertyText FirmwareVersionTP {1};
         int PortFD{-1};
+        bool m_HaveInput {false};
         nmbs_t nmbs;
 
 };

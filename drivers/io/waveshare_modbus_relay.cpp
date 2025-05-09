@@ -40,7 +40,7 @@ bool WaveshareRelay::initProperties()
     INDI::OutputInterface::initProperties("Relays", 8, "Output");
     INDI::InputInterface::initProperties("Digital Inputs", 8, 0, "Input");
 
-    setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE | INPUT_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE);
 
     addAuxControls();
 
@@ -68,7 +68,9 @@ bool WaveshareRelay::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
     INDI::OutputInterface::updateProperties();
-    INDI::InputInterface::updateProperties();
+
+    if (m_HaveInput)
+        INDI::InputInterface::updateProperties();
 
     if (isConnected())
     {
@@ -108,6 +110,17 @@ bool WaveshareRelay::Handshake()
     // Set only the response timeout. Byte timeout will be handled by the TCP connection
     nmbs_set_read_timeout(&nmbs, 1000);
 
+    // Check if we have input support
+    {
+        nmbs_bitfield inputs_buffer = {0};
+        m_HaveInput = nmbs_read_discrete_inputs(&nmbs, 0, 8, inputs_buffer) != NMBS_ERROR_NONE;
+        if (m_HaveInput)
+        {
+            setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE | INPUT_INTERFACE);
+            syncDriverInfo();
+        }
+    }
+
     uint16_t output;
     err = nmbs_read_holding_registers(&nmbs, 0x8000, 1, &output);
     if (err == NMBS_ERROR_NONE)
@@ -142,7 +155,7 @@ bool WaveshareRelay::ISNewText(const char *dev, const char *name, char *texts[],
         return true;
 
     // Check Input Properties
-    if (INDI::InputInterface::processText(dev, name, texts, names, n)) // Added this line
+    if (m_HaveInput && INDI::InputInterface::processText(dev, name, texts, names, n))
         return true;
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -173,7 +186,8 @@ bool WaveshareRelay::ISNewNumber(const char *dev, const char *name, double value
 bool WaveshareRelay::saveConfigItems(FILE * fp)
 {
     INDI::OutputInterface::saveConfigItems(fp);
-    INDI::InputInterface::saveConfigItems(fp);
+    if (m_HaveInput)
+        INDI::InputInterface::saveConfigItems(fp);
     return INDI::DefaultDevice::saveConfigItems(fp);
 }
 
@@ -185,7 +199,8 @@ void WaveshareRelay::TimerHit()
     if (!isConnected())
         return;
 
-    UpdateDigitalInputs();
+    if (m_HaveInput)
+        UpdateDigitalInputs();
     UpdateDigitalOutputs();
 
 
