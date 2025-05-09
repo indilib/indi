@@ -20,11 +20,12 @@
 #include <memory>
 #include <unistd.h>
 #include <iomanip>
+#include <sstream>
 #include <connectionplugins/connectiontcp.h>
 
 static std::unique_ptr<WaveshareRelay> sesto(new WaveshareRelay());
 
-WaveshareRelay::WaveshareRelay() : OutputInterface(this)
+WaveshareRelay::WaveshareRelay() : OutputInterface(this), InputInterface(this) // Added InputInterface(this)
 {
     setVersion(1, 0);
 }
@@ -36,9 +37,10 @@ bool WaveshareRelay::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    INDI::OutputInterface::initProperties(MAIN_CONTROL_TAB, 8, "Output");
+    INDI::OutputInterface::initProperties("Relays", 8, "Output");
+    INDI::InputInterface::initProperties("Digital Inputs", 8, 0, "Input");
 
-    setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE);
+    setDriverInterface(AUX_INTERFACE | OUTPUT_INTERFACE | INPUT_INTERFACE);
 
     addAuxControls();
 
@@ -66,6 +68,7 @@ bool WaveshareRelay::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
     INDI::OutputInterface::updateProperties();
+    INDI::InputInterface::updateProperties();
 
     if (isConnected())
     {
@@ -138,6 +141,10 @@ bool WaveshareRelay::ISNewText(const char *dev, const char *name, char *texts[],
     if (INDI::OutputInterface::processText(dev, name, texts, names, n))
         return true;
 
+    // Check Input Properties
+    if (INDI::InputInterface::processText(dev, name, texts, names, n)) // Added this line
+        return true;
+
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
@@ -166,6 +173,7 @@ bool WaveshareRelay::ISNewNumber(const char *dev, const char *name, double value
 bool WaveshareRelay::saveConfigItems(FILE * fp)
 {
     INDI::OutputInterface::saveConfigItems(fp);
+    INDI::InputInterface::saveConfigItems(fp);
     return INDI::DefaultDevice::saveConfigItems(fp);
 }
 
@@ -177,7 +185,9 @@ void WaveshareRelay::TimerHit()
     if (!isConnected())
         return;
 
+    UpdateDigitalInputs();
     UpdateDigitalOutputs();
+
 
     SetTimer(getCurrentPollingPeriod());
 }
@@ -217,14 +227,66 @@ bool WaveshareRelay::UpdateDigitalOutputs()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool WaveshareRelay::CommandOutput(uint32_t index, OutputState command)
 {
-    uint16_t value = (command == On) ? 0xFF00 : 0;
+    uint16_t value = (command == OutputState::On) ? 0xFF00 : 0;
 
     auto err = nmbs_write_single_coil(&nmbs, index, value);
     if (err != NMBS_ERROR_NONE)
     {
-        LOGF_ERROR("Error reading coils at address 0: %s", nmbs_strerror(err));
+        LOGF_ERROR("Error writing single coil at address %d: %s", index, nmbs_strerror(err));
         return false;
     }
 
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WaveshareRelay::UpdateDigitalInputs()
+{
+    nmbs_bitfield inputs_buffer = {0};
+
+    nmbs_error err = nmbs_read_discrete_inputs(&nmbs, 0, 8, inputs_buffer);
+
+    if (err != NMBS_ERROR_NONE)
+    {
+        LOGF_ERROR("Error reading discrete inputs at address 0: %s", nmbs_strerror(err));
+        for (int i = 0; i < 8; i++)
+        {
+            if (DigitalInputsSP[i].getState() != IPS_ALERT)
+            {
+                DigitalInputsSP[i].setState(IPS_ALERT);
+                DigitalInputsSP[i].apply();
+            }
+        }
+        return false;
+    }
+    else
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            auto oldStateIndex = DigitalInputsSP[i].findOnSwitchIndex();
+            auto newState      = nmbs_bitfield_read(inputs_buffer, i);
+
+            // Update if value changed or if the individual input was in ALERT
+            if (DigitalInputsSP[i].getState() == IPS_ALERT || oldStateIndex != newState)
+            {
+                DigitalInputsSP[i].reset();
+                DigitalInputsSP[i][newState].setState(ISS_ON);
+                DigitalInputsSP[i].setState(IPS_OK);
+                DigitalInputsSP[i].apply();
+            }
+        }
+
+        return true;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool WaveshareRelay::UpdateAnalogInputs()
+{
+    // We don't have analog inputs in this simulator
     return true;
 }

@@ -16,12 +16,14 @@
 
 #pragma once
 
+#include "indiinputinterface.h" // Added for InputInterface
 #include "indioutputinterface.h"
 #include "defaultdevice.h"
 #include "inditimer.h"
 #include "../../libs/modbus/nanomodbus.h"
 
-class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
+class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface,
+    public INDI::InputInterface // Added InputInterface
 {
     public:
         WaveshareRelay();
@@ -49,6 +51,14 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface
          * Polling or Event driven implemetation depends on the concrete class hardware capabilities.
          */
         virtual bool UpdateDigitalOutputs() override;
+
+        /**
+         * \brief Update all digital inputs
+         * \return True if operation is successful, false otherwise
+         */
+        bool UpdateDigitalInputs();
+
+        virtual bool UpdateAnalogInputs() override;
 
         /**
          * \brief Send command to relay
