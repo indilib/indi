@@ -56,7 +56,7 @@ class WaveshareRelay : public INDI::DefaultDevice, public INDI::OutputInterface,
          * \brief Update all digital inputs
          * \return True if operation is successful, false otherwise
          */
-        bool UpdateDigitalInputs();
+        virtual bool UpdateDigitalInputs() override;
 
         virtual bool UpdateAnalogInputs() override;
 
